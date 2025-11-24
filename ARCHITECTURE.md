@@ -21,6 +21,7 @@
 ## Shared Infrastructure
 
 - **Database:** MongoDB + Mongoose v6 (upgrading to v8)
+  - ⚠️ **Requires MongoDB Atlas for Search:** Directory and admin search features use `$search` aggregation (Atlas Search), which is not available in local MongoDB instances
 - **Auth Sessions:** NextAuth (shared between routing systems)
 - **Real-time:** Pusher
 - **Payments:** Stripe
@@ -214,6 +215,18 @@ import { z } from 'zod';
 - Environment variables maintained
 - No changes to existing deployment workflow
 - Incremental adoption of new features
+
+## Cloud Services Currently Required
+
+### MongoDB Atlas (Required for Search)
+
+- **Feature:** Directory search and admin search functionality
+- **Requirement:** MongoDB Atlas with Search indexes configured
+- **Alternative:** Local development requires either:
+  - Connecting to MongoDB Atlas instance
+  - Disabling search features for local testing
+  - Using basic MongoDB queries (requires code modification)
+- **Impact:** Search functionality will fail on local MongoDB/mongodb-memory-server
 
 ## Performance Goals
 
