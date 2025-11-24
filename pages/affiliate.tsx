@@ -1,6 +1,6 @@
 'use client';
 
-import type { NextPage } from 'next'
+import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
@@ -13,31 +13,26 @@ const Affiliate: NextPage = () => {
   const affiliate = router.query.code;
   // console.log("query", router.query);
   if (affiliate) {
-    console.log("affiliate", affiliate);
-    Local.set("affiliate", affiliate.toString(), 24 * 14); // consume the affiliate code
+    console.log('affiliate', affiliate);
+    Local.set('affiliate', affiliate.toString(), 24 * 14); // consume the affiliate code
   }
 
   useEffect(() => {
     const redirectTo = router.query.to;
     if (redirectTo) {
       const redirect_key = redirectTo.toString().toUpperCase();
-      if (redirect_key == "BECOMEAPANA") {
-        console.log("Redirect:BECOMEAPANA");
-        setTimeout(function(){
-          router.replace("/form/become-a-pana")
-        },250);
+      if (redirect_key == 'BECOMEAPANA') {
+        console.log('Redirect:BECOMEAPANA');
+        setTimeout(function () {
+          router.replace('/form/become-a-pana');
+        }, 250);
         // window.location.href="/form/become-a-pana";
       }
     }
-    router.replace("/");
-  })
+    router.replace('/');
+  });
 
+  return <div className={styles.affiliatePage}>Redirecting...</div>;
+};
 
-  return (
-    <div className={styles.affiliatePage}>
-      Redirecting...
-    </div>
-  )
-}
-
-export default Affiliate
+export default Affiliate;

@@ -1,5 +1,5 @@
 // pages/api/auth/lib/mongodb.ts
-import { MongoClient } from "mongodb";
+import { MongoClient } from 'mongodb';
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
@@ -10,7 +10,7 @@ async function getMongoClient() {
   // Use memory server for development/test
   if (process.env.USE_MEMORY_SERVER === 'true') {
     const { MongoMemoryServer } = require('mongodb-memory-server');
-    
+
     let globalWithMemoryServer = global as typeof globalThis & {
       _memoryServer?: any;
     };
@@ -19,20 +19,22 @@ async function getMongoClient() {
       console.log('🧪 Starting MongoDB Memory Server for NextAuth...');
       globalWithMemoryServer._memoryServer = await MongoMemoryServer.create({
         instance: {
-          dbName: 'panamia_dev'
+          dbName: 'panamia_dev',
         },
         binary: {
-      version: '4.4.18'  // ADD THIS LINE
-    	}
+          version: '4.4.18', // ADD THIS LINE
+        },
       });
     }
-    
+
     uri = globalWithMemoryServer._memoryServer.getUri();
     console.log('✅ NextAuth using Memory Server');
   } else {
     // Use real MongoDB
     if (!process.env.MONGODB_URI) {
-      throw new Error("Please add MONGODB_URI to .env.local or set USE_MEMORY_SERVER=true");
+      throw new Error(
+        'Please add MONGODB_URI to .env.local or set USE_MEMORY_SERVER=true'
+      );
     }
     uri = process.env.MONGODB_URI;
     console.log('✅ NextAuth using MongoDB Atlas/Remote');
@@ -41,21 +43,23 @@ async function getMongoClient() {
   return new MongoClient(uri);
 }
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === 'development') {
   let globalWithMongoClientPromise = global as typeof globalThis & {
     _mongoClientPromise?: Promise<MongoClient>;
   };
 
   if (!globalWithMongoClientPromise._mongoClientPromise) {
-    globalWithMongoClientPromise._mongoClientPromise = getMongoClient().then(c => {
-      client = c;
-      return client.connect();
-    });
+    globalWithMongoClientPromise._mongoClientPromise = getMongoClient().then(
+      (c) => {
+        client = c;
+        return client.connect();
+      }
+    );
   }
   clientPromise = globalWithMongoClientPromise._mongoClientPromise;
 } else {
   // Production mode
-  clientPromise = getMongoClient().then(c => {
+  clientPromise = getMongoClient().then((c) => {
     client = c;
     return client.connect();
   });

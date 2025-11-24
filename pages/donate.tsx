@@ -2,7 +2,15 @@ import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import styles from '../styles/Donations2.module.css';
 import PageMeta from '../components/PageMeta';
-import { IconPlant, IconMedal, IconTrophy, IconCrown, IconUser, IconStar, IconCheck } from '@tabler/icons';
+import {
+  IconPlant,
+  IconMedal,
+  IconTrophy,
+  IconCrown,
+  IconUser,
+  IconStar,
+  IconCheck,
+} from '@tabler/icons';
 import PanaButton from '../components/PanaButton';
 
 const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -11,43 +19,57 @@ const monthPreAmounts = [10, 15, 25];
 
 const GridCheck = () => {
   return (
-    <span className={styles.gridCheck} title="Checked">&#10003;</span>
-  )
-}
+    <span className={styles.gridCheck} title="Checked">
+      &#10003;
+    </span>
+  );
+};
 const GridNotCheck = () => {
   return (
-    <span className={styles.gridNotCheck} title="Not Checked">-</span>
-  )
-}
+    <span className={styles.gridNotCheck} title="Not Checked">
+      -
+    </span>
+  );
+};
 
 const TierBadge = ({ tier }: { tier: number }) => {
   if (tier === 1) {
     return (
       <div className={styles.tierBadge}>
-        <span className={styles.tier1Badge}><IconMedal size="20" /> dePana</span>
+        <span className={styles.tier1Badge}>
+          <IconMedal size="20" /> dePana
+        </span>
       </div>
-    )
+    );
   }
   if (tier === 2) {
     return (
       <div className={styles.tierBadge}>
-        <span className={styles.tier2Badge}><IconTrophy size="20" /> Pana Confiado</span>
+        <span className={styles.tier2Badge}>
+          <IconTrophy size="20" /> Pana Confiado
+        </span>
       </div>
-    )
+    );
   }
   if (tier === 3) {
     return (
       <div className={styles.tierBadge}>
-        <span className={styles.tier3Badge}><IconCrown size="20" /> Pana Real</span>
+        <span className={styles.tier3Badge}>
+          <IconCrown size="20" /> Pana Real
+        </span>
       </div>
-    )
+    );
   }
-  return (<><small>None</small></>)
-}
+  return (
+    <>
+      <small>None</small>
+    </>
+  );
+};
 
 const DonatePage: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [amount, setAmount] = useState(0.00);
+  const [amount, setAmount] = useState(0.0);
   const [allReqFields, setAllReqFields] = useState(false);
   const [comment, setComment] = useState('');
   const [dedicate, setDedicate] = useState('');
@@ -74,7 +96,9 @@ const DonatePage: React.FC = () => {
 
   //Pending Replace useEffects
   useEffect(() => {
-    setIsOther(!preAmounts.includes(amount) && !monthPreAmounts.includes(amount));
+    setIsOther(
+      !preAmounts.includes(amount) && !monthPreAmounts.includes(amount)
+    );
   }, [amount, preAmounts, monthPreAmounts]);
 
   useEffect(() => {
@@ -86,7 +110,7 @@ const DonatePage: React.FC = () => {
     if (customAmountInputRef.current) {
       customAmountInputRef.current.focus();
     }
-    setAmount(0)
+    setAmount(0);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -107,7 +131,7 @@ const DonatePage: React.FC = () => {
         customerEmail: email,
         dedicate,
         comment,
-        monthlyTier
+        monthlyTier,
       }),
     });
     const { sessionId } = await response.json();
@@ -133,27 +157,42 @@ const DonatePage: React.FC = () => {
               <div>
                 <h3>Support Our Club</h3>
                 <div className={styles.donationIntro}>
-                  <p>Pana MIA Club works hard towards our vision for a unified
-                    local SoFlo community everyday. We know we can do it with your help! You can
-                    support us by funding our mission with a one-time donation or by joining our
-                    community of supporters called Gente dePana! Our Gente dePana subscribers are
-                    the foundation of Pana MIA's sustainability, monthly contributions allow us
-                    to make bigger strides in our projects to support the local community. In
-                    return, our Gente are rewarded with so many benefits, discounts and perks
-                    that give you special access to all things Pana!</p>
+                  <p>
+                    Pana MIA Club works hard towards our vision for a unified
+                    local SoFlo community everyday. We know we can do it with
+                    your help! You can support us by funding our mission with a
+                    one-time donation or by joining our community of supporters
+                    called Gente dePana! Our Gente dePana subscribers are the
+                    foundation of Pana MIA's sustainability, monthly
+                    contributions allow us to make bigger strides in our
+                    projects to support the local community. In return, our
+                    Gente are rewarded with so many benefits, discounts and
+                    perks that give you special access to all things Pana!
+                  </p>
                 </div>
-                <p><strong>If you're committed to supporting the local South Florida community,
-                  become a Gente de Pana!</strong></p>
+                <p>
+                  <strong>
+                    If you're committed to supporting the local South Florida
+                    community, become a Gente de Pana!
+                  </strong>
+                </p>
               </div>
               <table className={styles.mobileSubsTiers}>
                 <tbody>
                   <tr>
                     <td>
                       <IconMedal size={64} stroke={1.5} />
-                      <p><b>dePana</b></p>
+                      <p>
+                        <b>dePana</b>
+                      </p>
                       <ul>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
                         <li>5% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
@@ -162,26 +201,52 @@ const DonatePage: React.FC = () => {
                   <tr>
                     <td>
                       <IconTrophy size={64} stroke={1.5} />
-                      <p><b>Pana Confiado</b></p>
+                      <p>
+                        <b>Pana Confiado</b>
+                      </p>
                       <ul className={styles.mobileTierDetails}>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
-                        <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
+                        <li>
+                          Gente dePana Card (discounts/special access to local
+                          goods,services,events)
+                        </li>
                         <li>10% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
                     </td>
-                  </tr><tr>
+                  </tr>
+                  <tr>
                     <td>
                       <IconCrown size={64} stroke={1.5} />
-                      <p><b>Pana Real</b></p>
+                      <p>
+                        <b>Pana Real</b>
+                      </p>
                       <ul>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
-                        <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
+                        <li>
+                          Gente dePana Card (discounts/special access to local
+                          goods,services,events)
+                        </li>
                         <li>First to know about Pana MIA developments</li>
-                        <li>Invited into our Focus group pool to test new products</li>
-                        <li>1 free ticket a month to select Pana MIA and affiliated events</li>
+                        <li>
+                          Invited into our Focus group pool to test new products
+                        </li>
+                        <li>
+                          1 free ticket a month to select Pana MIA and
+                          affiliated events
+                        </li>
                         <li>10% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
@@ -195,31 +260,49 @@ const DonatePage: React.FC = () => {
                   <tr>
                     <th></th>
                     <th>
-                      <IconMedal size={64} stroke={1.5} /><br />
+                      <IconMedal size={64} stroke={1.5} />
+                      <br />
                       dePana
                     </th>
                     <th>
-                      <IconTrophy size={64} stroke={1.5} /><br />
+                      <IconTrophy size={64} stroke={1.5} />
+                      <br />
                       Pana Confiado
                     </th>
                     <th>
-                      <IconCrown size={64} stroke={1.5} /><br />
+                      <IconCrown size={64} stroke={1.5} />
+                      <br />
                       Pana Real
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</td>
-                    <td><GridCheck /></td>
-                    <td><GridCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      Access to exclusive video + newsletter content (PanaVizión
+                      & LeoLero)
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                   <tr>
                     <td>Access to PanaPro features on Pana MIA's website</td>
-                    <td><GridCheck /></td>
-                    <td><GridCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      <GridCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                   <tr>
                     <td>Discount on Pana MIA merch</td>
@@ -234,65 +317,128 @@ const DonatePage: React.FC = () => {
                     <td>10%</td>
                   </tr>
                   <tr>
-                    <td>Gente dePana Card (discounts/special access to local goods,services,events)</td>
-                    <td><GridNotCheck /></td>
-                    <td><GridCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      Gente dePana Card (discounts/special access to local
+                      goods,services,events)
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                   <tr>
-                    <td>1 free ticket a month to select Pana MIA and affiliated events</td>
-                    <td><GridNotCheck /></td>
-                    <td><GridNotCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      1 free ticket a month to select Pana MIA and affiliated
+                      events
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                   <tr>
                     <td>First to know about Pana MIA developments</td>
-                    <td><GridNotCheck /></td>
-                    <td><GridNotCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                   <tr>
-                    <td>Invited into our focus group pool to test new products</td>
-                    <td><GridNotCheck /></td>
-                    <td><GridNotCheck /></td>
-                    <td><GridCheck /></td>
+                    <td>
+                      Invited into our focus group pool to test new products
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridNotCheck />
+                    </td>
+                    <td>
+                      <GridCheck />
+                    </td>
                   </tr>
                 </tbody>
               </table>
 
               <div className={styles.formAmountSelections}>
                 <h3>Select Your Donation</h3>
-                <p style={{ textAlign: "center" }}>
+                <p style={{ textAlign: 'center' }}>
                   Select an option below or enter a custom donation amount
                 </p>
-                <p><strong>Recurring Donation</strong></p>
+                <p>
+                  <strong>Recurring Donation</strong>
+                </p>
                 <div className={styles.buttonGroupUneven}>
                   <PanaButton
-                    color={(monthlyTier == 1 && isRecurring) ? "navy" : "navy"}
+                    color={monthlyTier == 1 && isRecurring ? 'navy' : 'navy'}
                     hoverColor="navy"
-                    onClick={() => { setAmount(10); setIsRecurring(true); }}
-                  ><span className={styles.buttonBadgeBlue}><IconMedal size="18" /></span>&nbsp;$10/month<span className={styles.spacer}></span></PanaButton>
+                    onClick={() => {
+                      setAmount(10);
+                      setIsRecurring(true);
+                    }}
+                  >
+                    <span className={styles.buttonBadgeBlue}>
+                      <IconMedal size="18" />
+                    </span>
+                    &nbsp;$10/month<span className={styles.spacer}></span>
+                  </PanaButton>
                   <PanaButton
-                    color={(monthlyTier == 2 && isRecurring) ? "navy" : "navy"}
+                    color={monthlyTier == 2 && isRecurring ? 'navy' : 'navy'}
                     hoverColor="navy"
-                    onClick={() => { setAmount(15); setIsRecurring(true); }}
-                  ><span className={styles.buttonBadgeYellow}><IconTrophy size="18" /></span>&nbsp;$15/month<span className={styles.spacer}></span></PanaButton>
+                    onClick={() => {
+                      setAmount(15);
+                      setIsRecurring(true);
+                    }}
+                  >
+                    <span className={styles.buttonBadgeYellow}>
+                      <IconTrophy size="18" />
+                    </span>
+                    &nbsp;$15/month<span className={styles.spacer}></span>
+                  </PanaButton>
                   <PanaButton
-                    color={(monthlyTier == 3 && isRecurring) ? "navy" : "navy"}
+                    color={monthlyTier == 3 && isRecurring ? 'navy' : 'navy'}
                     hoverColor="navy"
-                    onClick={() => { setAmount(25); setIsRecurring(true); }}
-                  ><span className={styles.buttonBadgePink}><IconCrown size="18" /></span>&nbsp;$25/month<span className={styles.spacer}></span></PanaButton>
+                    onClick={() => {
+                      setAmount(25);
+                      setIsRecurring(true);
+                    }}
+                  >
+                    <span className={styles.buttonBadgePink}>
+                      <IconCrown size="18" />
+                    </span>
+                    &nbsp;$25/month<span className={styles.spacer}></span>
+                  </PanaButton>
                 </div>
-                <p><strong>One-Time Donation</strong></p>
+                <p>
+                  <strong>One-Time Donation</strong>
+                </p>
                 <div className={styles.buttonGroupEven}>
                   {preAmounts.map((presetAmount) => (
                     <PanaButton
-                      text={"$" + presetAmount}
+                      text={'$' + presetAmount}
                       key={presetAmount}
                       color="navy"
                       hoverColor="navy"
                       type="button"
-                      onClick={() => { setAmount(presetAmount); setIsRecurring(false) }}
+                      onClick={() => {
+                        setAmount(presetAmount);
+                        setIsRecurring(false);
+                      }}
                     />
                   ))}
                   <PanaButton
@@ -300,7 +446,10 @@ const DonatePage: React.FC = () => {
                     color="gray"
                     hoverColor="navy"
                     type="button"
-                    onClick={() => { focusCustomAmountInput(); setIsRecurring(false) }}
+                    onClick={() => {
+                      focusCustomAmountInput();
+                      setIsRecurring(false);
+                    }}
                   />
                 </div>
               </div>
@@ -328,7 +477,8 @@ const DonatePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label>Subscription</label><br />
+                    <label>Subscription</label>
+                    <br />
                     <TierBadge tier={monthlyTier} />
                   </div>
                 </div>
@@ -380,17 +530,13 @@ const DonatePage: React.FC = () => {
                     className={styles.checkboxInput}
                   />
                 </div>
-
               </div>
-              <div className={styles.formGroup}>
-
-
-              </div>
+              <div className={styles.formGroup}></div>
               <div className={styles.submit}>
                 <PanaButton
                   text="Make My Donation"
                   color="navy"
-                  hoverColor={allReqFields ? "navy" : "gray"}
+                  hoverColor={allReqFields ? 'navy' : 'gray'}
                   type="submit"
                   disabled={!allReqFields}
                 />

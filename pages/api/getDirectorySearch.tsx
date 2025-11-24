@@ -1,18 +1,18 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 
-import dbConnect from "./auth/lib/connectdb";
-import { forceInt, forceString } from "@/lib/standardized";
-import { getSearch } from "@/lib/server/directory";
+import dbConnect from './auth/lib/connectdb';
+import { forceInt, forceString } from '@/lib/standardized';
+import { getSearch } from '@/lib/server/directory';
 
 interface ResponseData {
-  error?: string,
-  success?: boolean,
-  msg?: string,
-  data?: any[],
-  pagination?: {},
+  error?: string;
+  success?: boolean;
+  msg?: string;
+  data?: any[];
+  pagination?: {};
 }
 
 export default async function handler(
@@ -31,36 +31,45 @@ export default async function handler(
   //  return res.status(401).json({ error: "Not Authorized:admin" });
   //}
 
-  if (req.method !== "GET") {
+  if (req.method !== 'GET') {
     return res
       .status(200)
-      .json({ error: "This API call only accepts GET methods" });
+      .json({ error: 'This API call only accepts GET methods' });
   }
 
   const rq = req.query;
-  const pageNum = forceInt(forceString(rq?.page, "1"), 1);
-  const pageLimit = forceInt(forceString(rq?.limit, "20"), 20);
-  const searchTerm = forceString(rq?.q, "");
-  const paramRandom = forceInt(forceString(rq.random, "0"), 0);
-  const filterLocations = forceString(rq?.floc, "");
-  const filterCategories = forceString(rq?.floc, "");
-  const geolat = forceString(rq?.geolat, "");
-  const geolng = forceString(rq?.geolng, "");
-  const resultsView = forceString(rq?.v, "");
-  
+  const pageNum = forceInt(forceString(rq?.page, '1'), 1);
+  const pageLimit = forceInt(forceString(rq?.limit, '20'), 20);
+  const searchTerm = forceString(rq?.q, '');
+  const paramRandom = forceInt(forceString(rq.random, '0'), 0);
+  const filterLocations = forceString(rq?.floc, '');
+  const filterCategories = forceString(rq?.floc, '');
+  const geolat = forceString(rq?.geolat, '');
+  const geolng = forceString(rq?.geolng, '');
+  const resultsView = forceString(rq?.v, '');
+
   let random = paramRandom;
   if (searchTerm.length == 0 && random == 0) {
     random = Math.ceil(Math.random() * 100000);
     // return res.status(200).json({ success: true, data: [], pagination: {} });
   }
 
-  const params = { pageNum, pageLimit, searchTerm, 
-    filterLocations, filterCategories, random, geolat, geolng, resultsView}
+  const params = {
+    pageNum,
+    pageLimit,
+    searchTerm,
+    filterLocations,
+    filterCategories,
+    random,
+    geolat,
+    geolng,
+    resultsView,
+  };
 
   const apiResponse = await getSearch(params);
   if (apiResponse) {
     // console.log(apiResponse);
-    return res.status(200).json(apiResponse) 
+    return res.status(200).json(apiResponse);
   }
   return res.status(200).json({ success: true, data: [], pagination: {} });
 }
@@ -69,4 +78,4 @@ export const config = {
   api: {
     responseLimit: '15mb',
   },
-}
+};

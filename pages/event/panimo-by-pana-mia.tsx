@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { IconPlant, IconMedal, IconTrophy, IconCrown, } from '@tabler/icons';
+import { IconPlant, IconMedal, IconTrophy, IconCrown } from '@tabler/icons';
 
 import styles from '@/styles/event/Event.module.css';
 import PageMeta from '@/components/PageMeta';
@@ -9,7 +9,6 @@ import PanaButton from '@/components/PanaButton';
 const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
 const Event_Panimo2024: React.FC = () => {
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
@@ -18,7 +17,7 @@ const Event_Panimo2024: React.FC = () => {
       return;
     }
   };
-  
+
   // Event Description
   // Event Date & Time
   // Event Place
@@ -35,12 +34,11 @@ const Event_Panimo2024: React.FC = () => {
         </section>
         <section>
           <p></p>
-          <p>
-            March 16th, 6pm to 2am
-          </p>
+          <p>March 16th, 6pm to 2am</p>
           <address>
-          228 NE 59 St,<br />
-          Miami, FL 33137
+            228 NE 59 St,
+            <br />
+            Miami, FL 33137
           </address>
           <div className={styles.ticketSelection}>PreSale Ticket</div>
           <div className={styles.upsellSelection}>VIP</div>

@@ -22,7 +22,7 @@
       "@/components/*": ["components/*"],
       "@/lib/*": ["lib/*"],
       "@/model/*": ["api/auth/lib/model/*"]
-    },
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]

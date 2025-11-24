@@ -1,7 +1,7 @@
 import type { NextPage } from 'next';
 import { GetServerSideProps } from 'next';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../api/auth/[...nextauth]";
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../api/auth/[...nextauth]';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, FormEvent } from 'react';
 import axios from 'axios';
@@ -19,14 +19,10 @@ import AdminMenu from '@/components/Admin/AdminHeader';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
-      session: await getServerSession(
-        context.req,
-        context.res,
-        authOptions
-      ),
+      session: await getServerSession(context.req, context.res, authOptions),
     },
-  }
-}
+  };
+};
 
 const Account_Admin_Users: NextPage = () => {
   const { data: session } = useSession();
@@ -46,9 +42,15 @@ const Account_Admin_Users: NextPage = () => {
               <div>Created: {standardizeDateTime(item?.createdAt)}</div>
               <div>Updated: {standardizeDateTime(item?.updatedAt)}</div>
             </div>
-            <div className={styles.submissionListField}><label>Name</label>&emsp;{item?.name}</div>
-            <div className={styles.submissionListField}><label>Email</label>&emsp;{item?.email}</div>
-            <div className={styles.submissionListField}><label>Role</label>&emsp;{item?.status?.role}</div>
+            <div className={styles.submissionListField}>
+              <label>Name</label>&emsp;{item?.name}
+            </div>
+            <div className={styles.submissionListField}>
+              <label>Email</label>&emsp;{item?.email}
+            </div>
+            <div className={styles.submissionListField}>
+              <label>Role</label>&emsp;{item?.status?.role}
+            </div>
           </div>
         </div>
       );
@@ -57,27 +59,23 @@ const Account_Admin_Users: NextPage = () => {
   }
 
   useEffect(() => {
-    const params = new URLSearchParams()
-      .append("page", page_number.toString());
+    const params = new URLSearchParams().append('page', page_number.toString());
     axios
-    .get(
-        `/api/getUserList?${params}`,
-        {
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-        }
-    ).then((resp) => {
-      setSubmissionsList(resp.data.data);
-      setPagination(resp.data.pagination);
-      return resp;
-    })
-    .catch((error) => {
+      .get(`/api/getUserList?${params}`, {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((resp) => {
+        setSubmissionsList(resp.data.data);
+        setPagination(resp.data.pagination);
+        return resp;
+      })
+      .catch((error) => {
         console.log(error);
         return [];
-    });
-    
+      });
   }, [page_number]);
 
   if (session) {
@@ -88,35 +86,38 @@ const Account_Admin_Users: NextPage = () => {
         <div className={styles.main}>
           <h2 className={styles.accountTitle}>Users</h2>
           <div className={styles.accountForm}>
-            <div className={styles.submissionList}>
-                {createListElements()}
-            </div>
+            <div className={styles.submissionList}>{createListElements()}</div>
             <p>
               <small>&emsp;[Page: {pagination?.page_number}]&emsp;</small>
-              <AdminButton 
-                onClick={() => setPageNumber(page_number - 1)} 
-                disabled={pagination?.page_number == 1}
-                >Previous</AdminButton>
               <AdminButton
-                onClick={() => setPageNumber(page_number + 1)} 
-                disabled={(pagination?.page_number == pagination.total_pages)}
-                >Next</AdminButton>
+                onClick={() => setPageNumber(page_number - 1)}
+                disabled={pagination?.page_number == 1}
+              >
+                Previous
+              </AdminButton>
+              <AdminButton
+                onClick={() => setPageNumber(page_number + 1)}
+                disabled={pagination?.page_number == pagination.total_pages}
+              >
+                Next
+              </AdminButton>
             </p>
           </div>
         </div>
       </main>
-    )
+    );
   }
   return (
     <main className={styles.app}>
       <PageMeta title="Unauthorized" desc="" />
       <div className={styles.main}>
         <h2 className={styles.accountTitle}>UNAUTHORIZED</h2>
-        <h3 className={styles.accountTitle}>You must be logged in to view this page.</h3>
+        <h3 className={styles.accountTitle}>
+          You must be logged in to view this page.
+        </h3>
       </div>
     </main>
-  )
-}
+  );
+};
 
 export default Account_Admin_Users;
-

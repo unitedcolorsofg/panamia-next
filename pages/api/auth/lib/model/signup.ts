@@ -1,21 +1,21 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const signupSchema = new Schema(
-    {
-        email: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        name: String,
-        signupType: String,
-        acknowledged: Boolean,
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    {
-        timestamps: true
-    }
-)
+    name: String,
+    signupType: String,
+    acknowledged: Boolean,
+  },
+  {
+    timestamps: true,
+  }
+);
 
-const signup = mongoose.models.signup || mongoose.model("signup", signupSchema);
+const signup = mongoose.models.signup || mongoose.model('signup', signupSchema);
 export default signup;

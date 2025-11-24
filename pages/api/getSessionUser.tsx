@@ -1,12 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
-import { useSession } from "next-auth/react";
-import { authOptions } from "./auth/[...nextauth]";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { useSession } from 'next-auth/react';
+import { authOptions } from './auth/[...nextauth]';
 
-import dbConnect from "./auth/lib/connectdb";
-import user from "./auth/lib/model/user";
-import { uniqueAffiliateCode } from "@/lib/server/user";
+import dbConnect from './auth/lib/connectdb';
+import user from './auth/lib/model/user';
+import { uniqueAffiliateCode } from '@/lib/server/user';
 
 interface ResponseData {
   error?: string;
@@ -15,11 +15,11 @@ interface ResponseData {
   data?: any[];
 }
 
-const getUserByEmail = async (email: string) =>{
-    await dbConnect();
-    const User = await user.findOne({email: email});
-    return User;
-}
+const getUserByEmail = async (email: string) => {
+  await dbConnect();
+  const User = await user.findOne({ email: email });
+  return User;
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,28 +28,28 @@ export default async function handler(
   const session = await getServerSession(req, res, authOptions);
 
   if (!session) {
-    return res.status(401).json({ error: "No user session available" });
+    return res.status(401).json({ error: 'No user session available' });
   }
 
-  if (req.method !== "GET") {
+  if (req.method !== 'GET') {
     return res
       .status(200)
-      .json({ error: "This API call only accepts GET methods" });
+      .json({ error: 'This API call only accepts GET methods' });
   }
-  const email = session.user?.email ? (session.user?.email as string).toLowerCase() : null;
+  const email = session.user?.email
+    ? (session.user?.email as string).toLowerCase()
+    : null;
   if (!email) {
-    return res
-      .status(200)
-      .json({ error: "Email value required" });
+    return res.status(200).json({ error: 'Email value required' });
   }
   const existingUser = await getUserByEmail(email);
   if (!existingUser) {
-    console.log("getSessionUser:newUser");
-    const newUser =  new user({
+    console.log('getSessionUser:newUser');
+    const newUser = new user({
       email: email,
       name: session.user?.name,
       status: {
-        role: "user",
+        role: 'user',
         locked: null,
       },
       affiliate: {
@@ -62,22 +62,28 @@ export default async function handler(
       alternate_emails: [],
       zipCode: null,
     })
-    .save()
-    .then(() =>
-      { return res.status(200).json({ success: true, data: newUser }) }
-    )
+      .save()
+      .then(() => {
+        return res.status(200).json({ success: true, data: newUser });
+      });
   }
-  
-  if (existingUser && 
-    (typeof existingUser.affiliate === "undefined" || Object.keys(existingUser.affiliate).length === 0)
-    ) {
-    existingUser.set("affiliate", {
-      activated: false,
-      code: await uniqueAffiliateCode(),
-      accepted_tos: null,
-      tier: 0,
-      points: 0,
-    }, { strict: false });
+
+  if (
+    existingUser &&
+    (typeof existingUser.affiliate === 'undefined' ||
+      Object.keys(existingUser.affiliate).length === 0)
+  ) {
+    existingUser.set(
+      'affiliate',
+      {
+        activated: false,
+        code: await uniqueAffiliateCode(),
+        accepted_tos: null,
+        tier: 0,
+        points: 0,
+      },
+      { strict: false }
+    );
     await existingUser.save();
   }
   return res.status(200).json({ success: true, data: existingUser });
@@ -87,4 +93,4 @@ export const config = {
   api: {
     responseLimit: '15mb',
   },
-}
+};

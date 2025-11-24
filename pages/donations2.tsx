@@ -2,7 +2,13 @@ import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import styles from '../styles/Donations2.module.css';
 import PageMeta from '../components/PageMeta';
-import { IconPlant, IconMedal, IconTrophy, IconCrown, IconUser } from '@tabler/icons';
+import {
+  IconPlant,
+  IconMedal,
+  IconTrophy,
+  IconCrown,
+  IconUser,
+} from '@tabler/icons';
 import DropDownBtn from '../components/DropDownBtn';
 import PanaButton from '../components/PanaButton';
 
@@ -40,7 +46,9 @@ const DonatePage: React.FC = () => {
 
   //Pending Replace useEffects
   useEffect(() => {
-    setIsOther(!preAmounts.includes(amount) && !monthPreAmounts.includes(amount));
+    setIsOther(
+      !preAmounts.includes(amount) && !monthPreAmounts.includes(amount)
+    );
   }, [amount, preAmounts, monthPreAmounts]);
 
   useEffect(() => {
@@ -52,7 +60,7 @@ const DonatePage: React.FC = () => {
     if (customAmountInputRef.current) {
       customAmountInputRef.current.focus();
     }
-    setAmount(0)
+    setAmount(0);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -96,18 +104,26 @@ const DonatePage: React.FC = () => {
               <div>
                 <h3>Support Our Club</h3>
                 <div className={styles.donationIntro}>
-                  <p>Pana MIA Club works hard towards our vision for a unified 
-                    local SoFlo community everyday. We know we can do it with your help! You can 
-                    support us by funding our mission with a one-time donation or by joining our 
-                    community of supporters called Gente dePana! Our Gente dePana subscribers are 
-                    the foundation of Pana MIA's sustainability, monthly contributions allow us 
-                    to make bigger strides in our projects to support the local community. In 
-                    return, our Gente are rewarded with so many benefits, discounts and perks 
-                    that give you special access to all things Pana!</p>
+                  <p>
+                    Pana MIA Club works hard towards our vision for a unified
+                    local SoFlo community everyday. We know we can do it with
+                    your help! You can support us by funding our mission with a
+                    one-time donation or by joining our community of supporters
+                    called Gente dePana! Our Gente dePana subscribers are the
+                    foundation of Pana MIA's sustainability, monthly
+                    contributions allow us to make bigger strides in our
+                    projects to support the local community. In return, our
+                    Gente are rewarded with so many benefits, discounts and
+                    perks that give you special access to all things Pana!
+                  </p>
                 </div>
                 <br />
-                <p><strong>If you're committed to supporting the local South Florida community, 
-                    become a Gente de Pana!</strong></p>
+                <p>
+                  <strong>
+                    If you're committed to supporting the local South Florida
+                    community, become a Gente de Pana!
+                  </strong>
+                </p>
               </div>
               <br />
               <table className={styles.mobileSubsTiers}>
@@ -115,70 +131,131 @@ const DonatePage: React.FC = () => {
                   <tr>
                     <td>
                       <IconMedal size={64} stroke={1.5} />
-                      <p><b>TIER 1</b></p>
+                      <p>
+                        <b>TIER 1</b>
+                      </p>
                       <p>Sponsor a kid for a FunkyTown field trip.</p>
                       <DropDownBtn
                         title="Donate $10/mo"
-                        color={(monthlyTier == 1 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 1 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
                         dropdown={
                           <ul>
-                            <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                            <li>Access to PanaPro features on Pana MIA's website</li>
-                            <li>5% discount on Pana MIA and affiliated events</li>
+                            <li>
+                              Access to exclusive video + newsletter content
+                              (PanaVizión & LeoLero)
+                            </li>
+                            <li>
+                              Access to PanaPro features on Pana MIA's website
+                            </li>
+                            <li>
+                              5% discount on Pana MIA and affiliated events
+                            </li>
                             <li>10% discount on Pana MIA merch</li>
                           </ul>
                         }
-                        onClick={() => { setAmount(10); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(10);
+                          setIsRecurring(true);
+                        }}
                       />
                     </td>
                   </tr>
                   <tr>
                     <td>
                       <IconTrophy size={64} stroke={1.5} />
-                      <p><b>TIER 2</b></p>
-                      <p>Cover the cost of one family to participate in a cooking workshop.</p>
+                      <p>
+                        <b>TIER 2</b>
+                      </p>
+                      <p>
+                        Cover the cost of one family to participate in a cooking
+                        workshop.
+                      </p>
                       <DropDownBtn
                         title="Donate $15/mo"
-                        color={(monthlyTier == 2 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 2 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
                         dropdown={
                           <ul>
-                            <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                            <li>Access to PanaPro features on Pana MIA's website</li>
-                            <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
-                            <li>10% discount on Pana MIA and affiliated events</li>
+                            <li>
+                              Access to exclusive video + newsletter content
+                              (PanaVizión & LeoLero)
+                            </li>
+                            <li>
+                              Access to PanaPro features on Pana MIA's website
+                            </li>
+                            <li>
+                              Gente dePana Card (discounts/special access to
+                              local goods,services,events)
+                            </li>
+                            <li>
+                              10% discount on Pana MIA and affiliated events
+                            </li>
                             <li>10% discount on Pana MIA merch</li>
                           </ul>
                         }
-                        onClick={() => { setAmount(15); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(15);
+                          setIsRecurring(true);
+                        }}
                       />
                     </td>
-                  </tr><tr>
+                  </tr>
+                  <tr>
                     <td>
                       <IconCrown size={64} stroke={1.5} />
-                      <p><b>TIER 3</b></p>
-                      <p>Host a Community Chef Cooking Demo at the Cowtown Farmer's Market.</p>
+                      <p>
+                        <b>TIER 3</b>
+                      </p>
+                      <p>
+                        Host a Community Chef Cooking Demo at the Cowtown
+                        Farmer's Market.
+                      </p>
                       <DropDownBtn
                         title="Donate $25/mo"
-                        color={(monthlyTier == 3 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 3 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
                         dropdown={
                           <ul>
-                            <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                            <li>Access to PanaPro features on Pana MIA's website</li>
-                            <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
+                            <li>
+                              Access to exclusive video + newsletter content
+                              (PanaVizión & LeoLero)
+                            </li>
+                            <li>
+                              Access to PanaPro features on Pana MIA's website
+                            </li>
+                            <li>
+                              Gente dePana Card (discounts/special access to
+                              local goods,services,events)
+                            </li>
                             <li>First to know about Pana MIA developments</li>
-                            <li>Invited into our Focus group pool to test new products</li>
-                            <li>1 free ticket a month to select Pana MIA and affiliated events</li>
-                            <li>10% discount on Pana MIA and affiliated events</li>
+                            <li>
+                              Invited into our Focus group pool to test new
+                              products
+                            </li>
+                            <li>
+                              1 free ticket a month to select Pana MIA and
+                              affiliated events
+                            </li>
+                            <li>
+                              10% discount on Pana MIA and affiliated events
+                            </li>
                             <li>10% discount on Pana MIA merch</li>
                           </ul>
                         }
-                        onClick={() => { setAmount(25); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(25);
+                          setIsRecurring(true);
+                        }}
                       />
                     </td>
                   </tr>
@@ -190,59 +267,124 @@ const DonatePage: React.FC = () => {
                   <tr>
                     <td>
                       <IconMedal size={64} stroke={1.5} color={'#4ab3ea'} />
-                      <p><b>dePana</b></p>
-                      <hr style={{ border: 'none', height: '1px', backgroundColor: '#4ab3ea' }} />
+                      <p>
+                        <b>dePana</b>
+                      </p>
+                      <hr
+                        style={{
+                          border: 'none',
+                          height: '1px',
+                          backgroundColor: '#4ab3ea',
+                        }}
+                      />
                       <PanaButton
                         text="Donate $10/mo"
-                        color={(monthlyTier == 1 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 1 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
-                        onClick={() => { setAmount(10); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(10);
+                          setIsRecurring(true);
+                        }}
                       />
                       <ul>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
                         <li>5% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
                     </td>
                     <td>
-                      <IconTrophy size={64} stroke={1.5} color='#fab22c' />
-                      <p><b>Pana Confiado</b></p>
-                      <hr style={{ border: 'none', height: '1px', backgroundColor: '#fab22c' }} />
+                      <IconTrophy size={64} stroke={1.5} color="#fab22c" />
+                      <p>
+                        <b>Pana Confiado</b>
+                      </p>
+                      <hr
+                        style={{
+                          border: 'none',
+                          height: '1px',
+                          backgroundColor: '#fab22c',
+                        }}
+                      />
                       <PanaButton
                         text="Donate $15/mo"
-                        color={(monthlyTier == 2 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 2 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
-                        onClick={() => { setAmount(15); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(15);
+                          setIsRecurring(true);
+                        }}
                       />
                       <ul>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
-                        <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
+                        <li>
+                          Gente dePana Card (discounts/special access to local
+                          goods,services,events)
+                        </li>
                         <li>10% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
                     </td>
                     <td>
-                      <IconCrown size={64} stroke={1.5} color='#fc2070' />
-                      <p><b>Pana Real</b></p>
-                      <hr style={{ border: 'none', height: '1px', backgroundColor: '#fc2070' }} />
+                      <IconCrown size={64} stroke={1.5} color="#fc2070" />
+                      <p>
+                        <b>Pana Real</b>
+                      </p>
+                      <hr
+                        style={{
+                          border: 'none',
+                          height: '1px',
+                          backgroundColor: '#fc2070',
+                        }}
+                      />
                       <PanaButton
                         text="Donate $25/mo"
-                        color={(monthlyTier == 3 && isRecurring) ? "navy" : "gray"}
+                        color={
+                          monthlyTier == 3 && isRecurring ? 'navy' : 'gray'
+                        }
                         hoverColor="navy"
                         type="button"
-                        onClick={() => { setAmount(25); setIsRecurring(true); }}
+                        onClick={() => {
+                          setAmount(25);
+                          setIsRecurring(true);
+                        }}
                       />
                       <ul>
-                        <li>Access to exclusive video + newsletter content (PanaVizión & LeoLero)</li>
-                        <li>Access to PanaPro features on Pana MIA's website</li>
-                        <li>Gente dePana Card (discounts/special access to local goods,services,events)</li>
+                        <li>
+                          Access to exclusive video + newsletter content
+                          (PanaVizión & LeoLero)
+                        </li>
+                        <li>
+                          Access to PanaPro features on Pana MIA's website
+                        </li>
+                        <li>
+                          Gente dePana Card (discounts/special access to local
+                          goods,services,events)
+                        </li>
                         <li>First to know about Pana MIA developments</li>
-                        <li>Invited into our Focus group pool to test new products</li>
-                        <li>1 free ticket a month to select Pana MIA and affiliated events</li>
+                        <li>
+                          Invited into our Focus group pool to test new products
+                        </li>
+                        <li>
+                          1 free ticket a month to select Pana MIA and
+                          affiliated events
+                        </li>
                         <li>10% discount on Pana MIA and affiliated events</li>
                         <li>10% discount on Pana MIA merch</li>
                       </ul>
@@ -254,20 +396,20 @@ const DonatePage: React.FC = () => {
               <div className={styles.oneTime}>
                 {!isRecurring && (
                   <PanaButton
-                  text="One-Time Donation"
-                  color={isRecurring ? "gray" : "navy"}
-                  hoverColor="navy"
-                  type="button"
-                  onClick={() => setIsRecurring(false)} //Just in case we change it to always show
-                />
+                    text="One-Time Donation"
+                    color={isRecurring ? 'gray' : 'navy'}
+                    hoverColor="navy"
+                    type="button"
+                    onClick={() => setIsRecurring(false)} //Just in case we change it to always show
+                  />
                 )}
                 <br />
                 <div className={styles.buttonGroup}>
                   {amountsToUse.map((presetAmount) => (
                     <PanaButton
-                      text={"Donate " + "$" + presetAmount}
+                      text={'Donate ' + '$' + presetAmount}
                       key={presetAmount}
-                      color={(presetAmount == amount) ? "navy" : "gray"}
+                      color={presetAmount == amount ? 'navy' : 'gray'}
                       hoverColor="navy"
                       type="button"
                       onClick={() => setAmount(presetAmount)}
@@ -275,7 +417,7 @@ const DonatePage: React.FC = () => {
                   ))}
                   <PanaButton
                     text="Other"
-                    color={isOther ? "navy" : "gray"}
+                    color={isOther ? 'navy' : 'gray'}
                     hoverColor="navy"
                     type="button"
                     onClick={focusCustomAmountInput}
@@ -300,7 +442,9 @@ const DonatePage: React.FC = () => {
                     defaultValue=""
                     onChange={(e) => setDedicate(e.target.value)}
                   >
-                    <option value="" disabled hidden>Dedicate donation to</option>
+                    <option value="" disabled hidden>
+                      Dedicate donation to
+                    </option>
                     <option value="PanaVisión">PanaVisión</option>
                     <option value="Directory">Directory</option>
                     <option value="Merch Shop">Merch Shop</option>
@@ -324,7 +468,8 @@ const DonatePage: React.FC = () => {
                     checked={isAnonymous}
                     onChange={(e) => setIsAnonymous(e.target.checked)}
                     className={styles.checkboxInput}
-                  />Donate Anonymously
+                  />
+                  Donate Anonymously
                 </label>
                 <label>
                   <input
@@ -341,8 +486,8 @@ const DonatePage: React.FC = () => {
               <div className={styles.submit}>
                 <PanaButton
                   text="BECOME A SPONSOR"
-                  color={allReqFields ? "pink" : "gray"}
-                  hoverColor={allReqFields ? "navy" : "gray"}
+                  color={allReqFields ? 'pink' : 'gray'}
+                  hoverColor={allReqFields ? 'navy' : 'gray'}
                   type="submit"
                   disabled={!allReqFields}
                 />
@@ -357,9 +502,15 @@ const DonatePage: React.FC = () => {
               <table>
                 <tbody>
                   <tr>
-                    <td><IconUser size={64} stroke={1.5} /></td>
-                    <td><IconUser size={64} stroke={1.5} /></td>
-                    <td><IconUser size={64} stroke={1.5} /></td>
+                    <td>
+                      <IconUser size={64} stroke={1.5} />
+                    </td>
+                    <td>
+                      <IconUser size={64} stroke={1.5} />
+                    </td>
+                    <td>
+                      <IconUser size={64} stroke={1.5} />
+                    </td>
                   </tr>
                 </tbody>
               </table>

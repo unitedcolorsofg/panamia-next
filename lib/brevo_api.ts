@@ -3,34 +3,40 @@
 
 export default class BrevoApi {
   config = {
-    apiKey: process.env.BREVO_APIKEY || "",
-    base_url: "https://api.brevo.com/v3",
-    sender_email: process.env.BREVO_SENDEREMAIL || "",
-    sender_name: process.env.BREVO_SENDERNAME || "PanaMia Club",
+    apiKey: process.env.BREVO_APIKEY || '',
+    base_url: 'https://api.brevo.com/v3',
+    sender_email: process.env.BREVO_SENDEREMAIL || '',
+    sender_name: process.env.BREVO_SENDERNAME || 'PanaMia Club',
     default_receiver: process.env.DEV_RECEIVER_EMAIL || 'hola@panamia.club',
     lists: {
-      "addedByWebsite": process.env.BREVO_LIST_ADDEDBYWEBSITE,
-      "webformNewsletter": process.env.BREVO_LIST_WEBFORMNEWSLETTER,
-      "webformContactUs": process.env.BREVO_LIST_WEBFORMCONTACTUS,
-      "webformLogin": process.env.BREVO_LIST_WEBFORMLOGIN,
-      "webformProfile": process.env.BREVO_LIST_WEBFORMPROFILE,
-      "webformAccount": process.env.BREVO_LIST_WEBFORMACCOUNT,
+      addedByWebsite: process.env.BREVO_LIST_ADDEDBYWEBSITE,
+      webformNewsletter: process.env.BREVO_LIST_WEBFORMNEWSLETTER,
+      webformContactUs: process.env.BREVO_LIST_WEBFORMCONTACTUS,
+      webformLogin: process.env.BREVO_LIST_WEBFORMLOGIN,
+      webformProfile: process.env.BREVO_LIST_WEBFORMPROFILE,
+      webformAccount: process.env.BREVO_LIST_WEBFORMACCOUNT,
     },
     templates: {
-      "adminSignupConfirmation": process.env.BREVO_TEMPLATE_ADMINSIGNUPCONFIRMATION
+      adminSignupConfirmation:
+        process.env.BREVO_TEMPLATE_ADMINSIGNUPCONFIRMATION,
     },
     api_schema: {
-      Emails:	{sendTransactional:	{method: "POST", endpoint: "/smtp/email"}},
-      Contacts:	{
-        getByEmail:	{method: "GET", endpoint: "/contacts/{email}"},
-        create:	{method: "POST", endpoint: "/contacts"},
+      Emails: {
+        sendTransactional: { method: 'POST', endpoint: '/smtp/email' },
+      },
+      Contacts: {
+        getByEmail: { method: 'GET', endpoint: '/contacts/{email}' },
+        create: { method: 'POST', endpoint: '/contacts' },
       },
       ContactLists: {
-        add:	{method: "GET", endpoint: "/contacts/lists/{listId}/contacts/add"},
-      }
-    }
-  }
-  
+        add: {
+          method: 'GET',
+          endpoint: '/contacts/lists/{listId}/contacts/add',
+        },
+      },
+    },
+  };
+
   ready = false;
   constructor() {
     this.ready = this.validApiKey();
@@ -38,7 +44,7 @@ export default class BrevoApi {
 
   validApiKey() {
     if (!this.config.apiKey) {
-      console.log("Brevo:validApiKey:noApiKey");
+      console.log('Brevo:validApiKey:noApiKey');
       return false;
     }
     return true;
@@ -46,11 +52,11 @@ export default class BrevoApi {
 
   async getCall(endpoint: string) {
     const response = await fetch(endpoint, {
-      method: "GET",
+      method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        'api-key': this.config.apiKey
+        'api-key': this.config.apiKey,
       },
     });
     if (response.ok) {
@@ -58,18 +64,22 @@ export default class BrevoApi {
       console.log(`brevo:[${endpoint}]:result`, result);
       return result;
     } else {
-      console.log(`brevo:[${endpoint}]:responseNotOk`, response.status, response.statusText);
+      console.log(
+        `brevo:[${endpoint}]:responseNotOk`,
+        response.status,
+        response.statusText
+      );
       return null;
     }
   }
 
   async postCall(endpoint: string, body: any) {
     const response = await fetch(endpoint, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        'api-key': this.config.apiKey
+        'api-key': this.config.apiKey,
       },
       body: JSON.stringify(body),
     });
@@ -79,56 +89,66 @@ export default class BrevoApi {
       console.log(`brevo:[${endpoint}]:result`, result);
       return result;
     } else {
-      console.log(`brevo:[${endpoint}]:responseNotOk`, response.status, response.statusText);
+      console.log(
+        `brevo:[${endpoint}]:responseNotOk`,
+        response.status,
+        response.statusText
+      );
       return null;
     }
   }
 
   async sendTemplateEmail(template_id: number, params: {}, email?: string) {
     const call = this.config.api_schema.Emails.sendTransactional;
-    const full_endpoint = `${this.config.base_url}${call.endpoint}`
+    const full_endpoint = `${this.config.base_url}${call.endpoint}`;
 
-    const receiver_email = (email ? email : this.config.default_receiver)
+    const receiver_email = email ? email : this.config.default_receiver;
     let receivers = [
-        {
-            email: receiver_email
-        },
+      {
+        email: receiver_email,
+      },
     ];
 
     return this.postCall(full_endpoint, {
-       "to":receivers,
-       "templateId": template_id,
-       "params": params,
+      to: receivers,
+      templateId: template_id,
+      params: params,
     });
   }
 
   async findContact(email: string) {
     const call = this.config.api_schema.Contacts.getByEmail;
-    const full_endpoint = `${this.config.base_url}${call.endpoint}`
-    const params_endpoint = full_endpoint.replace('{email}', encodeURIComponent(email));
-  
+    const full_endpoint = `${this.config.base_url}${call.endpoint}`;
+    const params_endpoint = full_endpoint.replace(
+      '{email}',
+      encodeURIComponent(email)
+    );
+
     return this.getCall(params_endpoint);
   }
 
   async createOrUpdateContact(email: string, attributes: {}, list_ids?: any[]) {
     const call = this.config.api_schema.Contacts.create;
-    const full_endpoint = `${this.config.base_url}${call.endpoint}`
-  
+    const full_endpoint = `${this.config.base_url}${call.endpoint}`;
+
     return this.postCall(full_endpoint, {
-      "email": email,
-      "attributes": attributes,
-      "updateEnabled": true,
-      ...((list_ids && list_ids.length > 0) && {"listIds": list_ids}),
+      email: email,
+      attributes: attributes,
+      updateEnabled: true,
+      ...(list_ids && list_ids.length > 0 && { listIds: list_ids }),
     });
   }
 
   addContactToList(list_id: string, email: string) {
     const call = this.config.api_schema.ContactLists.add;
     const full_endpoint = `${this.config.base_url}${call.endpoint}`;
-    const params_endpoint = full_endpoint.replace('{listId}', encodeURIComponent(list_id));
-  
+    const params_endpoint = full_endpoint.replace(
+      '{listId}',
+      encodeURIComponent(list_id)
+    );
+
     return this.postCall(params_endpoint, {
-      "emails": [email]
+      emails: [email],
     });
   }
 }

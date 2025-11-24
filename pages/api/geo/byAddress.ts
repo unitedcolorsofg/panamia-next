@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 interface ResponseData {
   error?: string;
@@ -12,11 +12,10 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-
-  if (req.method !== "POST") {
+  if (req.method !== 'POST') {
     return res
       .status(200)
-      .json({ error: "This API call only accepts POST methods" });
+      .json({ error: 'This API call only accepts POST methods' });
   }
 
   const { address } = req.body;
@@ -29,25 +28,37 @@ export default async function handler(
   const psResponse = await fetch(url);
 
   if (!psResponse.ok) {
-    return res.status(200).json({ success: false, error: "We couldn't get your GeoLocation, check your address and try again" });
+    return res.status(200).json({
+      success: false,
+      error:
+        "We couldn't get your GeoLocation, check your address and try again",
+    });
   }
 
   const georesponse = await psResponse.json();
   const geodata = georesponse.data as Array<any>;
   // console.log(geodata);
   if (geodata.length == 0) {
-    return res.status(200).json({ success: false, error: "We couldn't find results for the address you entered" });
+    return res.status(200).json({
+      success: false,
+      error: "We couldn't find results for the address you entered",
+    });
   }
   const firstAddress = geodata[0];
   if (firstAddress?.latitude && firstAddress.longitude) {
-    const geoData = [{
-      "lat": firstAddress.latitude,
-      "lng": firstAddress.longitude,
-    }]
+    const geoData = [
+      {
+        lat: firstAddress.latitude,
+        lng: firstAddress.longitude,
+      },
+    ];
     return res.status(200).json({ success: true, data: geoData });
   }
-  
-  return res.status(200).json({ success: false, error: "We couldn't find results for the address you entered [2]" });
+
+  return res.status(200).json({
+    success: false,
+    error: "We couldn't find results for the address you entered [2]",
+  });
 }
 
 export const config = {
@@ -55,4 +66,4 @@ export const config = {
     responseLimit: false,
     maxDuration: 5,
   },
-}
+};

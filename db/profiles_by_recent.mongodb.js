@@ -10,18 +10,18 @@ db.getCollection('profiles')
   .find(
     {
       /*
-      * Filter
-      * fieldA: value or expression
-      */
+       * Filter
+       * fieldA: value or expression
+       */
     },
     {
       /*
-      * Projection
-      * _id: 0, // exclude _id
-      * fieldA: 1 // include field
-      */
+       * Projection
+       * _id: 0, // exclude _id
+       * fieldA: 1 // include field
+       */
     }
   )
   .sort({
-    createdAt: -1
+    createdAt: -1,
   });

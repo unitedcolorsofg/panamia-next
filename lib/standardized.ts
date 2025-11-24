@@ -1,147 +1,159 @@
-import { PronounsInterface } from "./interfaces";
+import { PronounsInterface } from './interfaces';
 
 export const standardizedFields = {
-    "email": {
-        "maxLength": 100
-    },
-    "phoneNumber": {
-        "maxLength": 15
-    },
-}
+  email: {
+    maxLength: 100,
+  },
+  phoneNumber: {
+    maxLength: 15,
+  },
+};
 
 export const serialize = (object: any) => {
-    return  JSON.parse(JSON.stringify(object));
-}
+  return JSON.parse(JSON.stringify(object));
+};
 
 export const dateXdays = (days: number) => {
-    const last_xdays_datetime = new Date(new Date().setDate(new Date().getDate() - days)).toISOString();
-    const last_xdays_date = last_xdays_datetime.slice(0, last_xdays_datetime.indexOf("T"));
-    return new Date(last_xdays_date);
-}
+  const last_xdays_datetime = new Date(
+    new Date().setDate(new Date().getDate() - days)
+  ).toISOString();
+  const last_xdays_date = last_xdays_datetime.slice(
+    0,
+    last_xdays_datetime.indexOf('T')
+  );
+  return new Date(last_xdays_date);
+};
 
 export const createUniqueString = () => {
-    const crypto = require('crypto');
-    const base = new Uint32Array(5);
-    crypto.getRandomValues(base);
-    let r = "";
-    base.forEach((value) => { r = r + value.toString(36)})
-    return r;
-}
-
+  const crypto = require('crypto');
+  const base = new Uint32Array(5);
+  crypto.getRandomValues(base);
+  let r = '';
+  base.forEach((value) => {
+    r = r + value.toString(36);
+  });
+  return r;
+};
 
 export const forceInt = (value: string | undefined, ifNaN: number) => {
-    if (value === undefined) {
-        return ifNaN;
-    }
-    if (Number.isNaN(parseInt(value))) {
-        return ifNaN;
-    }
-    return parseInt(value);
-}
+  if (value === undefined) {
+    return ifNaN;
+  }
+  if (Number.isNaN(parseInt(value))) {
+    return ifNaN;
+  }
+  return parseInt(value);
+};
 
-export const forceString = (value: string | string[] | undefined, ifNaS: string) => {
-    if (value === undefined) {
-        return ifNaS;
-    }
-    if (!value) {
-        return ifNaS;
-    }
-    return value.toString(); 
-}
+export const forceString = (
+  value: string | string[] | undefined,
+  ifNaS: string
+) => {
+  if (value === undefined) {
+    return ifNaS;
+  }
+  if (!value) {
+    return ifNaS;
+  }
+  return value.toString();
+};
 
 export const randomFromItem = (item: any) => {
-    return item[Math.floor(Math.random()*item.length)];
-}
+  return item[Math.floor(Math.random() * item.length)];
+};
 
 export const generateAffiliateCode = () => {
-    const charList = "123456789ABCDEFGHJKMNPQRSTUVWXYZ" // no 0, O, I, L
-    let code = "";
-    Array.from(Array(10)).forEach(() => {code = `${code}${randomFromItem(charList)}`});
-    return `CP${code}`;
-}
+  const charList = '123456789ABCDEFGHJKMNPQRSTUVWXYZ'; // no 0, O, I, L
+  let code = '';
+  Array.from(Array(10)).forEach(() => {
+    code = `${code}${randomFromItem(charList)}`;
+  });
+  return `CP${code}`;
+};
 
 export const standardizeDateTime = function (value: Date | undefined) {
-    if (value === undefined) {
-        return "";
-    }
-    if (typeof value === "string") {
-        value = new Date(value);
-    }
-    if (value) {
-        const options: any = {
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-          };
-        return new Intl.DateTimeFormat(undefined, options).format(value)
-    }
-    return "";
-}
+  if (value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    value = new Date(value);
+  }
+  if (value) {
+    const options: any = {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true,
+    };
+    return new Intl.DateTimeFormat(undefined, options).format(value);
+  }
+  return '';
+};
 
 export const splitName = function (value: string) {
-    let firstName = value;
-    let lastName = "";
-    if (value.indexOf(" ") > 0) {
-      firstName = value.split(' ').slice(0, -1).join(' ');
-      lastName = value.split(' ').slice(-1).join(' ');
-    }
-    return [ firstName, lastName ];
-}
+  let firstName = value;
+  let lastName = '';
+  if (value.indexOf(' ') > 0) {
+    firstName = value.split(' ').slice(0, -1).join(' ');
+    lastName = value.split(' ').slice(-1).join(' ');
+  }
+  return [firstName, lastName];
+};
 
 export const displayPronouns = (pronouns: PronounsInterface | undefined) => {
-    // console.log(pronouns);
-    if (!pronouns) {
-        return "";
-    }
-    let pronounArray = [];
-    if (pronouns.sheher) {
-        pronounArray.push("She/Her");
-    }
-    if (pronouns.hehim) {
-        pronounArray.push("He/Him");
-    }
-    if (pronouns.theythem) {
-        pronounArray.push("They/Them");
-    }
-    if (pronouns.none) {
-        pronounArray.push("None");
-    }
-    if (pronouns.other) {
-        pronounArray.push(pronouns.other_desc);
-    }
-    console.log("pronounArray", pronounArray);
-    return pronounArray.join(",")
-}
+  // console.log(pronouns);
+  if (!pronouns) {
+    return '';
+  }
+  let pronounArray = [];
+  if (pronouns.sheher) {
+    pronounArray.push('She/Her');
+  }
+  if (pronouns.hehim) {
+    pronounArray.push('He/Him');
+  }
+  if (pronouns.theythem) {
+    pronounArray.push('They/Them');
+  }
+  if (pronouns.none) {
+    pronounArray.push('None');
+  }
+  if (pronouns.other) {
+    pronounArray.push(pronouns.other_desc);
+  }
+  console.log('pronounArray', pronounArray);
+  return pronounArray.join(',');
+};
 
-export const buildSearchData = function(...args: any[]) {
-    return args.reduce( (accu, current) => { `${accu} | ${current}`});
-}
+export const buildSearchData = function (...args: any[]) {
+  return args.reduce((accu, current) => {
+    `${accu} | ${current}`;
+  });
+};
 
 export const debounce = (func: Function, wait = 500) => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return function (this: any, ...args: any[]) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => func.apply(this, args), wait);
-    };
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function (this: any, ...args: any[]) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), wait);
+  };
 };
 
 export const slugify = (value: string) => {
-    // TODO: Check for duplicate slug
-    return value.normalize('NFD')
-        .replaceAll("&", "and")
-        .replaceAll("_", " ")
-        .replaceAll("/", " ")
-        .replaceAll(".", " ")
-        .replaceAll(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-        .replaceAll(/[^a-z0-9 ]/g, '')
-        .replaceAll(/\s+/g, '-');
-}
+  // TODO: Check for duplicate slug
+  return value
+    .normalize('NFD')
+    .replaceAll('&', 'and')
+    .replaceAll('_', ' ')
+    .replaceAll('/', ' ')
+    .replaceAll('.', ' ')
+    .replaceAll(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9 ]/g, '')
+    .replaceAll(/\s+/g, '-');
+};
 
-export const truncateWithEllipsis = (value: string) => {
-
-}
+export const truncateWithEllipsis = (value: string) => {};

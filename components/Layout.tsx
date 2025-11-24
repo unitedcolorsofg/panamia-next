@@ -3,21 +3,22 @@ import Head from 'next/head';
 
 import GlobalHead from './GlobalHead';
 import MainHeader from './MainHeader';
-import MainFooter  from './MainFooter';
+import MainFooter from './MainFooter';
 import PageTracking from './PageTracking';
 import PageTrackingEnd from './PageTrackingEnd';
 
 type LayoutProps = {
-  children: React.ReactNode,
+  children: React.ReactNode;
 };
 
 export default function Layout({ children }: LayoutProps) {
-
   function onBodyClick() {
-    const dialogUser = document.getElementById('dialog-user-mainheader') as HTMLDialogElement;
+    const dialogUser = document.getElementById(
+      'dialog-user-mainheader'
+    ) as HTMLDialogElement;
     if (dialogUser) {
       if (dialogUser.open) {
-          dialogUser.close()
+        dialogUser.close();
       }
     }
   }
@@ -31,9 +32,7 @@ export default function Layout({ children }: LayoutProps) {
       <PageTracking />
       <div id="layout-body" onClick={onBodyClick}>
         <MainHeader />
-        <div id="layout-main">
-          {children}
-        </div>
+        <div id="layout-main">{children}</div>
         <MainFooter />
       </div>
       <PageTrackingEnd />

@@ -1,7 +1,7 @@
-import type { NextPage } from 'next'
+import type { NextPage } from 'next';
 import React from 'react';
 
-import styles from '@/styles/GoogleEmbeddedForm.module.css'
+import styles from '@/styles/GoogleEmbeddedForm.module.css';
 import PageMeta from '@/components/PageMeta';
 
 const BecomeAPana: NextPage = () => {
@@ -10,12 +10,17 @@ const BecomeAPana: NextPage = () => {
       <PageMeta
         title="Become a Pana"
         desc="Sign up to become a Pana and get the benefits of being listed on our directory!"
-        />
+      />
       <div className={styles.main}>
-        <iframe className={styles.fullFrame} src="https://docs.google.com/forms/d/e/1FAIpQLSdE7qckjuydnNl4GPLyyU6whh89MuOGTIEZIaI5EhFfOk4wVA/viewform?embedded=true">Loading...</iframe>
+        <iframe
+          className={styles.fullFrame}
+          src="https://docs.google.com/forms/d/e/1FAIpQLSdE7qckjuydnNl4GPLyyU6whh89MuOGTIEZIaI5EhFfOk4wVA/viewform?embedded=true"
+        >
+          Loading...
+        </iframe>
       </div>
-  </main>
-  )
-}
+    </main>
+  );
+};
 
-export default BecomeAPana
+export default BecomeAPana;

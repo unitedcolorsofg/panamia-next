@@ -11,7 +11,14 @@ type DropDownBtnProps = {
   onClick?: () => void;
 };
 
-const DropDownBtn: React.FC<DropDownBtnProps> = ({ title, color, hoverColor, dropdown, type, onClick }) => {
+const DropDownBtn: React.FC<DropDownBtnProps> = ({
+  title,
+  color,
+  hoverColor,
+  dropdown,
+  type,
+  onClick,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleButtonClick = () => {
@@ -23,18 +30,14 @@ const DropDownBtn: React.FC<DropDownBtnProps> = ({ title, color, hoverColor, dro
 
   return (
     <div>
-      <PanaButton 
-        text={title} 
-        color={color} 
+      <PanaButton
+        text={title}
+        color={color}
         hoverColor={hoverColor}
         onClick={handleButtonClick}
         type={type}
       />
-      {isOpen && (
-        <div className={styles.DropDownBtn}>
-          {dropdown}
-        </div>
-      )}
+      {isOpen && <div className={styles.DropDownBtn}>{dropdown}</div>}
     </div>
   );
 };

@@ -1,37 +1,37 @@
-import { ChangeEvent, useState } from "react";
-import Image from "next/image";
+import { ChangeEvent, useState } from 'react';
+import Image from 'next/image';
 
-import styles from "./FileUploader.module.css";
+import styles from './FileUploader.module.css';
 
 export default function FileUploader() {
-  const [imageUrl, setImageUrl] = useState("/images/placeholder-image.jpg");
+  const [imageUrl, setImageUrl] = useState('/images/placeholder-image.jpg');
 
   const onImageFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
 
     if (!fileInput.files) {
-      console.warn("no file was chosen");
+      console.warn('no file was chosen');
       return;
     }
 
     if (!fileInput.files || fileInput.files.length === 0) {
-      console.warn("files list is empty");
+      console.warn('files list is empty');
       return;
     }
 
     const file = fileInput.files[0];
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     try {
-      const res = await fetch("/api/uploadFile", {
-        method: "POST",
+      const res = await fetch('/api/uploadFile', {
+        method: 'POST',
         body: formData,
       });
 
       if (!res.ok) {
-        console.error("something went wrong, check your console.");
+        console.error('something went wrong, check your console.');
         return;
       }
 
@@ -39,17 +39,17 @@ export default function FileUploader() {
 
       setImageUrl(data.fileUrl);
     } catch (error) {
-      console.error("something went wrong, check your console.");
+      console.error('something went wrong, check your console.');
     }
 
     /** Reset file input */
-    e.target.type = "text";
-    e.target.type = "file";
+    e.target.type = 'text';
+    e.target.type = 'file';
   };
 
   return (
     <label
-      className={styles["file-uploader"]}
+      className={styles['file-uploader']}
       style={{ paddingTop: `calc(100% * (${446} / ${720}))` }}
     >
       <Image
@@ -60,7 +60,7 @@ export default function FileUploader() {
         priority={true}
       />
       <input
-        style={{ display: "none" }}
+        style={{ display: 'none' }}
         type="file"
         onChange={onImageFileChange}
       />
