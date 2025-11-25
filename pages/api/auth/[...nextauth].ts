@@ -44,6 +44,15 @@ export const authOptions = {
         },
       },
       from: process.env.EMAIL_FROM,
+      // Log magic link to console in development
+      async sendVerificationRequest({ identifier, url, provider }) {
+        console.log('\n===== MAGIC SIGN-IN LINK =====');
+        console.log(`Email: ${identifier}`);
+        console.log(`Link:  ${url}`);
+        console.log('================================\n');
+        // Return successfully without actually sending email
+        return Promise.resolve();
+      },
     }),
   ],
   callbacks: {
@@ -59,8 +68,8 @@ export const authOptions = {
     brandColor: '#4ab3ea',
     buttonText: '#fff',
   },
-  secret: process.env.NEXT_PUBLIC_SECRET,
-  debug: false,
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: true,
 };
 
 export default NextAuth(authOptions);
