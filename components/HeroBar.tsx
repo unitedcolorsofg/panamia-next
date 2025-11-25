@@ -6,10 +6,10 @@ import PanaButton from './PanaButton';
 export default function HeroBar() {
   return (
     <div className={styles.heroBar}>
-      <Link href="">
+      <Link legacyBehavior href="">
         <PanaButton text="Events" color="yellow"></PanaButton>
       </Link>
-      <Link href="/podcasts">
+      <Link legacyBehavior href="/podcasts">
         <PanaButton text="Podcasts" color="yellow"></PanaButton>
       </Link>
     </div>

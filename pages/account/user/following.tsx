@@ -54,7 +54,7 @@ const Account_User_Following: NextPage = () => {
             )) || <img src="/img/bg_coconut_blue.jpg" />}
           </div>
           <div className={styles.listCardName}>
-            <Link href={`/profile/${item.slug}`}>
+            <Link legacyBehavior href={`/profile/${item.slug}`}>
               <a>{item.name}</a>
             </Link>
           </div>

@@ -139,7 +139,7 @@ export default function MainHeader() {
   function MenuItem(props: MenuItemProps): JSX.Element {
     return (
       <li className={styles.listItem}>
-        <Link href={props.url}>
+        <Link legacyBehavior href={props.url}>
           <a
             onClick={onMenuClick}
             className={props?.special == true ? styles.linkSpecial : ''}
@@ -173,7 +173,7 @@ export default function MainHeader() {
       <div className={styles.navWrap}>
         <nav role="navigation" className={styles.nav} style={navStyle}>
           <div className={styles.navLogo}>
-            <Link href="/">
+            <Link legacyBehavior href="/">
               <img src="/logos/pana_logo_long_pink.png" />
             </Link>
           </div>
@@ -224,7 +224,7 @@ export default function MainHeader() {
               <ul>
                 {isAdmin && (
                   <li className={styles.adminLink}>
-                    <Link href="/account/admin">
+                    <Link legacyBehavior href="/account/admin">
                       <a>
                         <IconAlien height="16" width="16" />
                         &nbsp;ADMIN
@@ -233,7 +233,7 @@ export default function MainHeader() {
                   </li>
                 )}
                 <li>
-                  <Link href="/account/user">
+                  <Link legacyBehavior href="/account/user">
                     <a>
                       <IconSettings height="16" width="16" />
                       &nbsp;Account
@@ -241,7 +241,7 @@ export default function MainHeader() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/account/user/following">
+                  <Link legacyBehavior href="/account/user/following">
                     <a>
                       <IconUsers height="16" width="16" />
                       &nbsp;Following
@@ -250,7 +250,7 @@ export default function MainHeader() {
                 </li>
                 {isAdmin && (
                   <li>
-                    <Link href="/account/user/lists">
+                    <Link legacyBehavior href="/account/user/lists">
                       <a>
                         <IconPlaylistAdd height="16" width="16" />
                         &nbsp;Lists
@@ -259,7 +259,7 @@ export default function MainHeader() {
                   </li>
                 )}
                 <li>
-                  <Link href="/api/auth/signout">
+                  <Link legacyBehavior href="/api/auth/signout">
                     <a>
                       <IconLogout height="16" width="16" />
                       &nbsp;Sign Out

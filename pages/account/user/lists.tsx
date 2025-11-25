@@ -54,7 +54,7 @@ const Account_User_Edit: NextPage = () => {
             <small>{item.profiles.length} profiles</small>
           </div>
           <div className={styles.listCardAction}>
-            <Link href={`/list/${item._id}`}>
+            <Link legacyBehavior href={`/list/${item._id}`}>
               <a target="_blank">View</a>
             </Link>
             &emsp;

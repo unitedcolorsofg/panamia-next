@@ -15,12 +15,12 @@ export default function PanaProfileCard({
 }: ProfileCardProps) {
   return (
     <div className={styles.profileCardBlock}>
-      <Link href={url}>
+      <Link legacyBehavior href={url}>
         <a className={styles.imageLink}>
           <img className={styles.image} src={image} alt={name} />
         </a>
       </Link>
-      <Link href={url}>
+      <Link legacyBehavior href={url}>
         <a className={styles.name}>{name}</a>
       </Link>
     </div>

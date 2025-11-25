@@ -135,7 +135,7 @@ const Account_Profile: NextPage = (session_user) => {
             </legend>
             <div className={styles.profileEditLink}>
               {profile_data.slug && (
-                <Link href={`/profile/${profile_data.slug}`}>
+                <Link legacyBehavior href={`/profile/${profile_data.slug}`}>
                   <a>
                     <IconExternalLink height="20" /> View
                   </a>
@@ -154,7 +154,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconUser /> Contact Info
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/contact">
+              <Link legacyBehavior href="/account/profile/contact">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -177,7 +177,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconUserCircle /> Profile Descriptions
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/desc">
+              <Link legacyBehavior href="/account/profile/desc">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -218,7 +218,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconPhoto /> Images
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/images">
+              <Link legacyBehavior href="/account/profile/images">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -258,7 +258,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconExternalLink /> Links and Socials
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/social">
+              <Link legacyBehavior href="/account/profile/social">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -312,7 +312,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconMapPin /> Address and GeoLocation
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/address">
+              <Link legacyBehavior href="/account/profile/address">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -408,7 +408,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconCategory /> Categories
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/categories">
+              <Link legacyBehavior href="/account/profile/categories">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -448,7 +448,7 @@ const Account_Profile: NextPage = (session_user) => {
               )) || <SpanBlank />}
             </div>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/gentedepana">
+              <Link legacyBehavior href="/account/profile/gentedepana">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -460,7 +460,7 @@ const Account_Profile: NextPage = (session_user) => {
               <IconUsers /> Linked Profiles
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/profile/contact">
+              <Link legacyBehavior href="/account/profile/contact">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>

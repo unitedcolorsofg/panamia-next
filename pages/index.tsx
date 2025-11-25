@@ -242,7 +242,9 @@ const Home: NextPage = () => {
             <dt>How do I sign up?</dt>
             <dd>
               Simple! Fill out our Google form.{' '}
-              <Link href="/become-a-pana">Become a Pana!</Link>
+              <Link legacyBehavior href="/become-a-pana">
+                Become a Pana!
+              </Link>
             </dd>
 
             <dt>What are the perks to being a Pana?</dt>

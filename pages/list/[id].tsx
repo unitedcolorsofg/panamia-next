@@ -58,7 +58,7 @@ const List_Public: NextPage = () => {
             <div className={styles.listCardName}>{item.name}</div>
             <div className={styles.listCardAction}>
               <PanaLinkButton>
-                <Link href={`/profile/${item.slug}`}>
+                <Link legacyBehavior href={`/profile/${item.slug}`}>
                   <a>View</a>
                 </Link>
               </PanaLinkButton>

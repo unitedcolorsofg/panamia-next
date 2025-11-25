@@ -56,16 +56,14 @@ export default function PanaButton(props: PanaButtonProps) {
   }
   if (props.href) {
     return (
-      <Link href={props.href}>
-        <button
-          className={button_class}
-          style={buttonColors}
-          disabled={props.disabled ? true : false}
-          onClick={(e: any) => handleClick(e)}
-        >
-          {props.text}
-          {props.children}
-        </button>
+      <Link
+        href={props.href}
+        className={button_class}
+        style={buttonColors}
+        onClick={(e: any) => handleClick(e)}
+      >
+        {props.text}
+        {props.children}
       </Link>
     );
   }

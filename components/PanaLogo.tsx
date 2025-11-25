@@ -63,7 +63,7 @@ export default function PanaLogo(props: LogoProps) {
 
     return (
       <div className={styles.logoWrapDiv}>
-        <Link href="/">
+        <Link legacyBehavior href="/">
           <span className={container_classes}>
             <img className={styles.logo} src={logo_src} alt={logo_alt} />
           </span>

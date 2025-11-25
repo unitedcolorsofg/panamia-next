@@ -55,7 +55,7 @@ export default function PanaLogoLong(props: LogoProps) {
 
     return (
       <div>
-        <Link href="/">
+        <Link legacyBehavior href="/">
           <span className={container_classes}>
             <img className={styles.logo} src={logo_src} alt={logo_alt} />
           </span>

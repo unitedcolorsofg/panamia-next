@@ -252,7 +252,10 @@ const Profile_Public: NextPage = () => {
                     </div>
 
                     <div style={{ width: '50%' }}>
-                      <Link href={directionsFromAddress(data.primary_address)}>
+                      <Link
+                        legacyBehavior
+                        href={directionsFromAddress(data.primary_address)}
+                      >
                         <a>
                           <IconMap2 height="20" /> Get Directions
                         </a>

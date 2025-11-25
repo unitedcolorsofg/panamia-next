@@ -195,7 +195,7 @@ const Account_Admin: NextPage = () => {
                       </td>
                       <td>
                         {item.active && (
-                          <Link href={`/profile/${item.slug}`}>
+                          <Link legacyBehavior href={`/profile/${item.slug}`}>
                             <a target="_blank" rel="noreferrer">
                               View
                             </a>

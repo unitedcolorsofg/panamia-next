@@ -832,7 +832,7 @@ const Doc_TermsAndConditions: NextPage = () => {
             and, where appropriate, the AAA's Supplementary Procedures for
             Consumer Related Disputes ("AAA Consumer Rules"), both of which are
             available at the&nbsp;
-            <Link href="http://www.adr.org">
+            <Link legacyBehavior href="http://www.adr.org">
               <a>American Arbitration Association (AAA) website</a>
             </Link>
             . Your arbitration fees and your share of arbitrator compensation

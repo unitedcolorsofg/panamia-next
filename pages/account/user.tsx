@@ -109,7 +109,7 @@ const Account_User: NextPage = () => {
               <IconUser /> Account Info
             </legend>
             <div className={styles.profileEditLink}>
-              <Link href="/account/user/edit">
+              <Link legacyBehavior href="/account/user/edit">
                 <a>
                   <IconEdit height="20" /> Edit
                 </a>
@@ -131,7 +131,7 @@ const Account_User: NextPage = () => {
                 <div className={styles.profileBarHighlight}>Pana Profile</div>
                 <div className={styles.profileBarName}>{profile_name}</div>
                 <div className={styles.profileBarEdit}>
-                  <Link href="/account/profile/edit">
+                  <Link legacyBehavior href="/account/profile/edit">
                     <a>
                       <IconEdit height="18" width="18" />
                       <span>Edit</span>
@@ -150,7 +150,9 @@ const Account_User: NextPage = () => {
                 <p>
                   Ready to Become a Pana?{' '}
                   <span style={{ color: '#FA2F60 !important' }}>
-                    <Link href="/form/become-a-pana/">Create your profile</Link>
+                    <Link legacyBehavior href="/form/become-a-pana/">
+                      Create your profile
+                    </Link>
                   </span>{' '}
                   to showcase your creative talents or business!
                 </p>

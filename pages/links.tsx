@@ -101,7 +101,7 @@ const Links: NextPage = () => {
             </a>
           </div>
           <div className={classNames(styles.link, styles.linkHighlight)}>
-            <Link href="/form/become-a-pana/">
+            <Link legacyBehavior href="/form/become-a-pana/">
               <a target="_blank" rel="noreferrer">
                 Become Our Pana!
                 <br />
@@ -116,7 +116,10 @@ const Links: NextPage = () => {
             className={classNames(styles.link, styles.linkHighlightAlt)}
             hidden
           >
-            <Link href="/form/cosa-hecha-love-local-market-vendor/">
+            <Link
+              legacyBehavior
+              href="/form/cosa-hecha-love-local-market-vendor/"
+            >
               <a target="_blank" rel="noreferrer">
                 Cosa Hecha + Love Local Market Vendor Application
                 <br />

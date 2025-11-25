@@ -202,7 +202,7 @@ const SearchFormAndList = () => {
             <div className={styles.cardDetails}>{item.details}</div>
             <div className={styles.cardActions}>
               <>
-                <Link href={`/profile/${item.slug}`}>
+                <Link legacyBehavior href={`/profile/${item.slug}`}>
                   <a>
                     <IconUserCircle height="20" />
                     View Profile
@@ -374,7 +374,7 @@ const SearchFormAndList = () => {
               </div>
               <div className={styles.cardActions}>
                 <>
-                  <Link href="/form/become-a-pana">
+                  <Link legacyBehavior href="/form/become-a-pana">
                     <a>
                       <IconForms height="20" />
                       Sign up to see your business listed!
@@ -387,7 +387,7 @@ const SearchFormAndList = () => {
           </article>
           {searchResults && (
             <div className={styles.searchLoginCallout}>
-              <Link href="/signin">
+              <Link legacyBehavior href="/signin">
                 <a>Sign In</a>
               </Link>{' '}
               to save <IconHeart height="20" color="red" fill="red" /> favorites
@@ -398,7 +398,9 @@ const SearchFormAndList = () => {
         <section className={styles.directoryReferrals}>
           <p>
             Don't see your favorite local spot here?{' '}
-            <Link href="/form/contact-us">Send us a recommendation!</Link>
+            <Link legacyBehavior href="/form/contact-us">
+              Send us a recommendation!
+            </Link>
           </p>
         </section>
       </div>

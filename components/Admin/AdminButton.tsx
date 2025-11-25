@@ -23,7 +23,7 @@ export default function AdminButton({
   }
   if (href) {
     return (
-      <Link href={href}>
+      <Link legacyBehavior href={href}>
         <button
           className={styles.adminButton}
           disabled={disabled ? true : false}

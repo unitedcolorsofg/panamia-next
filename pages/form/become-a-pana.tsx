@@ -200,7 +200,7 @@ const Form_BecomeAPana: NextPage = () => {
                 on our Local Directory. Once your user profile is live, you’ll
                 be able to edit this information at any time. You can browse our
                 Local Directory here.&nbsp;
-                <Link href="/directory/search/">
+                <Link legacyBehavior href="/directory/search/">
                   <a>Directory Sheet</a>
                 </Link>
               </p>
@@ -289,7 +289,7 @@ const Form_BecomeAPana: NextPage = () => {
                           checked={locally_based == 'other'}
                         />
                         &emsp;Other (please{' '}
-                        <Link href="/form/contact-us/">
+                        <Link legacyBehavior href="/form/contact-us/">
                           <a>contact us</a>
                         </Link>{' '}
                         with details)
@@ -781,7 +781,7 @@ const Form_BecomeAPana: NextPage = () => {
                 </p>
                 <p className={styles.formFields}>
                   Please read our&nbsp;
-                  <Link href="/doc/terms-and-conditions">
+                  <Link legacyBehavior href="/doc/terms-and-conditions">
                     <a target="_blank" rel="noopener noreferrer">
                       Terms and Conditions
                     </a>
@@ -836,13 +836,13 @@ const Form_BecomeAPana: NextPage = () => {
                 </p>
                 <p>
                   You can{' '}
-                  <Link href="/api/auth/signin">
+                  <Link legacyBehavior href="/api/auth/signin">
                     <a>Sign Up</a>
                   </Link>
                   &nbsp;using your profile email to see other features and
                   continue updating your profile! The Pana MIA Club community is
                   here for you! Visit our{' '}
-                  <Link href="/about-us">
+                  <Link legacyBehavior href="/about-us">
                     <a>About Us</a>
                   </Link>{' '}
                   to learn more about how we support locals.
@@ -853,7 +853,7 @@ const Form_BecomeAPana: NextPage = () => {
         </section>
         <p className={styles.formTrouble}>
           If you're having any trouble with our form, please{' '}
-          <Link href="/form/contact-us/">
+          <Link legacyBehavior href="/form/contact-us/">
             <a>Contact Us</a>
           </Link>
         </p>
