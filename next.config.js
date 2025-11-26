@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
-  output: 'standalone',
 
   // Skip ESLint during builds (Next.js 15 ESLint plugin has compatibility issues)
   eslint: {
