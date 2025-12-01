@@ -1,7 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]';
+import { auth } from '@/auth';
 
 import dbConnect from '@/lib/connectdb';
 import { forceInt, forceString } from '@/lib/standardized';
@@ -19,7 +18,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  const session = await getServerSession(req, res, authOptions);
+  const session = await auth();
 
   //if (!session) { // secured route
   //  return res.status(401).json({ error: "Not Authorized:session" });

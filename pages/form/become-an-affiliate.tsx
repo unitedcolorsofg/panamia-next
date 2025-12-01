@@ -1,9 +1,8 @@
 import type { GetServerSideProps, NextPage } from 'next';
-import { authOptions } from '../api/auth/[...nextauth]';
 import React, { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import { useSession } from 'next-auth/react';
 
 import styles from '@/styles/form/StandardForm.module.css';
@@ -15,7 +14,7 @@ import PanaButton from '@/components/PanaButton';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
-      session: await getServerSession(context.req, context.res, authOptions),
+      session: await auth(),
     },
   };
 };

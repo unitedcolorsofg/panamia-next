@@ -1,12 +1,11 @@
 import type { NextPage } from 'next';
 import { GetServerSideProps } from 'next';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { useSession } from 'next-auth/react';
 import { FormEvent } from 'react';
 import { IconArrowBackUp, IconDeviceFloppy } from '@tabler/icons';
 import { useQueryClient, dehydrate, QueryClient } from '@tanstack/react-query';
 
-import { authOptions } from '../../api/auth/[...nextauth]';
 import styles from '@/styles/account/Account.module.css';
 import PageMeta from '@/components/PageMeta';
 import { ProfileInterface } from '@/lib/interfaces';
@@ -24,7 +23,7 @@ import FullPage from '@/components/Page/FullPage';
 
 export const getServerSideProps: GetServerSideProps = async function (context) {
   const queryClient = new QueryClient();
-  const session = await getServerSession(context.req, context.res, authOptions);
+  const session = await auth();
   const userLib = await import('@/lib/server/user');
   const session_user =
     session && session.user && session.user.email

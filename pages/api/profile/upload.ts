@@ -1,9 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import busboy from 'busboy';
-
-import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
 import { deleteFile, uploadFile } from '@/lib/bunnycdn/api';
@@ -54,7 +52,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  const session = await getServerSession(req, res, authOptions);
+  const session = await auth();
 
   if (!session) {
     return res

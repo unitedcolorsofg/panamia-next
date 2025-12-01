@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { GetServerSideProps } from 'next';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, FormEvent } from 'react';
 import axios from 'axios';
@@ -20,7 +20,6 @@ import {
 } from '@tabler/icons';
 import Link from 'next/link';
 
-import { authOptions } from '../../api/auth/[...nextauth]';
 import styles from '@/styles/account/Account.module.css';
 import PageMeta from '@/components/PageMeta';
 import { getUserSession, saveUserSession } from '@/lib/user';
@@ -32,7 +31,7 @@ import { listSelectedCategories } from '@/lib/profile';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
-      session: await getServerSession(context.req, context.res, authOptions),
+      session: await auth(),
       session_user: await getUserSession(),
     },
   };

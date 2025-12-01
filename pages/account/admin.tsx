@@ -1,7 +1,6 @@
 import type { NextPage } from 'next';
 import { GetServerSideProps } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../api/auth/[...nextauth]';
+import { auth } from '@/auth';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -18,7 +17,7 @@ import axios from 'axios';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
-      session: await getServerSession(context.req, context.res, authOptions),
+      session: await auth(),
     },
   };
 };
