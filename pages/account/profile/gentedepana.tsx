@@ -23,7 +23,7 @@ import { IconArrowBackUp, IconDeviceFloppy } from '@tabler/icons';
 
 export const getServerSideProps: GetServerSideProps = async function (context) {
   const queryClient = new QueryClient();
-  const session = await auth();
+  const session = await auth(context.req, context.res);
   const userLib = await import('@/lib/server/user');
   const session_user =
     session && session.user && session.user.email
