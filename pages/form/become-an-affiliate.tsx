@@ -14,6 +14,7 @@ import PanaButton from '@/components/PanaButton';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
+      // @ts-ignore - NextAuth v5 context type mismatch
       session: await auth(context.req, context.res),
     },
   };

@@ -23,6 +23,7 @@ import axios from 'axios';
 
 export const getServerSideProps: GetServerSideProps = async function (context) {
   const queryClient = new QueryClient();
+  // @ts-ignore - NextAuth v5 context type mismatch
   const session = await auth(context.req, context.res);
   const userLib = await import('@/lib/server/user');
   const session_user =

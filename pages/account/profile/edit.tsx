@@ -31,6 +31,7 @@ import { listSelectedCategories } from '@/lib/profile';
 export const getServerSideProps: GetServerSideProps = async function (context) {
   return {
     props: {
+      // @ts-ignore - NextAuth v5 context type mismatch
       session: await auth(context.req, context.res),
       session_user: await getUserSession(),
     },

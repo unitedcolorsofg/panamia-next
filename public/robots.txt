@@ -1,3 +1,13 @@
-# https://www.robotstxt.org/robotstxt.html
+# *
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /account
+Disallow: /admin
+Disallow: /api
+Disallow: /directory
+
+# Host
+Host: https://panamia.club
+
+# Sitemaps
+Sitemap: https://panamia.club/sitemap.xml

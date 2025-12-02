@@ -60,6 +60,7 @@ const baseAdapter = MongoDBAdapter(clientPromise, mongoAdapterOptions)
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: {
     ...baseAdapter,
+    // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     useVerificationToken: async (params) => {
       const result = await baseAdapter.useVerificationToken!(params)
 
@@ -67,7 +68,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Extract the actual document from .value property
       let verificationToken = result
       if (result && typeof result === 'object' && 'value' in result) {
-        verificationToken = result.value
+        verificationToken = result.value as typeof result
       }
 
       if (!verificationToken) {
@@ -81,12 +82,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return verificationToken
     },
+    // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     createSession: async (session) => {
       // console.log('[DEBUG] createSession called with:', JSON.stringify(session, null, 2))
       const result = await baseAdapter.createSession!(session)
       // console.log('[DEBUG] createSession raw result:', JSON.stringify(result, null, 2))
       return result
     },
+    // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     getSessionAndUser: async (sessionToken) => {
       // console.log('[DEBUG] getSessionAndUser called with token:', sessionToken)
       const result = await baseAdapter.getSessionAndUser!(sessionToken)

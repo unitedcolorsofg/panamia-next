@@ -75,6 +75,7 @@ export async function getApiSession(
 
     // Return session in NextAuth format
     return {
+      // @ts-ignore - Type conflict between @auth/core versions
       user: {
         name: user.name || '',
         email: user.email || '',
