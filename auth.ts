@@ -81,6 +81,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return verificationToken
     },
+    createSession: async (session) => {
+      // console.log('[DEBUG] createSession called with:', JSON.stringify(session, null, 2))
+      const result = await baseAdapter.createSession!(session)
+      // console.log('[DEBUG] createSession raw result:', JSON.stringify(result, null, 2))
+      return result
+    },
+    getSessionAndUser: async (sessionToken) => {
+      // console.log('[DEBUG] getSessionAndUser called with token:', sessionToken)
+      const result = await baseAdapter.getSessionAndUser!(sessionToken)
+      // console.log('[DEBUG] getSessionAndUser raw result:', JSON.stringify(result, null, 2))
+
+      if (!result) {
+        // console.log('[DEBUG] getSessionAndUser: result is null/undefined')
+        return null
+      }
+
+      // Check if result has the expected structure {session, user}
+      if (result.session && result.user) {
+        // console.log('[DEBUG] getSessionAndUser: returning valid session and user')
+        // Ensure expires is a proper Date object
+        if (result.session.expires) {
+          result.session.expires = new Date(result.session.expires)
+        }
+        if (result.user.emailVerified) {
+          result.user.emailVerified = new Date(result.user.emailVerified)
+        }
+        return result
+      }
+
+      // console.log('[DEBUG] getSessionAndUser: unexpected result format')
+      return null
+    },
   },
   providers: [
     EmailProvider({
