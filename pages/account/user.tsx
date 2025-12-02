@@ -28,7 +28,7 @@ function copyAffiliateLink(e: any, code: string) {
   navigator.permissions.query({ name: permissionName }).then((result) => {
     if (result.state === 'granted' || result.state === 'prompt') {
       navigator.clipboard.writeText(
-        `https://panamia.club/affiliate?code=${code}`
+        `${process.env.NEXT_PUBLIC_HOST_URL}/affiliate?code=${code}`
       );
       alert('Copied to clipboard');
     }
@@ -168,7 +168,7 @@ const Account_User: NextPage = () => {
                   </div>
                   <div className={styles.affiliateBarLink}>
                     <a
-                      href={`https://panamia.club/affiliate?code=${userData?.affiliate?.code}`}
+                      href={`${process.env.NEXT_PUBLIC_HOST_URL}/affiliate?code=${userData?.affiliate?.code}`}
                       onClick={(e) => {
                         copyAffiliateLink(e, userData.affiliate.code);
                       }}

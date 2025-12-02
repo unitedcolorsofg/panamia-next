@@ -21,7 +21,7 @@ export default function PageMeta(props: PageMetaProps) {
   let meta_image = (
     <meta
       property="og:image"
-      content="https://www.panamia.club//meta_image.jpg"
+      content={`${process.env.NEXT_PUBLIC_HOST_URL}/meta_image.jpg`}
     />
   );
   if (props.image) {

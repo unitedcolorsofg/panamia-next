@@ -47,7 +47,7 @@ export default async function handler(
       const brevo = new BrevoApi();
       const brevo_config = getBrevoConfig();
       const accessKey = existingProfile?.status?.access;
-      const base_action_url = 'https://www.panamia.club/admin/profile/action';
+      const base_action_url = `${process.env.HOST_URL}/admin/profile/action`;
       const approve_url = new URL(`${base_action_url}`);
       approve_url.searchParams.set('email', existingProfile.email);
       approve_url.searchParams.set('access', accessKey);

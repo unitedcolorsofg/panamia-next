@@ -65,17 +65,17 @@ const Home: NextPage = () => {
           <div className={styles.featuredPanasBlock}>
             <PanaProfileCard
               name="Raw Figs Pop Up"
-              url="https://www.panamia.club/profile/raw-figs-pop-up/"
+              url={`${process.env.NEXT_PUBLIC_HOST_URL}/profile/raw-figs-pop-up/`}
               image="https://panamia.b-cdn.net/profile/raw-figs-pop-up/primary.png"
             />
             <PanaProfileCard
               name="Café mezzanotte"
-              url="https://www.panamia.club/profile/cafe-mezzanotte/"
+              url={`${process.env.NEXT_PUBLIC_HOST_URL}/profile/cafe-mezzanotte/`}
               image="https://panamia.b-cdn.net/profile/cafe-mezzanotte/primary.png"
             />
             <PanaProfileCard
               name="Lavita Treats"
-              url="https://www.panamia.club/profile/lavita-treats/"
+              url={`${process.env.NEXT_PUBLIC_HOST_URL}/profile/lavita-treats/`}
               image="https://panamia.b-cdn.net/profile/lavita-treats/primary.png"
             />
           </div>
