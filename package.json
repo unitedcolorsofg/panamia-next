@@ -4,7 +4,6 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "predev": "pkill -9 -f 'next-server' 2>/dev/null || true",
     "dev": "env -u NODE_ENV next dev",
     "build": "env -u NODE_ENV next build",
     "postbuild": "next-sitemap",
