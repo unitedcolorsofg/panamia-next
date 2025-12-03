@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "predev": "PORT=$(echo \"${NEXT_PUBLIC_HOST_URL:-http://localhost:3000}\" | sed -E 's|.*:([0-9]+).*|\\1|; t; s|.*|3000|'); lsof -ti:$PORT | xargs kill -9 2>/dev/null || true",
+    "predev": "PORT=$(echo \"${NEXT_PUBLIC_HOST_URL:-http://localhost:3000}\" | sed -E 's|.*:([0-9]+).*|\\1|; t; s|.*|3000|'); pkill -9 -f 'next-server' 2>/dev/null || true; lsof -ti:$PORT | xargs kill -9 2>/dev/null || true",
     "dev": "env -u NODE_ENV next dev",
     "build": "env -u NODE_ENV next build",
     "postbuild": "next-sitemap",
