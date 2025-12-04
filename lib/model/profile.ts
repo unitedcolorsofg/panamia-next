@@ -39,6 +39,29 @@ const profileSchema = new Schema(
     locations: [],
     images: {},
     linked_profiles: [],
+    mentoring: {
+      enabled: { type: Boolean, default: false },
+      expertise: [String], // Tags like "JavaScript", "Career Advice", etc.
+      languages: [String], // ["English", "Spanish"]
+      bio: String, // Mentoring-specific bio
+      videoIntroUrl: String, // Optional video introduction
+      goals: String, // What they want to achieve as mentor/mentee
+      hourlyRate: Number, // Optional, 0 for free mentoring
+    },
+    availability: {
+      timezone: String, // e.g., "America/New_York"
+      schedule: [
+        {
+          day: {
+            type: String,
+            enum: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+          },
+          startTime: String, // "09:00"
+          endTime: String, // "17:00"
+        },
+      ],
+    },
+    pusherChannelId: String, // Unique identifier for user's Pusher channel
   },
   {
     timestamps: true,
