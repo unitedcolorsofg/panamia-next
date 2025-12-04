@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  trailingSlash: true,
+  // trailingSlash: true, // Disabled: incompatible with NextAuth v5 session handling
 
   // Required for NextAuth v5 with Next.js 15 - fixes "Cannot find module 'next/server'" error
   // See: https://github.com/nextauthjs/next-auth/discussions/10058
