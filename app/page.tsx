@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,9 @@ import { Search, Users, Calendar, MessageCircle } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
+  const isLoading = status === 'loading';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,37 +49,85 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section with Search */}
-      <section className="relative bg-gradient-to-b from-background to-muted/20 py-20 md:py-32">
+      <section
+        className="relative text-center bg-cover bg-center py-8 md:py-12"
+        style={{ backgroundImage: 'url(/img/home/website_banner.jpg)' }}
+      >
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center space-y-8">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              The Future is <span className="text-pana-blue">Local</span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Discover South Florida&apos;s vibrant community of local businesses
-              and creators
-            </p>
+          <div className="mx-auto max-w-[90vw] space-y-8">
+            {/* Logo */}
+            <div className="py-8 md:py-12">
+              <Image
+                src="/logos/pana_logo_long_pink.png"
+                alt="Pana Mia"
+                width={600}
+                height={150}
+                className="mx-auto max-w-full h-auto"
+                priority
+              />
+            </div>
 
-            <form onSubmit={handleSearch} className="mx-auto max-w-2xl">
-              <label htmlFor="search" className="sr-only">
-                Search directory
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  id="search"
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name, category, or products..."
-                  className="h-12 text-lg"
-                  aria-label="Search the directory"
-                />
-                <Button type="submit" size="lg" className="px-8">
-                  <Search className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Search
-                </Button>
+            {/* Search Section */}
+            <div className="py-8">
+              <h1
+                className="text-4xl md:text-5xl font-bold mb-4"
+                style={{
+                  color: 'white',
+                  textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+                }}
+              >
+                The Future is Local
+              </h1>
+              <p
+                className="text-2xl md:text-3xl mb-6"
+                style={{
+                  color: 'white',
+                  textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+                }}
+              >
+                Search South Florida&apos;s First Local Directory
+              </p>
+
+              <form onSubmit={handleSearch} className="mx-auto max-w-2xl">
+                <label htmlFor="search" className="sr-only">
+                  Search directory
+                </label>
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+                  <Input
+                    id="search"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name, category, products"
+                    className="h-12 text-lg min-w-[33vw] rounded-2xl border-2"
+                    aria-label="Search the directory"
+                  />
+                  <Button type="submit" size="lg" className="px-8">
+                    <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+                    Search
+                  </Button>
+                </div>
+              </form>
+
+              {/* Auth Buttons */}
+              <div className="mt-8 flex gap-4 justify-center">
+                {!isLoading && !session && (
+                  <>
+                    <Button size="lg" asChild variant="default">
+                      <Link href="/api/auth/signin">Sign In</Link>
+                    </Button>
+                    <Button size="lg" asChild variant="outline" className="bg-white/90 hover:bg-white">
+                      <Link href="/form/become-a-pana">Sign Up</Link>
+                    </Button>
+                  </>
+                )}
+                {!isLoading && session && (
+                  <Button size="lg" asChild variant="outline" className="bg-white/90 hover:bg-white">
+                    <Link href="/account/user">My Account</Link>
+                  </Button>
+                )}
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </section>
