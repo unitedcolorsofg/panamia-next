@@ -103,12 +103,11 @@ const Links: NextPage = () => {
           <div className={classNames(styles.link, styles.linkHighlight)}>
             <Link href="/form/become-a-pana/" target="_blank" rel="noreferrer">
               Become Our Pana!
-                              <br />
+              <br />
               <small>
-                Are you a local entrepreneur or creative based in SoFlo?
-                You’re invited to join our open-access Local’s Directory!
+                Are you a local entrepreneur or creative based in SoFlo? You’re
+                invited to join our open-access Local’s Directory!
               </small>
-
             </Link>
           </div>
           <div
@@ -118,14 +117,13 @@ const Links: NextPage = () => {
             <Link
               href="/form/cosa-hecha-love-local-market-vendor/"
               target="_blank"
-              rel="noreferrer">
+              rel="noreferrer"
+            >
               Cosa Hecha + Love Local Market Vendor Application
-                              <br />
+              <br />
               <small>
-                Sign up to be a vendor at Pana MIA Club's sustainability
-                market!
+                Sign up to be a vendor at Pana MIA Club's sustainability market!
               </small>
-
             </Link>
           </div>
           <div className={classNames(styles.link, styles.linkVideo)}>
