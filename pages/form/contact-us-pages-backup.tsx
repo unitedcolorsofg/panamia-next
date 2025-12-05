@@ -75,13 +75,8 @@ const Form_ContactUs: NextPage = () => {
         <h2 className={styles.formTitle}>Contact Us</h2>
         <p>
           Looking for answers? Check out our{' '}
-          <Link href="/#home-faq">
-            Frequently Asked Questions
-          </Link>{' '}
-          or learn more about who we are on our{' '}
-          <Link href="/about-us/">
-            About Us
-          </Link>{' '}
+          <Link href="/#home-faq">Frequently Asked Questions</Link> or learn
+          more about who we are on our <Link href="/about-us/">About Us</Link>{' '}
           page.
         </p>
         <p>
