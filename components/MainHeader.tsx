@@ -145,11 +145,10 @@ export default function MainHeader() {
         <Link
           href={props.url}
           onClick={onMenuClick}
-          className={props?.special == true ? styles.linkSpecial : ''}>
-
+          className={props?.special == true ? styles.linkSpecial : ''}
+        >
           <Icon reference={props.icon} />
           {props.label}
-
         </Link>
       </li>
     );
@@ -172,83 +171,6 @@ export default function MainHeader() {
     <header className={styles.header}>
       <div id="call-to-action-bar">
         <CallToActionBar />
-      </div>
-      <div className={styles.navWrap}>
-        <nav role="navigation" className={styles.nav} style={navStyle}>
-          <div className={styles.navLogo}>
-            <Link href="/">
-              <img src="/logos/pana_logo_long_pink.png" alt="Pana Mia" />
-            </Link>
-          </div>
-          {session && session.user && (
-            <div className={styles.sessionButton}>
-              <button onClick={onUserClick}>
-                <IconUser />
-              </button>
-            </div>
-          )}
-        </nav>
-        <div className={styles.navBorder}></div>
-        <dialog
-          id="dialog-user-mainheader"
-          className={styles.userModal}
-          onClick={onUserDialogClick}
-        >
-          {session && session.user && (
-            <div>
-              <span className={styles.userModalUser}>{session.user.email}</span>
-              <hr />
-              <ul>
-                {isAdmin && (
-                  <li className={styles.adminLink}>
-                    <Link href="/account/admin">
-
-                      <IconAlien height="16" width="16" />ADMIN
-                                            
-                    </Link>
-                  </li>
-                )}
-                <li>
-                  <Link href="/account/user">
-
-                    <IconSettings height="16" width="16" />Account
-                                        
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/account/user/following">
-
-                    <IconUsers height="16" width="16" />Following
-
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/mentoring/discover">
-
-                    <IconUsers height="16" width="16" />Mentoring
-
-                  </Link>
-                </li>
-                {isAdmin && (
-                  <li>
-                    <Link href="/account/user/lists">
-
-                      <IconPlaylistAdd height="16" width="16" />Lists
-
-                    </Link>
-                  </li>
-                )}
-                <li>
-                  <Link href="/api/auth/signout">
-
-                    <IconLogout height="16" width="16" />Sign Out
-                                        
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          )}
-        </dialog>
       </div>
     </header>
   );

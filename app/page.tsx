@@ -51,27 +51,27 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       {/* Hero Section with Search */}
       <section
-        className="relative text-center bg-cover bg-center py-8 md:py-12"
+        className="relative bg-cover bg-center py-8 text-center md:py-12"
         style={{ backgroundImage: 'url(/img/home/website_banner.jpg)' }}
       >
         {/* Auth Buttons & Theme Toggle - Top Right */}
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <ThemeToggle />
+        <div className="absolute right-4 top-4 z-10 flex gap-2">
           {!isLoading && !session && (
             <>
-              <Button size="sm" asChild variant="outline" className="bg-white/90 hover:bg-white">
+              <Button size="default" asChild variant="outline">
                 <Link href="/api/auth/signin">Log In</Link>
               </Button>
-              <Button size="sm" asChild>
+              <Button size="default" asChild variant="outline">
                 <Link href="/form/become-a-pana">Become A Pana</Link>
               </Button>
             </>
           )}
           {!isLoading && session && (
-            <Button size="sm" asChild variant="outline" className="bg-white/90 hover:bg-white">
+            <Button size="default" asChild variant="outline">
               <Link href="/account/user">My Account</Link>
             </Button>
           )}
+          <ThemeToggle />
         </div>
 
         <div className="container mx-auto px-4">
@@ -83,7 +83,7 @@ export default function HomePage() {
                 alt="Pana Mia"
                 width={600}
                 height={150}
-                className="mx-auto max-w-full h-auto"
+                className="mx-auto h-auto max-w-full"
                 priority
               />
             </div>
@@ -91,19 +91,21 @@ export default function HomePage() {
             {/* Search Section */}
             <div className="py-8">
               <h1
-                className="text-4xl md:text-5xl font-bold mb-4"
+                className="mb-4 text-4xl font-bold md:text-5xl"
                 style={{
                   color: 'white',
-                  textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+                  textShadow:
+                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
                 }}
               >
                 The Future is Local
               </h1>
               <p
-                className="text-2xl md:text-3xl mb-6"
+                className="mb-6 text-2xl md:text-3xl"
                 style={{
                   color: 'white',
-                  textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+                  textShadow:
+                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
                 }}
               >
                 Search South Florida&apos;s First Local Directory
@@ -113,14 +115,14 @@ export default function HomePage() {
                 <label htmlFor="search" className="sr-only">
                   Search directory
                 </label>
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+                <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
                   <Input
                     id="search"
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name, category, products"
-                    className="h-12 text-lg min-w-[33vw] rounded-2xl border-2"
+                    className="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
                     aria-label="Search the directory"
                   />
                   <Button type="submit" size="lg" className="px-8">
@@ -138,8 +140,8 @@ export default function HomePage() {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <Card className="overflow-hidden">
-            <div className="grid md:grid-cols-2 gap-0">
-              <div className="relative aspect-video md:aspect-auto min-h-[300px]">
+            <div className="grid gap-0 md:grid-cols-2">
+              <div className="relative aspect-video min-h-[300px] md:aspect-auto">
                 <Image
                   src="/img/home/EventsBanner.webp"
                   alt="Community events banner"
@@ -148,7 +150,7 @@ export default function HomePage() {
                   priority
                 />
               </div>
-              <CardContent className="p-8 md:p-12 flex flex-col justify-center">
+              <CardContent className="flex flex-col justify-center p-8 md:p-12">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-pana-blue">
                     <Calendar className="h-6 w-6" aria-hidden="true" />
@@ -175,8 +177,8 @@ export default function HomePage() {
       {/* About Section */}
       <section className="bg-muted/30 py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center space-y-6">
-            <div className="mx-auto w-16 h-16 rounded-full bg-pana-blue/10 flex items-center justify-center">
+          <div className="mx-auto max-w-3xl space-y-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pana-blue/10">
               <MessageCircle
                 className="h-8 w-8 text-pana-blue"
                 aria-hidden="true"
@@ -268,7 +270,7 @@ export default function HomePage() {
                   What are the perks to being a Pana?
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ul className="list-disc pl-6 space-y-2">
+                  <ul className="list-disc space-y-2 pl-6">
                     <li>
                       Be a part of our open access list of all locally-based
                       creatives and entrepreneurs available to patrons looking
