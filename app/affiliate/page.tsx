@@ -11,6 +11,8 @@ function AffiliateContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (!searchParams) return;
+
     // Handle affiliate code from query params
     const affiliate = searchParams.get('code');
     if (affiliate) {

@@ -14,10 +14,10 @@ ReactGA.initialize('G-H9HZTY30DN');
 
 function DonationConfirmationContent() {
   const searchParams = useSearchParams();
-  const tier = searchParams.get('tier')
+  const tier = searchParams?.get('tier')
     ? parseInt(searchParams.get('tier')!)
     : 0;
-  const amt = searchParams.get('amt') ? parseInt(searchParams.get('amt')!) : 0;
+  const amt = searchParams?.get('amt') ? parseInt(searchParams.get('amt')!) : 0;
   const isRecurring = tier > 0;
 
   useEffect(() => {
