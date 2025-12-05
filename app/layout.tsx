@@ -3,6 +3,8 @@ import { Nunito, Rubik } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { ThemeProvider } from '@/components/theme-provider';
+import MainHeader from '@/components/MainHeader';
+import MainFooter from '@/components/MainFooter';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -34,7 +36,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>{children}</Providers>
+          <Providers>
+            <MainHeader />
+            <div id="layout-main">{children}</div>
+            <MainFooter />
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

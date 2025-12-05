@@ -53,6 +53,25 @@ export default function HomePage() {
         className="relative text-center bg-cover bg-center py-8 md:py-12"
         style={{ backgroundImage: 'url(/img/home/website_banner.jpg)' }}
       >
+        {/* Auth Buttons - Top Right */}
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          {!isLoading && !session && (
+            <>
+              <Button size="sm" asChild variant="outline" className="bg-white/90 hover:bg-white">
+                <Link href="/api/auth/signin">Log In</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/form/become-a-pana">Become A Pana</Link>
+              </Button>
+            </>
+          )}
+          {!isLoading && session && (
+            <Button size="sm" asChild variant="outline" className="bg-white/90 hover:bg-white">
+              <Link href="/account/user">My Account</Link>
+            </Button>
+          )}
+        </div>
+
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-[90vw] space-y-8">
             {/* Logo */}
@@ -108,107 +127,12 @@ export default function HomePage() {
                   </Button>
                 </div>
               </form>
-
-              {/* Auth Buttons */}
-              <div className="mt-8 flex gap-4 justify-center">
-                {!isLoading && !session && (
-                  <>
-                    <Button size="lg" asChild variant="default">
-                      <Link href="/api/auth/signin">Sign In</Link>
-                    </Button>
-                    <Button size="lg" asChild variant="outline" className="bg-white/90 hover:bg-white">
-                      <Link href="/form/become-a-pana">Sign Up</Link>
-                    </Button>
-                  </>
-                )}
-                {!isLoading && session && (
-                  <Button size="lg" asChild variant="outline" className="bg-white/90 hover:bg-white">
-                    <Link href="/account/user">My Account</Link>
-                  </Button>
-                )}
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="border-y bg-card py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="text-center md:text-left">
-              <h2 className="text-2xl font-semibold">Join Our Community</h2>
-              <p className="text-muted-foreground">
-                List your business in our free directory today
-              </p>
-            </div>
-            <Button size="lg" asChild>
-              <Link href="/form/become-a-pana">
-                <Users className="mr-2 h-5 w-5" aria-hidden="true" />
-                Become A Pana
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Search Categories */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-4xl text-center space-y-8">
-            <h2 className="text-3xl font-bold">Explore by Category</h2>
-            <p className="text-lg text-muted-foreground">
-              Browse our directory by popular categories
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-3">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant="outline"
-                  size="lg"
-                  asChild
-                  className="rounded-full"
-                >
-                  <Link
-                    href={`/directory/search?q=${category.toLowerCase()}`}
-                  >
-                    {category}
-                  </Link>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center space-y-6">
-            <div className="mx-auto w-16 h-16 rounded-full bg-pana-blue/10 flex items-center justify-center">
-              <MessageCircle
-                className="h-8 w-8 text-pana-blue"
-                aria-hidden="true"
-              />
-            </div>
-            <h2 className="text-3xl font-bold">¿Que Tal, Pana?</h2>
-            <p className="text-xl text-muted-foreground">
-              Being a small business owner can be overwhelming and isolating,
-              but you&apos;re not alone.
-            </p>
-            <p className="text-lg">
-              Miami is filled with small vendors, all with different strengths
-              and skillsets. We started Pana Mia to bring everyone
-              together—pooling resources, insights, and strategies. As consumers
-              recognize the benefits of shopping local, we&apos;re creating a
-              centralized space to explore and fall in love with local brands.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Events Section */}
+      {/* Community Events Section */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <Card className="overflow-hidden">
@@ -243,6 +167,32 @@ export default function HomePage() {
               </CardContent>
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="bg-muted/30 py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center space-y-6">
+            <div className="mx-auto w-16 h-16 rounded-full bg-pana-blue/10 flex items-center justify-center">
+              <MessageCircle
+                className="h-8 w-8 text-pana-blue"
+                aria-hidden="true"
+              />
+            </div>
+            <h2 className="text-3xl font-bold">¿Que Tal, Pana?</h2>
+            <p className="text-xl text-muted-foreground">
+              Being a small business owner can be overwhelming and isolating,
+              but you&apos;re not alone.
+            </p>
+            <p className="text-lg">
+              Miami is filled with small vendors, all with different strengths
+              and skillsets. We started Pana Mia to bring everyone
+              together—pooling resources, insights, and strategies. As consumers
+              recognize the benefits of shopping local, we&apos;re creating a
+              centralized space to explore and fall in love with local brands.
+            </p>
+          </div>
         </div>
       </section>
 
