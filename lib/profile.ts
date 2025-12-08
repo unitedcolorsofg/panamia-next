@@ -18,7 +18,7 @@ export const listSelectedCategories = (categories: CategoryInterface) => {
 
 export const unguardProfile = (profile: any) => {
   // only send safe for public fields
-  return {
+  const publicProfile: any = {
     ...{ _id: profile._id },
     ...{ slug: profile.slug },
     ...{ name: profile.name },
@@ -34,4 +34,18 @@ export const unguardProfile = (profile: any) => {
     ...{ images: profile.images },
     ...{ linked_profiles: profile.linked_profiles },
   };
+
+  // Include mentoring data if enabled
+  if (profile.mentoring?.enabled) {
+    publicProfile.mentoring = {
+      enabled: profile.mentoring.enabled,
+      expertise: profile.mentoring.expertise,
+      languages: profile.mentoring.languages,
+      bio: profile.mentoring.bio,
+      videoIntroUrl: profile.mentoring.videoIntroUrl,
+      hourlyRate: profile.mentoring.hourlyRate,
+    };
+  }
+
+  return publicProfile;
 };

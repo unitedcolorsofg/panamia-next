@@ -253,9 +253,8 @@ const Profile_Public: NextPage = () => {
 
                     <div style={{ width: '50%' }}>
                       <Link href={directionsFromAddress(data.primary_address)}>
-
-                        <IconMap2 height="20" />Get Directions
-                                                
+                        <IconMap2 height="20" />
+                        Get Directions
                       </Link>
                     </div>
                   </div>

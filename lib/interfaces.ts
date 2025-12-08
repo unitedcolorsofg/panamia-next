@@ -76,6 +76,16 @@ export interface CategoryInterface {
   homemade: Boolean;
 }
 
+export interface MentoringInterface {
+  enabled: boolean;
+  expertise: string[];
+  languages: string[];
+  bio: string;
+  videoIntroUrl?: string;
+  goals?: string;
+  hourlyRate?: number;
+}
+
 export interface ProfileInterface {
   _id: string;
   email: string;
@@ -102,6 +112,7 @@ export interface ProfileInterface {
   locations: [];
   images?: ProfileImagesInterface;
   linked_profiles: [];
+  mentoring?: MentoringInterface;
   createdAt: Date;
   updatedAt: Date;
 }
