@@ -17,11 +17,12 @@ export async function fetchProfile() {
     })
     .catch((error: Error) => {
       console.log(error.name, error.message);
+      throw error;
     });
-  if (profile) {
+  if (profile?.data?.data) {
     return profile.data.data;
   }
-  return { data: { message: '' } };
+  throw new Error('No profile data returned');
 }
 
 export async function fetchPublicProfile(handle: string) {
@@ -38,11 +39,12 @@ export async function fetchPublicProfile(handle: string) {
     })
     .catch((error: Error) => {
       console.log(error.name, error.message);
+      throw error;
     });
-  if (profile) {
+  if (profile?.data?.data) {
     return profile.data.data;
   }
-  return { data: { message: '' } };
+  throw new Error('No profile data returned');
 }
 
 export const useProfile = () => {
