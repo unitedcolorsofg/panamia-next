@@ -21,6 +21,7 @@
 .DS_Store
 *.pem
 /scripts/*.xlsx
+/certificates
 
 # debug
 npm-debug.log*

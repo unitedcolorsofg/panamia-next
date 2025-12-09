@@ -4,7 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "env -u NODE_ENV next dev",
+    "dev": "env -u NODE_ENV node server.js",
+    "dev:http": "env -u NODE_ENV next dev",
     "build": "env -u NODE_ENV next build",
     "postbuild": "next-sitemap",
     "start": "env -u NODE_ENV next start",
