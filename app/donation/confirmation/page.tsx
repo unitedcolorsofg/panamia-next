@@ -1,16 +1,12 @@
 'use client';
 
 import type { Metadata } from 'next';
-import { useEffect, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import ReactGA from 'react-ga4';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Heart } from 'lucide-react';
-
-// Initialize Google Analytics
-ReactGA.initialize('G-H9HZTY30DN');
 
 function DonationConfirmationContent() {
   const searchParams = useSearchParams();
@@ -19,26 +15,6 @@ function DonationConfirmationContent() {
     : 0;
   const amt = searchParams?.get('amt') ? parseInt(searchParams.get('amt')!) : 0;
   const isRecurring = tier > 0;
-
-  useEffect(() => {
-    if (tier === 0) {
-      // ONE-TIME DONATION TRACKING
-      ReactGA.event({
-        category: 'Donation',
-        action: 'One-Time Donation',
-        label: 'KBZgCMq-6LwZELLY5L89',
-        value: amt,
-      });
-    } else {
-      // RECURRING DONATION TRACKING
-      ReactGA.event({
-        category: 'Donation',
-        action: 'Recurring Donation',
-        label: 'KkYdCK7A6LwZELLY5L89',
-        value: amt,
-      });
-    }
-  }, [tier, amt]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/20">
