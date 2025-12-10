@@ -8,13 +8,11 @@ const nextConfig = {
   // See: https://github.com/nextauthjs/next-auth/issues/12280
   transpilePackages: ['next-auth'],
 
-  // Skip ESLint during builds (Next.js 15 ESLint plugin has compatibility issues)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   // Required for Mongoose 8.x compatibility (moved from experimental in Next.js 15)
   serverExternalPackages: ['mongoose'],
+
+  // Next.js 16 uses Turbopack by default - empty config to acknowledge
+  turbopack: {},
 
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     config.module.rules.push({
@@ -27,4 +25,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

@@ -1,8 +1,15 @@
-const { createServer } = require('https');
-const { parse } = require('url');
-const next = require('next');
-const fs = require('fs');
-const path = require('path');
+import { createServer } from 'https';
+import { parse } from 'url';
+import next from 'next';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { execSync } from 'child_process';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -32,7 +39,6 @@ app.prepare().then(() => {
     console.log(
       '⚠ SSL certificates not found. Creating self-signed certificates...'
     );
-    const { execSync } = require('child_process');
 
     // Create certificates directory
     if (!fs.existsSync(certDir)) {

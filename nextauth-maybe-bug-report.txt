@@ -1,0 +1,19 @@
+  Regarding reporting to NextAuth:
+
+  Yes, this should definitely be reported to the NextAuth team. This is a clear bug in NextAuth v5 beta where:
+
+  1. The bug: adapter.createSession is called without the userId parameter after email verification
+  2. The impact: Creates orphaned sessions that can't be retrieved, breaking authentication completely
+  3. The root cause: NextAuth calls updateUser with the correct user ID, but then doesn't pass that ID to the subsequent createSession call
+  4. Affected: Email provider with database session strategy
+
+  Before reporting, I'd recommend:
+  1. Check if this is already reported at https://github.com/nextauthjs/next-auth/issues
+  2. Search for issues related to "createSession", "userId", "email provider", "database sessions"
+  3. If not found, create a new issue with:
+    - Your NextAuth version: 5.0.0-beta.30
+    - The reproduction steps (email provider + database sessions)
+    - The debug logs showing the missing userId
+    - Your workaround code as a potential fix
+
+  The NextAuth team will likely want to fix this in the core library rather than having users implement workarounds.
