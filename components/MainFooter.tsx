@@ -3,7 +3,7 @@ import {
   IconBrandDiscord,
   IconBrandYoutube,
   IconBrandLinkedin,
-} from '@tabler/icons';
+} from '@tabler/icons-react';
 import Link from 'next/link';
 
 import PanaLogo from './PanaLogo';
@@ -19,29 +19,19 @@ export default function GlobalFooter() {
             <strong>PanaMia</strong>
           </li>
           <li>
-            <Link href="/podcasts">
-              PanaVizión
-            </Link>
+            <Link href="/podcasts">PanaVizión</Link>
           </li>
           <li>
-            <Link href="/about-us">
-              About
-            </Link>
+            <Link href="/about-us">About</Link>
           </li>
           <li>
-            <Link href="/links">
-              Links
-            </Link>
+            <Link href="/links">Links</Link>
           </li>
           <li>
-            <Link href="/directorio">
-              Directorio
-            </Link>
+            <Link href="/directorio">Directorio</Link>
           </li>
           <li>
-            <Link href="/form/join-the-team/">
-              Join The Team
-            </Link>
+            <Link href="/form/join-the-team/">Join The Team</Link>
           </li>
         </ul>
         <ul className={styles.footerLinksAlt}>
@@ -49,19 +39,13 @@ export default function GlobalFooter() {
             <strong>Users</strong>
           </li>
           <li hidden>
-            <Link href="/signin">
-              Sign Up
-            </Link>
+            <Link href="/signin">Sign Up</Link>
           </li>
           <li>
-            <Link href="/form/become-a-pana">
-              Become A Pana
-            </Link>
+            <Link href="/form/become-a-pana">Become A Pana</Link>
           </li>
           <li>
-            <Link href="/form/contact-us">
-              Contact Us
-            </Link>
+            <Link href="/form/contact-us">Contact Us</Link>
           </li>
         </ul>
         <div className={styles.socials}>
@@ -89,9 +73,7 @@ export default function GlobalFooter() {
       </div>
       <div className={styles.termsLink}>
         Please read our{' '}
-        <Link href="/doc/terms-and-conditions">
-          Terms and Conditions
-        </Link>
+        <Link href="/doc/terms-and-conditions">Terms and Conditions</Link>
       </div>
     </footer>
   );

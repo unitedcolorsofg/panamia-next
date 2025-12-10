@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
-import { IconFileDescription, IconDashboard, IconEdit } from '@tabler/icons';
+import {
+  IconFileDescription,
+  IconDashboard,
+  IconEdit,
+} from '@tabler/icons-react';
 
 import styles from './AdminHeader.module.css';
 import AdminButton from './AdminButton';

@@ -12,7 +12,7 @@ import {
   IconSettings,
   IconUsers,
   IconPlaylistAdd,
-} from '@tabler/icons';
+} from '@tabler/icons-react';
 import axios from 'axios';
 import {
   DropdownMenu,
@@ -217,7 +217,7 @@ export default function MainHeader() {
         </div>
       )}
       {/* Top-right navigation buttons */}
-      <div className="fixed right-4 top-4 z-50 flex gap-2">
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
         {status !== 'loading' && session && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
