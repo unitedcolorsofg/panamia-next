@@ -25,7 +25,7 @@ const sessionSchema = new mongoose.Schema(
 // Indexes for efficient queries
 sessionSchema.index({ mentorEmail: 1, scheduledAt: -1 });
 sessionSchema.index({ menteeEmail: 1, scheduledAt: -1 });
-sessionSchema.index({ sessionId: 1 });
+// Note: sessionId index is created automatically via unique: true
 
 const mentorSession =
   mongoose.models.mentorSession ||
