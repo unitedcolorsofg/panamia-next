@@ -135,13 +135,25 @@ button[class*="border"][class*="bg-background"],
 button[class*="variant-outline"] {
   background-color: white !important;
   border-color: hsl(214.3 31.8% 91.4%) !important;
-  color: hsl(222.2 47.4% 11.2%) !important;
+  color: black !important;
+}
+
+/* Fix icons in outline buttons - light mode */
+button[class*="border"][class*="bg-background"] svg,
+button[class*="variant-outline"] svg {
+  color: black !important;
+  stroke: currentColor;
 }
 
 .dark button[class*="border"][class*="bg-background"],
 .dark button[class*="variant-outline"] {
   background-color: hsl(217.2 32.6% 17.5%) !important;
   border-color: hsl(217.2 32.6% 17.5%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark button[class*="border"][class*="bg-background"] svg,
+.dark button[class*="variant-outline"] svg {
   color: hsl(210 40% 98%) !important;
 }
 
@@ -154,6 +166,7 @@ button[class*="bg-primary"] {
 .dark button[class*="bg-primary"] {
   background-color: hsl(210 40% 98%) !important;
   color: hsl(222.2 47.4% 11.2%) !important;
+  opacity: 1 !important;
 }
 
 /* Fix dropdown/popover backgrounds */
