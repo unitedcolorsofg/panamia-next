@@ -112,8 +112,25 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-nunito), sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-rubik), sans-serif;
+  }
+
+  /* Ensure buttons and inputs have solid backgrounds */
+  button, input, textarea, select {
+    background-color: hsl(var(--background));
+  }
+
+  /* Fix outline button variant to have solid background */
+  .bg-background {
+    background-color: hsl(var(--background)) !important;
+  }
+
+  /* Ensure proper contrast for form elements */
+  input, textarea, select {
+    color: hsl(var(--foreground));
   }
 }
