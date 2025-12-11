@@ -4,17 +4,17 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
-export default function AccountUserPage() {
+export default function AccountPage() {
   const router = useRouter();
   const { status } = useSession();
 
   useEffect(() => {
     if (status === 'authenticated') {
-      // Redirect to user edit page
-      router.replace('/account/user/edit');
+      // Redirect to user account page
+      router.replace('/account/user');
     } else if (status === 'unauthenticated') {
       // Redirect to sign in page
-      router.replace('/api/auth/signin?callbackUrl=/account/user/edit');
+      router.replace('/api/auth/signin?callbackUrl=/account/user');
     }
   }, [status, router]);
 

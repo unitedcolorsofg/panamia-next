@@ -218,6 +218,19 @@ export default function MainHeader() {
       )}
       {/* Top-right navigation buttons */}
       <div className="fixed top-4 right-4 z-50 flex gap-2">
+        {/* Unauthenticated users: Show Become a Pana and Log In buttons */}
+        {status !== 'loading' && !session && (
+          <>
+            <Button size="default" variant="default" asChild>
+              <Link href="/form/become-a-pana">Become a Pana</Link>
+            </Button>
+            <Button size="default" variant="outline" asChild>
+              <Link href="/api/auth/signin">Log In</Link>
+            </Button>
+          </>
+        )}
+
+        {/* Authenticated users: Show Jump To dropdown */}
         {status !== 'loading' && session && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

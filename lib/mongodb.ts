@@ -28,7 +28,6 @@ async function getMongoClient() {
     }
 
     uri = globalWithMemoryServer._memoryServer.getUri();
-    console.log('✅ NextAuth using Memory Server');
   } else {
     // Use real MongoDB
     if (!process.env.MONGODB_URI) {
@@ -37,7 +36,6 @@ async function getMongoClient() {
       );
     }
     uri = process.env.MONGODB_URI;
-    console.log('✅ NextAuth using MongoDB Atlas/Remote');
   }
 
   return new MongoClient(uri);
