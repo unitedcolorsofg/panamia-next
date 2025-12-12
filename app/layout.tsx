@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Nunito, Rubik } from 'next/font/google';
 import './globals.css';
+import '../styles/flower-power.css';
 import { Providers } from './providers';
 import { ThemeProvider } from '@/components/theme-provider';
+import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvider';
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 
@@ -36,11 +38,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>
-            <MainHeader />
-            <div id="layout-main">{children}</div>
-            <MainFooter />
-          </Providers>
+          <FlowerPowerProvider>
+            <Providers>
+              <MainHeader />
+              <div id="layout-main">{children}</div>
+              <MainFooter />
+            </Providers>
+          </FlowerPowerProvider>
         </ThemeProvider>
       </body>
     </html>

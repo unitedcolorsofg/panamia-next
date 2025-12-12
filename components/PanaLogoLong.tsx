@@ -42,7 +42,11 @@ export default function PanaLogoLong(props: LogoProps) {
     return (
       <div>
         <span className={container_classes}>
-          <img className={styles.logo} src={logo_src} alt={logo_alt} />
+          <img
+            className={classNames(styles.logo, 'flower-power-logo')}
+            src={logo_src}
+            alt={logo_alt}
+          />
         </span>
       </div>
     );
@@ -56,10 +60,13 @@ export default function PanaLogoLong(props: LogoProps) {
     return (
       <div>
         <Link href="/">
-          {/* @next-codemod-error This Link previously used the now removed `legacyBehavior` prop, and has a child that might not be an anchor. The codemod bailed out of lifting the child props to the Link. Check that the child component does not render an anchor, and potentially move the props manually to Link. */
-          }
+          {/* @next-codemod-error This Link previously used the now removed `legacyBehavior` prop, and has a child that might not be an anchor. The codemod bailed out of lifting the child props to the Link. Check that the child component does not render an anchor, and potentially move the props manually to Link. */}
           <span className={container_classes}>
-            <img className={styles.logo} src={logo_src} alt={logo_alt} />
+            <img
+              className={classNames(styles.logo, 'flower-power-logo')}
+              src={logo_src}
+              alt={logo_alt}
+            />
           </span>
         </Link>
       </div>

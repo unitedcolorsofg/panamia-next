@@ -59,7 +59,7 @@ export default function HomePage() {
                 alt="Pana Mia"
                 width={600}
                 height={150}
-                className="mx-auto h-auto max-w-full"
+                className="flower-power-logo mx-auto h-auto max-w-full"
                 priority
               />
             </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
               </div>
               <CardContent className="flex flex-col justify-center p-8 md:p-12">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-pana-blue">
+                  <div className="text-pana-blue flex items-center gap-2">
                     <Calendar className="h-6 w-6" aria-hidden="true" />
                     <Badge variant="secondary">Upcoming Events</Badge>
                   </div>
@@ -138,11 +138,9 @@ export default function HomePage() {
                     meaningful connection and the celebration of local culture
                     and art.
                   </CardDescription>
-                  <Button size="lg" asChild>
-                    <Link href="https://shotgun.live/venues/pana-mia-club">
-                      View Events
-                    </Link>
-                  </Button>
+                  <Link href="https://shotgun.live/venues/pana-mia-club">
+                    <Button size="lg">View Events</Button>
+                  </Link>
                 </div>
               </CardContent>
             </div>
@@ -154,14 +152,14 @@ export default function HomePage() {
       <section className="bg-muted/30 py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-6 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pana-blue/10">
+            <div className="bg-pana-blue/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
               <MessageCircle
-                className="h-8 w-8 text-pana-blue"
+                className="text-pana-blue h-8 w-8"
                 aria-hidden="true"
               />
             </div>
             <h2 className="text-3xl font-bold">¿Que Tal, Pana?</h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-muted-foreground text-xl">
               Being a small business owner can be overwhelming and isolating,
               but you&apos;re not alone.
             </p>

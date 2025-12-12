@@ -234,7 +234,7 @@ export default function MainHeader() {
         {status !== 'loading' && session && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="default" variant="outline">
+              <Button size="default" variant="outline" data-no-wobble="true">
                 Jump To
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
