@@ -1,5 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import {
   IconFileDescription,
@@ -11,10 +13,10 @@ import styles from './AdminHeader.module.css';
 import AdminButton from './AdminButton';
 
 export default function AdminMenu() {
-  const router = useRouter();
+  const pathname = usePathname();
 
   function checkActive(href: String) {
-    if (router.pathname === href) {
+    if (pathname === href) {
       return true;
     }
     return false;
