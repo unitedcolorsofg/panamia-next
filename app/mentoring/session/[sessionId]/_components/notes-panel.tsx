@@ -40,8 +40,8 @@ export function NotesPanel({ sessionId, initialNotes }: NotesPanelProps) {
   }, [debouncedNotes, sessionId, initialNotes]);
 
   return (
-    <div className="bg-white rounded-lg border flex-1 flex flex-col">
-      <div className="p-4 border-b font-semibold flex items-center justify-between">
+    <div className="bg-card flex flex-1 flex-col rounded-lg border">
+      <div className="flex items-center justify-between border-b p-4 font-semibold">
         <span>Session Notes</span>
         {saving && <span className="text-xs text-gray-500">Saving...</span>}
       </div>
@@ -49,7 +49,7 @@ export function NotesPanel({ sessionId, initialNotes }: NotesPanelProps) {
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Take notes during the session..."
-        className="flex-1 border-0 resize-none"
+        className="flex-1 resize-none border-0"
       />
     </div>
   );

@@ -37,18 +37,18 @@ export default async function MentoringProfilePage() {
 
         {mentoringEnabled && (
           <div className="space-y-6">
-            <div className="rounded-lg border bg-white p-6">
+            <div className="bg-card rounded-lg border p-6">
               <h2 className="mb-4 text-xl font-semibold">Bio</h2>
               <p>{profile.mentoring.bio || 'No bio provided'}</p>
             </div>
 
-            <div className="rounded-lg border bg-white p-6">
+            <div className="bg-card rounded-lg border p-6">
               <h2 className="mb-4 text-xl font-semibold">Expertise</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.mentoring.expertise?.map((skill: string) => (
                   <span
                     key={skill}
-                    className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
+                    className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800 dark:bg-blue-900 dark:text-blue-100"
                   >
                     {skill}
                   </span>
@@ -56,13 +56,13 @@ export default async function MentoringProfilePage() {
               </div>
             </div>
 
-            <div className="rounded-lg border bg-white p-6">
+            <div className="bg-card rounded-lg border p-6">
               <h2 className="mb-4 text-xl font-semibold">Languages</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.mentoring.languages?.map((lang: string) => (
                   <span
                     key={lang}
-                    className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-800"
+                    className="bg-muted rounded-full px-3 py-1 text-sm"
                   >
                     {lang}
                   </span>
@@ -71,7 +71,7 @@ export default async function MentoringProfilePage() {
             </div>
 
             {profile.mentoring.videoIntroUrl && (
-              <div className="rounded-lg border bg-white p-6">
+              <div className="bg-card rounded-lg border p-6">
                 <h2 className="mb-4 text-xl font-semibold">
                   Video Introduction
                 </h2>

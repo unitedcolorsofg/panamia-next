@@ -8,7 +8,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { createSessionSchema, type CreateSessionData } from '@/lib/validations/session';
+import {
+  createSessionSchema,
+  type CreateSessionData,
+} from '@/lib/validations/session';
 
 export function BookingForm() {
   const router = useRouter();
@@ -32,7 +35,9 @@ export function BookingForm() {
     },
   });
 
-  const onSubmit = async (data: Omit<CreateSessionData, 'mentorEmail' | 'scheduledAt'>) => {
+  const onSubmit = async (
+    data: Omit<CreateSessionData, 'mentorEmail' | 'scheduledAt'>
+  ) => {
     if (!mentorEmail) {
       alert('Mentor email is required');
       return;
@@ -87,13 +92,13 @@ export function BookingForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Mentor Info */}
-      <div className="bg-white p-6 rounded-lg border">
-        <h2 className="text-lg font-semibold mb-2">Booking with</h2>
+      <div className="bg-card rounded-lg border p-6">
+        <h2 className="mb-2 text-lg font-semibold">Booking with</h2>
         <p className="text-gray-700">{mentorEmail}</p>
       </div>
 
       {/* Date Selection */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Select Date</label>
         <Calendar
           mode="single"
@@ -105,7 +110,7 @@ export function BookingForm() {
       </div>
 
       {/* Time Selection */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Select Time</label>
         <div className="grid grid-cols-4 gap-2">
           {timeSlots.map((time) => (
@@ -113,10 +118,10 @@ export function BookingForm() {
               key={time}
               type="button"
               onClick={() => setSelectedTime(time)}
-              className={`px-3 py-2 rounded border text-sm ${
+              className={`rounded border px-3 py-2 text-sm ${
                 selectedTime === time
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
+                  ? 'border-blue-500 bg-blue-500 text-white'
+                  : 'bg-card hover:border-primary border'
               }`}
             >
               {time}
@@ -129,11 +134,11 @@ export function BookingForm() {
       </div>
 
       {/* Duration */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Duration (minutes)</label>
         <select
           {...register('duration', { valueAsNumber: true })}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full rounded border px-3 py-2"
         >
           <option value={15}>15 minutes</option>
           <option value={30}>30 minutes</option>
@@ -147,7 +152,7 @@ export function BookingForm() {
       </div>
 
       {/* Topic */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Session Topic</label>
         <Textarea
           {...register('topic')}
@@ -161,14 +166,13 @@ export function BookingForm() {
 
       {/* Submit */}
       <div className="flex space-x-4">
-        <Button type="submit" disabled={isSubmitting || !selectedDate || !selectedTime}>
+        <Button
+          type="submit"
+          disabled={isSubmitting || !selectedDate || !selectedTime}
+        >
           {isSubmitting ? 'Booking...' : 'Book Session'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
       </div>

@@ -47,19 +47,19 @@ export function ChatPanel({ sessionId, userEmail }: ChatPanelProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border h-64 flex flex-col">
-      <div className="p-4 border-b font-semibold">Chat</div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+    <div className="bg-card flex h-64 flex-col rounded-lg border">
+      <div className="border-b p-4 font-semibold">Chat</div>
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.map((msg, idx) => (
           <div
             key={idx}
             className={`text-sm ${msg.from === userEmail ? 'text-right' : 'text-left'}`}
           >
-            <span className="font-semibold text-xs text-gray-500">
+            <span className="text-xs font-semibold text-gray-500">
               {msg.from}
             </span>
             <div
-              className={`inline-block px-3 py-1 rounded-lg ${
+              className={`inline-block rounded-lg px-3 py-1 ${
                 msg.from === userEmail
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-200'
@@ -71,7 +71,7 @@ export function ChatPanel({ sessionId, userEmail }: ChatPanelProps) {
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="p-4 border-t flex space-x-2">
+      <div className="flex space-x-2 border-t p-4">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}

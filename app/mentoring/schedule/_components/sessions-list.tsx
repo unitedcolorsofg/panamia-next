@@ -62,7 +62,7 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
 
   if (sessions.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg border text-center text-gray-500">
+      <div className="bg-card text-muted-foreground rounded-lg border p-6 text-center">
         No {type} sessions
       </div>
     );
@@ -82,7 +82,7 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg">{session.topic}</CardTitle>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="mt-1 text-sm text-gray-500">
                     {role} session with {otherParty}
                   </p>
                 </div>
@@ -113,26 +113,28 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
                   })}
                 </div>
                 <div>
-                  <span className="font-semibold">Duration:</span> {session.duration} min
+                  <span className="font-semibold">Duration:</span>{' '}
+                  {session.duration} min
                 </div>
                 <div>
-                  <span className="font-semibold">Session ID:</span> {session.sessionId}
+                  <span className="font-semibold">Session ID:</span>{' '}
+                  {session.sessionId}
                 </div>
               </div>
 
               {session.status === 'cancelled' && session.cancelReason && (
-                <div className="bg-red-50 p-3 rounded text-sm">
+                <div className="rounded bg-red-50 p-3 text-sm">
                   <p className="font-semibold text-red-800">
                     Cancelled by {session.cancelledBy}
                   </p>
-                  <p className="text-red-700 mt-1">{session.cancelReason}</p>
+                  <p className="mt-1 text-red-700">{session.cancelReason}</p>
                 </div>
               )}
 
               {session.notes && (
-                <div className="bg-gray-50 p-3 rounded text-sm">
-                  <p className="font-semibold mb-1">Session Notes:</p>
-                  <p className="text-gray-700 whitespace-pre-wrap">{session.notes}</p>
+                <div className="bg-muted rounded p-3 text-sm">
+                  <p className="mb-1 font-semibold">Session Notes:</p>
+                  <p className="whitespace-pre-wrap">{session.notes}</p>
                 </div>
               )}
 
@@ -146,7 +148,9 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
                     onClick={() => handleCancel(session.sessionId)}
                     disabled={cancelling === session.sessionId}
                   >
-                    {cancelling === session.sessionId ? 'Cancelling...' : 'Cancel'}
+                    {cancelling === session.sessionId
+                      ? 'Cancelling...'
+                      : 'Cancel'}
                   </Button>
                 </div>
               )}

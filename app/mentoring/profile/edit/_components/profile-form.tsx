@@ -88,25 +88,25 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Enable Mentoring Toggle */}
-      <div className="bg-white p-6 rounded-lg border">
+      <div className="bg-card rounded-lg border p-6">
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
             id="enabled"
             {...register('enabled')}
-            className="w-4 h-4"
+            className="h-4 w-4"
           />
           <label htmlFor="enabled" className="font-semibold">
             Enable mentoring profile
           </label>
         </div>
-        <p className="text-sm text-gray-500 mt-2">
+        <p className="mt-2 text-sm text-gray-500">
           When enabled, others can discover you as a mentor and book sessions.
         </p>
       </div>
 
       {/* Bio */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Mentoring Bio</label>
         <Textarea
           {...register('bio')}
@@ -119,13 +119,15 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </div>
 
       {/* Expertise */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Areas of Expertise</label>
         <div className="flex space-x-2">
           <Input
             value={expertiseInput}
             onChange={(e) => setExpertiseInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addExpertise())}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && (e.preventDefault(), addExpertise())
+            }
             placeholder="e.g., JavaScript, Career Advice"
           />
           <Button type="button" onClick={addExpertise}>
@@ -136,7 +138,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           {expertise.map((item) => (
             <span
               key={item}
-              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center space-x-2"
+              className="flex items-center space-x-2 rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
             >
               <span>{item}</span>
               <button
@@ -150,18 +152,22 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           ))}
         </div>
         {expertise.length === 0 && (
-          <p className="text-sm text-gray-500">Add at least one expertise area</p>
+          <p className="text-sm text-gray-500">
+            Add at least one expertise area
+          </p>
         )}
       </div>
 
       {/* Languages */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Languages</label>
         <div className="flex space-x-2">
           <Input
             value={languageInput}
             onChange={(e) => setLanguageInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && (e.preventDefault(), addLanguage())
+            }
             placeholder="e.g., English, Spanish"
           />
           <Button type="button" onClick={addLanguage}>
@@ -172,7 +178,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           {languages.map((item) => (
             <span
               key={item}
-              className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm flex items-center space-x-2"
+              className="flex items-center space-x-2 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-800"
             >
               <span>{item}</span>
               <button
@@ -191,8 +197,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </div>
 
       {/* Video Introduction URL */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
-        <label className="block font-semibold">Video Introduction URL (Optional)</label>
+      <div className="bg-card space-y-3 rounded-lg border p-6">
+        <label className="block font-semibold">
+          Video Introduction URL (Optional)
+        </label>
         <Input
           {...register('videoIntroUrl')}
           type="url"
@@ -204,8 +212,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </div>
 
       {/* Goals */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
-        <label className="block font-semibold">Mentoring Goals (Optional)</label>
+      <div className="bg-card space-y-3 rounded-lg border p-6">
+        <label className="block font-semibold">
+          Mentoring Goals (Optional)
+        </label>
         <Textarea
           {...register('goals')}
           placeholder="What you hope to achieve through mentoring..."
@@ -216,7 +226,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </div>
 
       {/* Hourly Rate */}
-      <div className="bg-white p-6 rounded-lg border space-y-3">
+      <div className="bg-card space-y-3 rounded-lg border p-6">
         <label className="block font-semibold">Hourly Rate (USD)</label>
         <Input
           {...register('hourlyRate', { valueAsNumber: true })}
@@ -236,11 +246,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : 'Save Profile'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
       </div>

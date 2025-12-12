@@ -27,8 +27,8 @@ export function MentorFilters() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
             placeholder="Filter by expertise..."
             value={expertise}
@@ -58,7 +58,7 @@ export function MentorFilters() {
 
       {loading && <p className="text-center">Loading...</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mentors.map((mentor: any) => (
           <MentorCard key={mentor.email} mentor={mentor} />
         ))}
