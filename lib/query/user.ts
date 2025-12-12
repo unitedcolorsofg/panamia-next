@@ -27,7 +27,7 @@ export async function fetchUser() {
 }
 
 export const useUser = () => {
-  return useQuery<UserInterface, Error>({
+  return useQuery<UserInterface | undefined, Error>({
     queryKey: userQueryKey,
     queryFn: () => fetchUser(),
   });
@@ -51,7 +51,7 @@ export async function fetchUserFollowing() {
 }
 
 export const useUserFollowing = () => {
-  return useQuery<ProfileInterface[], Error>({
+  return useQuery<ProfileInterface[] | undefined, Error>({
     queryKey: [userQueryKey, 'following'],
     queryFn: () => fetchUserFollowing(),
   });
@@ -97,7 +97,7 @@ export async function fetchUserLists() {
 }
 
 export const useUserLists = () => {
-  return useQuery<UserlistInterface[], Error>({
+  return useQuery<UserlistInterface[] | undefined, Error>({
     queryKey: [userQueryKey, 'lists'],
     queryFn: () => fetchUserLists(),
   });
