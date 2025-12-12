@@ -25,14 +25,17 @@ export default function AdminPodcastsPage() {
   };
 
   useEffect(() => {
-    setUserSession();
-  }, []);
+    if (session) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserSession();
+    }
+  }, [session]);
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
+      <main className="container mx-auto max-w-7xl px-4 py-8">
         <PageMeta title="Unauthorized" desc="" />
-        <div className="mx-auto max-w-7xl px-4">
+        <div>
           <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
           <h3 className="text-xl">You must be logged in to view this page.</h3>
         </div>
@@ -41,10 +44,10 @@ export default function AdminPodcastsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
+    <main className="container mx-auto max-w-7xl px-4 py-8">
       <PageMeta title="Podcast Setup | Admin" desc="" />
       <AdminMenu />
-      <div className="mx-auto max-w-7xl px-4">
+      <div>
         <h2 className="mb-6 text-3xl font-bold">Podcasts Page Setup</h2>
         <Card>
           <CardContent className="p-6">

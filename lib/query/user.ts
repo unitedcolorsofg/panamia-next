@@ -23,7 +23,7 @@ export async function fetchUser() {
   if (user) {
     return user.data.data;
   }
-  return { data: { message: '' } };
+  return undefined;
 }
 
 export const useUser = () => {
@@ -47,7 +47,7 @@ export async function fetchUserFollowing() {
   if (user) {
     return user.data.data;
   }
-  return { data: { message: '' } };
+  return undefined;
 }
 
 export const useUserFollowing = () => {
@@ -93,7 +93,7 @@ export async function fetchUserLists() {
   if (user) {
     return user.data.data;
   }
-  return { data: { message: '' } };
+  return undefined;
 }
 
 export const useUserLists = () => {

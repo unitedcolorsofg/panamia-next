@@ -122,8 +122,8 @@ export function DirectorySearchContent() {
     : [];
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
-      <div className="mx-auto max-w-6xl space-y-6 px-4">
+    <main className="container mx-auto max-w-6xl px-4 py-8">
+      <div className="space-y-6">
         {/* Header */}
         <section className="text-center">
           <h1 className="text-4xl font-bold">Pana Mia Directory</h1>

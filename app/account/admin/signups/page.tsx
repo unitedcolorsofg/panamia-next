@@ -94,9 +94,9 @@ export default function AdminSignupsPage() {
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
+      <main className="container mx-auto max-w-7xl px-4 py-8">
         <PageMeta title="Unauthorized" desc="" />
-        <div className="mx-auto max-w-7xl px-4">
+        <div>
           <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
           <h3 className="text-xl">You must be logged in to view this page.</h3>
         </div>
@@ -105,10 +105,10 @@ export default function AdminSignupsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
+    <main className="container mx-auto max-w-7xl px-4 py-8">
       <PageMeta title="Newsletter Submissions | Admin" desc="" />
       <AdminMenu />
-      <div className="mx-auto max-w-7xl px-4">
+      <div>
         <h2 className="mb-6 text-3xl font-bold">Newsletter Submissions</h2>
         <div className="space-y-6">
           <div className="space-y-4">{createListElements()}</div>

@@ -44,32 +44,32 @@ export default async function ProfilePage({ params }: PageProps) {
 
   const hasSocials = Boolean(
     profile.socials?.website ||
-      profile.socials?.facebook ||
-      profile.socials?.instagram ||
-      profile.socials?.tiktok ||
-      profile.socials?.twitter ||
-      profile.socials?.spotify
+    profile.socials?.facebook ||
+    profile.socials?.instagram ||
+    profile.socials?.tiktok ||
+    profile.socials?.twitter ||
+    profile.socials?.spotify
   );
 
   const hasAddress = Boolean(
     profile.primary_address?.street1 ||
-      profile.primary_address?.street2 ||
-      profile.primary_address?.city ||
-      profile.primary_address?.state ||
-      profile.primary_address?.zipcode
+    profile.primary_address?.street2 ||
+    profile.primary_address?.city ||
+    profile.primary_address?.state ||
+    profile.primary_address?.zipcode
   );
 
   const hasGallery = Boolean(
     profile.images?.gallery1CDN ||
-      profile.images?.gallery2CDN ||
-      profile.images?.gallery3CDN
+    profile.images?.gallery2CDN ||
+    profile.images?.gallery3CDN
   );
 
   const isMentor = profile.mentoring?.enabled === true;
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 dark:bg-gray-900">
-      <div className="mx-auto max-w-3xl space-y-4 px-4">
+    <main className="container mx-auto max-w-3xl px-4 py-8">
+      <div className="space-y-4">
         {/* Profile Header */}
         <ProfileHeader profile={profile} />
 
