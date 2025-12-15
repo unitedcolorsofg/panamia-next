@@ -64,6 +64,7 @@ const baseAdapter = MongoDBAdapter(clientPromise, mongoAdapterOptions);
 
 // WORKAROUND: Store the last updated/created user ID for createSession
 // This fixes a NextAuth v5 beta bug where createSession is called without userId
+// See: https://github.com/nextauthjs/next-auth/issues/13346
 let lastUserIdFromUpdate: string | null = null;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -73,7 +74,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     updateUser: async (user) => {
       // console.log('[DEBUG] updateUser called with:', JSON.stringify(user, null, 2))
 
-      // Capture the user ID from the INPUT parameter (before calling base adapter)
+      // WORKAROUND: Capture the user ID from the INPUT parameter (before calling base adapter)
+      // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (user.id) {
         lastUserIdFromUpdate = user.id;
         // console.log('[DEBUG] Captured userId from updateUser input:', lastUserIdFromUpdate)
@@ -88,8 +90,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     useVerificationToken: async (params) => {
       const result = await baseAdapter.useVerificationToken!(params);
 
-      // MongoDB adapter returns operation result {value, ok, lastErrorObject}
+      // WORKAROUND: MongoDB adapter returns operation result {value, ok, lastErrorObject}
       // Extract the actual document from .value property
+      // See: https://github.com/nextauthjs/next-auth/issues/13346
       let verificationToken = result;
       if (result && typeof result === 'object' && 'value' in result) {
         verificationToken = result.value as typeof result;
@@ -99,7 +102,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return null;
       }
 
-      // Ensure expires is a proper Date object
+      // WORKAROUND: Ensure expires is a proper Date object
+      // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (verificationToken.expires) {
         verificationToken.expires = new Date(verificationToken.expires);
       }
@@ -112,6 +116,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // WORKAROUND: If userId is missing, use the one captured from updateUser
       // This fixes a NextAuth v5 beta bug where createSession is called without userId
+      // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (!session.userId && lastUserIdFromUpdate) {
         // console.log('[DEBUG] Adding missing userId from updateUser:', lastUserIdFromUpdate)
         session.userId = lastUserIdFromUpdate;
@@ -140,7 +145,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Check if result has the expected structure {session, user}
       if (result.session && result.user) {
         // console.log('[DEBUG] getSessionAndUser: returning valid session and user')
-        // Ensure expires is a proper Date object
+        // WORKAROUND: Ensure expires is a proper Date object
+        // See: https://github.com/nextauthjs/next-auth/issues/13346
         if (result.session.expires) {
           result.session.expires = new Date(result.session.expires);
         }
