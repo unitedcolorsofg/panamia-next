@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Enforce HTTPS in production (Vercel deployment)
   if (
     process.env.NODE_ENV === 'production' &&
@@ -44,7 +44,7 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// Apply middleware to all routes
+// Apply proxy to all routes
 export const config = {
   matcher: [
     /*
