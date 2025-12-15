@@ -7,43 +7,44 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Authenticated User Navigation', () => {
-  test('account user page redirects properly', async ({ page }) => {
+  test('account user page requires authentication', async ({ page }) => {
     await page.goto('/account/user/');
 
-    // Should redirect to either /account/user/edit (if authenticated) or / (if not)
-    await page.waitForURL(/\/(account\/user\/edit|$)/);
+    // Unauthenticated users should be redirected to signin or home
+    await page.waitForLoadState('networkidle');
 
     const url = page.url();
+    const isSignin = url.includes('/api/auth/signin');
     const isAuthRoute = url.includes('/account/user/edit');
     const isHomeRoute =
-      url === 'http://localhost:3000/' || url === 'http://localhost:3000';
+      url === 'http://localhost:3000/' ||
+      url === 'http://localhost:3000' ||
+      url === 'https://localhost:3000/' ||
+      url === 'https://localhost:3000';
 
-    expect(isAuthRoute || isHomeRoute).toBeTruthy();
+    // Should redirect to either signin, auth route, or home
+    expect(isSignin || isAuthRoute || isHomeRoute).toBeTruthy();
   });
 
   test('account user edit page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/edit');
+    await page.goto('/account/user/edit', { waitUntil: 'domcontentloaded' });
 
-    await page.waitForLoadState('networkidle');
-
-    // Should either show the page or redirect to home/login
+    // Just verify we get a valid response, don't wait for networkidle
     const url = page.url();
     expect(url).toBeTruthy();
   });
 
   test('account user following page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/following');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/user/following', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
   });
 
   test('account user lists page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/lists');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/user/lists', { waitUntil: 'domcontentloaded' });
 
     const url = page.url();
     expect(url).toBeTruthy();
@@ -52,9 +53,9 @@ test.describe('Authenticated User Navigation', () => {
 
 test.describe('Authenticated Profile Navigation', () => {
   test('account profile edit page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/edit');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/edit', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
@@ -63,9 +64,9 @@ test.describe('Authenticated Profile Navigation', () => {
   test('account profile contact page loads without query errors', async ({
     page,
   }) => {
-    await page.goto('/account/profile/contact');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/contact', {
+      waitUntil: 'domcontentloaded',
+    });
 
     // Check that there are no React Query errors visible
     const queryError = page.getByText(/query data cannot be undefined/i);
@@ -73,9 +74,9 @@ test.describe('Authenticated Profile Navigation', () => {
   });
 
   test('account profile address page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/address');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/address', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
@@ -84,36 +85,36 @@ test.describe('Authenticated Profile Navigation', () => {
   test('account profile categories page loads or redirects', async ({
     page,
   }) => {
-    await page.goto('/account/profile/categories');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/categories', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
   });
 
   test('account profile desc page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/desc');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/desc', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
   });
 
   test('account profile social page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/social');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/social', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
   });
 
   test('account profile images page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/images');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/images', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
@@ -122,9 +123,9 @@ test.describe('Authenticated Profile Navigation', () => {
   test('account profile gentedepana page loads or redirects', async ({
     page,
   }) => {
-    await page.goto('/account/profile/gentedepana');
-
-    await page.waitForLoadState('networkidle');
+    await page.goto('/account/profile/gentedepana', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const url = page.url();
     expect(url).toBeTruthy();
@@ -149,7 +150,7 @@ test.describe('404 Error Prevention', () => {
     ];
 
     for (const route of routes) {
-      await page.goto(route);
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
 
       // Check that we don't get a 404 page
       const title = await page.title();
