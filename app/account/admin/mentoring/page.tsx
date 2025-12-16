@@ -302,18 +302,18 @@ export default function MentoringDashboard() {
       {/* Sessions Over Time Chart */}
       <Card className="mb-8">
         <CardHeader
-          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={() => toggleSection('sessionsOverTime')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <IconTrendingUp className="h-5 w-5" />
               Sessions Over Time
             </CardTitle>
             {expandedSections.sessionsOverTime ? (
-              <IconChevronUp className="h-5 w-5" />
+              <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             ) : (
-              <IconChevronDown className="h-5 w-5" />
+              <IconChevronDown className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             )}
           </div>
         </CardHeader>
@@ -353,18 +353,18 @@ export default function MentoringDashboard() {
       {/* Session Status Pie Chart */}
       <Card className="mb-8">
         <CardHeader
-          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={() => toggleSection('sessionsByStatus')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <IconCalendar className="h-5 w-5" />
               Sessions by Status
             </CardTitle>
             {expandedSections.sessionsByStatus ? (
-              <IconChevronUp className="h-5 w-5" />
+              <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             ) : (
-              <IconChevronDown className="h-5 w-5" />
+              <IconChevronDown className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             )}
           </div>
         </CardHeader>
@@ -403,18 +403,18 @@ export default function MentoringDashboard() {
       {/* Top Expertise Bar Chart */}
       <Card className="mb-8">
         <CardHeader
-          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={() => toggleSection('topExpertise')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <IconTrendingUp className="h-5 w-5" />
               Top Expertise Areas
             </CardTitle>
             {expandedSections.topExpertise ? (
-              <IconChevronUp className="h-5 w-5" />
+              <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             ) : (
-              <IconChevronDown className="h-5 w-5" />
+              <IconChevronDown className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             )}
           </div>
         </CardHeader>
