@@ -14,7 +14,6 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
-    "import-profiles": "node ./scripts/import-profiles",
     "prepare": "husky"
   },
   "dependencies": {

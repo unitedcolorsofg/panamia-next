@@ -1,81 +1,7 @@
 require('dotenv').config({ path: '.env.local' });
-const mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
 
 const ADMIN_EMAIL = process.argv[2];
-const Schema = mongoose.Schema;
-
-// Define User schema
-const userSchema = new Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    name: String,
-    status: {
-      role: String,
-      locked: Date,
-    },
-    affiliate: {},
-    alternate_emails: [],
-    zip_code: String,
-    following: [],
-  },
-  {
-    timestamps: true,
-  }
-);
-
-// Define Profile schema
-const profileSchema = new Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-    slug: String,
-    active: Boolean,
-    status: {},
-    administrative: {},
-    locally_based: String,
-    details: String,
-    background: String,
-    five_words: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    socials: {},
-    phone_number: String,
-    whatsapp_community: Boolean,
-    pronouns: {},
-    tags: String,
-    hearaboutus: String,
-    affiliate: String,
-    counties: {},
-    categories: {},
-    primary_address: {},
-    gentedepana: {},
-    geo: {},
-    locations: [],
-    images: {},
-    linked_profiles: [],
-  },
-  {
-    timestamps: true,
-  }
-);
-
-const User = mongoose.models.user || mongoose.model('user', userSchema);
-const Profile =
-  mongoose.models.profile || mongoose.model('profile', profileSchema);
-
 const MONGODB_URI = process.env.MONGODB_URI;
 
 async function addAdmin() {
@@ -84,32 +10,46 @@ async function addAdmin() {
     console.log('Usage: node scripts/add-admin.js <email>');
     process.exit(1);
   }
+
+  const client = new MongoClient(MONGODB_URI);
+
   try {
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(MONGODB_URI);
+    await client.connect();
     console.log('Connected successfully!');
+
+    const db = client.db();
 
     // Update or create User with admin role
     console.log(`\nSetting up user: ${ADMIN_EMAIL}`);
-    const user = await User.findOneAndUpdate(
+    const usersCollection = db.collection('users');
+
+    const user = await usersCollection.findOneAndUpdate(
       { email: ADMIN_EMAIL },
       {
         $set: {
           email: ADMIN_EMAIL,
           'status.role': 'admin',
         },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
+
     console.log('✓ User updated/created with admin role');
 
     // Check if profile exists and update active status
     console.log(`\nChecking profile for: ${ADMIN_EMAIL}`);
-    const profile = await Profile.findOne({ email: ADMIN_EMAIL });
+    const profilesCollection = db.collection('profiles');
+    const profile = await profilesCollection.findOne({ email: ADMIN_EMAIL });
 
     if (profile) {
-      profile.active = true;
-      await profile.save();
+      await profilesCollection.updateOne(
+        { email: ADMIN_EMAIL },
+        { $set: { active: true } }
+      );
       console.log('✓ Profile marked as active');
       console.log(`  Profile name: ${profile.name}`);
       console.log(`  Profile slug: ${profile.slug || 'Not set'}`);
@@ -127,7 +67,7 @@ async function addAdmin() {
     console.error('❌ Error:', error.message);
     process.exit(1);
   } finally {
-    await mongoose.connection.close();
+    await client.close();
     console.log('\nDatabase connection closed.');
   }
 }
