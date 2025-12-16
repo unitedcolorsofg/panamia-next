@@ -40,24 +40,6 @@ export default function AdminMenu() {
             </AdminButton>
           </li>
           <li>
-            <AdminButton disabled={true}>
-              <IconFileDescription height="16" />
-              Links
-            </AdminButton>
-          </li>
-          <li>
-            <AdminButton disabled={true}>
-              <IconFileDescription height="16" />
-              Events
-            </AdminButton>
-          </li>
-          <li>
-            <AdminButton disabled={true}>
-              <IconFileDescription height="16" />
-              Menu Link
-            </AdminButton>
-          </li>
-          <li>
             <AdminButton href="/account/admin/signups">
               <IconEdit height="16" />
               Newsletter
@@ -73,12 +55,6 @@ export default function AdminMenu() {
             <AdminButton href="/account/admin/users">
               <IconEdit height="16" />
               Users
-            </AdminButton>
-          </li>
-          <li>
-            <AdminButton disabled={true}>
-              <IconEdit height="16" />
-              Pana Profiles
             </AdminButton>
           </li>
         </ul>
