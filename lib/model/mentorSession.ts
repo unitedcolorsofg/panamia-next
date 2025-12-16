@@ -19,7 +19,10 @@ const sessionSchema = new mongoose.Schema(
     cancelledBy: String, // Email of user who cancelled
     cancelReason: String,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    collection: 'mentorSessions', // Explicitly set collection name
+  }
 );
 
 // Indexes for efficient queries

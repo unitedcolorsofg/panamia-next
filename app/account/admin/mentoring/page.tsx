@@ -72,9 +72,9 @@ export default function MentoringDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Date range state (default: last 30 days)
+  // Date range state (default: last 90 days)
   const [startDate, setStartDate] = useState<string>(
-    format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+    format(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
   );
   const [endDate, setEndDate] = useState<string>(
     format(new Date(), 'yyyy-MM-dd')
@@ -103,9 +103,13 @@ export default function MentoringDashboard() {
         throw new Error('Failed to fetch metrics');
       }
       const data = await response.json();
+      console.log('API Response:', data); // Debug logging
+      console.log('Metrics:', data.metrics); // Debug logging
+      console.log('Sessions:', data.metrics?.sessions); // Debug logging
       setMetrics(data.metrics);
       setError(null);
     } catch (err) {
+      console.error('Fetch error:', err); // Debug logging
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
@@ -164,7 +168,7 @@ export default function MentoringDashboard() {
       <AdminMenu />
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold">Mentoring Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-gray-300">
           Platform metrics and mentoring program performance
         </p>
       </div>
@@ -306,9 +310,14 @@ export default function MentoringDashboard() {
           onClick={() => toggleSection('sessionsOverTime')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <IconTrendingUp className="h-5 w-5" />
-              Sessions Over Time
+            <CardTitle className="flex items-center gap-2">
+              <IconTrendingUp
+                className="h-5 w-5"
+                style={{ color: 'rgb(156, 163, 175)' }}
+              />
+              <span style={{ color: 'rgb(209, 213, 219)' }}>
+                Sessions Over Time
+              </span>
             </CardTitle>
             {expandedSections.sessionsOverTime ? (
               <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -357,9 +366,14 @@ export default function MentoringDashboard() {
           onClick={() => toggleSection('sessionsByStatus')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <IconCalendar className="h-5 w-5" />
-              Sessions by Status
+            <CardTitle className="flex items-center gap-2">
+              <IconCalendar
+                className="h-5 w-5"
+                style={{ color: 'rgb(156, 163, 175)' }}
+              />
+              <span style={{ color: 'rgb(209, 213, 219)' }}>
+                Sessions by Status
+              </span>
             </CardTitle>
             {expandedSections.sessionsByStatus ? (
               <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -407,9 +421,14 @@ export default function MentoringDashboard() {
           onClick={() => toggleSection('topExpertise')}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <IconTrendingUp className="h-5 w-5" />
-              Top Expertise Areas
+            <CardTitle className="flex items-center gap-2">
+              <IconTrendingUp
+                className="h-5 w-5"
+                style={{ color: 'rgb(156, 163, 175)' }}
+              />
+              <span style={{ color: 'rgb(209, 213, 219)' }}>
+                Top Expertise Areas
+              </span>
             </CardTitle>
             {expandedSections.topExpertise ? (
               <IconChevronUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -449,26 +468,34 @@ export default function MentoringDashboard() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Scheduled</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Scheduled
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.sessions.scheduled}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">In Progress</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  In Progress
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.sessions.inProgress}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Completed</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Completed
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.sessions.completed}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Cancelled</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Cancelled
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.sessions.cancelled}
                 </span>
               </div>
@@ -483,20 +510,26 @@ export default function MentoringDashboard() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Overall Rate</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Overall Rate
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.cancellationRate.overall}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">By Mentor</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  By Mentor
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.cancellationRate.byMentor}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">By Mentee</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  By Mentee
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.cancellationRate.byMentee}%
                 </span>
               </div>
@@ -517,20 +550,26 @@ export default function MentoringDashboard() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Active Mentors</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Active Mentors
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.mentorUtilization.activeMentors}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Sessions</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Total Sessions
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.mentorUtilization.totalSessions}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Avg Per Mentor</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Avg Per Mentor
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.mentorUtilization.averagePerMentor}
                 </span>
               </div>
@@ -548,20 +587,26 @@ export default function MentoringDashboard() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Unique Mentees</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Unique Mentees
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.menteeEngagement.uniqueMentees}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Returning Mentees</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Returning Mentees
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.menteeEngagement.returningMentees} ({returningRate}%)
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Bookings</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Total Bookings
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {metrics.menteeEngagement.totalBookings}
                 </span>
               </div>

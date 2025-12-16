@@ -62,9 +62,14 @@ export async function GET(request: NextRequest) {
 
     // Default to last 30 days if no dates provided
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
+    // Set endDate to end of day (23:59:59.999) to include all sessions on that day
+    endDate.setHours(23, 59, 59, 999);
+
     const startDate = startDateParam
       ? new Date(startDateParam)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Set startDate to beginning of day (00:00:00.000)
+    startDate.setHours(0, 0, 0, 0);
 
     // Date filter for sessions
     const dateFilter = {
@@ -73,6 +78,29 @@ export async function GET(request: NextRequest) {
         $lte: endDate,
       },
     };
+
+    console.log('Date filter:', {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      dateFilter,
+    });
+
+    // Debug: Check total sessions without date filter
+    const totalSessionsInDB = await MentorSession.countDocuments({});
+    console.log('Total sessions in DB:', totalSessionsInDB);
+
+    // Debug: Get sample session dates
+    const sampleSessions = await MentorSession.find({})
+      .limit(5)
+      .sort({ scheduledAt: 1 })
+      .select('scheduledAt status');
+    console.log(
+      'Sample sessions:',
+      sampleSessions.map((s) => ({
+        scheduledAt: s.scheduledAt,
+        status: s.status,
+      }))
+    );
 
     // 1. Total mentors and active mentors
     const totalMentors = await Profile.countDocuments({
