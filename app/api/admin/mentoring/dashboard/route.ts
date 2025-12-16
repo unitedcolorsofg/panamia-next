@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
@@ -31,9 +31,14 @@ interface DashboardMetrics {
     byMentor: number;
     byMentee: number;
   };
+  chartsData: {
+    sessionsOverTime: Array<{ date: string; sessions: number }>;
+    sessionsByStatus: Array<{ name: string; value: number; color: string }>;
+    topExpertiseChart: Array<{ name: string; count: number }>;
+  };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth();
 
   // Check if user is admin
@@ -50,19 +55,40 @@ export async function GET() {
   // }
 
   try {
+    // Parse date range from query params
+    const { searchParams } = new URL(request.url);
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    // Default to last 30 days if no dates provided
+    const endDate = endDateParam ? new Date(endDateParam) : new Date();
+    const startDate = startDateParam
+      ? new Date(startDateParam)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Date filter for sessions
+    const dateFilter = {
+      scheduledAt: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    };
+
     // 1. Total mentors and active mentors
     const totalMentors = await Profile.countDocuments({
       'mentoring.enabled': true,
     });
 
-    // Active mentors (those with at least one completed session)
+    // Active mentors (those with at least one completed session in date range)
     const activeMentorsSessions = await MentorSession.distinct('mentorEmail', {
       status: 'completed',
+      ...dateFilter,
     });
     const activeMentors = activeMentorsSessions.length;
 
-    // 2. Session counts by status
+    // 2. Session counts by status (filtered by date)
     const sessionCounts = await MentorSession.aggregate([
+      { $match: dateFilter },
       {
         $group: {
           _id: '$status',
@@ -87,8 +113,9 @@ export async function GET() {
       if (item._id === 'cancelled') sessions.cancelled = item.count;
     });
 
-    // 3. Average session duration
+    // 3. Average session duration (filtered by date)
     const avgDuration = await MentorSession.aggregate([
+      { $match: dateFilter },
       {
         $group: {
           _id: null,
@@ -98,7 +125,7 @@ export async function GET() {
     ]);
     const averageSessionDuration = avgDuration[0]?.average || 0;
 
-    // 4. Top expertise areas
+    // 4. Top expertise areas (no date filter - all mentors)
     const expertiseStats = await Profile.aggregate([
       { $match: { 'mentoring.enabled': true } },
       { $unwind: '$mentoring.expertise' },
@@ -119,7 +146,7 @@ export async function GET() {
       },
     ]);
 
-    // 5. Mentor utilization
+    // 5. Mentor utilization (filtered by date)
     const mentorUtilization = {
       totalSessions: sessions.completed,
       activeMentors,
@@ -127,9 +154,13 @@ export async function GET() {
         activeMentors > 0 ? sessions.completed / activeMentors : 0,
     };
 
-    // 6. Mentee engagement
-    const uniqueMentees = await MentorSession.distinct('menteeEmail');
+    // 6. Mentee engagement (filtered by date)
+    const uniqueMentees = await MentorSession.distinct(
+      'menteeEmail',
+      dateFilter
+    );
     const menteeBookings = await MentorSession.aggregate([
+      { $match: dateFilter },
       {
         $group: {
           _id: '$menteeEmail',
@@ -147,10 +178,11 @@ export async function GET() {
       totalBookings: sessions.total,
     };
 
-    // 7. Cancellation rates
+    // 7. Cancellation rates (filtered by date)
     const cancelledSessions = await MentorSession.find({
       status: 'cancelled',
       cancelledBy: { $exists: true },
+      ...dateFilter,
     });
 
     let cancelledByMentor = 0;
@@ -177,6 +209,41 @@ export async function GET() {
           : 0,
     };
 
+    // 8. Chart data: Sessions over time
+    const sessionsOverTime = await MentorSession.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$scheduledAt' },
+          },
+          sessions: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: '$_id',
+          sessions: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // 9. Chart data: Sessions by status (pie chart)
+    const sessionsByStatus = [
+      { name: 'Scheduled', value: sessions.scheduled, color: '#3b82f6' },
+      { name: 'In Progress', value: sessions.inProgress, color: '#f59e0b' },
+      { name: 'Completed', value: sessions.completed, color: '#10b981' },
+      { name: 'Cancelled', value: sessions.cancelled, color: '#ef4444' },
+    ].filter((item) => item.value > 0); // Only include non-zero values
+
+    // 10. Chart data: Top expertise (bar chart)
+    const topExpertiseChart = expertiseStats.map((item) => ({
+      name: item.expertise,
+      count: item.count,
+    }));
+
     const metrics: DashboardMetrics = {
       totalMentors,
       activeMentors,
@@ -193,6 +260,11 @@ export async function GET() {
         overall: Math.round(cancellationRate.overall * 10) / 10,
         byMentor: Math.round(cancellationRate.byMentor * 10) / 10,
         byMentee: Math.round(cancellationRate.byMentee * 10) / 10,
+      },
+      chartsData: {
+        sessionsOverTime,
+        sessionsByStatus,
+        topExpertiseChart,
       },
     };
 

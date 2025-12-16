@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   IconUsers,
   IconCalendar,
@@ -10,7 +11,26 @@ import {
   IconUserCheck,
   IconUserPlus,
   IconAlertCircle,
+  IconChevronDown,
+  IconChevronUp,
+  IconRefresh,
 } from '@tabler/icons-react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { format } from 'date-fns';
 
 interface DashboardMetrics {
   totalMentors: number;
@@ -39,6 +59,11 @@ interface DashboardMetrics {
     byMentor: number;
     byMentee: number;
   };
+  chartsData: {
+    sessionsOverTime: Array<{ date: string; sessions: number }>;
+    sessionsByStatus: Array<{ name: string; value: number; color: string }>;
+    topExpertiseChart: Array<{ name: string; count: number }>;
+  };
 }
 
 export default function MentoringDashboard() {
@@ -46,18 +71,39 @@ export default function MentoringDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Date range state (default: last 30 days)
+  const [startDate, setStartDate] = useState<string>(
+    format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+  );
+  const [endDate, setEndDate] = useState<string>(
+    format(new Date(), 'yyyy-MM-dd')
+  );
+
+  // Expandable sections state
+  const [expandedSections, setExpandedSections] = useState({
+    sessionsOverTime: false,
+    sessionsByStatus: false,
+    topExpertise: false,
+  });
+
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, [startDate, endDate]);
 
   const fetchMetrics = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/admin/mentoring/dashboard');
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+      });
+      const response = await fetch(`/api/admin/mentoring/dashboard?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch metrics');
       }
       const data = await response.json();
       setMetrics(data.metrics);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -65,7 +111,21 @@ export default function MentoringDashboard() {
     }
   };
 
-  if (loading) {
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const handleQuickRange = (days: number) => {
+    const end = new Date();
+    const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    setStartDate(format(start, 'yyyy-MM-dd'));
+    setEndDate(format(end, 'yyyy-MM-dd'));
+  };
+
+  if (loading && !metrics) {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold">Mentoring Dashboard</h1>
@@ -106,6 +166,69 @@ export default function MentoringDashboard() {
           Platform metrics and mentoring program performance
         </p>
       </div>
+
+      {/* Date Range Filter */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Date Range Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="rounded border px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="rounded border px-3 py-2"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickRange(7)}
+              >
+                Last 7 days
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickRange(30)}
+              >
+                Last 30 days
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickRange(90)}
+              >
+                Last 90 days
+              </Button>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={fetchMetrics}
+              disabled={loading}
+            >
+              <IconRefresh className="mr-1 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overview Stats */}
       <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -174,7 +297,148 @@ export default function MentoringDashboard() {
         </Card>
       </div>
 
-      {/* Sessions Breakdown */}
+      {/* Sessions Over Time Chart */}
+      <Card className="mb-8">
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-50"
+          onClick={() => toggleSection('sessionsOverTime')}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <IconTrendingUp className="h-5 w-5" />
+              Sessions Over Time
+            </CardTitle>
+            {expandedSections.sessionsOverTime ? (
+              <IconChevronUp className="h-5 w-5" />
+            ) : (
+              <IconChevronDown className="h-5 w-5" />
+            )}
+          </div>
+        </CardHeader>
+        {expandedSections.sessionsOverTime && (
+          <CardContent>
+            {metrics.chartsData.sessionsOverTime.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={metrics.chartsData.sessionsOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                  />
+                  <YAxis />
+                  <Tooltip
+                    labelFormatter={(value) => format(new Date(value), 'PPP')}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="sessions"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    name="Sessions"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-8 text-center text-gray-500">
+                No session data available for the selected date range
+              </p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Session Status Pie Chart */}
+      <Card className="mb-8">
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-50"
+          onClick={() => toggleSection('sessionsByStatus')}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <IconCalendar className="h-5 w-5" />
+              Sessions by Status
+            </CardTitle>
+            {expandedSections.sessionsByStatus ? (
+              <IconChevronUp className="h-5 w-5" />
+            ) : (
+              <IconChevronDown className="h-5 w-5" />
+            )}
+          </div>
+        </CardHeader>
+        {expandedSections.sessionsByStatus && (
+          <CardContent>
+            {metrics.chartsData.sessionsByStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={metrics.chartsData.sessionsByStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: ${entry.value}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {metrics.chartsData.sessionsByStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-8 text-center text-gray-500">
+                No session data available for the selected date range
+              </p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Top Expertise Bar Chart */}
+      <Card className="mb-8">
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-50"
+          onClick={() => toggleSection('topExpertise')}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <IconTrendingUp className="h-5 w-5" />
+              Top Expertise Areas
+            </CardTitle>
+            {expandedSections.topExpertise ? (
+              <IconChevronUp className="h-5 w-5" />
+            ) : (
+              <IconChevronDown className="h-5 w-5" />
+            )}
+          </div>
+        </CardHeader>
+        {expandedSections.topExpertise && (
+          <CardContent>
+            {metrics.chartsData.topExpertiseChart.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={metrics.chartsData.topExpertiseChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#10b981" name="Mentors" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-8 text-center text-gray-500">
+                No expertise data available
+              </p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Sessions Breakdown & Other Stats */}
       <div className="mb-8 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -303,36 +567,6 @@ export default function MentoringDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Top Expertise Areas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconTrendingUp className="h-5 w-5" />
-            Top Expertise Areas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {metrics.topExpertise.length > 0 ? (
-            <div className="space-y-3">
-              {metrics.topExpertise.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm font-medium capitalize">
-                    {item.expertise}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {item.count} mentors
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              No expertise data available yet
-            </p>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
