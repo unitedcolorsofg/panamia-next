@@ -2,9 +2,9 @@
 
 **The Future is Local - Community platform for South Florida artists and businesses**
 
-[![Next.js](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/next?label=Next.js&color=black)](https://nextjs.org/)
-[![React](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/react?label=React&color=blue)](https://react.dev/)
-[![TypeScript](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/dev/typescript?label=TypeScript&color=blue)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/github/package-json/dependency-version/unitedcolorsofg/panamia.club.WebRTC/next?label=Next.js&color=black)](https://nextjs.org/)
+[![React](https://img.shields.io/github/package-json/dependency-version/unitedcolorsofg/panamia.club.WebRTC/react?label=React&color=blue)](https://react.dev/)
+[![TypeScript](https://img.shields.io/github/package-json/dependency-version/unitedcolorsofg/panamia.club.WebRTC/dev/typescript?label=TypeScript&color=blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green)](./LICENSE)
 
 ---
@@ -359,7 +359,7 @@ We welcome contributions from developers!
 ### Getting Started
 
 1. **Read the guidelines**: See [CONTRIBUTING.md](./docs/CONTRIBUTING.md)
-2. **Check existing issues**: [GitHub Issues](https://github.com/panamiaclub/panamia.club/issues)
+2. **Check existing issues**: [GitHub Issues](https://github.com/unitedcolorsofg/panamia.club.WebRTC/issues)
 3. **Create a feature branch**: `git checkout -b feature/your-feature`
 4. **Make your changes** with clear commit messages
 5. **Push and create a Pull Request**
@@ -395,9 +395,10 @@ We welcome contributions from developers!
 
 ## Contact
 
-- **Website**: [panamia.club](https://www.panamia.club/)
+- **Website**: [panamia-webrtc.vercel.app](https://panamia-webrtc.vercel.app/)
 - **Contact Form**: [panamia.club/form/contact-us](https://www.panamia.club/form/contact-us/)
-- **GitHub Issues**: [Report bugs or suggest features](https://github.com/panamiaclub/panamia.club/issues)
+- **GitHub Issues**: [Report bugs or suggest features](https://github.com/unitedcolorsofg/panamia.club.WebRTC/issues)
+- **Donations**: [Support Us](https://www.panamia.club/donate/)
 - **Security Issues**: Use contact form with subject "SECURITY VULNERABILITY"
 
 ---

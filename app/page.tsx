@@ -133,7 +133,7 @@ export default function HomePage() {
                     <Badge variant="secondary">Upcoming Events</Badge>
                   </div>
                   <CardTitle className="text-3xl">Community Events</CardTitle>
-                  <CardDescription className="text-lg">
+                  <CardDescription className="text-lg break-words whitespace-normal">
                     Pana MIA curates intentional events centered around
                     meaningful connection and the celebration of local culture
                     and art.
