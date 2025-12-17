@@ -30,6 +30,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<MentoringProfileData>({
     resolver: zodResolver(mentoringProfileSchema),
@@ -46,42 +47,55 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
   const addExpertise = () => {
     if (expertiseInput.trim() && !expertise.includes(expertiseInput.trim())) {
-      setExpertise([...expertise, expertiseInput.trim()]);
+      const newExpertise = [...expertise, expertiseInput.trim()];
+      setExpertise(newExpertise);
+      setValue('expertise', newExpertise);
       setExpertiseInput('');
     }
   };
 
   const removeExpertise = (item: string) => {
-    setExpertise(expertise.filter((e) => e !== item));
+    const newExpertise = expertise.filter((e) => e !== item);
+    setExpertise(newExpertise);
+    setValue('expertise', newExpertise);
   };
 
   const addLanguage = () => {
     if (languageInput.trim() && !languages.includes(languageInput.trim())) {
-      setLanguages([...languages, languageInput.trim()]);
+      const newLanguages = [...languages, languageInput.trim()];
+      setLanguages(newLanguages);
+      setValue('languages', newLanguages);
       setLanguageInput('');
     }
   };
 
   const removeLanguage = (item: string) => {
-    setLanguages(languages.filter((l) => l !== item));
+    const newLanguages = languages.filter((l) => l !== item);
+    setLanguages(newLanguages);
+    setValue('languages', newLanguages);
   };
 
   const onSubmit = async (data: MentoringProfileData) => {
     try {
-      // TODO: Implement API endpoint to update profile
-      console.log('Submitting profile:', { ...data, expertise, languages });
+      const response = await fetch('/api/mentoring/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, expertise, languages }),
+      });
 
-      // Placeholder: This would call the API to update the profile
-      // await fetch('/api/mentoring/profile', {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ ...data, expertise, languages }),
-      // });
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to update profile');
+      }
 
       router.push('/mentoring/profile');
       router.refresh();
     } catch (error) {
       console.error('Error updating profile:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to save profile: ${errorMessage}`);
     }
   };
 
@@ -156,6 +170,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             Add at least one expertise area
           </p>
         )}
+        {errors.expertise && (
+          <p className="text-sm text-red-600">{errors.expertise.message}</p>
+        )}
       </div>
 
       {/* Languages */}
@@ -193,6 +210,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         </div>
         {languages.length === 0 && (
           <p className="text-sm text-gray-500">Add at least one language</p>
+        )}
+        {errors.languages && (
+          <p className="text-sm text-red-600">{errors.languages.message}</p>
         )}
       </div>
 
@@ -233,12 +253,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           type="number"
           min="0"
           step="1"
-          placeholder="0 for free mentoring"
+          placeholder="0 for free as in hugs"
         />
         {errors.hourlyRate && (
           <p className="text-sm text-red-600">{errors.hourlyRate.message}</p>
         )}
-        <p className="text-sm text-gray-500">Set to 0 for free mentoring</p>
+        <p className="text-sm text-gray-500">Set to 0 for free as in hugs</p>
       </div>
 
       {/* Submit */}

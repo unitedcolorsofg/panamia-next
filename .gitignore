@@ -48,3 +48,4 @@ playwright/.cache/
 # next-sitemap (auto-generated on build)
 /public/robots.txt
 /public/sitemap*.xml
+package-lock.json

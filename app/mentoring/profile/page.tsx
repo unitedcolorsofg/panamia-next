@@ -70,6 +70,22 @@ export default async function MentoringProfilePage() {
               </div>
             </div>
 
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="mb-4 text-xl font-semibold">Hourly Rate</h2>
+              <p className="text-2xl font-bold">
+                {profile.mentoring.hourlyRate
+                  ? `$${profile.mentoring.hourlyRate}/hour`
+                  : 'Free as in hugs'}
+              </p>
+            </div>
+
+            {profile.mentoring.goals && (
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="mb-4 text-xl font-semibold">Mentoring Goals</h2>
+                <p>{profile.mentoring.goals}</p>
+              </div>
+            )}
+
             {profile.mentoring.videoIntroUrl && (
               <div className="bg-card rounded-lg border p-6">
                 <h2 className="mb-4 text-xl font-semibold">

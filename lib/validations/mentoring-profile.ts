@@ -9,7 +9,7 @@ export const mentoringProfileSchema = z.object({
   languages: z.array(z.string()).min(1, 'At least one language required'),
   bio: z.string().min(10, 'Bio must be at least 10 characters').max(500),
   videoIntroUrl: z.string().url().optional().or(z.literal('')),
-  goals: z.string().min(10).max(500).optional(),
+  goals: z.string().max(500).optional().or(z.literal('')),
   hourlyRate: z.number().min(0).optional(),
 });
 

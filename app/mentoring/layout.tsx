@@ -17,33 +17,28 @@ export default async function MentoringLayout({
     <div className="min-h-screen">
       <nav className="border-b">
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold">
-                Pana Mia
-              </Link>
-              <Link
-                href="/mentoring/discover"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Discover
-              </Link>
-              <Link
-                href="/mentoring/schedule"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                My Sessions
-              </Link>
-              <Link
-                href="/mentoring/profile"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Mentoring Profile
-              </Link>
-            </div>
-            <div className="text-muted-foreground text-sm">
-              {session.user.email}
-            </div>
+          <div className="flex h-16 items-center space-x-8">
+            <Link href="/" className="text-xl font-bold">
+              Pana Mia
+            </Link>
+            <Link
+              href="/mentoring/discover"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Discover
+            </Link>
+            <Link
+              href="/mentoring/schedule"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              My Sessions
+            </Link>
+            <Link
+              href="/mentoring/profile"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Mentoring Profile
+            </Link>
           </div>
         </div>
       </nav>

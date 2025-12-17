@@ -2,9 +2,9 @@
 
 **The Future is Local - Community platform for South Florida artists and businesses**
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.8-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.1-blue)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/next?label=Next.js&color=black)](https://nextjs.org/)
+[![React](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/react?label=React&color=blue)](https://react.dev/)
+[![TypeScript](https://img.shields.io/github/package-json/dependency-version/panamiaclub/panamia.club/dev/typescript?label=TypeScript&color=blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green)](./LICENSE)
 
 ---
@@ -58,7 +58,7 @@ git clone https://github.com/panamiaclub/panamia.club.git
 cd panamia.club
 
 # 2. Install dependencies
-npm install
+yarn install
 
 # 3. Set up environment variables
 cp example.env .env.local
@@ -79,7 +79,7 @@ npm run dev
 Before you begin, ensure you have:
 
 - **Node.js**: Version 20.x or higher ([Download](https://nodejs.org/))
-- **npm**: Version 10.x or higher (comes with Node.js)
+- **Yarn**: Package manager ([Install](https://yarnpkg.com/getting-started/install))
 - **MongoDB Atlas Account**: Required for search functionality ([Sign up](https://www.mongodb.com/cloud/atlas))
 - **Git**: For version control
 
@@ -108,7 +108,7 @@ cd panamia.club
 ### 2. Install Dependencies
 
 ```bash
-npm install
+yarn install
 ```
 
 This will install all required packages including:
@@ -279,9 +279,9 @@ Every branch pushed to GitHub gets a preview deployment:
 
 ### Core
 
-- **[Next.js 16.0.8](https://nextjs.org/)**: React framework with App Router
-- **[React 19.2.1](https://react.dev/)**: UI library
-- **[TypeScript 5.9.3](https://www.typescriptlang.org/)**: Type-safe JavaScript
+- **[Next.js](https://nextjs.org/)**: React framework with App Router
+- **[React](https://react.dev/)**: UI library
+- **[TypeScript](https://www.typescriptlang.org/)**: Type-safe JavaScript
 - **[MongoDB Atlas](https://www.mongodb.com/cloud/atlas)**: NoSQL database (required)
 - **[Mongoose 9.0.1](https://mongoosejs.com/)**: MongoDB ODM
 
