@@ -29,13 +29,6 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: http://localhost:3000
-          NODE_ENV: production
-          PUSHER_APP_ID: ''
-          PUSHER_KEY: ''
-          PUSHER_SECRET: ''
-          PUSHER_CLUSTER: ''
-          NEXT_PUBLIC_PUSHER_KEY: ''
-          NEXT_PUBLIC_PUSHER_CLUSTER: ''
 
       - name: Run Playwright tests
         run: npm run test
@@ -43,13 +36,6 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: http://localhost:3000
-          NODE_ENV: test
-          PUSHER_APP_ID: ''
-          PUSHER_KEY: ''
-          PUSHER_SECRET: ''
-          PUSHER_CLUSTER: ''
-          NEXT_PUBLIC_PUSHER_KEY: ''
-          NEXT_PUBLIC_PUSHER_CLUSTER: ''
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
