@@ -3,6 +3,7 @@ import {
   IconBrandDiscord,
   IconBrandYoutube,
   IconBrandLinkedin,
+  IconBrandGithub,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 
@@ -51,7 +52,7 @@ export default function GlobalFooter() {
         <div className={styles.socials}>
           <ul>
             <li>
-              <a href="https://instagram.com/real.panamia">
+              <a href="https://instagram.com/goto.panamia.club">
                 <IconBrandInstagram size={32} stroke={1.5} />
                 <span className="sr-only">Instagram</span>
               </a>
@@ -66,6 +67,12 @@ export default function GlobalFooter() {
               <a href="https://www.linkedin.com/company/pana-mia/">
                 <IconBrandLinkedin size={32} stroke={1.5} />
                 <span className="sr-only">Linked In</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/panamiaclub/panamia.club">
+                <IconBrandGithub size={32} stroke={1.5} />
+                <span className="sr-only">GitHub Source Code</span>
               </a>
             </li>
           </ul>

@@ -30,15 +30,15 @@ export function AudioPlayer({ isMuted }: AudioPlayerProps) {
       gainNode.connect(audioContext.destination);
 
       oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
+      oscillator.type = 'triangle'; // Triangle wave for softer, harp-like tone
 
-      // Envelope for smooth sound
+      // Harp-like envelope: quick attack, gentle decay
       gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.08, now + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      gainNode.gain.linearRampToValueAtTime(0.04, now + 0.005); // Softer volume, faster attack
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration * 1.5); // Longer, gentler decay
 
       oscillator.start(now);
-      oscillator.stop(now + duration);
+      oscillator.stop(now + duration * 1.5);
     };
 
     const playChord = (frequencies: number[]) => {
@@ -74,21 +74,26 @@ export function AudioPlayer({ isMuted }: AudioPlayerProps) {
       }
     };
 
-    // Scroll handler - play ascending notes based on scroll direction
+    // Scroll handler - play gentle harp strum
     let lastScrollY = window.scrollY;
     const handleScroll = () => {
       throttle(() => {
         const currentScrollY = window.scrollY;
         const scrollingDown = currentScrollY > lastScrollY;
 
+        // Gentle harp strum: play 2-3 notes with slight delay for arpeggio effect
         if (scrollingDown) {
-          playNote(notes.G5); // Higher note when scrolling down
+          // Descending arpeggio for scrolling down
+          playNote(notes.E5, 0.3);
+          setTimeout(() => playNote(notes.C5, 0.3), 30);
         } else {
-          playNote(notes.C5); // Lower note when scrolling up
+          // Ascending arpeggio for scrolling up
+          playNote(notes.C5, 0.3);
+          setTimeout(() => playNote(notes.E5, 0.3), 30);
         }
 
         lastScrollY = currentScrollY;
-      }, 150); // Throttle to max once per 150ms
+      }, 250); // Increased throttle for gentler feel
     };
 
     // Mouse move handler - occasional ambient notes
