@@ -23,6 +23,12 @@ function SignInPageContent() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
 
+  // Check which OAuth providers are configured
+  const hasGoogle = !!process.env.NEXT_PUBLIC_GOOGLE_ENABLED;
+  const hasApple = !!process.env.NEXT_PUBLIC_APPLE_ENABLED;
+  const hasWikimedia = !!process.env.NEXT_PUBLIC_WIKIMEDIA_ENABLED;
+  const hasMastodon = !!process.env.NEXT_PUBLIC_MASTODON_ENABLED;
+
   const handleOAuthSignIn = (provider: string) => {
     signIn(provider, { callbackUrl });
   };
@@ -129,6 +135,8 @@ function SignInPageContent() {
                 onClick={() => handleOAuthSignIn('google')}
                 className="w-full border border-gray-300 bg-white text-gray-900 shadow-sm hover:bg-gray-50"
                 size="lg"
+                disabled={!hasGoogle}
+                title={!hasGoogle ? 'Google sign-in not configured' : ''}
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -155,6 +163,8 @@ function SignInPageContent() {
                 onClick={() => handleOAuthSignIn('apple')}
                 className="w-full bg-black text-white hover:bg-gray-900"
                 size="lg"
+                disabled={!hasApple}
+                title={!hasApple ? 'Apple sign-in not configured' : ''}
               >
                 <svg
                   className="mr-2 h-5 w-5"
@@ -170,6 +180,8 @@ function SignInPageContent() {
                 onClick={() => handleOAuthSignIn('wikimedia')}
                 className="w-full border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
                 size="lg"
+                disabled={!hasWikimedia}
+                title={!hasWikimedia ? 'Wikimedia sign-in not configured' : ''}
               >
                 <Image
                   src="https://authjs.dev/img/providers/wikimedia.svg"
@@ -185,6 +197,8 @@ function SignInPageContent() {
                 onClick={() => handleOAuthSignIn('mastodon')}
                 className="w-full bg-[#6364FF] text-white hover:bg-[#563ACC]"
                 size="lg"
+                disabled={!hasMastodon}
+                title={!hasMastodon ? 'Mastodon sign-in not configured' : ''}
               >
                 <svg
                   className="mr-2 h-5 w-5"
