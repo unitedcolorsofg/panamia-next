@@ -29,7 +29,7 @@ export default function GlobalFooter() {
             <Link href="/links">Links</Link>
           </li>
           <li>
-            <Link href="/directorio">Directorio</Link>
+            <Link href="/directory/search">Directorio</Link>
           </li>
           <li>
             <Link href="/form/join-the-team/">Join The Team</Link>
