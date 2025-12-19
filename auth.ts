@@ -199,6 +199,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     // Mastodon - Custom OAuth provider (users enter their own instance)
     // Only mastodon.social is trusted for auto-claim; other instances are untrusted
+    // @ts-ignore - Custom OAuth provider type compatibility
     {
       id: 'mastodon',
       name: 'Mastodon',
