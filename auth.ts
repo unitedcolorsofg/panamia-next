@@ -1,7 +1,12 @@
 import NextAuth from 'next-auth';
 import EmailProvider from 'next-auth/providers/email';
+import GoogleProvider from 'next-auth/providers/google';
+import AppleProvider from 'next-auth/providers/apple';
+import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import clientPromise from '@/lib/mongodb';
+import dbConnect from '@/lib/connectdb';
+import profile from '@/lib/model/profile';
 
 const mongoAdapterOptions = {
   collections: {
@@ -161,6 +166,80 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope:
+            'openid email profile https://www.googleapis.com/auth/calendar.events',
+        },
+      },
+    }),
+    AppleProvider({
+      clientId: process.env.APPLE_CLIENT_ID!,
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'name email',
+        },
+      },
+    }),
+    // NOTE: Wikimedia removed from trusted providers - emails are optional and may not be verified
+    // Users can make emails private, so email verification is not guaranteed
+    WikimediaProvider({
+      clientId: process.env.WIKIMEDIA_CLIENT_ID!,
+      clientSecret: process.env.WIKIMEDIA_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          // Request email explicitly (users can make it private)
+          scope: 'identify email',
+        },
+      },
+    }),
+    // Mastodon - Custom OAuth provider (users enter their own instance)
+    // Only mastodon.social is trusted for auto-claim; other instances are untrusted
+    {
+      id: 'mastodon',
+      name: 'Mastodon',
+      type: 'oauth' as const,
+      authorization: {
+        url: process.env.MASTODON_INSTANCE
+          ? `${process.env.MASTODON_INSTANCE}/oauth/authorize`
+          : 'https://mastodon.social/oauth/authorize',
+        params: { scope: 'read:accounts profile:email' },
+      },
+      token: {
+        url: process.env.MASTODON_INSTANCE
+          ? `${process.env.MASTODON_INSTANCE}/oauth/token`
+          : 'https://mastodon.social/oauth/token',
+      },
+      userinfo: {
+        url: process.env.MASTODON_INSTANCE
+          ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
+          : 'https://mastodon.social/api/v1/accounts/verify_credentials',
+      },
+      profile(profile) {
+        return {
+          id: profile.id,
+          name: profile.display_name || profile.username,
+          email: profile.email || null,
+          image: profile.avatar,
+        };
+      },
+      clientId: process.env.MASTODON_CLIENT_ID!,
+      clientSecret: process.env.MASTODON_CLIENT_SECRET!,
+    },
+    // TODO: Add Bluesky OAuth provider when NextAuth support is available
+    // Bluesky uses AT Protocol OAuth with email scope: transition:email
+    // Requires client metadata file, DPoP, and PAR
+    // Reference: https://docs.bsky.app/docs/advanced-guides/oauth-client
+    // {
+    //   id: 'bluesky',
+    //   name: 'Bluesky',
+    //   type: 'oauth' as const,
+    //   // Implementation requires @atproto/oauth-client or similar
+    // },
     EmailProvider({
       server: {
         host: process.env.EMAIL_SERVER_HOST,
@@ -171,25 +250,100 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
       from: process.env.EMAIL_FROM,
-      async sendVerificationRequest({ identifier, url, provider }) {
-        // Development: log to console
-        console.log('\n===== MAGIC SIGN-IN LINK =====');
-        console.log(`Email: ${identifier}`);
-        console.log(`Link:  ${url}`);
-        console.log('================================\n');
-        return Promise.resolve();
-      },
     }),
   ],
   session: {
     strategy: 'database',
   },
   callbacks: {
+    async signIn({ user, account, profile: oauthProfile }) {
+      // Require email for all sign-in methods
+      if (!user.email) {
+        console.error('Sign-in blocked: No email provided by OAuth provider', {
+          provider: account?.provider,
+          userId: user.id,
+        });
+        // Returning false will show an error page
+        return '/signin?error=EmailRequired';
+      }
+
+      // Determine if provider is trusted for auto-claiming profiles
+      // Trusted providers verify email ownership before providing email addresses
+      const trustedProviders = ['google', 'apple', 'email'];
+
+      // Trusted Mastodon instances (official and well-known instances only)
+      const trustedMastodonInstances = ['mastodon.social'];
+
+      let isTrustedProvider = false;
+
+      if (account?.provider) {
+        if (trustedProviders.includes(account.provider)) {
+          isTrustedProvider = true;
+        } else if (account.provider === 'mastodon') {
+          // For Mastodon, check if it's a trusted instance
+          const mastodonInstance =
+            process.env.MASTODON_INSTANCE || 'https://mastodon.social';
+          const instanceHost = new URL(mastodonInstance).hostname;
+          isTrustedProvider = trustedMastodonInstances.includes(instanceHost);
+        }
+      }
+
+      if (isTrustedProvider) {
+        // Automatically claim any unclaimed profile with matching email
+        try {
+          await dbConnect();
+          const unclaimedProfile = await profile.findOne({
+            email: user.email.toLowerCase(),
+            $or: [{ userId: { $exists: false } }, { userId: null }],
+          });
+
+          if (unclaimedProfile && user.id) {
+            // Auto-claim profile from trusted provider
+            console.log(
+              'Auto-claiming profile for user:',
+              user.email,
+              'from trusted provider:',
+              account.provider
+            );
+            unclaimedProfile.userId = user.id;
+            await unclaimedProfile.save();
+            console.log('Profile claimed successfully');
+          }
+        } catch (error) {
+          console.error('Error auto-claiming profile:', error);
+          // Don't block sign-in if claiming fails
+        }
+      } else {
+        console.log(
+          'Skipping auto-claim for untrusted provider:',
+          account?.provider
+        );
+      }
+
+      return true;
+    },
     async session({ session, user }) {
       // console.log('Session callback called:', { session, user })
 
       // Attach user data to session
       if (user) {
+        // Check admin status from environment variable
+        const adminEmails =
+          process.env.ADMIN_EMAILS?.split(',').map((e) =>
+            e.trim().toLowerCase()
+          ) || [];
+        const isAdmin =
+          user.email && adminEmails.includes(user.email.toLowerCase());
+
+        // Fetch profile to get verification badges and roles
+        let userProfile = null;
+        try {
+          await dbConnect();
+          userProfile = await profile.findOne({ userId: user.id });
+        } catch (error) {
+          console.error('Error fetching profile in session callback:', error);
+        }
+
         session.user = {
           ...session.user,
           id: user.id,
@@ -198,6 +352,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Privacy: clear name and image
           name: '',
           image: '',
+
+          // Admin role (from environment variable)
+          isAdmin: isAdmin || false,
+
+          // Verification badges (from profile)
+          panaVerified: userProfile?.verification?.panaVerified || false,
+          legalAgeVerified:
+            userProfile?.verification?.legalAgeVerified || false,
+
+          // Scoped roles (from profile)
+          isMentoringModerator: userProfile?.roles?.mentoringModerator || false,
+          isEventOrganizer: userProfile?.roles?.eventOrganizer || false,
+          isContentModerator: userProfile?.roles?.contentModerator || false,
         };
       }
 

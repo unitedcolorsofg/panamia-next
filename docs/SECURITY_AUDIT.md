@@ -1,6 +1,191 @@
-# Mentoring Feature Security Audit
+# Security Audit
 
-## Security Architecture Overview
+## OAuth Authentication Architecture
+
+### Overview
+
+The application uses NextAuth v5 (Auth.js) for authentication with multiple OAuth providers and email magic links. Admin permissions are managed via environment variables, while user-level permissions and verification badges are stored in the MongoDB profile collection.
+
+### OAuth Providers
+
+#### Trusted Providers (Auto-Claim Enabled)
+
+These providers verify email ownership before providing email addresses:
+
+- **Google** - Email verified by Google
+  - Scopes: `openid email profile https://www.googleapis.com/auth/calendar.events`
+  - Calendar scope allows creating/editing mentoring session events
+- **Apple** - Email verified by Apple
+  - Scopes: `name email`
+  - Note: Calendar API not available via OAuth
+- **Email (Magic Link)** - Email verified by our system
+  - We send the link to the email address, confirming ownership
+
+#### Trusted Mastodon Instances
+
+- **mastodon.social** - Official Mastodon instance
+  - Trustworthy instance with proper email verification
+
+#### Untrusted Providers (Auto-Claim Disabled)
+
+These providers may not reliably verify email ownership:
+
+- **Wikimedia** - Emails are optional and may not be verified
+  - Users can make emails private
+  - Cannot rely on email verification
+- **Other Mastodon Instances** - Self-hosted instances
+  - Cannot verify email verification practices
+  - Potential for email spoofing
+
+### Profile Auto-Claim Policy
+
+When users sign in with trusted providers, the system automatically links unclaimed profiles (profiles without a `userId`) to their authenticated account if the email matches.
+
+**Security Rationale:**
+
+- Trusted OAuth providers verify email ownership
+- Email magic links confirm email access
+- Prevents email spoofing attacks
+- Simplifies user experience
+
+**Untrusted Provider Behavior:**
+
+- Users can sign in and create new profiles
+- Cannot auto-claim existing profiles (prevents hijacking)
+- Must use trusted provider to claim existing profile
+
+### Admin Permission Model
+
+**Environment Variable Based:**
+
+```env
+ADMIN_EMAILS=admin@example.com
+```
+
+**Implementation:**
+
+- Admin status checked on every request via session
+- Comma-separated list of admin email addresses
+- Case-insensitive matching
+- No database dependency for admin checks
+
+**Security Benefits:**
+
+- Immutable without server access (defense in depth)
+- Simple to configure and audit
+- No risk of database compromise affecting admin status
+- Clear separation from profile data
+
+**Admin Privileges:**
+
+- Full system access via `session.user.isAdmin`
+- Can grant verification badges
+- Can assign user roles
+
+### Profile Verification Badges
+
+User verification status stored in profile collection:
+
+```typescript
+verification: {
+  panaVerified: Boolean,        // Social verification (not identity)
+  legalAgeVerified: Boolean,    // Legal age verification
+  verifiedOn: Date,             // Date of verification
+  verifiedBy: String            // Admin who verified
+}
+```
+
+**Badge Types:**
+
+- **Pana Verified**: Social verification badge (not legal identity verification)
+- **Legal Age Verified**: Verified to be of legal age (18+)
+
+**Granting Process:**
+
+- Only admins can grant verification badges
+- Audit trail via `verifiedOn` and `verifiedBy` fields
+- Persistent in database
+
+### User Roles
+
+Scoped roles for context-specific permissions:
+
+```typescript
+roles: {
+  mentoringModerator: Boolean,  // Moderator for mentoring section
+  eventOrganizer: Boolean,      // Can organize events
+  contentModerator: Boolean     // Can moderate content
+}
+```
+
+**Role Assignment:**
+
+- Granted by admins via profile updates
+- Scoped to specific features (e.g., mentoring moderator ≠ global admin)
+- Stored in profile collection
+
+### Session Enrichment
+
+The session object is enriched with permissions for fast access:
+
+```typescript
+session.user = {
+  id: string,
+  email: string,
+  emailVerified: Date,
+
+  // Admin role (from env var)
+  isAdmin: boolean,
+
+  // Verification badges (from profile)
+  panaVerified: boolean,
+  legalAgeVerified: boolean,
+
+  // Scoped roles (from profile)
+  isMentoringModerator: boolean,
+  isEventOrganizer: boolean,
+  isContentModerator: boolean,
+};
+```
+
+**Performance:**
+
+- Single database query per session fetch
+- Cached in session (no query on each request)
+- Updated on next session refresh
+
+### Security Considerations
+
+**Email Spoofing Prevention:**
+
+- Only trusted OAuth providers allowed for auto-claim
+- Mastodon instances individually whitelisted
+- Wikimedia excluded due to optional emails
+
+**Admin Account Protection:**
+
+- Admin status from environment variable (immutable)
+- No special auto-claim blocking needed (admin status independent of profile)
+- Focus on MFA at email provider level
+
+**Profile Data Security:**
+
+- Verification badges require admin action
+- Roles scoped to specific features
+- Audit trail for all verifications
+
+**Future Enhancements:**
+
+- Audit logging for admin actions
+- MFA enforcement for admin accounts
+- Time-limited roles (temporary moderators)
+- Fine-grained permissions system
+
+---
+
+## Mentoring Feature Security Audit
+
+### Security Architecture Overview
 
 The mentoring platform implements multiple layers of security to protect user data and prevent unauthorized access.
 

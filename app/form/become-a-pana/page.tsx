@@ -3,10 +3,6 @@
 import { useState, useRef, FormEvent, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from 'react-google-recaptcha-v3';
 import axios from 'axios';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,7 +20,6 @@ import { Shield } from 'lucide-react';
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
   const [activePage, setActivePage] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,19 +54,19 @@ function BecomeAPanaForm() {
   const page7Ref = useRef<HTMLDivElement>(null);
   const confirmationRef = useRef<HTMLDivElement>(null);
 
-  // Redirect authenticated users to their account page
+  // Redirect unauthenticated users to sign-in
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signin?callbackUrl=/form/become-a-pana');
+    }
+  }, [status, router]);
+
+  // Auto-fill email from session
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email) {
-      toast({
-        title: 'Already Registered',
-        description:
-          'You already have an account. Redirecting to your profile...',
-      });
-      setTimeout(() => {
-        router.push('/account/user');
-      }, 2000);
+      setEmail(session.user.email);
     }
-  }, [status, session, router, toast]);
+  }, [status, session]);
 
   // Show loading state while checking authentication
   if (status === 'loading') {
@@ -84,24 +79,9 @@ function BecomeAPanaForm() {
     );
   }
 
-  // Don't render form for authenticated users
-  if (status === 'authenticated') {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="mb-4 text-2xl font-bold">Already Registered</h2>
-            <p className="mb-4">
-              You already have an account with us. Redirecting you to your
-              profile...
-            </p>
-            <Link href="/account/user">
-              <Button>Go to My Account</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // Don't render form until authenticated (redirect happens in useEffect)
+  if (status !== 'authenticated') {
+    return null;
   }
 
   const validateEmail = (email: string): boolean => {
@@ -109,7 +89,7 @@ function BecomeAPanaForm() {
     return regEx.test(email);
   };
 
-  const createExpressProfile = async (recaptchaToken?: string) => {
+  const createExpressProfile = async () => {
     const socials = {
       website: socialsWebsite,
       instagram: socialsInstagram,
@@ -143,7 +123,6 @@ function BecomeAPanaForm() {
           tags: tags,
           hearaboutus: hearAboutUs,
           affiliate: null,
-          recaptchaToken: recaptchaToken,
         },
         {
           headers: {
@@ -200,28 +179,33 @@ function BecomeAPanaForm() {
   }
 
   async function submitExpressProfile(e: FormEvent) {
+    console.log('submitExpressProfile called');
     e.preventDefault();
 
-    if (!validateExpressProfile()) {
+    console.log('About to call validateExpressProfile');
+    console.log('Form values:', { name, email, socialsWebsite, agreeTos });
+
+    let validationResult;
+    try {
+      validationResult = validateExpressProfile();
+      console.log('Validation result:', validationResult);
+    } catch (error) {
+      console.error('Validation threw error:', error);
       return;
     }
+
+    if (!validationResult) {
+      console.log('Validation failed - returning');
+      return;
+    }
+    console.log('Validation passed - proceeding with submission');
 
     setIsSubmitting(true);
 
     try {
-      // Generate reCAPTCHA token for spam protection
-      if (!executeRecaptcha) {
-        toast({
-          variant: 'destructive',
-          title: 'Security Error',
-          description: 'reCAPTCHA not ready. Please try again.',
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const recaptchaToken = await executeRecaptcha('become_pana_submit');
-      const response = await createExpressProfile(recaptchaToken);
+      console.log('About to call createExpressProfile');
+      const response = await createExpressProfile();
+      console.log('API response:', response);
 
       if (response?.data?.error) {
         toast({
@@ -254,6 +238,7 @@ function BecomeAPanaForm() {
         });
       }
     } catch (error) {
+      console.error('Submission error caught:', error);
       toast({
         variant: 'destructive',
         title: 'Submission Error',
@@ -261,6 +246,7 @@ function BecomeAPanaForm() {
           'There was a problem submitting the form. Please contact us at hola@panamia.club',
       });
     } finally {
+      console.log('Finally block - setting isSubmitting to false');
       setIsSubmitting(false);
     }
   }
@@ -299,6 +285,7 @@ function BecomeAPanaForm() {
   };
 
   const submitPage7 = (e: FormEvent) => {
+    console.log('submitPage7 called');
     e.preventDefault();
     submitExpressProfile(e);
   };
@@ -482,11 +469,12 @@ function BecomeAPanaForm() {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        disabled={isSubmitting}
+                        disabled={true}
+                        className="cursor-not-allowed bg-gray-50"
                       />
                       <p className="text-muted-foreground text-sm">
-                        The email that will be used for signing in, not
-                        displayed on profile
+                        This email is from your sign-in and cannot be changed
+                        here. Not displayed on your profile.
                       </p>
                     </div>
 
@@ -956,16 +944,6 @@ function BecomeAPanaForm() {
 }
 
 export default function BecomeAPanaPage() {
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-  if (!recaptchaSiteKey) {
-    console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not configured');
-    return <BecomeAPanaForm />;
-  }
-
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
-      <BecomeAPanaForm />
-    </GoogleReCaptchaProvider>
-  );
+  // reCAPTCHA not needed - users are authenticated before accessing form
+  return <BecomeAPanaForm />;
 }

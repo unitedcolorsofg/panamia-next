@@ -3,6 +3,10 @@ const Schema = mongoose.Schema;
 
 const profileSchema = new Schema(
   {
+    userId: {
+      type: String,
+      index: true,
+    },
     email: {
       type: String,
       required: true,
@@ -62,6 +66,17 @@ const profileSchema = new Schema(
       ],
     },
     pusherChannelId: String, // Unique identifier for user's Pusher channel
+    verification: {
+      panaVerified: { type: Boolean, default: false }, // Social verification (not identity)
+      legalAgeVerified: { type: Boolean, default: false }, // Legal age verification
+      verifiedOn: Date, // Date of verification
+      verifiedBy: String, // Admin who verified (email or userId)
+    },
+    roles: {
+      mentoringModerator: { type: Boolean, default: false }, // Moderator for mentoring section
+      eventOrganizer: { type: Boolean, default: false }, // Can organize events
+      contentModerator: { type: Boolean, default: false }, // Can moderate content
+    },
   },
   {
     timestamps: true,

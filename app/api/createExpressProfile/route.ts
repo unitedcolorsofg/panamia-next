@@ -3,6 +3,7 @@ import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
 import BrevoApi from '@/lib/brevo_api';
 import { createUniqueString, slugify, splitName } from '@/lib/standardized';
+import { auth } from '@/auth';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -77,6 +78,15 @@ const callBrevo_createContact = async (email: string, name: string) => {
 };
 
 export async function POST(request: NextRequest) {
+  // Check authentication
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'You must be signed in to create a profile.' },
+      { status: 401 }
+    );
+  }
+
   const body = await request.json();
 
   const {
@@ -95,6 +105,14 @@ export async function POST(request: NextRequest) {
     affiliate,
     recaptchaToken,
   } = body;
+
+  // Verify email matches session (security check)
+  if (email !== session.user.email) {
+    return NextResponse.json(
+      { error: 'Email does not match your signed-in account.' },
+      { status: 400 }
+    );
+  }
 
   // Validate required fields
   if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -118,23 +136,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify reCAPTCHA (all users must pass this for spam protection)
-  if (!recaptchaToken) {
-    return NextResponse.json(
-      { error: 'reCAPTCHA verification required.' },
-      { status: 400 }
-    );
-  }
-
-  const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
-  if (!isValidRecaptcha) {
-    return NextResponse.json(
-      {
-        error:
-          'reCAPTCHA verification failed. Please try again or contact us at hola@panamia.club',
-      },
-      { status: 400 }
-    );
+  // reCAPTCHA is optional for authenticated users
+  if (recaptchaToken) {
+    const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
+    if (!isValidRecaptcha) {
+      console.warn('reCAPTCHA verification failed for authenticated user');
+    }
   }
 
   await dbConnect();
@@ -150,6 +157,7 @@ export async function POST(request: NextRequest) {
   // TODO: Set initial completion percentage?
   const newProfile = new profile(
     {
+      userId: session.user.id,
       name: name,
       email: email.toString().toLowerCase(),
       slug: slugify(name),
