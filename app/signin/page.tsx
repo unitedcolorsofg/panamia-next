@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 function SignInPageContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams?.get('callbackUrl') || '/';
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -307,7 +307,15 @@ export default function SignInPage() {
 
   return (
     <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
-      <SignInPageContent />
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center">
+            Loading...
+          </div>
+        }
+      >
+        <SignInPageContent />
+      </Suspense>
     </GoogleReCaptchaProvider>
   );
 }

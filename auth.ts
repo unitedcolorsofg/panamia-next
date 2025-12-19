@@ -304,7 +304,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               'Auto-claiming profile for user:',
               user.email,
               'from trusted provider:',
-              account.provider
+              account?.provider
             );
             unclaimedProfile.userId = user.id;
             await unclaimedProfile.save();
