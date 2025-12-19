@@ -23,11 +23,14 @@ function SignInPageContent() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
 
+  // Show different ad copy based on callback URL
+  const isBecomeAPana = callbackUrl.includes('form/become-a-pana');
+
   // Check which OAuth providers are configured
-  const hasGoogle = !!process.env.NEXT_PUBLIC_GOOGLE_ENABLED;
-  const hasApple = !!process.env.NEXT_PUBLIC_APPLE_ENABLED;
-  const hasWikimedia = !!process.env.NEXT_PUBLIC_WIKIMEDIA_ENABLED;
-  const hasMastodon = !!process.env.NEXT_PUBLIC_MASTODON_ENABLED;
+  const hasGoogle = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true';
+  const hasApple = process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true';
+  const hasWikimedia = process.env.NEXT_PUBLIC_WIKIMEDIA_ENABLED === 'true';
+  const hasMastodon = process.env.NEXT_PUBLIC_MASTODON_ENABLED === 'true';
 
   const handleOAuthSignIn = (provider: string) => {
     signIn(provider, { callbackUrl });
@@ -98,9 +101,9 @@ function SignInPageContent() {
             priority
           />
           <p className="max-w-md text-center text-gray-600">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-            ad minim veniam, quis nostrud exercitation ullamco laboris.
+            {isBecomeAPana
+              ? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.'
+              : 'El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón detrás del palenque de paja. Jovencillo emponzoñado de whisky, qué figurota exhibe.'}
           </p>
         </div>
 

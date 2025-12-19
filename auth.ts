@@ -373,6 +373,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
+  pages: {
+    signIn: '/signin', // Use our custom sign-in page instead of /api/auth/signin
+  },
   theme: {
     logo: '/logos/2023_logo_pink.svg',
     brandColor: '#4ab3ea',
