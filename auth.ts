@@ -82,11 +82,6 @@ function html(params: { url: string; host: string; email: string }) {
             </td>
           </tr>
         </table>
-
-        <!-- Footer text -->
-        <p style="margin: 20px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center;">
-          © ${new Date().getFullYear()} Pana MIA. All rights reserved.
-        </p>
       </td>
     </tr>
   </table>
@@ -97,7 +92,7 @@ function html(params: { url: string; host: string; email: string }) {
 
 function text(params: { url: string; host: string }) {
   const { url, host } = params;
-  return `Sign in to Pana MIA\n\n${url}\n\nThis link will expire in 24 hours and can only be used once.\n\nIf you didn't request this email, you can safely ignore it.\n\n© ${new Date().getFullYear()} Pana MIA - ${host}\n`;
+  return `Sign in to Pana MIA\n\n${url}\n\nThis link will expire in 24 hours and can only be used once.\n\nIf you didn't request this email, you can safely ignore it.\n`;
 }
 
 const mongoAdapterOptions = {
