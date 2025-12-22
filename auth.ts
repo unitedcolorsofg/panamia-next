@@ -8,6 +8,98 @@ import clientPromise from '@/lib/mongodb';
 import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
 
+// Custom email templates for magic link authentication
+function html(params: { url: string; host: string; email: string }) {
+  const { url, host, email } = params;
+  const escapedEmail = email.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedHost = host.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const brandColor = '#4ab3ea';
+  const buttonBg = '#ec4899';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
+              <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
+              <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">South Florida's Creative Community</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Sign in to your account</h2>
+
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                Hi there! Click the button below to securely sign in to <strong>${escapedHost}</strong>.
+              </p>
+
+              <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                This link will expire in <strong>24 hours</strong> and can only be used once.
+              </p>
+
+              <!-- Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      Sign in to Pana MIA
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="margin: 10px 0 0 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
+                ${url}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+                This email was sent to <strong>${escapedEmail}</strong>.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                If you didn't request this email, you can safely ignore it. The link will expire automatically.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer text -->
+        <p style="margin: 20px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center;">
+          © ${new Date().getFullYear()} Pana MIA. All rights reserved.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+function text(params: { url: string; host: string }) {
+  const { url, host } = params;
+  return `Sign in to Pana MIA\n\n${url}\n\nThis link will expire in 24 hours and can only be used once.\n\nIf you didn't request this email, you can safely ignore it.\n\n© ${new Date().getFullYear()} Pana MIA - ${host}\n`;
+}
+
 const mongoAdapterOptions = {
   collections: {
     Accounts: 'nextauth_accounts',
@@ -251,6 +343,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
       from: process.env.EMAIL_FROM,
+      async sendVerificationRequest({ identifier: email, url, provider }) {
+        const { host } = new URL(url);
+        const transport = await provider.server;
+        const result = await transport.sendMail({
+          to: email,
+          from: provider.from,
+          subject: `Sign in to Pana MIA`,
+          text: text({ url, host }),
+          html: html({ url, host, email }),
+        });
+        const failed = result.rejected.concat(result.pending).filter(Boolean);
+        if (failed.length) {
+          throw new Error(`Email(s) (${failed.join(', ')}) could not be sent`);
+        }
+      },
     }),
   ],
   session: {
