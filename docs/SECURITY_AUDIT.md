@@ -8,7 +8,32 @@ The application uses NextAuth v5 (Auth.js) for authentication with multiple OAut
 
 ### OAuth Providers
 
-#### Trusted Providers (Auto-Claim Enabled)
+The application uses a tristate security model for OAuth providers based on email verification:
+
+#### Configuration
+
+OAuth provider security is configured via environment variables:
+
+```env
+# Values: trusted | verification-required | disabled
+OAUTH_GOOGLE=trusted
+OAUTH_APPLE=trusted
+OAUTH_WIKIMEDIA=verification-required
+OAUTH_MASTODON_SOCIAL=trusted
+```
+
+**Configuration Values:**
+
+- `trusted` - Provider verifies email ownership (auto-claim enabled immediately)
+- `verification-required` - Email verification required before sign-in (auto-claim after verification)
+- `disabled` - Provider button greyed out on sign-in page
+
+**Notes:**
+
+- `OAUTH_EMAIL` is hardcoded to `trusted` (we send the magic link, confirming ownership)
+- `OAUTH_MASTODON_SOCIAL` is an explicit reference to the mastodon.social instance, not a generic domain-matching pattern
+
+#### Trusted Providers (Immediate Auto-Claim)
 
 These providers verify email ownership before providing email addresses:
 
@@ -20,39 +45,80 @@ These providers verify email ownership before providing email addresses:
   - Note: Calendar API not available via OAuth
 - **Email (Magic Link)** - Email verified by our system
   - We send the link to the email address, confirming ownership
+- **mastodon.social** - Official Mastodon instance with verified email practices
 
-#### Trusted Mastodon Instances
+**Behavior:**
 
-- **mastodon.social** - Official Mastodon instance
-  - Trustworthy instance with proper email verification
+1. User signs in with OAuth
+2. Profile automatically claimed if email matches
+3. No additional verification required
 
-#### Untrusted Providers (Auto-Claim Disabled)
+#### Verification-Required Providers (Email Verification Before Sign-In)
 
 These providers may not reliably verify email ownership:
 
 - **Wikimedia** - Emails are optional and may not be verified
   - Users can make emails private
   - Cannot rely on email verification
-- **Other Mastodon Instances** - Self-hosted instances
-  - Cannot verify email verification practices
-  - Potential for email spoofing
+- **Self-hosted Mastodon** - Cannot verify instance email policies
 
-### Profile Auto-Claim Policy
+**Behavior:**
 
-When users sign in with trusted providers, the system automatically links unclaimed profiles (profiles without a `userId`) to their authenticated account if the email matches.
+1. User initiates OAuth sign-in
+2. OAuth succeeds but sign-in is **blocked**
+3. Verification email sent to OAuth-provided email address (5-minute expiration)
+4. User clicks verification link
+5. Email ownership confirmed
+6. NextAuth account created
+7. Profile automatically claimed if email matches
+8. User can now sign in normally via OAuth
 
 **Security Rationale:**
 
-- Trusted OAuth providers verify email ownership
-- Email magic links confirm email access
-- Prevents email spoofing attacks
-- Simplifies user experience
+- Prevents profile hijacking via unverified OAuth emails
+- Ensures email ownership before granting access
+- Allows auto-claiming for all providers after verification
+- Consistent security model across all providers
 
-**Untrusted Provider Behavior:**
+#### Disabled Providers
 
-- Users can sign in and create new profiles
-- Cannot auto-claim existing profiles (prevents hijacking)
-- Must use trusted provider to claim existing profile
+Providers set to `disabled` will show greyed-out buttons on the sign-in page and reject authentication attempts.
+
+### Email Migration Security
+
+Users can change their account email address through a verified migration process:
+
+**Migration Flow:**
+
+1. User requests email change from account settings
+2. Verification email sent to new email address (5-minute expiration)
+3. User clicks magic link in new email
+4. MongoDB transaction executes:
+   - Update `nextauth_users.email`
+   - Update `profiles.email`
+   - Delete all `nextauth_sessions` (sign out all devices)
+   - Delete migration record
+5. Confirmation email sent to old address
+
+**Security Features:**
+
+- Magic link verification (5-minute expiration)
+- Atomic MongoDB transaction (all-or-nothing)
+- Session invalidation prevents hijacking
+- Cannot migrate to email already in use
+- Maximum 1 pending migration per user
+- Audit trail via confirmation email
+
+**Attack Prevention:**
+
+- Attacker cannot claim profile via untrusted OAuth then migrate to their own email without detection
+  - Attacker verifies alice@example.com via Wikimedia
+  - Attacker claims Alice's profile (after email verification)
+  - Attacker migrates email to attacker@evil.com (after verifying new email)
+  - BUT: Alice receives confirmation email about change at alice@example.com
+  - Alice can contact support to recover account
+
+**Implementation:** `/lib/model/emailMigration.ts`, `/app/api/user/request-email-migration/route.ts`, `/app/api/user/complete-email-migration/route.ts`
 
 ### Admin Permission Model
 

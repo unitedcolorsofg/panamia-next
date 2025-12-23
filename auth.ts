@@ -270,6 +270,138 @@ export function emailMigrationConfirmationText(params: {
   return `Your Account Email Was Changed\n\nYour Pana MIA account email was successfully migrated on ${timestamp}.\n\nPrevious email: ${oldEmail}\nNew email: ${newEmail}\n\nIf you didn't authorize this change, please contact us immediately at hola@panamia.club. Your account security may be compromised.\n\nYou have been signed out of all devices. Please sign in with your new email address to continue using Pana MIA.`;
 }
 
+// Email template for OAuth email verification (sent to OAuth-provided email)
+export function oauthVerificationHtml(params: {
+  url: string;
+  email: string;
+  provider: string;
+}) {
+  const { url, email, provider } = params;
+  const escapedEmail = email.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+
+  const brandColor = '#4ab3ea';
+  const buttonBg = '#ec4899';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
+              <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
+              <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">South Florida's Creative Community</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Verify your email address</h2>
+
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                You signed in to Pana MIA using <strong>${providerName}</strong>.
+                To complete your sign-in and verify email ownership, click the button below.
+              </p>
+
+              <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                This link will expire in <strong>5 minutes</strong> for security.
+              </p>
+
+              <!-- Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      Verify Email &amp; Sign In
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="margin: 10px 0 0 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
+                ${url}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+                This email was sent to <strong>${escapedEmail}</strong>.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                If you didn't request this, you can safely ignore it. The link will expire automatically.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+export function oauthVerificationText(params: {
+  url: string;
+  email: string;
+  provider: string;
+}) {
+  const { url, provider } = params;
+  const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+
+  return `Verify Your Email for Pana MIA\n\nYou signed in using ${providerName}. To complete sign-in and verify email ownership, click the link below:\n\n${url}\n\nThis link expires in 5 minutes for security.\n\nIf you didn't request this, you can safely ignore this email.`;
+}
+
+// Helper function to determine OAuth provider verification requirement
+function getProviderVerificationConfig(
+  provider?: string
+): 'trusted' | 'verification-required' | 'disabled' {
+  if (!provider) return 'disabled';
+
+  // Email provider is always trusted (we send the magic link)
+  if (provider === 'email') return 'trusted';
+
+  // Check for instance-specific config (e.g., OAUTH_MASTODON_SOCIAL for mastodon.social)
+  if (provider === 'mastodon') {
+    const instance = process.env.MASTODON_INSTANCE || 'https://mastodon.social';
+    const hostname = new URL(instance).hostname;
+    // Check for explicit mastodon.social config
+    if (hostname === 'mastodon.social') {
+      const config = process.env.OAUTH_MASTODON_SOCIAL;
+      if (config)
+        return config as 'trusted' | 'verification-required' | 'disabled';
+    }
+    // Otherwise use generic mastodon config
+    const genericConfig = process.env.OAUTH_MASTODON;
+    if (genericConfig)
+      return genericConfig as 'trusted' | 'verification-required' | 'disabled';
+  }
+
+  // Check provider-level config
+  const envKey = `OAUTH_${provider.toUpperCase()}`;
+  const config = process.env[envKey];
+  if (config) return config as 'trusted' | 'verification-required' | 'disabled';
+
+  // Default to verification-required for unknown providers
+  return 'verification-required';
+}
+
 const mongoAdapterOptions = {
   collections: {
     Accounts: 'nextauth_accounts',
@@ -542,61 +674,125 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           provider: account?.provider,
           userId: user.id,
         });
-        // Returning false will show an error page
         return '/signin?error=EmailRequired';
       }
 
-      // Determine if provider is trusted for auto-claiming profiles
-      // Trusted providers verify email ownership before providing email addresses
-      const trustedProviders = ['google', 'apple', 'email'];
+      // Determine provider verification requirement
+      const providerConfig = getProviderVerificationConfig(account?.provider);
 
-      // Trusted Mastodon instances (official and well-known instances only)
-      const trustedMastodonInstances = ['mastodon.social'];
+      if (providerConfig === 'disabled') {
+        console.log(
+          'Sign-in blocked: Provider is disabled:',
+          account?.provider
+        );
+        return '/signin?error=ProviderDisabled';
+      }
 
-      let isTrustedProvider = false;
+      if (providerConfig === 'verification-required') {
+        // Block sign-in and send verification email
+        try {
+          await dbConnect();
+          const oauthVerification = (
+            await import('@/lib/model/oauthVerification')
+          ).default;
+          const nodemailer = await import('nodemailer');
+          const { nanoid } = await import('nanoid');
 
-      if (account?.provider) {
-        if (trustedProviders.includes(account.provider)) {
-          isTrustedProvider = true;
-        } else if (account.provider === 'mastodon') {
-          // For Mastodon, check if it's a trusted instance
-          const mastodonInstance =
-            process.env.MASTODON_INSTANCE || 'https://mastodon.social';
-          const instanceHost = new URL(mastodonInstance).hostname;
-          isTrustedProvider = trustedMastodonInstances.includes(instanceHost);
+          // Check if verification already sent recently
+          const existingVerification = await oauthVerification.findOne({
+            provider: account?.provider,
+            providerAccountId: account?.providerAccountId,
+            expiresAt: { $gt: new Date() },
+          });
+
+          if (existingVerification) {
+            console.log('Verification email already sent for:', user.email);
+            return '/signin?verificationSent=true';
+          }
+
+          // Generate verification token
+          const verificationToken = nanoid(32);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+          // Create verification record
+          await oauthVerification.create({
+            email: user.email.toLowerCase(),
+            provider: account?.provider,
+            providerAccountId: account?.providerAccountId,
+            verificationToken,
+            expiresAt,
+            oauthProfile: {
+              name: user.name,
+              email: user.email,
+              image: user.image,
+            },
+          });
+
+          // Send verification email
+          const protocol = process.env.NEXTAUTH_URL?.startsWith('https')
+            ? 'https'
+            : 'http';
+          const host =
+            process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ||
+            'localhost:3000';
+          const verificationUrl = `${protocol}://${host}/verify-oauth-email?token=${verificationToken}`;
+
+          const transport = nodemailer.createTransport({
+            host: process.env.EMAIL_SERVER_HOST!,
+            port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
+            secure: false,
+            auth: {
+              user: process.env.EMAIL_SERVER_USER!,
+              pass: process.env.EMAIL_SERVER_PASSWORD!,
+            },
+          });
+
+          await transport.sendMail({
+            from: process.env.EMAIL_FROM!,
+            to: user.email,
+            subject: 'Verify Your Email for Pana MIA',
+            html: oauthVerificationHtml({
+              url: verificationUrl,
+              email: user.email,
+              provider: account?.provider || 'OAuth',
+            }),
+            text: oauthVerificationText({
+              url: verificationUrl,
+              email: user.email,
+              provider: account?.provider || 'OAuth',
+            }),
+          });
+
+          console.log('Verification email sent to:', user.email);
+          return '/signin?verificationSent=true';
+        } catch (error) {
+          console.error('Error sending verification email:', error);
+          return '/signin?error=VerificationFailed';
         }
       }
 
-      if (isTrustedProvider) {
-        // Automatically claim any unclaimed profile with matching email
-        try {
-          await dbConnect();
-          const unclaimedProfile = await profile.findOne({
-            email: user.email.toLowerCase(),
-            $or: [{ userId: { $exists: false } }, { userId: null }],
-          });
+      // Trusted provider - proceed with auto-claim
+      try {
+        await dbConnect();
+        const unclaimedProfile = await profile.findOne({
+          email: user.email.toLowerCase(),
+          $or: [{ userId: { $exists: false } }, { userId: null }],
+        });
 
-          if (unclaimedProfile && user.id) {
-            // Auto-claim profile from trusted provider
-            console.log(
-              'Auto-claiming profile for user:',
-              user.email,
-              'from trusted provider:',
-              account?.provider
-            );
-            unclaimedProfile.userId = user.id;
-            await unclaimedProfile.save();
-            console.log('Profile claimed successfully');
-          }
-        } catch (error) {
-          console.error('Error auto-claiming profile:', error);
-          // Don't block sign-in if claiming fails
+        if (unclaimedProfile && user.id) {
+          console.log(
+            'Auto-claiming profile for user:',
+            user.email,
+            'from trusted provider:',
+            account?.provider
+          );
+          unclaimedProfile.userId = user.id;
+          await unclaimedProfile.save();
+          console.log('Profile claimed successfully');
         }
-      } else {
-        console.log(
-          'Skipping auto-claim for untrusted provider:',
-          account?.provider
-        );
+      } catch (error) {
+        console.error('Error auto-claiming profile:', error);
+        // Don't block sign-in if claiming fails
       }
 
       return true;
