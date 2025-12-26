@@ -240,26 +240,50 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for technology choices and 
 ```
 panamia.club/
 ├── app/                      # Next.js App Router
-│   ├── (mentoring)/         # Mentoring feature routes
-│   ├── (public)/            # Public pages
-│   ├── account/             # User account pages
-│   ├── api/                 # API routes
-│   ├── directory/           # User directory
-│   └── layout.tsx           # Root layout
+│   ├── about-us/            # About page
+│   ├── account/             # User account settings
+│   ├── admin/               # Admin dashboard
+│   ├── api/                 # API routes (40+ endpoints)
+│   ├── directory/           # Profile directory & search
+│   ├── donate/              # Donation pages
+│   ├── event/               # Event listings
+│   ├── form/                # Business intake forms
+│   ├── list/                # User-curated lists
+│   ├── mentoring/           # Peer mentoring feature
+│   │   ├── discover/        # Find mentors
+│   │   ├── profile/         # Mentor profiles
+│   │   ├── schedule/        # Booking system
+│   │   └── session/         # Video call interface
+│   ├── profile/             # Public profile pages
+│   ├── signin/              # Authentication
+│   ├── layout.tsx           # Root layout
+│   └── page.tsx             # Homepage
 ├── components/              # React components
 │   ├── ui/                  # shadcn/ui components
 │   ├── flower-power/        # Flower Power theme
+│   ├── Admin/               # Admin components
+│   ├── Form/                # Form components
+│   ├── Page/                # Page layout components
 │   └── *.tsx                # Shared components
-├── lib/                     # Utilities
-│   ├── model/               # Mongoose schemas
-│   ├── validations/         # Zod schemas
-│   └── *.ts                 # Utility functions
-├── public/                  # Static assets
-├── styles/                  # Global styles
-├── docs/                    # Documentation
+├── lib/                     # Utilities & business logic
+│   ├── model/               # Mongoose schemas (user, profile, etc.)
+│   ├── validations/         # Zod validation schemas
+│   ├── bunnycdn/            # CDN integration
+│   ├── query/               # Database queries
+│   ├── server/              # Server-side utilities
+│   └── *.ts                 # Auth, email, utils
+├── hooks/                   # Custom React hooks
+├── types/                   # TypeScript type definitions
+├── styles/                  # Global CSS & theme files
+├── public/                  # Static assets (images, logos)
+├── scripts/                 # Utility scripts
 ├── tests/                   # Playwright E2E tests
-├── middleware.ts            # Next.js middleware
-└── package.json             # Dependencies
+│   └── e2e/                 # Test specs
+├── docs/                    # Documentation
+├── .husky/                  # Git hooks (pre-commit, commit-msg)
+├── auth.ts                  # NextAuth v5 configuration
+├── middleware.ts            # Next.js middleware (HTTPS, headers)
+└── package.json             # Dependencies & scripts
 ```
 
 ---
