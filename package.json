@@ -84,6 +84,8 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
     "@playwright/test": "^1.57.0",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.4",
