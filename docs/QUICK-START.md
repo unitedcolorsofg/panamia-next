@@ -9,9 +9,25 @@ Get the Pana Mia Club development environment running on your machine.
 Before you begin, ensure you have:
 
 - **Node.js**: Version 20.x or higher ([Download](https://nodejs.org/))
-- **Yarn**: Package manager ([Install](https://yarnpkg.com/getting-started/install))
+- **Yarn**: Package manager (see setup below)
 - **MongoDB Atlas Account**: Required for search functionality ([Sign up](https://www.mongodb.com/cloud/atlas))
 - **Git**: For version control
+
+### Yarn Setup
+
+This project uses Yarn. Enable it via Node.js corepack:
+
+```bash
+corepack enable
+```
+
+Or install globally:
+
+```bash
+npm install -g yarn
+```
+
+> **Note**: The CI pipeline uses `yarn install --frozen-lockfile`, so always use Yarn to install dependencies to keep `yarn.lock` in sync.
 
 > **Note**: MongoDB Atlas is required for full functionality. The directory and admin search features use Atlas Search indexes (`$search` aggregation), which are not available in local MongoDB instances.
 
@@ -76,7 +92,7 @@ See `example.env` for all available options with detailed comments.
 ### Start Development Server
 
 ```bash
-npm run dev
+yarn dev
 ```
 
 Open **https://localhost:3000** in your browser.
@@ -92,13 +108,13 @@ The dev server includes:
 
 ```bash
 # Run linter
-npm run lint
+yarn lint
 
 # Auto-fix linting issues
-npm run lint -- --fix
+yarn lint --fix
 
 # Format code with Prettier
-npx prettier --write .
+yarn prettier --write .
 ```
 
 ### Git Hooks
@@ -129,16 +145,16 @@ Tests run automatically on every `git push` via GitHub Actions.
 
 ```bash
 # Run all tests
-npm test
+yarn test
 
 # Run tests in UI mode (interactive)
-npm run test:ui
+yarn test:ui
 
 # Run tests in headed mode (see browser)
-npm run test:headed
+yarn test:headed
 
 # View test report
-npm run test:report
+yarn test:report
 ```
 
 ### Test Coverage
@@ -175,10 +191,10 @@ See [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) for manual testing procedures
 
 ```bash
 # Create production build
-npm run build
+yarn build
 
 # Start production server
-npm start
+yarn start
 ```
 
 ---
