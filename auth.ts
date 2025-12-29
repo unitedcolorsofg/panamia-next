@@ -4,6 +4,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import { createTransport } from 'nodemailer';
 import clientPromise from '@/lib/mongodb';
 import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
@@ -647,8 +648,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({ identifier: email, url, provider }) {
         const { host } = new URL(url);
-        const transport = await provider.server;
-        // @ts-ignore - NextAuth type compatibility issue with nodemailer transport
+        const transport = createTransport(provider.server);
         const result = await transport.sendMail({
           to: email,
           from: provider.from,
