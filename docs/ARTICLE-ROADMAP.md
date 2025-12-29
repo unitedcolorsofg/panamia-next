@@ -2,6 +2,13 @@
 
 This document outlines the staged implementation plan for adding WordPress-like community article functionality to Pana MIA.
 
+> **Related Documentation**:
+>
+> - [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md) - In-app notification system (prerequisite)
+> - [FEATURES.md](./FEATURES.md) - Platform feature overview
+>
+> **Upstream Reference**: [llun/activities.next](https://github.com/llun/activities.next) - Next.js ActivityPub server for future federation
+
 ## Overview
 
 Community articles enable users to publish content with collaborative authorship and peer review. Key differentiators:
@@ -124,43 +131,23 @@ interface ReviewComment {
 
 ### Notification Schema
 
-```typescript
-interface Notification {
-  _id: ObjectId;
-  userId: ObjectId; // Recipient
+> **See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md)** for the full ActivityPub-compatible notification schema.
+>
+> The notification system uses ActivityPub Activity types (`Invite`, `Accept`, `Create`, etc.) to enable future federation with [activities.next](https://github.com/llun/activities.next).
 
-  type: NotificationType;
+Article-specific notification contexts:
 
-  payload: {
-    articleId?: ObjectId;
-    articleTitle?: string;
-    fromUserId?: ObjectId;
-    fromScreenname?: string;
-    message?: string; // Invitation message
-    actionUrl?: string; // Deep link
-  };
-
-  read: boolean;
-  readAt?: Date;
-  emailSent: boolean;
-  emailSentAt?: Date;
-
-  createdAt: Date;
-}
-
-type NotificationType =
-  | 'coauthor_invite' // Invited to co-author
-  | 'coauthor_accepted' // Co-author accepted your invite
-  | 'coauthor_declined' // Co-author declined
-  | 'review_request' // Asked to review an article
-  | 'review_approved' // Reviewer approved your article
-  | 'review_revision_needed' // Reviewer requested changes
-  | 'review_comment' // New comment from reviewer
-  | 'article_published' // Article you contributed to is live
-  | 'article_removed' // Admin removed article
-  | 'reply_published' // Someone replied to your article
-  | 'system'; // System announcements
-```
+| Event               | ActivityPub Type | Context    |
+| ------------------- | ---------------- | ---------- |
+| Co-author invited   | `Invite`         | `coauthor` |
+| Invitation accepted | `Accept`         | `coauthor` |
+| Invitation declined | `Reject`         | `coauthor` |
+| Review requested    | `Invite`         | `review`   |
+| Review approved     | `Accept`         | `review`   |
+| Revision needed     | `Update`         | `review`   |
+| Article published   | `Create`         | `article`  |
+| Article removed     | `Delete`         | `article`  |
+| Reply published     | `Create`         | `article`  |
 
 ### User Schema Additions
 
@@ -195,6 +182,18 @@ interface UserAdditions {
 ### Stage 1: In-App Notification System
 
 **Foundation for all invitation and review workflows**
+
+> **Full specification**: See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md)
+>
+> The notification system is designed to be ActivityPub-compatible from the start,
+> enabling future federation with [activities.next](https://github.com/llun/activities.next).
+
+#### Key Design Decisions
+
+- **ActivityPub-shaped schema**: Uses Activity types (`Invite`, `Accept`, `Create`, etc.)
+- **Actor model**: Notifications reference actor (who), object (what), target (recipient)
+- **Retention policy**: Invitations kept indefinitely (audit trail), others expire after 30-90 days
+- **No WebSocket**: Simple polling for unread count (30-second interval)
 
 #### Components
 
@@ -233,6 +232,17 @@ interface UserAdditions {
 - Use existing Nodemailer/Brevo setup
 - Respect user's `emailPreferences`
 - Branded email templates matching existing magic link style
+
+#### Code Standards
+
+All notification code MUST include upstream reference comments:
+
+```typescript
+/**
+ * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * See: [specific file path] for comparable pattern
+ */
+```
 
 ---
 
@@ -581,15 +591,66 @@ Child article shows "In reply to: [Title]" header.
 
 ### Future Stages (Not in Initial Scope)
 
-| Stage | Feature              | Description                     |
-| ----- | -------------------- | ------------------------------- |
-| 8     | Tiptap Editor        | Rich text editing, better UX    |
-| 9     | SVG-Edit Integration | Embedded vector doodle editor   |
-| 10    | Hocuspocus           | Real-time collaborative editing |
-| 11    | ActivityPub          | Fediverse syndication           |
-| 12    | View Analytics       | Privacy-respecting metrics      |
-| 13    | Bookmarks            | Users can save articles         |
-| 14    | Comments             | Discussion on articles          |
+| Stage | Feature              | Description                        |
+| ----- | -------------------- | ---------------------------------- |
+| 8     | Tiptap Editor        | Rich text editing, better UX       |
+| 9     | SVG-Edit Integration | Embedded vector doodle editor      |
+| 10    | Hocuspocus           | Real-time collaborative editing    |
+| 11    | ActivityPub          | Fediverse syndication              |
+| 12    | View Analytics       | Privacy-respecting metrics         |
+| 13    | Bookmarks            | Users can save articles            |
+| 14    | Comments             | Fediverse replies as comments      |
+| 15    | Lists Alignment      | Align with ActivityPub Collections |
+
+---
+
+### Stage 11: ActivityPub Federation (Detailed)
+
+**Upstream Reference**: [llun/activities.next](https://github.com/llun/activities.next)
+
+#### Architecture Options
+
+**Option A: activities.next Sidecar (Recommended)**
+
+Deploy activities.next as a separate instance at `social.panamia.club`:
+
+```
+panamia.club                         social.panamia.club
+(Next.js app)                        (activities.next)
+     │                                      │
+     │ Article published ──────────→ Create Note activity
+     │                                      │
+     │                                      ↓
+     │                              Federation to Fediverse
+     │                                      │
+     │ Fediverse replies ←────────── Inbox receives
+     │                                      │
+     └── Display as comments ───────────────┘
+```
+
+**Benefits**:
+
+- activities.next handles all ActivityPub complexity
+- Pana MIA remains focused on core features
+- Shared authentication via SSO
+- Proven Vercel deployment
+
+**Option B: Native ActivityPub**
+
+Implement ActivityPub directly in Pana MIA using patterns from activities.next.
+
+**When to consider**: If sidecar architecture becomes limiting.
+
+#### Stage 14: Comments via Fediverse
+
+Instead of building a custom comment system:
+
+1. Article published → Toot created on `social.panamia.club`
+2. Mastodon users reply to the toot
+3. Fetch replies via Mastodon API
+4. Display below article as comments
+
+See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md) for "Mastodon API Fetch" pattern.
 
 ---
 
@@ -715,6 +776,8 @@ components/
 
 ## Revision History
 
-| Date       | Change                  |
-| ---------- | ----------------------- |
-| 2025-12-26 | Initial roadmap created |
+| Date       | Change                                                                     |
+| ---------- | -------------------------------------------------------------------------- |
+| 2024-12-29 | Added ActivityPub integration plan with activities.next upstream reference |
+| 2024-12-29 | Split notification system to NOTIFICATIONS-ROADMAP.md                      |
+| 2024-12-26 | Initial roadmap created                                                    |

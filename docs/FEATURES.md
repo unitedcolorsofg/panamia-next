@@ -30,6 +30,8 @@ Browse and search community members by category, location, and keywords. Feature
 
 User-curated collections of profiles. Create and share themed collections like "Best Coffee Shops in Wynwood" or "Jazz Venues in Miami Beach." Lists can be public or private.
 
+Future: Align with [ActivityPub Collections](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-collection) for federation. See [ARTICLE-ROADMAP.md](./ARTICLE-ROADMAP.md) Stage 15.
+
 ### Search (`search`)
 
 Full-text search across profiles and content using MongoDB Atlas Search.
@@ -62,7 +64,9 @@ Community-driven content platform for sharing stories, guides, and local knowled
 
 ### Comments (`comments`)
 
-Discussion threads on articles and profiles. _(Planned)_
+Discussion threads on articles and profiles. _(Planned - via Fediverse replies)_
+
+See [ARTICLE-ROADMAP.md](./ARTICLE-ROADMAP.md) Stage 14 for Fediverse integration plan.
 
 ---
 
@@ -79,6 +83,10 @@ Discover local events, shows, and gatherings. Integration with Shotgun Live for 
 ### Notifications (`notifications`)
 
 Stay updated on community activity through the notification system. Accessible via the pana flower button in the navigation.
+
+The notification system is designed to be [ActivityPub-compatible](https://www.w3.org/TR/activitypub/) for future federation with [activities.next](https://github.com/llun/activities.next).
+
+See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md) for implementation details.
 
 ---
 

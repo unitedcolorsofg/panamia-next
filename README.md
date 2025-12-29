@@ -12,7 +12,7 @@ A community platform connecting South Florida artists, creatives, and local busi
 
 Pana Mia Club is a 501(c)(3) non-profit building tools to support regenerative, vibrant local economies in South Florida. We believe the future is local—and we're creating the digital infrastructure to make that future possible.
 
-**Pana** (noun): A close friend, someone you trust. From Spanish/Latin American slang.
+**Pana** (noun): A close friend, someone you trust.
 
 ---
 
@@ -22,6 +22,10 @@ Pana Mia Club is a 501(c)(3) non-profit building tools to support regenerative, 
 
 Discover local artists, musicians, restaurants, venues, and creative businesses. Browse by category, neighborhood, or keyword. Create curated lists to share your favorite spots.
 
+### 📅 Events
+
+Find local shows, markets, gallery openings, and community gatherings. Stay connected to what's happening in your neighborhood.
+
 ### ✍️ Community Articles
 
 Share your voice with the community. Write about local culture, neighborhood guides, business spotlights, or creative projects. Collaborate with co-authors and get feedback through peer review before publishing.
@@ -30,13 +34,9 @@ _Features: Co-authorship, peer review, RSS feeds_
 
 ### 🤝 Peer Mentoring
 
-Connect one-on-one with community members for mentoring sessions. Whether you're seeking guidance on starting a business, learning a craft, or navigating the local creative scene—find someone who's been there.
+Connect one-on-one with community members for mentoring sessions. Whether you're seeking guidance on starting a business, navigating the local scene, or staying centered—find someone who's been there.
 
 _Features: Video calls, scheduling, session notes_
-
-### 📅 Events
-
-Find local shows, markets, gallery openings, and community gatherings. Stay connected to what's happening in your neighborhood.
 
 ### 💝 Support Local
 
@@ -49,7 +49,7 @@ Every profile represents a real person or business in our community. When you di
 - **Community First**: Built by and for South Florida's creative community
 - **Privacy Focused**: No tracking, no ads, no selling your data
 - **Accessible**: Free to use, designed for everyone
-- **Open Source**: Our code is publicly available for transparency and collaboration
+- **Source Reviewable**: Our code is publicly available for transparency and collaboration
 
 ---
 
