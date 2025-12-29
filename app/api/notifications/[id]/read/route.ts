@@ -1,0 +1,56 @@
+/**
+ * Notifications API - Mark single notification as read
+ *
+ * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * ActivityPub-shaped notification system
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import dbConnect from '@/lib/connectdb';
+import user from '@/lib/model/user';
+import { markAsRead } from '@/lib/notifications';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+
+    // Get user ID from email
+    const currentUser = await user.findOne({ email: session.user.email });
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const { id } = await params;
+    const success = await markAsRead(id, currentUser._id.toString());
+
+    if (!success) {
+      return NextResponse.json(
+        { success: false, error: 'Notification not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return NextResponse.json(
+      { success: false, error: 'Server error' },
+      { status: 500 }
+    );
+  }
+}

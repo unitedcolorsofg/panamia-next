@@ -158,6 +158,7 @@ export interface UserInterface {
   };
   alternate_emails?: [];
   following?: string[];
+  notificationPreferences?: NotificationPreferencesInterface;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -177,4 +178,58 @@ export interface Pagination {
   offset: number;
   page_number: number;
   total_pages: number;
+}
+
+/**
+ * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * ActivityPub-shaped notification for future federation
+ */
+export type NotificationActivityType =
+  | 'Invite'
+  | 'Accept'
+  | 'Reject'
+  | 'Create'
+  | 'Update'
+  | 'Delete'
+  | 'Announce'
+  | 'Like'
+  | 'Follow'
+  | 'Undo';
+
+export type NotificationContext =
+  | 'coauthor'
+  | 'review'
+  | 'article'
+  | 'mentoring'
+  | 'mention'
+  | 'follow'
+  | 'system';
+
+export interface NotificationInterface {
+  _id: string;
+  type: NotificationActivityType;
+  actor: string;
+  object?: string;
+  target: string;
+  context: NotificationContext;
+  actorScreenname?: string;
+  actorName?: string;
+  objectType?: 'article' | 'profile' | 'session' | 'comment';
+  objectTitle?: string;
+  objectUrl?: string;
+  message?: string;
+  read: boolean;
+  readAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NotificationPreferencesInterface {
+  coauthorInvites: boolean;
+  reviewRequests: boolean;
+  articlePublished: boolean;
+  articleReplies: boolean;
+  revisionNeeded: boolean;
+  mentoringRequests: boolean;
+  systemAnnouncements: boolean;
 }

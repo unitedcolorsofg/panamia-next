@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import {
+  Bell,
   ChevronDown,
   Home,
   Search,
@@ -45,6 +46,7 @@ import CallToActionBar from './CallToActionBar';
 import PanaLogo from './PanaLogo';
 import PanaButton from './PanaButton';
 import { ThemeToggle } from './theme-toggle';
+import NotificationFlower from './NotificationFlower';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
 
@@ -71,7 +73,6 @@ interface IconProps {
 }
 
 export default function MainHeader() {
-  console.log('MainHeader');
   const { data: session, status } = useSession();
   const handleSignOut = () => signOut({ redirect: true, callbackUrl: '/' });
   const [menu_active, setMenuActive] = useState(false);
@@ -288,6 +289,15 @@ export default function MainHeader() {
                   My Lists
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/account/notifications"
+                  className="flex cursor-pointer items-center"
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notifications
+                </Link>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Mentoring</DropdownMenuLabel>
@@ -366,6 +376,7 @@ export default function MainHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        {status !== 'loading' && session && <NotificationFlower />}
         <ThemeToggle />
       </div>
     </header>
