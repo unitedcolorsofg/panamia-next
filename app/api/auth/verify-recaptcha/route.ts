@@ -41,10 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Allow v2 keys in development (v2 doesn't return score)
+    // Note: dev script uses `env -u NODE_ENV` so NODE_ENV is undefined in dev
     if (
       data.success &&
       data.score === undefined &&
-      process.env.NODE_ENV === 'development'
+      process.env.NODE_ENV !== 'production'
     ) {
       console.warn('reCAPTCHA: v2 keys detected in dev mode, allowing request');
       return NextResponse.json({ success: true, score: 1.0 });
