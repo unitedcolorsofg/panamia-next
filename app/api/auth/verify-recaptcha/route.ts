@@ -40,6 +40,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, score: data.score });
     }
 
+    // Allow v2 keys in development (v2 doesn't return score)
+    if (
+      data.success &&
+      data.score === undefined &&
+      process.env.NODE_ENV === 'development'
+    ) {
+      console.warn('reCAPTCHA: v2 keys detected in dev mode, allowing request');
+      return NextResponse.json({ success: true, score: 1.0 });
+    }
+
     console.warn('reCAPTCHA verification failed:', {
       success: data.success,
       score: data.score,
