@@ -142,11 +142,14 @@ export interface UserStatusInterface {
   locked?: Boolean;
 }
 
+export type AccountType = 'small_business' | 'personal' | 'hybrid' | 'other';
+
 export interface UserInterface {
   _id: String;
   email: String;
   screenname?: String;
   name?: String;
+  accountType?: AccountType;
   status?: UserStatusInterface;
   zip_code?: String;
   affiliate: {
@@ -232,4 +235,75 @@ export interface NotificationPreferencesInterface {
   revisionNeeded: boolean;
   mentoringRequests: boolean;
   systemAnnouncements: boolean;
+}
+
+/**
+ * Article Types
+ *
+ * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * Article schema designed for future ActivityPub federation
+ */
+export type ArticleType = 'business_update' | 'community_commentary';
+
+export type ArticleStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'revision_needed'
+  | 'published'
+  | 'removed';
+
+export interface CoAuthorInterface {
+  userId: string;
+  invitedAt: Date;
+  invitationMessage?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  acceptedAt?: Date;
+}
+
+export interface ReviewChecklistInterface {
+  factsVerified: boolean;
+  sourcesChecked: boolean;
+  communityStandards: boolean;
+}
+
+export interface ReviewCommentInterface {
+  id: string;
+  text: string;
+  contentRef?: string;
+  createdAt: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+}
+
+export interface ReviewRecordInterface {
+  userId: string;
+  requestedAt: Date;
+  invitationMessage?: string;
+  status: 'pending' | 'approved' | 'revision_needed';
+  checklist: ReviewChecklistInterface;
+  comments: ReviewCommentInterface[];
+  approvedAt?: Date;
+}
+
+export interface ArticleInterface {
+  _id: string;
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  coverImage?: string;
+  articleType: ArticleType;
+  tags: string[];
+  authorId: string;
+  coAuthors: CoAuthorInterface[];
+  reviewedBy?: ReviewRecordInterface;
+  inReplyTo?: string;
+  status: ArticleStatus;
+  publishedAt?: Date;
+  removedAt?: Date;
+  removedBy?: string;
+  removalReason?: string;
+  readingTime: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

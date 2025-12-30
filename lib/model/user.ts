@@ -29,6 +29,11 @@ const userSchema = new Schema(
     },
     screenname: String,
     name: String,
+    accountType: {
+      type: String,
+      enum: ['small_business', 'personal', 'hybrid', 'other'],
+      default: 'personal',
+    },
     status: {
       role: String,
       locked: Date,
