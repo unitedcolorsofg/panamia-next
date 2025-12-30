@@ -297,6 +297,8 @@ All notification code MUST include upstream reference comments:
 
 ### Stage 3: Co-Author & Reviewer Workflow
 
+**Status**: ✅ Complete (not yet user tested)
+
 #### Invitation Flow
 
 ```
