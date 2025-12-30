@@ -15,6 +15,18 @@ import { Button } from '@/components/ui/button';
 import ArticleEditor from '@/components/ArticleEditor';
 import Link from 'next/link';
 
+interface CoAuthorInfo {
+  userId: string;
+  screenname?: string;
+  status: 'pending' | 'accepted' | 'declined';
+}
+
+interface ReviewerInfo {
+  userId: string;
+  screenname?: string;
+  status: 'pending' | 'approved' | 'revision_needed';
+}
+
 interface ArticleData {
   slug: string;
   title: string;
@@ -23,6 +35,8 @@ interface ArticleData {
   tags: string[];
   coverImage?: string;
   status: string;
+  coAuthors?: CoAuthorInfo[];
+  reviewedBy?: ReviewerInfo;
   userAccess?: {
     isAuthor: boolean;
     isCoAuthor: boolean;
@@ -167,6 +181,9 @@ export default function EditArticlePage() {
           articleType: article.articleType,
           tags: article.tags,
           coverImage: article.coverImage,
+          coAuthors: article.coAuthors,
+          reviewedBy: article.reviewedBy,
+          status: article.status,
         }}
       />
     </main>

@@ -90,6 +90,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       authorId: articleDoc.authorId.toString(),
     };
 
+    // Enrich co-authors with screennames (only for users with edit access)
+    if ((isAuthor || isCoAuthor) && articleDoc.coAuthors?.length) {
+      const coAuthorIds = articleDoc.coAuthors.map((ca: any) => ca.userId);
+      const coAuthorUsers = await user
+        .find({ _id: { $in: coAuthorIds } })
+        .lean();
+      const userMap = new Map(
+        coAuthorUsers.map((u: any) => [u._id.toString(), u.screenname])
+      );
+
+      responseData.coAuthors = articleDoc.coAuthors.map((ca: any) => ({
+        userId: ca.userId.toString(),
+        screenname: userMap.get(ca.userId.toString()),
+        status: ca.status,
+        invitationMessage: ca.invitationMessage,
+        invitedAt: ca.invitedAt,
+        respondedAt: ca.respondedAt,
+      }));
+    }
+
+    // Enrich reviewer with screenname (only for users with edit access)
+    if ((isAuthor || isCoAuthor) && articleDoc.reviewedBy?.userId) {
+      const reviewerUser = await user
+        .findById(articleDoc.reviewedBy.userId)
+        .lean();
+      responseData.reviewedBy = {
+        userId: articleDoc.reviewedBy.userId.toString(),
+        screenname: (reviewerUser as any)?.screenname,
+        status: articleDoc.reviewedBy.status,
+        checklist: articleDoc.reviewedBy.checklist,
+        comments: articleDoc.reviewedBy.comments,
+        requestedAt: articleDoc.reviewedBy.requestedAt,
+        respondedAt: articleDoc.reviewedBy.respondedAt,
+      };
+    }
+
     // Include user's relationship to article if authenticated
     if (currentUser) {
       responseData.userAccess = {
