@@ -181,6 +181,8 @@ interface UserAdditions {
 
 ### Stage 1: In-App Notification System
 
+**Status**: ✅ Complete (not yet user tested)
+
 **Foundation for all invitation and review workflows**
 
 > **Full specification**: See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md)
@@ -247,6 +249,8 @@ All notification code MUST include upstream reference comments:
 ---
 
 ### Stage 2: Account Type & Article Schema
+
+**Status**: ✅ Complete (not yet user tested)
 
 #### User Model Updates
 
