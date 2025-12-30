@@ -250,6 +250,46 @@ The tradeoff is "developers need Atlas for local dev" - a one-time 10-minute set
 
 ---
 
+### GitHub (Git Hosting)
+
+**Status:** Keeping (ecosystem, contributor familiarity)
+
+**Why we're keeping it:**
+
+- Industry standard, most contributors are familiar with it
+- Excellent CI/CD with GitHub Actions
+- Free for open source projects
+- Strong community and discoverability
+
+**FLOSS Alternatives (Self-Hosted):**
+
+| Alternative                            | License  | Pros                                           | Cons                      |
+| -------------------------------------- | -------- | ---------------------------------------------- | ------------------------- |
+| **[Gitea](https://gitea.io/)**         | MIT      | Lightweight, easy deploy, Go-based             | Smaller community         |
+| **[Forgejo](https://forgejo.org/)**    | MIT      | Gitea fork, ActivityPub federation in progress | Newer, smaller ecosystem  |
+| **[GitLab CE](https://gitlab.com/)**   | MIT      | Full DevOps platform                           | Heavy resource usage      |
+| **[Gogs](https://gogs.io/)**           | MIT      | Minimal, single binary                         | Less features than Gitea  |
+| **[Sourcehut](https://sr.ht/)**        | AGPL-3.0 | Email-driven workflow, minimal                 | Different paradigm        |
+| **[cgit](https://git.zx2c4.com/cgit)** | GPL-2.0  | Ultra-minimal web interface                    | No collaboration features |
+
+**FLOSS Alternatives (Hosted Services):**
+
+| Service                                              | Based On  | Pros                             | Cons              |
+| ---------------------------------------------------- | --------- | -------------------------------- | ----------------- |
+| **[Codeberg](https://codeberg.org/)**                | Forgejo   | Non-profit, EU-hosted            | Smaller community |
+| **[GitLab.com](https://gitlab.com/)**                | GitLab    | Free tier, CI/CD included        | Heavy UI          |
+| **[Sourcehut](https://sr.ht/)**                      | Sourcehut | Email workflow, paid after alpha | Learning curve    |
+| **[Disroot](https://disroot.org/en/services/gitea)** | Gitea     | Community-run collective         | Limited resources |
+
+**Federated / Decentralized:**
+
+| Project                             | Protocol             | Notes                            |
+| ----------------------------------- | -------------------- | -------------------------------- |
+| **[Forgejo](https://forgejo.org/)** | ForgeFed/ActivityPub | Federation in active development |
+| **[Radicle](https://radicle.xyz/)** | P2P                  | Peer-to-peer code collaboration  |
+
+---
+
 ## Decision Framework
 
 When evaluating new dependencies or services, use this framework:

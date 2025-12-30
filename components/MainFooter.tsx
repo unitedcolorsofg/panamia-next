@@ -3,7 +3,7 @@ import {
   IconBrandDiscord,
   IconBrandYoutube,
   IconBrandLinkedin,
-  IconBrandGithub,
+  IconCode,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 
@@ -71,8 +71,8 @@ export default function GlobalFooter() {
             </li>
             <li>
               <a href="https://github.com/panamiaclub/panamia.club">
-                <IconBrandGithub size={32} stroke={1.5} />
-                <span className="sr-only">GitHub Source Code</span>
+                <IconCode size={32} stroke={1.5} />
+                <span className="sr-only">Source Code</span>
               </a>
             </li>
           </ul>
