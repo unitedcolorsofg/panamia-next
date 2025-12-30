@@ -243,6 +243,15 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
+                  href="/account/notifications"
+                  className="flex cursor-pointer items-center"
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notifications
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
                   href="/directory/search"
                   className="flex cursor-pointer items-center"
                 >
@@ -287,15 +296,6 @@ export default function MainHeader() {
                 >
                   <List className="mr-2 h-4 w-4" />
                   My Lists
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/account/notifications"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Bell className="mr-2 h-4 w-4" />
-                  Notifications
                 </Link>
               </DropdownMenuItem>
 

@@ -10,17 +10,19 @@
 
 'use client';
 
-import { Flower2 } from 'lucide-react';
+import { Clover } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import { useUnreadCount } from '@/lib/query/notifications';
 import NotificationDropdown from './NotificationDropdown';
 
 export default function NotificationFlower() {
   const { data: unreadCount = 0 } = useUnreadCount();
+  const hasUnread = unreadCount > 0;
 
   return (
     <DropdownMenu>
@@ -28,14 +30,22 @@ export default function NotificationFlower() {
         <Button
           variant="outline"
           size="icon"
-          className="relative"
+          className={cn(
+            'relative',
+            hasUnread && 'animate-pulse border-pink-400 dark:border-pink-500'
+          )}
           data-no-wobble="true"
         >
-          <Flower2 className="h-[1.2rem] w-[1.2rem]" />
+          <Clover
+            className={cn(
+              'h-[1.2rem] w-[1.2rem]',
+              hasUnread && 'text-pink-500 dark:text-pink-400'
+            )}
+          />
           <span className="sr-only">Notifications</span>
 
           {/* Unread badge */}
-          {unreadCount > 0 && (
+          {hasUnread && (
             <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-medium text-white">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
