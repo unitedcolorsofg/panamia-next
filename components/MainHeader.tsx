@@ -46,7 +46,6 @@ import CallToActionBar from './CallToActionBar';
 import PanaLogo from './PanaLogo';
 import PanaButton from './PanaButton';
 import { ThemeToggle } from './theme-toggle';
-import NotificationFlower from './NotificationFlower';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
 
@@ -376,7 +375,6 @@ export default function MainHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        {status !== 'loading' && session && <NotificationFlower />}
         <ThemeToggle />
       </div>
     </header>
