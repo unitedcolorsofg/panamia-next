@@ -126,6 +126,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       };
     }
 
+    // Enrich inReplyTo with parent article info (for editors)
+    if ((isAuthor || isCoAuthor) && articleDoc.inReplyTo) {
+      const parentArticle = await article
+        .findById(articleDoc.inReplyTo)
+        .select('_id slug title')
+        .lean();
+      if (parentArticle) {
+        responseData.inReplyTo = {
+          _id: (parentArticle as any)._id.toString(),
+          slug: (parentArticle as any).slug,
+          title: (parentArticle as any).title,
+        };
+      }
+    }
+
     // Include user's relationship to article if authenticated
     if (currentUser) {
       responseData.userAccess = {

@@ -27,6 +27,12 @@ interface ReviewerInfo {
   status: 'pending' | 'approved' | 'revision_needed';
 }
 
+interface ReplyToArticle {
+  _id: string;
+  slug: string;
+  title: string;
+}
+
 interface ArticleData {
   slug: string;
   title: string;
@@ -37,6 +43,7 @@ interface ArticleData {
   status: string;
   coAuthors?: CoAuthorInfo[];
   reviewedBy?: ReviewerInfo;
+  inReplyTo?: ReplyToArticle;
   userAccess?: {
     isAuthor: boolean;
     isCoAuthor: boolean;
@@ -184,6 +191,7 @@ export default function EditArticlePage() {
           coAuthors: article.coAuthors,
           reviewedBy: article.reviewedBy,
           status: article.status,
+          inReplyTo: article.inReplyTo,
         }}
       />
     </main>

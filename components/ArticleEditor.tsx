@@ -38,8 +38,10 @@ import {
   XCircle,
   Send,
   Upload,
+  Reply,
 } from 'lucide-react';
 import UserSearch from '@/components/UserSearch';
+import ArticleSearch from '@/components/ArticleSearch';
 
 interface CoAuthorInfo {
   userId: string;
@@ -51,6 +53,12 @@ interface ReviewerInfo {
   userId: string;
   screenname?: string;
   status: 'pending' | 'approved' | 'revision_needed';
+}
+
+interface ReplyToArticle {
+  _id: string;
+  slug: string;
+  title: string;
 }
 
 interface ArticleEditorProps {
@@ -65,6 +73,7 @@ interface ArticleEditorProps {
     coAuthors?: CoAuthorInfo[];
     reviewedBy?: ReviewerInfo;
     status?: string;
+    inReplyTo?: ReplyToArticle;
   };
   onSave?: (data: any) => Promise<void>;
 }
@@ -101,6 +110,9 @@ export default function ArticleEditor({
   const [publishing, setPublishing] = useState(false);
   const [articleStatus, setArticleStatus] = useState(
     initialData.status || 'draft'
+  );
+  const [inReplyTo, setInReplyTo] = useState<ReplyToArticle | null>(
+    initialData.inReplyTo || null
   );
 
   // Fetch current user ID for excluding from search
@@ -160,6 +172,7 @@ export default function ArticleEditor({
         articleType,
         tags,
         coverImage: coverImage || undefined,
+        inReplyTo: inReplyTo?._id || undefined,
       };
 
       if (onSave) {
@@ -469,6 +482,55 @@ export default function ArticleEditor({
               placeholder="https://..."
               type="url"
             />
+          </div>
+
+          {/* In Reply To */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Reply className="h-4 w-4" />
+              In Reply To (optional)
+            </Label>
+            {inReplyTo ? (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-1 font-medium">
+                    {inReplyTo.title}
+                  </div>
+                  <a
+                    href={`/articles/${inReplyTo.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    View article
+                  </a>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setInReplyTo(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <ArticleSearch
+                onSelect={(article) =>
+                  setInReplyTo({
+                    _id: article._id,
+                    slug: article.slug,
+                    title: article.title,
+                  })
+                }
+                excludeSlug={initialData.slug}
+                placeholder="Search for an article to reply to..."
+              />
+            )}
+            <p className="text-sm text-gray-500">
+              If this article is a response to another article, select the
+              original here.
+            </p>
           </div>
 
           {/* Content Editor with Preview */}
