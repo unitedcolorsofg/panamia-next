@@ -483,6 +483,8 @@ Add new section to existing homepage:
 
 ### Stage 5: RSS Feeds
 
+**Status**: ✅ Complete (not yet user tested)
+
 #### Endpoints
 
 | Endpoint                        | Format    | Description               |
