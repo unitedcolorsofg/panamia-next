@@ -544,6 +544,8 @@ Add to `<head>` in layout:
 
 ### Stage 6: Article Threading
 
+**Status**: ✅ Complete (not yet user tested)
+
 #### "In Reply To" Feature
 
 When creating/editing an article:
