@@ -31,6 +31,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="Pana MIA Articles"
+          href="/feed.xml"
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="Pana MIA Articles (JSON)"
+          href="/feed.json"
+        />
+      </head>
       <body className={`${nunito.variable} ${rubik.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
