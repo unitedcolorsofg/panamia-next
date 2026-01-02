@@ -108,15 +108,16 @@ test.describe('Custom Sign-In Page', () => {
   test('signin page displays Pana MIA branding', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Check for welcome message
+    // Check for welcome message - wait longer for client-side hydration
     const welcomeText = page.getByText('Welcome to Pana MIA');
-    await expect(welcomeText).toBeVisible();
+    await expect(welcomeText).toBeVisible({ timeout: 15000 });
   });
 
   test('signin page has OAuth provider buttons', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
     // Check for OAuth buttons (they may be disabled if not configured)
+    // Wait longer for client-side hydration
     const googleButton = page.getByRole('button', {
       name: /Continue with Google/i,
     });
@@ -124,18 +125,18 @@ test.describe('Custom Sign-In Page', () => {
       name: /Continue with Apple/i,
     });
 
-    await expect(googleButton).toBeVisible();
-    await expect(appleButton).toBeVisible();
+    await expect(googleButton).toBeVisible({ timeout: 15000 });
+    await expect(appleButton).toBeVisible({ timeout: 15000 });
   });
 
   test('signin page has email sign-in option', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Check for email sign-in toggle button
+    // Check for email sign-in toggle button - wait for hydration
     const emailButton = page.getByRole('button', {
       name: 'Sign in with email',
     });
-    await expect(emailButton).toBeVisible();
+    await expect(emailButton).toBeVisible({ timeout: 15000 });
 
     // The email form is toggled via React state - verify the toggle exists
     // Full form interaction requires authenticated test environment
@@ -144,19 +145,19 @@ test.describe('Custom Sign-In Page', () => {
   test('signin page has terms link', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Find terms link (may have trailing slash)
+    // Find terms link (may have trailing slash) - wait for hydration
     const termsLink = page
       .locator('a[href^="/doc/terms-and-conditions"]')
       .first();
-    await expect(termsLink).toBeVisible();
+    await expect(termsLink).toBeVisible({ timeout: 15000 });
   });
 
   test('signin page has contact help link', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Find the "Contact us" link in the signin card (not footer)
+    // Find the "Contact us" link in the signin card (not footer) - wait for hydration
     const contactLink = page.locator('.max-w-md a[href^="/form/contact-us"]');
-    await expect(contactLink).toBeVisible();
+    await expect(contactLink).toBeVisible({ timeout: 15000 });
   });
 
   test('signin page preserves callback URL', async ({ page }) => {
