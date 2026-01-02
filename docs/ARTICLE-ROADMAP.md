@@ -375,6 +375,8 @@ Re-request review when ready
 
 ### Stage 4: Publishing & Public Display
 
+**Status**: ✅ Complete (not yet user tested)
+
 #### Publishing Rules
 
 Article is publishable when ALL conditions met:
