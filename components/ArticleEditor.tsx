@@ -37,6 +37,7 @@ import {
   Check,
   XCircle,
   Send,
+  Upload,
 } from 'lucide-react';
 import UserSearch from '@/components/UserSearch';
 
@@ -97,6 +98,10 @@ export default function ArticleEditor({
   const [inviting, setInviting] = useState(false);
   const [requestingReview, setRequestingReview] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [articleStatus, setArticleStatus] = useState(
+    initialData.status || 'draft'
+  );
 
   // Fetch current user ID for excluding from search
   useEffect(() => {
@@ -268,6 +273,42 @@ export default function ArticleEditor({
     }
   };
 
+  const handlePublish = async () => {
+    if (!initialData.slug) return;
+
+    setPublishing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/articles/${initialData.slug}/publish`,
+        { method: 'POST' }
+      );
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      setArticleStatus('published');
+      router.push(`/articles/${initialData.slug}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to publish article');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  // Check if article can be published
+  const canPublish =
+    mode === 'edit' &&
+    articleStatus !== 'published' &&
+    title.trim() &&
+    content.trim() &&
+    (coAuthors.some((ca) => ca.status === 'accepted') ||
+      reviewer?.status === 'approved');
+
   // IDs to exclude from user search (current user, existing co-authors, reviewer)
   const excludedUserIds = [
     currentUserId,
@@ -319,14 +360,26 @@ export default function ArticleEditor({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{mode === 'create' ? 'New Article' : 'Edit Article'}</span>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <Button onClick={handleSave} disabled={saving} variant="outline">
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {saving ? 'Saving...' : 'Save Draft'}
+              </Button>
+              {canPublish && (
+                <Button onClick={handlePublish} disabled={publishing}>
+                  {publishing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {publishing ? 'Publishing...' : 'Publish'}
+                </Button>
               )}
-              {saving ? 'Saving...' : 'Save Draft'}
-            </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
