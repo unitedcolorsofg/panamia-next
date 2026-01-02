@@ -8,6 +8,7 @@ import {
   IconFileDescription,
   IconEdit,
   IconUpload,
+  IconArticle,
 } from '@tabler/icons-react';
 import PageMeta from '@/components/PageMeta';
 import AdminMenu from '@/components/Admin/AdminHeader';
@@ -28,6 +29,13 @@ export default function AdminDashboardPage() {
   }
 
   const adminSections = [
+    {
+      title: 'Articles',
+      description: 'Moderate community articles and content',
+      href: '/account/admin/articles',
+      icon: IconArticle,
+      color: 'text-indigo-600',
+    },
     {
       title: 'Mentoring',
       description: 'View mentoring program metrics and analytics',

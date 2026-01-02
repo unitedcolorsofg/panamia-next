@@ -578,6 +578,8 @@ Child article shows "In reply to: [Title]" header.
 
 ### Stage 7: Admin Moderation
 
+**Status**: ✅ Complete (not yet user tested)
+
 #### Capabilities
 
 - View all published articles
