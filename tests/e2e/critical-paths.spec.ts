@@ -11,34 +11,32 @@ test.describe('Critical User Paths', () => {
   });
 
   test('become a pana form loads without errors', async ({ page }) => {
-    await page.goto('/become-a-pana');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/become-a-pana', { waitUntil: 'domcontentloaded' });
 
     // Page should load (not 404)
     await expect(page).not.toHaveTitle(/404/);
 
     // Note: Form submission requires ReCAPTCHA which is not configured in test environment
+    // Don't wait for networkidle - ReCAPTCHA prevents it from completing
   });
 
   test('contact form loads without errors', async ({ page }) => {
-    await page.goto('/form/contact-us');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/form/contact-us', { waitUntil: 'domcontentloaded' });
 
     // Page should load (not 404)
     await expect(page).not.toHaveTitle(/404/);
 
     // Note: Form submission requires ReCAPTCHA which is not configured in test environment
+    // Don't wait for networkidle - ReCAPTCHA prevents it from completing
   });
 
   test('donation flow initiates correctly', async ({ page }) => {
-    await page.goto('/donate');
-
-    // Page should load
-    await page.waitForLoadState('networkidle');
+    await page.goto('/donate', { waitUntil: 'domcontentloaded' });
 
     // Should not have errors
     await expect(page).not.toHaveTitle(/404/);
     await expect(page).not.toHaveTitle(/error/i);
+    // Don't wait for networkidle - Stripe may have pending requests
   });
 });
 
@@ -58,10 +56,9 @@ test.describe('Mentoring Features', () => {
   });
 
   test('mentor profile page loads or redirects', async ({ page }) => {
-    await page.goto('/mentoring/profile');
+    await page.goto('/mentoring/profile', { waitUntil: 'domcontentloaded' });
 
-    await page.waitForLoadState('networkidle');
-
+    // Should redirect to signin for unauthenticated users or load the profile page
     const url = page.url();
     expect(url).toBeTruthy();
   });
@@ -89,14 +86,18 @@ test.describe('Form Pages', () => {
 });
 
 test.describe('List Pages', () => {
-  test('list page with valid ID loads', async ({ page }) => {
-    // Try to navigate to a list page
-    // In real scenario, you'd get a valid list ID from the API or database
-    await page.goto('/list/test-list-id');
+  test('list page with invalid ID handles gracefully', async ({ page }) => {
+    // Navigate to a list page with an invalid ID format
+    // Use a valid ObjectId format that doesn't exist (24 hex characters)
+    const response = await page.goto('/list/000000000000000000000000', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    await page.waitForLoadState('networkidle');
+    // Should handle gracefully - either 404 or redirect, not 500 server error
+    const status = response?.status();
+    expect(status).not.toBe(500);
 
-    // Should either show the list or handle gracefully (not 500 error)
+    // Page should still load without crashing
     const url = page.url();
     expect(url).toBeTruthy();
   });
