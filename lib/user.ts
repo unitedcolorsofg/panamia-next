@@ -2,8 +2,8 @@ import axios from 'axios';
 
 export const getUserSession = async (host?: String) => {
   const path = '/api/getSessionUser';
-  if (process.env.HOST_URL == 'http://localhost:3000') {
-    host = 'http://localhost:3000';
+  if (process.env.NEXT_PUBLIC_HOST_URL?.includes('localhost')) {
+    host = process.env.NEXT_PUBLIC_HOST_URL;
   }
   const url = host ? `${host}${path}` : path;
   const userSession = await axios

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
-import { deleteFile, uploadFile } from '@/lib/bunnycdn/api';
+import { deleteFile, uploadFile } from '@/lib/blob/api';
 
 interface ResponseData {
   error?: string;
@@ -33,18 +33,18 @@ const processFile = async (
     return false;
   }
   console.log('filePath', filePath);
-  const existingImage = existingProfile?.images?.[file.fieldname];
-  // console.log("existingImage", existingImage);
-  if (existingImage && existingImage !== file.filename) {
-    await deleteFile(existingImage);
+
+  // Delete old image using the CDN URL (Vercel Blob needs full URL)
+  const existingImageUrl = existingProfile?.images?.[file.fieldname + 'CDN'];
+  if (existingImageUrl && existingImageUrl !== filePath) {
+    await deleteFile(existingImageUrl);
   }
-  // console.log("pre-update", file.fieldname, existingProfile.images);
+
   existingProfile.images = {
     ...existingProfile.images,
     ...{ [file.fieldname]: file.filename },
     ...{ [file.fieldname + 'CDN']: filePath },
   };
-  // console.log("post-update", file.fieldname, existingProfile.images);
 };
 
 export async function POST(request: NextRequest) {

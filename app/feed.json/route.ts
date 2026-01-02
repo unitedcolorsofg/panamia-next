@@ -10,7 +10,7 @@ import dbConnect from '@/lib/connectdb';
 import article from '@/lib/model/article';
 import user from '@/lib/model/user';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://panamia.club';
+const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 
 async function generateFeed() {
   await dbConnect();
