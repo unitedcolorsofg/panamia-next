@@ -7,8 +7,30 @@ Shared utilities, business logic, data models, and server-side helpers.
 | File            | Description                                                     |
 | --------------- | --------------------------------------------------------------- |
 | `connectdb.ts`  | MongoDB connection singleton (caches connection for serverless) |
+| `env.config.ts` | Environment variable definitions and validation                 |
 | `interfaces.ts` | TypeScript interfaces for all data models                       |
 | `utils.ts`      | General utility functions                                       |
+
+## Environment Configuration
+
+The `env.config.ts` file is the single source of truth for all environment variables.
+Each variable is documented with:
+
+- Description of purpose
+- Location: `SECRET` (GitHub Secrets), `VAR` (GitHub Variables), or `LOCAL` (dev only)
+- Whether required or optional
+
+### npm Scripts
+
+```bash
+npm run env:check     # Validate required variables are set
+npm run env:workflow  # Generate GitHub Actions env snippet
+npm run env:list      # List all variables with locations
+npm run env:secrets   # List variables for GitHub Secrets
+npm run env:vars      # List variables for GitHub Variables
+```
+
+See `.env.local.example` for annotated variable list.
 
 ## Database Models (`model/`)
 

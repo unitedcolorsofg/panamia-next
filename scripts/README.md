@@ -4,6 +4,20 @@ Utility scripts for development, maintenance, and data operations.
 
 ## Available Scripts
 
+### `env-check.ts`
+
+Environment variable management and validation:
+
+```bash
+npm run env:check     # Validate required variables are set
+npm run env:workflow  # Generate GitHub Actions env snippet
+npm run env:list      # List all variables with locations
+npm run env:secrets   # List variables for GitHub Secrets
+npm run env:vars      # List variables for GitHub Variables
+```
+
+Uses `lib/env.config.ts` as the source of truth.
+
 ### `create-signin-link.js`
 
 Generate magic sign-in links for testing:

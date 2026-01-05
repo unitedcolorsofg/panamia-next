@@ -14,7 +14,12 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
-    "prepare": "husky"
+    "prepare": "husky",
+    "env:check": "npx tsx scripts/env-check.ts check",
+    "env:workflow": "npx tsx scripts/env-check.ts workflow",
+    "env:list": "npx tsx scripts/env-check.ts list",
+    "env:secrets": "npx tsx scripts/env-check.ts secrets",
+    "env:vars": "npx tsx scripts/env-check.ts vars"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
