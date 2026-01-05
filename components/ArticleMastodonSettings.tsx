@@ -1,7 +1,7 @@
 /**
  * ArticleMastodonSettings Component
  *
- * Allows article authors to link a Mastodon toot for comments.
+ * Allows article authors to link a Mastodon post for comments.
  * Only shown to the primary author of published articles.
  */
 
@@ -34,7 +34,7 @@ export default function ArticleMastodonSettings({
   const { data: session } = useSession();
   const [isAuthor, setIsAuthor] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tootUrl, setTootUrl] = useState('');
+  const [postUrl, setPostUrl] = useState('');
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,12 +54,12 @@ export default function ArticleMastodonSettings({
         const data = await res.json();
         if (data.success && data.data._id === authorId) {
           setIsAuthor(true);
-          // Fetch current toot URL
+          // Fetch current post URL
           const settingsRes = await fetch(`/api/articles/${slug}/mastodon`);
           const settingsData = await settingsRes.json();
-          if (settingsData.success && settingsData.data.mastodonTootUrl) {
-            setSavedUrl(settingsData.data.mastodonTootUrl);
-            setTootUrl(settingsData.data.mastodonTootUrl);
+          if (settingsData.success && settingsData.data.mastodonPostUrl) {
+            setSavedUrl(settingsData.data.mastodonPostUrl);
+            setPostUrl(settingsData.data.mastodonPostUrl);
           }
         }
       } catch (err) {
@@ -81,7 +81,7 @@ export default function ArticleMastodonSettings({
       const res = await fetch(`/api/articles/${slug}/mastodon`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mastodonTootUrl: tootUrl || null }),
+        body: JSON.stringify({ mastodonPostUrl: postUrl || null }),
       });
 
       const data = await res.json();
@@ -90,7 +90,7 @@ export default function ArticleMastodonSettings({
         throw new Error(data.error);
       }
 
-      setSavedUrl(data.data.mastodonTootUrl);
+      setSavedUrl(data.data.mastodonPostUrl);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
@@ -101,7 +101,7 @@ export default function ArticleMastodonSettings({
   }
 
   function handleClear() {
-    setTootUrl('');
+    setPostUrl('');
   }
 
   // Don't show anything if not the author
@@ -140,8 +140,8 @@ export default function ArticleMastodonSettings({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Enable comments by linking a Mastodon toot that announces this
-              article. Replies to your toot will appear as comments below your
+              Enable comments by linking a Mastodon post that announces this
+              article. Replies to your post will appear as comments below your
               article.
             </p>
 
@@ -151,24 +151,24 @@ export default function ArticleMastodonSettings({
               </h4>
               <ol className="list-inside list-decimal space-y-1 text-sm text-blue-800 dark:text-blue-200">
                 <li>Share this article on your Mastodon account</li>
-                <li>Copy the URL of your toot</li>
+                <li>Copy the URL of your post</li>
                 <li>Paste it below and save</li>
               </ol>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tootUrl">Mastodon Toot URL</Label>
+              <Label htmlFor="postUrl">Mastodon Post URL</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Input
-                    id="tootUrl"
+                    id="postUrl"
                     type="url"
-                    value={tootUrl}
-                    onChange={(e) => setTootUrl(e.target.value)}
+                    value={postUrl}
+                    onChange={(e) => setPostUrl(e.target.value)}
                     placeholder="https://mastodon.social/@you/123456789"
                     className="pr-8"
                   />
-                  {tootUrl && (
+                  {postUrl && (
                     <button
                       onClick={handleClear}
                       className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -207,7 +207,7 @@ export default function ArticleMastodonSettings({
                   rel="noopener noreferrer"
                   className="text-sm text-green-600 hover:underline dark:text-green-400"
                 >
-                  View toot
+                  View post
                   <ExternalLink className="ml-1 inline h-3 w-3" />
                 </a>
               </div>

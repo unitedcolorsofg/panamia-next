@@ -1,7 +1,7 @@
 /**
  * Article Comments API (Mastodon-powered)
  *
- * Fetches comments from Mastodon for articles that have a linked toot.
+ * Fetches comments from Mastodon for articles that have a linked post.
  * Uses the public Mastodon API - no authentication required.
  */
 
@@ -36,29 +36,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const mastodonTootUrl = (articleDoc as any).mastodonTootUrl;
+    const mastodonPostUrl = (articleDoc as any).mastodonPostUrl;
 
-    // If no Mastodon toot linked, return empty comments
-    if (!mastodonTootUrl) {
+    // If no Mastodon post linked, return empty comments
+    if (!mastodonPostUrl) {
       return NextResponse.json({
         success: true,
         data: {
           comments: [],
-          tootUrl: null,
+          postUrl: null,
           hasComments: false,
         },
       });
     }
 
     // Fetch comments from Mastodon
-    const result = await fetchArticleComments(mastodonTootUrl);
+    const result = await fetchArticleComments(mastodonPostUrl);
 
     if (!result) {
       return NextResponse.json({
         success: true,
         data: {
           comments: [],
-          tootUrl: mastodonTootUrl,
+          postUrl: mastodonPostUrl,
           hasComments: false,
           error: 'Failed to fetch comments from Mastodon',
         },
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       success: true,
       data: {
         comments: result.comments,
-        tootUrl: result.tootUrl,
+        postUrl: result.postUrl,
         hasComments: result.comments.length > 0,
       },
     });

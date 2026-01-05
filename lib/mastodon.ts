@@ -35,7 +35,7 @@ export interface MastodonContext {
   descendants: MastodonStatus[];
 }
 
-export interface ParsedTootUrl {
+export interface ParsedPostUrl {
   instance: string;
   statusId: string;
 }
@@ -57,14 +57,14 @@ export interface MastodonComment {
 }
 
 /**
- * Parse a Mastodon toot URL to extract instance and status ID
+ * Parse a Mastodon post URL to extract instance and status ID
  *
  * Supports formats:
  * - https://mastodon.social/@user/123456789
  * - https://mastodon.social/users/user/statuses/123456789
  * - https://instance.tld/@user/123456789
  */
-export function parseMastodonUrl(url: string): ParsedTootUrl | null {
+export function parseMastodonUrl(url: string): ParsedPostUrl | null {
   try {
     const parsed = new URL(url);
     const instance = parsed.hostname;
@@ -90,7 +90,7 @@ export function parseMastodonUrl(url: string): ParsedTootUrl | null {
 }
 
 /**
- * Validate a Mastodon toot URL format
+ * Validate a Mastodon post URL format
  */
 export function isValidMastodonUrl(url: string): boolean {
   return parseMastodonUrl(url) !== null;
@@ -198,11 +198,11 @@ export function transformToComments(
  * Main entry point for the comments feature
  */
 export async function fetchArticleComments(
-  tootUrl: string
-): Promise<{ comments: MastodonComment[]; tootUrl: string } | null> {
-  const parsed = parseMastodonUrl(tootUrl);
+  postUrl: string
+): Promise<{ comments: MastodonComment[]; postUrl: string } | null> {
+  const parsed = parseMastodonUrl(postUrl);
   if (!parsed) {
-    console.error('Invalid Mastodon URL:', tootUrl);
+    console.error('Invalid Mastodon URL:', postUrl);
     return null;
   }
 
@@ -215,6 +215,6 @@ export async function fetchArticleComments(
 
   return {
     comments,
-    tootUrl,
+    postUrl,
   };
 }

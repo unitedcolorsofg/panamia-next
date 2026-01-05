@@ -1,7 +1,7 @@
 /**
  * MastodonComments Component
  *
- * Displays comments fetched from a Mastodon toot thread.
+ * Displays comments fetched from a Mastodon post thread.
  * Comments are read-only - users reply via Mastodon.
  */
 
@@ -33,7 +33,7 @@ interface MastodonCommentsProps {
 
 export default function MastodonComments({ slug }: MastodonCommentsProps) {
   const [comments, setComments] = useState<MastodonComment[]>([]);
-  const [tootUrl, setTootUrl] = useState<string | null>(null);
+  const [postUrl, setPostUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +45,7 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
 
       if (data.success) {
         setComments(data.data.comments || []);
-        setTootUrl(data.data.tootUrl);
+        setPostUrl(data.data.postUrl);
         setError(data.data.error || null);
       } else {
         setError(data.error);
@@ -77,8 +77,8 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
     });
   }
 
-  // If no toot URL is linked, don't show the comments section
-  if (!loading && !tootUrl) {
+  // If no post URL is linked, don't show the comments section
+  if (!loading && !postUrl) {
     return null;
   }
 
@@ -119,9 +119,9 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
-          {tootUrl && (
+          {postUrl && (
             <a
-              href={tootUrl}
+              href={postUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 rounded-md bg-purple-100 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
@@ -163,7 +163,7 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
         >
           Mastodon
         </a>
-        . Reply to the linked toot to join the conversation.
+        . Reply to the linked post to join the conversation.
       </p>
     </div>
   );

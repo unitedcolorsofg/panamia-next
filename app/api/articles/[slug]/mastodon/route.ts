@@ -1,7 +1,7 @@
 /**
  * Article Mastodon Settings API
  *
- * Allows authors to link a Mastodon toot to a published article
+ * Allows authors to link a Mastodon post to a published article
  * for comments integration.
  */
 
@@ -10,7 +10,7 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import user from '@/lib/model/user';
 import article from '@/lib/model/article';
-import { isValidMastodonUrl, parseMastodonUrl } from '@/lib/mastodon';
+import { isValidMastodonUrl } from '@/lib/mastodon';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -18,7 +18,7 @@ interface RouteParams {
 
 /**
  * GET /api/articles/[slug]/mastodon
- * Get the linked Mastodon toot URL
+ * Get the linked Mastodon post URL
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const articleDoc = await article
       .findOne({ slug, status: 'published' })
-      .select('mastodonTootUrl')
+      .select('mastodonPostUrl')
       .lean();
 
     if (!articleDoc) {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        mastodonTootUrl: (articleDoc as any).mastodonTootUrl || null,
+        mastodonPostUrl: (articleDoc as any).mastodonPostUrl || null,
       },
     });
   } catch (error) {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * PATCH /api/articles/[slug]/mastodon
- * Update the Mastodon toot URL for a published article
+ * Update the Mastodon post URL for a published article
  * Only the author can update this setting
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
@@ -88,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only the primary author can set the Mastodon toot URL
+    // Only the primary author can set the Mastodon post URL
     if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
       return NextResponse.json(
         {
@@ -108,21 +108,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { mastodonTootUrl } = body;
+    const { mastodonPostUrl } = body;
 
     // Allow clearing the URL
-    if (mastodonTootUrl === null || mastodonTootUrl === '') {
-      articleDoc.mastodonTootUrl = undefined;
+    if (mastodonPostUrl === null || mastodonPostUrl === '') {
+      articleDoc.mastodonPostUrl = undefined;
       await articleDoc.save();
 
       return NextResponse.json({
         success: true,
-        data: { mastodonTootUrl: null },
+        data: { mastodonPostUrl: null },
       });
     }
 
     // Validate URL format
-    if (!isValidMastodonUrl(mastodonTootUrl)) {
+    if (!isValidMastodonUrl(mastodonPostUrl)) {
       return NextResponse.json(
         {
           success: false,
@@ -134,13 +134,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Save the URL
-    articleDoc.mastodonTootUrl = mastodonTootUrl;
+    articleDoc.mastodonPostUrl = mastodonPostUrl;
     await articleDoc.save();
 
     return NextResponse.json({
       success: true,
       data: {
-        mastodonTootUrl: articleDoc.mastodonTootUrl,
+        mastodonPostUrl: articleDoc.mastodonPostUrl,
       },
     });
   } catch (error) {

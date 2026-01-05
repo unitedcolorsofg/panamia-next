@@ -1,12 +1,12 @@
 # Mastodon Comments
 
-Enable comments on your published articles using Mastodon. Instead of building a custom comment system, Pana MIA displays replies to your Mastodon toot as comments below your article.
+Enable comments on your published articles using Mastodon. Instead of building a custom comment system, Pana MIA displays replies to your Mastodon post as comments below your article.
 
 ## How It Works
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Publish your   │────▶│  Share article   │────▶│  Paste toot URL │
+│  Publish your   │────▶│  Share article   │────▶│  Paste post URL │
 │    article      │     │  on Mastodon     │     │  in settings    │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                                           │
@@ -25,7 +25,7 @@ First, publish your article on Pana MIA as usual. The Mastodon comments feature 
 
 ### Step 2: Share on Mastodon
 
-Share your article link on your Mastodon account. Write a compelling toot that encourages discussion:
+Share your article link on your Mastodon account. Write a compelling post that encourages discussion:
 
 ```
 📝 New article: "The State of Miami's Music Scene"
@@ -38,9 +38,9 @@ Read it here: https://panamia.club/articles/miami-music-scene
 What's your favorite local venue? 🎵
 ```
 
-### Step 3: Copy Your Toot URL
+### Step 3: Copy Your Post URL
 
-After posting, click on your toot to open it in a new tab. Copy the URL from your browser's address bar. It will look something like:
+After posting, click on your post to open it in a new tab. Copy the URL from your browser's address bar. It will look something like:
 
 ```
 https://mastodon.social/@yourname/123456789012345678
@@ -53,19 +53,19 @@ Supported URL formats:
 - `https://hachyderm.io/@user/123456789`
 - Any Mastodon-compatible instance
 
-### Step 4: Link Your Toot
+### Step 4: Link Your Post
 
 1. Go to your published article on Pana MIA
 2. Scroll down and click **"Author Settings"** (only visible to you as the author)
 3. Expand the settings panel
-4. Paste your Mastodon toot URL in the input field
+4. Paste your Mastodon post URL in the input field
 5. Click **Save**
 
 You'll see a confirmation that comments are enabled.
 
 ### Step 5: View Comments
 
-Once linked, any replies to your Mastodon toot will appear as comments below your article. Comments include:
+Once linked, any replies to your Mastodon post will appear as comments below your article. Comments include:
 
 - Author's display name and avatar
 - Their Mastodon handle (@user@instance)
@@ -79,9 +79,9 @@ Once linked, any replies to your Mastodon toot will appear as comments below you
 
 | Feature             | Description                               |
 | ------------------- | ----------------------------------------- |
-| Easy setup          | Just paste your toot URL                  |
+| Easy setup          | Just paste your post URL                  |
 | Any instance        | Works with any Mastodon-compatible server |
-| Update anytime      | Change or remove the linked toot          |
+| Update anytime      | Change or remove the linked post          |
 | Built-in moderation | Mastodon's moderation tools apply         |
 
 ### For Readers
@@ -119,23 +119,23 @@ Comments are cached for 5 minutes to reduce API load. Click the **Refresh** butt
 
 Moderation happens on Mastodon. You can:
 
-- Delete replies to your toot
+- Delete replies to your post
 - Block users
 - Report content
 - Mute conversations
 
 Comments removed on Mastodon will disappear from your article on the next refresh.
 
-### What if I delete my toot?
+### What if I delete my post?
 
-If you delete your Mastodon toot, comments will no longer load. You can:
+If you delete your Mastodon post, comments will no longer load. You can:
 
-1. Create a new toot announcing your article
+1. Create a new post announcing your article
 2. Update the linked URL in Author Settings
 
-### Can I have multiple toots for one article?
+### Can I have multiple posts for one article?
 
-Currently, only one toot can be linked per article. The most recent toot you link will be used.
+Currently, only one post can be linked per article. The most recent post you link will be used.
 
 ### Are there rate limits?
 
@@ -147,13 +147,13 @@ Mastodon instances typically allow 300 requests per 5 minutes. With caching, thi
 
 | Endpoint                        | Method | Description                              |
 | ------------------------------- | ------ | ---------------------------------------- |
-| `/api/articles/[slug]/comments` | GET    | Fetch comments from linked Mastodon toot |
-| `/api/articles/[slug]/mastodon` | GET    | Get the linked toot URL                  |
-| `/api/articles/[slug]/mastodon` | PATCH  | Update the linked toot URL (author only) |
+| `/api/articles/[slug]/comments` | GET    | Fetch comments from linked Mastodon post |
+| `/api/articles/[slug]/mastodon` | GET    | Get the linked post URL                  |
+| `/api/articles/[slug]/mastodon` | PATCH  | Update the linked post URL (author only) |
 
 ### Data Flow
 
-1. Author saves toot URL → stored in `article.mastodonTootUrl`
+1. Author saves post URL → stored in `article.mastodonPostUrl`
 2. Page loads → client fetches `/api/articles/[slug]/comments`
 3. API parses URL → extracts instance and status ID
 4. API calls Mastodon → `GET /api/v1/statuses/{id}/context`
@@ -181,8 +181,8 @@ Make sure your URL:
 
 ### Comments not loading
 
-1. Check that your toot is **public** (not followers-only or unlisted)
-2. Verify the toot hasn't been deleted
+1. Check that your post is **public** (not followers-only or unlisted)
+2. Verify the post hasn't been deleted
 3. Wait 5 minutes and refresh (rate limiting)
 4. Check the Mastodon instance is online
 
@@ -191,7 +191,7 @@ Make sure your URL:
 This usually means:
 
 - The Mastodon instance is temporarily unavailable
-- The toot was deleted
+- The post was deleted
 - Network connectivity issues
 
 Try refreshing after a few minutes.
@@ -200,7 +200,7 @@ Try refreshing after a few minutes.
 
 - **Threaded display**: Show nested reply threads inline
 - **Reply from Pana MIA**: Open Mastodon reply dialog directly
-- **Multiple toots**: Link multiple announcements per article
+- **Multiple posts**: Link multiple announcements per article
 - **Analytics**: Show engagement metrics (boosts, favorites)
 
 ---

@@ -140,9 +140,9 @@ const articleSchema = new Schema(
     },
 
     // Mastodon comments integration
-    // URL to the Mastodon toot that announced this article
-    // Replies to this toot will be displayed as comments
-    mastodonTootUrl: {
+    // URL to the Mastodon post that announced this article
+    // Replies to this post will be displayed as comments
+    mastodonPostUrl: {
       type: String,
       sparse: true,
     },

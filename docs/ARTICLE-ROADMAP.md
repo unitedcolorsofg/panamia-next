@@ -609,13 +609,13 @@ Child article shows "In reply to: [Title]" header.
 
 #### Overview
 
-Lightweight comments integration using Mastodon. Instead of building a custom comment system, authors link their Mastodon toot that announces the article, and replies to that toot are displayed as comments.
+Lightweight comments integration using Mastodon. Instead of building a custom comment system, authors link their Mastodon post that announces the article, and replies to that post are displayed as comments.
 
 #### How It Works
 
 1. Author publishes article on Pana MIA
-2. Author toots the article link from their Mastodon account
-3. Author pastes the toot URL in article settings
+2. Author posts the article link from their Mastodon account
+3. Author pastes the post URL in article settings
 4. Pana MIA fetches replies using Mastodon's public API
 5. Replies are displayed as comments below the article
 
@@ -623,7 +623,7 @@ Lightweight comments integration using Mastodon. Instead of building a custom co
 
 ```typescript
 // Added to Article schema
-mastodonTootUrl?: string; // URL to the Mastodon toot
+mastodonPostUrl?: string; // URL to the Mastodon post
 ```
 
 #### API Endpoints
@@ -631,15 +631,15 @@ mastodonTootUrl?: string; // URL to the Mastodon toot
 | Endpoint                        | Method | Description                       |
 | ------------------------------- | ------ | --------------------------------- |
 | `/api/articles/[slug]/comments` | GET    | Fetch comments from Mastodon      |
-| `/api/articles/[slug]/mastodon` | GET    | Get linked toot URL               |
-| `/api/articles/[slug]/mastodon` | PATCH  | Set/update toot URL (author only) |
+| `/api/articles/[slug]/mastodon` | GET    | Get linked post URL               |
+| `/api/articles/[slug]/mastodon` | PATCH  | Set/update post URL (author only) |
 
 #### Components
 
 | Component                     | Description                            |
 | ----------------------------- | -------------------------------------- |
 | `MastodonComments.tsx`        | Display comments from Mastodon thread  |
-| `ArticleMastodonSettings.tsx` | Author settings panel for linking toot |
+| `ArticleMastodonSettings.tsx` | Author settings panel for linking post |
 
 #### Utilities
 
@@ -666,8 +666,8 @@ mastodonTootUrl?: string; // URL to the Mastodon toot
 
 #### Cons
 
-- Requires author to manually toot & paste URL
-- Only shows replies to that specific toot
+- Requires author to manually post & paste URL
+- Only shows replies to that specific post
 - Comments are read-only (can't reply from Pana MIA)
 - Rate limits on Mastodon API (300 req/5min, usually fine)
 
@@ -729,8 +729,8 @@ Implement ActivityPub directly in Pana MIA using patterns from activities.next.
 
 Instead of building a custom comment system:
 
-1. Article published → Toot created on `social.panamia.club`
-2. Mastodon users reply to the toot
+1. Article published → Post created on `social.panamia.club`
+2. Mastodon users reply to the post
 3. Fetch replies via Mastodon API
 4. Display below article as comments
 
@@ -817,7 +817,7 @@ components/
 ├── ArticleSearch.tsx
 ├── HomepageArticles.tsx
 ├── MastodonComments.tsx                # Display Mastodon comments
-└── ArticleMastodonSettings.tsx         # Author settings for toot URL
+└── ArticleMastodonSettings.tsx         # Author settings for post URL
 ```
 
 ---
