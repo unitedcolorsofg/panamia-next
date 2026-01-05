@@ -603,22 +603,92 @@ Child article shows "In reply to: [Title]" header.
 
 ---
 
+### Stage 8: Mastodon Comments
+
+**Status**: ✅ Complete (not yet user tested)
+
+#### Overview
+
+Lightweight comments integration using Mastodon. Instead of building a custom comment system, authors link their Mastodon toot that announces the article, and replies to that toot are displayed as comments.
+
+#### How It Works
+
+1. Author publishes article on Pana MIA
+2. Author toots the article link from their Mastodon account
+3. Author pastes the toot URL in article settings
+4. Pana MIA fetches replies using Mastodon's public API
+5. Replies are displayed as comments below the article
+
+#### Data Model
+
+```typescript
+// Added to Article schema
+mastodonTootUrl?: string; // URL to the Mastodon toot
+```
+
+#### API Endpoints
+
+| Endpoint                        | Method | Description                       |
+| ------------------------------- | ------ | --------------------------------- |
+| `/api/articles/[slug]/comments` | GET    | Fetch comments from Mastodon      |
+| `/api/articles/[slug]/mastodon` | GET    | Get linked toot URL               |
+| `/api/articles/[slug]/mastodon` | PATCH  | Set/update toot URL (author only) |
+
+#### Components
+
+| Component                     | Description                            |
+| ----------------------------- | -------------------------------------- |
+| `MastodonComments.tsx`        | Display comments from Mastodon thread  |
+| `ArticleMastodonSettings.tsx` | Author settings panel for linking toot |
+
+#### Utilities
+
+| File              | Description                                   |
+| ----------------- | --------------------------------------------- |
+| `lib/mastodon.ts` | Parse URLs, fetch context, transform comments |
+
+#### Features
+
+- **No auth required**: Uses Mastodon's public API for public posts
+- **Refresh button**: Authors and readers can refresh comments
+- **Reply link**: Direct link to reply on Mastodon
+- **Author avatars**: Displays commenter info from Mastodon
+- **Threaded display**: Shows reply counts for nested conversations
+- **5-minute cache**: Built-in caching via Next.js revalidation
+
+#### Pros
+
+- No ActivityPub server needed
+- Works with any Mastodon instance
+- Users reply from their existing accounts
+- Built-in moderation (Mastodon's)
+- Lightweight implementation
+
+#### Cons
+
+- Requires author to manually toot & paste URL
+- Only shows replies to that specific toot
+- Comments are read-only (can't reply from Pana MIA)
+- Rate limits on Mastodon API (300 req/5min, usually fine)
+
+---
+
 ### Future Stages (Not in Initial Scope)
 
 | Stage | Feature              | Description                        |
 | ----- | -------------------- | ---------------------------------- |
-| 8     | Tiptap Editor        | Rich text editing, better UX       |
-| 9     | SVG-Edit Integration | Embedded vector doodle editor      |
-| 10    | Hocuspocus           | Real-time collaborative editing    |
-| 11    | ActivityPub          | Fediverse syndication              |
-| 12    | View Analytics       | Privacy-respecting metrics         |
-| 13    | Bookmarks            | Users can save articles            |
-| 14    | Comments             | Fediverse replies as comments      |
-| 15    | Lists Alignment      | Align with ActivityPub Collections |
+| 9     | Tiptap Editor        | Rich text editing, better UX       |
+| 10    | SVG-Edit Integration | Embedded vector doodle editor      |
+| 11    | Hocuspocus           | Real-time collaborative editing    |
+| 12    | ActivityPub          | Fediverse syndication              |
+| 13    | View Analytics       | Privacy-respecting metrics         |
+| 14    | Bookmarks            | Users can save articles            |
+| 15    | Full Comments        | Native ActivityPub comments        |
+| 16    | Lists Alignment      | Align with ActivityPub Collections |
 
 ---
 
-### Stage 11: ActivityPub Federation (Detailed)
+### Stage 12: ActivityPub Federation (Detailed)
 
 **Upstream Reference**: [llun/activities.next](https://github.com/llun/activities.next)
 
@@ -655,7 +725,7 @@ Implement ActivityPub directly in Pana MIA using patterns from activities.next.
 
 **When to consider**: If sidecar architecture becomes limiting.
 
-#### Stage 14: Comments via Fediverse
+#### Stage 15: Full Comments via ActivityPub
 
 Instead of building a custom comment system:
 
@@ -676,6 +746,7 @@ lib/
 │   ├── article.ts
 │   └── notification.ts
 ├── article.ts              # Helpers (slug, reading time)
+├── mastodon.ts             # Mastodon API utilities
 └── notifications.ts        # Create, send email
 
 app/
@@ -695,7 +766,9 @@ app/
 │   │       │   ├── request/route.ts
 │   │       │   ├── respond/route.ts
 │   │       │   └── comments/route.ts
-│   │       └── replies/route.ts
+│   │       ├── replies/route.ts
+│   │       ├── comments/route.ts          # Mastodon comments
+│   │       └── mastodon/route.ts          # Mastodon settings
 │   ├── notifications/
 │   │   ├── route.ts
 │   │   ├── unread-count/route.ts
@@ -742,7 +815,9 @@ components/
 ├── ReplyToLink.tsx
 ├── FollowUpArticles.tsx
 ├── ArticleSearch.tsx
-└── HomepageArticles.tsx
+├── HomepageArticles.tsx
+├── MastodonComments.tsx                # Display Mastodon comments
+└── ArticleMastodonSettings.tsx         # Author settings for toot URL
 ```
 
 ---
@@ -792,6 +867,7 @@ components/
 
 | Date       | Change                                                                     |
 | ---------- | -------------------------------------------------------------------------- |
+| 2025-01-05 | Added Stage 8: Mastodon Comments (lightweight comments via public API)     |
 | 2024-12-29 | Added ActivityPub integration plan with activities.next upstream reference |
 | 2024-12-29 | Split notification system to NOTIFICATIONS-ROADMAP.md                      |
 | 2024-12-26 | Initial roadmap created                                                    |

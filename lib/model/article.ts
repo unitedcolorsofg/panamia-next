@@ -138,6 +138,14 @@ const articleSchema = new Schema(
       type: Number,
       default: 1,
     },
+
+    // Mastodon comments integration
+    // URL to the Mastodon toot that announced this article
+    // Replies to this toot will be displayed as comments
+    mastodonTootUrl: {
+      type: String,
+      sparse: true,
+    },
   },
   {
     timestamps: true,

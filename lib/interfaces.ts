@@ -304,6 +304,7 @@ export interface ArticleInterface {
   removedBy?: string;
   removalReason?: string;
   readingTime: number;
+  mastodonTootUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

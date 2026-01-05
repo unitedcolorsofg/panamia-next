@@ -15,6 +15,8 @@ import user from '@/lib/model/user';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ArticleTypeBadge from '@/components/ArticleTypeBadge';
+import MastodonComments from '@/components/MastodonComments';
+import ArticleMastodonSettings from '@/components/ArticleMastodonSettings';
 import { ArrowLeft, Clock, Reply } from 'lucide-react';
 
 interface PageProps {
@@ -123,6 +125,7 @@ async function getArticle(slug: string) {
     coverImage: (articleDoc as any).coverImage,
     readingTime: (articleDoc as any).readingTime,
     publishedAt: (articleDoc as any).publishedAt?.toISOString(),
+    authorId: (articleDoc as any).authorId.toString(),
     author: authorInfo,
     coAuthors: coAuthorsInfo,
     reviewer: reviewerInfo,
@@ -287,6 +290,15 @@ export default async function ArticlePage({ params }: PageProps) {
             </div>
           </section>
         )}
+
+        {/* Mastodon Comments */}
+        <MastodonComments slug={articleData.slug} />
+
+        {/* Author Settings (only visible to author) */}
+        <ArticleMastodonSettings
+          slug={articleData.slug}
+          authorId={articleData.authorId}
+        />
       </article>
     </main>
   );
