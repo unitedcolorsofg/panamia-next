@@ -10,7 +10,7 @@ const oauthVerificationSchema = new Schema({
     unique: true,
     index: true,
   },
-  expiresAt: { type: Date, required: true, index: true },
+  expiresAt: { type: Date, required: true }, // TTL index defined below
   createdAt: { type: Date, default: Date.now },
   // Store OAuth profile data to create account after verification
   oauthProfile: { type: Schema.Types.Mixed, required: true },
