@@ -35,5 +35,45 @@ if [ -n "$STAGED_PAGES" ]; then
   fi
 fi
 
+# Check for new folders without README.md
+echo ""
+echo "📁 Checking for new folders without README.md..."
+
+# Get all staged files and extract unique directories
+STAGED_DIRS=$(git diff --cached --name-only --diff-filter=A | xargs -I{} dirname {} 2>/dev/null | sort -u || true)
+
+if [ -n "$STAGED_DIRS" ]; then
+  MISSING_READMES=""
+
+  for dir in $STAGED_DIRS; do
+    # Skip root, node_modules, .git, etc.
+    case "$dir" in
+      .|node_modules*|.git*|.next*|.vercel*|public/*)
+        continue
+        ;;
+    esac
+
+    # Check if this is a new directory (all files in it are being added)
+    # and if it's missing a README.md
+    if [ -d "$dir" ] && [ ! -f "$dir/README.md" ]; then
+      # Check if README.md is being added in this commit
+      ADDING_README=$(git diff --cached --name-only | grep -q "^$dir/README.md$" && echo "1" || true)
+      if [ -z "$ADDING_README" ]; then
+        MISSING_READMES="$MISSING_READMES
+  📂 $dir"
+      fi
+    fi
+  done
+
+  if [ -n "$MISSING_READMES" ]; then
+    echo ""
+    echo "⚠️  WARNING: New folders may be missing README.md:"
+    echo "$MISSING_READMES"
+    echo ""
+    echo "💡 Consider adding a README.md to explain the folder's purpose"
+    echo ""
+  fi
+fi
+
 # Run linting
 npx lint-staged
