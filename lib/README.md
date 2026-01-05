@@ -1,69 +1,150 @@
 # Lib Directory
 
-Shared utilities, business logic, and data models.
+Shared utilities, business logic, data models, and server-side helpers.
 
-## Structure
+## Core Files
 
+| File            | Description                                                     |
+| --------------- | --------------------------------------------------------------- |
+| `connectdb.ts`  | MongoDB connection singleton (caches connection for serverless) |
+| `interfaces.ts` | TypeScript interfaces for all data models                       |
+| `utils.ts`      | General utility functions                                       |
+
+## Database Models (`model/`)
+
+Mongoose schemas defining MongoDB collections:
+
+| Model                  | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `user.ts`              | User accounts (auth, email, screenname, role)                      |
+| `users.ts`             | Legacy user model (being migrated)                                 |
+| `profile.ts`           | Business/personal profiles                                         |
+| `article.ts`           | Community articles                                                 |
+| `notification.ts`      | In-app notifications                                               |
+| `userlist.ts`          | User-created curated lists                                         |
+| `followers.ts`         | Follow relationships                                               |
+| `images.ts`            | Profile image metadata                                             |
+| `interaction.ts`       | User interactions/analytics                                        |
+| `mentorSession.ts`     | Mentoring session bookings                                         |
+| `event.ts`             | Event listings                                                     |
+| `podcasts.ts`          | Podcast episodes                                                   |
+| `links.ts`             | Link tree entries                                                  |
+| `newsletter.ts`        | Newsletter subscriptions                                           |
+| `contactus.ts`         | Contact form submissions                                           |
+| `signup.ts`            | Signup requests                                                    |
+| `emailMigration.ts`    | Email change requests                                              |
+| `oauthVerification.ts` | OAuth email verification tokens                                    |
+| `brevo_contact.ts`     | Brevo email service contacts                                       |
+| `*intake.ts`           | Intake form submissions (apparel, art, food, goods, org, services) |
+
+## Query Helpers (`query/`)
+
+Reusable database query functions:
+
+| File               | Description                  |
+| ------------------ | ---------------------------- |
+| `user.ts`          | User lookup queries          |
+| `profile.ts`       | Profile search and retrieval |
+| `directory.ts`     | Directory listing queries    |
+| `notifications.ts` | Notification queries         |
+| `userlist.ts`      | List queries                 |
+| `admin.ts`         | Admin-specific queries       |
+
+## Server Utilities (`server/`)
+
+Server-side only functions (not for client):
+
+| File             | Description                      |
+| ---------------- | -------------------------------- |
+| `user.ts`        | User operations (create, update) |
+| `profile.ts`     | Profile operations               |
+| `directory.ts`   | Directory data fetching          |
+| `interaction.ts` | Track user interactions          |
+| `admin.ts`       | Admin operations                 |
+
+## Validations (`validations/`)
+
+Zod schemas for input validation:
+
+| File                   | Description                |
+| ---------------------- | -------------------------- |
+| `mentoring-profile.ts` | Mentor profile validation  |
+| `session.ts`           | Session booking validation |
+
+## Blob Storage (`blob/`)
+
+Vercel Blob integration for file uploads:
+
+| File     | Description                                 |
+| -------- | ------------------------------------------- |
+| `api.ts` | `uploadFile()` and `deleteFile()` functions |
+
+## Feature Utilities
+
+### Articles (`article.ts`)
+
+- `generateSlug(title)` - URL-safe slug from title
+- `calculateReadingTime(content)` - Estimate read time in minutes
+- `generateExcerpt(content)` - Auto-generate excerpt
+
+### Mastodon (`mastodon.ts`)
+
+- `parseMastodonUrl(url)` - Extract instance and post ID
+- `isValidMastodonUrl(url)` - Validate URL format
+- `fetchArticleComments(url)` - Get replies as comments
+
+### Notifications (`notifications.ts`)
+
+- `createNotification({...})` - Create notification with optional email
+
+### Screennames (`screenname.ts`)
+
+- `validateScreenname(name)` - Check format rules
+- `isScreennameAvailable(name)` - Check database
+- `generateScreenname(name)` - Create from display name
+
+### User (`user.ts`)
+
+- `getHostUrl()` - Get site URL (handles env vars)
+
+## External Services
+
+| File               | Service                         |
+| ------------------ | ------------------------------- |
+| `brevo_api.ts`     | Brevo (Sendinblue) email API    |
+| `brevo_fetch.ts`   | Brevo HTTP client               |
+| `pusher-server.ts` | Pusher server client (realtime) |
+| `pusher-client.ts` | Pusher browser client           |
+| `geolocation.ts`   | Geocoding utilities             |
+| `mongodb.ts`       | MongoDB utilities               |
+| `auth-api.ts`      | Auth helper functions           |
+
+## Client-Side Utilities
+
+| File              | Description                    |
+| ----------------- | ------------------------------ |
+| `localstorage.ts` | LocalStorage helpers           |
+| `lists.ts`        | List manipulation utilities    |
+| `standardized.ts` | Data standardization functions |
+
+## Usage Patterns
+
+```typescript
+// Database connection
+import dbConnect from '@/lib/connectdb';
+await dbConnect();
+
+// Models
+import user from '@/lib/model/user';
+const doc = await user.findOne({ email });
+
+// Interfaces
+import type { UserInterface, ArticleInterface } from '@/lib/interfaces';
 ```
-lib/
-├── model/            # Mongoose database models
-├── blob/             # Vercel Blob storage utilities
-├── connectdb.ts      # MongoDB connection handler
-├── interfaces.ts     # TypeScript interfaces for data models
-├── article.ts        # Article utilities (slug, reading time)
-├── mastodon.ts       # Mastodon API integration
-├── notifications.ts  # Notification creation and email
-├── pusher-server.ts  # Pusher server-side client
-├── user.ts           # User-related utilities
-└── [others]          # Various utility functions
-```
 
-## Key Files
+## Notes
 
-### Database (`model/`)
-
-Mongoose schemas defining the MongoDB collections:
-
-- `user.ts` - User accounts and profiles
-- `article.ts` - Community articles
-- `notification.ts` - In-app notifications
-- `profile.ts` - Business/personal profiles
-- `list.ts` - User-created lists
-
-### `connectdb.ts`
-
-Singleton MongoDB connection handler. Caches connection to avoid
-reconnecting on every request in serverless environment.
-
-### `interfaces.ts`
-
-TypeScript interfaces matching the Mongoose models. Used for
-type-safe data handling throughout the app.
-
-### `notifications.ts`
-
-ActivityPub-compatible notification system:
-
-- `createNotification()` - Create and optionally email notifications
-- Supports article invites, reviews, follows, etc.
-
-### `mastodon.ts`
-
-Mastodon public API integration for comments:
-
-- `parseMastodonUrl()` - Parse post URLs
-- `fetchArticleComments()` - Get replies as comments
-
-### `article.ts`
-
-Article helper functions:
-
-- `generateSlug()` - URL-safe slug from title
-- `calculateReadingTime()` - Estimate read time
-- `generateExcerpt()` - Auto-generate excerpt
-
-## Conventions
-
-- Server-side only code (uses Node.js APIs)
-- Functions should be pure when possible
-- Database operations return lean objects for performance
+- All files are server-side unless noted (localstorage, pusher-client)
+- Models use Mongoose with TypeScript
+- Queries return lean objects for performance
+- Validations use Zod schemas

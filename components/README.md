@@ -2,56 +2,149 @@
 
 Reusable React components used throughout the application.
 
-## Structure
+## UI Components (`ui/`)
 
-```
-components/
-├── ui/               # Base UI components (shadcn/ui)
-├── Admin/            # Admin-specific components
-├── Form/             # Form-related components
-├── flower-power/     # Pana MIA brand components (flower icons, etc.)
-├── Article*.tsx      # Article feature components
-├── Mastodon*.tsx     # Mastodon integration components
-├── Notification*.tsx # Notification system components
-├── *Badge.tsx        # Various badge components
-└── [others]          # Feature-specific components
-```
+Base components from [shadcn/ui](https://ui.shadcn.com/) - the building blocks:
 
-## Component Categories
+| Component           | Description                  |
+| ------------------- | ---------------------------- |
+| `accordion.tsx`     | Collapsible content sections |
+| `alert-dialog.tsx`  | Confirmation dialogs         |
+| `avatar.tsx`        | User avatars                 |
+| `badge.tsx`         | Status/category badges       |
+| `button.tsx`        | Button variants              |
+| `calendar.tsx`      | Date picker calendar         |
+| `card.tsx`          | Content cards                |
+| `checkbox.tsx`      | Checkbox input               |
+| `dialog.tsx`        | Modal dialogs                |
+| `dropdown-menu.tsx` | Dropdown menus               |
+| `form.tsx`          | Form wrapper with validation |
+| `input.tsx`         | Text inputs                  |
+| `label.tsx`         | Form labels                  |
+| `progress.tsx`      | Progress bars                |
+| `radio-group.tsx`   | Radio button groups          |
+| `scroll-area.tsx`   | Custom scrollable areas      |
+| `select.tsx`        | Select dropdowns             |
+| `table.tsx`         | Data tables                  |
+| `tabs.tsx`          | Tab navigation               |
+| `textarea.tsx`      | Multi-line text input        |
 
-### UI Components (`ui/`)
+## Admin Components (`Admin/`)
 
-Base components from shadcn/ui - buttons, inputs, cards, dialogs, etc.
-These are the building blocks used by higher-level components.
+Components for admin interfaces:
 
-### Feature Components
+| Component         | Description          |
+| ----------------- | -------------------- |
+| `AdminButton.tsx` | Admin action buttons |
+| `AdminHeader.tsx` | Admin page headers   |
 
-- **Article\***: Article editor, cards, bylines, type badges
-- **Notification\***: Notification flower, dropdown, list items
-- **Mastodon\***: Mastodon comments integration
-- **UserSearch**: Search for users (co-authors, reviewers)
-- **AuthorBadge**: Display author attribution with verification
+## Form Components (`Form/`)
 
-### Layout Components
+Specialized form inputs:
 
-- **HeroBar**: Page header with title and description
-- **MainFooter**: Site footer
-- **CallToActionBar**: Promotional banners
+| Component           | Description              |
+| ------------------- | ------------------------ |
+| `ImageUploader.tsx` | Drag-drop image upload   |
+| `Required.tsx`      | Required field indicator |
 
-### Form Components (`Form/`)
+## Page Components (`Page/`)
 
-Specialized form inputs and widgets for profile editing, etc.
+Page-level utilities:
+
+| Component                    | Description              |
+| ---------------------------- | ------------------------ |
+| `FullPage.tsx`               | Full-page layout wrapper |
+| `Status401_Unauthorized.tsx` | Unauthorized error page  |
+
+## Flower Power (`flower-power/`)
+
+Pana MIA brand animations and effects:
+
+| Component                  | Description                  |
+| -------------------------- | ---------------------------- |
+| `FlowerPowerProvider.tsx`  | Context provider for effects |
+| `FlowerPowerAttribute.tsx` | Flower attribute display     |
+| `PetalBurst.tsx`           | Petal animation effect       |
+| `CursorTrail.tsx`          | Cursor trail effect          |
+| `GlobalButtonEvasion.tsx`  | Button evasion animation     |
+| `AudioPlayer.tsx`          | Audio player with effects    |
+
+## Article Components
+
+| Component                     | Description                           |
+| ----------------------------- | ------------------------------------- |
+| `ArticleCard.tsx`             | Article preview card                  |
+| `ArticleEditor.tsx`           | Markdown editor with preview          |
+| `ArticleByline.tsx`           | Author attribution line               |
+| `ArticleTypeBadge.tsx`        | Article type indicator                |
+| `ArticleSearch.tsx`           | Search articles (for replies)         |
+| `ArticleMastodonSettings.tsx` | Author settings for Mastodon comments |
+
+## Notification Components
+
+| Component                  | Description                 |
+| -------------------------- | --------------------------- |
+| `NotificationFlower.tsx`   | Animated notification icon  |
+| `NotificationDropdown.tsx` | Notification list dropdown  |
+| `NotificationItem.tsx`     | Single notification display |
+
+## Mastodon Components
+
+| Component              | Description                          |
+| ---------------------- | ------------------------------------ |
+| `MastodonComments.tsx` | Display Mastodon replies as comments |
+
+## Layout Components
+
+| Component             | Description                 |
+| --------------------- | --------------------------- |
+| `MainHeader.tsx`      | Site header with navigation |
+| `MainFooter.tsx`      | Site footer                 |
+| `HeroBar.tsx`         | Page hero section           |
+| `CallToActionBar.tsx` | Promotional banner          |
+
+## Branding Components
+
+| Component             | Description           |
+| --------------------- | --------------------- |
+| `PanaLogo.tsx`        | Pana MIA logo         |
+| `PanaLogoLong.tsx`    | Extended logo version |
+| `PanaButton.tsx`      | Branded button style  |
+| `PanaLinkButton.tsx`  | Branded link button   |
+| `PanaProfileCard.tsx` | Profile card display  |
+
+## Utility Components
+
+| Component              | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `AuthorBadge.tsx`      | Author attribution with verification     |
+| `UserSearch.tsx`       | Search users (for co-authors, reviewers) |
+| `ScreennamePrompt.tsx` | Prompt to set screenname                 |
+| `SignupModal.tsx`      | Signup modal dialog                      |
+| `Spinner.tsx`          | Loading spinner                          |
+| `Entity.tsx`           | Entity display component                 |
+| `DropDownBtn.tsx`      | Dropdown button                          |
+| `GlobalHead.tsx`       | Global head metadata                     |
+| `PageMeta.tsx`         | Page-specific metadata                   |
+
+## Theme Components
+
+| Component            | Description              |
+| -------------------- | ------------------------ |
+| `theme-provider.tsx` | Dark/light theme context |
+| `theme-toggle.tsx`   | Theme toggle button      |
 
 ## Conventions
 
-- Components are PascalCase: `ArticleCard.tsx`
-- CSS modules use `.module.css` extension
-- Client components use `'use client'` directive
-- Props interfaces defined in same file or `/types`
+- **Naming**: PascalCase for components (`ArticleCard.tsx`)
+- **Styling**: CSS modules (`.module.css`) or Tailwind
+- **Client**: Use `'use client'` directive for interactive components
+- **Props**: Define interface in same file or import from `/types`
 
-## Adding New Components
+## Adding Components
 
-1. Create component file in appropriate location
+1. Create component in appropriate location
 2. Add TypeScript props interface
-3. Export from component file
-4. Consider adding to this README if it's a major component
+3. Use existing UI components from `ui/` when possible
+4. Add CSS module if needed for complex styles
+5. Update this README for major new components
