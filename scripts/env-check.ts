@@ -3,12 +3,23 @@
  * Environment Variable Validation Script
  *
  * Validates that required environment variables are set.
+ * Automatically loads .env.local if it exists (for local development).
  * Run with: npm run env:check
  *
  * Exit codes:
  *   0 - All required variables are set
  *   1 - Missing required variables
  */
+
+import { existsSync } from 'fs';
+import { resolve } from 'path';
+import { config } from 'dotenv';
+
+// Load .env.local if it exists (local dev), otherwise use raw env (CI)
+const envLocalPath = resolve(process.cwd(), '.env.local');
+if (existsSync(envLocalPath)) {
+  config({ path: envLocalPath });
+}
 
 import {
   envConfig,
