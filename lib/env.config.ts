@@ -321,7 +321,8 @@ export const envConfig: Record<string, EnvVarConfig> = {
     defaultValue: 'false',
   },
   DEV_RECEIVER_EMAIL: {
-    description: 'Override email recipient in development',
+    description:
+      'Development email redirect - ALL emails sent here instead of real recipients',
     location: 'LOCAL',
     required: false,
   },
