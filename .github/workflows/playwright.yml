@@ -31,16 +31,34 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: http://localhost:3000
-          NEXT_PUBLIC_HOST_URL: http://localhost:3000
+          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+          NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+          NEXT_PUBLIC_GOOGLE_ENABLED: ${{ vars.NEXT_PUBLIC_GOOGLE_ENABLED }}
+          NEXT_PUBLIC_APPLE_ENABLED: ${{ vars.NEXT_PUBLIC_APPLE_ENABLED }}
+          NEXT_PUBLIC_MASTODON_ENABLED: ${{ vars.NEXT_PUBLIC_MASTODON_ENABLED }}
+          NEXT_PUBLIC_WIKIMEDIA_ENABLED: ${{ vars.NEXT_PUBLIC_WIKIMEDIA_ENABLED }}
+          NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
+          NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
+          PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
+          USE_MEMORY_SERVER: ${{ vars.USE_MEMORY_SERVER }}
 
       - name: Run Playwright tests
         run: yarn test
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: http://localhost:3000
-          NEXT_PUBLIC_HOST_URL: http://localhost:3000
+          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+          NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+          NEXT_PUBLIC_GOOGLE_ENABLED: ${{ vars.NEXT_PUBLIC_GOOGLE_ENABLED }}
+          NEXT_PUBLIC_APPLE_ENABLED: ${{ vars.NEXT_PUBLIC_APPLE_ENABLED }}
+          NEXT_PUBLIC_MASTODON_ENABLED: ${{ vars.NEXT_PUBLIC_MASTODON_ENABLED }}
+          NEXT_PUBLIC_WIKIMEDIA_ENABLED: ${{ vars.NEXT_PUBLIC_WIKIMEDIA_ENABLED }}
+          NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
+          NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
+          PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
+          USE_MEMORY_SERVER: ${{ vars.USE_MEMORY_SERVER }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
