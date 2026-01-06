@@ -34,13 +34,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await dbConnect();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser || currentUser.status?.role !== 'admin') {
+    // Check admin status from ADMIN_EMAILS (consistent with auth.ts session callback)
+    const adminEmails =
+      process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
+      [];
+    const isAdmin = adminEmails.includes(session.user.email.toLowerCase());
+
+    if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
       );
     }
+
+    const currentUser = await user.findOne({ email: session.user.email });
 
     const articleDoc = await article.findOne({ slug });
     if (!articleDoc) {

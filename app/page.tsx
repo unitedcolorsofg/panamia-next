@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,11 +19,54 @@ import {
 } from '@/components/ui/accordion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Calendar, MessageCircle } from 'lucide-react';
+import {
+  Search,
+  Calendar,
+  MessageCircle,
+  FileText,
+  Loader2,
+} from 'lucide-react';
+import ArticleCard from '@/components/ArticleCard';
+
+interface Article {
+  _id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  articleType: 'business_update' | 'community_commentary';
+  tags: string[];
+  coverImage?: string;
+  readingTime?: number;
+  publishedAt: string;
+  author: {
+    screenname?: string;
+    name?: string;
+  };
+  coAuthorCount: number;
+}
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecentArticles() {
+      try {
+        const response = await fetch('/api/articles/recent?limit=3');
+        const data = await response.json();
+        if (data.success) {
+          setArticles(data.data.articles);
+        }
+      } catch (error) {
+        console.error('Failed to fetch recent articles:', error);
+      } finally {
+        setArticlesLoading(false);
+      }
+    }
+    fetchRecentArticles();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +188,65 @@ export default function HomePage() {
               </CardContent>
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* Recent Articles Section */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-pana-blue/10 flex h-12 w-12 items-center justify-center rounded-full">
+                <FileText
+                  className="text-pana-blue h-6 w-6"
+                  aria-hidden="true"
+                />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Recent Articles</h2>
+                <p className="text-muted-foreground text-sm">
+                  Stories from the Pana MIA community
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/articles">View All</Link>
+            </Button>
+          </div>
+          {articlesLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="rounded-lg border border-dashed py-12 text-center">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-4 text-lg font-medium">No articles yet!</h3>
+              <p className="mt-1 text-gray-500">
+                Be the first to share a story with the community.
+              </p>
+              <Button asChild className="mt-4">
+                <Link href="/articles/new">Write an Article</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {articles.map((article) => (
+                <ArticleCard
+                  key={article._id}
+                  slug={article.slug}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  articleType={article.articleType}
+                  tags={article.tags}
+                  coverImage={article.coverImage}
+                  readingTime={article.readingTime}
+                  publishedAt={article.publishedAt}
+                  author={article.author}
+                  coAuthorCount={article.coAuthorCount}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

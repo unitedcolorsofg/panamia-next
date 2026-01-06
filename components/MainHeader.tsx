@@ -39,6 +39,8 @@ import {
   Info,
   Gift,
   LogOut,
+  PenLine,
+  FileText,
 } from 'lucide-react';
 
 import styles from './MainHeader.module.css';
@@ -325,6 +327,27 @@ export default function MainHeader() {
                 >
                   <Video className="mr-2 h-4 w-4" />
                   My Sessions
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Articles</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/articles"
+                  className="flex cursor-pointer items-center"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Browse Articles
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/articles/new"
+                  className="flex cursor-pointer items-center"
+                >
+                  <PenLine className="mr-2 h-4 w-4" />
+                  Write Article
                 </Link>
               </DropdownMenuItem>
 
