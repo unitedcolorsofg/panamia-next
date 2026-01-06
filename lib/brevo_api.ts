@@ -7,7 +7,7 @@ export default class BrevoApi {
     base_url: 'https://api.brevo.com/v3',
     sender_email: process.env.BREVO_SENDEREMAIL || '',
     sender_name: process.env.BREVO_SENDERNAME || 'PanaMia Club',
-    default_receiver: process.env.DEV_RECEIVER_EMAIL || 'hola@panamia.club',
+    default_receiver: process.env.DEV_RECEIVER_EMAIL,
     lists: {
       addedByWebsite: process.env.BREVO_LIST_ADDEDBYWEBSITE,
       webformNewsletter: process.env.BREVO_LIST_WEBFORMNEWSLETTER,
@@ -73,7 +73,7 @@ export default class BrevoApi {
     }
   }
 
-  async postCall(endpoint: string, body: any) {
+  async postCall(endpoint: string, body: Record<string, unknown>) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -98,16 +98,21 @@ export default class BrevoApi {
     }
   }
 
-  async sendTemplateEmail(template_id: number, params: {}, email?: string) {
+  async sendTemplateEmail(
+    template_id: number,
+    params: Record<string, unknown>,
+    email?: string
+  ) {
     const call = this.config.api_schema.Emails.sendTransactional;
     const full_endpoint = `${this.config.base_url}${call.endpoint}`;
 
-    const receiver_email = email ? email : this.config.default_receiver;
-    let receivers = [
-      {
-        email: receiver_email,
-      },
-    ];
+    const receiver_email = email || this.config.default_receiver;
+    if (!receiver_email) {
+      console.error('Brevo:sendTemplateEmail:noReceiverEmail');
+      return null;
+    }
+
+    const receivers = [{ email: receiver_email }];
 
     return this.postCall(full_endpoint, {
       to: receivers,
@@ -127,7 +132,11 @@ export default class BrevoApi {
     return this.getCall(params_endpoint);
   }
 
-  async createOrUpdateContact(email: string, attributes: {}, list_ids?: any[]) {
+  async createOrUpdateContact(
+    email: string,
+    attributes: Record<string, unknown>,
+    list_ids?: number[]
+  ) {
     const call = this.config.api_schema.Contacts.create;
     const full_endpoint = `${this.config.base_url}${call.endpoint}`;
 

@@ -40,13 +40,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, score: data.score });
     }
 
-    // Allow v2 keys in development (v2 doesn't return score)
+    // Allow v2 keys in development or Vercel preview deployments (v2 doesn't return score)
     // Note: dev script uses `env -u NODE_ENV` so NODE_ENV is undefined in dev
-    if (
-      data.success &&
-      data.score === undefined &&
-      process.env.NODE_ENV !== 'production'
-    ) {
+    const host = request.headers.get('host') || '';
+    const isDevOrPreview =
+      process.env.NODE_ENV !== 'production' || host.includes('vercel.app');
+    if (data.success && data.score === undefined && isDevOrPreview) {
       console.warn('reCAPTCHA: v2 keys detected in dev mode, allowing request');
       return NextResponse.json({ success: true, score: 1.0 });
     }

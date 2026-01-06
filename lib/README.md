@@ -134,7 +134,6 @@ Vercel Blob integration for file uploads:
 | File               | Service                         |
 | ------------------ | ------------------------------- |
 | `brevo_api.ts`     | Brevo (Sendinblue) email API    |
-| `brevo_fetch.ts`   | Brevo HTTP client               |
 | `pusher-server.ts` | Pusher server client (realtime) |
 | `pusher-client.ts` | Pusher browser client           |
 | `geolocation.ts`   | Geocoding utilities             |
