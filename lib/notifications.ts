@@ -262,13 +262,16 @@ export function getNotificationMessage(notif: {
 
     case 'mentoring':
       if (notif.type === 'Invite') {
-        return `${actor} requested a mentoring session`;
+        return `${actor} requested a mentoring session: "${object}"`;
       }
       if (notif.type === 'Accept') {
-        return `${actor} accepted your mentoring request`;
+        return `${actor} accepted your mentoring session request`;
       }
       if (notif.type === 'Reject') {
-        return `${actor} declined your mentoring request`;
+        return `${actor} declined your mentoring session request`;
+      }
+      if (notif.type === 'Delete') {
+        return notif.message || `${actor} cancelled the mentoring session`;
       }
       break;
 

@@ -29,7 +29,10 @@ The Pana Mia Club mentoring feature enables **peer-to-peer video mentoring** wit
 
 **Profile Management**: Create and customize your mentoring profile
 **Mentor Discovery**: Search and filter mentors by expertise and language
+**Session Types**: Four distinct session types (artistic, knowledge transfer, pana planning, pana support)
 **Session Booking**: Schedule sessions with a calendar interface
+**Mentor Confirmation**: Sessions require mentor approval before scheduling
+**Notifications**: Real-time notifications for session requests, confirmations, and cancellations
 **WebRTC Video**: High-quality peer-to-peer video calls
 **Real-time Chat**: Text messaging during sessions
 **Collaborative Notes**: Shared note-taking with auto-save
@@ -166,19 +169,28 @@ Click **Book Session** on a mentor's card to proceed to booking.
 
 ### Booking a Session
 
-#### Step 1: Calendar Selection
+#### Step 1: Choose Session Type
+
+Select the type of session:
+
+- **Artistic Consultation** — Creative feedback on poems, art, music, writing
+- **Knowledge Transfer** — Business advice, career guidance, technical skills
+- **Pana MIA Planning** — Community planning and coordination (always free)
+- **Pana Support** — Peer support, personal guidance, and comradery
+
+#### Step 2: Calendar Selection
 
 - Select a date from the calendar
 - Past dates are disabled
 - Click on your preferred date
 
-#### Step 2: Choose a Time Slot
+#### Step 3: Choose a Time Slot
 
 - Time slots available: 9 AM - 5 PM (30-minute intervals)
 - Click on a time slot to select it
 - Selected time highlights in blue
 
-#### Step 3: Set Duration
+#### Step 4: Set Duration
 
 Choose session duration:
 
@@ -188,7 +200,7 @@ Choose session duration:
 - 90 minutes (deep dive)
 - 120 minutes (extended session)
 
-#### Step 4: Describe the Topic
+#### Step 5: Describe the Topic
 
 Enter what you'd like to discuss (5-200 characters).
 
@@ -199,9 +211,31 @@ I'd like to learn about React hooks and best practices for state management
 in complex applications.
 ```
 
-#### Step 5: Confirm Booking
+#### Step 6: Submit Request
 
-Click **Book Session** to create the session. You'll be redirected to your sessions dashboard.
+Click **Request Session** to send your request. The mentor will receive a notification.
+
+**Note:** Sessions require mentor confirmation. Your session will show as "Pending" until the mentor accepts.
+
+### Session Confirmation
+
+#### For Mentees
+
+After requesting a session:
+
+1. The session appears in your dashboard as "Pending"
+2. You'll receive a notification when the mentor responds
+3. If **accepted**: Status changes to "Scheduled" and you can join at the scheduled time
+4. If **declined**: You'll see the reason and can request a different time
+
+#### For Mentors
+
+When someone requests a session with you:
+
+1. You'll receive a notification with session details
+2. Go to **Mentoring** → **My Sessions** to see pending requests
+3. Review the topic and time, then click **Accept** or **Decline**
+4. If declining, provide a reason (helps the mentee understand)
 
 ### Joining a Video Session
 
