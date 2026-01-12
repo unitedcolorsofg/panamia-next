@@ -473,7 +473,144 @@ export async function ensureProfile(userId: string) {
 
 ---
 
-## Migration Path
+## Migration Management
+
+### Overview
+
+PostgreSQL migrations are managed via Prisma Migrate with automated validation enforced through git hooks.
+
+```
+prisma/
+├── schema.prisma              # Declarative schema (source of truth)
+└── migrations/
+    ├── TEMPLATE.sql           # Reference template for manual migrations
+    ├── migration_lock.toml    # Prisma lock file
+    ├── 20250115093000_init_users_and_auth/
+    │   └── migration.sql      # Generated + documented
+    └── 20250120140000_add_pet_sitting_tables/
+        └── migration.sql
+```
+
+### Naming Convention
+
+Migrations follow the pattern: `YYYYMMDDHHMMSS_snake_case_description`
+
+| Component   | Format                     | Example           |
+| ----------- | -------------------------- | ----------------- |
+| Timestamp   | 14 digits (YYYYMMDDHHMMSS) | `20250115093000`  |
+| Separator   | Underscore                 | `_`               |
+| Description | snake_case, lowercase      | `add_users_table` |
+
+**Examples:**
+
+- `20250115093000_init_users_and_auth`
+- `20250120140000_add_pet_sitting_tables`
+- `20250125110000_add_booking_status_index`
+
+### Required Documentation
+
+Every `migration.sql` must include a header with these fields:
+
+```sql
+-- Migration: add_pet_sitting_tables
+-- Purpose: Enable pet-sitting sidecar with listings and bookings
+-- Ticket: PANA-42
+-- Reversible: Yes
+--
+-- Rollback:
+--   DROP TABLE IF EXISTS bookings;
+--   DROP TABLE IF EXISTS listings;
+```
+
+| Field             | Required    | Description                          |
+| ----------------- | ----------- | ------------------------------------ |
+| `Purpose:`        | Yes         | Business context - WHY this exists   |
+| `Ticket:`         | Yes         | PANA-XXX or "N/A" for infrastructure |
+| `Reversible:`     | Yes         | Yes / No / Partial                   |
+| `Rollback:`       | Recommended | SQL to reverse the migration         |
+| `Dependencies:`   | Optional    | Tables that must exist first         |
+| `Data Migration:` | Optional    | None / Inline / Separate script      |
+
+### Immutability
+
+**Migrations are immutable once committed.** The pre-commit hook blocks modifications to existing migration files. To fix a mistake:
+
+```bash
+# Wrong: editing existing migration
+git add prisma/migrations/20250115_init/migration.sql  # ❌ Blocked
+
+# Right: create a new migration
+npx prisma migrate dev --name fix_user_email_constraint  # ✅
+```
+
+### Git Hooks Enforcement
+
+The `.husky/pre-commit` hook validates:
+
+1. **Naming convention** - Directory must match `YYYYMMDDHHMMSS_snake_case`
+2. **Required headers** - `Purpose:`, `Ticket:`, `Reversible:` must be present
+3. **Immutability** - Modifications to existing migrations are blocked
+
+Run validation manually:
+
+```bash
+./scripts/validate-migrations.sh         # All migrations
+./scripts/validate-migrations.sh --staged # Only staged (used by hook)
+```
+
+### Tracking Applied Migrations
+
+Prisma tracks applied migrations in the `_prisma_migrations` table:
+
+```sql
+-- View migration history
+SELECT migration_name, finished_at, applied_steps_count
+FROM _prisma_migrations
+ORDER BY finished_at;
+```
+
+Or via CLI:
+
+```bash
+npx prisma migrate status    # Shows applied/pending migrations
+npx prisma migrate deploy    # Apply pending migrations (production)
+npx prisma migrate dev       # Apply + generate (development)
+```
+
+### Workflow
+
+**Development:**
+
+```bash
+# 1. Modify prisma/schema.prisma
+# 2. Generate and apply migration
+npx prisma migrate dev --name add_feature_name
+
+# 3. Add documentation to generated migration.sql
+# 4. Commit both schema.prisma and migrations/
+git add prisma/
+git commit -m "feat(db): add feature tables"
+```
+
+**Production Deployment:**
+
+```bash
+# CI/CD runs:
+npx prisma migrate deploy  # Applies pending migrations
+```
+
+### MongoDB ↔ PostgreSQL Coordination
+
+Since MongoDB documents reference PostgreSQL IDs:
+
+1. **Order matters**: PostgreSQL migrations run BEFORE MongoDB schema changes
+2. **ID format**: PostgreSQL uses `cuid()` which MongoDB stores as strings
+3. **No cross-DB transactions**: Accept eventual consistency for non-critical paths
+4. **Rollback planning**: Document which MongoDB collections reference each PG table
+
+---
+
+## Data Migration Path
 
 ### Phase 1: Add PostgreSQL (Parallel Operation)
 
