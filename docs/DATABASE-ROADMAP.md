@@ -610,6 +610,74 @@ Since MongoDB documents reference PostgreSQL IDs:
 
 ---
 
+## MongoDB Schema Change Tracking
+
+Unlike PostgreSQL (with Prisma Migrate), MongoDB/Mongoose schemas change directly in code. To maintain coordination with PostgreSQL and ensure team awareness, all schema changes are tracked via changelogs.
+
+### Directory Structure
+
+```
+mongo-migrations/
+├── README.md           # Process documentation
+├── CHANGELOG.md        # Summary of all changes
+└── changes/
+    └── YYYY-MM-DD_model_description.md
+```
+
+### Workflow
+
+When modifying any file in `lib/model/`:
+
+1. **Create changelog entry**:
+
+   ```bash
+   # Create: mongo-migrations/changes/2025-01-15_profile_add_verification.md
+   ```
+
+2. **Document PostgreSQL dependencies** (if any):
+
+   ```markdown
+   ## PostgreSQL Dependencies
+
+   - **Required Migration**: 20250115_init_users_and_auth
+   - **Table**: users
+   - **Column**: id
+   ```
+
+3. **Stage both files**:
+   ```bash
+   git add lib/model/profile.ts mongo-migrations/changes/2025-01-15_profile_add_verification.md
+   ```
+
+### Git Hooks Enforcement
+
+The `.husky/pre-commit` hook validates:
+
+1. **Changelog required** - Model changes without changelog entries are blocked
+2. **No bypass** - Changelog entries are mandatory in all situations
+
+Run validation manually:
+
+```bash
+./scripts/validate-mongo-changes.sh --staged
+```
+
+### Type-Safe PostgreSQL References
+
+Use types from `lib/types/cross-db-refs.ts` for build-time validation:
+
+```typescript
+import { PostgresUserId } from '@/lib/types/cross-db-refs';
+
+interface IProfile {
+  userId: PostgresUserId; // Type-checked against Prisma schema
+}
+```
+
+When Prisma is configured, these types will be derived from `@prisma/client`, ensuring referenced tables exist.
+
+---
+
 ## Data Migration Path
 
 ### Phase 1: Add PostgreSQL (Parallel Operation)
