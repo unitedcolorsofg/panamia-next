@@ -680,12 +680,15 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 
 ## Data Migration Path
 
-### Phase 1: Add PostgreSQL (Parallel Operation)
+### Phase 1: Add PostgreSQL (Parallel Operation) ✅
 
-- [ ] Add Prisma dependency and configuration
-- [ ] Set up PostgreSQL (Neon, Supabase, or Vercel Postgres)
-- [ ] Create schema with users, accounts, sessions tables
-- [ ] Both databases running, not yet integrated
+- [x] Add Prisma dependency and configuration
+- [x] Set up PostgreSQL (Vercel Postgres)
+- [x] Create schema with users, accounts, sessions tables
+- [x] Set up PGLite for in-memory testing
+- [x] Rename `USE_MEMORY_SERVER` → `USE_MEMORY_MONGODB`
+- [x] Add `USE_MEMORY_POSTGRES` for PGLite in CI
+- [x] Both databases running, not yet integrated
 
 ### Phase 2: Migrate Auth Data
 
@@ -710,6 +713,61 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 - [ ] Connect to same PostgreSQL database
 - [ ] Implement transactional features with real FKs
 - [ ] Share authentication via same session table
+
+---
+
+## Testing Infrastructure
+
+Both MongoDB and PostgreSQL support in-memory testing for CI:
+
+| Database   | Technology            | Env Variable          | Package                 |
+| ---------- | --------------------- | --------------------- | ----------------------- |
+| MongoDB    | mongodb-memory-server | `USE_MEMORY_MONGODB`  | `mongodb-memory-server` |
+| PostgreSQL | PGLite                | `USE_MEMORY_POSTGRES` | `@electric-sql/pglite`  |
+
+### MongoDB Memory Server
+
+Enabled via `USE_MEMORY_MONGODB=true`. Starts automatically in `lib/mongodb.ts`:
+
+```typescript
+if (process.env.USE_MEMORY_MONGODB === 'true') {
+  const { MongoMemoryServer } = require('mongodb-memory-server');
+  // Creates in-memory MongoDB instance
+}
+```
+
+### PGLite (PostgreSQL)
+
+Enabled via `USE_MEMORY_POSTGRES=true`. The `pglite-prisma-adapter` provides Prisma integration:
+
+```typescript
+// lib/prisma.ts
+if (process.env.USE_MEMORY_POSTGRES === 'true') {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { PrismaPGlite } = await import('pglite-prisma-adapter');
+  // Creates in-memory PostgreSQL instance
+}
+```
+
+**Note:** Prisma Migrate doesn't support PGLite directly. Migrations are applied manually in test setup via `tests/setup/pglite-setup.ts`.
+
+### Running Tests
+
+```bash
+# With real databases
+MONGODB_URI=... POSTGRES_URL=... npm test
+
+# With in-memory databases (CI mode)
+USE_MEMORY_MONGODB=true USE_MEMORY_POSTGRES=true npm test
+```
+
+### GitHub Actions Configuration
+
+After implementation, update GitHub repository:
+
+1. Rename variable: `USE_MEMORY_SERVER` → `USE_MEMORY_MONGODB`
+2. Add variable: `USE_MEMORY_POSTGRES=true`
+3. (Phase 2) Add secret: `POSTGRES_URL`
 
 ---
 

@@ -8,7 +8,7 @@ async function getMongoClient() {
   let uri: string;
 
   // Use memory server for development/test
-  if (process.env.USE_MEMORY_SERVER === 'true') {
+  if (process.env.USE_MEMORY_MONGODB === 'true') {
     const { MongoMemoryServer } = require('mongodb-memory-server');
 
     let globalWithMemoryServer = global as typeof globalThis & {
@@ -32,7 +32,7 @@ async function getMongoClient() {
     // Use real MongoDB
     if (!process.env.MONGODB_URI) {
       throw new Error(
-        'Please add MONGODB_URI to .env.local or set USE_MEMORY_SERVER=true'
+        'Please add MONGODB_URI to .env.local or set USE_MEMORY_MONGODB=true'
       );
     }
     uri = process.env.MONGODB_URI;

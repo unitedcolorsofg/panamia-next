@@ -61,7 +61,8 @@ jobs:
           NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
           NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
           PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
-          USE_MEMORY_SERVER: ${{ vars.USE_MEMORY_SERVER }}
+          USE_MEMORY_MONGODB: ${{ vars.USE_MEMORY_MONGODB }}
+          USE_MEMORY_POSTGRES: ${{ vars.USE_MEMORY_POSTGRES }}
 
       - name: Run Playwright tests
         run: yarn test
@@ -78,7 +79,8 @@ jobs:
           NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
           NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
           PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
-          USE_MEMORY_SERVER: ${{ vars.USE_MEMORY_SERVER }}
+          USE_MEMORY_MONGODB: ${{ vars.USE_MEMORY_MONGODB }}
+          USE_MEMORY_POSTGRES: ${{ vars.USE_MEMORY_POSTGRES }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

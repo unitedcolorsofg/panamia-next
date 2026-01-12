@@ -1,0 +1,86 @@
+// =============================================================================
+// Prisma Schema for PostgreSQL (Vercel Postgres)
+// =============================================================================
+//
+// This schema defines the PostgreSQL tables for the polyglot persistence
+// architecture. Phase 1: Infrastructure only - auth remains on MongoDB.
+//
+// See: docs/DATABASE-ROADMAP.md for architecture details
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Note: Database URL configured in prisma.config.ts (Prisma 7+)
+  // Runtime connections use adapters configured in lib/prisma.ts
+}
+
+// =============================================================================
+// NextAuth.js Models
+// =============================================================================
+// These models mirror the MongoDB nextauth_* collections but are NOT yet active.
+// Auth migration happens in Phase 2.
+//
+// MongoDB collections → PostgreSQL tables:
+//   nextauth_users              → users
+//   nextauth_accounts           → accounts
+//   nextauth_sessions           → sessions
+//   nextauth_verification_tokens → verification_tokens
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  screenname    String?   @unique
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

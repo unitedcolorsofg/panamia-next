@@ -35,6 +35,13 @@ export const envConfig: Record<string, EnvVarConfig> = {
     example:
       'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority',
   },
+  POSTGRES_URL: {
+    description: 'PostgreSQL connection string (Vercel Postgres)',
+    location: 'SECRET',
+    required: false, // Not required until Phase 2 (auth migration)
+    example: 'postgres://user:password@host:5432/database?sslmode=require',
+    docsUrl: 'https://vercel.com/docs/storage/vercel-postgres',
+  },
 
   // =============================================================================
   // AUTHENTICATION (NextAuth)
@@ -314,8 +321,14 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
-  USE_MEMORY_SERVER: {
-    description: 'Use in-memory MongoDB for testing',
+  USE_MEMORY_MONGODB: {
+    description: 'Use in-memory MongoDB for testing (mongodb-memory-server)',
+    location: 'VAR',
+    required: false,
+    defaultValue: 'false',
+  },
+  USE_MEMORY_POSTGRES: {
+    description: 'Use in-memory PostgreSQL for testing (PGLite)',
     location: 'VAR',
     required: false,
     defaultValue: 'false',
