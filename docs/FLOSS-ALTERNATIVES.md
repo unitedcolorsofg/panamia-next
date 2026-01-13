@@ -149,10 +149,12 @@ We prioritize FLOSS solutions where:
 
 ### Database
 
-| Package      | Version | License | Purpose           |
-| ------------ | ------- | ------- | ----------------- |
-| **MongoDB**  | 7.x     | SSPL    | Document database |
-| **Mongoose** | 9.0.1   | MIT     | MongoDB ODM       |
+| Package        | Version | License            | Purpose                       | Status              |
+| -------------- | ------- | ------------------ | ----------------------------- | ------------------- |
+| **PostgreSQL** | 16.x    | PostgreSQL License | Relational database (FLOSS)   | ✅ Primary (target) |
+| **Prisma**     | 7.2.0   | Apache 2.0         | PostgreSQL ORM                | ✅ Active           |
+| **MongoDB**    | 7.x     | SSPL               | Document database (non-FLOSS) | ⚠️ Being phased out |
+| **Mongoose**   | 9.0.1   | MIT                | MongoDB ODM                   | ⚠️ Being phased out |
 
 ### Development Tools
 
@@ -171,23 +173,55 @@ We prioritize FLOSS solutions where:
 **Note on MongoDB License:**
 MongoDB uses the SSPL license, which is **not considered FLOSS** by the Free Software Foundation and Open Source Initiative due to restrictions on providing MongoDB as a service.
 
-**FLOSS Database Alternatives:**
+**FLOSS Database Alternative:**
 
-| Alternative    | License            | Pros                                | Cons                        | Migration Effort |
-| -------------- | ------------------ | ----------------------------------- | --------------------------- | ---------------- |
-| **PostgreSQL** | PostgreSQL License | Truly FLOSS, robust, JSON support   | Different query paradigm    | Very High        |
-| **CouchDB**    | Apache 2.0         | Document DB, true FLOSS             | Less popular, different API | Very High        |
-| **FerretDB**   | Apache 2.0         | MongoDB-compatible, Postgres-backed | Newer, less mature          | Medium           |
+| Alternative    | License            | Pros                               | Cons                     | Migration Effort   |
+| -------------- | ------------------ | ---------------------------------- | ------------------------ | ------------------ |
+| **PostgreSQL** | PostgreSQL License | Truly FLOSS, robust, JSONB support | Different query paradigm | High (incremental) |
 
-**Current Stance:**
-We're keeping MongoDB despite SSPL concerns because:
+**Current Strategy: Gradual MongoDB Decommissioning**
 
-1. We're not providing MongoDB as a service
-2. Mature ecosystem and tooling
-3. Migration effort is very high
-4. FerretDB shows promise as future alternative
+We are actively migrating to PostgreSQL to achieve full FLOSS license compatibility. The migration is incremental to minimize risk:
 
-**Recommendation:** Monitor FerretDB maturity. Consider migration if it reaches production-ready status.
+| Phase   | Data                             | Status         | Notes                           |
+| ------- | -------------------------------- | -------------- | ------------------------------- |
+| Phase 1 | PostgreSQL infrastructure        | ✅ Complete    | Prisma + Vercel Postgres        |
+| Phase 2 | Auth (users, accounts, sessions) | 🔄 In Progress | NextAuth → Prisma adapter       |
+| Phase 3 | Reference updates                | Planned        | MongoDB docs use PG user IDs    |
+| Phase 4 | Sidecars                         | Planned        | Transactional features on PG    |
+| Phase 5 | Notifications                    | Planned        | Most relational, easy migration |
+| Phase 6 | Articles                         | Planned        | Content + JSONB metadata        |
+| Phase 7 | Profiles                         | Planned        | Flexible fields → JSONB columns |
+| Phase 8 | MongoDB decommissioning          | Planned        | Remove MongoDB dependency       |
+
+**Why PostgreSQL (not FerretDB):**
+
+FerretDB was considered but rejected because:
+
+- Adds a translation layer (MongoDB API → PostgreSQL SQL)
+- Doesn't eliminate the need to eventually go native
+- Another dependency to maintain
+- If issues arise, stuck between two paradigms
+
+Native PostgreSQL with JSONB provides document flexibility where needed while achieving true FLOSS compliance.
+
+**PostgreSQL JSONB for Flexible Data:**
+
+```sql
+-- Profiles with flexible nested data (like MongoDB documents)
+CREATE TABLE profiles (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),  -- Real FK!
+  email TEXT UNIQUE,
+  name TEXT,
+  social_links JSONB,  -- Flexible like MongoDB
+  hours JSONB,
+  categories JSONB,
+  created_at TIMESTAMPTZ
+);
+```
+
+See [DATABASE-ROADMAP.md](./DATABASE-ROADMAP.md) for detailed migration phases.
 
 ---
 
@@ -246,7 +280,7 @@ We're keeping Atlas Search because:
 
 The tradeoff is "developers need Atlas for local dev" - a one-time 10-minute setup vs. ongoing product quality degradation or significant migration costs.
 
-**Recommendation:** Keep Atlas Search. If migrating away from MongoDB entirely (to PostgreSQL/FerretDB), consider MeiliSearch or Typesense as FLOSS search alternatives.
+**Recommendation:** Keep Atlas Search during MongoDB usage. When MongoDB is decommissioned (Phase 8), migrate to PostgreSQL full-text search or MeiliSearch/Typesense if advanced fuzzy matching is required.
 
 ---
 
@@ -328,13 +362,13 @@ Proprietary solutions acceptable when:
 
 ## Future Evaluation Dates
 
-| Service      | Next Review | Reason                        |
-| ------------ | ----------- | ----------------------------- |
-| Pusher       | Q2 2026     | Check Soketi maturity         |
-| Stripe       | Q4 2025     | Review payment landscape      |
-| BunnyCDN     | Q1 2026     | Evaluate MinIO/R2 costs       |
-| MongoDB      | Q3 2025     | FerretDB production readiness |
-| Atlas Search | Q3 2025     | Review with MongoDB decision  |
+| Service      | Next Review | Reason                                   |
+| ------------ | ----------- | ---------------------------------------- |
+| Pusher       | Q2 2026     | Check Soketi maturity                    |
+| Stripe       | Q4 2025     | Review payment landscape                 |
+| BunnyCDN     | Q1 2026     | Evaluate MinIO/R2 costs                  |
+| MongoDB      | Ongoing     | Active decommissioning in progress       |
+| Atlas Search | Phase 8     | Migrate to PostgreSQL FTS or MeiliSearch |
 
 ---
 

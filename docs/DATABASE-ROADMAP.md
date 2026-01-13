@@ -716,6 +716,107 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 
 ---
 
+## MongoDB Decommissioning Path
+
+After the polyglot architecture is stable, MongoDB can be gradually decommissioned to achieve full FLOSS license compliance. This is optional but recommended for long-term alignment with FLOSS principles.
+
+**Why Decommission MongoDB?**
+
+- MongoDB's SSPL license is not considered FLOSS by FSF/OSI
+- PostgreSQL with JSONB provides equivalent document flexibility
+- Eliminates operational complexity of two databases
+- Real foreign keys across all data
+
+See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
+
+### Phase 5: Migrate Notifications
+
+- [ ] Create `notifications` table in PostgreSQL with real FKs to `users`
+- [ ] Migrate notification data from MongoDB
+- [ ] Update notification queries to use Prisma
+- [ ] Remove `lib/model/notification.ts`
+
+**Why notifications first:** Most relational data in MongoDB (actor/target references), benefits most from real FKs.
+
+### Phase 6: Migrate Articles
+
+- [ ] Create `articles` table with JSONB for flexible metadata
+- [ ] Migrate article data from MongoDB
+- [ ] Update article queries to use Prisma
+- [ ] Remove `lib/model/article.ts`
+
+**Schema approach:**
+
+```sql
+CREATE TABLE articles (
+  id TEXT PRIMARY KEY,
+  author_id TEXT REFERENCES users(id),
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  content TEXT,
+  metadata JSONB,  -- Flexible fields
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Phase 7: Migrate Profiles
+
+- [ ] Create `profiles` table with JSONB for flexible nested data
+- [ ] Migrate profile data from MongoDB
+- [ ] Update profile queries to use Prisma
+- [ ] Remove `lib/model/profile.ts`
+
+**Schema approach:**
+
+```sql
+CREATE TABLE profiles (
+  id TEXT PRIMARY KEY,
+  user_id TEXT UNIQUE REFERENCES users(id),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  -- Structured fields as columns
+  bio TEXT,
+  phone_number TEXT,
+  locally_based TEXT,
+  -- Flexible fields as JSONB
+  social_links JSONB,
+  hours JSONB,
+  categories JSONB,
+  locations JSONB,
+  images JSONB,
+  mentoring JSONB,
+  verification JSONB,
+  roles JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Phase 8: MongoDB Decommissioning
+
+- [ ] Migrate remaining collections (if any)
+- [ ] Remove `lib/connectdb.ts`
+- [ ] Remove `lib/mongodb.ts`
+- [ ] Remove `@auth/mongodb-adapter` dependency
+- [ ] Remove `mongoose` dependency
+- [ ] Remove `mongodb` dependency
+- [ ] Remove `mongodb-memory-server` dev dependency
+- [ ] Update `USE_MEMORY_MONGODB` references
+- [ ] Update CI/CD to remove MongoDB configuration
+- [ ] Update documentation
+
+**Post-decommissioning benefits:**
+
+- Full FLOSS license compliance
+- Single database to manage
+- Real foreign keys everywhere
+- Simplified backup/restore
+- Reduced operational complexity
+
+---
+
 ## Testing Infrastructure
 
 Both MongoDB and PostgreSQL support in-memory testing for CI:
