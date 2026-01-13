@@ -702,9 +702,13 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 - [ ] Test auth flow thoroughly
 - [ ] Remove MongoDB auth collections after validation
 
-### Phase 3: Update References
+### Phase 3: Update References (In Progress)
 
-- [ ] Update MongoDB documents to use PostgreSQL user IDs
+- [x] Create reference update script (`scripts/update-mongo-references.ts`)
+  - Handles: profiles, images, followers, emailMigrations, articles, notifications
+  - Uses ID mapping from import script
+  - Dry-run mode by default (DRY_RUN=false to apply)
+- [ ] Run update script after auth migration
 - [ ] Add ensureProfile pattern for lazy creation
 - [ ] Update API routes to use both connections
 - [ ] Remove MongoDB nextauth\_\* collections
