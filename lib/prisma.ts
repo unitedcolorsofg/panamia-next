@@ -95,8 +95,8 @@ export function getPrismaSync(): PrismaClient {
 
   if (!process.env.POSTGRES_URL) {
     throw new Error(
-      'POSTGRES_URL is required for synchronous Prisma client. ' +
-        'Set POSTGRES_URL or use AUTH_ADAPTER=mongodb for testing.'
+      'POSTGRES_URL is required. Add it to .env.local for development ' +
+        'or set USE_MEMORY_POSTGRES=true for testing.'
     );
   }
 

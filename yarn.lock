@@ -34,13 +34,6 @@
     preact "10.24.3"
     preact-render-to-string "6.5.11"
 
-"@auth/mongodb-adapter@^3.11.1":
-  version "3.11.1"
-  resolved "https://registry.npmjs.org/@auth/mongodb-adapter/-/mongodb-adapter-3.11.1.tgz"
-  integrity sha512-xY+VUkC3CNXct8UwQgBAQqXASqolSlIARg6oAm1378CtRN2650tQUCOEnGLNLmroVefUeP73M6t+TpGXq72vwQ==
-  dependencies:
-    "@auth/core" "0.41.1"
-
 "@auth/prisma-adapter@^2.11.1":
   version "2.11.1"
   resolved "https://registry.npmjs.org/@auth/prisma-adapter/-/prisma-adapter-2.11.1.tgz"

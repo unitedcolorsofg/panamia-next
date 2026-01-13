@@ -692,13 +692,13 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 
 ### Phase 2: Migrate Auth Data (In Progress)
 
-- [x] Create export script for `nextauth_users`, `nextauth_accounts`, `nextauth_sessions`
-- [x] Create import script with ObjectId → cuid transformation
-- [x] Add `AUTH_ADAPTER` environment variable (`mongodb` | `prisma`)
-- [x] Update auth.ts to support both MongoDB and Prisma adapters
-- [ ] Run export script on production data
+- [x] Create export script (`scripts/export-auth-data.ts`)
+- [x] Create import script with ObjectId → cuid transformation (`scripts/import-auth-data.ts`)
+- [x] Switch auth.ts to use Prisma adapter (PostgreSQL-only, no toggle needed)
+- [x] Remove `@auth/mongodb-adapter` dependency
+- [ ] Run export script on production data (from commit 6fe64f9)
 - [ ] Run import script to PostgreSQL
-- [ ] Switch `AUTH_ADAPTER=prisma` in production
+- [ ] Deploy with `POSTGRES_URL` configured
 - [ ] Test auth flow thoroughly
 - [ ] Remove MongoDB auth collections after validation
 

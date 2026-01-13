@@ -36,9 +36,10 @@ export const envConfig: Record<string, EnvVarConfig> = {
       'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority',
   },
   POSTGRES_URL: {
-    description: 'PostgreSQL connection string (Vercel Postgres)',
+    description:
+      'PostgreSQL connection string (Vercel Postgres) - required for auth',
     location: 'SECRET',
-    required: false, // Not required until Phase 2 (auth migration)
+    required: true,
     example: 'postgres://user:password@host:5432/database?sslmode=require',
     docsUrl: 'https://vercel.com/docs/storage/vercel-postgres',
   },
@@ -57,13 +58,6 @@ export const envConfig: Record<string, EnvVarConfig> = {
     location: 'VAR',
     required: true,
     defaultValue: 'http://localhost:3000',
-  },
-  AUTH_ADAPTER: {
-    description:
-      'Auth database adapter: mongodb (legacy) or prisma (PostgreSQL)',
-    location: 'VAR',
-    required: false,
-    defaultValue: 'mongodb',
   },
 
   // =============================================================================

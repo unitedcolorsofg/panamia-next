@@ -22,7 +22,6 @@
     "env:vars": "npx tsx scripts/env-check.ts vars"
   },
   "dependencies": {
-    "@auth/mongodb-adapter": "^3.11.1",
     "@auth/prisma-adapter": "^2.11.1",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-brands-svg-icons": "^7.1.0",

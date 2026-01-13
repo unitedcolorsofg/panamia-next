@@ -35,6 +35,7 @@ jobs:
         run: npm run env:check
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -50,6 +51,7 @@ jobs:
         run: yarn build
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -63,12 +65,12 @@ jobs:
           PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
           USE_MEMORY_MONGODB: ${{ vars.USE_MEMORY_MONGODB }}
           USE_MEMORY_POSTGRES: ${{ vars.USE_MEMORY_POSTGRES }}
-          AUTH_ADAPTER: ${{ vars.AUTH_ADAPTER }}
 
       - name: Run Playwright tests
         run: yarn test
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -82,7 +84,6 @@ jobs:
           PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
           USE_MEMORY_MONGODB: ${{ vars.USE_MEMORY_MONGODB }}
           USE_MEMORY_POSTGRES: ${{ vars.USE_MEMORY_POSTGRES }}
-          AUTH_ADAPTER: ${{ vars.AUTH_ADAPTER }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

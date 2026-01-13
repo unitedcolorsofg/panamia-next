@@ -1,6 +1,7 @@
 // lib/auth-api.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
-import type { Session } from 'next-auth'
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Session } from 'next-auth';
+import { getPrismaSync } from '@/lib/prisma';
 
 /**
  * Get session in Pages Router API routes
@@ -9,7 +10,7 @@ import type { Session } from 'next-auth'
  * and causes "headers was called outside a request scope" errors in Pages Router.
  *
  * This helper extracts the session token from cookies and validates it using
- * NextAuth's session management.
+ * NextAuth's session management via Prisma.
  *
  * @example
  * ```ts
@@ -32,59 +33,56 @@ export async function getApiSession(
     // Extract session token from cookies
     // NextAuth v5 uses "__Secure-authjs.session-token" in production (HTTPS)
     // and "authjs.session-token" in development (HTTP)
-    const secureCookieName = '__Secure-authjs.session-token'
-    const cookieName = 'authjs.session-token'
+    const secureCookieName = '__Secure-authjs.session-token';
+    const cookieName = 'authjs.session-token';
 
-    const sessionToken = req.cookies[secureCookieName] || req.cookies[cookieName]
+    const sessionToken =
+      req.cookies[secureCookieName] || req.cookies[cookieName];
 
     if (!sessionToken) {
-      return null
+      return null;
     }
 
-    // Use the MongoDB adapter to get session and user
-    const { MongoDBAdapter } = await import('@auth/mongodb-adapter')
-    const clientPromise = (await import('@/lib/mongodb')).default
+    // Use Prisma to get session and user
+    const prisma = getPrismaSync();
 
-    const mongoAdapterOptions = {
-      collections: {
-        Accounts: 'nextauth_accounts',
-        Sessions: 'nextauth_sessions',
-        Users: 'nextauth_users',
-        VerificationTokens: 'nextauth_verification_tokens',
-      },
+    const session = await prisma.session.findUnique({
+      where: { sessionToken },
+      include: { user: true },
+    });
+
+    if (!session) {
+      return null;
     }
-
-    const adapter = MongoDBAdapter(clientPromise, mongoAdapterOptions)
-
-    if (!adapter.getSessionAndUser) {
-      return null
-    }
-
-    const sessionAndUser = await adapter.getSessionAndUser(sessionToken)
-
-    if (!sessionAndUser) {
-      return null
-    }
-
-    const { session, user } = sessionAndUser
 
     // Check if session is expired
     if (session.expires && new Date(session.expires) < new Date()) {
-      return null
+      return null;
     }
 
     // Return session in NextAuth format
+    // Note: This returns a minimal session - callbacks in auth.ts add additional
+    // properties like isAdmin, panaVerified, etc. when using the full auth flow.
     return {
-      // @ts-ignore - Type conflict between @auth/core versions
       user: {
-        name: user.name || '',
-        email: user.email || '',
-        image: user.image || '',
+        id: session.user.id,
+        name: '',
+        email: session.user.email || '',
+        image: '',
+        emailVerified: session.user.emailVerified,
+        // These are populated by session callback in auth.ts, but we provide defaults
+        // for the API-only session lookup
+        isAdmin: false,
+        panaVerified: false,
+        legalAgeVerified: false,
+        isMentoringModerator: false,
+        isEventOrganizer: false,
+        isContentModerator: false,
       },
       expires: session.expires.toISOString(),
-    }
+    };
   } catch (error) {
-    console.error('Error getting API session:', error)
-    return null
+    console.error('Error getting API session:', error);
+    return null;
   }
 }
