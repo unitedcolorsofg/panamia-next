@@ -1,13 +1,33 @@
 import NextAuth from 'next-auth';
+import type { Adapter } from 'next-auth/adapters';
 import EmailProvider from 'next-auth/providers/email';
 import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import { PrismaAdapter } from '@auth/prisma-adapter';
 import { createTransport } from 'nodemailer';
 import clientPromise from '@/lib/mongodb';
+import { getPrismaSync } from '@/lib/prisma';
 import dbConnect from '@/lib/connectdb';
 import profile from '@/lib/model/profile';
+
+// Determine which adapter to use based on environment variable
+// Default to MongoDB for backwards compatibility during migration
+const AUTH_ADAPTER = process.env.AUTH_ADAPTER || 'mongodb';
+
+// Initialize the appropriate adapter based on configuration
+function getAuthAdapter(): Adapter {
+  if (AUTH_ADAPTER === 'prisma') {
+    console.log('🔐 Using Prisma adapter for PostgreSQL auth');
+    const prisma = getPrismaSync();
+    return PrismaAdapter(prisma) as Adapter;
+  }
+
+  // Default: MongoDB adapter with custom collection names
+  console.log('🔐 Using MongoDB adapter for auth');
+  return createMongoDBAdapterWithOverrides();
+}
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -403,6 +423,10 @@ function getProviderVerificationConfig(
   return 'verification-required';
 }
 
+// =============================================================================
+// MongoDB Adapter Configuration (with NextAuth v5 beta workarounds)
+// =============================================================================
+
 const mongoAdapterOptions = {
   collections: {
     Accounts: 'nextauth_accounts',
@@ -412,78 +436,28 @@ const mongoAdapterOptions = {
   },
 };
 
-// Fix for NextAuth v5 beta useVerificationToken issue
-// See: https://github.com/nextauthjs/next-auth/discussions/7363
-// See: https://github.com/nextauthjs/next-auth/discussions/4585
-// Note: NextAuth already hashes the token before calling this function,
-// so we search for params.token directly (no additional hashing needed)
-async function customUseVerificationToken(params: {
-  identifier: string;
-  token: string;
-}) {
-  const client = await clientPromise;
-  const db = client.db();
-  const collection = db.collection('nextauth_verification_tokens');
-
-  // console.log('customUseVerificationToken searching for:', {
-  //   identifier: params.identifier,
-  //   token: params.token,
-  // })
-
-  // Check all tokens in the database
-  const allTokens = await collection
-    .find({ identifier: params.identifier })
-    .toArray();
-  // console.log('All tokens in DB for this email:', allTokens)
-
-  const verificationToken = await collection.findOne({
-    identifier: params.identifier,
-    token: params.token,
-  });
-
-  // console.log('Found token:', verificationToken)
-
-  if (!verificationToken) {
-    return null;
-  }
-
-  // Delete the token after retrieving it (one-time use)
-  await collection.deleteOne({
-    identifier: params.identifier,
-    token: params.token,
-  });
-
-  return {
-    identifier: verificationToken.identifier,
-    token: verificationToken.token,
-    expires: verificationToken.expires,
-  };
-}
-
-const baseAdapter = MongoDBAdapter(clientPromise, mongoAdapterOptions);
-
 // WORKAROUND: Store the last updated/created user ID for createSession
 // This fixes a NextAuth v5 beta bug where createSession is called without userId
 // See: https://github.com/nextauthjs/next-auth/issues/13346
 let lastUserIdFromUpdate: string | null = null;
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: {
+/**
+ * Creates the MongoDB adapter with custom overrides for NextAuth v5 beta bugs.
+ * These workarounds are MongoDB-specific and not needed for Prisma adapter.
+ */
+function createMongoDBAdapterWithOverrides(): Adapter {
+  const baseAdapter = MongoDBAdapter(clientPromise, mongoAdapterOptions);
+
+  return {
     ...baseAdapter,
     // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     updateUser: async (user) => {
-      // console.log('[DEBUG] updateUser called with:', JSON.stringify(user, null, 2))
-
       // WORKAROUND: Capture the user ID from the INPUT parameter (before calling base adapter)
       // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (user.id) {
         lastUserIdFromUpdate = user.id;
-        // console.log('[DEBUG] Captured userId from updateUser input:', lastUserIdFromUpdate)
       }
-
       const result = await baseAdapter.updateUser!(user);
-      // console.log('[DEBUG] updateUser result:', JSON.stringify(result, null, 2))
-
       return result;
     },
     // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
@@ -503,7 +477,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // WORKAROUND: Ensure expires is a proper Date object
-      // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (verificationToken.expires) {
         verificationToken.expires = new Date(verificationToken.expires);
       }
@@ -512,13 +485,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     createSession: async (session) => {
-      // console.log('[DEBUG] createSession called with:', JSON.stringify(session, null, 2))
-
       // WORKAROUND: If userId is missing, use the one captured from updateUser
       // This fixes a NextAuth v5 beta bug where createSession is called without userId
       // See: https://github.com/nextauthjs/next-auth/issues/13346
       if (!session.userId && lastUserIdFromUpdate) {
-        // console.log('[DEBUG] Adding missing userId from updateUser:', lastUserIdFromUpdate)
         session.userId = lastUserIdFromUpdate;
         lastUserIdFromUpdate = null; // Clear it after use
       } else if (!session.userId) {
@@ -526,27 +496,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           '[ERROR] createSession called without userId and no cached userId available!'
         );
       }
-
       const result = await baseAdapter.createSession!(session);
-      // console.log('[DEBUG] createSession raw result:', JSON.stringify(result, null, 2))
       return result;
     },
     // @ts-ignore - Type conflict between @auth/core versions in next-auth and mongodb-adapter
     getSessionAndUser: async (sessionToken) => {
-      // console.log('[DEBUG] getSessionAndUser called with token:', sessionToken)
       const result = await baseAdapter.getSessionAndUser!(sessionToken);
-      // console.log('[DEBUG] getSessionAndUser raw result:', JSON.stringify(result, null, 2))
 
       if (!result) {
-        // console.log('[DEBUG] getSessionAndUser: result is null/undefined')
         return null;
       }
 
       // Check if result has the expected structure {session, user}
       if (result.session && result.user) {
-        // console.log('[DEBUG] getSessionAndUser: returning valid session and user')
         // WORKAROUND: Ensure expires is a proper Date object
-        // See: https://github.com/nextauthjs/next-auth/issues/13346
         if (result.session.expires) {
           result.session.expires = new Date(result.session.expires);
         }
@@ -556,10 +519,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return result;
       }
 
-      // console.log('[DEBUG] getSessionAndUser: unexpected result format')
       return null;
     },
-  },
+  } as Adapter;
+}
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: getAuthAdapter(),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,

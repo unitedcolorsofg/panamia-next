@@ -41,6 +41,13 @@
   dependencies:
     "@auth/core" "0.41.1"
 
+"@auth/prisma-adapter@^2.11.1":
+  version "2.11.1"
+  resolved "https://registry.npmjs.org/@auth/prisma-adapter/-/prisma-adapter-2.11.1.tgz"
+  integrity sha512-Ke7DXP0Fy0Mlmjz/ZJLXwQash2UkA4621xCM0rMtEczr1kppLc/njCbUkHkIQ/PnmILjqSPEKeTjDPsYruvkug==
+  dependencies:
+    "@auth/core" "0.41.1"
+
 "@aws-crypto/sha256-browser@5.2.0":
   version "5.2.0"
   resolved "https://registry.npmjs.org/@aws-crypto/sha256-browser/-/sha256-browser-5.2.0.tgz"

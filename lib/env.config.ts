@@ -58,6 +58,13 @@ export const envConfig: Record<string, EnvVarConfig> = {
     required: true,
     defaultValue: 'http://localhost:3000',
   },
+  AUTH_ADAPTER: {
+    description:
+      'Auth database adapter: mongodb (legacy) or prisma (PostgreSQL)',
+    location: 'VAR',
+    required: false,
+    defaultValue: 'mongodb',
+  },
 
   // =============================================================================
   // HOST CONFIGURATION

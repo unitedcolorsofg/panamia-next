@@ -690,15 +690,17 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 - [x] Add `USE_MEMORY_POSTGRES` for PGLite in CI
 - [x] Both databases running, not yet integrated
 
-### Phase 2: Migrate Auth Data
+### Phase 2: Migrate Auth Data (In Progress)
 
-- [ ] Export `nextauth_users` from MongoDB
-- [ ] Export `nextauth_accounts` from MongoDB
-- [ ] Export `nextauth_sessions` from MongoDB
-- [ ] Transform ObjectId → cuid format
-- [ ] Import to PostgreSQL
-- [ ] Switch NextAuth adapter to Prisma
+- [x] Create export script for `nextauth_users`, `nextauth_accounts`, `nextauth_sessions`
+- [x] Create import script with ObjectId → cuid transformation
+- [x] Add `AUTH_ADAPTER` environment variable (`mongodb` | `prisma`)
+- [x] Update auth.ts to support both MongoDB and Prisma adapters
+- [ ] Run export script on production data
+- [ ] Run import script to PostgreSQL
+- [ ] Switch `AUTH_ADAPTER=prisma` in production
 - [ ] Test auth flow thoroughly
+- [ ] Remove MongoDB auth collections after validation
 
 ### Phase 3: Update References
 

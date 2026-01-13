@@ -16,6 +16,7 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as typeof globalThis & {
   prisma?: PrismaClient;
+  prismaSyncClient?: PrismaClient;
   _pgliteInstance?: any;
 };
 
@@ -78,6 +79,33 @@ export async function getPrisma(): Promise<PrismaClient> {
 }
 
 /**
+ * Gets a synchronous PrismaClient instance for use in contexts
+ * where async initialization is not possible (e.g., NextAuth adapter).
+ *
+ * NOTE: This does NOT support PGLite (USE_MEMORY_POSTGRES) as that
+ * requires async initialization. Use getPrisma() for testing contexts.
+ *
+ * @throws Error if POSTGRES_URL is not set
+ */
+export function getPrismaSync(): PrismaClient {
+  // Return cached instance if available
+  if (globalForPrisma.prismaSyncClient) {
+    return globalForPrisma.prismaSyncClient;
+  }
+
+  if (!process.env.POSTGRES_URL) {
+    throw new Error(
+      'POSTGRES_URL is required for synchronous Prisma client. ' +
+        'Set POSTGRES_URL or use AUTH_ADAPTER=mongodb for testing.'
+    );
+  }
+
+  // Create and cache a new client
+  globalForPrisma.prismaSyncClient = new PrismaClient();
+  return globalForPrisma.prismaSyncClient;
+}
+
+/**
  * Disconnects the PrismaClient.
  * Useful for cleanup in tests or graceful shutdown.
  */
@@ -85,6 +113,10 @@ export async function disconnectPrisma(): Promise<void> {
   if (globalForPrisma.prisma) {
     await globalForPrisma.prisma.$disconnect();
     globalForPrisma.prisma = undefined;
+  }
+  if (globalForPrisma.prismaSyncClient) {
+    await globalForPrisma.prismaSyncClient.$disconnect();
+    globalForPrisma.prismaSyncClient = undefined;
   }
   if (globalForPrisma._pgliteInstance) {
     await globalForPrisma._pgliteInstance.close();
