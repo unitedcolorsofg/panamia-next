@@ -713,7 +713,11 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
   - `getProfileByUserId()` - lookup by PostgreSQL user ID
   - `ensureProfile()` - lookup with optional claiming of unclaimed profiles
   - Added `userId` to `ProfileInterface` type
-- [ ] Update API routes to use both connections
+- [x] Update API routes to use both connections
+  - Profile routes use `ensureProfile()` with userId from session
+  - Admin check uses `session.user.isAdmin` (from ADMIN_EMAILS)
+  - Note: MongoDB `user` collection routes still use email lookup (no userId field yet)
+  - Note: Notification routes need MongoDB user `_id` until references are migrated
 - [ ] Remove MongoDB nextauth\_\* collections
 
 ### Phase 4: Build Sidecars
