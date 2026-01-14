@@ -49,3 +49,8 @@ playwright/.cache/
 /public/robots.txt
 /public/sitemap*.xml
 package-lock.json
+
+# Migration data files (contain user data)
+scripts/auth-data-export-*.json
+scripts/id-mapping-*.json
+scripts/unmapped-user-ids-*.json

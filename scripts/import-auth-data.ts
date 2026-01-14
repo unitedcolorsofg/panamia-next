@@ -22,7 +22,10 @@
 import { PrismaClient } from '@prisma/client';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import 'dotenv/config';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local (Next.js convention)
+config({ path: '.env.local' });
 
 // Simple cuid-like ID generator (compatible with Prisma's cuid())
 function generateCuid(): string {
@@ -135,7 +138,45 @@ async function main() {
   }
 
   console.log('🔌 Connecting to PostgreSQL...');
-  const prisma = new PrismaClient();
+
+  // Support PGLite for testing the migration flow locally
+  let prisma: PrismaClient;
+  if (process.env.USE_MEMORY_POSTGRES === 'true') {
+    console.log('   Using PGLite in-memory PostgreSQL for testing');
+    const { PGlite } = await import('@electric-sql/pglite');
+    const { PrismaPGlite } = await import('pglite-prisma-adapter');
+    const { readFileSync, readdirSync } = await import('fs');
+    const { join } = await import('path');
+
+    // Create PGLite instance and run migrations
+    const pglite = new PGlite();
+    const migrationsDir = join(process.cwd(), 'prisma', 'migrations');
+    const migrations = readdirSync(migrationsDir)
+      .filter((dir: string) => dir.match(/^\d{14}_/))
+      .sort();
+
+    console.log('   Running migrations...');
+    for (const migration of migrations) {
+      const sqlPath = join(migrationsDir, migration, 'migration.sql');
+      try {
+        const sql = readFileSync(sqlPath, 'utf-8');
+        await pglite.exec(sql);
+        console.log(`   ✓ ${migration}`);
+      } catch (error) {
+        console.error(`   ✗ ${migration}:`, error);
+        throw error;
+      }
+    }
+
+    const adapter = new PrismaPGlite(pglite);
+    prisma = new PrismaClient({ adapter } as any);
+  } else {
+    // Prisma 7 reads URL from prisma.config.ts which uses process.env.POSTGRES_URL
+    console.log(
+      `   Using URL: ${process.env.POSTGRES_URL?.substring(0, 30)}...`
+    );
+    prisma = new PrismaClient();
+  }
 
   // ID mapping to track MongoDB -> PostgreSQL ID transformations
   const idMapping: IdMapping = {

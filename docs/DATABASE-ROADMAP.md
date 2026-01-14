@@ -708,8 +708,11 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
   - Handles: profiles, images, followers, emailMigrations, articles, notifications
   - Uses ID mapping from import script
   - Dry-run mode by default (DRY_RUN=false to apply)
-- [ ] Run update script after auth migration
-- [ ] Add ensureProfile pattern for lazy creation
+- [x] Run update script after auth migration (validated in dry-run mode)
+- [x] Add ensureProfile pattern for lazy creation (`lib/server/profile.ts`)
+  - `getProfileByUserId()` - lookup by PostgreSQL user ID
+  - `ensureProfile()` - lookup with optional claiming of unclaimed profiles
+  - Added `userId` to `ProfileInterface` type
 - [ ] Update API routes to use both connections
 - [ ] Remove MongoDB nextauth\_\* collections
 

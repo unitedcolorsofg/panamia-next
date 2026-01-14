@@ -88,6 +88,7 @@ export interface MentoringInterface {
 
 export interface ProfileInterface {
   _id: string;
+  userId?: string; // PostgreSQL User.id (cuid format) - links to auth system
   email: string;
   name: string;
   slug: string;

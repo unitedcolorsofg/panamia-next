@@ -3,8 +3,10 @@
  * Prisma Client Singleton
  *
  * Provides a singleton PrismaClient instance with support for:
- * - Production: Real PostgreSQL via POSTGRES_URL
+ * - Production: Real PostgreSQL via @prisma/adapter-pg
  * - Testing: In-memory PostgreSQL via PGLite (USE_MEMORY_POSTGRES=true)
+ *
+ * Prisma 7 requires a driver adapter for all connections.
  *
  * The singleton pattern prevents connection exhaustion during development
  * hot-reloads, similar to lib/mongodb.ts and lib/connectdb.ts patterns.
@@ -13,11 +15,13 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const globalForPrisma = global as typeof globalThis & {
   prisma?: PrismaClient;
   prismaSyncClient?: PrismaClient;
   _pgliteInstance?: any;
+  _pgAdapter?: PrismaPg;
 };
 
 /**
@@ -40,14 +44,15 @@ async function createPrismaClient(): Promise<PrismaClient> {
     return new PrismaClient({ adapter } as any);
   }
 
-  // Production: Use real PostgreSQL
+  // Production: Use real PostgreSQL with @prisma/adapter-pg
   if (!process.env.POSTGRES_URL) {
     throw new Error(
       'Please add POSTGRES_URL to .env.local or set USE_MEMORY_POSTGRES=true'
     );
   }
 
-  return new PrismaClient();
+  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
+  return new PrismaClient({ adapter });
 }
 
 /**
@@ -82,6 +87,8 @@ export async function getPrisma(): Promise<PrismaClient> {
  * Gets a synchronous PrismaClient instance for use in contexts
  * where async initialization is not possible (e.g., NextAuth adapter).
  *
+ * Uses @prisma/adapter-pg for real PostgreSQL connections.
+ *
  * NOTE: This does NOT support PGLite (USE_MEMORY_POSTGRES) as that
  * requires async initialization. Use getPrisma() for testing contexts.
  *
@@ -93,15 +100,33 @@ export function getPrismaSync(): PrismaClient {
     return globalForPrisma.prismaSyncClient;
   }
 
+  // Prisma 7 requires a driver adapter. If no POSTGRES_URL, use a placeholder
+  // that will fail at query time rather than construction time.
+  const connectionString =
+    process.env.POSTGRES_URL ||
+    'postgresql://build-placeholder:placeholder@localhost:5432/placeholder';
+
   if (!process.env.POSTGRES_URL) {
-    throw new Error(
-      'POSTGRES_URL is required. Add it to .env.local for development ' +
-        'or set USE_MEMORY_POSTGRES=true for testing.'
-    );
+    if (process.env.USE_MEMORY_POSTGRES === 'true') {
+      console.warn(
+        '⚠️  getPrismaSync() called with USE_MEMORY_POSTGRES=true but no POSTGRES_URL. ' +
+          'Queries will fail. For full app testing, use POSTGRES_URL instead.'
+      );
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        '⚠️  POSTGRES_URL not set. Using placeholder - queries will fail at runtime.'
+      );
+    }
   }
 
-  // Create and cache a new client
-  globalForPrisma.prismaSyncClient = new PrismaClient();
+  // Create PG adapter and client
+  if (!globalForPrisma._pgAdapter) {
+    globalForPrisma._pgAdapter = new PrismaPg({ connectionString });
+  }
+
+  globalForPrisma.prismaSyncClient = new PrismaClient({
+    adapter: globalForPrisma._pgAdapter,
+  });
   return globalForPrisma.prismaSyncClient;
 }
 
@@ -122,6 +147,7 @@ export async function disconnectPrisma(): Promise<void> {
     await globalForPrisma._pgliteInstance.close();
     globalForPrisma._pgliteInstance = undefined;
   }
+  globalForPrisma._pgAdapter = undefined;
 }
 
 export default getPrisma;

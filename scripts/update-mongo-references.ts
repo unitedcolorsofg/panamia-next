@@ -24,7 +24,10 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import 'dotenv/config';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local (Next.js convention)
+config({ path: '.env.local' });
 
 interface IdMapping {
   createdAt: string;
