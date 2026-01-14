@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -13,15 +11,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  await dbConnect();
-  const userSession = session?.user?.email
-    ? await user.findOne({ email: session.user.email })
-    : null;
-
-  const isAdmin = userSession?.status?.role === 'admin';
-
+  // Admin status is determined by ADMIN_EMAILS env var, set in session callback
   return NextResponse.json({
     success: true,
-    data: { admin_status: isAdmin },
+    data: { admin_status: session.user?.isAdmin || false },
   });
 }
