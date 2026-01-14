@@ -108,12 +108,16 @@ Benefits:
 │  │ - id (cuid) PK ──────────────────→ userId                     │ │
 │  │ - email              │         │ - bio, images, social...     │ │
 │  │ - screenname         │         ├──────────────────────────────┤ │
-│  │ - role               │         │ articles                     │ │
-│  ├──────────────────────┤         │ - authorId → users.id        │ │
-│  │ accounts (NextAuth)  │         ├──────────────────────────────┤ │
-│  │ sessions (NextAuth)  │         │ notifications                │ │
-│  │ verification_tokens  │         │ - targetId → users.id        │ │
-│  └──────────────────────┘         └──────────────────────────────┘ │
+│  │ - role               │         │ articles (pending migration) │ │
+│  ├──────────────────────┤         │ - authorEmail                │ │
+│  │ accounts (NextAuth)  │         │ - coAuthors[].userId         │ │
+│  │ sessions (NextAuth)  │         └──────────────────────────────┘ │
+│  │ verification_tokens  │                                         │
+│  ├──────────────────────┤                                         │
+│  │ notifications        │                                         │
+│  │ - actor → users.id   │                                         │
+│  │ - target → users.id  │                                         │
+│  └──────────────────────┘                                         │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
               │
@@ -152,8 +156,9 @@ Benefits:
 │                                                             │
 │  Examples:                      Examples:                   │
 │  • users ✓                      • profiles ✓                │
-│  • accounts ✓                   • articles ✓                │
-│  • sessions ✓                   • notifications ✓           │
+│  • accounts ✓                   • articles (pending)        │
+│  • sessions ✓                                               │
+│  • notifications ✓                                          │
 │  • bookings ✓                                               │
 │  • listings ✓                                               │
 │  • transactions ✓                                           │
@@ -702,7 +707,7 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 - [ ] Test auth flow thoroughly
 - [ ] Remove MongoDB auth collections after validation
 
-### Phase 3: Update References (In Progress)
+### Phase 3: Update References ✅
 
 - [x] Create reference update script (`scripts/update-mongo-references.ts`)
   - Handles: profiles, images, followers, emailMigrations, articles, notifications
@@ -716,9 +721,13 @@ When Prisma is configured, these types will be derived from `@prisma/client`, en
 - [x] Update API routes to use both connections
   - Profile routes use `ensureProfile()` with userId from session
   - Admin check uses `session.user.isAdmin` (from ADMIN_EMAILS)
-  - Note: MongoDB `user` collection routes still use email lookup (no userId field yet)
-  - Note: Notification routes need MongoDB user `_id` until references are migrated
-- [ ] Remove MongoDB nextauth\_\* collections
+  - OAuth/email-migration routes use Prisma for auth operations
+- [x] Convert auth scripts to TypeScript with Prisma
+  - `scripts/create-signin-link.ts` - creates magic sign-in links
+  - `scripts/get-signin-link.ts` - checks token status
+  - `scripts/delete-user.ts` - deletes from both PostgreSQL and MongoDB
+- [x] Update documentation (`docs/SIGNIN.md`)
+- [x] Remove old `.cjs` auth scripts
 
 ### Phase 4: Build Sidecars
 
@@ -742,12 +751,26 @@ After the polyglot architecture is stable, MongoDB can be gradually decommission
 
 See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
 
-### Phase 5: Migrate Notifications
+### Phase 5: Migrate Notifications ✅
 
-- [ ] Create `notifications` table in PostgreSQL with real FKs to `users`
-- [ ] Migrate notification data from MongoDB
-- [ ] Update notification queries to use Prisma
-- [ ] Remove `lib/model/notification.ts`
+- [x] Create `notifications` table in PostgreSQL with real FKs to `users`
+  - Added `Notification` model to Prisma schema with enums
+  - Migration: `20260114135300_add_notifications`
+  - Includes ActivityPub-shaped fields (type, actor, target, context)
+  - Denormalized display data to avoid cross-database joins
+- [x] Create migration script (`scripts/migrate-notifications.ts`)
+  - Maps MongoDB user ObjectIds to PostgreSQL user IDs via email
+  - Supports dry-run mode for validation
+- [x] Update notification queries to use Prisma (`lib/notifications.ts`)
+  - `createNotification()` - creates with denormalized actor info
+  - `getNotifications()` - paginated list with filtering
+  - `getUnreadCount()`, `markAsRead()`, `markAllAsRead()`
+- [x] Update all routes to use PostgreSQL user IDs
+  - Notification API routes (`/api/notifications/*`)
+  - Mentoring session routes (`/api/mentoring/sessions/*`)
+  - Article routes (`/api/articles/[slug]/*`)
+  - Admin article routes (`/api/admin/articles/[slug]/*`)
+- [x] Remove `lib/model/notification.ts`
 
 **Why notifications first:** Most relational data in MongoDB (actor/target references), benefits most from real FKs.
 
@@ -917,6 +940,8 @@ After implementation, update GitHub repository:
 
 ## Revision History
 
-| Date       | Change                  |
-| ---------- | ----------------------- |
-| 2025-01-09 | Initial roadmap created |
+| Date       | Change                                                 |
+| ---------- | ------------------------------------------------------ |
+| 2025-01-09 | Initial roadmap created                                |
+| 2025-01-14 | Phase 3 complete: auth scripts converted, docs updated |
+| 2025-01-14 | Phase 5 complete: notifications migrated to PostgreSQL |
