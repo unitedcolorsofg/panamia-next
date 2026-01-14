@@ -26,40 +26,45 @@ Users with the same email address registered with multiple OAuth providers can f
 - `/api/oauth/complete-verification` executes:
 
 ```typescript
-const existingUser = await user.findOne({ email }); // Finds Alice's user
-userId = existingUser._id.toString(); // Same userId!
+const existingUser = await tx.user.findUnique({ where: { email } }); // Finds Alice's user
+userId = existingUser.id; // Same userId!
 
 // Check if account link already exists
-const existingAccount = await db.collection('nextauth_accounts').findOne({
-  userId,
-  provider: 'wikimedia',
-  providerAccountId: 'wikimedia-id-789',
+const existingAccount = await tx.account.findUnique({
+  where: {
+    provider_providerAccountId: {
+      provider: 'wikimedia',
+      providerAccountId: 'wikimedia-id-789',
+    },
+  },
 });
 
 if (!existingAccount) {
   // Create NEW account link for Wikimedia
-  await db.collection('nextauth_accounts').insertOne({
-    userId, // Same userId as Google!
-    type: 'oauth',
-    provider: 'wikimedia',
-    providerAccountId: 'wikimedia-id-789',
+  await tx.account.create({
+    data: {
+      userId, // Same userId as Google!
+      type: 'oauth',
+      provider: 'wikimedia',
+      providerAccountId: 'wikimedia-id-789',
+    },
   });
 }
 ```
 
 #### 3. Result: Alice now has TWO account links, ONE user
 
-**User record:**
+**User record (PostgreSQL `users` table):**
 
-```javascript
+```json
 {
-  _id: "abc123",
-  email: "alice@example.com",
-  emailVerified: ISODate("2025-01-01T00:00:00Z")
+  "id": "abc123",
+  "email": "alice@example.com",
+  "emailVerified": "2025-01-01T00:00:00Z"
 }
 ```
 
-**Account links:**
+**Account links (PostgreSQL `accounts` table):**
 
 - Account 1: `{userId: "abc123", provider: "google", providerAccountId: "google-id-456"}`
 - Account 2: `{userId: "abc123", provider: "wikimedia", providerAccountId: "wikimedia-id-789"}`
@@ -80,39 +85,39 @@ if (!existingAccount) {
 
 ## Data Structure
 
-### nextauth_users collection
+### PostgreSQL `users` table
 
-```javascript
+```json
 {
-  _id: "abc123",
-  email: "alice@example.com",
-  emailVerified: ISODate("2025-01-01T00:00:00Z")
+  "id": "abc123",
+  "email": "alice@example.com",
+  "emailVerified": "2025-01-01T00:00:00Z"
 }
 ```
 
-### nextauth_accounts collection
+### PostgreSQL `accounts` table
 
-```javascript
+```json
 [
   {
-    userId: 'abc123',
-    type: 'oauth',
-    provider: 'google',
-    providerAccountId: 'google-id-456',
+    "userId": "abc123",
+    "type": "oauth",
+    "provider": "google",
+    "providerAccountId": "google-id-456"
   },
   {
-    userId: 'abc123',
-    type: 'oauth',
-    provider: 'wikimedia',
-    providerAccountId: 'wikimedia-id-789',
+    "userId": "abc123",
+    "type": "oauth",
+    "provider": "wikimedia",
+    "providerAccountId": "wikimedia-id-789"
   },
   {
-    userId: 'abc123',
-    type: 'email', // If they also use magic link
-    provider: 'email',
-    providerAccountId: 'alice@example.com',
-  },
-];
+    "userId": "abc123",
+    "type": "email",
+    "provider": "email",
+    "providerAccountId": "alice@example.com"
+  }
+]
 ```
 
 ## Security Note
@@ -143,7 +148,35 @@ Verification-required providers (Wikimedia, self-hosted Mastodon) create account
 7. Profile auto-claimed (if unclaimed)
 8. User can now sign in with this provider
 
-**Code reference:** `/app/api/oauth/complete-verification/route.ts:54-82`
+**Code reference:** `/app/api/oauth/complete-verification/route.ts:51-101`
+
+---
+
+## Developer Scripts
+
+### Create a sign-in link
+
+```bash
+npx tsx scripts/create-signin-link.ts <email>
+```
+
+Creates a magic link that can be used to sign in as any user. Useful for testing.
+
+### Check sign-in token status
+
+```bash
+npx tsx scripts/get-signin-link.ts <email>
+```
+
+Shows if there are pending verification tokens for an email. Note: tokens are stored hashed, so URLs cannot be reconstructed. Use `create-signin-link.ts` to create new links.
+
+### Delete a user
+
+```bash
+npx tsx scripts/delete-user.ts <email>
+```
+
+Completely removes a user from both PostgreSQL (auth) and MongoDB (profile).
 
 ---
 

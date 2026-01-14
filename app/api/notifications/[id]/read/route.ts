@@ -7,8 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 import { markAsRead } from '@/lib/notifications';
 
 export async function POST(
@@ -17,26 +15,15 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
-
-    // Get user ID from email
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
     const { id } = await params;
-    const success = await markAsRead(id, currentUser._id.toString());
+    const success = await markAsRead(id, session.user.id);
 
     if (!success) {
       return NextResponse.json(

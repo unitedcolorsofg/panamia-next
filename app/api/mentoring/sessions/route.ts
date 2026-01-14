@@ -3,7 +3,6 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
 import Profile from '@/lib/model/profile';
-import user from '@/lib/model/user';
 import { createSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getScheduleUrl } from '@/lib/mentoring';
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new session request (requires mentor confirmation)
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -83,16 +82,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Get user IDs for both parties
-  const [mentorUser, menteeUser] = await Promise.all([
-    user.findOne({ email: mentorEmail }).select('_id'),
-    user.findOne({ email: session.user.email }).select('_id'),
-  ]);
-
-  if (!mentorUser || !menteeUser) {
+  // Mentor must have a userId (linked to PostgreSQL auth)
+  if (!mentor.userId) {
     return NextResponse.json(
-      { error: 'User accounts not found' },
-      { status: 404 }
+      { error: 'Mentor account not properly configured' },
+      { status: 400 }
     );
   }
 
@@ -102,8 +96,6 @@ export async function POST(request: NextRequest) {
   const newSession = await MentorSession.create({
     mentorEmail,
     menteeEmail: session.user.email,
-    mentorUserId: mentorUser._id,
-    menteeUserId: menteeUser._id,
     scheduledAt: new Date(scheduledAt),
     duration,
     topic,
@@ -113,10 +105,11 @@ export async function POST(request: NextRequest) {
   });
 
   // Notify mentor of the session request
+  // actorId = mentee (current user), targetId = mentor
   await createNotification({
     type: 'Invite',
-    actorId: menteeUser._id.toString(),
-    targetId: mentorUser._id.toString(),
+    actorId: session.user.id,
+    targetId: mentor.userId,
     context: 'mentoring',
     objectId: newSession._id.toString(),
     objectType: 'session',

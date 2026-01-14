@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import article from '@/lib/model/article';
 import { createNotification } from '@/lib/notifications';
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -33,14 +33,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     await dbConnect();
-
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const articleDoc = await article.findOne({ slug });
     if (!articleDoc) {
@@ -50,13 +42,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if user is author or accepted co-author
+    // Check if user is author or accepted co-author (using email or userId)
     const isAuthor =
-      articleDoc.authorId.toString() === currentUser._id.toString();
+      articleDoc.authorEmail === session.user.email ||
+      articleDoc.authorUserId === session.user.id;
     const isCoAuthor = articleDoc.coAuthors?.some(
-      (ca: any) =>
-        ca.userId.toString() === currentUser._id.toString() &&
-        ca.status === 'accepted'
+      (ca: any) => ca.userId === session.user.id && ca.status === 'accepted'
     );
 
     if (!isAuthor && !isCoAuthor) {
@@ -95,16 +86,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify reviewer exists and has a screenname
-    const reviewer = await user.findById(userId);
-    if (!reviewer) {
+    // Verify reviewer has a profile with screenname
+    const reviewerProfile = await Profile.findOne({ userId });
+    if (!reviewerProfile) {
       return NextResponse.json(
-        { success: false, error: 'Reviewer not found' },
+        { success: false, error: 'Reviewer profile not found' },
         { status: 404 }
       );
     }
 
-    if (!reviewer.screenname) {
+    if (!reviewerProfile.slug) {
       return NextResponse.json(
         { success: false, error: 'Reviewer must have a screenname' },
         { status: 400 }
@@ -112,15 +103,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Cannot request review from author or co-authors
-    if (articleDoc.authorId.toString() === userId) {
+    if (userId === session.user.id) {
       return NextResponse.json(
-        { success: false, error: 'Cannot request review from the author' },
+        { success: false, error: 'Cannot request review from yourself' },
         { status: 400 }
       );
     }
 
     const isReviewerCoAuthor = articleDoc.coAuthors?.some(
-      (ca: any) => ca.userId.toString() === userId && ca.status === 'accepted'
+      (ca: any) => ca.userId === userId && ca.status === 'accepted'
     );
     if (isReviewerCoAuthor) {
       return NextResponse.json(
@@ -129,7 +120,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Set up review request
+    // Set up review request (store PostgreSQL user ID)
     articleDoc.reviewedBy = {
       userId,
       requestedAt: new Date(),
@@ -148,7 +139,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create notification for reviewer
     await createNotification({
       type: 'Invite',
-      actorId: currentUser._id.toString(),
+      actorId: session.user.id,
       targetId: userId,
       context: 'review',
       objectId: articleDoc._id.toString(),

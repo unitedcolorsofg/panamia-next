@@ -39,8 +39,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts              Account[]
+  sessions              Session[]
+  notificationsSent     Notification[] @relation("NotificationActor")
+  notificationsReceived Notification[] @relation("NotificationTarget")
 
   @@map("users")
 }
@@ -83,4 +85,88 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// =============================================================================
+// Notifications
+// =============================================================================
+// ActivityPub-shaped notification system
+// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+//
+// Note: actor/target reference PostgreSQL user IDs (cuid format)
+// object references MongoDB ObjectIds as strings (articles, sessions, etc.)
+
+enum NotificationActivityType {
+  Invite
+  Accept
+  Reject
+  Create
+  Update
+  Delete
+  Announce
+  Like
+  Follow
+  Undo
+}
+
+enum NotificationContext {
+  coauthor
+  review
+  article
+  mentoring
+  mention
+  follow
+  system
+}
+
+enum NotificationObjectType {
+  article
+  profile
+  session
+  comment
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core ActivityPub-shaped fields
+  type   NotificationActivityType
+  actor  String // PostgreSQL User.id who triggered this
+  target String // PostgreSQL User.id who receives this
+  object String? // MongoDB ObjectId as string (article, session, etc.)
+
+  // Context
+  context NotificationContext
+
+  // Denormalized display data (avoids cross-database joins)
+  actorScreenname String?
+  actorName       String?
+  objectType      NotificationObjectType?
+  objectTitle     String?
+  objectUrl       String?
+  message         String? // Personal message (invitation text)
+
+  // State
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  // Email tracking
+  emailSent          Boolean   @default(false)
+  emailSentAt        DateTime?
+  emailPreferenceKey String?
+
+  // Retention (application-level cleanup, not TTL index)
+  expiresAt DateTime?
+
+  // Relations to User
+  actorUser  User @relation("NotificationActor", fields: [actor], references: [id], onDelete: Cascade)
+  targetUser User @relation("NotificationTarget", fields: [target], references: [id], onDelete: Cascade)
+
+  // Indexes for efficient queries
+  @@index([target, read, createdAt(sort: Desc)])
+  @@index([target, context, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("notifications")
 }

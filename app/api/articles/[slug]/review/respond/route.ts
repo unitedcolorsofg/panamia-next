@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import article from '@/lib/model/article';
 import { createNotification } from '@/lib/notifications';
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -33,14 +33,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     await dbConnect();
-
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const articleDoc = await article.findOne({ slug });
     if (!articleDoc) {
@@ -50,10 +42,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify current user is the assigned reviewer
+    // Verify current user is the assigned reviewer (using PostgreSQL user ID)
     if (
       !articleDoc.reviewedBy ||
-      articleDoc.reviewedBy.userId.toString() !== currentUser._id.toString()
+      articleDoc.reviewedBy.userId !== session.user.id
     ) {
       return NextResponse.json(
         { success: false, error: 'You are not the assigned reviewer' },
@@ -126,29 +118,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await articleDoc.save();
 
-    // Notify the author
-    await createNotification({
-      type: action === 'approve' ? 'Accept' : 'Update',
-      actorId: currentUser._id.toString(),
-      targetId: articleDoc.authorId.toString(),
-      context: 'review',
-      objectId: articleDoc._id.toString(),
-      objectType: 'article',
-      objectTitle: articleDoc.title,
-      objectUrl: `/articles/${articleDoc.slug}/edit`,
-      message:
-        action === 'approve'
-          ? 'Your article has been approved and is ready to publish!'
-          : comment || 'Revisions have been requested',
-    });
+    // Get author's userId from their profile
+    const authorProfile = await Profile.findOne({
+      email: articleDoc.authorEmail,
+    }).select('userId');
 
-    // Also notify co-authors
+    // Notify the author (if they have a userId)
+    if (authorProfile?.userId) {
+      await createNotification({
+        type: action === 'approve' ? 'Accept' : 'Update',
+        actorId: session.user.id,
+        targetId: authorProfile.userId,
+        context: 'review',
+        objectId: articleDoc._id.toString(),
+        objectType: 'article',
+        objectTitle: articleDoc.title,
+        objectUrl: `/articles/${articleDoc.slug}/edit`,
+        message:
+          action === 'approve'
+            ? 'Your article has been approved and is ready to publish!'
+            : comment || 'Revisions have been requested',
+      });
+    }
+
+    // Also notify co-authors (they now have PostgreSQL user IDs)
     for (const coAuthor of articleDoc.coAuthors || []) {
-      if (coAuthor.status === 'accepted') {
+      if (coAuthor.status === 'accepted' && coAuthor.userId) {
         await createNotification({
           type: action === 'approve' ? 'Accept' : 'Update',
-          actorId: currentUser._id.toString(),
-          targetId: coAuthor.userId.toString(),
+          actorId: session.user.id,
+          targetId: coAuthor.userId,
           context: 'review',
           objectId: articleDoc._id.toString(),
           objectType: 'article',

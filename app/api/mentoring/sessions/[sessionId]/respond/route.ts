@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import { respondSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getSessionUrl, getScheduleUrl } from '@/lib/mentoring';
@@ -21,7 +21,7 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -74,13 +74,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Get current user (mentor) for notification
-  const mentorUser = await user
-    .findOne({ email: session.user.email })
-    .select('_id');
+  // Get mentee's userId from their profile
+  const menteeProfile = await Profile.findOne({
+    email: mentorSession.menteeEmail,
+  }).select('userId');
 
-  if (!mentorUser) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (!menteeProfile?.userId) {
+    return NextResponse.json(
+      { error: 'Mentee account not properly configured' },
+      { status: 400 }
+    );
   }
 
   // Update session based on action
@@ -89,10 +92,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await mentorSession.save();
 
     // Notify mentee of acceptance
+    // actorId = mentor (current user), targetId = mentee
     await createNotification({
       type: 'Accept',
-      actorId: mentorUser._id.toString(),
-      targetId: mentorSession.menteeUserId.toString(),
+      actorId: session.user.id,
+      targetId: menteeProfile.userId,
       context: 'mentoring',
       objectId: mentorSession._id.toString(),
       objectType: 'session',
@@ -114,10 +118,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await mentorSession.save();
 
     // Notify mentee of decline
+    // actorId = mentor (current user), targetId = mentee
     await createNotification({
       type: 'Reject',
-      actorId: mentorUser._id.toString(),
-      targetId: mentorSession.menteeUserId.toString(),
+      actorId: session.user.id,
+      targetId: menteeProfile.userId,
       context: 'mentoring',
       objectId: mentorSession._id.toString(),
       objectType: 'session',

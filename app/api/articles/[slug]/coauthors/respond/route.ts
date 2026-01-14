@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import article from '@/lib/model/article';
 import { createNotification } from '@/lib/notifications';
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -33,14 +33,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     await dbConnect();
-
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const articleDoc = await article.findOne({ slug });
     if (!articleDoc) {
@@ -63,11 +55,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the invitation for this user
+    // Find the invitation for this user (using PostgreSQL user ID)
     const inviteIndex = articleDoc.coAuthors?.findIndex(
-      (ca: any) =>
-        ca.userId.toString() === currentUser._id.toString() &&
-        ca.status === 'pending'
+      (ca: any) => ca.userId === session.user.id && ca.status === 'pending'
     );
 
     if (inviteIndex === undefined || inviteIndex === -1) {
@@ -87,17 +77,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await articleDoc.save();
 
-    // Notify the author
-    await createNotification({
-      type: action === 'accept' ? 'Accept' : 'Reject',
-      actorId: currentUser._id.toString(),
-      targetId: articleDoc.authorId.toString(),
-      context: 'coauthor',
-      objectId: articleDoc._id.toString(),
-      objectType: 'article',
-      objectTitle: articleDoc.title,
-      objectUrl: `/articles/${articleDoc.slug}/edit`,
-    });
+    // Get author's userId from their profile
+    const authorProfile = await Profile.findOne({
+      email: articleDoc.authorEmail,
+    }).select('userId');
+
+    // Notify the author (if they have a userId)
+    if (authorProfile?.userId) {
+      await createNotification({
+        type: action === 'accept' ? 'Accept' : 'Reject',
+        actorId: session.user.id,
+        targetId: authorProfile.userId,
+        context: 'coauthor',
+        objectId: articleDoc._id.toString(),
+        objectType: 'article',
+        objectTitle: articleDoc.title,
+        objectUrl: `/articles/${articleDoc.slug}/edit`,
+      });
+    }
 
     return NextResponse.json({
       success: true,

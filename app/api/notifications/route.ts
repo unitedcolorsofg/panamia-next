@@ -7,28 +7,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 import { getNotifications, getNotificationMessage } from '@/lib/notifications';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
-      );
-    }
-
-    await dbConnect();
-
-    // Get user ID from email
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
       );
     }
 
@@ -39,7 +26,7 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const context = searchParams.get('context') as string | undefined;
 
-    const result = await getNotifications(currentUser._id.toString(), {
+    const result = await getNotifications(session.user.id, {
       limit,
       offset,
       unreadOnly,
@@ -50,10 +37,6 @@ export async function GET(request: NextRequest) {
     const notificationsWithMessages = result.notifications.map(
       (notif: any) => ({
         ...notif,
-        _id: notif._id.toString(),
-        actor: notif.actor?.toString(),
-        target: notif.target?.toString(),
-        object: notif.object?.toString(),
         displayMessage: getNotificationMessage(notif),
       })
     );

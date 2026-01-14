@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 import article from '@/lib/model/article';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -34,14 +33,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     await dbConnect();
-
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const articleDoc = await article.findOne({ slug });
     if (!articleDoc) {
@@ -51,8 +42,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only author can publish
-    if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
+    // Only author can publish (check by email or userId)
+    if (
+      articleDoc.authorEmail !== session.user.email &&
+      articleDoc.authorUserId !== session.user.id
+    ) {
       return NextResponse.json(
         { success: false, error: 'Only the author can publish this article' },
         { status: 403 }
@@ -88,23 +82,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     articleDoc.publishedAt = new Date();
     await articleDoc.save();
 
-    // Notify co-authors that article is published
+    // Notify co-authors that article is published (they now have PostgreSQL user IDs)
     const acceptedCoAuthors = articleDoc.coAuthors?.filter(
-      (ca: any) => ca.status === 'accepted'
+      (ca: any) => ca.status === 'accepted' && ca.userId
     );
 
     for (const coAuthor of acceptedCoAuthors || []) {
       await createNotification({
         type: 'Create',
         context: 'article',
-        actorId: currentUser._id.toString(),
-        targetId: coAuthor.userId.toString(),
+        actorId: session.user.id,
+        targetId: coAuthor.userId,
         objectUrl: `/articles/${articleDoc.slug}`,
         objectTitle: articleDoc.title,
       });
     }
 
-    // Notify reviewer if there was one
+    // Notify reviewer if there was one (they now have PostgreSQL user ID)
     if (
       articleDoc.reviewedBy?.userId &&
       articleDoc.reviewedBy.status === 'approved'
@@ -112,8 +106,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await createNotification({
         type: 'Create',
         context: 'article',
-        actorId: currentUser._id.toString(),
-        targetId: articleDoc.reviewedBy.userId.toString(),
+        actorId: session.user.id,
+        targetId: articleDoc.reviewedBy.userId,
         objectUrl: `/articles/${articleDoc.slug}`,
         objectTitle: articleDoc.title,
       });

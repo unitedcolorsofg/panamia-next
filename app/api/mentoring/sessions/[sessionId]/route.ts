@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import {
   updateSessionNotesSchema,
   cancelSessionSchema,
@@ -49,7 +49,7 @@ export async function PATCH(
   const { sessionId } = await params;
 
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -89,7 +89,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
     }
 
-    // Find session first to get user IDs
+    // Find session first
     const mentorSession = await MentorSession.findOne({
       sessionId: sessionId,
       $or: [
@@ -119,31 +119,29 @@ export async function PATCH(
     mentorSession.cancelReason = validation.data.reason;
     await mentorSession.save();
 
-    // Get current user for notification
-    const currentUser = await user
-      .findOne({ email: session.user.email })
-      .select('_id');
+    // Determine who to notify (the other party)
+    const isMentor = mentorSession.mentorEmail === session.user.email;
+    const otherPartyEmail = isMentor
+      ? mentorSession.menteeEmail
+      : mentorSession.mentorEmail;
 
-    if (currentUser) {
-      // Determine who to notify (the other party)
-      const isMentor = mentorSession.mentorEmail === session.user.email;
-      const targetUserId = isMentor
-        ? mentorSession.menteeUserId
-        : mentorSession.mentorUserId;
+    // Get the other party's userId from their profile
+    const otherPartyProfile = await Profile.findOne({
+      email: otherPartyEmail,
+    }).select('userId');
 
-      if (targetUserId) {
-        await createNotification({
-          type: 'Delete',
-          actorId: currentUser._id.toString(),
-          targetId: targetUserId.toString(),
-          context: 'mentoring',
-          objectId: mentorSession._id.toString(),
-          objectType: 'session',
-          objectTitle: mentorSession.topic,
-          objectUrl: getScheduleUrl(),
-          message: `Session cancelled: ${validation.data.reason}`,
-        });
-      }
+    if (otherPartyProfile?.userId) {
+      await createNotification({
+        type: 'Delete',
+        actorId: session.user.id,
+        targetId: otherPartyProfile.userId,
+        context: 'mentoring',
+        objectId: mentorSession._id.toString(),
+        objectType: 'session',
+        objectTitle: mentorSession.topic,
+        objectUrl: getScheduleUrl(),
+        message: `Session cancelled: ${validation.data.reason}`,
+      });
     }
 
     return NextResponse.json({ session: mentorSession });

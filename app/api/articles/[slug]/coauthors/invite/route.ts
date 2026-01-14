@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import Profile from '@/lib/model/profile';
 import article from '@/lib/model/article';
 import { createNotification } from '@/lib/notifications';
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -34,10 +34,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await dbConnect();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
+    // Get current user's profile
+    const currentProfile = await Profile.findOne({
+      userId: session.user.id,
+    });
+    if (!currentProfile) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: 'Profile not found' },
         { status: 404 }
       );
     }
@@ -50,8 +53,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only author can invite co-authors
-    if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
+    // Only author can invite co-authors (check by email or userId)
+    if (
+      articleDoc.authorEmail !== session.user.email &&
+      articleDoc.authorUserId !== session.user.id
+    ) {
       return NextResponse.json(
         { success: false, error: 'Only the author can invite co-authors' },
         { status: 403 }
@@ -82,16 +88,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify invitee exists and has a screenname
-    const invitee = await user.findById(userId);
-    if (!invitee) {
+    // Verify invitee has a profile with screenname
+    const inviteeProfile = await Profile.findOne({ userId });
+    if (!inviteeProfile) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: 'User profile not found' },
         { status: 404 }
       );
     }
 
-    if (!invitee.screenname) {
+    if (!inviteeProfile.slug) {
       return NextResponse.json(
         { success: false, error: 'User must have a screenname to be invited' },
         { status: 400 }
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if already invited or is author
-    if (articleDoc.authorId.toString() === userId) {
+    if (userId === session.user.id) {
       return NextResponse.json(
         { success: false, error: 'Cannot invite yourself' },
         { status: 400 }
@@ -107,7 +113,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const existingInvite = articleDoc.coAuthors?.find(
-      (ca: any) => ca.userId.toString() === userId
+      (ca: any) => ca.userId === userId
     );
     if (existingInvite) {
       return NextResponse.json(
@@ -116,7 +122,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Add co-author invitation
+    // Add co-author invitation (store PostgreSQL user ID)
     articleDoc.coAuthors = articleDoc.coAuthors || [];
     articleDoc.coAuthors.push({
       userId,
@@ -129,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create notification for invitee
     await createNotification({
       type: 'Invite',
-      actorId: currentUser._id.toString(),
+      actorId: session.user.id,
       targetId: userId,
       context: 'coauthor',
       objectId: articleDoc._id.toString(),

@@ -4,12 +4,10 @@ import {
   emailMigrationConfirmationText,
 } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 import profile from '@/lib/model/profile';
 import emailMigration from '@/lib/model/emailMigration';
-import mongoose from 'mongoose';
 import nodemailer from 'nodemailer';
-import clientPromise from '@/lib/mongodb';
+import { getPrismaSync } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,10 +48,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, oldEmail, newEmail } = migration;
+    const prisma = getPrismaSync();
 
     // Check if new email was taken while migration was pending
-    const existingUser = await user.findOne({ email: newEmail });
-    if (existingUser && existingUser._id.toString() !== userId) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: newEmail },
+    });
+    if (existingUser && existingUser.id !== userId) {
       await emailMigration.deleteOne({ _id: migration._id });
       return NextResponse.json(
         { error: 'Email address is no longer available' },
@@ -61,49 +62,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Perform atomic migration with MongoDB transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      // Update user email in nextauth_users collection
-      await user.updateOne(
-        { _id: new mongoose.Types.ObjectId(userId) },
-        {
-          $set: {
-            email: newEmail,
-            emailVerified: new Date(),
-          },
+    // Use Prisma transaction for atomic PostgreSQL operations
+    await prisma.$transaction(async (tx) => {
+      // Update user email in PostgreSQL
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          email: newEmail,
+          emailVerified: new Date(),
         },
-        { session }
-      );
-
-      // Update profile email (if profile exists)
-      await profile.updateOne(
-        { userId: userId },
-        { $set: { email: newEmail } },
-        { session }
-      );
+      });
 
       // Invalidate all sessions for this user (sign out from all devices)
-      const client = await clientPromise;
-      const db = client.db();
-      await db.collection('nextauth_sessions').deleteMany(
-        { userId: userId },
-        // @ts-ignore - MongoDB client session type mismatch between mongoose and mongodb driver
-        { session }
-      );
+      await tx.session.deleteMany({
+        where: { userId },
+      });
+    });
 
-      // Delete the migration record
-      await emailMigration.deleteOne({ _id: migration._id }, { session });
+    // Update profile email in MongoDB (separate from Prisma transaction)
+    await profile.updateOne({ userId }, { $set: { email: newEmail } });
 
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    // Delete the migration record
+    await emailMigration.deleteOne({ _id: migration._id });
 
     // Send confirmation email to old address
     const timestamp = new Date().toLocaleString('en-US', {

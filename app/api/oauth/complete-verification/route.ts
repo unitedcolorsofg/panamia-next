@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import oauthVerification from '@/lib/model/oauthVerification';
-import user from '@/lib/model/user';
 import profile from '@/lib/model/profile';
-import clientPromise from '@/lib/mongodb';
-import mongoose from 'mongoose';
+import { getPrismaSync } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // Find verification record
+    // Find verification record (still in MongoDB for now)
     const verification = await oauthVerification.findOne({
       verificationToken: token,
     });
@@ -44,100 +42,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, provider, providerAccountId, oauthProfile } = verification;
+    const { email, provider, providerAccountId } = verification;
 
-    // Use MongoDB transaction for atomic account creation
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Use Prisma for PostgreSQL auth operations
+    const prisma = getPrismaSync();
 
-    try {
+    // Use Prisma transaction for atomic user/account creation
+    const result = await prisma.$transaction(async (tx) => {
       // Check if user already exists with this email
-      let userId;
-      const existingUser = await user.findOne({ email });
+      let userId: string;
+      let existingUser = await tx.user.findUnique({
+        where: { email },
+      });
 
       if (existingUser) {
-        userId = existingUser._id.toString();
+        userId = existingUser.id;
 
         // Check if account link already exists
-        const client = await clientPromise;
-        const db = client.db();
-        const existingAccount = await db
-          .collection('nextauth_accounts')
-          .findOne({
-            userId,
-            provider,
-            providerAccountId,
-          });
+        const existingAccount = await tx.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider,
+              providerAccountId,
+            },
+          },
+        });
 
         if (!existingAccount) {
           // Create account link
-          await db.collection('nextauth_accounts').insertOne({
-            userId,
-            type: 'oauth',
-            provider,
-            providerAccountId,
-            // @ts-ignore - MongoDB client session type mismatch
-            session,
+          await tx.account.create({
+            data: {
+              userId,
+              type: 'oauth',
+              provider,
+              providerAccountId,
+            },
           });
         }
       } else {
-        // Create new user
-        const newUser = await user.create(
-          [
-            {
-              email,
-              emailVerified: new Date(),
-              name: oauthProfile.name,
-              image: oauthProfile.image,
+        // Create new user with account in one transaction
+        const newUser = await tx.user.create({
+          data: {
+            email,
+            emailVerified: new Date(),
+            accounts: {
+              create: {
+                type: 'oauth',
+                provider,
+                providerAccountId,
+              },
             },
-          ],
-          { session }
-        );
-        userId = newUser[0]._id.toString();
-
-        // Create account link
-        const client = await clientPromise;
-        const db = client.db();
-        await db.collection('nextauth_accounts').insertOne(
-          {
-            userId,
-            type: 'oauth',
-            provider,
-            providerAccountId,
           },
-          // @ts-ignore - MongoDB client session type mismatch
-          { session }
-        );
+        });
+        userId = newUser.id;
       }
 
-      // Auto-claim profile
-      const unclaimedProfile = await profile.findOne({
-        email: email.toLowerCase(),
-        $or: [{ userId: { $exists: false } }, { userId: null }],
-      });
+      return { userId };
+    });
 
-      if (unclaimedProfile) {
-        console.log(
-          'Auto-claiming profile for user:',
-          email,
-          'after email verification for provider:',
-          provider
-        );
-        unclaimedProfile.userId = userId;
-        await unclaimedProfile.save({ session });
-        console.log('Profile claimed successfully');
-      }
+    // Auto-claim profile (MongoDB operation, separate from transaction)
+    const unclaimedProfile = await profile.findOne({
+      email: email.toLowerCase(),
+      $or: [{ userId: { $exists: false } }, { userId: null }],
+    });
 
-      // Delete verification record
-      await oauthVerification.deleteOne({ _id: verification._id }, { session });
-
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+    if (unclaimedProfile) {
+      console.log(
+        'Auto-claiming profile for user:',
+        email,
+        'after email verification for provider:',
+        provider
+      );
+      unclaimedProfile.userId = result.userId;
+      await unclaimedProfile.save();
+      console.log('Profile claimed successfully');
     }
+
+    // Delete verification record
+    await oauthVerification.deleteOne({ _id: verification._id });
 
     return NextResponse.json({
       success: true,
