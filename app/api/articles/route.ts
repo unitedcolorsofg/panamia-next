@@ -7,9 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import {
   generateUniqueSlug,
   calculateReadingTime,
@@ -22,17 +20,19 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Get user and verify they have a screenname
-    const currentUser = await user.findOne({ email: session.user.email });
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
     if (!currentUser) {
       return NextResponse.json(
         { success: false, error: 'User not found' },
@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
 
     // Validate inReplyTo if provided
     if (inReplyTo) {
-      const parentArticle = await article.findById(inReplyTo);
+      const parentArticle = await prisma.article.findUnique({
+        where: { id: inReplyTo },
+      });
       if (!parentArticle || parentArticle.status !== 'published') {
         return NextResponse.json(
           { success: false, error: 'Invalid parent article' },
@@ -89,25 +91,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Create article
-    const newArticle = await article.create({
-      slug,
-      title: title.trim(),
-      content: content || '',
-      excerpt,
-      articleType,
-      tags: tags || [],
-      coverImage,
-      authorId: currentUser._id,
-      coAuthors: [],
-      status: 'draft',
-      readingTime,
-      inReplyTo: inReplyTo || undefined,
+    const newArticle = await prisma.article.create({
+      data: {
+        slug,
+        title: title.trim(),
+        content: content || '',
+        excerpt,
+        articleType,
+        tags: tags || [],
+        coverImage,
+        authorId: currentUser.id,
+        coAuthors: [],
+        status: 'draft',
+        readingTime,
+        inReplyTo: inReplyTo || null,
+      },
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        _id: newArticle._id.toString(),
+        id: newArticle.id,
         slug: newArticle.slug,
         title: newArticle.title,
         status: newArticle.status,
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    const prisma = await getPrisma();
 
     const searchParams = request.nextUrl.searchParams;
     const articleType = searchParams.get('type') as
@@ -138,36 +142,42 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const query: Record<string, unknown> = { status: 'published' };
+    const where: any = { status: 'published' };
 
     if (articleType) {
-      query.articleType = articleType;
+      where.articleType = articleType;
     }
 
     if (tag) {
-      query.tags = tag;
+      where.tags = { has: tag };
     }
 
-    const articles = await article
-      .find(query)
-      .sort({ publishedAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .select(
-        'slug title excerpt articleType tags authorId publishedAt readingTime coverImage'
-      )
-      .lean();
-
-    const total = await article.countDocuments(query);
+    const [articles, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        orderBy: { publishedAt: 'desc' },
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          excerpt: true,
+          articleType: true,
+          tags: true,
+          authorId: true,
+          publishedAt: true,
+          readingTime: true,
+          coverImage: true,
+        },
+      }),
+      prisma.article.count({ where }),
+    ]);
 
     return NextResponse.json({
       success: true,
       data: {
-        articles: articles.map((a: any) => ({
-          ...a,
-          _id: a._id.toString(),
-          authorId: a.authorId.toString(),
-        })),
+        articles,
         total,
         hasMore: offset + articles.length < total,
       },

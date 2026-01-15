@@ -9,9 +9,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ArticleTypeBadge from '@/components/ArticleTypeBadge';
@@ -23,109 +21,123 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-async function getArticle(slug: string) {
-  await dbConnect();
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
 
-  const articleDoc = await article
-    .findOne({ slug, status: 'published' })
-    .lean();
+interface ReviewedBy {
+  userId: string;
+  status: string;
+}
+
+async function getArticle(slug: string) {
+  const prisma = await getPrisma();
+
+  const articleDoc = await prisma.article.findFirst({
+    where: { slug, status: 'published' },
+  });
   if (!articleDoc) {
     return null;
   }
 
   // Get author info
-  const authorDoc = await user.findById((articleDoc as any).authorId).lean();
+  const authorDoc = await prisma.user.findUnique({
+    where: { id: articleDoc.authorId },
+    select: { id: true, screenname: true },
+  });
   const authorInfo = authorDoc
     ? {
-        screenname: (authorDoc as any).screenname,
-        name: (authorDoc as any).name,
-        profileSlug: (authorDoc as any).profile?.slug,
+        screenname: authorDoc.screenname,
       }
     : null;
 
   // Get accepted co-authors
-  const acceptedCoAuthors =
-    (articleDoc as any).coAuthors?.filter(
-      (ca: any) => ca.status === 'accepted'
-    ) || [];
+  const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+  const acceptedCoAuthors = coAuthors.filter((ca) => ca.status === 'accepted');
 
-  const coAuthorIds = acceptedCoAuthors.map((ca: any) => ca.userId);
-  const coAuthorDocs = await user.find({ _id: { $in: coAuthorIds } }).lean();
-  const coAuthorsInfo = coAuthorDocs.map((u: any) => ({
+  const coAuthorIds = acceptedCoAuthors.map((ca) => ca.userId);
+  const coAuthorDocs =
+    coAuthorIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: coAuthorIds } },
+          select: { id: true, screenname: true },
+        })
+      : [];
+  const coAuthorsInfo = coAuthorDocs.map((u) => ({
     screenname: u.screenname,
-    name: u.name,
-    profileSlug: u.profile?.slug,
   }));
 
   // Get reviewer if approved
   let reviewerInfo = null;
-  if (
-    (articleDoc as any).reviewedBy?.userId &&
-    (articleDoc as any).reviewedBy?.status === 'approved'
-  ) {
-    const reviewerDoc = await user
-      .findById((articleDoc as any).reviewedBy.userId)
-      .lean();
+  const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
+  if (reviewedBy?.userId && reviewedBy.status === 'approved') {
+    const reviewerDoc = await prisma.user.findUnique({
+      where: { id: reviewedBy.userId },
+      select: { screenname: true },
+    });
     if (reviewerDoc) {
       reviewerInfo = {
-        screenname: (reviewerDoc as any).screenname,
-        name: (reviewerDoc as any).name,
-        profileSlug: (reviewerDoc as any).profile?.slug,
+        screenname: reviewerDoc.screenname,
       };
     }
   }
 
   // Get parent article if this is a reply
   let parentArticle = null;
-  if ((articleDoc as any).inReplyTo) {
-    const parentDoc = await article
-      .findById((articleDoc as any).inReplyTo)
-      .lean();
-    if (parentDoc && (parentDoc as any).status === 'published') {
+  if (articleDoc.inReplyTo) {
+    const parentDoc = await prisma.article.findUnique({
+      where: { id: articleDoc.inReplyTo },
+      select: { slug: true, title: true, status: true },
+    });
+    if (parentDoc && parentDoc.status === 'published') {
       parentArticle = {
-        slug: (parentDoc as any).slug,
-        title: (parentDoc as any).title,
+        slug: parentDoc.slug,
+        title: parentDoc.title,
       };
     }
   }
 
   // Get reply articles
-  const replies = await article
-    .find({
-      inReplyTo: (articleDoc as any)._id,
+  const replies = await prisma.article.findMany({
+    where: {
+      inReplyTo: articleDoc.id,
       status: 'published',
-    })
-    .sort({ publishedAt: -1 })
-    .limit(10)
-    .lean();
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: 10,
+  });
 
-  const replyAuthorIds = replies.map((r: any) => r.authorId);
-  const replyAuthors = await user.find({ _id: { $in: replyAuthorIds } }).lean();
+  const replyAuthorIds = replies.map((r) => r.authorId);
+  const replyAuthors =
+    replyAuthorIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: replyAuthorIds } },
+          select: { id: true, screenname: true },
+        })
+      : [];
   const replyAuthorMap = new Map(
-    replyAuthors.map((a: any) => [
-      a._id.toString(),
-      { screenname: a.screenname, name: a.name },
-    ])
+    replyAuthors.map((a) => [a.id, { screenname: a.screenname }])
   );
 
-  const repliesInfo = replies.map((r: any) => ({
+  const repliesInfo = replies.map((r) => ({
     slug: r.slug,
     title: r.title,
     publishedAt: r.publishedAt,
-    author: replyAuthorMap.get(r.authorId.toString()) || null,
+    author: replyAuthorMap.get(r.authorId) || null,
   }));
 
   return {
-    slug: (articleDoc as any).slug,
-    title: (articleDoc as any).title,
-    content: (articleDoc as any).content,
-    excerpt: (articleDoc as any).excerpt,
-    articleType: (articleDoc as any).articleType,
-    tags: (articleDoc as any).tags || [],
-    coverImage: (articleDoc as any).coverImage,
-    readingTime: (articleDoc as any).readingTime,
-    publishedAt: (articleDoc as any).publishedAt?.toISOString(),
-    authorId: (articleDoc as any).authorId.toString(),
+    slug: articleDoc.slug,
+    title: articleDoc.title,
+    content: articleDoc.content,
+    excerpt: articleDoc.excerpt,
+    articleType: articleDoc.articleType,
+    tags: articleDoc.tags || [],
+    coverImage: articleDoc.coverImage,
+    readingTime: articleDoc.readingTime,
+    publishedAt: articleDoc.publishedAt?.toISOString(),
+    authorId: articleDoc.authorId,
     author: authorInfo,
     coAuthors: coAuthorsInfo,
     reviewer: reviewerInfo,
@@ -199,7 +211,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 <span className="font-medium text-gray-900 dark:text-gray-100">
                   {articleData.author.screenname
                     ? `@${articleData.author.screenname}`
-                    : articleData.author.name || 'Anonymous'}
+                    : 'Anonymous'}
                 </span>
               ) : (
                 <span>Former Member</span>
@@ -210,7 +222,7 @@ export default async function ArticlePage({ params }: PageProps) {
                   <span className="font-medium text-gray-900 dark:text-gray-100">
                     {coAuthor.screenname
                       ? ` @${coAuthor.screenname}`
-                      : ` ${coAuthor.name}` || ' Anonymous'}
+                      : ' Anonymous'}
                   </span>
                 </span>
               ))}
@@ -222,7 +234,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 <span className="font-medium text-gray-900 dark:text-gray-100">
                   {articleData.reviewer.screenname
                     ? `@${articleData.reviewer.screenname}`
-                    : articleData.reviewer.name || 'Anonymous'}
+                    : 'Anonymous'}
                 </span>
               </div>
             )}
@@ -277,7 +289,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     by{' '}
                     {reply.author?.screenname
                       ? `@${reply.author.screenname}`
-                      : reply.author?.name || 'Anonymous'}
+                      : 'Anonymous'}
                     {' · '}
                     {new Date(reply.publishedAt).toLocaleDateString('en-US', {
                       month: 'short',

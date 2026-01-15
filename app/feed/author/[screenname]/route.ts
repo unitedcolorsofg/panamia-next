@@ -7,9 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { Feed } from 'feed';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 
@@ -17,23 +15,30 @@ interface RouteParams {
   params: Promise<{ screenname: string }>;
 }
 
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { screenname } = await params;
     const decodedScreenname = decodeURIComponent(screenname);
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Find author by screenname
-    const author = await user.findOne({ screenname: decodedScreenname }).lean();
+    const author = await prisma.user.findFirst({
+      where: { screenname: decodedScreenname },
+      select: { id: true, screenname: true },
+    });
     if (!author) {
       return new Response('Author not found', { status: 404 });
     }
 
-    const authorAny = author as any;
-    const authorName = authorAny.screenname
-      ? `@${authorAny.screenname}`
-      : authorAny.name || 'Anonymous';
+    const authorName = author.screenname
+      ? `@${author.screenname}`
+      : 'Anonymous';
 
     const feed = new Feed({
       title: `Pana MIA Articles by ${authorName}`,
@@ -47,30 +52,49 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Get articles by this author (including co-authored)
-    const articles = await article
-      .find({
-        status: 'published',
-        $or: [
-          { authorId: authorAny._id },
-          { 'coAuthors.userId': authorAny._id, 'coAuthors.status': 'accepted' },
-        ],
-      })
-      .sort({ publishedAt: -1 })
-      .limit(50)
-      .lean();
+    // Get articles by this author (primary author)
+    const primaryArticles = await prisma.article.findMany({
+      where: { status: 'published', authorId: author.id },
+      orderBy: { publishedAt: 'desc' },
+      take: 50,
+    });
+
+    // Get articles where this user is a co-author
+    const allPublishedArticles = await prisma.article.findMany({
+      where: { status: 'published' },
+      orderBy: { publishedAt: 'desc' },
+    });
+    const coAuthoredArticles = allPublishedArticles.filter((art) => {
+      const coAuthors = (art.coAuthors as unknown as CoAuthor[]) || [];
+      return coAuthors.some(
+        (ca) => ca.userId === author.id && ca.status === 'accepted'
+      );
+    });
+
+    // Combine and dedupe
+    const articleMap = new Map(primaryArticles.map((a) => [a.id, a]));
+    for (const art of coAuthoredArticles) {
+      if (!articleMap.has(art.id)) {
+        articleMap.set(art.id, art);
+      }
+    }
+    const articles = Array.from(articleMap.values())
+      .sort(
+        (a, b) =>
+          new Date(b.publishedAt!).getTime() -
+          new Date(a.publishedAt!).getTime()
+      )
+      .slice(0, 50);
 
     for (const art of articles) {
-      const artAny = art as any;
-
       feed.addItem({
-        title: artAny.title,
-        id: `${SITE_URL}/articles/${artAny.slug}`,
-        link: `${SITE_URL}/articles/${artAny.slug}`,
-        description: artAny.excerpt || '',
+        title: art.title,
+        id: `${SITE_URL}/articles/${art.slug}`,
+        link: `${SITE_URL}/articles/${art.slug}`,
+        description: art.excerpt || '',
         author: [{ name: authorName }],
-        date: new Date(artAny.publishedAt),
-        category: artAny.tags?.map((t: string) => ({ name: t })) || [],
+        date: new Date(art.publishedAt!),
+        category: art.tags?.map((t: string) => ({ name: t })) || [],
       });
     }
 

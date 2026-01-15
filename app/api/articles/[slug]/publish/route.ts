@@ -7,13 +7,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
+
+interface ReviewedBy {
+  userId: string;
+  status: string;
 }
 
 /**
@@ -25,16 +34,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -42,11 +51,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only author can publish (check by email or userId)
-    if (
-      articleDoc.authorEmail !== session.user.email &&
-      articleDoc.authorUserId !== session.user.id
-    ) {
+    // Only author can publish
+    if (articleDoc.authorId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'Only the author can publish this article' },
         { status: 403 }
@@ -69,7 +75,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check publishability requirements
-    const publishCheck = isPublishable(articleDoc);
+    const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
+    const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
+
+    const publishCheck = isPublishable({
+      title: articleDoc.title,
+      content: articleDoc.content,
+      coAuthors: coAuthors || [],
+      reviewedBy: reviewedBy || undefined,
+      status: articleDoc.status as any,
+    });
     if (!publishCheck.publishable) {
       return NextResponse.json(
         { success: false, error: publishCheck.reason },
@@ -78,13 +93,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Publish the article
-    articleDoc.status = 'published';
-    articleDoc.publishedAt = new Date();
-    await articleDoc.save();
+    const updatedArticle = await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: {
+        status: 'published',
+        publishedAt: new Date(),
+      },
+    });
 
-    // Notify co-authors that article is published (they now have PostgreSQL user IDs)
-    const acceptedCoAuthors = articleDoc.coAuthors?.filter(
-      (ca: any) => ca.status === 'accepted' && ca.userId
+    // Notify co-authors that article is published
+    const acceptedCoAuthors = coAuthors?.filter(
+      (ca) => ca.status === 'accepted' && ca.userId
     );
 
     for (const coAuthor of acceptedCoAuthors || []) {
@@ -98,16 +117,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Notify reviewer if there was one (they now have PostgreSQL user ID)
-    if (
-      articleDoc.reviewedBy?.userId &&
-      articleDoc.reviewedBy.status === 'approved'
-    ) {
+    // Notify reviewer if there was one
+    if (reviewedBy?.userId && reviewedBy.status === 'approved') {
       await createNotification({
         type: 'Create',
         context: 'article',
         actorId: session.user.id,
-        targetId: articleDoc.reviewedBy.userId,
+        targetId: reviewedBy.userId,
         objectUrl: `/articles/${articleDoc.slug}`,
         objectTitle: articleDoc.title,
       });
@@ -116,9 +132,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        slug: articleDoc.slug,
-        status: articleDoc.status,
-        publishedAt: articleDoc.publishedAt,
+        slug: updatedArticle.slug,
+        status: updatedArticle.status,
+        publishedAt: updatedArticle.publishedAt,
       },
     });
   } catch (error) {

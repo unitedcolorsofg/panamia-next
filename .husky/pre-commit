@@ -39,26 +39,6 @@ else
 fi
 
 # =============================================================================
-# MongoDB Schema Change Validation
-# =============================================================================
-
-echo ""
-echo "📦 Checking MongoDB schema changes..."
-
-# Check for modified model files
-STAGED_MODELS=$(git diff --cached --name-only --diff-filter=AM | grep -E '^lib/model/.*\.ts$' || true)
-
-if [ -n "$STAGED_MODELS" ]; then
-  if [ -x "scripts/validate-mongo-changes.sh" ]; then
-    ./scripts/validate-mongo-changes.sh --staged || exit 1
-  else
-    echo "⚠️  Warning: scripts/validate-mongo-changes.sh not found or not executable"
-  fi
-else
-  echo "ℹ️  No model changes to validate"
-fi
-
-# =============================================================================
 # Playwright Test Coverage Check
 # =============================================================================
 

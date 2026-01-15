@@ -7,9 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { isValidMastodonUrl } from '@/lib/mastodon';
 
 interface RouteParams {
@@ -24,12 +22,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const articleDoc = await article
-      .findOne({ slug, status: 'published' })
-      .select('mastodonPostUrl')
-      .lean();
+    const articleDoc = await prisma.article.findFirst({
+      where: { slug, status: 'published' },
+      select: { mastodonPostUrl: true },
+    });
 
     if (!articleDoc) {
       return NextResponse.json(
@@ -41,7 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        mastodonPostUrl: (articleDoc as any).mastodonPostUrl || null,
+        mastodonPostUrl: articleDoc.mastodonPostUrl || null,
       },
     });
   } catch (error) {
@@ -63,24 +61,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -89,7 +79,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only the primary author can set the Mastodon post URL
-    if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
+    if (articleDoc.authorId !== session.user.id) {
       return NextResponse.json(
         {
           success: false,
@@ -112,8 +102,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Allow clearing the URL
     if (mastodonPostUrl === null || mastodonPostUrl === '') {
-      articleDoc.mastodonPostUrl = undefined;
-      await articleDoc.save();
+      const updated = await prisma.article.update({
+        where: { id: articleDoc.id },
+        data: { mastodonPostUrl: null },
+      });
 
       return NextResponse.json({
         success: true,
@@ -134,13 +126,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Save the URL
-    articleDoc.mastodonPostUrl = mastodonPostUrl;
-    await articleDoc.save();
+    const updated = await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: { mastodonPostUrl },
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        mastodonPostUrl: articleDoc.mastodonPostUrl,
+        mastodonPostUrl: updated.mastodonPostUrl,
       },
     });
   } catch (error) {

@@ -7,9 +7,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
 
 /**
  * GET /api/admin/articles
@@ -25,8 +28,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await dbConnect();
-
     // Check admin status from ADMIN_EMAILS (consistent with auth.ts session callback)
     const adminEmails =
       process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
@@ -40,6 +41,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const prisma = await getPrisma();
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -47,70 +50,72 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')?.trim();
 
     // Build query
-    const query: Record<string, unknown> = {};
+    const where: any = {};
 
     if (status && ['draft', 'published', 'removed'].includes(status)) {
-      query.status = status;
+      where.status = status;
     }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { slug: { $regex: search, $options: 'i' } },
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    // Get total count
-    const total = await article.countDocuments(query);
-
-    // Fetch articles
-    const articles = await article
-      .find(query)
-      .sort({ updatedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+    // Get total count and articles
+    const [total, articles] = await Promise.all([
+      prisma.article.count({ where }),
+      prisma.article.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
 
     // Get author info for all articles
-    const authorIds = [
-      ...new Set(articles.map((a: any) => a.authorId.toString())),
-    ];
-    const authors = await user.find({ _id: { $in: authorIds } }).lean();
+    const authorIds = [...new Set(articles.map((a) => a.authorId))];
+    const authors = await prisma.user.findMany({
+      where: { id: { in: authorIds } },
+      select: { id: true, screenname: true, email: true },
+    });
     const authorMap = new Map(
-      authors.map((a: any) => [
-        a._id.toString(),
-        { screenname: a.screenname, name: a.name, email: a.email },
-      ])
+      authors.map((a) => [a.id, { screenname: a.screenname, email: a.email }])
     );
 
     // Get admin info for removed articles
     const removedByIds = articles
-      .filter((a: any) => a.removedBy)
-      .map((a: any) => a.removedBy.toString());
+      .filter((a) => a.removedBy)
+      .map((a) => a.removedBy as string);
     const admins =
       removedByIds.length > 0
-        ? await user.find({ _id: { $in: removedByIds } }).lean()
+        ? await prisma.user.findMany({
+            where: { id: { in: removedByIds } },
+            select: { id: true, screenname: true },
+          })
         : [];
-    const adminMap = new Map(
-      admins.map((a: any) => [a._id.toString(), a.screenname || a.name])
-    );
+    const adminMap = new Map(admins.map((a) => [a.id, a.screenname]));
 
-    const enrichedArticles = articles.map((a: any) => ({
-      _id: a._id.toString(),
-      slug: a.slug,
-      title: a.title,
-      status: a.status,
-      articleType: a.articleType,
-      author: authorMap.get(a.authorId.toString()) || { screenname: null },
-      coAuthorsCount:
-        a.coAuthors?.filter((ca: any) => ca.status === 'accepted').length || 0,
-      publishedAt: a.publishedAt,
-      removedAt: a.removedAt,
-      removedBy: a.removedBy ? adminMap.get(a.removedBy.toString()) : null,
-      removalReason: a.removalReason,
-      createdAt: a.createdAt,
-      updatedAt: a.updatedAt,
-    }));
+    const enrichedArticles = articles.map((a) => {
+      const coAuthors = (a.coAuthors as unknown as CoAuthor[]) || [];
+      return {
+        id: a.id,
+        slug: a.slug,
+        title: a.title,
+        status: a.status,
+        articleType: a.articleType,
+        author: authorMap.get(a.authorId) || { screenname: null },
+        coAuthorsCount: coAuthors.filter((ca) => ca.status === 'accepted')
+          .length,
+        publishedAt: a.publishedAt,
+        removedAt: a.removedAt,
+        removedBy: a.removedBy ? adminMap.get(a.removedBy) : null,
+        removalReason: a.removalReason,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,

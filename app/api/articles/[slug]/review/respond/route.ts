@@ -7,13 +7,38 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
+
+interface ReviewComment {
+  id: string;
+  text: string;
+  contentRef?: string;
+  createdAt: string;
+  resolved: boolean;
+}
+
+interface ReviewedBy {
+  userId: string;
+  requestedAt: string;
+  invitationMessage?: string;
+  status: string;
+  checklist: {
+    factsVerified: boolean;
+    sourcesChecked: boolean;
+    communityStandards: boolean;
+  };
+  comments: ReviewComment[];
+  approvedAt?: string;
 }
 
 /**
@@ -25,16 +50,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -42,11 +67,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify current user is the assigned reviewer (using PostgreSQL user ID)
-    if (
-      !articleDoc.reviewedBy ||
-      articleDoc.reviewedBy.userId !== session.user.id
-    ) {
+    // Verify current user is the assigned reviewer
+    const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
+    if (!reviewedBy || reviewedBy.userId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'You are not the assigned reviewer' },
         { status: 403 }
@@ -54,7 +77,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Can only respond to pending reviews
-    if (articleDoc.reviewedBy.status !== 'pending') {
+    if (reviewedBy.status !== 'pending') {
       return NextResponse.json(
         { success: false, error: 'Review has already been completed' },
         { status: 400 }
@@ -75,18 +98,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update checklist if provided
-    if (checklist) {
-      articleDoc.reviewedBy.checklist = {
-        factsVerified: checklist.factsVerified || false,
-        sourcesChecked: checklist.sourcesChecked || false,
-        communityStandards: checklist.communityStandards || false,
-      };
-    }
+    const updatedChecklist = checklist
+      ? {
+          factsVerified: checklist.factsVerified || false,
+          sourcesChecked: checklist.sourcesChecked || false,
+          communityStandards: checklist.communityStandards || false,
+        }
+      : reviewedBy.checklist;
+
+    let updatedReviewedBy: ReviewedBy;
+    let newStatus: string;
 
     // For approval, verify checklist is complete
     if (action === 'approve') {
       const { factsVerified, sourcesChecked, communityStandards } =
-        articleDoc.reviewedBy.checklist;
+        updatedChecklist;
 
       if (!factsVerified || !sourcesChecked || !communityStandards) {
         return NextResponse.json(
@@ -98,58 +124,68 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      articleDoc.reviewedBy.status = 'approved';
-      articleDoc.reviewedBy.approvedAt = new Date();
-      articleDoc.status = 'draft'; // Back to draft, now publishable
+      updatedReviewedBy = {
+        ...reviewedBy,
+        checklist: updatedChecklist,
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+      };
+      newStatus = 'draft'; // Back to draft, now publishable
     } else {
       // Add revision comment if provided
+      const comments = [...reviewedBy.comments];
       if (comment) {
-        articleDoc.reviewedBy.comments.push({
+        comments.push({
           id: `comment-${Date.now()}`,
           text: comment,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           resolved: false,
         });
       }
 
-      articleDoc.reviewedBy.status = 'revision_needed';
-      articleDoc.status = 'revision_needed';
+      updatedReviewedBy = {
+        ...reviewedBy,
+        checklist: updatedChecklist,
+        status: 'revision_needed',
+        comments,
+      };
+      newStatus = 'revision_needed';
     }
 
-    await articleDoc.save();
+    await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: {
+        reviewedBy: updatedReviewedBy as any,
+        status: newStatus as any,
+      },
+    });
 
-    // Get author's userId from their profile
-    const authorProfile = await Profile.findOne({
-      email: articleDoc.authorEmail,
-    }).select('userId');
+    // Notify the author
+    await createNotification({
+      type: action === 'approve' ? 'Accept' : 'Update',
+      actorId: session.user.id,
+      targetId: articleDoc.authorId,
+      context: 'review',
+      objectId: articleDoc.id,
+      objectType: 'article',
+      objectTitle: articleDoc.title,
+      objectUrl: `/articles/${articleDoc.slug}/edit`,
+      message:
+        action === 'approve'
+          ? 'Your article has been approved and is ready to publish!'
+          : comment || 'Revisions have been requested',
+    });
 
-    // Notify the author (if they have a userId)
-    if (authorProfile?.userId) {
-      await createNotification({
-        type: action === 'approve' ? 'Accept' : 'Update',
-        actorId: session.user.id,
-        targetId: authorProfile.userId,
-        context: 'review',
-        objectId: articleDoc._id.toString(),
-        objectType: 'article',
-        objectTitle: articleDoc.title,
-        objectUrl: `/articles/${articleDoc.slug}/edit`,
-        message:
-          action === 'approve'
-            ? 'Your article has been approved and is ready to publish!'
-            : comment || 'Revisions have been requested',
-      });
-    }
-
-    // Also notify co-authors (they now have PostgreSQL user IDs)
-    for (const coAuthor of articleDoc.coAuthors || []) {
+    // Also notify co-authors
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    for (const coAuthor of coAuthors) {
       if (coAuthor.status === 'accepted' && coAuthor.userId) {
         await createNotification({
           type: action === 'approve' ? 'Accept' : 'Update',
           actorId: session.user.id,
           targetId: coAuthor.userId,
           context: 'review',
-          objectId: articleDoc._id.toString(),
+          objectId: articleDoc.id,
           objectType: 'article',
           objectTitle: articleDoc.title,
           objectUrl: `/articles/${articleDoc.slug}/edit`,

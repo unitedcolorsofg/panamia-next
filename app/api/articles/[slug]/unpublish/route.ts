@@ -7,9 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -24,24 +22,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -50,7 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can unpublish
-    if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
+    if (articleDoc.authorId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'Only the author can unpublish this article' },
         { status: 403 }
@@ -65,15 +55,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Unpublish - revert to draft
-    articleDoc.status = 'draft';
-    articleDoc.publishedAt = undefined;
-    await articleDoc.save();
+    const updatedArticle = await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: {
+        status: 'draft',
+        publishedAt: null,
+      },
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        slug: articleDoc.slug,
-        status: articleDoc.status,
+        slug: updatedArticle.slug,
+        status: updatedArticle.status,
       },
     });
   } catch (error) {

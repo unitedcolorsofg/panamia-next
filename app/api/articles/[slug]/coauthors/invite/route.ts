@@ -9,11 +9,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import Profile from '@/lib/model/profile';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  invitedAt?: string;
+  invitationMessage?: string;
+  status: string;
+  acceptedAt?: string;
 }
 
 /**
@@ -25,16 +33,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    const prisma = await getPrisma();
     await dbConnect();
 
-    // Get current user's profile
+    // Verify current user has a profile
     const currentProfile = await Profile.findOne({
       userId: session.user.id,
     });
@@ -45,7 +54,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -53,11 +62,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only author can invite co-authors (check by email or userId)
-    if (
-      articleDoc.authorEmail !== session.user.email &&
-      articleDoc.authorUserId !== session.user.id
-    ) {
+    // Only author can invite co-authors
+    if (articleDoc.authorId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'Only the author can invite co-authors' },
         { status: 403 }
@@ -112,9 +118,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const existingInvite = articleDoc.coAuthors?.find(
-      (ca: any) => ca.userId === userId
-    );
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    const existingInvite = coAuthors.find((ca) => ca.userId === userId);
     if (existingInvite) {
       return NextResponse.json(
         { success: false, error: 'User has already been invited' },
@@ -122,15 +127,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Add co-author invitation (store PostgreSQL user ID)
-    articleDoc.coAuthors = articleDoc.coAuthors || [];
-    articleDoc.coAuthors.push({
-      userId,
-      invitedAt: new Date(),
-      invitationMessage: message || undefined,
-      status: 'pending',
+    // Add co-author invitation
+    const newCoAuthors = [
+      ...coAuthors,
+      {
+        userId,
+        invitedAt: new Date().toISOString(),
+        invitationMessage: message || undefined,
+        status: 'pending',
+      },
+    ];
+
+    await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: { coAuthors: newCoAuthors as any },
     });
-    await articleDoc.save();
 
     // Create notification for invitee
     await createNotification({
@@ -138,7 +149,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       actorId: session.user.id,
       targetId: userId,
       context: 'coauthor',
-      objectId: articleDoc._id.toString(),
+      objectId: articleDoc.id,
       objectType: 'article',
       objectTitle: articleDoc.title,
       objectUrl: `/articles/${articleDoc.slug}/invite`,

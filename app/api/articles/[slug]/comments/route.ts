@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { fetchArticleComments } from '@/lib/mastodon';
 
 interface RouteParams {
@@ -22,12 +21,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Find the article
-    const articleDoc = await article
-      .findOne({ slug, status: 'published' })
-      .lean();
+    const articleDoc = await prisma.article.findFirst({
+      where: { slug, status: 'published' },
+      select: { mastodonPostUrl: true },
+    });
 
     if (!articleDoc) {
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const mastodonPostUrl = (articleDoc as any).mastodonPostUrl;
+    const mastodonPostUrl = articleDoc.mastodonPostUrl;
 
     // If no Mastodon post linked, return empty comments
     if (!mastodonPostUrl) {

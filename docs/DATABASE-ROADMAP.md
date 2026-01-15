@@ -615,74 +615,6 @@ Since MongoDB documents reference PostgreSQL IDs:
 
 ---
 
-## MongoDB Schema Change Tracking
-
-Unlike PostgreSQL (with Prisma Migrate), MongoDB/Mongoose schemas change directly in code. To maintain coordination with PostgreSQL and ensure team awareness, all schema changes are tracked via changelogs.
-
-### Directory Structure
-
-```
-mongo-migrations/
-├── README.md           # Process documentation
-├── CHANGELOG.md        # Summary of all changes
-└── changes/
-    └── YYYY-MM-DD_model_description.md
-```
-
-### Workflow
-
-When modifying any file in `lib/model/`:
-
-1. **Create changelog entry**:
-
-   ```bash
-   # Create: mongo-migrations/changes/2025-01-15_profile_add_verification.md
-   ```
-
-2. **Document PostgreSQL dependencies** (if any):
-
-   ```markdown
-   ## PostgreSQL Dependencies
-
-   - **Required Migration**: 20250115_init_users_and_auth
-   - **Table**: users
-   - **Column**: id
-   ```
-
-3. **Stage both files**:
-   ```bash
-   git add lib/model/profile.ts mongo-migrations/changes/2025-01-15_profile_add_verification.md
-   ```
-
-### Git Hooks Enforcement
-
-The `.husky/pre-commit` hook validates:
-
-1. **Changelog required** - Model changes without changelog entries are blocked
-2. **No bypass** - Changelog entries are mandatory in all situations
-
-Run validation manually:
-
-```bash
-./scripts/validate-mongo-changes.sh --staged
-```
-
-### Type-Safe PostgreSQL References
-
-Use types from `lib/types/cross-db-refs.ts` for build-time validation:
-
-```typescript
-import { PostgresUserId } from '@/lib/types/cross-db-refs';
-
-interface IProfile {
-  userId: PostgresUserId; // Type-checked against Prisma schema
-}
-```
-
-When Prisma is configured, these types will be derived from `@prisma/client`, ensuring referenced tables exist.
-
----
-
 ## Data Migration Path
 
 ### Phase 1: Add PostgreSQL (Parallel Operation) ✅
@@ -774,25 +706,50 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
 
 **Why notifications first:** Most relational data in MongoDB (actor/target references), benefits most from real FKs.
 
-### Phase 6: Migrate Articles
+### Phase 6: Migrate Articles ✅
 
-- [ ] Create `articles` table with JSONB for flexible metadata
-- [ ] Migrate article data from MongoDB
-- [ ] Update article queries to use Prisma
-- [ ] Remove `lib/model/article.ts`
+- [x] Create `articles` table with JSONB for flexible metadata
+  - Added `Article` model to Prisma schema with enums
+  - Migration: `20260114160000_add_articles`
+  - Includes self-referencing `inReplyTo` for article threading
+  - JSONB columns for `coAuthors` and `reviewedBy` nested data
+- [x] Create migration script (`scripts/migrate-articles.ts`)
+  - Maps MongoDB user ObjectIds to PostgreSQL user IDs via email
+  - Preserves all article metadata including tags, reading time, etc.
+  - Supports dry-run mode for validation
+- [x] Update article queries to use Prisma
+  - All `/api/articles/*` routes updated
+  - All `/api/admin/articles/*` routes updated
+  - All RSS/JSON feed routes (`/feed.*`) updated
+  - Public article view page updated
+  - Helper functions in `lib/article.ts` updated
+- [x] Remove `lib/model/article.ts`
 
-**Schema approach:**
+**Schema implemented:**
 
 ```sql
 CREATE TABLE articles (
   id TEXT PRIMARY KEY,
-  author_id TEXT REFERENCES users(id),
+  slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
-  slug TEXT UNIQUE,
-  content TEXT,
-  metadata JSONB,  -- Flexible fields
+  content TEXT NOT NULL,
+  excerpt TEXT,
+  article_type ArticleType NOT NULL,
+  tags TEXT[],
+  cover_image TEXT,
+  reading_time INTEGER DEFAULT 1,
+  author_id TEXT NOT NULL REFERENCES users(id),
+  co_authors JSONB,  -- [{userId, status, invitedAt, ...}]
+  reviewed_by JSONB, -- {userId, status, checklist, comments, ...}
+  in_reply_to TEXT REFERENCES articles(id),
+  status ArticleStatus DEFAULT 'draft',
   published_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  removed_at TIMESTAMPTZ,
+  removed_by TEXT REFERENCES users(id),
+  removal_reason TEXT,
+  mastodon_post_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
@@ -945,3 +902,4 @@ After implementation, update GitHub repository:
 | 2025-01-09 | Initial roadmap created                                |
 | 2025-01-14 | Phase 3 complete: auth scripts converted, docs updated |
 | 2025-01-14 | Phase 5 complete: notifications migrated to PostgreSQL |
+| 2025-01-15 | Phase 6 complete: articles migrated to PostgreSQL      |

@@ -7,12 +7,31 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
+
+interface ReviewComment {
+  id: string;
+  text: string;
+  contentRef?: string;
+  createdAt: string;
+  resolved: boolean;
+  resolvedAt?: string;
+}
+
+interface ReviewedBy {
+  userId: string;
+  status: string;
+  checklist: any;
+  comments: ReviewComment[];
 }
 
 /**
@@ -24,24 +43,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug, id: commentId } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -50,12 +61,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user is author or co-author (they can resolve comments)
-    const isAuthor =
-      articleDoc.authorId.toString() === currentUser._id.toString();
-    const isCoAuthor = articleDoc.coAuthors?.some(
-      (ca: any) =>
-        ca.userId.toString() === currentUser._id.toString() &&
-        ca.status === 'accepted'
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    const isAuthor = articleDoc.authorId === session.user.id;
+    const isCoAuthor = coAuthors.some(
+      (ca) => ca.userId === session.user.id && ca.status === 'accepted'
     );
 
     if (!isAuthor && !isCoAuthor) {
@@ -66,15 +75,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find and update the comment
-    if (!articleDoc.reviewedBy?.comments) {
+    const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
+    if (!reviewedBy?.comments) {
       return NextResponse.json(
         { success: false, error: 'No comments found' },
         { status: 404 }
       );
     }
 
-    const commentIndex = articleDoc.reviewedBy.comments.findIndex(
-      (c: any) => c.id === commentId
+    const commentIndex = reviewedBy.comments.findIndex(
+      (c) => c.id === commentId
     );
 
     if (commentIndex === -1) {
@@ -84,10 +94,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    articleDoc.reviewedBy.comments[commentIndex].resolved = true;
-    articleDoc.reviewedBy.comments[commentIndex].resolvedAt = new Date();
+    // Update the comment
+    const updatedComments = [...reviewedBy.comments];
+    updatedComments[commentIndex] = {
+      ...updatedComments[commentIndex],
+      resolved: true,
+      resolvedAt: new Date().toISOString(),
+    };
 
-    await articleDoc.save();
+    const updatedReviewedBy = {
+      ...reviewedBy,
+      comments: updatedComments,
+    };
+
+    await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: { reviewedBy: updatedReviewedBy as any },
+    });
 
     return NextResponse.json({
       success: true,

@@ -6,9 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 
 /**
  * GET /api/articles/search
@@ -28,45 +26,50 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Build search query
-    const searchQuery: Record<string, unknown> = {
+    const where: any = {
       status: 'published',
-      title: { $regex: query, $options: 'i' },
+      title: { contains: query, mode: 'insensitive' },
     };
 
     if (excludeSlug) {
-      searchQuery.slug = { $ne: excludeSlug };
+      where.slug = { not: excludeSlug };
     }
 
     // Search articles
-    const articles = await article
-      .find(searchQuery)
-      .sort({ publishedAt: -1 })
-      .limit(limit)
-      .select('_id slug title excerpt publishedAt authorId')
-      .lean();
+    const articles = await prisma.article.findMany({
+      where,
+      orderBy: { publishedAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        publishedAt: true,
+        authorId: true,
+      },
+    });
 
     // Get author info
-    const authorIds = [
-      ...new Set(articles.map((a: any) => a.authorId.toString())),
-    ];
-    const authors = await user.find({ _id: { $in: authorIds } }).lean();
+    const authorIds = [...new Set(articles.map((a) => a.authorId))];
+    const authors = await prisma.user.findMany({
+      where: { id: { in: authorIds } },
+      select: { id: true, screenname: true },
+    });
     const authorMap = new Map(
-      authors.map((a: any) => [
-        a._id.toString(),
-        { screenname: a.screenname, name: a.name },
-      ])
+      authors.map((a) => [a.id, { screenname: a.screenname }])
     );
 
-    const enrichedArticles = articles.map((a: any) => ({
-      _id: a._id.toString(),
+    const enrichedArticles = articles.map((a) => ({
+      id: a.id,
       slug: a.slug,
       title: a.title,
       excerpt: a.excerpt,
       publishedAt: a.publishedAt,
-      author: authorMap.get(a.authorId.toString()) || { screenname: null },
+      author: authorMap.get(a.authorId) || { screenname: null },
     }));
 
     return NextResponse.json({

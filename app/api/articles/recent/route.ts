@@ -6,9 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
 
 /**
  * GET /api/articles/recent
@@ -22,56 +25,57 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type'); // 'business_update' or 'community_commentary'
     const tag = searchParams.get('tag');
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Build query
-    const query: Record<string, unknown> = { status: 'published' };
+    const where: any = { status: 'published' };
 
     if (type && ['business_update', 'community_commentary'].includes(type)) {
-      query.articleType = type;
+      where.articleType = type;
     }
 
     if (tag) {
-      query.tags = tag.toLowerCase();
+      where.tags = { has: tag.toLowerCase() };
     }
 
-    // Fetch articles
-    const articles = await article
-      .find(query)
-      .sort({ publishedAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .lean();
-
-    // Get total count for pagination
-    const total = await article.countDocuments(query);
+    // Fetch articles and count
+    const [articles, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        orderBy: { publishedAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.article.count({ where }),
+    ]);
 
     // Enrich with author info
-    const authorIds = [
-      ...new Set(articles.map((a: any) => a.authorId.toString())),
-    ];
-    const authors = await user.find({ _id: { $in: authorIds } }).lean();
+    const authorIds = [...new Set(articles.map((a) => a.authorId))];
+    const authors = await prisma.user.findMany({
+      where: { id: { in: authorIds } },
+      select: { id: true, screenname: true },
+    });
     const authorMap = new Map(
-      authors.map((a: any) => [
-        a._id.toString(),
-        { screenname: a.screenname, name: a.name },
-      ])
+      authors.map((a) => [a.id, { screenname: a.screenname }])
     );
 
-    const enrichedArticles = articles.map((a: any) => ({
-      _id: a._id.toString(),
-      slug: a.slug,
-      title: a.title,
-      excerpt: a.excerpt,
-      articleType: a.articleType,
-      tags: a.tags,
-      coverImage: a.coverImage,
-      readingTime: a.readingTime,
-      publishedAt: a.publishedAt,
-      author: authorMap.get(a.authorId.toString()) || { screenname: null },
-      coAuthorCount:
-        a.coAuthors?.filter((ca: any) => ca.status === 'accepted').length || 0,
-    }));
+    const enrichedArticles = articles.map((a) => {
+      const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
+      return {
+        id: a.id,
+        slug: a.slug,
+        title: a.title,
+        excerpt: a.excerpt,
+        articleType: a.articleType,
+        tags: a.tags,
+        coverImage: a.coverImage,
+        readingTime: a.readingTime,
+        publishedAt: a.publishedAt,
+        author: authorMap.get(a.authorId) || { screenname: null },
+        coAuthorCount:
+          coAuthors?.filter((ca) => ca.status === 'accepted').length || 0,
+      };
+    });
 
     return NextResponse.json({
       success: true,

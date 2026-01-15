@@ -7,9 +7,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
 
 /**
  * GET /api/articles/my - List current user's articles (author or co-author)
@@ -17,65 +20,93 @@ import article from '@/lib/model/article';
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
-
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
+    const prisma = await getPrisma();
+    const currentUserId = session.user.id;
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Find articles where user is author or co-author
-    const query: Record<string, unknown> = {
-      $or: [
-        { authorId: currentUser._id },
-        { 'coAuthors.userId': currentUser._id },
-      ],
-    };
+    // Build status filter
+    const statusFilter = status
+      ? { in: status.split(',') as any[] }
+      : undefined;
 
-    // Filter by status if provided
-    if (status) {
-      const statuses = status.split(',');
-      query.status = { $in: statuses };
-    }
+    // Query articles where user is author
+    const authorArticles = await prisma.article.findMany({
+      where: {
+        authorId: currentUserId,
+        ...(statusFilter ? { status: statusFilter as any } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        articleType: true,
+        status: true,
+        authorId: true,
+        coAuthors: true,
+        publishedAt: true,
+        updatedAt: true,
+        readingTime: true,
+      },
+    });
 
-    const articles = await article
-      .find(query)
-      .sort({ updatedAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .select(
-        'slug title excerpt articleType status authorId coAuthors publishedAt updatedAt readingTime'
-      )
-      .lean();
+    // Query all articles to check coAuthors (JSONB filtering)
+    const allArticles = await prisma.article.findMany({
+      where: statusFilter ? { status: statusFilter as any } : undefined,
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        articleType: true,
+        status: true,
+        authorId: true,
+        coAuthors: true,
+        publishedAt: true,
+        updatedAt: true,
+        readingTime: true,
+      },
+    });
 
-    const total = await article.countDocuments(query);
+    // Filter for co-authored articles
+    const coAuthoredArticles = allArticles.filter((a) => {
+      if (a.authorId === currentUserId) return false;
+      const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
+      return coAuthors?.some((ca) => ca.userId === currentUserId);
+    });
+
+    // Merge and sort by updatedAt
+    const combined = [...authorArticles, ...coAuthoredArticles].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    );
+
+    // Apply pagination
+    const total = combined.length;
+    const articles = combined.slice(offset, offset + limit);
 
     // Determine user's role in each article
-    const articlesWithRole = articles.map((a: any) => {
-      const isAuthor = a.authorId.toString() === currentUser._id.toString();
-      const coAuthorEntry = a.coAuthors?.find(
-        (ca: any) => ca.userId.toString() === currentUser._id.toString()
+    const articlesWithRole = articles.map((a) => {
+      const isAuthor = a.authorId === currentUserId;
+      const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
+      const coAuthorEntry = coAuthors?.find(
+        (ca) => ca.userId === currentUserId
       );
 
       return {
         ...a,
-        _id: a._id.toString(),
-        authorId: a.authorId.toString(),
         userRole: isAuthor ? 'author' : 'coauthor',
         coAuthorStatus: coAuthorEntry?.status,
       };

@@ -9,11 +9,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import Profile from '@/lib/model/profile';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  status: string;
+}
+
+interface ReviewedBy {
+  userId: string;
+  requestedAt: string;
+  invitationMessage?: string;
+  status: string;
+  checklist: {
+    factsVerified: boolean;
+    sourcesChecked: boolean;
+    communityStandards: boolean;
+  };
+  comments: any[];
 }
 
 /**
@@ -25,16 +43,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    const prisma = await getPrisma();
     await dbConnect();
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -42,12 +61,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if user is author or accepted co-author (using email or userId)
-    const isAuthor =
-      articleDoc.authorEmail === session.user.email ||
-      articleDoc.authorUserId === session.user.id;
-    const isCoAuthor = articleDoc.coAuthors?.some(
-      (ca: any) => ca.userId === session.user.id && ca.status === 'accepted'
+    // Check if user is author or accepted co-author
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    const isAuthor = articleDoc.authorId === session.user.id;
+    const isCoAuthor = coAuthors.some(
+      (ca) => ca.userId === session.user.id && ca.status === 'accepted'
     );
 
     if (!isAuthor && !isCoAuthor) {
@@ -69,7 +87,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if there's already a pending review
-    if (articleDoc.reviewedBy?.status === 'pending') {
+    const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
+    if (reviewedBy?.status === 'pending') {
       return NextResponse.json(
         { success: false, error: 'A review is already pending' },
         { status: 400 }
@@ -110,8 +129,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const isReviewerCoAuthor = articleDoc.coAuthors?.some(
-      (ca: any) => ca.userId === userId && ca.status === 'accepted'
+    const isReviewerCoAuthor = coAuthors.some(
+      (ca) => ca.userId === userId && ca.status === 'accepted'
     );
     if (isReviewerCoAuthor) {
       return NextResponse.json(
@@ -120,10 +139,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Set up review request (store PostgreSQL user ID)
-    articleDoc.reviewedBy = {
+    // Set up review request
+    const newReviewedBy: ReviewedBy = {
       userId,
-      requestedAt: new Date(),
+      requestedAt: new Date().toISOString(),
       invitationMessage: message || undefined,
       status: 'pending',
       checklist: {
@@ -133,8 +152,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       comments: [],
     };
-    articleDoc.status = 'pending_review';
-    await articleDoc.save();
+
+    await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: {
+        reviewedBy: newReviewedBy as any,
+        status: 'pending_review',
+      },
+    });
 
     // Create notification for reviewer
     await createNotification({
@@ -142,7 +167,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       actorId: session.user.id,
       targetId: userId,
       context: 'review',
-      objectId: articleDoc._id.toString(),
+      objectId: articleDoc.id,
       objectType: 'article',
       objectTitle: articleDoc.title,
       objectUrl: `/articles/${articleDoc.slug}/review`,

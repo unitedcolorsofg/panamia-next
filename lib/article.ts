@@ -5,8 +5,7 @@
  * Utilities for article creation, slug generation, and validation
  */
 
-import dbConnect from './connectdb';
-import article from './model/article';
+import { getPrisma } from '@/lib/prisma';
 import type { ArticleStatus } from './interfaces';
 
 /**
@@ -28,7 +27,7 @@ export function generateSlug(title: string): string {
  * Appends a number if the slug already exists
  */
 export async function generateUniqueSlug(title: string): Promise<string> {
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const baseSlug = generateSlug(title);
   if (!baseSlug) {
@@ -39,7 +38,7 @@ export async function generateUniqueSlug(title: string): Promise<string> {
   let slug = baseSlug;
   let counter = 1;
 
-  while (await article.exists({ slug })) {
+  while (await prisma.article.findUnique({ where: { slug } })) {
     slug = `${baseSlug}-${counter}`;
     counter++;
   }
@@ -151,13 +150,13 @@ export function isPublishable(articleDoc: {
  * Get article by slug
  */
 export async function getArticleBySlug(slug: string) {
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  return await article.findOne({ slug }).lean();
+  return await prisma.article.findUnique({ where: { slug } });
 }
 
 /**
- * Get articles by author
+ * Get articles by author (includes co-authored articles)
  */
 export async function getArticlesByAuthor(
   authorId: string,
@@ -167,26 +166,47 @@ export async function getArticlesByAuthor(
     offset?: number;
   } = {}
 ) {
-  await dbConnect();
-
+  const prisma = await getPrisma();
   const { status, limit = 20, offset = 0 } = options;
 
-  const query: Record<string, unknown> = {
-    $or: [{ authorId }, { 'coAuthors.userId': authorId }],
-  };
+  // Build status filter
+  const statusFilter = status
+    ? Array.isArray(status)
+      ? { in: status as any[] }
+      : status
+    : undefined;
 
-  if (status) {
-    query.status = Array.isArray(status) ? { $in: status } : status;
-  }
+  // Query articles where user is author
+  const authorArticles = await prisma.article.findMany({
+    where: {
+      authorId,
+      ...(statusFilter ? { status: statusFilter as any } : {}),
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
 
-  const articles = await article
-    .find(query)
-    .sort({ updatedAt: -1 })
-    .skip(offset)
-    .limit(limit)
-    .lean();
+  // Query all articles to check coAuthors (JSONB filtering)
+  // Note: For large datasets, consider using raw SQL with JSONB operators
+  const allArticles = await prisma.article.findMany({
+    where: statusFilter ? { status: statusFilter as any } : undefined,
+    orderBy: { updatedAt: 'desc' },
+  });
 
-  const total = await article.countDocuments(query);
+  // Filter for co-authored articles
+  const coAuthoredArticles = allArticles.filter((a) => {
+    if (a.authorId === authorId) return false; // Already in authorArticles
+    const coAuthors = a.coAuthors as Array<{ userId: string }> | null;
+    return coAuthors?.some((ca) => ca.userId === authorId);
+  });
+
+  // Merge and sort by updatedAt
+  const combined = [...authorArticles, ...coAuthoredArticles].sort(
+    (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+  );
+
+  // Apply pagination
+  const total = combined.length;
+  const articles = combined.slice(offset, offset + limit);
 
   return {
     articles,
@@ -206,28 +226,28 @@ export async function getPublishedArticles(
     offset?: number;
   } = {}
 ) {
-  await dbConnect();
-
+  const prisma = await getPrisma();
   const { articleType, tag, limit = 20, offset = 0 } = options;
 
-  const query: Record<string, unknown> = { status: 'published' };
+  const where: any = { status: 'published' };
 
   if (articleType) {
-    query.articleType = articleType;
+    where.articleType = articleType;
   }
 
   if (tag) {
-    query.tags = tag;
+    where.tags = { has: tag };
   }
 
-  const articles = await article
-    .find(query)
-    .sort({ publishedAt: -1 })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-
-  const total = await article.countDocuments(query);
+  const [articles, total] = await Promise.all([
+    prisma.article.findMany({
+      where,
+      orderBy: { publishedAt: 'desc' },
+      skip: offset,
+      take: limit,
+    }),
+    prisma.article.count({ where }),
+  ]);
 
   return {
     articles,
@@ -240,10 +260,10 @@ export async function getPublishedArticles(
  * Get articles that are replies to a specific article
  */
 export async function getArticleReplies(articleId: string) {
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  return await article
-    .find({ inReplyTo: articleId, status: 'published' })
-    .sort({ publishedAt: 1 })
-    .lean();
+  return await prisma.article.findMany({
+    where: { inReplyTo: articleId, status: 'published' },
+    orderBy: { publishedAt: 'asc' },
+  });
 }

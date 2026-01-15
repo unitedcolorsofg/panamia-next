@@ -9,11 +9,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import Profile from '@/lib/model/profile';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  status: string;
 }
 
 /**
@@ -25,14 +30,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    await dbConnect();
 
     // Check admin status from session (set in auth.ts session callback)
     if (!session.user.isAdmin) {
@@ -42,10 +45,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const prisma = await getPrisma();
+    await dbConnect();
+
     // Get current user's profile for response
     const currentProfile = await Profile.findOne({ userId: session.user.id });
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -65,41 +71,38 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const previousRemovalReason = articleDoc.removalReason;
 
     // Restore article to published
-    articleDoc.status = 'published';
-    // Keep removedAt, removedBy, removalReason for audit trail
-    await articleDoc.save();
+    const updatedArticle = await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: {
+        status: 'published',
+        // Keep removedAt, removedBy, removalReason for audit trail
+      },
+    });
 
-    // Get author's userId from their profile
-    const authorProfile = await Profile.findOne({
-      email: articleDoc.authorEmail,
-    }).select('userId');
+    // Notify the author
+    await createNotification({
+      actorId: session.user.id,
+      targetId: articleDoc.authorId,
+      type: 'Undo',
+      objectType: 'article',
+      objectId: articleDoc.id,
+      objectTitle: articleDoc.title,
+      objectUrl: `/articles/${articleDoc.slug}`,
+      context: 'article',
+    });
 
-    // Notify the author (if they have a userId)
-    if (authorProfile?.userId) {
-      await createNotification({
-        actorId: session.user.id,
-        targetId: authorProfile.userId,
-        type: 'Undo',
-        objectType: 'article',
-        objectId: articleDoc._id.toString(),
-        objectTitle: articleDoc.title,
-        objectUrl: `/articles/${articleDoc.slug}`,
-        context: 'article',
-      });
-    }
-
-    // Notify co-authors (they now have PostgreSQL user IDs)
-    const acceptedCoAuthors =
-      articleDoc.coAuthors?.filter(
-        (ca: any) => ca.status === 'accepted' && ca.userId
-      ) || [];
+    // Notify co-authors
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    const acceptedCoAuthors = coAuthors.filter(
+      (ca) => ca.status === 'accepted' && ca.userId
+    );
     for (const coAuthor of acceptedCoAuthors) {
       await createNotification({
         actorId: session.user.id,
         targetId: coAuthor.userId,
         type: 'Undo',
         objectType: 'article',
-        objectId: articleDoc._id.toString(),
+        objectId: articleDoc.id,
         objectTitle: articleDoc.title,
         objectUrl: `/articles/${articleDoc.slug}`,
         context: 'article',
@@ -109,8 +112,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        slug: articleDoc.slug,
-        status: articleDoc.status,
+        slug: updatedArticle.slug,
+        status: updatedArticle.status,
         restoredBy: currentProfile?.slug || currentProfile?.name || 'Admin',
         previousRemovalReason,
       },

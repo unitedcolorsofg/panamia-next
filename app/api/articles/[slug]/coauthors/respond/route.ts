@@ -7,13 +7,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
+}
+
+interface CoAuthor {
+  userId: string;
+  invitedAt?: string;
+  invitationMessage?: string;
+  status: string;
+  acceptedAt?: string;
 }
 
 /**
@@ -25,16 +31,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -55,12 +61,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the invitation for this user (using PostgreSQL user ID)
-    const inviteIndex = articleDoc.coAuthors?.findIndex(
-      (ca: any) => ca.userId === session.user.id && ca.status === 'pending'
+    // Find the invitation for this user
+    const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
+    const inviteIndex = coAuthors.findIndex(
+      (ca) => ca.userId === session.user.id && ca.status === 'pending'
     );
 
-    if (inviteIndex === undefined || inviteIndex === -1) {
+    if (inviteIndex === -1) {
       return NextResponse.json(
         { success: false, error: 'No pending invitation found' },
         { status: 404 }
@@ -68,33 +75,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update invitation status
+    const updatedCoAuthors = [...coAuthors];
     if (action === 'accept') {
-      articleDoc.coAuthors[inviteIndex].status = 'accepted';
-      articleDoc.coAuthors[inviteIndex].acceptedAt = new Date();
+      updatedCoAuthors[inviteIndex] = {
+        ...updatedCoAuthors[inviteIndex],
+        status: 'accepted',
+        acceptedAt: new Date().toISOString(),
+      };
     } else {
-      articleDoc.coAuthors[inviteIndex].status = 'declined';
+      updatedCoAuthors[inviteIndex] = {
+        ...updatedCoAuthors[inviteIndex],
+        status: 'declined',
+      };
     }
 
-    await articleDoc.save();
+    await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: { coAuthors: updatedCoAuthors as any },
+    });
 
-    // Get author's userId from their profile
-    const authorProfile = await Profile.findOne({
-      email: articleDoc.authorEmail,
-    }).select('userId');
-
-    // Notify the author (if they have a userId)
-    if (authorProfile?.userId) {
-      await createNotification({
-        type: action === 'accept' ? 'Accept' : 'Reject',
-        actorId: session.user.id,
-        targetId: authorProfile.userId,
-        context: 'coauthor',
-        objectId: articleDoc._id.toString(),
-        objectType: 'article',
-        objectTitle: articleDoc.title,
-        objectUrl: `/articles/${articleDoc.slug}/edit`,
-      });
-    }
+    // Notify the author
+    await createNotification({
+      type: action === 'accept' ? 'Accept' : 'Reject',
+      actorId: session.user.id,
+      targetId: articleDoc.authorId,
+      context: 'coauthor',
+      objectId: articleDoc.id,
+      objectType: 'article',
+      objectTitle: articleDoc.title,
+      objectUrl: `/articles/${articleDoc.slug}/edit`,
+    });
 
     return NextResponse.json({
       success: true,

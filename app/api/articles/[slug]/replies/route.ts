@@ -6,9 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import article from '@/lib/model/article';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -22,10 +20,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Find the parent article
-    const parentArticle = await article.findOne({ slug }).lean();
+    const parentArticle = await prisma.article.findUnique({ where: { slug } });
     if (!parentArticle) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only show replies to published articles
-    if ((parentArticle as any).status !== 'published') {
+    if (parentArticle.status !== 'published') {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
         { status: 404 }
@@ -42,33 +40,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find reply articles
-    const replies = await article
-      .find({
-        inReplyTo: (parentArticle as any)._id,
+    const replies = await prisma.article.findMany({
+      where: {
+        inReplyTo: parentArticle.id,
         status: 'published',
-      })
-      .sort({ publishedAt: -1 })
-      .lean();
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
 
     // Enrich with author info
-    const authorIds = [
-      ...new Set(replies.map((a: any) => a.authorId.toString())),
-    ];
-    const authors = await user.find({ _id: { $in: authorIds } }).lean();
+    const authorIds = [...new Set(replies.map((a) => a.authorId))];
+    const authors = await prisma.user.findMany({
+      where: { id: { in: authorIds } },
+      select: { id: true, screenname: true },
+    });
     const authorMap = new Map(
-      authors.map((a: any) => [
-        a._id.toString(),
-        { screenname: a.screenname, name: a.name },
-      ])
+      authors.map((a) => [a.id, { screenname: a.screenname }])
     );
 
-    const enrichedReplies = replies.map((a: any) => ({
-      _id: a._id.toString(),
+    const enrichedReplies = replies.map((a) => ({
+      id: a.id,
       slug: a.slug,
       title: a.title,
       excerpt: a.excerpt,
       publishedAt: a.publishedAt,
-      author: authorMap.get(a.authorId.toString()) || { screenname: null },
+      author: authorMap.get(a.authorId) || { screenname: null },
     }));
 
     return NextResponse.json({

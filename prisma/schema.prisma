@@ -43,6 +43,8 @@ model User {
   sessions              Session[]
   notificationsSent     Notification[] @relation("NotificationActor")
   notificationsReceived Notification[] @relation("NotificationTarget")
+  articles              Article[]      @relation("ArticleAuthor")
+  articlesRemoved       Article[]      @relation("ArticleRemovedBy")
 
   @@map("users")
 }
@@ -169,4 +171,80 @@ model Notification {
   @@index([target, context, createdAt(sort: Desc)])
   @@index([expiresAt])
   @@map("notifications")
+}
+
+// =============================================================================
+// Articles
+// =============================================================================
+// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+// Schema designed for future ActivityPub federation as Note/Article objects
+//
+// Note: authorId references PostgreSQL user ID (cuid format)
+// coAuthors and reviewedBy stored as JSONB for flexibility
+
+enum ArticleType {
+  business_update
+  community_commentary
+}
+
+enum ArticleStatus {
+  draft
+  pending_review
+  revision_needed
+  published
+  removed
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core content
+  slug       String  @unique
+  title      String
+  content    String  // Markdown or HTML content
+  excerpt    String?
+  coverImage String?
+
+  // Classification
+  articleType ArticleType
+  tags        String[]
+
+  // Attribution - FK to PostgreSQL users
+  authorId String
+  author   User   @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Co-authors stored as JSONB for flexibility
+  // Structure: [{ userId, invitedAt, invitationMessage, status, acceptedAt }]
+  coAuthors Json @default("[]")
+
+  // Review record stored as JSONB
+  // Structure: { userId, requestedAt, invitationMessage, status, checklist, comments, approvedAt }
+  reviewedBy Json?
+
+  // Threading - self-referencing for replies
+  inReplyTo       String?
+  parentArticle   Article?  @relation("ArticleReplies", fields: [inReplyTo], references: [id], onDelete: SetNull)
+  replies         Article[] @relation("ArticleReplies")
+
+  // Workflow
+  status      ArticleStatus @default(draft)
+  publishedAt DateTime?
+
+  // Removal tracking
+  removedAt      DateTime?
+  removedBy      String?
+  removedByUser  User?     @relation("ArticleRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
+  removalReason  String?
+
+  // Metadata
+  readingTime     Int     @default(1)
+  mastodonPostUrl String?
+
+  // Indexes for common queries
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId, status])
+  @@index([inReplyTo])
+  @@map("articles")
 }

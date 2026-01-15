@@ -7,30 +7,44 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import article from '@/lib/model/article';
+import { getPrisma } from '@/lib/prisma';
 import { calculateReadingTime, generateExcerpt } from '@/lib/article';
+import type { Article } from '@prisma/client';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
 }
 
+interface CoAuthor {
+  userId: string;
+  status: string;
+  invitationMessage?: string;
+  invitedAt?: string;
+  acceptedAt?: string;
+}
+
+interface ReviewedBy {
+  userId: string;
+  status: string;
+  checklist?: any;
+  comments?: any[];
+  requestedAt?: string;
+  approvedAt?: string;
+}
+
 /**
  * Check if user has edit access to an article
  */
-async function hasEditAccess(
-  articleDoc: any,
-  userId: string
-): Promise<boolean> {
+function hasEditAccess(articleDoc: Article, userId: string): boolean {
   // Author always has access
-  if (articleDoc.authorId.toString() === userId) {
+  if (articleDoc.authorId === userId) {
     return true;
   }
 
   // Accepted co-authors have access
-  const coAuthor = articleDoc.coAuthors?.find(
-    (ca: any) => ca.userId.toString() === userId && ca.status === 'accepted'
+  const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
+  const coAuthor = coAuthors?.find(
+    (ca) => ca.userId === userId && ca.status === 'accepted'
   );
 
   return !!coAuthor;
@@ -43,9 +57,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const articleDoc = await article.findOne({ slug }).lean();
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
 
     if (!articleDoc) {
       return NextResponse.json(
@@ -56,24 +70,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Check access permissions
     const session = await auth();
-    const currentUser = session?.user?.email
-      ? await user.findOne({ email: session.user.email })
-      : null;
+    const currentUserId = session?.user?.id;
+
+    const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
+    const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
 
     const isPublished = articleDoc.status === 'published';
-    const isAuthor =
-      currentUser &&
-      articleDoc.authorId.toString() === currentUser._id.toString();
+    const isAuthor = currentUserId && articleDoc.authorId === currentUserId;
     const isCoAuthor =
-      currentUser &&
-      articleDoc.coAuthors?.some(
-        (ca: any) =>
-          ca.userId.toString() === currentUser._id.toString() &&
-          ca.status === 'accepted'
+      currentUserId &&
+      coAuthors?.some(
+        (ca) => ca.userId === currentUserId && ca.status === 'accepted'
       );
-    const isReviewer =
-      currentUser &&
-      articleDoc.reviewedBy?.userId?.toString() === currentUser._id.toString();
+    const isReviewer = currentUserId && reviewedBy?.userId === currentUserId;
 
     // Only published articles are publicly accessible
     if (!isPublished && !isAuthor && !isCoAuthor && !isReviewer) {
@@ -86,63 +95,62 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Prepare response
     const responseData: any = {
       ...articleDoc,
-      _id: (articleDoc as any)._id.toString(),
-      authorId: articleDoc.authorId.toString(),
+      id: articleDoc.id,
     };
 
     // Enrich co-authors with screennames (only for users with edit access)
-    if ((isAuthor || isCoAuthor) && articleDoc.coAuthors?.length) {
-      const coAuthorIds = articleDoc.coAuthors.map((ca: any) => ca.userId);
-      const coAuthorUsers = await user
-        .find({ _id: { $in: coAuthorIds } })
-        .lean();
-      const userMap = new Map(
-        coAuthorUsers.map((u: any) => [u._id.toString(), u.screenname])
-      );
+    if ((isAuthor || isCoAuthor) && coAuthors?.length) {
+      const coAuthorIds = coAuthors.map((ca) => ca.userId);
+      const coAuthorUsers = await prisma.user.findMany({
+        where: { id: { in: coAuthorIds } },
+        select: { id: true, screenname: true },
+      });
+      const userMap = new Map(coAuthorUsers.map((u) => [u.id, u.screenname]));
 
-      responseData.coAuthors = articleDoc.coAuthors.map((ca: any) => ({
-        userId: ca.userId.toString(),
-        screenname: userMap.get(ca.userId.toString()),
+      responseData.coAuthors = coAuthors.map((ca) => ({
+        userId: ca.userId,
+        screenname: userMap.get(ca.userId),
         status: ca.status,
         invitationMessage: ca.invitationMessage,
         invitedAt: ca.invitedAt,
-        respondedAt: ca.respondedAt,
+        acceptedAt: ca.acceptedAt,
       }));
     }
 
     // Enrich reviewer with screenname (only for users with edit access)
-    if ((isAuthor || isCoAuthor) && articleDoc.reviewedBy?.userId) {
-      const reviewerUser = await user
-        .findById(articleDoc.reviewedBy.userId)
-        .lean();
+    if ((isAuthor || isCoAuthor) && reviewedBy?.userId) {
+      const reviewerUser = await prisma.user.findUnique({
+        where: { id: reviewedBy.userId },
+        select: { screenname: true },
+      });
       responseData.reviewedBy = {
-        userId: articleDoc.reviewedBy.userId.toString(),
-        screenname: (reviewerUser as any)?.screenname,
-        status: articleDoc.reviewedBy.status,
-        checklist: articleDoc.reviewedBy.checklist,
-        comments: articleDoc.reviewedBy.comments,
-        requestedAt: articleDoc.reviewedBy.requestedAt,
-        respondedAt: articleDoc.reviewedBy.respondedAt,
+        userId: reviewedBy.userId,
+        screenname: reviewerUser?.screenname,
+        status: reviewedBy.status,
+        checklist: reviewedBy.checklist,
+        comments: reviewedBy.comments,
+        requestedAt: reviewedBy.requestedAt,
+        approvedAt: reviewedBy.approvedAt,
       };
     }
 
     // Enrich inReplyTo with parent article info (for editors)
     if ((isAuthor || isCoAuthor) && articleDoc.inReplyTo) {
-      const parentArticle = await article
-        .findById(articleDoc.inReplyTo)
-        .select('_id slug title')
-        .lean();
+      const parentArticle = await prisma.article.findUnique({
+        where: { id: articleDoc.inReplyTo },
+        select: { id: true, slug: true, title: true },
+      });
       if (parentArticle) {
         responseData.inReplyTo = {
-          _id: (parentArticle as any)._id.toString(),
-          slug: (parentArticle as any).slug,
-          title: (parentArticle as any).title,
+          id: parentArticle.id,
+          slug: parentArticle.slug,
+          title: parentArticle.title,
         };
       }
     }
 
     // Include user's relationship to article if authenticated
-    if (currentUser) {
+    if (currentUserId) {
       responseData.userAccess = {
         isAuthor,
         isCoAuthor,
@@ -172,24 +180,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check edit access
-    if (!(await hasEditAccess(articleDoc, currentUser._id.toString()))) {
+    if (!hasEditAccess(articleDoc, session.user.id)) {
       return NextResponse.json(
         {
           success: false,
@@ -257,7 +257,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Validate inReplyTo if provided
     if (updates.inReplyTo) {
-      const parentArticle = await article.findById(updates.inReplyTo);
+      const parentArticle = await prisma.article.findUnique({
+        where: { id: updates.inReplyTo as string },
+      });
       if (!parentArticle || parentArticle.status !== 'published') {
         return NextResponse.json(
           { success: false, error: 'Invalid parent article' },
@@ -267,17 +269,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Apply updates
-    Object.assign(articleDoc, updates);
-    await articleDoc.save();
+    const updatedArticle = await prisma.article.update({
+      where: { id: articleDoc.id },
+      data: updates as any,
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        _id: articleDoc._id.toString(),
-        slug: articleDoc.slug,
-        title: articleDoc.title,
-        status: articleDoc.status,
-        updatedAt: articleDoc.updatedAt,
+        id: updatedArticle.id,
+        slug: updatedArticle.slug,
+        title: updatedArticle.title,
+        status: updatedArticle.status,
+        updatedAt: updatedArticle.updatedAt,
       },
     });
   } catch (error) {
@@ -297,24 +301,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
 
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user.findOne({ email: session.user.email });
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const articleDoc = await article.findOne({ slug });
+    const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -323,7 +319,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can delete
-    if (articleDoc.authorId.toString() !== currentUser._id.toString()) {
+    if (articleDoc.authorId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'Only the author can delete this article' },
         { status: 403 }
@@ -338,7 +334,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await article.deleteOne({ _id: articleDoc._id });
+    await prisma.article.delete({ where: { id: articleDoc.id } });
 
     return NextResponse.json({
       success: true,
