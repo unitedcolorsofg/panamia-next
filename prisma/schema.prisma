@@ -30,24 +30,91 @@ datasource db {
 //   nextauth_sessions           → sessions
 //   nextauth_verification_tokens → verification_tokens
 
+enum AccountType {
+  personal
+  small_business
+  hybrid
+  other
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified DateTime?
-  screenname    String?   @unique
-  role          String    @default("user")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                      String      @id @default(cuid())
+  email                   String      @unique
+  emailVerified           DateTime?
+  screenname              String?     @unique
+  role                    String      @default("user")
+  accountType             AccountType @default(personal)
+  lockedAt                DateTime?
+  alternateEmails         String[]
+  notificationPreferences Json?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   accounts              Account[]
   sessions              Session[]
-  notificationsSent     Notification[] @relation("NotificationActor")
-  notificationsReceived Notification[] @relation("NotificationTarget")
-  articles              Article[]      @relation("ArticleAuthor")
-  articlesRemoved       Article[]      @relation("ArticleRemovedBy")
+  notificationsSent     Notification[]   @relation("NotificationActor")
+  notificationsReceived Notification[]   @relation("NotificationTarget")
+  articles              Article[]        @relation("ArticleAuthor")
+  articlesRemoved       Article[]        @relation("ArticleRemovedBy")
   profile               Profile?
+  following             UserFollow[]     @relation("Follower")
+  followers             UserFollow[]     @relation("Following")
+  listsOwned            UserList[]
+  listMemberships       UserListMember[]
 
   @@map("users")
+}
+
+// =============================================================================
+// Social Features (Following, Lists)
+// =============================================================================
+// User-to-user following relationship and user-curated lists
+// Migrated from MongoDB user.following[] and userlist collections
+
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_follows")
+}
+
+model UserList {
+  id          String   @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members UserListMember[]
+
+  @@index([ownerId])
+  @@map("user_lists")
+}
+
+model UserListMember {
+  id      String   @id @default(cuid())
+  listId  String
+  userId  String
+  addedAt DateTime @default(now())
+
+  list UserList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+  @@index([listId])
+  @@index([userId])
+  @@map("user_list_members")
 }
 
 model Account {
@@ -254,9 +321,9 @@ model Profile {
   addressHours         String? // Business hours at this location
 
   // Status/Membership Levels
-  active          Boolean          @default(false)
+  active          Boolean         @default(false)
   locallyBased    String?
-  membershipLevel MembershipLevel  @default(free)
+  membershipLevel MembershipLevel @default(free)
 
   // === EXTENDED FLEXIBLE DATA (JSONB) ===
 
@@ -338,7 +405,7 @@ model Article {
   // Core content
   slug       String  @unique
   title      String
-  content    String  // Markdown or HTML content
+  content    String // Markdown or HTML content
   excerpt    String?
   coverImage String?
 
@@ -359,19 +426,19 @@ model Article {
   reviewedBy Json?
 
   // Threading - self-referencing for replies
-  inReplyTo       String?
-  parentArticle   Article?  @relation("ArticleReplies", fields: [inReplyTo], references: [id], onDelete: SetNull)
-  replies         Article[] @relation("ArticleReplies")
+  inReplyTo     String?
+  parentArticle Article?  @relation("ArticleReplies", fields: [inReplyTo], references: [id], onDelete: SetNull)
+  replies       Article[] @relation("ArticleReplies")
 
   // Workflow
   status      ArticleStatus @default(draft)
   publishedAt DateTime?
 
   // Removal tracking
-  removedAt      DateTime?
-  removedBy      String?
-  removedByUser  User?     @relation("ArticleRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
-  removalReason  String?
+  removedAt     DateTime?
+  removedBy     String?
+  removedByUser User?     @relation("ArticleRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
+  removalReason String?
 
   // Metadata
   readingTime     Int     @default(1)
