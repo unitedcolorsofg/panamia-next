@@ -53,6 +53,7 @@
     "@typescript-eslint/parser": "^8.49.0",
     "@vercel/blob": "^2.0.0",
     "@vercel/postgres": "^0.10.0",
+    "@vercel/toolbar": "^0.1.41",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "busboy": "^1.6.0",
