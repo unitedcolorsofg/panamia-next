@@ -1,35 +1,12 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-
 import dbConnect from '@/lib/connectdb';
 import signup from '@/lib/model/signup';
-import user from '@/lib/model/user';
-
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
-  pagination?: {};
-}
+import { checkAdminAuth } from '@/lib/server/admin-auth';
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
+  const adminUser = await checkAdminAuth();
 
-  if (!session) {
-    // secured route
-    return NextResponse.json(
-      { error: 'Not Authorized:session' },
-      { status: 401 }
-    );
-  }
-
-  await dbConnect();
-  const userSession = session?.user?.email
-    ? await user.findOne({ email: session.user.email })
-    : null;
-  if (!(userSession?.status?.role === 'admin')) {
+  if (!adminUser) {
     return NextResponse.json(
       { error: 'Not Authorized:admin' },
       { status: 401 }
@@ -49,6 +26,8 @@ export async function GET(request: NextRequest) {
   const per_page = 20;
   const offset = per_page * page_number - per_page;
 
+  await dbConnect();
+
   const signupCount = await signup.countDocuments();
   const pagination = {
     count: signupCount,
@@ -57,17 +36,16 @@ export async function GET(request: NextRequest) {
     page_number: page_number,
     total_pages: signupCount > 0 ? Math.ceil(signupCount / per_page) : 1,
   };
+
   const signupList = await signup
     .find()
     .sort({ createdAt: 'desc' })
     .limit(per_page)
     .skip(offset);
-  if (signupList) {
-    return NextResponse.json({
-      success: true,
-      data: signupList,
-      pagination: pagination,
-    });
-  }
-  return NextResponse.json({ success: true, data: [], pagination: pagination });
+
+  return NextResponse.json({
+    success: true,
+    data: signupList || [],
+    pagination: pagination,
+  });
 }

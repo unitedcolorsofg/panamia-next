@@ -41,12 +41,15 @@ model User {
   id                      String      @id @default(cuid())
   email                   String      @unique
   emailVerified           DateTime?
+  name                    String?
   screenname              String?     @unique
   role                    String      @default("user")
   accountType             AccountType @default(personal)
   lockedAt                DateTime?
   alternateEmails         String[]
   notificationPreferences Json?
+  zipCode                 String?
+  affiliate               Json?
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 

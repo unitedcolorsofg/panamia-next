@@ -5,7 +5,7 @@ import {
   emailMigrationVerificationText,
 } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 import emailMigration from '@/lib/model/emailMigration';
 import { nanoid } from 'nanoid';
 import nodemailer from 'nodemailer';
@@ -51,16 +51,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    // Check if new email already exists
-    const existingUser = await user.findOne({ email: normalizedNewEmail });
+    // Check if new email already exists (using Prisma)
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedNewEmail },
+    });
     if (existingUser) {
       return NextResponse.json(
         { error: 'Email address already in use' },
         { status: 400 }
       );
     }
+
+    // EmailMigration collection stays on MongoDB for now
+    await dbConnect();
 
     // Check for existing pending migration for this user
     const existingMigration = await emailMigration.findOne({

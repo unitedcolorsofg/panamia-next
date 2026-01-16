@@ -1,39 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import BrevoApi from '@/lib/brevo_api';
-import { splitName } from '@/lib/standardized';
+import { getPrisma } from '@/lib/prisma';
 import { validateScreennameFull } from '@/lib/screenname';
-
-const getUserByEmail = async (email: string) => {
-  await dbConnect();
-  const User = await user.findOne({ email: email });
-  return User;
-};
-
-const callBrevo_createContact = async (email: string, name: string) => {
-  const brevo = new BrevoApi();
-  if (brevo.ready) {
-    const [firstName, lastName] = splitName(name);
-    const attributes = {
-      FIRSTNAME: firstName,
-      LASTNAME: lastName,
-    };
-    let list_ids = [];
-    if (brevo.config.lists.addedByWebsite) {
-      list_ids.push(parseInt(brevo.config.lists.addedByWebsite));
-    }
-    if (brevo.config.lists.webformNewsletter) {
-      list_ids.push(parseInt(brevo.config.lists.webformNewsletter));
-    }
-    const new_contact = await brevo.createOrUpdateContact(
-      email,
-      attributes,
-      list_ids
-    );
-  }
-};
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -70,26 +38,60 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const existingUser = await getUserByEmail(email);
+  const prisma = await getPrisma();
 
-  if (existingUser) {
-    if (name) {
-      existingUser.name = name;
-    }
-    if (zip_code) {
-      existingUser.zip_code = zip_code;
-    }
-    if (screenname) {
-      existingUser.screenname = screenname.trim();
-    }
-    await existingUser.save();
-    return NextResponse.json({ success: true, data: existingUser });
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!existingUser) {
+    return NextResponse.json(
+      { success: true, error: 'Could not find user' },
+      { status: 401 }
+    );
   }
 
-  return NextResponse.json(
-    { success: true, error: 'Could not find user' },
-    { status: 401 }
-  );
+  // Build update data
+  const updateData: { name?: string; zipCode?: string; screenname?: string } =
+    {};
+  if (name) {
+    updateData.name = name;
+  }
+  if (zip_code) {
+    updateData.zipCode = zip_code;
+  }
+  if (screenname) {
+    updateData.screenname = screenname.trim();
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: existingUser.id },
+    data: updateData,
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: formatUserResponse(updatedUser),
+  });
+}
+
+function formatUserResponse(user: any) {
+  return {
+    _id: user.id,
+    email: user.email,
+    name: user.name,
+    screenname: user.screenname,
+    status: {
+      role: user.role,
+      locked: user.lockedAt,
+    },
+    affiliate: user.affiliate,
+    alternate_emails: user.alternateEmails,
+    zip_code: user.zipCode,
+    accountType: user.accountType,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
 }
 
 export const maxDuration = 5;
