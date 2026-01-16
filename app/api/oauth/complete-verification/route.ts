@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import oauthVerification from '@/lib/model/oauthVerification';
-import profile from '@/lib/model/profile';
-import { getPrismaSync } from '@/lib/prisma';
+import { getPrisma, getPrismaSync } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,10 +99,13 @@ export async function POST(request: NextRequest) {
       return { userId };
     });
 
-    // Auto-claim profile (MongoDB operation, separate from transaction)
-    const unclaimedProfile = await profile.findOne({
-      email: email.toLowerCase(),
-      $or: [{ userId: { $exists: false } }, { userId: null }],
+    // Auto-claim profile (PostgreSQL operation, separate from transaction)
+    const prismaAsync = await getPrisma();
+    const unclaimedProfile = await prismaAsync.profile.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        userId: null,
+      },
     });
 
     if (unclaimedProfile) {
@@ -113,8 +115,10 @@ export async function POST(request: NextRequest) {
         'after email verification for provider:',
         provider
       );
-      unclaimedProfile.userId = result.userId;
-      await unclaimedProfile.save();
+      await prismaAsync.profile.update({
+        where: { id: unclaimedProfile.id },
+        data: { userId: result.userId },
+      });
       console.log('Profile claimed successfully');
     }
 

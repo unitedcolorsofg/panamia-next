@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileMentoring } from '@/lib/interfaces';
 
 export async function PATCH(request: Request) {
   const session = await auth();
@@ -11,7 +11,7 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    await dbConnect();
+    const prisma = await getPrisma();
 
     const body = await request.json();
     const {
@@ -46,21 +46,22 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const profile = await Profile.findOneAndUpdate(
-      { email: session.user.email },
-      {
-        $set: {
-          'mentoring.enabled': enabled,
-          'mentoring.expertise': expertise,
-          'mentoring.languages': languages,
-          'mentoring.bio': bio,
-          'mentoring.videoIntroUrl': videoIntroUrl || '',
-          'mentoring.goals': goals || '',
-          'mentoring.hourlyRate': hourlyRate || 0,
-        },
+    const mentoringData: ProfileMentoring = {
+      enabled,
+      expertise,
+      languages,
+      bio,
+      videoIntroUrl: videoIntroUrl || '',
+      goals: goals || '',
+      hourlyRate: hourlyRate || 0,
+    };
+
+    const profile = await prisma.profile.update({
+      where: { email: session.user.email },
+      data: {
+        mentoring: mentoringData as any,
       },
-      { new: true, upsert: true }
-    );
+    });
 
     return NextResponse.json({
       success: true,

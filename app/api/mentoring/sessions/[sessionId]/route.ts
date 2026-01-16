@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import {
   updateSessionNotesSchema,
   cancelSessionSchema,
@@ -126,9 +126,11 @@ export async function PATCH(
       : mentorSession.mentorEmail;
 
     // Get the other party's userId from their profile
-    const otherPartyProfile = await Profile.findOne({
-      email: otherPartyEmail,
-    }).select('userId');
+    const prisma = await getPrisma();
+    const otherPartyProfile = await prisma.profile.findUnique({
+      where: { email: otherPartyEmail },
+      select: { userId: true },
+    });
 
     if (otherPartyProfile?.userId) {
       await createNotification({

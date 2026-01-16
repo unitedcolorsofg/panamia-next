@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileMentoring } from '@/lib/interfaces';
 import { createSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getScheduleUrl } from '@/lib/mentoring';
@@ -70,12 +71,13 @@ export async function POST(request: NextRequest) {
     validation.data;
 
   // Verify mentor exists and has mentoring enabled
-  const mentor = await Profile.findOne({
-    email: mentorEmail,
-    'mentoring.enabled': true,
+  const prisma = await getPrisma();
+  const mentor = await prisma.profile.findUnique({
+    where: { email: mentorEmail },
   });
 
-  if (!mentor) {
+  const mentoring = mentor?.mentoring as ProfileMentoring | null;
+  if (!mentor || !mentoring?.enabled) {
     return NextResponse.json(
       { error: 'Mentor not found or mentoring not enabled' },
       { status: 404 }

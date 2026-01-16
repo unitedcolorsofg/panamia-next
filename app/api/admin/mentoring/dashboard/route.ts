@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileMentoring } from '@/lib/interfaces';
 
 interface DashboardMetrics {
   totalMentors: number;
@@ -103,9 +104,21 @@ export async function GET(request: NextRequest) {
     );
 
     // 1. Total mentors and active mentors
-    const totalMentors = await Profile.countDocuments({
-      'mentoring.enabled': true,
+    const prisma = await getPrisma();
+
+    // Get all profiles with mentoring enabled
+    const mentorProfiles = await prisma.profile.findMany({
+      where: {
+        mentoring: {
+          path: ['enabled'],
+          equals: true,
+        },
+      },
+      select: {
+        mentoring: true,
+      },
     });
+    const totalMentors = mentorProfiles.length;
 
     // Active mentors (those with at least one completed session in date range)
     const activeMentorsSessions = await MentorSession.distinct('mentorEmail', {
@@ -154,25 +167,20 @@ export async function GET(request: NextRequest) {
     const averageSessionDuration = avgDuration[0]?.average || 0;
 
     // 4. Top expertise areas (no date filter - all mentors)
-    const expertiseStats = await Profile.aggregate([
-      { $match: { 'mentoring.enabled': true } },
-      { $unwind: '$mentoring.expertise' },
-      {
-        $group: {
-          _id: '$mentoring.expertise',
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 5 },
-      {
-        $project: {
-          expertise: '$_id',
-          count: 1,
-          _id: 0,
-        },
-      },
-    ]);
+    // Process expertise from fetched mentor profiles
+    const expertiseCounts = new Map<string, number>();
+    for (const profile of mentorProfiles) {
+      const mentoring = profile.mentoring as ProfileMentoring | null;
+      if (mentoring?.expertise) {
+        for (const exp of mentoring.expertise) {
+          expertiseCounts.set(exp, (expertiseCounts.get(exp) || 0) + 1);
+        }
+      }
+    }
+    const expertiseStats = Array.from(expertiseCounts.entries())
+      .map(([expertise, count]) => ({ expertise, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
 
     // 5. Mentor utilization (filtered by date)
     const mentorUtilization = {

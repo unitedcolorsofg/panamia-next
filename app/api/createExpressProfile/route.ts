@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileDescriptions } from '@/lib/interfaces';
 import BrevoApi from '@/lib/brevo_api';
 import { createUniqueString, slugify, splitName } from '@/lib/standardized';
 import { auth } from '@/auth';
@@ -144,8 +144,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  await dbConnect();
-  const existingProfile = await profile.findOne({ email: email });
+  const prisma = await getPrisma();
+  const existingProfile = await prisma.profile.findUnique({
+    where: { email: email.toString().toLowerCase() },
+  });
 
   if (existingProfile) {
     return NextResponse.json(
@@ -154,35 +156,51 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // TODO: Set initial completion percentage?
-  const newProfile = new profile(
-    {
-      userId: session.user.id,
-      name: name,
-      email: email.toString().toLowerCase(),
-      slug: slugify(name),
-      active: false, // TODO: set to false on launch/approval process
-      status: {
-        submitted: new Date(),
-        access: createUniqueString(),
-      },
-      locally_based: locally_based,
-      details: details,
-      background: background,
-      socials: socials,
-      phone_number: phone_number,
-      whatsapp_community: whatsapp_community,
-      pronouns: pronouns,
-      five_words: five_words,
-      tags: tags,
-      hearaboutus: hearaboutus,
-      affiliate: affiliate,
-    },
-    { strict: false }
-  );
+  // Convert pronouns object to string
+  let pronounsStr: string | null = null;
+  if (pronouns) {
+    if (pronouns.sheher) pronounsStr = 'she/her';
+    else if (pronouns.hehim) pronounsStr = 'he/him';
+    else if (pronouns.theythem) pronounsStr = 'they/them';
+    else if (pronouns.none) pronounsStr = 'prefer not to say';
+    else if (pronouns.other && pronouns.other_desc)
+      pronounsStr = pronouns.other_desc;
+    else if (pronouns.other) pronounsStr = 'other';
+  }
+
+  // Build descriptions JSONB
+  const descriptions: ProfileDescriptions = {
+    details: details || null,
+    background: background || null,
+    fiveWords: five_words || null,
+    tags: tags || null,
+    hearaboutus: hearaboutus || null,
+  };
+
+  // Build status JSONB
+  const status = {
+    submitted: new Date().toISOString(),
+    access: createUniqueString(),
+  };
 
   try {
-    await newProfile.save();
+    await prisma.profile.create({
+      data: {
+        userId: session.user.id,
+        name: name,
+        email: email.toString().toLowerCase(),
+        slug: slugify(name),
+        active: false, // TODO: set to false on launch/approval process
+        status: status as any,
+        locallyBased: locally_based || null,
+        descriptions: descriptions as any,
+        socials: socials || null,
+        phoneNumber: phone_number || null,
+        whatsappCommunity: whatsapp_community || false,
+        pronouns: pronounsStr,
+        affiliate: affiliate || null,
+      },
+    });
   } catch (error) {
     console.error('Database error saving profile:', error);
     return NextResponse.json(

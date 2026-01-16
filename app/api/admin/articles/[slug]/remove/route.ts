@@ -7,8 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
 import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
@@ -46,10 +44,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const prisma = await getPrisma();
-    await dbConnect();
 
     // Get current user's profile for response
-    const currentProfile = await Profile.findOne({ userId: session.user.id });
+    const currentProfile = await prisma.profile.findUnique({
+      where: { userId: session.user.id },
+    });
 
     const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {

@@ -1,8 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileDescriptions } from '@/lib/interfaces';
 
 interface ResponseData {
   error?: string;
@@ -42,31 +42,37 @@ export async function POST(request: NextRequest) {
   } = body;
   console.log('phone_number', phone_number);
 
-  const newProfile = new profile({
-    name: name,
-    email: email,
-    slug: slug,
-    active: true,
-    details: details,
-    background: background,
-    five_words: five_words,
-    socials: socials,
-    phone_number: phone_number,
-    tags: tags,
-  });
+  try {
+    const prisma = await getPrisma();
 
-  newProfile
-    .save()
-    .then(() =>
-      NextResponse.json(
-        { msg: 'Successfuly created new Profile: ' + newProfile },
-        { status: 200 }
-      )
-    )
-    .catch((err: string) =>
-      NextResponse.json(
-        { error: "Error on '/api/importProfile': " + err },
-        { status: 400 }
-      )
+    // Build descriptions JSONB
+    const descriptions: ProfileDescriptions = {
+      details: details || null,
+      background: background || null,
+      fiveWords: five_words || null,
+      tags: tags || null,
+    };
+
+    const newProfile = await prisma.profile.create({
+      data: {
+        name,
+        email,
+        slug,
+        active: true,
+        descriptions: descriptions as any,
+        socials: socials || null,
+        phoneNumber: phone_number || null,
+      },
+    });
+
+    return NextResponse.json(
+      { msg: 'Successfully created new Profile: ' + newProfile.id },
+      { status: 200 }
     );
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: "Error on '/api/importProfile': " + err.message },
+      { status: 400 }
+    );
+  }
 }

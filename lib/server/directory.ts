@@ -1,6 +1,6 @@
-// Atlas Search Docs: https://www.mongodb.com/docs/atlas/atlas-search/text/#text
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+// Directory search utilities (migrated from MongoDB Atlas Search to PostgreSQL)
+import { getPrisma } from '@/lib/prisma';
+import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 interface SearchInterface {
   pageNum: number;
@@ -18,13 +18,11 @@ interface SearchInterface {
   freeOnly?: boolean;
 }
 
-const mileInMeters = 1609.344;
-
-const getPivotValue = () => {
-  // PIVOT Calculation: score = pivot / (pivot + distance);
-  return mileInMeters * 50;
-};
-
+/**
+ * Profile directory search
+ * Converted from MongoDB Atlas Search to PostgreSQL ILIKE
+ * Note: Geo-based scoring and fuzzy search are simplified in this version
+ */
 export const getSearch = async ({
   pageNum,
   pageLimit,
@@ -40,222 +38,138 @@ export const getSearch = async ({
   languages,
   freeOnly,
 }: SearchInterface) => {
-  const view = resultsView ? resultsView : 'list';
-
   console.log('getSearch');
-  await dbConnect();
-  console.log('geolat', geolat);
-  console.log('geolng', geolng);
-  // DOCS: https://www.mongodb.com/docs/manual/geospatial-queries/#std-label-geospatial-geojson
-  let geoFilter = {};
-  if (geolat && geolng) {
-    const lat = parseFloat(geolat);
-    const lng = parseFloat(geolng);
-    if (view == 'map') {
-      // DOCS: https://www.mongodb.com/docs/atlas/atlas-search/geoWithin/#syntax
-      geoFilter = {
-        geoWithin: {
-          circle: {
-            center: {
-              type: 'Point',
-              coordinates: [lng, lat],
-            },
-            radius: 1610 * 25, // metersinmile x miles
-          },
-          path: 'geo',
-        },
-      };
-    }
-    if (view == 'list') {
-      // DOCS: https://www.mongodb.com/docs/atlas/atlas-search/near/#syntax
-      geoFilter = {
-        near: {
-          origin: { type: 'Point', coordinates: [lng, lat] },
-          pivot: getPivotValue(),
-          path: 'geo',
-          score: {
-            boost: {
-              value: 10,
-            },
-          },
-        },
-      };
-    }
-  }
-  // console.log("geoFilter", geoFilter)
+  const prisma = await getPrisma();
 
+  // Random profiles
   if (random > 0) {
-    const randomList = await profile.aggregate([
-      { $sample: { size: pageLimit } },
-    ]);
-    return {
-      success: true,
-      data: randomList,
-    };
+    // PostgreSQL doesn't have $sample, so we use a workaround
+    // Get all active profiles and shuffle in memory (for small datasets)
+    const allProfiles = await prisma.profile.findMany({
+      where: { active: true },
+    });
+
+    // Shuffle and take pageLimit
+    const shuffled = allProfiles
+      .sort(() => Math.random() - 0.5)
+      .slice(0, pageLimit);
+
+    // Transform to expected format
+    const data = shuffled.map((p) => transformProfile(p));
+    return { success: true, data };
   }
 
   if (searchTerm) {
-    const offset = pageLimit * pageNum - pageLimit;
+    const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
 
-    //const listCount = await profile.count();
-    //const pagination = {
-    //  count: listCount,
-    //  per_page: pageLimit,
-    //  offset: offset,
-    //  page_number: pageNum,
-    //  total_pages: (listCount > 0 ? Math.ceil(listCount / pageLimit) : 1),
-    //}
-    let locsFilter = {};
+    // Build where clause
+    const whereConditions: any = {
+      active: true,
+    };
+
+    // Get all matching profiles and filter in memory for complex conditions
+    const profiles = await prisma.profile.findMany({
+      where: whereConditions,
+      orderBy: { name: 'asc' },
+    });
+
+    // Filter by search term (name, descriptions)
+    let filtered = profiles.filter((p) => {
+      const descriptions = p.descriptions as ProfileDescriptions | null;
+      const searchLower = searchTerm.toLowerCase();
+
+      // Search in name
+      if (p.name.toLowerCase().includes(searchLower)) return true;
+
+      // Search in descriptions
+      if (descriptions?.fiveWords?.toLowerCase().includes(searchLower))
+        return true;
+      if (descriptions?.tags?.toLowerCase().includes(searchLower)) return true;
+      if (descriptions?.details?.toLowerCase().includes(searchLower))
+        return true;
+      if (descriptions?.background?.toLowerCase().includes(searchLower))
+        return true;
+
+      return false;
+    });
+
+    // Filter by location (counties)
     if (filterLocations) {
       const locs = filterLocations.split('+');
-      let locsPaths: string[] = [];
-      locs.forEach((value) => {
-        locsPaths.push(`counties.${value}`);
+      filtered = filtered.filter((p) => {
+        const counties = p.counties as Record<string, boolean> | null;
+        if (!counties) return false;
+        return locs.some((loc) => counties[loc] === true);
       });
-      if (locsPaths.length > 999) {
-        locsFilter = {
-          equals: {
-            path: locsPaths,
-            value: true,
-          },
-        };
-      }
     }
 
-    let catsFilter = {};
+    // Filter by categories
     if (filterCategories) {
-      const locs = filterCategories.split('+');
-      let catsPaths: string[] = [];
-      locs.forEach((value) => {
-        catsPaths.push(`categories.${value}`);
-      });
-      if (catsPaths.length > 999) {
-        catsFilter = {
-          equals: {
-            path: catsPaths,
-            value: true,
-          },
-        };
-      }
-    }
-
-    // Mentor filters
-    let mentorFilters: any[] = [];
-    if (mentorsOnly) {
-      mentorFilters.push({
-        equals: { path: 'mentoring.enabled', value: true },
-      });
-    }
-    if (expertise) {
-      mentorFilters.push({
-        text: { query: expertise, path: 'mentoring.expertise' },
-      });
-    }
-    if (languages) {
-      mentorFilters.push({
-        text: { query: languages, path: 'mentoring.languages' },
-      });
-    }
-    if (freeOnly) {
-      mentorFilters.push({
-        range: { path: 'mentoring.hourlyRate', lte: 0 },
+      const cats = filterCategories.split('+');
+      filtered = filtered.filter((p) => {
+        const categories = p.categories as Record<string, boolean> | null;
+        if (!categories) return false;
+        return cats.some((cat) => categories[cat] === true);
       });
     }
 
-    const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
-    // console.log("skip", skip);
-    const aggregateQuery = [
-      {
-        $search: {
-          index: 'profiles-search',
-          compound: {
-            filter: [
-              { equals: { path: 'active', value: true } },
-              ...(Object.keys(locsFilter).length !== 0 ? [locsFilter] : []),
-              ...(Object.keys(catsFilter).length !== 0 ? [catsFilter] : []),
-              ...mentorFilters,
-            ],
-            should: [
-              {
-                text: {
-                  query: searchTerm,
-                  path: 'name',
-                  fuzzy: {
-                    maxEdits: 1,
-                    maxExpansions: 5,
-                  },
-                  score: {
-                    boost: {
-                      value: 5,
-                    },
-                  },
-                },
-              },
-              {
-                text: {
-                  query: searchTerm,
-                  path: ['five_words', 'tags'],
-                  score: {
-                    boost: {
-                      value: 3,
-                    },
-                  },
-                },
-              },
-              {
-                text: {
-                  query: searchTerm,
-                  path: ['details', 'background'],
-                },
-              },
-              ...(Object.keys(geoFilter).length !== 0 ? [geoFilter] : []),
-            ],
-            minimumShouldMatch: 1,
-          },
-          count: {
-            type: 'total',
-          },
-        },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: pageLimit,
-      },
-      {
-        $project: {
-          name: 1,
-          slug: 1,
-          socials: 1,
-          five_words: 1,
-          details: 1,
-          'images.primaryCDN': 1,
-          'primary_address.city': 1,
-          geo: 1,
-          'mentoring.enabled': 1,
-          'mentoring.expertise': 1,
-          'mentoring.languages': 1,
-          'mentoring.hourlyRate': 1,
-          score: { $meta: 'searchScore' },
-          paginationToken: { $meta: 'searchSequenceToken' },
-          meta: '$$SEARCH_META',
-        },
-      },
-    ];
+    // Filter by mentoring
+    if (mentorsOnly || expertise || languages || freeOnly) {
+      filtered = filtered.filter((p) => {
+        const mentoring = p.mentoring as ProfileMentoring | null;
+        if (!mentoring?.enabled) return false;
 
-    // TODO: Paginated results for list view
-    // DOCS: https://www.mongodb.com/docs/atlas/atlas-search/tutorial/divide-results-tutorial/
+        if (expertise && !mentoring.expertise?.includes(expertise))
+          return false;
+        if (languages && !mentoring.languages?.includes(languages))
+          return false;
+        if (freeOnly && (mentoring.hourlyRate ?? 0) > 0) return false;
 
-    // DOCS: https://www.mongodb.com/docs/atlas/atlas-search/score/get-details/#syntax
-
-    console.log(aggregateQuery[0]);
-    const aggregateList = await profile.aggregate(aggregateQuery);
-    if (aggregateList) {
-      // console.log(aggregateList);
-      return { success: true, data: aggregateList };
+        return true;
+      });
     }
-    return { success: true, data: [] };
+
+    // Paginate
+    const paginated = filtered.slice(skip, skip + pageLimit);
+
+    // Transform to expected format
+    const data = paginated.map((p) => transformProfile(p));
+
+    return { success: true, data };
   }
+
   return { success: false, data: [] };
 };
+
+/**
+ * Transform Prisma profile to expected output format
+ */
+function transformProfile(p: any) {
+  const descriptions = p.descriptions as ProfileDescriptions | null;
+  const mentoring = p.mentoring as ProfileMentoring | null;
+
+  return {
+    _id: p.id,
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    socials: p.socials,
+    five_words: descriptions?.fiveWords,
+    details: descriptions?.details,
+    images: {
+      primaryCDN: p.primaryImageCdn,
+    },
+    primary_address: {
+      city: p.addressLocality,
+    },
+    geo: p.geo,
+    mentoring: mentoring
+      ? {
+          enabled: mentoring.enabled,
+          expertise: mentoring.expertise,
+          languages: mentoring.languages,
+          hourlyRate: mentoring.hourlyRate,
+        }
+      : undefined,
+  };
+}

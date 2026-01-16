@@ -3,9 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import user from '@/lib/model/user';
-import { unguardUser } from '@/lib/user';
-import profile from '@/lib/model/profile';
-import { unguardProfile } from '@/lib/profile';
 import userlist from '@/lib/model/userlist';
 
 interface ResponseData {

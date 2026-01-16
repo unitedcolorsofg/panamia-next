@@ -7,8 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
 import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
@@ -41,11 +39,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const prisma = await getPrisma();
-    await dbConnect();
 
     // Verify current user has a profile
-    const currentProfile = await Profile.findOne({
-      userId: session.user.id,
+    const currentProfile = await prisma.profile.findUnique({
+      where: { userId: session.user.id },
     });
     if (!currentProfile) {
       return NextResponse.json(
@@ -95,7 +92,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify invitee has a profile with screenname
-    const inviteeProfile = await Profile.findOne({ userId });
+    const inviteeProfile = await prisma.profile.findUnique({
+      where: { userId },
+    });
     if (!inviteeProfile) {
       return NextResponse.json(
         { success: false, error: 'User profile not found' },

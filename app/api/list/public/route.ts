@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import userlist from '@/lib/model/userlist';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 
 async function getUserlist(id: string) {
@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
     console.log('existingUserlist', existingUserlist);
     if (existingUserlist) {
       if (existingUserlist?.profiles.length > 0) {
-        const listProfiles = await profile.find({
-          _id: { $in: existingUserlist.profiles },
+        const prisma = await getPrisma();
+        // Profiles are stored by ID in the userlist
+        const listProfiles = await prisma.profile.findMany({
+          where: {
+            id: { in: existingUserlist.profiles },
+          },
         });
         const profiles = listProfiles.map((guardedProfile) => {
           return unguardProfile(guardedProfile);

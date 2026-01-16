@@ -8,12 +8,10 @@
  * using an ActivityPub-shaped schema for future federation compatibility.
  *
  * Storage: PostgreSQL via Prisma
- * Actor info: Fetched from MongoDB profile (denormalized at creation time)
+ * Actor info: Fetched from PostgreSQL profile (denormalized at creation time)
  */
 
-import { getPrismaSync } from './prisma';
-import dbConnect from './connectdb';
-import profile from './model/profile';
+import { getPrisma, getPrismaSync } from './prisma';
 import type {
   NotificationActivityType,
   NotificationContext,
@@ -47,12 +45,11 @@ export interface CreateNotificationParams {
 export async function createNotification(
   params: CreateNotificationParams
 ): Promise<void> {
-  const prisma = getPrismaSync();
+  const prisma = await getPrisma();
 
-  // Get actor info from MongoDB profile for denormalization
-  await dbConnect();
-  const actorProfile = await (profile as any).findOne({
-    userId: params.actorId,
+  // Get actor info from profile for denormalization
+  const actorProfile = await prisma.profile.findUnique({
+    where: { userId: params.actorId },
   });
 
   // Determine expiration based on type and context

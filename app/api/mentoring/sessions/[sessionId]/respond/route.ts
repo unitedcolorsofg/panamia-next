@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import MentorSession from '@/lib/model/mentorSession';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { respondSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getSessionUrl, getScheduleUrl } from '@/lib/mentoring';
@@ -75,9 +75,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Get mentee's userId from their profile
-  const menteeProfile = await Profile.findOne({
-    email: mentorSession.menteeEmail,
-  }).select('userId');
+  const prisma = await getPrisma();
+  const menteeProfile = await prisma.profile.findUnique({
+    where: { email: mentorSession.menteeEmail },
+    select: { userId: true },
+  });
 
   if (!menteeProfile?.userId) {
     return NextResponse.json(

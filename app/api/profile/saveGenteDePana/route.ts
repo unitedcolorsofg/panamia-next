@@ -1,7 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { ensureProfile } from '@/lib/server/profile';
+import { getPrisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -16,37 +16,47 @@ export async function POST(request: NextRequest) {
 
   const { discount_code, discount_percentage, discount_details } = body;
 
-  // Use userId for profile lookup, with email fallback for unclaimed profiles
-  const existingProfile = await ensureProfile(
-    session.user.id,
-    session.user.email
-  );
+  const prisma = await getPrisma();
 
-  if (existingProfile) {
-    existingProfile.set(
-      'gentedepana',
-      {
-        code: discount_code,
-        percentage: discount_percentage,
-        details: discount_details,
+  // Find user's profile
+  const existingProfile = await prisma.profile.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  if (!existingProfile) {
+    return NextResponse.json({
+      success: false,
+      error: 'Could not find profile',
+    });
+  }
+
+  try {
+    const updatedProfile = await prisma.profile.update({
+      where: { id: existingProfile.id },
+      data: {
+        gentedepana: {
+          code: discount_code,
+          percentage: discount_percentage,
+          details: discount_details,
+        },
       },
-      { strict: false }
-    );
-    try {
-      existingProfile.save();
-    } catch (e) {
-      if (e instanceof Error) {
-        console.log(e.message);
-        return NextResponse.json(
-          { success: false, error: e.message },
-          { status: 500 }
-        );
-      }
-    }
+    });
+
     return NextResponse.json(
-      { success: true, data: existingProfile },
+      { success: true, data: updatedProfile },
       { status: 200 }
     );
+  } catch (e) {
+    if (e instanceof Error) {
+      console.log(e.message);
+      return NextResponse.json(
+        { success: false, error: e.message },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, error: 'Unknown error' },
+      { status: 500 }
+    );
   }
-  return NextResponse.json({ success: false, error: 'Could not find pofile' });
 }

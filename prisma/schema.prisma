@@ -45,6 +45,7 @@ model User {
   notificationsReceived Notification[] @relation("NotificationTarget")
   articles              Article[]      @relation("ArticleAuthor")
   articlesRemoved       Article[]      @relation("ArticleRemovedBy")
+  profile               Profile?
 
   @@map("users")
 }
@@ -193,6 +194,140 @@ enum ArticleStatus {
   revision_needed
   published
   removed
+}
+
+// =============================================================================
+// Profiles
+// =============================================================================
+// Business/personal profiles with core identity columns and flexible JSONB data
+//
+// Core immutable data (columns): name, phone, pronouns, image, address, membership
+// Extended flexible data (JSONB): descriptions, socials, categories, locations, etc.
+
+enum MembershipLevel {
+  free
+  basic
+  premium
+  business
+  partner
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Link to auth user
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // === CORE IMMUTABLE DATA (columns) ===
+
+  // Identity
+  email String  @unique
+  name  String
+  slug  String? @unique // screenname/handle
+
+  // Contact
+  phoneNumber String?
+
+  // Pronouns (stored as simple string: "she/her", "he/him", "they/them", "any", or custom)
+  pronouns String?
+
+  // Primary Image
+  primaryImageId  String? // Image ID
+  primaryImageCdn String? // CDN URL
+
+  // Primary Address (international-friendly structure)
+  // Following best practices for international addresses
+  addressName          String? // Business/location name
+  addressLine1         String? // Street address
+  addressLine2         String? // Apt, suite, building, floor, etc.
+  addressLine3         String? // Additional line (some countries need this)
+  addressLocality      String? // City/town/village
+  addressRegion        String? // State/province/prefecture/region
+  addressPostalCode    String? // Postal/ZIP code (format varies by country)
+  addressCountry       String? // ISO 3166-1 alpha-2 country code (e.g., "US", "MX", "CO")
+  addressLat           Decimal? @db.Decimal(10, 7) // Latitude with precision
+  addressLng           Decimal? @db.Decimal(10, 7) // Longitude with precision
+  addressGooglePlaceId String? // Google Places API ID
+  addressHours         String? // Business hours at this location
+
+  // Status/Membership Levels
+  active          Boolean          @default(false)
+  locallyBased    String?
+  membershipLevel MembershipLevel  @default(free)
+
+  // === EXTENDED FLEXIBLE DATA (JSONB) ===
+
+  // Profile Descriptions
+  // Structure: { details, background, fiveWords, tags, hearaboutus }
+  descriptions Json?
+
+  // Links and Socials
+  // Structure: { website, instagram, facebook, tiktok, twitter, spotify }
+  socials Json?
+
+  // Gallery Images (non-primary)
+  // Structure: { gallery1, gallery1CDN, gallery2, gallery2CDN, gallery3, gallery3CDN }
+  galleryImages Json?
+
+  // Categories - what the profile offers
+  // Structure: { products, services, events, music, food, clothing, accessories, art, digital_art, tech, health_beauty, wellness, non_profit, homemade }
+  categories Json?
+
+  // Service Counties
+  // Structure: { palm_beach, broward, miami_dade }
+  counties Json?
+
+  // Additional Locations (international-friendly)
+  // Structure: Array of { name, line1, line2, line3, locality, region, postalCode, country, lat, lng, googlePlaceId, hours }
+  locations Json?
+
+  // Geolocation data
+  geo Json?
+
+  // Mentoring settings
+  // Structure: { enabled, expertise[], languages[], bio, videoIntroUrl, goals, hourlyRate }
+  mentoring Json?
+
+  // Availability schedule
+  // Structure: { timezone, schedule: [{ day, startTime, endTime }] }
+  availability Json?
+
+  // Verification status
+  // Structure: { panaVerified, legalAgeVerified, verifiedOn, verifiedBy }
+  verification Json?
+
+  // Special roles
+  // Structure: { mentoringModerator, eventOrganizer, contentModerator }
+  roles Json?
+
+  // Gente de Pana affiliate info
+  // Structure: { code, percentage, details }
+  gentedepana Json?
+
+  // Profile workflow status
+  // Structure: { submitted, approved, published, notes }
+  status Json?
+
+  // Administrative data
+  administrative Json?
+
+  // Linked profiles (for business connections)
+  linkedProfiles Json?
+
+  // === OTHER FIELDS ===
+
+  whatsappCommunity Boolean @default(false)
+  affiliate         String?
+
+  // Indexes for common queries
+  @@index([email])
+  @@index([slug])
+  @@index([userId])
+  @@index([active])
+  @@map("profiles")
 }
 
 model Article {

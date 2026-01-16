@@ -1,22 +1,71 @@
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 /**
  * Get profile by email address
  */
 export const getProfile = async (email: string) => {
-  await dbConnect();
-  // TODO: Remove type assertion after upgrading to Mongoose v8 in Phase 5
-  return await (profile as any).findOne({ email: email });
+  const prisma = await getPrisma();
+  return await prisma.profile.findUnique({ where: { email } });
 };
 
 /**
+ * Transform Prisma profile to legacy format for page components
+ * This provides backward compatibility during migration
+ */
+function transformToLegacyFormat(profile: any) {
+  const descriptions = profile.descriptions as ProfileDescriptions | null;
+  const mentoring = profile.mentoring as ProfileMentoring | null;
+
+  return {
+    ...profile,
+    // Legacy field mappings
+    details: descriptions?.details,
+    five_words: descriptions?.fiveWords,
+    background: descriptions?.background,
+    tags: descriptions?.tags,
+    phone_number: profile.phoneNumber,
+    // Legacy address format
+    primary_address: {
+      name: profile.addressName,
+      street1: profile.addressLine1,
+      street2: profile.addressLine2,
+      city: profile.addressLocality,
+      state: profile.addressRegion,
+      zipcode: profile.addressPostalCode,
+      country: profile.addressCountry,
+    },
+    // Legacy image format
+    images: {
+      primaryCDN: profile.primaryImageCdn,
+      gallery1CDN: profile.gallery1Cdn,
+      gallery2CDN: profile.gallery2Cdn,
+      gallery3CDN: profile.gallery3Cdn,
+    },
+    // Legacy geo format (combine lat/lng into GeoJSON-like structure)
+    geo:
+      profile.geoLat && profile.geoLng
+        ? {
+            type: 'Point',
+            coordinates: [Number(profile.geoLng), Number(profile.geoLat)],
+          }
+        : null,
+    // Mentoring stays as-is (JSONB)
+    mentoring: mentoring,
+    // Socials stays as-is (JSONB)
+    socials: profile.socials,
+  };
+}
+
+/**
  * Get profile by public handle/slug
+ * Returns profile in legacy format for page components
  */
 export const getPublicProfile = async (handle: string) => {
-  await dbConnect();
-  // TODO: Remove type assertion after upgrading to Mongoose v8 in Phase 5
-  return await (profile as any).findOne({ slug: handle });
+  const prisma = await getPrisma();
+  const profile = await prisma.profile.findUnique({ where: { slug: handle } });
+  if (!profile) return null;
+  return transformToLegacyFormat(profile);
 };
 
 /**
@@ -29,22 +78,21 @@ export const getPublicProfile = async (handle: string) => {
  * @returns Profile document or null if not found
  */
 export const getProfileByUserId = async (userId: string) => {
-  await dbConnect();
-  // TODO: Remove type assertion after upgrading to Mongoose v8 in Phase 5
-  return await (profile as any).findOne({ userId });
+  const prisma = await getPrisma();
+  return await prisma.profile.findUnique({ where: { userId } });
 };
 
 /**
  * Ensure a profile exists for a user, optionally claiming an unclaimed profile.
  *
- * This is the "lazy profile creation" pattern for the MongoDB/PostgreSQL
- * polyglot architecture. It handles the common case where:
+ * This is the "lazy profile creation" pattern for the PostgreSQL
+ * architecture. It handles the common case where:
  * 1. User signs in via OAuth/email (PostgreSQL user created)
  * 2. An unclaimed profile may exist from manual admin creation
  * 3. Profile should be linked to the authenticated user
  *
  * NOTE: This does NOT auto-create profiles because profiles require
- * user-provided fields (name, five_words). Use createExpressProfile
+ * user-provided fields (name, descriptions.fiveWords). Use createExpressProfile
  * API for explicit profile creation.
  *
  * @param userId - PostgreSQL User.id (cuid format)
@@ -55,10 +103,10 @@ export const getProfileByUserId = async (userId: string) => {
  * @see docs/DATABASE-ROADMAP.md for architecture details
  */
 export const ensureProfile = async (userId: string, email?: string) => {
-  await dbConnect();
+  const prisma = await getPrisma();
 
   // First, try to find profile by userId
-  let userProfile = await (profile as any).findOne({ userId });
+  const userProfile = await prisma.profile.findUnique({ where: { userId } });
 
   if (userProfile) {
     return userProfile;
@@ -66,15 +114,18 @@ export const ensureProfile = async (userId: string, email?: string) => {
 
   // If email provided, try to claim an unclaimed profile
   if (email) {
-    const unclaimedProfile = await (profile as any).findOne({
-      email: email.toLowerCase(),
-      $or: [{ userId: { $exists: false } }, { userId: null }],
+    const unclaimedProfile = await prisma.profile.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        userId: null,
+      },
     });
 
     if (unclaimedProfile) {
-      unclaimedProfile.userId = userId;
-      await unclaimedProfile.save();
-      return unclaimedProfile;
+      return await prisma.profile.update({
+        where: { id: unclaimedProfile.id },
+        data: { userId },
+      });
     }
   }
 

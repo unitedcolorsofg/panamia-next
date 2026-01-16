@@ -7,8 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
 import { getPrisma } from '@/lib/prisma';
 import { createNotification } from '@/lib/notifications';
 
@@ -51,7 +49,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const prisma = await getPrisma();
-    await dbConnect();
 
     const articleDoc = await prisma.article.findUnique({ where: { slug } });
     if (!articleDoc) {
@@ -106,7 +103,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify reviewer has a profile with screenname
-    const reviewerProfile = await Profile.findOne({ userId });
+    const reviewerProfile = await prisma.profile.findUnique({
+      where: { userId },
+    });
     if (!reviewerProfile) {
       return NextResponse.json(
         { success: false, error: 'Reviewer profile not found' },

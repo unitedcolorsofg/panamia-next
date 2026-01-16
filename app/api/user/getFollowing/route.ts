@@ -3,10 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/connectdb';
 import user from '@/lib/model/user';
-import { unguardUser } from '@/lib/user';
-import BrevoApi from '@/lib/brevo_api';
-import { getBrevoConfig } from '@/config/brevo';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 
 interface ResponseData {
@@ -38,10 +35,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user from MongoDB (following is stored there)
     const existingUser = await getUserByEmail(email);
-    if (existingUser?.following.length > 0) {
-      const followingProfiles = await profile.find({
-        _id: { $in: existingUser.following },
+    if (existingUser?.following?.length > 0) {
+      const prisma = await getPrisma();
+      // Get profiles from PostgreSQL
+      const followingProfiles = await prisma.profile.findMany({
+        where: {
+          id: { in: existingUser.following },
+        },
       });
       const profiles = followingProfiles.map((guardedProfile) => {
         return unguardProfile(guardedProfile);

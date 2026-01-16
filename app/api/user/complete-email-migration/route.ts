@@ -4,10 +4,9 @@ import {
   emailMigrationConfirmationText,
 } from '@/auth';
 import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
 import emailMigration from '@/lib/model/emailMigration';
 import nodemailer from 'nodemailer';
-import { getPrismaSync } from '@/lib/prisma';
+import { getPrisma, getPrismaSync } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,8 +78,12 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    // Update profile email in MongoDB (separate from Prisma transaction)
-    await profile.updateOne({ userId }, { $set: { email: newEmail } });
+    // Update profile email in PostgreSQL (separate from Prisma transaction)
+    const prismaAsync = await getPrisma();
+    await prismaAsync.profile.updateMany({
+      where: { userId },
+      data: { email: newEmail },
+    });
 
     // Delete the migration record
     await emailMigration.deleteOne({ _id: migration._id });

@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
+import { ProfileMentoring } from '@/lib/interfaces';
 import { ProfileForm } from './_components/profile-form';
 
 export default async function EditProfilePage() {
@@ -10,18 +10,21 @@ export default async function EditProfilePage() {
     redirect('/api/auth/signin');
   }
 
-  await dbConnect();
-  const profile = await Profile.findOne({ email: session.user.email });
+  const prisma = await getPrisma();
+  const profile = await prisma.profile.findUnique({
+    where: { email: session.user.email },
+  });
 
-  const initialData = profile?.mentoring
+  const mentoring = profile?.mentoring as ProfileMentoring | null;
+  const initialData = mentoring
     ? {
-        enabled: profile.mentoring.enabled,
-        expertise: profile.mentoring.expertise || [],
-        languages: profile.mentoring.languages || [],
-        bio: profile.mentoring.bio || '',
-        videoIntroUrl: profile.mentoring.videoIntroUrl || '',
-        goals: profile.mentoring.goals || '',
-        hourlyRate: profile.mentoring.hourlyRate || 0,
+        enabled: mentoring.enabled,
+        expertise: mentoring.expertise || [],
+        languages: mentoring.languages || [],
+        bio: mentoring.bio || '',
+        videoIntroUrl: mentoring.videoIntroUrl || '',
+        goals: mentoring.goals || '',
+        hourlyRate: mentoring.hourlyRate || 0,
       }
     : undefined;
 

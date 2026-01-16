@@ -5,9 +5,9 @@ import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { createTransport } from 'nodemailer';
-import { getPrismaSync } from '@/lib/prisma';
+import { getPrisma, getPrismaSync } from '@/lib/prisma';
 import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { ProfileMentoring } from '@/lib/interfaces';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -621,10 +621,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // Trusted provider - proceed with auto-claim
       try {
-        await dbConnect();
-        const unclaimedProfile = await profile.findOne({
-          email: user.email.toLowerCase(),
-          $or: [{ userId: { $exists: false } }, { userId: null }],
+        const prisma = await getPrisma();
+        const unclaimedProfile = await prisma.profile.findFirst({
+          where: {
+            email: user.email.toLowerCase(),
+            userId: null,
+          },
         });
 
         if (unclaimedProfile && user.id) {
@@ -634,8 +636,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             'from trusted provider:',
             account?.provider
           );
-          unclaimedProfile.userId = user.id;
-          await unclaimedProfile.save();
+          await prisma.profile.update({
+            where: { id: unclaimedProfile.id },
+            data: { userId: user.id },
+          });
           console.log('Profile claimed successfully');
         }
       } catch (error) {
@@ -659,10 +663,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.email && adminEmails.includes(user.email.toLowerCase());
 
         // Fetch profile to get verification badges and roles
-        let userProfile = null;
+        interface ProfileVerification {
+          panaVerified?: boolean;
+          legalAgeVerified?: boolean;
+        }
+        interface ProfileRoles {
+          mentoringModerator?: boolean;
+          eventOrganizer?: boolean;
+          contentModerator?: boolean;
+        }
+        let verification: ProfileVerification | null = null;
+        let roles: ProfileRoles | null = null;
         try {
-          await dbConnect();
-          userProfile = await profile.findOne({ userId: user.id });
+          const prisma = await getPrisma();
+          const userProfile = await prisma.profile.findUnique({
+            where: { userId: user.id },
+          });
+          if (userProfile) {
+            verification =
+              userProfile.verification as ProfileVerification | null;
+            roles = userProfile.roles as ProfileRoles | null;
+          }
         } catch (error) {
           console.error('Error fetching profile in session callback:', error);
         }
@@ -680,14 +701,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           isAdmin: isAdmin || false,
 
           // Verification badges (from profile)
-          panaVerified: userProfile?.verification?.panaVerified || false,
-          legalAgeVerified:
-            userProfile?.verification?.legalAgeVerified || false,
+          panaVerified: verification?.panaVerified || false,
+          legalAgeVerified: verification?.legalAgeVerified || false,
 
           // Scoped roles (from profile)
-          isMentoringModerator: userProfile?.roles?.mentoringModerator || false,
-          isEventOrganizer: userProfile?.roles?.eventOrganizer || false,
-          isContentModerator: userProfile?.roles?.contentModerator || false,
+          isMentoringModerator: roles?.mentoringModerator || false,
+          isEventOrganizer: roles?.eventOrganizer || false,
+          isContentModerator: roles?.contentModerator || false,
         };
       }
 

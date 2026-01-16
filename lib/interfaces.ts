@@ -86,6 +86,41 @@ export interface MentoringInterface {
   hourlyRate?: number;
 }
 
+/**
+ * Profile Descriptions JSONB structure (Prisma)
+ */
+export interface ProfileDescriptions {
+  details?: string;
+  background?: string;
+  fiveWords?: string;
+  tags?: string;
+  hearaboutus?: string;
+}
+
+/**
+ * Profile Mentoring JSONB structure (Prisma)
+ * Note: Same as MentoringInterface but typed for JSONB field
+ */
+export type ProfileMentoring = MentoringInterface;
+
+/**
+ * International address structure (Prisma columns)
+ */
+export interface InternationalAddress {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  line3?: string;
+  locality?: string;
+  region?: string;
+  postalCode?: string;
+  country?: string;
+  lat?: number;
+  lng?: number;
+  googlePlaceId?: string;
+  hours?: string;
+}
+
 export interface ProfileInterface {
   _id: string;
   userId?: string; // PostgreSQL User.id (cuid format) - links to auth system

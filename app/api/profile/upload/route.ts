@@ -1,8 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { deleteFile, uploadFile } from '@/lib/blob/api';
 
 interface ResponseData {
@@ -12,39 +11,10 @@ interface ResponseData {
   data?: any[];
 }
 
-const getProfileByEmail = async (email: string) => {
-  await dbConnect();
-  const Profile = await profile.findOne({ email: email });
-  return Profile;
-};
-
 const cacheRand = () => {
   return Math.floor((Math.random() + 1) * 10000)
     .toString()
     .substring(1, 4);
-};
-
-const processFile = async (
-  existingProfile: any,
-  file: { data: Buffer; filename: string; fieldname: string; ext: string }
-) => {
-  const filePath = await uploadFile(file.filename, file.data);
-  if (!filePath) {
-    return false;
-  }
-  console.log('filePath', filePath);
-
-  // Delete old image using the CDN URL (Vercel Blob needs full URL)
-  const existingImageUrl = existingProfile?.images?.[file.fieldname + 'CDN'];
-  if (existingImageUrl && existingImageUrl !== filePath) {
-    await deleteFile(existingImageUrl);
-  }
-
-  existingProfile.images = {
-    ...existingProfile.images,
-    ...{ [file.fieldname]: file.filename },
-    ...{ [file.fieldname + 'CDN']: filePath },
-  };
 };
 
 export async function POST(request: NextRequest) {
@@ -63,7 +33,11 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   }
-  const existingProfile = await getProfileByEmail(email);
+
+  const prisma = await getPrisma();
+  const existingProfile = await prisma.profile.findUnique({
+    where: { email },
+  });
 
   if (!existingProfile) {
     return NextResponse.json(
@@ -114,17 +88,66 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Process all uploaded files
-    const promises = uploadedFiles.map((file: any) =>
-      processFile(existingProfile, file)
-    );
+    // Track updates for primary image and gallery images
+    let primaryImageUpdate: {
+      primaryImageId?: string;
+      primaryImageCdn?: string;
+    } = {};
+    let galleryImagesUpdate: Record<string, string> = {
+      ...((existingProfile.galleryImages as object) || {}),
+    };
 
-    await Promise.all(promises);
-    await existingProfile.save();
+    // Process all uploaded files
+    for (const file of uploadedFiles) {
+      const filePath = await uploadFile(file.filename, file.data);
+      if (!filePath) {
+        continue;
+      }
+      console.log('filePath', filePath);
+
+      if (file.fieldname === 'primary') {
+        // Delete old primary image
+        if (
+          existingProfile.primaryImageCdn &&
+          existingProfile.primaryImageCdn !== filePath
+        ) {
+          await deleteFile(existingProfile.primaryImageCdn);
+        }
+        primaryImageUpdate = {
+          primaryImageId: file.filename,
+          primaryImageCdn: filePath,
+        };
+      } else {
+        // Delete old gallery image
+        const existingGallery = existingProfile.galleryImages as Record<
+          string,
+          string
+        > | null;
+        const existingImageUrl = existingGallery?.[file.fieldname + 'CDN'];
+        if (existingImageUrl && existingImageUrl !== filePath) {
+          await deleteFile(existingImageUrl);
+        }
+        galleryImagesUpdate[file.fieldname] = file.filename;
+        galleryImagesUpdate[file.fieldname + 'CDN'] = filePath;
+      }
+    }
+
+    // Update profile with new images
+    const updatedProfile = await prisma.profile.update({
+      where: { id: existingProfile.id },
+      data: {
+        ...primaryImageUpdate,
+        galleryImages:
+          Object.keys(galleryImagesUpdate).length > 0
+            ? (galleryImagesUpdate as any)
+            : undefined,
+      },
+    });
+
     console.log('save');
 
     return NextResponse.json(
-      { success: true, data: existingProfile },
+      { success: true, data: updatedProfile },
       { status: 200 }
     );
   } catch (error: any) {

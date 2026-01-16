@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 
 async function getProfile(slug: string) {
-  await dbConnect();
-  const Profile = await profile.findOne({ slug: slug });
-  return Profile;
+  const prisma = await getPrisma();
+  return await prisma.profile.findUnique({ where: { slug } });
 }
 
 export async function GET(request: NextRequest) {

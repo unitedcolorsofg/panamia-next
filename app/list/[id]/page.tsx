@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import dbConnect from '@/lib/connectdb';
 import userlist from '@/lib/model/userlist';
-import profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 import { ProfileInterface } from '@/lib/interfaces';
 import { Button } from '@/components/ui/button';
@@ -25,8 +25,11 @@ async function getUserlistData(id: string) {
   let profiles: ProfileInterface[] = [];
 
   if (existingUserlist?.profiles?.length > 0) {
-    const listProfiles = await profile.find({
-      _id: { $in: existingUserlist.profiles },
+    const prisma = await getPrisma();
+    const listProfiles = await prisma.profile.findMany({
+      where: {
+        id: { in: existingUserlist.profiles },
+      },
     });
 
     profiles = listProfiles.map((guardedProfile) => {
@@ -76,7 +79,7 @@ export default async function ListPublicPage({ params }: PageProps) {
         <div className="mb-8">
           <h1 className="mb-4 text-3xl font-bold">List: {list?.name}</h1>
           {list?.desc && (
-            <p className="text-lg text-muted-foreground">{list.desc}</p>
+            <p className="text-muted-foreground text-lg">{list.desc}</p>
           )}
         </div>
 
@@ -109,7 +112,7 @@ export default async function ListPublicPage({ params }: PageProps) {
             ))
           ) : (
             <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
+              <CardContent className="text-muted-foreground p-8 text-center">
                 There's no profiles on this list yet.
               </CardContent>
             </Card>

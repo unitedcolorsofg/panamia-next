@@ -1,13 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import { unguardUser } from '@/lib/user';
-import BrevoApi from '@/lib/brevo_api';
-import { getBrevoConfig } from '@/config/brevo';
-import profile from '@/lib/model/profile';
-import { unguardProfile } from '@/lib/profile';
+import { getPrisma } from '@/lib/prisma';
 
 interface ResponseData {
   error?: string;
@@ -15,11 +9,6 @@ interface ResponseData {
   msg?: string;
   data?: any[] | any;
 }
-
-const getUserByEmail = async (email: string) => {
-  await dbConnect();
-  return await user.findOne({ email: email });
-};
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,30 +26,37 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       );
     }
-    const existingUser = await getUserByEmail(email);
-    if (!(existingUser?.status?.role === 'admin')) {
+
+    const prisma = await getPrisma();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser?.role !== 'admin') {
       return NextResponse.json(
         { error: 'Not Authorized:admin' },
         { status: 401 }
       );
     }
-    const allActiveProfiles = await profile.find({ active: true });
+
+    const allActiveProfiles = await prisma.profile.findMany({
+      where: { active: true },
+    });
+
     const profiles = allActiveProfiles.map((guardedProfile) => {
       return {
         name: guardedProfile.name,
         email: guardedProfile.email,
         handle: guardedProfile.slug,
-        phone: guardedProfile.phone_number ? guardedProfile.phone_number : '',
+        phone: guardedProfile.phoneNumber || '',
       };
     });
-    if (allActiveProfiles) {
-      return NextResponse.json(
-        { success: true, data: profiles },
-        { status: 200 }
-      );
-    }
 
-    return NextResponse.json({ success: false, error: 'Could not find User' });
+    return NextResponse.json(
+      { success: true, data: profiles },
+      { status: 200 }
+    );
   } catch (error) {
     console.log(error);
     return NextResponse.json({
