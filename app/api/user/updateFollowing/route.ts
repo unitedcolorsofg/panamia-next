@@ -1,91 +1,120 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import { unguardUser } from '@/lib/user';
+import { getPrisma } from '@/lib/prisma';
 
 interface ResponseData {
   error?: string;
   success?: boolean;
   msg?: string;
-  data?: any[] | any;
+  data?: any;
 }
 
-const getUserByEmail = async (email: string) => {
-  await dbConnect();
-  const User = await user.findOne({ email: email });
-  return User;
-};
-
 export async function POST(request: NextRequest) {
-  const body = await request.json();
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({
       success: false,
       error: 'No user session available',
     });
   }
-  const email = session.user?.email;
-  if (!email) {
-    return NextResponse.json(
-      { success: false, error: 'No valid email' },
-      { status: 200 }
-    );
+
+  const body = await request.json();
+  const { action, id } = body;
+
+  if (!id) {
+    return NextResponse.json({
+      success: false,
+      error: 'Missing user id to follow/unfollow',
+    });
   }
 
-  const { action, id } = body;
-  console.log('id', id);
+  // Can't follow yourself
+  if (id === session.user.id) {
+    return NextResponse.json({
+      success: false,
+      error: 'Cannot follow yourself',
+    });
+  }
 
-  const existingUser = await getUserByEmail(email);
-  let msg = 'No action';
-  if (existingUser) {
-    const following = existingUser.following || [];
-    const idIndex = following.indexOf(id);
-    if (action == 'follow') {
-      if (idIndex > -1) {
+  const prisma = await getPrisma();
+
+  try {
+    let msg = 'No action';
+
+    if (action === 'follow') {
+      // Check if already following
+      const existing = await prisma.userFollow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: session.user.id,
+            followingId: id,
+          },
+        },
+      });
+
+      if (existing) {
         msg = 'Already following';
       } else {
-        following.push(id);
+        // Verify target user exists
+        const targetUser = await prisma.user.findUnique({
+          where: { id },
+        });
+
+        if (!targetUser) {
+          return NextResponse.json({
+            success: false,
+            error: 'User not found',
+          });
+        }
+
+        await prisma.userFollow.create({
+          data: {
+            followerId: session.user.id,
+            followingId: id,
+          },
+        });
         msg = 'Followed';
-        existingUser.set('following', following);
       }
     }
 
-    if (action == 'unfollow') {
-      if (idIndex > -1) {
-        following.splice(idIndex, 1);
+    if (action === 'unfollow') {
+      const result = await prisma.userFollow.deleteMany({
+        where: {
+          followerId: session.user.id,
+          followingId: id,
+        },
+      });
+
+      if (result.count > 0) {
         msg = 'Unfollowed';
-        existingUser.set('following', following);
       } else {
         msg = 'Already unfollowed';
       }
     }
 
-    try {
-      existingUser.save();
-      console.log('updateFollowing:', msg);
-    } catch (e) {
-      if (e instanceof Error) {
-        console.log(e.message);
-        return NextResponse.json({
-          success: false,
-          error: e.message,
-          msg: msg,
-        });
-      }
-    }
+    // Get updated user data
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        screenname: true,
+      },
+    });
+
+    console.log('updateFollowing:', msg);
+
     return NextResponse.json({
       success: true,
-      data: unguardUser(existingUser),
+      data: updatedUser,
       msg: msg,
     });
+  } catch (err) {
+    console.error('Error updating following:', err);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update following',
+    });
   }
-  return NextResponse.json({
-    success: false,
-    error: 'Could not find pofile',
-    msg: msg,
-  });
 }

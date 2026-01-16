@@ -6,25 +6,34 @@
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    const currentUser = await user
-      .findOne({ email: session.user.email })
-      .select('screenname name accountType zip_code notificationPreferences')
-      .lean();
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        screenname: true,
+        accountType: true,
+        notificationPreferences: true,
+        profile: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
 
     if (!currentUser) {
       return NextResponse.json(
@@ -36,8 +45,11 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        ...currentUser,
-        _id: (currentUser as any)._id.toString(),
+        _id: currentUser.id,
+        screenname: currentUser.screenname,
+        name: currentUser.profile?.name,
+        accountType: currentUser.accountType,
+        notificationPreferences: currentUser.notificationPreferences,
       },
     });
   } catch (error) {

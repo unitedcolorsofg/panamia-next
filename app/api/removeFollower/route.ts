@@ -1,21 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import followers from '@/lib/model/followers';
+import { auth } from '@/auth';
+import { getPrisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
-  await dbConnect();
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const body = await request.json();
-  const { followerId, userId } = body;
+  const { userId } = body; // ID of user to unfollow
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Missing userId parameter' },
+      { status: 400 }
+    );
+  }
+
+  const prisma = await getPrisma();
 
   try {
-    const result = await followers.deleteOne({
-      followerId: followerId,
-      userId: userId,
+    // Delete the follow relationship
+    const result = await prisma.userFollow.deleteMany({
+      where: {
+        followerId: session.user.id,
+        followingId: userId,
+      },
     });
 
-    if (result.deletedCount > 0) {
-      return NextResponse.json({ msg: 'Successfully unfollowed: ' + userId });
+    if (result.count > 0) {
+      return NextResponse.json({
+        success: true,
+        msg: 'Successfully unfollowed user',
+      });
     } else {
       return NextResponse.json(
         { error: 'Follower relationship not found' },
@@ -23,9 +41,10 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (err) {
+    console.error('Error removing follower:', err);
     return NextResponse.json(
-      { error: "Error on '/api/removeFollower': " + err },
-      { status: 400 }
+      { error: 'Failed to unfollow user' },
+      { status: 500 }
     );
   }
 }

@@ -1,64 +1,62 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
 import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[] | any;
-}
-
-const getUserByEmail = async (email: string) => {
-  await dbConnect();
-  return await user.findOne({ email: email });
-};
-
+/**
+ * Get profiles of users that the current user is following
+ */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({
         success: false,
         error: 'No user session available',
       });
     }
-    const email = session.user?.email;
-    if (!email) {
-      return NextResponse.json(
-        { success: false, error: 'No valid email' },
-        { status: 200 }
-      );
-    }
 
-    // Get user from MongoDB (following is stored there)
-    const existingUser = await getUserByEmail(email);
-    if (existingUser?.following?.length > 0) {
-      const prisma = await getPrisma();
-      // Get profiles from PostgreSQL
-      const followingProfiles = await prisma.profile.findMany({
-        where: {
-          id: { in: existingUser.following },
+    const prisma = await getPrisma();
+
+    // Get following relationships from UserFollow table
+    const following = await prisma.userFollow.findMany({
+      where: { followerId: session.user.id },
+      include: {
+        following: {
+          select: {
+            id: true,
+            email: true,
+          },
         },
-      });
-      const profiles = followingProfiles.map((guardedProfile) => {
-        return unguardProfile(guardedProfile);
-      });
-      if (followingProfiles) {
-        return NextResponse.json(
-          { success: true, data: profiles },
-          { status: 200 }
-        );
-      }
+      },
+    });
+
+    if (following.length === 0) {
+      return NextResponse.json({ success: true, data: [] }, { status: 200 });
     }
 
-    return NextResponse.json({ success: false, error: 'Could not find User' });
+    // Get profiles for followed users
+    const followingEmails = following
+      .map((f) => f.following.email)
+      .filter((email): email is string => email !== null);
+
+    const followingProfiles = await prisma.profile.findMany({
+      where: {
+        email: { in: followingEmails },
+        active: true,
+      },
+    });
+
+    const profiles = followingProfiles.map((guardedProfile) => {
+      return unguardProfile(guardedProfile);
+    });
+
+    return NextResponse.json(
+      { success: true, data: profiles },
+      { status: 200 }
+    );
   } catch (error) {
-    console.log(error);
+    console.error('Error getting following:', error);
     return NextResponse.json({
       success: false,
       error: `Server Error ${error}`,

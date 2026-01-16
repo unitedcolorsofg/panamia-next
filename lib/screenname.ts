@@ -1,5 +1,4 @@
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 
 // Reserved screennames that cannot be used
 export const RESERVED_SCREENNAMES = [
@@ -113,26 +112,21 @@ export function validateScreenname(name: string): ScreennameValidationResult {
 
 /**
  * Checks if a screenname is available in the database.
- * Uses case-insensitive comparison via collation.
+ * Uses case-insensitive comparison.
  */
 export async function isScreennameAvailable(
   name: string,
   excludeEmail?: string
 ): Promise<boolean> {
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const query: { screenname: string; email?: { $ne: string } } = {
-    screenname: name,
-  };
-
-  // Exclude the current user when checking (for updates)
-  if (excludeEmail) {
-    query.email = { $ne: excludeEmail };
-  }
-
-  const existing = await user
-    .findOne(query)
-    .collation({ locale: 'en', strength: 2 });
+  // PostgreSQL case-insensitive search
+  const existing = await prisma.user.findFirst({
+    where: {
+      screenname: { equals: name, mode: 'insensitive' },
+      ...(excludeEmail ? { NOT: { email: excludeEmail } } : {}),
+    },
+  });
 
   return !existing;
 }

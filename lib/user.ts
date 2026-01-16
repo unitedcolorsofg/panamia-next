@@ -46,16 +46,12 @@ export const saveUserSession = async (data: {}, host?: String) => {
 export const unguardUser = (user: any) => {
   // only send safe for public fields
   return {
-    ...{ email: user.email },
-    ...{ screenname: user.screenname },
-    ...{ name: user.name },
-    ...{
-      status: {
-        ...{ role: user?.status?.role },
-      },
+    email: user.email,
+    screenname: user.screenname,
+    name: user.profile?.name || user.name,
+    status: {
+      role: user?.status?.role || user?.role,
     },
-    ...{ affiliate: user.affiliate },
-    ...{ zip_code: user.zip_code },
-    ...{ following: user.following },
+    accountType: user.accountType,
   };
 };

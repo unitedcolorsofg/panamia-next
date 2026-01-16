@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 import { validateScreennameFull } from '@/lib/screenname';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: 'Authentication required' },
       { status: 401 }
@@ -41,23 +40,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const existingUser = await user.findOne({ email });
-  if (!existingUser) {
-    return NextResponse.json(
-      { success: false, error: 'User not found' },
-      { status: 404 }
-    );
-  }
-
-  existingUser.screenname = screenname.trim();
-  await existingUser.save();
+  const updatedUser = await prisma.user.update({
+    where: { id: session.user.id },
+    data: { screenname: screenname.trim() },
+    select: { screenname: true },
+  });
 
   return NextResponse.json({
     success: true,
     data: {
-      screenname: existingUser.screenname,
+      screenname: updatedUser.screenname,
     },
   });
 }

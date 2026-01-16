@@ -1,127 +1,118 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
-import { unguardUser } from '@/lib/user';
-import userlist from '@/lib/model/userlist';
-
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[] | any;
-}
-
-const getUserByEmail = async (email: string) => {
-  await dbConnect();
-  const User = await user.findOne({ email: email });
-  return User;
-};
-const getUserlistById = async (id: string) => {
-  await dbConnect();
-  const List = await userlist.findOne({ _id: id });
-  return List;
-};
+import { getPrisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({
       success: false,
       error: 'No user session available',
     });
   }
-  const email = session.user?.email;
-  if (!email) {
-    return NextResponse.json(
-      { success: false, error: 'No valid email' },
-      { status: 200 }
-    );
-  }
 
+  const body = await request.json();
   const { action, list_id, profile_id, list_name } = body;
+
   if (!list_id || !action || !profile_id) {
     return NextResponse.json({
       success: false,
       error: 'Missing or invalid parameters',
     });
   }
-  console.log('profile_id', profile_id);
 
-  const existingUser = await getUserByEmail(email);
-  if (!existingUser) {
-    return NextResponse.json({ success: false, error: 'Failed to find user' });
-  }
-  let msg = 'No action';
-  if (list_id == 'new') {
-    msg = 'Creating new list';
-    const newUserlist = new userlist({
-      user_id: existingUser._id,
-      name: list_name ? list_name : 'Unnamed',
-      public: false,
-      profiles: [profile_id],
-    });
-    try {
-      await newUserlist.save();
+  const prisma = await getPrisma();
+
+  try {
+    let msg = 'No action';
+
+    if (list_id === 'new') {
+      // Create new list with the profile as first member
+      msg = 'Creating new list';
+
+      const newList = await prisma.userList.create({
+        data: {
+          ownerId: session.user.id,
+          name: list_name || 'Unnamed',
+          isPublic: false,
+          members: {
+            create: {
+              userId: profile_id,
+            },
+          },
+        },
+      });
+
       console.log('/api/user/updateList', msg);
-      return NextResponse.json({ success: true, msg: msg }, { status: 200 });
-    } catch (e: any) {
-      if (e instanceof Error) {
-        console.log(e.message);
+      return NextResponse.json(
+        { success: true, msg: msg, listId: newList.id },
+        { status: 200 }
+      );
+    } else {
+      // Update existing list
+      const existingList = await prisma.userList.findUnique({
+        where: { id: list_id },
+        include: {
+          members: {
+            where: { userId: profile_id },
+          },
+        },
+      });
+
+      if (!existingList) {
         return NextResponse.json({
           success: false,
-          error: e.message,
-          msg: msg,
+          error: 'Could not find list',
         });
       }
-    }
-  } else {
-    const existingList = await getUserlistById(list_id);
-    if (existingList) {
-      const profiles = existingList.profiles || [];
-      const idIndex = profiles.indexOf(profile_id);
-      if (action == 'add') {
-        if (idIndex > -1) {
+
+      // Check ownership
+      if (existingList.ownerId !== session.user.id) {
+        return NextResponse.json({
+          success: false,
+          error: 'Unauthorized to modify this list',
+        });
+      }
+
+      const isOnList = existingList.members.length > 0;
+
+      if (action === 'add') {
+        if (isOnList) {
           msg = 'Already on list';
         } else {
-          profiles.push(profile_id);
+          await prisma.userListMember.create({
+            data: {
+              listId: list_id,
+              userId: profile_id,
+            },
+          });
           msg = 'Added to list';
-          existingList.set('profiles', profiles);
         }
       }
 
-      if (action == 'remove') {
-        if (idIndex > -1) {
-          profiles.splice(idIndex, 1);
+      if (action === 'remove') {
+        if (isOnList) {
+          await prisma.userListMember.deleteMany({
+            where: {
+              listId: list_id,
+              userId: profile_id,
+            },
+          });
           msg = 'Removed from list';
-          existingList.set('profiles', profiles);
         } else {
           msg = 'Already removed from list';
         }
       }
 
-      try {
-        existingList.save();
-        console.log('updateList:', msg);
-      } catch (e) {
-        if (e instanceof Error) {
-          console.log(e.message);
-          return NextResponse.json({
-            success: false,
-            error: e.message,
-            msg: msg,
-          });
-        }
-      }
+      console.log('updateList:', msg);
       return NextResponse.json({ success: true, msg: msg }, { status: 200 });
     }
+  } catch (err) {
+    console.error('Error updating list:', err);
     return NextResponse.json({
       success: false,
-      error: 'Could not find profile',
-      msg: msg,
+      error: 'Failed to update list',
     });
   }
 }

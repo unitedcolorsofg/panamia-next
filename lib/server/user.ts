@@ -1,28 +1,46 @@
-import dbConnect from '@/lib/connectdb';
-import user from '@/lib/model/user';
+import { getPrisma } from '@/lib/prisma';
 import { generateAffiliateCode } from '../standardized';
 
+/**
+ * Get user by email
+ * Now uses PostgreSQL via Prisma
+ */
 export const getUser = async (email: string) => {
-  await dbConnect();
-  // TODO: Remove type assertion after upgrading to Mongoose v8 in Phase 5
-  return await (user as any).findOne({ email: email });
+  const prisma = await getPrisma();
+  return await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
 };
 
+/**
+ * Generate a unique affiliate code
+ * Checks against Profile.affiliate field
+ */
 export const uniqueAffiliateCode = async () => {
   let affiliateCode = '';
   for (let i = 0; i < 5; i++) {
     // if 5 loops all match something is wrong
     affiliateCode = generateAffiliateCode();
-    const user = await getUserByAffiliateCode(affiliateCode);
-    if (!user) {
+    const profile = await getProfileByAffiliateCode(affiliateCode);
+    if (!profile) {
       break; // unique affiliate code found
     }
   }
   return affiliateCode;
 };
 
-export const getUserByAffiliateCode = async (code: string) => {
-  await dbConnect();
-  // TODO: Remove type assertion after upgrading to Mongoose v8 in Phase 5
-  return await (user as any).findOne({ 'affiliate.code': code });
+/**
+ * Get profile by affiliate code
+ * Affiliate code is stored in Profile.affiliate String field
+ */
+export const getProfileByAffiliateCode = async (code: string) => {
+  const prisma = await getPrisma();
+  return await prisma.profile.findFirst({
+    where: {
+      affiliate: code,
+    },
+  });
 };
+
+// Legacy alias for backwards compatibility
+export const getUserByAffiliateCode = getProfileByAffiliateCode;

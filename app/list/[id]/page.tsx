@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import dbConnect from '@/lib/connectdb';
-import userlist from '@/lib/model/userlist';
 import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 import { ProfileInterface } from '@/lib/interfaces';
@@ -14,21 +12,41 @@ interface PageProps {
 }
 
 async function getUserlistData(id: string) {
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const existingUserlist = await userlist.findOne({ _id: id });
+  // Get the list with its members
+  const list = await prisma.userList.findUnique({
+    where: { id },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
-  if (!existingUserlist) {
+  if (!list) {
     return null;
   }
 
   let profiles: ProfileInterface[] = [];
 
-  if (existingUserlist?.profiles?.length > 0) {
-    const prisma = await getPrisma();
+  // Get profiles for list members
+  const memberEmails = list.members
+    .map((m) => m.user.email)
+    .filter((email): email is string => email !== null);
+
+  if (memberEmails.length > 0) {
     const listProfiles = await prisma.profile.findMany({
       where: {
-        id: { in: existingUserlist.profiles },
+        email: { in: memberEmails },
+        active: true,
       },
     });
 
@@ -38,7 +56,12 @@ async function getUserlistData(id: string) {
   }
 
   return {
-    list: existingUserlist,
+    list: {
+      _id: list.id,
+      name: list.name,
+      desc: list.description,
+      public: list.isPublic,
+    },
     profiles,
   };
 }
