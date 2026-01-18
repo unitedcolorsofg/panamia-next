@@ -1,5 +1,5 @@
 // =============================================================================
-// Prisma Schema for PostgreSQL (Vercel Postgres)
+// Prisma Schema for PostgreSQL (Neon)
 // =============================================================================
 //
 // This schema defines the PostgreSQL tables for the polyglot persistence
@@ -64,6 +64,8 @@ model User {
   followers             UserFollow[]     @relation("Following")
   listsOwned            UserList[]
   listMemberships       UserListMember[]
+  mentorSessions        MentorSession[]  @relation("MentorSessions")
+  menteeSessions        MentorSession[]  @relation("MenteeSessions")
 
   @@map("users")
 }
@@ -452,4 +454,212 @@ model Article {
   @@index([authorId, status])
   @@index([inReplyTo])
   @@map("articles")
+}
+
+// =============================================================================
+// FORM SUBMISSIONS
+// =============================================================================
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name         String
+  email        String
+  message      String?
+  acknowledged Boolean @default(false)
+
+  @@index([email])
+  @@index([createdAt(sort: Desc)])
+  @@map("contact_submissions")
+}
+
+model NewsletterSignup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email        String  @unique
+  name         String?
+  signupType   String?
+  acknowledged Boolean @default(false)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("newsletter_signups")
+}
+
+// =============================================================================
+// EMAIL & OAUTH VERIFICATION (TTL-based tokens)
+// =============================================================================
+
+model EmailMigration {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId         String
+  oldEmail       String
+  newEmail       String
+  migrationToken String   @unique
+  expiresAt      DateTime
+
+  @@index([userId])
+  @@index([newEmail])
+  @@index([migrationToken])
+  @@index([expiresAt])
+  @@map("email_migrations")
+}
+
+model OAuthVerification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  email             String
+  provider          String
+  providerAccountId String
+  verificationToken String   @unique
+  expiresAt         DateTime
+  oauthProfile      Json // Store OAuth profile data for account creation
+
+  @@index([email])
+  @@index([verificationToken])
+  @@index([provider, providerAccountId])
+  @@index([expiresAt])
+  @@map("oauth_verifications")
+}
+
+// =============================================================================
+// EXTERNAL SERVICES
+// =============================================================================
+
+model BrevoContact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email    String @unique
+  brevoId  Int
+  listIds  Int[]  @default([])
+  syncedAt DateTime?
+
+  @@map("brevo_contacts")
+}
+
+// =============================================================================
+// ANALYTICS & INTERACTIONS
+// =============================================================================
+
+model Interaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  email     String
+  action    String?
+  affiliate String?
+  points    Int?
+  metadata  Json?
+
+  @@index([email])
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@map("interactions")
+}
+
+// =============================================================================
+// MENTORING
+// =============================================================================
+
+enum SessionType {
+  artistic
+  knowledge_transfer
+  panamia_planning
+  pana_support
+}
+
+enum SessionStatus {
+  pending
+  scheduled
+  in_progress
+  completed
+  cancelled
+  declined
+}
+
+model MentorSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Participants (using emails for compatibility, IDs for relations)
+  mentorEmail  String
+  menteeEmail  String
+  mentorUserId String?
+  menteeUserId String?
+  mentor       User?   @relation("MentorSessions", fields: [mentorUserId], references: [id], onDelete: SetNull)
+  mentee       User?   @relation("MenteeSessions", fields: [menteeUserId], references: [id], onDelete: SetNull)
+
+  // Session details
+  sessionId   String        @unique // Used as Pusher channel
+  scheduledAt DateTime
+  duration    Int           @default(60) // minutes
+  topic       String
+  sessionType SessionType
+  status      SessionStatus @default(pending)
+
+  // Session notes
+  notes String?
+
+  // Completion tracking
+  completedAt DateTime?
+
+  // Cancellation tracking
+  cancelledAt   DateTime?
+  cancelledBy   String?
+  cancelReason  String?
+
+  // Decline tracking
+  declinedAt    DateTime?
+  declinedBy    String?
+  declineReason String?
+
+  @@index([mentorEmail, scheduledAt(sort: Desc)])
+  @@index([menteeEmail, scheduledAt(sort: Desc)])
+  @@index([mentorUserId])
+  @@index([menteeUserId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("mentor_sessions")
+}
+
+// =============================================================================
+// INTAKE FORMS (consolidated)
+// =============================================================================
+
+enum IntakeFormType {
+  art
+  apparel
+  food
+  goods
+  org
+  services
+}
+
+model IntakeForm {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email    String         @unique
+  formType IntakeFormType
+  name     String?
+  complete Boolean        @default(false)
+
+  // All form data stored as JSONB for flexibility
+  // Each form type has different fields
+  formData Json
+
+  @@index([email])
+  @@index([formType])
+  @@index([complete])
+  @@map("intake_forms")
 }

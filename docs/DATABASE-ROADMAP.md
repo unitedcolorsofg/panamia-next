@@ -620,7 +620,7 @@ Since MongoDB documents reference PostgreSQL IDs:
 ### Phase 1: Add PostgreSQL (Parallel Operation) ✅
 
 - [x] Add Prisma dependency and configuration
-- [x] Set up PostgreSQL (Vercel Postgres)
+- [x] Set up PostgreSQL (Neon)
 - [x] Create schema with users, accounts, sessions tables
 - [x] Set up PGLite for in-memory testing
 - [x] Rename `USE_MEMORY_SERVER` → `USE_MEMORY_MONGODB`

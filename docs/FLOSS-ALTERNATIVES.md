@@ -185,7 +185,7 @@ We are actively migrating to PostgreSQL to achieve full FLOSS license compatibil
 
 | Phase   | Data                             | Status         | Notes                           |
 | ------- | -------------------------------- | -------------- | ------------------------------- |
-| Phase 1 | PostgreSQL infrastructure        | ✅ Complete    | Prisma + Vercel Postgres        |
+| Phase 1 | PostgreSQL infrastructure        | ✅ Complete    | Prisma + Neon                   |
 | Phase 2 | Auth (users, accounts, sessions) | 🔄 In Progress | NextAuth → Prisma adapter       |
 | Phase 3 | Reference updates                | Planned        | MongoDB docs use PG user IDs    |
 | Phase 4 | Sidecars                         | Planned        | Transactional features on PG    |

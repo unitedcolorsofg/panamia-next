@@ -36,12 +36,11 @@ export const envConfig: Record<string, EnvVarConfig> = {
       'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority',
   },
   POSTGRES_URL: {
-    description:
-      'PostgreSQL connection string (Vercel Postgres) - required for auth',
+    description: 'PostgreSQL connection string (Neon) - required for auth',
     location: 'SECRET',
     required: true,
     example: 'postgres://user:password@host:5432/database?sslmode=require',
-    docsUrl: 'https://vercel.com/docs/storage/vercel-postgres',
+    docsUrl: 'https://neon.tech/docs/introduction',
   },
 
   // =============================================================================
