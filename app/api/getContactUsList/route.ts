@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import contactUs from '@/lib/model/contactus';
+import { getPrisma } from '@/lib/prisma';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 
 export async function GET(request: NextRequest) {
@@ -26,9 +25,9 @@ export async function GET(request: NextRequest) {
   const per_page = 20;
   const offset = per_page * page_number - per_page;
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const contactUsCount = await contactUs.countDocuments();
+  const contactUsCount = await prisma.contactSubmission.count();
   const pagination = {
     count: contactUsCount,
     per_page: per_page,
@@ -37,11 +36,11 @@ export async function GET(request: NextRequest) {
     total_pages: contactUsCount > 0 ? Math.ceil(contactUsCount / per_page) : 1,
   };
 
-  const contactUsList = await contactUs
-    .find()
-    .sort({ createdAt: 'desc' })
-    .limit(per_page)
-    .skip(offset);
+  const contactUsList = await prisma.contactSubmission.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: per_page,
+    skip: offset,
+  });
 
   return NextResponse.json({
     success: true,

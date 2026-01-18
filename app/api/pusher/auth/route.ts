@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { pusherServer } from '@/lib/pusher-server';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
+import { getPrisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -29,13 +28,15 @@ export async function POST(request: NextRequest) {
 
   if (channelType === 'session') {
     // Verify user is participant in this session
-    await dbConnect();
-    const mentorSession = await MentorSession.findOne({
-      sessionId: resourceId,
-      $or: [
-        { mentorEmail: session.user.email },
-        { menteeEmail: session.user.email },
-      ],
+    const prisma = await getPrisma();
+    const mentorSession = await prisma.mentorSession.findFirst({
+      where: {
+        sessionId: resourceId,
+        OR: [
+          { mentorEmail: session.user.email },
+          { menteeEmail: session.user.email },
+        ],
+      },
     });
 
     if (!mentorSession) {

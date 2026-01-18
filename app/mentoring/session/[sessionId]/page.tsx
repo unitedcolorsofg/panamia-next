@@ -1,7 +1,6 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
+import { getPrisma } from '@/lib/prisma';
 import { VideoRoom } from './_components/video-room';
 
 export default async function SessionPage({
@@ -17,14 +16,16 @@ export default async function SessionPage({
     redirect('/api/auth/signin');
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const mentorSession = await MentorSession.findOne({
-    sessionId: sessionId,
-    $or: [
-      { mentorEmail: session.user.email },
-      { menteeEmail: session.user.email },
-    ],
+  const mentorSession = await prisma.mentorSession.findFirst({
+    where: {
+      sessionId: sessionId,
+      OR: [
+        { mentorEmail: session.user.email },
+        { menteeEmail: session.user.email },
+      ],
+    },
   });
 
   if (!mentorSession) {

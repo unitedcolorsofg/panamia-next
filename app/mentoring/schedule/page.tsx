@@ -1,7 +1,6 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
+import { getPrisma } from '@/lib/prisma';
 import { SessionsList } from './_components/sessions-list';
 
 export default async function SchedulePage() {
@@ -10,41 +9,43 @@ export default async function SchedulePage() {
     redirect('/api/auth/signin');
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   // Fetch upcoming sessions
-  const upcomingSessions = await MentorSession.find({
-    $or: [
-      { mentorEmail: session.user.email },
-      { menteeEmail: session.user.email },
-    ],
-    status: { $in: ['scheduled', 'in_progress'] },
-    scheduledAt: { $gte: new Date() },
-  })
-    .sort({ scheduledAt: 1 })
-    .limit(20)
-    .lean();
+  const upcomingSessions = await prisma.mentorSession.findMany({
+    where: {
+      OR: [
+        { mentorEmail: session.user.email },
+        { menteeEmail: session.user.email },
+      ],
+      status: { in: ['scheduled', 'in_progress'] },
+      scheduledAt: { gte: new Date() },
+    },
+    orderBy: { scheduledAt: 'asc' },
+    take: 20,
+  });
 
   // Fetch past sessions
-  const pastSessions = await MentorSession.find({
-    $and: [
-      {
-        $or: [
-          { mentorEmail: session.user.email },
-          { menteeEmail: session.user.email },
-        ],
-      },
-      {
-        $or: [
-          { status: { $in: ['completed', 'cancelled'] } },
-          { scheduledAt: { $lt: new Date() } },
-        ],
-      },
-    ],
-  })
-    .sort({ scheduledAt: -1 })
-    .limit(20)
-    .lean();
+  const pastSessions = await prisma.mentorSession.findMany({
+    where: {
+      AND: [
+        {
+          OR: [
+            { mentorEmail: session.user.email },
+            { menteeEmail: session.user.email },
+          ],
+        },
+        {
+          OR: [
+            { status: { in: ['completed', 'cancelled'] } },
+            { scheduledAt: { lt: new Date() } },
+          ],
+        },
+      ],
+    },
+    orderBy: { scheduledAt: 'desc' },
+    take: 20,
+  });
 
   return (
     <main className="container mx-auto max-w-5xl px-4 py-8">

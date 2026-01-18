@@ -1,5 +1,4 @@
-import dbConnect from '@/lib/connectdb';
-import interaction from '@/lib/model/interaction';
+import { getPrisma } from '@/lib/prisma';
 
 const interactionActions = {
   newsletter_signup: {
@@ -20,14 +19,14 @@ const interactionActions = {
 };
 
 interface SaveInteraction {
-  email: String;
+  email: string;
   action:
     | 'user_signup'
     | 'newsletter_signup'
     | 'profile_signup'
     | 'donation_onetime'
     | 'donation_membership';
-  affiliate?: String;
+  affiliate?: string;
 }
 
 export const saveInteraction = async ({
@@ -36,32 +35,38 @@ export const saveInteraction = async ({
   affiliate,
 }: SaveInteraction) => {
   const points = interactionActions[action].points;
-  await dbConnect();
-  const newInteraction = new interaction({
-    email: email,
-    action: action,
-    affiliate: affiliate ? affiliate : null,
-    points: points,
+  const prisma = await getPrisma();
+
+  const newInteraction = await prisma.interaction.create({
+    data: {
+      email: email,
+      action: action,
+      affiliate: affiliate || null,
+      points: points,
+    },
   });
-  const response = await newInteraction.save();
+
   if (affiliate) {
     // const update = await calculatePoints(affiliate)
   }
-  return response;
+  return newInteraction;
 };
 
-export const calculatePoints = async (affiliate: String) => {
-  await dbConnect();
-  const aggregateQuery = [
-    {
-      $group: {
-        _id: '$affiliate',
-        totalPoints: { $sum: '$points' },
-      },
+export const calculatePoints = async (affiliate: string) => {
+  const prisma = await getPrisma();
+
+  // Aggregate points by affiliate using Prisma
+  const pointsSum = await prisma.interaction.groupBy({
+    by: ['affiliate'],
+    where: {
+      affiliate: affiliate,
     },
-  ];
-  const pointsSum = await interaction.aggregate(aggregateQuery);
-  // points and interactions should eventually by historically tracked to minimize large db calls
+    _sum: {
+      points: true,
+    },
+  });
+
+  // points and interactions should eventually be historically tracked to minimize large db calls
   console.log(pointsSum);
   return pointsSum;
 };

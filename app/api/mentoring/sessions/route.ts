@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
 import { getPrisma } from '@/lib/prisma';
 import { ProfileMentoring } from '@/lib/interfaces';
 import { createSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getScheduleUrl } from '@/lib/mentoring';
 import { nanoid } from 'nanoid';
+import { SessionType, SessionStatus, Prisma } from '@prisma/client';
 
 // GET - List sessions for current user
 export async function GET(request: NextRequest) {
@@ -16,21 +15,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role'); // 'mentor' | 'mentee' | 'all'
   const status = searchParams.get('status'); // 'pending' | 'scheduled' | 'completed' | 'all'
 
-  const query: Record<string, unknown> = {};
+  // Build where clause
+  const where: Prisma.MentorSessionWhereInput = {};
 
   // Role filter
   if (role === 'mentor') {
-    query.mentorEmail = session.user.email;
+    where.mentorEmail = session.user.email;
   } else if (role === 'mentee') {
-    query.menteeEmail = session.user.email;
+    where.menteeEmail = session.user.email;
   } else {
-    query.$or = [
+    where.OR = [
       { mentorEmail: session.user.email },
       { menteeEmail: session.user.email },
     ];
@@ -38,12 +38,14 @@ export async function GET(request: NextRequest) {
 
   // Status filter
   if (status && status !== 'all') {
-    query.status = status;
+    where.status = status as SessionStatus;
   }
 
-  const sessions = await MentorSession.find(query)
-    .sort({ scheduledAt: -1 })
-    .limit(50);
+  const sessions = await prisma.mentorSession.findMany({
+    where,
+    orderBy: { scheduledAt: 'desc' },
+    take: 50,
+  });
 
   return NextResponse.json({ sessions });
 }
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = createSessionSchema.safeParse(body);
@@ -71,7 +73,6 @@ export async function POST(request: NextRequest) {
     validation.data;
 
   // Verify mentor exists and has mentoring enabled
-  const prisma = await getPrisma();
   const mentor = await prisma.profile.findUnique({
     where: { email: mentorEmail },
   });
@@ -95,15 +96,17 @@ export async function POST(request: NextRequest) {
   // Create session with unique ID for Pusher channel
   // Status is 'pending' until mentor accepts
   const sessionId = nanoid(16);
-  const newSession = await MentorSession.create({
-    mentorEmail,
-    menteeEmail: session.user.email,
-    scheduledAt: new Date(scheduledAt),
-    duration,
-    topic,
-    sessionType,
-    sessionId,
-    status: 'pending',
+  const newSession = await prisma.mentorSession.create({
+    data: {
+      mentorEmail,
+      menteeEmail: session.user.email,
+      scheduledAt: new Date(scheduledAt),
+      duration,
+      topic,
+      sessionType: sessionType as SessionType,
+      sessionId,
+      status: 'pending',
+    },
   });
 
   // Notify mentor of the session request
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
     actorId: session.user.id,
     targetId: mentor.userId,
     context: 'mentoring',
-    objectId: newSession._id.toString(),
+    objectId: newSession.id,
     objectType: 'session',
     objectTitle: topic,
     objectUrl: getScheduleUrl(),

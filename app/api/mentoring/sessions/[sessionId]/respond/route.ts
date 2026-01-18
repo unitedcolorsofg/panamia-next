@@ -8,8 +8,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
 import { getPrisma } from '@/lib/prisma';
 import { respondSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
@@ -27,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const { sessionId } = await params;
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = respondSessionSchema.safeParse(body);
@@ -50,7 +48,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Find the session
-  const mentorSession = await MentorSession.findOne({ sessionId });
+  const mentorSession = await prisma.mentorSession.findUnique({
+    where: { sessionId },
+  });
 
   if (!mentorSession) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -75,7 +75,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Get mentee's userId from their profile
-  const prisma = await getPrisma();
   const menteeProfile = await prisma.profile.findUnique({
     where: { email: mentorSession.menteeEmail },
     select: { userId: true },
@@ -90,8 +89,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   // Update session based on action
   if (action === 'accept') {
-    mentorSession.status = 'scheduled';
-    await mentorSession.save();
+    const updatedSession = await prisma.mentorSession.update({
+      where: { id: mentorSession.id },
+      data: { status: 'scheduled' },
+    });
 
     // Notify mentee of acceptance
     // actorId = mentor (current user), targetId = mentee
@@ -100,24 +101,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       actorId: session.user.id,
       targetId: menteeProfile.userId,
       context: 'mentoring',
-      objectId: mentorSession._id.toString(),
+      objectId: updatedSession.id,
       objectType: 'session',
-      objectTitle: mentorSession.topic,
+      objectTitle: updatedSession.topic,
       objectUrl: getSessionUrl(sessionId),
     });
 
     return NextResponse.json({
       success: true,
       message: 'Session accepted',
-      session: mentorSession,
+      session: updatedSession,
     });
   } else {
     // Decline
-    mentorSession.status = 'declined';
-    mentorSession.declinedAt = new Date();
-    mentorSession.declinedBy = session.user.email;
-    mentorSession.declineReason = reason;
-    await mentorSession.save();
+    const updatedSession = await prisma.mentorSession.update({
+      where: { id: mentorSession.id },
+      data: {
+        status: 'declined',
+        declinedAt: new Date(),
+        declinedBy: session.user.email,
+        declineReason: reason,
+      },
+    });
 
     // Notify mentee of decline
     // actorId = mentor (current user), targetId = mentee
@@ -126,9 +131,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       actorId: session.user.id,
       targetId: menteeProfile.userId,
       context: 'mentoring',
-      objectId: mentorSession._id.toString(),
+      objectId: updatedSession.id,
       objectType: 'session',
-      objectTitle: mentorSession.topic,
+      objectTitle: updatedSession.topic,
       objectUrl: getScheduleUrl(),
       message: reason,
     });
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       message: 'Session declined',
-      session: mentorSession,
+      session: updatedSession,
     });
   }
 }

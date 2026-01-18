@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
 import { getPrisma } from '@/lib/prisma';
 import { ProfileMentoring } from '@/lib/interfaces';
+import { SessionStatus } from '@prisma/client';
 
 interface DashboardMetrics {
   totalMentors: number;
@@ -47,11 +46,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   // TODO: Add admin role check
-  // const user = await User.findOne({ email: session.user.email });
-  // if (user?.status?.role !== 'admin') {
+  // const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  // if (user?.role !== 'admin') {
   //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   // }
 
@@ -75,37 +74,21 @@ export async function GET(request: NextRequest) {
     // Date filter for sessions
     const dateFilter = {
       scheduledAt: {
-        $gte: startDate,
-        $lte: endDate,
+        gte: startDate,
+        lte: endDate,
       },
     };
 
     console.log('Date filter:', {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      dateFilter,
     });
 
     // Debug: Check total sessions without date filter
-    const totalSessionsInDB = await MentorSession.countDocuments({});
+    const totalSessionsInDB = await prisma.mentorSession.count();
     console.log('Total sessions in DB:', totalSessionsInDB);
 
-    // Debug: Get sample session dates
-    const sampleSessions = await MentorSession.find({})
-      .limit(5)
-      .sort({ scheduledAt: 1 })
-      .select('scheduledAt status');
-    console.log(
-      'Sample sessions:',
-      sampleSessions.map((s) => ({
-        scheduledAt: s.scheduledAt,
-        status: s.status,
-      }))
-    );
-
     // 1. Total mentors and active mentors
-    const prisma = await getPrisma();
-
     // Get all profiles with mentoring enabled
     const mentorProfiles = await prisma.profile.findMany({
       where: {
@@ -121,22 +104,22 @@ export async function GET(request: NextRequest) {
     const totalMentors = mentorProfiles.length;
 
     // Active mentors (those with at least one completed session in date range)
-    const activeMentorsSessions = await MentorSession.distinct('mentorEmail', {
-      status: 'completed',
-      ...dateFilter,
+    const activeMentorsSessions = await prisma.mentorSession.findMany({
+      where: {
+        status: 'completed',
+        ...dateFilter,
+      },
+      distinct: ['mentorEmail'],
+      select: { mentorEmail: true },
     });
     const activeMentors = activeMentorsSessions.length;
 
     // 2. Session counts by status (filtered by date)
-    const sessionCounts = await MentorSession.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const sessionCountsByStatus = await prisma.mentorSession.groupBy({
+      by: ['status'],
+      where: dateFilter,
+      _count: { id: true },
+    });
 
     const sessions = {
       total: 0,
@@ -146,25 +129,20 @@ export async function GET(request: NextRequest) {
       cancelled: 0,
     };
 
-    sessionCounts.forEach((item) => {
-      sessions.total += item.count;
-      if (item._id === 'scheduled') sessions.scheduled = item.count;
-      if (item._id === 'in_progress') sessions.inProgress = item.count;
-      if (item._id === 'completed') sessions.completed = item.count;
-      if (item._id === 'cancelled') sessions.cancelled = item.count;
+    sessionCountsByStatus.forEach((item) => {
+      sessions.total += item._count.id;
+      if (item.status === 'scheduled') sessions.scheduled = item._count.id;
+      if (item.status === 'in_progress') sessions.inProgress = item._count.id;
+      if (item.status === 'completed') sessions.completed = item._count.id;
+      if (item.status === 'cancelled') sessions.cancelled = item._count.id;
     });
 
     // 3. Average session duration (filtered by date)
-    const avgDuration = await MentorSession.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: null,
-          average: { $avg: '$duration' },
-        },
-      },
-    ]);
-    const averageSessionDuration = avgDuration[0]?.average || 0;
+    const avgDuration = await prisma.mentorSession.aggregate({
+      where: dateFilter,
+      _avg: { duration: true },
+    });
+    const averageSessionDuration = avgDuration._avg.duration || 0;
 
     // 4. Top expertise areas (no date filter - all mentors)
     // Process expertise from fetched mentor profiles
@@ -191,43 +169,49 @@ export async function GET(request: NextRequest) {
     };
 
     // 6. Mentee engagement (filtered by date)
-    const uniqueMentees = await MentorSession.distinct(
-      'menteeEmail',
-      dateFilter
-    );
-    const menteeBookings = await MentorSession.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: '$menteeEmail',
-          bookings: { $sum: 1 },
-        },
-      },
-    ]);
+    const uniqueMenteesSessions = await prisma.mentorSession.findMany({
+      where: dateFilter,
+      distinct: ['menteeEmail'],
+      select: { menteeEmail: true },
+    });
+    const uniqueMentees = uniqueMenteesSessions.length;
+
+    const menteeBookings = await prisma.mentorSession.groupBy({
+      by: ['menteeEmail'],
+      where: dateFilter,
+      _count: { id: true },
+    });
     const returningMentees = menteeBookings.filter(
-      (m) => m.bookings > 1
+      (m) => m._count.id > 1
     ).length;
 
     const menteeEngagement = {
-      uniqueMentees: uniqueMentees.length,
+      uniqueMentees,
       returningMentees,
       totalBookings: sessions.total,
     };
 
     // 7. Cancellation rates (filtered by date)
-    const cancelledSessions = await MentorSession.find({
-      status: 'cancelled',
-      cancelledBy: { $exists: true },
-      ...dateFilter,
+    const cancelledSessions = await prisma.mentorSession.findMany({
+      where: {
+        status: 'cancelled',
+        cancelledBy: { not: null },
+        ...dateFilter,
+      },
+      select: {
+        cancelledBy: true,
+        mentorEmail: true,
+        menteeEmail: true,
+      },
     });
 
     let cancelledByMentor = 0;
     let cancelledByMentee = 0;
 
-    for (const session of cancelledSessions) {
-      if (session.cancelledBy === session.mentorEmail) {
+    for (const s of cancelledSessions) {
+      if (s.cancelledBy === s.mentorEmail) {
         cancelledByMentor++;
-      } else if (session.cancelledBy === session.menteeEmail) {
+      } else if (s.cancelledBy === s.menteeEmail) {
         cancelledByMentee++;
       }
     }
@@ -246,25 +230,21 @@ export async function GET(request: NextRequest) {
     };
 
     // 8. Chart data: Sessions over time
-    const sessionsOverTime = await MentorSession.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$scheduledAt' },
-          },
-          sessions: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-      {
-        $project: {
-          date: '$_id',
-          sessions: 1,
-          _id: 0,
-        },
-      },
-    ]);
+    // Prisma doesn't have dateToString, so we fetch and group in JS
+    const sessionsForChart = await prisma.mentorSession.findMany({
+      where: dateFilter,
+      select: { scheduledAt: true },
+      orderBy: { scheduledAt: 'asc' },
+    });
+
+    const sessionsByDate = new Map<string, number>();
+    for (const s of sessionsForChart) {
+      const dateStr = s.scheduledAt.toISOString().split('T')[0];
+      sessionsByDate.set(dateStr, (sessionsByDate.get(dateStr) || 0) + 1);
+    }
+    const sessionsOverTime = Array.from(sessionsByDate.entries()).map(
+      ([date, count]) => ({ date, sessions: count })
+    );
 
     // 9. Chart data: Sessions by status (pie chart)
     const sessionsByStatus = [

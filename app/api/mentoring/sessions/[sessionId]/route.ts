@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import MentorSession from '@/lib/model/mentorSession';
 import { getPrisma } from '@/lib/prisma';
 import {
   updateSessionNotesSchema,
@@ -23,14 +21,16 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
-  const mentorSession = await MentorSession.findOne({
-    sessionId: sessionId,
-    $or: [
-      { mentorEmail: session.user.email },
-      { menteeEmail: session.user.email },
-    ],
+  const mentorSession = await prisma.mentorSession.findFirst({
+    where: {
+      sessionId: sessionId,
+      OR: [
+        { mentorEmail: session.user.email },
+        { menteeEmail: session.user.email },
+      ],
+    },
   });
 
   if (!mentorSession) {
@@ -53,7 +53,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const body = await request.json();
   const { action } = body;
@@ -64,23 +64,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
     }
 
-    const updated = await MentorSession.findOneAndUpdate(
-      {
+    const updated = await prisma.mentorSession.updateMany({
+      where: {
         sessionId: sessionId,
-        $or: [
+        OR: [
           { mentorEmail: session.user.email },
           { menteeEmail: session.user.email },
         ],
       },
-      { notes: validation.data.notes },
-      { new: true }
-    );
+      data: { notes: validation.data.notes },
+    });
 
-    if (!updated) {
+    if (updated.count === 0) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ session: updated });
+    // Fetch the updated session
+    const updatedSession = await prisma.mentorSession.findUnique({
+      where: { sessionId },
+    });
+
+    return NextResponse.json({ session: updatedSession });
   }
 
   if (action === 'cancel') {
@@ -90,12 +94,14 @@ export async function PATCH(
     }
 
     // Find session first
-    const mentorSession = await MentorSession.findOne({
-      sessionId: sessionId,
-      $or: [
-        { mentorEmail: session.user.email },
-        { menteeEmail: session.user.email },
-      ],
+    const mentorSession = await prisma.mentorSession.findFirst({
+      where: {
+        sessionId: sessionId,
+        OR: [
+          { mentorEmail: session.user.email },
+          { menteeEmail: session.user.email },
+        ],
+      },
     });
 
     if (!mentorSession) {
@@ -113,11 +119,15 @@ export async function PATCH(
     }
 
     // Update session
-    mentorSession.status = 'cancelled';
-    mentorSession.cancelledAt = new Date();
-    mentorSession.cancelledBy = session.user.email;
-    mentorSession.cancelReason = validation.data.reason;
-    await mentorSession.save();
+    const updatedSession = await prisma.mentorSession.update({
+      where: { id: mentorSession.id },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: session.user.email,
+        cancelReason: validation.data.reason,
+      },
+    });
 
     // Determine who to notify (the other party)
     const isMentor = mentorSession.mentorEmail === session.user.email;
@@ -126,7 +136,6 @@ export async function PATCH(
       : mentorSession.mentorEmail;
 
     // Get the other party's userId from their profile
-    const prisma = await getPrisma();
     const otherPartyProfile = await prisma.profile.findUnique({
       where: { email: otherPartyEmail },
       select: { userId: true },
@@ -138,15 +147,15 @@ export async function PATCH(
         actorId: session.user.id,
         targetId: otherPartyProfile.userId,
         context: 'mentoring',
-        objectId: mentorSession._id.toString(),
+        objectId: updatedSession.id,
         objectType: 'session',
-        objectTitle: mentorSession.topic,
+        objectTitle: updatedSession.topic,
         objectUrl: getScheduleUrl(),
         message: `Session cancelled: ${validation.data.reason}`,
       });
     }
 
-    return NextResponse.json({ session: mentorSession });
+    return NextResponse.json({ session: updatedSession });
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

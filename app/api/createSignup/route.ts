@@ -1,9 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 
-import dbConnect from '@/lib/connectdb';
-import signup from '@/lib/model/signup';
-import brevoContact from '@/lib/model/brevo_contact';
+import { getPrisma } from '@/lib/prisma';
 import BrevoApi from '@/lib/brevo_api';
 import { splitName } from '@/lib/standardized';
 
@@ -18,20 +16,22 @@ const validateEmail = (email: string): boolean => {
 };
 
 const callBrevo_createContact = async (email: string, name: string) => {
-  const existingContact = await brevoContact.findOne({ email: email });
+  const prisma = await getPrisma();
+  const existingContact = await prisma.brevoContact.findUnique({
+    where: { email },
+  });
   if (existingContact) {
     return false; // skip since already created/updated in Brevo
   }
 
   const brevo = new BrevoApi();
   if (brevo.ready) {
-    // const contact = await brevo.findContact(email);
     const [firstName, lastName] = splitName(name);
     const attributes = {
       FIRSTNAME: firstName,
       LASTNAME: lastName,
     };
-    let list_ids = [];
+    const list_ids: number[] = [];
     if (brevo.config.lists.addedByWebsite) {
       list_ids.push(parseInt(brevo.config.lists.addedByWebsite));
     }
@@ -43,10 +43,13 @@ const callBrevo_createContact = async (email: string, name: string) => {
       attributes,
       list_ids
     );
-    const new_contact = new brevoContact();
-    new_contact.email = email;
-    new_contact.brevo_id = brevoResponse.id;
-    await new_contact.save();
+    await prisma.brevoContact.create({
+      data: {
+        email,
+        brevoId: brevoResponse.id,
+        listIds: list_ids,
+      },
+    });
   }
 };
 
@@ -77,37 +80,42 @@ export async function POST(request: NextRequest) {
   // get and validate body variables
   const { name, email, signup_type } = body;
 
-  await dbConnect();
-  const emailUser = await signup.findOne({ email: email });
-  if (emailUser) {
+  if (!validateEmail(email)) {
+    return NextResponse.json({ error: 'Please enter a valid email address.' });
+  }
+
+  const prisma = await getPrisma();
+  const existingSignup = await prisma.newsletterSignup.findUnique({
+    where: { email: email.toLowerCase() },
+  });
+  if (existingSignup) {
     return NextResponse.json(
       { error: 'You are already registered.' },
       { status: 200 }
     );
   }
 
-  if (!validateEmail(email)) {
-    return NextResponse.json({ error: 'Please enter a valid email address.' });
-  }
-
-  const newSignup = new signup({
-    name: name,
-    email: email,
-    signupType: signup_type,
-  });
-
   try {
-    const dbResponse = await newSignup.save();
+    const newSignup = await prisma.newsletterSignup.create({
+      data: {
+        name: name,
+        email: email.toLowerCase(),
+        signupType: signup_type,
+      },
+    });
+
+    await Promise.allSettled([
+      callBrevo_createContact(email, name),
+      callBrevo_sendAdminNoticeEmail(name, email, signup_type),
+    ]);
+
+    return NextResponse.json({
+      msg: 'Successfully created new Signup',
+      success: true,
+    });
   } catch (error) {
     return NextResponse.json({
       error: "Error on '/api/createSignup': " + error,
     });
   }
-  const promise = await Promise.allSettled([
-    callBrevo_createContact(email, name),
-    callBrevo_sendAdminNoticeEmail(name, email, signup_type),
-  ]);
-  return NextResponse.json({
-    msg: 'Successfuly created new Signup: ' + newSignup,
-  });
 }
