@@ -1,4 +1,8 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+/**
+ * @deprecated This route uses legacy MongoDB. See docs/DEPRECATED-ROUTES.md
+ * Replace with: prisma.intakeForm.findFirst({ where: { email, formType, complete: true } })
+ * Note: 6 intake collections consolidated into single IntakeForm table with formType enum
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import users from '@/lib/model/users';
@@ -8,9 +12,6 @@ import orgIntake from '@/lib/model/orgintake';
 import apparelIntake from '@/lib/model/apparelintake';
 import goodsIntake from '@/lib/model/goodsintake';
 import foodIntake from '@/lib/model/foodintake';
-
-import { ObjectId } from 'mongodb';
-import { CgFontSpacing } from 'react-icons/cg';
 
 interface ResponseData {
   error?: string;

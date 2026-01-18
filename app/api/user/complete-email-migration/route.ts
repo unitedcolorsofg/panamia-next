@@ -3,10 +3,8 @@ import {
   emailMigrationConfirmationHtml,
   emailMigrationConfirmationText,
 } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import emailMigration from '@/lib/model/emailMigration';
+import { getPrisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
-import { getPrisma, getPrismaSync } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
     // Find migration record
-    const migration = await emailMigration.findOne({
-      migrationToken: token,
+    const migration = await prisma.emailMigration.findUnique({
+      where: { migrationToken: token },
     });
 
     if (!migration) {
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Check if expired
     if (new Date() > migration.expiresAt) {
-      await emailMigration.deleteOne({ _id: migration._id });
+      await prisma.emailMigration.delete({ where: { id: migration.id } });
       return NextResponse.json(
         {
           error:
@@ -47,14 +45,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, oldEmail, newEmail } = migration;
-    const prisma = getPrismaSync();
 
     // Check if new email was taken while migration was pending
     const existingUser = await prisma.user.findUnique({
       where: { email: newEmail },
     });
     if (existingUser && existingUser.id !== userId) {
-      await emailMigration.deleteOne({ _id: migration._id });
+      await prisma.emailMigration.delete({ where: { id: migration.id } });
       return NextResponse.json(
         { error: 'Email address is no longer available' },
         { status: 400 }
@@ -76,17 +73,16 @@ export async function POST(request: NextRequest) {
       await tx.session.deleteMany({
         where: { userId },
       });
-    });
 
-    // Update profile email in PostgreSQL (separate from Prisma transaction)
-    const prismaAsync = await getPrisma();
-    await prismaAsync.profile.updateMany({
-      where: { userId },
-      data: { email: newEmail },
-    });
+      // Update profile email
+      await tx.profile.updateMany({
+        where: { userId },
+        data: { email: newEmail },
+      });
 
-    // Delete the migration record
-    await emailMigration.deleteOne({ _id: migration._id });
+      // Delete the migration record
+      await tx.emailMigration.delete({ where: { id: migration.id } });
+    });
 
     // Send confirmation email to old address
     const timestamp = new Date().toLocaleString('en-US', {

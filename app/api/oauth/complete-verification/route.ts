@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
-import oauthVerification from '@/lib/model/oauthVerification';
-import { getPrisma, getPrismaSync } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +13,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const prisma = await getPrisma();
 
-    // Find verification record (still in MongoDB for now)
-    const verification = await oauthVerification.findOne({
-      verificationToken: token,
+    // Find verification record
+    const verification = await prisma.oAuthVerification.findUnique({
+      where: { verificationToken: token },
     });
 
     if (!verification) {
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Check if expired
     if (new Date() > verification.expiresAt) {
-      await oauthVerification.deleteOne({ _id: verification._id });
+      await prisma.oAuthVerification.delete({ where: { id: verification.id } });
       return NextResponse.json(
         {
           error:
@@ -42,9 +40,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, provider, providerAccountId } = verification;
-
-    // Use Prisma for PostgreSQL auth operations
-    const prisma = getPrismaSync();
 
     // Use Prisma transaction for atomic user/account creation
     const result = await prisma.$transaction(async (tx) => {
@@ -100,8 +95,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Auto-claim profile (PostgreSQL operation, separate from transaction)
-    const prismaAsync = await getPrisma();
-    const unclaimedProfile = await prismaAsync.profile.findFirst({
+    const unclaimedProfile = await prisma.profile.findFirst({
       where: {
         email: email.toLowerCase(),
         userId: null,
@@ -115,7 +109,7 @@ export async function POST(request: NextRequest) {
         'after email verification for provider:',
         provider
       );
-      await prismaAsync.profile.update({
+      await prisma.profile.update({
         where: { id: unclaimedProfile.id },
         data: { userId: result.userId },
       });
@@ -123,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete verification record
-    await oauthVerification.deleteOne({ _id: verification._id });
+    await prisma.oAuthVerification.delete({ where: { id: verification.id } });
 
     return NextResponse.json({
       success: true,

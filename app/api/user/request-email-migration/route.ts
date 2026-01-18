@@ -4,9 +4,7 @@ import {
   emailMigrationVerificationHtml,
   emailMigrationVerificationText,
 } from '@/auth';
-import dbConnect from '@/lib/connectdb';
 import { getPrisma } from '@/lib/prisma';
-import emailMigration from '@/lib/model/emailMigration';
 import { nanoid } from 'nanoid';
 import nodemailer from 'nodemailer';
 
@@ -64,13 +62,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // EmailMigration collection stays on MongoDB for now
-    await dbConnect();
-
     // Check for existing pending migration for this user
-    const existingMigration = await emailMigration.findOne({
-      userId: session.user.id,
-      expiresAt: { $gt: new Date() },
+    const existingMigration = await prisma.emailMigration.findFirst({
+      where: {
+        userId: session.user.id,
+        expiresAt: { gt: new Date() },
+      },
     });
 
     if (existingMigration) {
@@ -84,9 +81,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for pending migration to the same email
-    const duplicateMigration = await emailMigration.findOne({
-      newEmail: normalizedNewEmail,
-      expiresAt: { $gt: new Date() },
+    const duplicateMigration = await prisma.emailMigration.findFirst({
+      where: {
+        newEmail: normalizedNewEmail,
+        expiresAt: { gt: new Date() },
+      },
     });
 
     if (duplicateMigration) {
@@ -101,12 +100,14 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     // Create pending migration record
-    await emailMigration.create({
-      userId: session.user.id,
-      oldEmail: currentEmail,
-      newEmail: normalizedNewEmail,
-      migrationToken,
-      expiresAt,
+    await prisma.emailMigration.create({
+      data: {
+        userId: session.user.id,
+        oldEmail: currentEmail,
+        newEmail: normalizedNewEmail,
+        migrationToken,
+        expiresAt,
+      },
     });
 
     // Send verification email to new address

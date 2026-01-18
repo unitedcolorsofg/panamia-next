@@ -51,23 +51,25 @@ Primary data is stored in PostgreSQL via Prisma. See `prisma/schema.prisma` for 
 | `UserFollow`        | Follow relationships                    |
 | `UserList`          | User-created curated lists              |
 | `UserListMember`    | Members of user lists                   |
+| `ContactSubmission` | Contact form submissions                |
+| `NewsletterSignup`  | Newsletter signups                      |
+| `EmailMigration`    | Email change tokens (TTL-based)         |
+| `OAuthVerification` | OAuth email verification tokens         |
+| `BrevoContact`      | Brevo email service sync                |
+| `Interaction`       | User interactions/analytics             |
+| `MentorSession`     | Mentoring session bookings              |
+| `IntakeForm`        | Consolidated intake form submissions    |
 
-### MongoDB Models (`model/`)
+### MongoDB Models (`model/`) - DEPRECATED
 
-Legacy and specialized data in MongoDB (Mongoose schemas):
+These Mongoose models are deprecated and only used by legacy routes marked for removal.
+See `docs/DEPRECATED-ROUTES.md` for migration notes.
 
-| Model                  | Description                                                        |
-| ---------------------- | ------------------------------------------------------------------ |
-| `users.ts`             | Legacy Profile model (directory listings)                          |
-| `images.ts`            | Profile image metadata                                             |
-| `interaction.ts`       | User interactions/analytics                                        |
-| `mentorSession.ts`     | Mentoring session bookings                                         |
-| `contactus.ts`         | Contact form submissions                                           |
-| `signup.ts`            | Signup requests                                                    |
-| `emailMigration.ts`    | Email change requests                                              |
-| `oauthVerification.ts` | OAuth email verification tokens                                    |
-| `brevo_contact.ts`     | Brevo email service contacts                                       |
-| `*intake.ts`           | Intake form submissions (apparel, art, food, goods, org, services) |
+| Model        | Status     | Description                           |
+| ------------ | ---------- | ------------------------------------- |
+| `users.ts`   | Deprecated | Legacy directory (use Prisma Profile) |
+| `images.ts`  | Deprecated | Profile images (use Vercel Blobs)     |
+| `*intake.ts` | Deprecated | Intake forms (use Prisma IntakeForm)  |
 
 ## Query Helpers (`query/`)
 
@@ -165,12 +167,7 @@ Vercel Blob integration for file uploads:
 import { getPrisma } from '@/lib/prisma';
 const prisma = await getPrisma();
 const user = await prisma.user.findUnique({ where: { email } });
-
-// MongoDB - Legacy/specialized collections
-import dbConnect from '@/lib/connectdb';
-await dbConnect();
-import signup from '@/lib/model/signup';
-const doc = await signup.findOne({ email });
+const profile = await prisma.profile.findFirst({ where: { email } });
 
 // Interfaces
 import type { UserInterface, ArticleInterface } from '@/lib/interfaces';

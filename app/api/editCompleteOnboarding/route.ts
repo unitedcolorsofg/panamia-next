@@ -1,8 +1,10 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+/**
+ * @deprecated This route uses legacy MongoDB. See docs/DEPRECATED-ROUTES.md
+ * Replace with: Add onboardingComplete field to Profile model
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import users from '@/lib/model/users';
-import bcrypt from 'bcrypt';
 
 interface ResponseData {
   error?: string;

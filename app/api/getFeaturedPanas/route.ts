@@ -1,3 +1,7 @@
+/**
+ * @deprecated This route uses legacy MongoDB. See docs/DEPRECATED-ROUTES.md
+ * Replace with: prisma.profile.findMany({ where: { featured: true } })
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import users from '@/lib/model/users';

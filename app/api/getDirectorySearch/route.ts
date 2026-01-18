@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/connectdb';
 import { forceInt, forceString } from '@/lib/standardized';
 import { getSearch } from '@/lib/server/directory';
 
 export async function GET(request: NextRequest) {
-  await dbConnect();
-
   const searchParams = request.nextUrl.searchParams;
   const pageNum = forceInt(
     forceString(searchParams.get('page') || undefined, '1'),

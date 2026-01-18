@@ -1,3 +1,7 @@
+/**
+ * @deprecated This route uses legacy MongoDB. See docs/DEPRECATED-ROUTES.md
+ * Replace with: Vercel Blobs for image storage + Profile model
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import image from '@/lib/model/images';

@@ -1,3 +1,7 @@
+/**
+ * @deprecated OBSOLETE - Password-based registration replaced by Auth.js OAuth/magic link
+ * See docs/DEPRECATED-ROUTES.md
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import users from '@/lib/model/users';

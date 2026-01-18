@@ -795,29 +795,41 @@ CREATE TABLE profiles (
 - [x] Convert user list routes to Prisma
 - [x] Remove unused MongoDB models (followers, userlist, user, event, links, newsletter, podcasts)
 
-### Phase 9: MongoDB Decommissioning (Future)
+### Phase 9: MongoDB Decommissioning (In Progress)
 
-Remaining MongoDB models to migrate or remove:
+**Completed migrations:**
 
-| Model                  | Status                                   |
-| ---------------------- | ---------------------------------------- |
-| `users.ts`             | Legacy directory listings (needs review) |
-| `images.ts`            | Profile images                           |
-| `interaction.ts`       | User analytics                           |
-| `mentorSession.ts`     | Mentoring feature                        |
-| `contactus.ts`         | Contact form submissions                 |
-| `signup.ts`            | Newsletter signups                       |
-| `emailMigration.ts`    | Email change tokens                      |
-| `oauthVerification.ts` | OAuth verification                       |
-| `brevo_contact.ts`     | Brevo email contacts                     |
-| `*intake.ts`           | Intake forms (6 models)                  |
+| Model                  | Prisma Model        | Status      |
+| ---------------------- | ------------------- | ----------- |
+| `contactus.ts`         | `ContactSubmission` | ✅ Migrated |
+| `signup.ts`            | `NewsletterSignup`  | ✅ Migrated |
+| `brevo_contact.ts`     | `BrevoContact`      | ✅ Migrated |
+| `emailMigration.ts`    | `EmailMigration`    | ✅ Migrated |
+| `oauthVerification.ts` | `OAuthVerification` | ✅ Migrated |
+| `interaction.ts`       | `Interaction`       | ✅ Migrated |
+| `mentorSession.ts`     | `MentorSession`     | ✅ Migrated |
 
-Final decommissioning tasks:
+**Deprecated (to remove in Phase 10):**
 
-- [ ] Migrate remaining collections
+See `docs/DEPRECATED-ROUTES.md` for full details.
+
+| Model        | Routes Affected | Replacement Strategy             |
+| ------------ | --------------- | -------------------------------- |
+| `users.ts`   | 13 routes       | Use Prisma Profile model         |
+| `images.ts`  | 2 routes        | Vercel Blobs + Profile           |
+| `*intake.ts` | 1 route         | Prisma IntakeForm (consolidated) |
+
+**Final decommissioning tasks:**
+
+- [x] Migrate form submissions (ContactSubmission, NewsletterSignup)
+- [x] Migrate auth tokens (EmailMigration, OAuthVerification)
+- [x] Migrate analytics (Interaction, BrevoContact)
+- [x] Migrate mentoring (MentorSession with enums)
+- [x] Add IntakeForm Prisma model (consolidated)
+- [x] Deprecate legacy directory routes with notes
+- [ ] Implement Phase 10: Rebuild deprecated routes with Prisma
 - [ ] Remove `lib/connectdb.ts`
 - [ ] Remove `lib/mongodb.ts`
-- [ ] Remove `@auth/mongodb-adapter` dependency
 - [ ] Remove `mongoose` dependency
 - [ ] Remove `mongodb` dependency
 - [ ] Remove `mongodb-memory-server` dev dependency

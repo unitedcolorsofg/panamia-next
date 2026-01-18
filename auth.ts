@@ -6,7 +6,6 @@ import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { createTransport } from 'nodemailer';
 import { getPrisma, getPrismaSync } from '@/lib/prisma';
-import dbConnect from '@/lib/connectdb';
 import { ProfileMentoring } from '@/lib/interfaces';
 
 // Custom email templates for magic link authentication
@@ -539,19 +538,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (providerConfig === 'verification-required') {
         // Block sign-in and send verification email
         try {
-          await dbConnect();
-          const oauthVerification = (
-            await import('@/lib/model/oauthVerification')
-          ).default;
+          const prisma = await getPrisma();
           const nodemailer = await import('nodemailer');
           const { nanoid } = await import('nanoid');
 
           // Check if verification already sent recently
-          const existingVerification = await oauthVerification.findOne({
-            provider: account?.provider,
-            providerAccountId: account?.providerAccountId,
-            expiresAt: { $gt: new Date() },
-          });
+          const existingVerification = await prisma.oAuthVerification.findFirst(
+            {
+              where: {
+                provider: account?.provider,
+                providerAccountId: account?.providerAccountId,
+                expiresAt: { gt: new Date() },
+              },
+            }
+          );
 
           if (existingVerification) {
             console.log('Verification email already sent for:', user.email);
@@ -563,16 +563,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
           // Create verification record
-          await oauthVerification.create({
-            email: user.email.toLowerCase(),
-            provider: account?.provider,
-            providerAccountId: account?.providerAccountId,
-            verificationToken,
-            expiresAt,
-            oauthProfile: {
-              name: user.name,
-              email: user.email,
-              image: user.image,
+          await prisma.oAuthVerification.create({
+            data: {
+              email: user.email.toLowerCase(),
+              provider: account?.provider || '',
+              providerAccountId: account?.providerAccountId || '',
+              verificationToken,
+              expiresAt,
+              oauthProfile: {
+                name: user.name,
+                email: user.email,
+                image: user.image,
+              },
             },
           });
 

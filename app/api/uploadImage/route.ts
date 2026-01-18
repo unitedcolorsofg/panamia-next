@@ -1,10 +1,11 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+/**
+ * @deprecated This route uses legacy MongoDB. See docs/DEPRECATED-ROUTES.md
+ * Replace with: Vercel Blobs for storage + prisma.profile.update()
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/connectdb';
 import images from '@/lib/model/images';
 import users from '@/lib/model/users';
-import bcrypt from 'bcrypt';
-import { ObjectId } from 'mongoose';
 
 interface ResponseData {
   error?: string;
