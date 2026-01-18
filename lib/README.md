@@ -6,6 +6,7 @@ Shared utilities, business logic, data models, and server-side helpers.
 
 | File            | Description                                                     |
 | --------------- | --------------------------------------------------------------- |
+| `prisma.ts`     | Prisma client singleton (PostgreSQL, supports PGLite for tests) |
 | `connectdb.ts`  | MongoDB connection singleton (caches connection for serverless) |
 | `env.config.ts` | Environment variable definitions and validation                 |
 | `interfaces.ts` | TypeScript interfaces for all data models                       |
@@ -32,26 +33,35 @@ npm run env:vars      # List variables for GitHub Variables
 
 See `.env.local.example` for annotated variable list.
 
-## Database Models (`model/`)
+## Database
 
-Mongoose schemas defining MongoDB collections:
+### Prisma Models (PostgreSQL)
+
+Primary data is stored in PostgreSQL via Prisma. See `prisma/schema.prisma` for the full schema.
+
+| Model               | Description                             |
+| ------------------- | --------------------------------------- |
+| `User`              | User accounts (auth, email, screenname) |
+| `Account`           | OAuth provider accounts                 |
+| `Session`           | User sessions                           |
+| `VerificationToken` | Email verification tokens               |
+| `Profile`           | Business/personal profiles              |
+| `Article`           | Community articles                      |
+| `Notification`      | In-app notifications                    |
+| `UserFollow`        | Follow relationships                    |
+| `UserList`          | User-created curated lists              |
+| `UserListMember`    | Members of user lists                   |
+
+### MongoDB Models (`model/`)
+
+Legacy and specialized data in MongoDB (Mongoose schemas):
 
 | Model                  | Description                                                        |
 | ---------------------- | ------------------------------------------------------------------ |
-| `user.ts`              | User accounts (auth, email, screenname, role)                      |
-| `users.ts`             | Legacy user model (being migrated)                                 |
-| `profile.ts`           | Business/personal profiles                                         |
-| `article.ts`           | Community articles                                                 |
-| `notification.ts`      | In-app notifications                                               |
-| `userlist.ts`          | User-created curated lists                                         |
-| `followers.ts`         | Follow relationships                                               |
+| `users.ts`             | Legacy Profile model (directory listings)                          |
 | `images.ts`            | Profile image metadata                                             |
 | `interaction.ts`       | User interactions/analytics                                        |
 | `mentorSession.ts`     | Mentoring session bookings                                         |
-| `event.ts`             | Event listings                                                     |
-| `podcasts.ts`          | Podcast episodes                                                   |
-| `links.ts`             | Link tree entries                                                  |
-| `newsletter.ts`        | Newsletter subscriptions                                           |
 | `contactus.ts`         | Contact form submissions                                           |
 | `signup.ts`            | Signup requests                                                    |
 | `emailMigration.ts`    | Email change requests                                              |
@@ -151,13 +161,16 @@ Vercel Blob integration for file uploads:
 ## Usage Patterns
 
 ```typescript
-// Database connection
+// Prisma (PostgreSQL) - Primary database
+import { getPrisma } from '@/lib/prisma';
+const prisma = await getPrisma();
+const user = await prisma.user.findUnique({ where: { email } });
+
+// MongoDB - Legacy/specialized collections
 import dbConnect from '@/lib/connectdb';
 await dbConnect();
-
-// Models
-import user from '@/lib/model/user';
-const doc = await user.findOne({ email });
+import signup from '@/lib/model/signup';
+const doc = await signup.findOne({ email });
 
 // Interfaces
 import type { UserInterface, ArticleInterface } from '@/lib/interfaces';

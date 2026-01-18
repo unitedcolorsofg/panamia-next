@@ -753,12 +753,12 @@ CREATE TABLE articles (
 );
 ```
 
-### Phase 7: Migrate Profiles
+### Phase 7: Migrate Profiles ✅
 
-- [ ] Create `profiles` table with JSONB for flexible nested data
-- [ ] Migrate profile data from MongoDB
-- [ ] Update profile queries to use Prisma
-- [ ] Remove `lib/model/profile.ts`
+- [x] Create `profiles` table with JSONB for flexible nested data
+- [x] Migrate profile data from MongoDB
+- [x] Update profile queries to use Prisma
+- [x] Profile model in Prisma (legacy `users.ts` remains for directory)
 
 **Schema approach:**
 
@@ -787,9 +787,34 @@ CREATE TABLE profiles (
 );
 ```
 
-### Phase 8: MongoDB Decommissioning
+### Phase 8: User Social Features ✅
 
-- [ ] Migrate remaining collections (if any)
+- [x] Create `UserFollow` table for follow relationships
+- [x] Create `UserList` and `UserListMember` tables for curated lists
+- [x] Convert follow/unfollow routes to Prisma
+- [x] Convert user list routes to Prisma
+- [x] Remove unused MongoDB models (followers, userlist, user, event, links, newsletter, podcasts)
+
+### Phase 9: MongoDB Decommissioning (Future)
+
+Remaining MongoDB models to migrate or remove:
+
+| Model                  | Status                                   |
+| ---------------------- | ---------------------------------------- |
+| `users.ts`             | Legacy directory listings (needs review) |
+| `images.ts`            | Profile images                           |
+| `interaction.ts`       | User analytics                           |
+| `mentorSession.ts`     | Mentoring feature                        |
+| `contactus.ts`         | Contact form submissions                 |
+| `signup.ts`            | Newsletter signups                       |
+| `emailMigration.ts`    | Email change tokens                      |
+| `oauthVerification.ts` | OAuth verification                       |
+| `brevo_contact.ts`     | Brevo email contacts                     |
+| `*intake.ts`           | Intake forms (6 models)                  |
+
+Final decommissioning tasks:
+
+- [ ] Migrate remaining collections
 - [ ] Remove `lib/connectdb.ts`
 - [ ] Remove `lib/mongodb.ts`
 - [ ] Remove `@auth/mongodb-adapter` dependency
@@ -897,9 +922,11 @@ After implementation, update GitHub repository:
 
 ## Revision History
 
-| Date       | Change                                                 |
-| ---------- | ------------------------------------------------------ |
-| 2025-01-09 | Initial roadmap created                                |
-| 2025-01-14 | Phase 3 complete: auth scripts converted, docs updated |
-| 2025-01-14 | Phase 5 complete: notifications migrated to PostgreSQL |
-| 2025-01-15 | Phase 6 complete: articles migrated to PostgreSQL      |
+| Date       | Change                                                        |
+| ---------- | ------------------------------------------------------------- |
+| 2025-01-09 | Initial roadmap created                                       |
+| 2025-01-14 | Phase 3 complete: auth scripts converted, docs updated        |
+| 2025-01-14 | Phase 5 complete: notifications migrated to PostgreSQL        |
+| 2025-01-15 | Phase 6 complete: articles migrated to PostgreSQL             |
+| 2025-01-16 | Phase 7 complete: profiles migrated to PostgreSQL             |
+| 2025-01-16 | Phase 8 complete: user social features, removed unused models |

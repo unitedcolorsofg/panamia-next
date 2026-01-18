@@ -21,22 +21,18 @@ Screennames are semi-public identifiers that:
 
 ## Data Model
 
-### User Schema Addition
+### User Schema (Prisma)
 
-```javascript
-// lib/model/user.ts
-screenname: {
-  type: String,
-  unique: true,
-  sparse: true,  // allows multiple null values
+```prisma
+// prisma/schema.prisma
+model User {
+  // ...
+  screenname String? @unique
+  // ...
 }
-
-// Case-insensitive unique index
-userSchema.index(
-  { screenname: 1 },
-  { unique: true, sparse: true, collation: { locale: 'en', strength: 2 } }
-);
 ```
+
+Note: PostgreSQL handles case-insensitive uniqueness via the `citext` extension or application-level normalization. The current implementation normalizes screennames to lowercase before storage.
 
 ### Validation Rules
 
@@ -196,7 +192,7 @@ The page includes:
 
 ### Retroactive Changes
 
-All content references `authorId` (user's MongoDB `_id`), not the screenname itself. When a user changes their screenname:
+All content references `authorId` (user's `id`), not the screenname itself. When a user changes their screenname:
 
 - The change is stored only on the user document
 - All `AuthorBadge` components fetch the current screenname from the API
