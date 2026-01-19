@@ -60,17 +60,6 @@ Primary data is stored in PostgreSQL via Prisma. See `prisma/schema.prisma` for 
 | `MentorSession`     | Mentoring session bookings              |
 | `IntakeForm`        | Consolidated intake form submissions    |
 
-### MongoDB Models (`model/`) - DEPRECATED
-
-These Mongoose models are deprecated and only used by legacy routes marked for removal.
-See `docs/DEPRECATED-ROUTES.md` for migration notes.
-
-| Model        | Status     | Description                           |
-| ------------ | ---------- | ------------------------------------- |
-| `users.ts`   | Deprecated | Legacy directory (use Prisma Profile) |
-| `images.ts`  | Deprecated | Profile images (use Vercel Blobs)     |
-| `*intake.ts` | Deprecated | Intake forms (use Prisma IntakeForm)  |
-
 ## Query Helpers (`query/`)
 
 Reusable database query functions:

@@ -2,21 +2,20 @@
 /**
  * Delete User Script
  *
- * Completely removes a user from both PostgreSQL (auth) and MongoDB (profile).
+ * Completely removes a user and their profile from PostgreSQL.
  * This is a destructive operation and cannot be undone.
  *
  * What gets deleted:
- * - PostgreSQL: user record (cascades to accounts and sessions)
- * - PostgreSQL: verification tokens
- * - MongoDB: profile record
- * - MongoDB: legacy users collection record (if exists)
+ * - User record (cascades to accounts, sessions, follows, list memberships)
+ * - Profile record
+ * - Verification tokens
+ * - Notifications (sent and received)
  *
  * Usage: npx tsx scripts/delete-user.ts <email>
  */
 
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { MongoClient } from 'mongodb';
 import { config } from 'dotenv';
 
 // Load environment variables from .env.local
@@ -36,20 +35,11 @@ async function deleteUser() {
     process.exit(1);
   }
 
-  if (!process.env.MONGODB_URI) {
-    console.error('❌ Error: MONGODB_URI environment variable is required');
-    process.exit(1);
-  }
-
   const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
   const prisma = new PrismaClient({ adapter });
-  const mongoClient = new MongoClient(process.env.MONGODB_URI);
 
   try {
     console.log(`\n🗑️  Deleting all data for: ${USER_EMAIL}\n`);
-
-    // PostgreSQL deletions
-    console.log('--- PostgreSQL (Auth) ---');
 
     // Find user first
     const user = await prisma.user.findUnique({
@@ -57,20 +47,63 @@ async function deleteUser() {
       include: {
         accounts: true,
         sessions: true,
+        profile: true,
       },
     });
 
-    if (user) {
-      // Delete user (cascades to accounts and sessions due to schema)
-      await prisma.user.delete({
+    if (!user) {
+      console.log('⚠ User not found');
+
+      // Check if there's a profile without a user
+      const orphanProfile = await prisma.profile.findUnique({
         where: { email: USER_EMAIL },
       });
-      console.log(`✓ users: deleted user (id: ${user.id})`);
-      console.log(`✓ accounts: deleted ${user.accounts.length} account(s)`);
-      console.log(`✓ sessions: deleted ${user.sessions.length} session(s)`);
-    } else {
-      console.log('⚠ users: user not found');
+
+      if (orphanProfile) {
+        await prisma.profile.delete({ where: { id: orphanProfile.id } });
+        console.log(
+          `✓ profiles: deleted orphan profile (id: ${orphanProfile.id})`
+        );
+      }
+
+      // Delete verification tokens
+      const tokensResult = await prisma.verificationToken.deleteMany({
+        where: { identifier: USER_EMAIL },
+      });
+      if (tokensResult.count > 0) {
+        console.log(
+          `✓ verification_tokens: deleted ${tokensResult.count} token(s)`
+        );
+      }
+
+      console.log('\n✅ Cleanup complete!\n');
+      return;
     }
+
+    // Delete profile first (if exists)
+    if (user.profile) {
+      await prisma.profile.delete({ where: { id: user.profile.id } });
+      console.log(`✓ profiles: deleted profile (id: ${user.profile.id})`);
+    }
+
+    // Delete notifications (both sent and received - cascades via relation)
+    const notificationsSent = await prisma.notification.deleteMany({
+      where: { actor: user.id },
+    });
+    const notificationsReceived = await prisma.notification.deleteMany({
+      where: { target: user.id },
+    });
+    console.log(
+      `✓ notifications: deleted ${notificationsSent.count + notificationsReceived.count} notification(s)`
+    );
+
+    // Delete user (cascades to accounts, sessions, follows, list memberships)
+    await prisma.user.delete({
+      where: { email: USER_EMAIL },
+    });
+    console.log(`✓ users: deleted user (id: ${user.id})`);
+    console.log(`✓ accounts: deleted ${user.accounts.length} account(s)`);
+    console.log(`✓ sessions: deleted ${user.sessions.length} session(s)`);
 
     // Delete verification tokens
     const tokensResult = await prisma.verificationToken.deleteMany({
@@ -80,30 +113,6 @@ async function deleteUser() {
       `✓ verification_tokens: deleted ${tokensResult.count} token(s)`
     );
 
-    // MongoDB deletions
-    console.log('\n--- MongoDB (Profile) ---');
-
-    await mongoClient.connect();
-    const db = mongoClient.db();
-
-    // Delete profile
-    const profilesResult = await db
-      .collection('profiles')
-      .deleteMany({ email: USER_EMAIL });
-    console.log(
-      `✓ profiles: deleted ${profilesResult.deletedCount} profile(s)`
-    );
-
-    // Delete from legacy users collection (if exists)
-    const usersResult = await db
-      .collection('users')
-      .deleteMany({ email: USER_EMAIL });
-    if (usersResult.deletedCount > 0) {
-      console.log(
-        `✓ users (legacy): deleted ${usersResult.deletedCount} document(s)`
-      );
-    }
-
     console.log('\n✅ User deletion complete!');
     console.log(`All data for ${USER_EMAIL} has been removed.\n`);
   } catch (error) {
@@ -111,8 +120,7 @@ async function deleteUser() {
     process.exit(1);
   } finally {
     await prisma.$disconnect();
-    await mongoClient.close();
-    console.log('Database connections closed.');
+    console.log('Database connection closed.');
   }
 }
 

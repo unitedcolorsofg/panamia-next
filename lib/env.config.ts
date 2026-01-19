@@ -28,13 +28,6 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // =============================================================================
   // DATABASE
   // =============================================================================
-  MONGODB_URI: {
-    description: 'MongoDB connection string',
-    location: 'SECRET',
-    required: true,
-    example:
-      'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority',
-  },
   POSTGRES_URL: {
     description: 'PostgreSQL connection string (Neon) - required for auth',
     location: 'SECRET',
@@ -321,12 +314,6 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
-  USE_MEMORY_MONGODB: {
-    description: 'Use in-memory MongoDB for testing (mongodb-memory-server)',
-    location: 'VAR',
-    required: false,
-    defaultValue: 'false',
-  },
   USE_MEMORY_POSTGRES: {
     description: 'Use in-memory PostgreSQL for testing (PGLite)',
     location: 'VAR',

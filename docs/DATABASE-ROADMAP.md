@@ -795,7 +795,7 @@ CREATE TABLE profiles (
 - [x] Convert user list routes to Prisma
 - [x] Remove unused MongoDB models (followers, userlist, user, event, links, newsletter, podcasts)
 
-### Phase 9: MongoDB Decommissioning (In Progress)
+### Phase 9: MongoDB Decommissioning ✅
 
 **Completed migrations:**
 
@@ -809,52 +809,39 @@ CREATE TABLE profiles (
 | `interaction.ts`       | `Interaction`       | ✅ Migrated |
 | `mentorSession.ts`     | `MentorSession`     | ✅ Migrated |
 
-**Deprecated (to remove in Phase 10):**
+### Phase 10: Complete MongoDB Removal ✅
 
-See `docs/DEPRECATED-ROUTES.md` for full details.
+- [x] Create `/api/directory` endpoint (replaces getAllUsers, getUser, getUserId, getUsersByCategory)
+- [x] Remove `getFeaturedPanas` (Section 230 compliance - no editorial curation)
+- [x] Remove `editFeatured` (Section 230 compliance)
+- [x] Remove obsolete routes (register, getIntakeFormStatus, editCompleteOnboarding)
+- [x] Remove legacy image routes (editAvatar, editBanner, uploadImage, getUserImages)
+- [x] Remove legacy profile routes (editProfile)
+- [x] Remove `lib/model/` directory (all MongoDB models)
+- [x] Remove `lib/connectdb.ts` and `lib/mongodb.ts`
+- [x] Remove `mongoose`, `mongodb`, `mongodb-memory-server` dependencies
+- [x] Remove `MONGODB_URI` and `USE_MEMORY_MONGODB` from env config
+- [x] Update CI/CD workflow
+- [x] Remove migration scripts
 
-| Model        | Routes Affected | Replacement Strategy             |
-| ------------ | --------------- | -------------------------------- |
-| `users.ts`   | 13 routes       | Use Prisma Profile model         |
-| `images.ts`  | 2 routes        | Vercel Blobs + Profile           |
-| `*intake.ts` | 1 route         | Prisma IntakeForm (consolidated) |
+**Post-decommissioning benefits achieved:**
 
-**Final decommissioning tasks:**
-
-- [x] Migrate form submissions (ContactSubmission, NewsletterSignup)
-- [x] Migrate auth tokens (EmailMigration, OAuthVerification)
-- [x] Migrate analytics (Interaction, BrevoContact)
-- [x] Migrate mentoring (MentorSession with enums)
-- [x] Add IntakeForm Prisma model (consolidated)
-- [x] Deprecate legacy directory routes with notes
-- [ ] Implement Phase 10: Rebuild deprecated routes with Prisma
-- [ ] Remove `lib/connectdb.ts`
-- [ ] Remove `lib/mongodb.ts`
-- [ ] Remove `mongoose` dependency
-- [ ] Remove `mongodb` dependency
-- [ ] Remove `mongodb-memory-server` dev dependency
-- [ ] Update `USE_MEMORY_MONGODB` references
-- [ ] Update CI/CD to remove MongoDB configuration
-- [ ] Update documentation
-
-**Post-decommissioning benefits:**
-
-- Full FLOSS license compliance
-- Single database to manage
+- Full FLOSS license compliance (no SSPL MongoDB)
+- Single database (PostgreSQL via Neon)
 - Real foreign keys everywhere
 - Simplified backup/restore
 - Reduced operational complexity
+- 46 fewer npm packages
 
 ---
 
 ## Testing Infrastructure
 
-Both MongoDB and PostgreSQL support in-memory testing for CI:
+PostgreSQL supports in-memory testing for CI via PGLite:
 
-| Database   | Technology            | Env Variable          | Package                 |
-| ---------- | --------------------- | --------------------- | ----------------------- |
-| MongoDB    | mongodb-memory-server | `USE_MEMORY_MONGODB`  | `mongodb-memory-server` |
-| PostgreSQL | PGLite                | `USE_MEMORY_POSTGRES` | `@electric-sql/pglite`  |
+| Database   | Technology | Env Variable          | Package                |
+| ---------- | ---------- | --------------------- | ---------------------- |
+| PostgreSQL | PGLite     | `USE_MEMORY_POSTGRES` | `@electric-sql/pglite` |
 
 ### MongoDB Memory Server
 
