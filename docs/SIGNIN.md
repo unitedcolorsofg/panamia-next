@@ -176,7 +176,7 @@ Shows if there are pending verification tokens for an email. Note: tokens are st
 npx tsx scripts/delete-user.ts <email>
 ```
 
-Completely removes a user from both PostgreSQL (auth) and MongoDB (profile).
+Completely removes a user and their profile from PostgreSQL.
 
 ---
 

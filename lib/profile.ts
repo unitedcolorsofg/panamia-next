@@ -22,7 +22,6 @@ export const listSelectedCategories = (categories: CategoryInterface) => {
 
 /**
  * Extract safe-for-public fields from a profile.
- * Supports both legacy MongoDB format and new Prisma format.
  */
 export const unguardProfile = (profile: any) => {
   // Get descriptions from JSONB or legacy fields

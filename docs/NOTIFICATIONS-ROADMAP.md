@@ -25,8 +25,8 @@ This document outlines the implementation plan for Pana MIA's in-app notificatio
 │                         panamia.club                                │
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐ │
-│  │  Notification System (Phase 1 - Now)                          │ │
-│  │  - MongoDB collection with ActivityPub-shaped schema          │ │
+│  │  Notification System (Phase 1 - Complete)                     │ │
+│  │  - PostgreSQL table with ActivityPub-shaped schema            │ │
 │  │  - Flower button UI in header                                 │ │
 │  │  - Co-author/review workflows                                 │ │
 │  │  - Email notifications via Brevo                              │ │
@@ -107,7 +107,8 @@ This mirrors ActivityPub's Actor → Activity → Object model.
  * future federation without schema migration.
  */
 
-import { Schema, model, models, Document, Types } from 'mongoose';
+// NOTE: This example shows the schema design. Actual implementation uses Prisma.
+// See prisma/schema.prisma for the current Notification model.
 
 // ActivityPub-compatible activity types
 // See: https://www.w3.org/TR/activitystreams-vocabulary/#activity-types
@@ -294,7 +295,7 @@ interface UserNotificationPreferences {
 | Social (Like/Follow/Announce)      | 30 days        | 90 days          |
 | System announcements               | 30 days        | 90 days          |
 
-Implemented via MongoDB TTL index on `expiresAt` field. Set at creation time based on notification type.
+Implemented via scheduled cleanup on `expiresAt` field. Set at creation time based on notification type.
 
 ---
 
@@ -308,18 +309,18 @@ Build the foundation that articles, mentoring, and future features will use.
 
 #### Files to Create
 
-| File                                           | Purpose                 |
-| ---------------------------------------------- | ----------------------- |
-| `lib/model/notification.ts`                    | Mongoose schema (above) |
-| `lib/notifications.ts`                         | Helper functions        |
-| `app/api/notifications/route.ts`               | List notifications      |
-| `app/api/notifications/unread-count/route.ts`  | Badge count             |
-| `app/api/notifications/[id]/read/route.ts`     | Mark as read            |
-| `app/api/notifications/mark-all-read/route.ts` | Mark all read           |
-| `app/account/notifications/page.tsx`           | Full history page       |
-| `components/NotificationFlower.tsx`            | Header button           |
-| `components/NotificationDropdown.tsx`          | Quick view dropdown     |
-| `components/NotificationItem.tsx`              | Individual notification |
+| File                                           | Purpose                   |
+| ---------------------------------------------- | ------------------------- |
+| `prisma/schema.prisma`                         | Prisma Notification model |
+| `lib/notifications.ts`                         | Helper functions          |
+| `app/api/notifications/route.ts`               | List notifications        |
+| `app/api/notifications/unread-count/route.ts`  | Badge count               |
+| `app/api/notifications/[id]/read/route.ts`     | Mark as read              |
+| `app/api/notifications/mark-all-read/route.ts` | Mark all read             |
+| `app/account/notifications/page.tsx`           | Full history page         |
+| `components/NotificationFlower.tsx`            | Header button             |
+| `components/NotificationDropdown.tsx`          | Quick view dropdown       |
+| `components/NotificationItem.tsx`              | Individual notification   |
 
 #### Helper Functions
 
@@ -507,7 +508,7 @@ All notification-related code MUST include upstream reference comments:
 
 ### Required (Already in project)
 
-- MongoDB / Mongoose
+- PostgreSQL / Prisma
 - NextAuth (user context)
 - Nodemailer / Brevo (email)
 

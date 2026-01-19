@@ -142,19 +142,17 @@ We prioritize FLOSS solutions where:
 
 ### Authentication
 
-| Package                   | Version       | License | Purpose                    |
-| ------------------------- | ------------- | ------- | -------------------------- |
-| **NextAuth.js**           | 5.0.0-beta.30 | ISC     | Authentication for Next.js |
-| **@auth/mongodb-adapter** | 3.11.1        | ISC     | MongoDB session storage    |
+| Package         | Version       | License | Purpose                    |
+| --------------- | ------------- | ------- | -------------------------- |
+| **NextAuth.js** | 5.0.0-beta.30 | ISC     | Authentication for Next.js |
+| **Prisma**      | 7.2.0         | Apache  | Database adapter           |
 
 ### Database
 
-| Package        | Version | License            | Purpose                       | Status              |
-| -------------- | ------- | ------------------ | ----------------------------- | ------------------- |
-| **PostgreSQL** | 16.x    | PostgreSQL License | Relational database (FLOSS)   | ✅ Primary (target) |
-| **Prisma**     | 7.2.0   | Apache 2.0         | PostgreSQL ORM                | ✅ Active           |
-| **MongoDB**    | 7.x     | SSPL               | Document database (non-FLOSS) | ⚠️ Being phased out |
-| **Mongoose**   | 9.0.1   | MIT                | MongoDB ODM                   | ⚠️ Being phased out |
+| Package        | Version | License            | Purpose                     | Status     |
+| -------------- | ------- | ------------------ | --------------------------- | ---------- |
+| **PostgreSQL** | 16.x    | PostgreSQL License | Relational database (FLOSS) | ✅ Primary |
+| **Prisma**     | 7.2.0   | Apache 2.0         | PostgreSQL ORM              | ✅ Active  |
 
 ### Development Tools
 
@@ -168,119 +166,71 @@ We prioritize FLOSS solutions where:
 
 ---
 
-## MongoDB Server Side Public License (SSPL)
+## MongoDB Migration Complete
 
-**Note on MongoDB License:**
-MongoDB uses the SSPL license, which is **not considered FLOSS** by the Free Software Foundation and Open Source Initiative due to restrictions on providing MongoDB as a service.
+**Historical Note:**
+MongoDB was previously used but has been fully removed due to its SSPL license, which is not considered FLOSS by the Free Software Foundation and Open Source Initiative.
 
-**FLOSS Database Alternative:**
+**Migration Status: ✅ Complete**
 
-| Alternative    | License            | Pros                               | Cons                     | Migration Effort   |
-| -------------- | ------------------ | ---------------------------------- | ------------------------ | ------------------ |
-| **PostgreSQL** | PostgreSQL License | Truly FLOSS, robust, JSONB support | Different query paradigm | High (incremental) |
+All data has been migrated to PostgreSQL. The project now uses only FLOSS-compliant database technology:
 
-**Current Strategy: Gradual MongoDB Decommissioning**
-
-We are actively migrating to PostgreSQL to achieve full FLOSS license compatibility. The migration is incremental to minimize risk:
-
-| Phase   | Data                             | Status         | Notes                           |
-| ------- | -------------------------------- | -------------- | ------------------------------- |
-| Phase 1 | PostgreSQL infrastructure        | ✅ Complete    | Prisma + Neon                   |
-| Phase 2 | Auth (users, accounts, sessions) | 🔄 In Progress | NextAuth → Prisma adapter       |
-| Phase 3 | Reference updates                | Planned        | MongoDB docs use PG user IDs    |
-| Phase 4 | Sidecars                         | Planned        | Transactional features on PG    |
-| Phase 5 | Notifications                    | Planned        | Most relational, easy migration |
-| Phase 6 | Articles                         | Planned        | Content + JSONB metadata        |
-| Phase 7 | Profiles                         | Planned        | Flexible fields → JSONB columns |
-| Phase 8 | MongoDB decommissioning          | Planned        | Remove MongoDB dependency       |
-
-**Why PostgreSQL (not FerretDB):**
-
-FerretDB was considered but rejected because:
-
-- Adds a translation layer (MongoDB API → PostgreSQL SQL)
-- Doesn't eliminate the need to eventually go native
-- Another dependency to maintain
-- If issues arise, stuck between two paradigms
-
-Native PostgreSQL with JSONB provides document flexibility where needed while achieving true FLOSS compliance.
+| Phase    | Data                             | Status      | Notes                        |
+| -------- | -------------------------------- | ----------- | ---------------------------- |
+| Phase 1  | PostgreSQL infrastructure        | ✅ Complete | Prisma + Neon                |
+| Phase 2  | Auth (users, accounts, sessions) | ✅ Complete | NextAuth → Prisma adapter    |
+| Phase 3  | Reference updates                | ✅ Complete | All references use PG IDs    |
+| Phase 4  | Sidecars                         | ✅ Complete | Transactional features on PG |
+| Phase 5  | Notifications                    | ✅ Complete | Full relational model        |
+| Phase 6  | Articles                         | ✅ Complete | Content + JSONB metadata     |
+| Phase 7  | Profiles                         | ✅ Complete | Flexible fields → JSONB      |
+| Phase 8  | MongoDB removal                  | ✅ Complete | All MongoDB code removed     |
+| Phase 9  | Auth token migrations            | ✅ Complete | Email/OAuth verification     |
+| Phase 10 | Complete removal                 | ✅ Complete | No MongoDB dependencies      |
 
 **PostgreSQL JSONB for Flexible Data:**
 
+PostgreSQL's JSONB columns provide the document flexibility previously provided by MongoDB while maintaining full FLOSS compliance:
+
 ```sql
--- Profiles with flexible nested data (like MongoDB documents)
+-- Profiles with flexible nested data
 CREATE TABLE profiles (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id),  -- Real FK!
   email TEXT UNIQUE,
   name TEXT,
-  social_links JSONB,  -- Flexible like MongoDB
-  hours JSONB,
+  socials JSONB,        -- Flexible nested data
   categories JSONB,
+  mentoring JSONB,
   created_at TIMESTAMPTZ
 );
 ```
 
-See [DATABASE-ROADMAP.md](./DATABASE-ROADMAP.md) for detailed migration phases.
+See [DATABASE-ROADMAP.md](./DATABASE-ROADMAP.md) for migration history.
 
 ---
 
-### MongoDB Atlas Search (Search Engine)
+### Search (PostgreSQL Full-Text Search)
 
-**Status:** Keeping (core feature, free, cost-effective)
+**Status:** Using PostgreSQL full-text search
 
-**Why we're keeping it:**
+With the MongoDB migration complete, search functionality uses PostgreSQL's built-in full-text search capabilities via Prisma.
 
-Panamia.club is a **local business directory** where search quality directly impacts the core value proposition. Atlas Search provides capabilities essential for directory discovery:
+**Current Implementation:**
 
-- **Fuzzy matching**: Users can make typos ("photografer" → "photographer")
-- **Relevance scoring**: Custom weighted fields (names ranked 5x higher than bio text)
-- **Multi-field search**: Single query searches across name, tags, details, background
-- **Complex filtering**: Combines text search with location, category, and mentoring filters
-- **Already implemented**: Full search infrastructure exists in `lib/server/directory.ts`
+- **Multi-field search**: Searches across name, tags, details, background via ILIKE
+- **Filtering**: Location, category, and mentoring filters via JSONB queries
+- **API endpoint**: `/api/directory` provides search and filtering
 
-**Cost Analysis:**
-
-| Solution                    | Monthly Cost | Features                          | Migration Effort |
-| --------------------------- | ------------ | --------------------------------- | ---------------- |
-| **Atlas Search (current)**  | $0           | Fuzzy, scoring, all features      | N/A              |
-| Basic MongoDB text indexes  | $0           | ❌ No fuzzy, ❌ No custom scoring | Medium           |
-| Algolia                     | $50-100      | Similar features                  | High             |
-| Elasticsearch (self-hosted) | $20-50       | Similar features                  | Very High        |
-| Typesense (self-hosted)     | $10-30       | Similar features                  | Very High        |
-| MeiliSearch                 | $0           | Self-hosted, good features        | Very High        |
-
-**FLOSS Alternatives:**
+**Future Enhancements (if needed):**
 
 | Alternative        | License    | Pros                                   | Cons                              | Migration Effort |
 | ------------------ | ---------- | -------------------------------------- | --------------------------------- | ---------------- |
-| **MeiliSearch**    | MIT        | Excellent fuzzy search, typo tolerance | Self-hosting, separate deployment | Very High        |
-| **Typesense**      | GPL-3.0    | Fast, typo tolerance, good relevance   | Self-hosting required             | Very High        |
-| **Elasticsearch**  | SSPL/Agpl  | Feature-rich, industry standard        | Complex, resource-heavy           | Very High        |
-| **MongoDB $text**  | SSPL       | Built-in, no extra service             | No fuzzy, poor relevance          | Medium           |
-| **PostgreSQL FTS** | PostgreSQL | Mature full-text search                | Requires DB migration             | Very High        |
+| **PostgreSQL FTS** | PostgreSQL | Built-in, no extra service             | Basic fuzzy matching              | N/A (current)    |
+| **MeiliSearch**    | MIT        | Excellent fuzzy search, typo tolerance | Self-hosting, separate deployment | Medium           |
+| **Typesense**      | GPL-3.0    | Fast, typo tolerance, good relevance   | Self-hosting required             | Medium           |
 
-**Trade-offs:**
-
-Removing Atlas Search would require either:
-
-1. **Degraded UX**: Basic `$text` search loses fuzzy matching and relevance scoring
-2. **Added complexity**: Self-host MeiliSearch/Typesense/Elasticsearch (20-40 hours + infrastructure)
-3. **Added cost**: Use Algolia ($50-100/month)
-
-**Current Stance:**
-
-We're keeping Atlas Search because:
-
-1. **Free**: Included in MongoDB Atlas M0 free tier
-2. **Core feature**: Search quality is essential for directory discovery
-3. **Already implemented**: Complexity already absorbed
-4. **Cost-effective**: Alternatives cost $50-100/month or 20-40 hours dev time
-5. **Low lock-in**: Data is standard MongoDB, only search queries need rewriting
-
-The tradeoff is "developers need Atlas for local dev" - a one-time 10-minute setup vs. ongoing product quality degradation or significant migration costs.
-
-**Recommendation:** Keep Atlas Search during MongoDB usage. When MongoDB is decommissioned (Phase 8), migrate to PostgreSQL full-text search or MeiliSearch/Typesense if advanced fuzzy matching is required.
+**Recommendation:** PostgreSQL full-text search is sufficient for current needs. Evaluate MeiliSearch or Typesense if advanced fuzzy matching becomes a requirement.
 
 ---
 
@@ -362,13 +312,11 @@ Proprietary solutions acceptable when:
 
 ## Future Evaluation Dates
 
-| Service      | Next Review | Reason                                   |
-| ------------ | ----------- | ---------------------------------------- |
-| Pusher       | Q2 2026     | Check Soketi maturity                    |
-| Stripe       | Q4 2025     | Review payment landscape                 |
-| BunnyCDN     | Q1 2026     | Evaluate MinIO/R2 costs                  |
-| MongoDB      | Ongoing     | Active decommissioning in progress       |
-| Atlas Search | Phase 8     | Migrate to PostgreSQL FTS or MeiliSearch |
+| Service  | Next Review | Reason                   |
+| -------- | ----------- | ------------------------ |
+| Pusher   | Q2 2026     | Check Soketi maturity    |
+| Stripe   | Q4 2025     | Review payment landscape |
+| BunnyCDN | Q1 2026     | Evaluate MinIO/R2 costs  |
 
 ---
 

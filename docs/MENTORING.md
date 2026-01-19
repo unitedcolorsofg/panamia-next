@@ -43,7 +43,7 @@ The Pana Mia Club mentoring feature enables **peer-to-peer video mentoring** wit
 - **WebRTC** (Prototype): Direct peer-to-peer connections for video/audio
 - **Pusher**: Real-time signaling and chat infrastructure
 - **NextAuth v5**: Secure authentication
-- **MongoDB**: Scalable data storage
+- **PostgreSQL**: Relational database with Prisma ORM
 - **shadcn/ui**: Modern, accessible UI components
 
 ### Current Limitations
@@ -357,7 +357,7 @@ The mentoring feature uses a hybrid architecture:
 **Backend:**
 
 - Next.js API Routes (`app/api/mentoring/`, `app/api/pusher/`)
-- MongoDB with Mongoose for data persistence
+- PostgreSQL with Prisma for data persistence
 - NextAuth v5 for authentication
 - Pusher for real-time communication
 
@@ -384,14 +384,22 @@ PUSHER_CLUSTER=your_cluster    # e.g., us2, eu, ap1
 NEXT_PUBLIC_PUSHER_KEY=your_public_key
 NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster
 
-# MongoDB
-MONGODB_URI=mongodb://localhost:27017/panamia_dev
-# OR MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/panamia
+# PostgreSQL
+POSTGRES_URL=postgres://localhost:5432/panamia_dev
+# OR Neon:
+# POSTGRES_URL=postgres://user:pass@host.neon.tech/panamia
 
 # NextAuth
 NEXTAUTH_SECRET=your_32_char_random_string
 NEXTAUTH_URL=https://localhost:3000
+```
+
+#### Database Setup
+
+Run Prisma migrations to create the database schema:
+
+```bash
+npx prisma migrate deploy
 ```
 
 #### Pusher App Configuration
@@ -403,33 +411,22 @@ In your Pusher dashboard, ensure:
 3. **Presence Channels**: Enabled
 4. **Webhook** (optional): Configure for session lifecycle events
 
-#### MongoDB Indexes
+#### Database Schema
 
-Run these commands in MongoDB shell or Compass:
+The mentoring feature uses the following Prisma models (see `prisma/schema.prisma`):
 
-```javascript
-// MentorSession collection
-db.mentorSession.createIndex({ mentorEmail: 1, scheduledAt: -1 });
-db.mentorSession.createIndex({ menteeEmail: 1, scheduledAt: -1 });
-db.mentorSession.createIndex({ sessionId: 1 }, { unique: true });
+- **Profile**: Extended with `mentoring` JSONB field for mentor settings
+- **MentorSession**: Tracks scheduled sessions between mentors and mentees
 
-// Profile collection
-db.profile.createIndex({ 'mentoring.enabled': 1 });
-db.profile.createIndex({ 'mentoring.expertise': 1 });
-```
+Indexes are defined in the Prisma schema and created automatically during migrations.
 
 ### Extending the Feature
 
 #### Adding a New Field to Profile
 
-**1. Update Mongoose Schema** (`lib/model/profile.ts`):
+**1. Update Prisma Schema** (`prisma/schema.prisma`):
 
-```typescript
-mentoring: {
-  // ... existing fields
-  newField: String,
-}
-```
+Add the field to the Profile model's `mentoring` JSONB structure, then update the TypeScript interface in `lib/interfaces.ts`.
 
 **2. Update Zod Schema** (`lib/validations/mentoring-profile.ts`):
 
@@ -494,8 +491,7 @@ Currently, the profile form has a placeholder API call. To implement:
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import dbConnect from '@/lib/connectdb';
-import Profile from '@/lib/model/profile';
+import { getPrisma } from '@/lib/prisma';
 import { mentoringProfileSchema } from '@/lib/validations/mentoring-profile';
 
 export async function PATCH(request: NextRequest) {
@@ -504,7 +500,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
+  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = mentoringProfileSchema.safeParse(body);
@@ -516,11 +512,10 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const updated = await Profile.findOneAndUpdate(
-    { email: session.user.email },
-    { mentoring: validation.data },
-    { new: true, upsert: false }
-  );
+  const updated = await prisma.profile.update({
+    where: { email: session.user.email },
+    data: { mentoring: validation.data },
+  });
 
   if (!updated) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
@@ -594,15 +589,16 @@ const onSubmit = async (data: MentoringProfileData) => {
 
 **Problem**: Sessions not appearing in dashboard
 
-- **Check**: MongoDB connection string is correct
+- **Check**: PostgreSQL connection string is correct
 - **Check**: User is authenticated
-- **Run**: Check MongoDB logs for errors
+- **Run**: Check database logs for errors
 
 **Problem**: Profile not saving
 
 - **Cause**: Validation errors or database connection
 - **Check**: Browser console for validation errors
-- **Check**: MongoDB is running and accessible
+- **Check**: PostgreSQL is running and accessible
+- **Run**: `npx prisma migrate status` to verify migrations
 
 #### Build/Development Issues
 
@@ -667,12 +663,13 @@ app/api/pusher/
 lib/
 ├── pusher-server.ts                    # Pusher server SDK
 ├── pusher-client.ts                    # Pusher client SDK
-├── model/
-│   ├── profile.ts                      # Profile schema (extended)
-│   └── mentorSession.ts                # Session schema
+├── prisma.ts                           # Prisma client singleton
 └── validations/
     ├── mentoring-profile.ts            # Profile validation
     └── session.ts                      # Session validation
+
+prisma/
+└── schema.prisma                       # Database schema (Profile, MentorSession)
 
 hooks/
 └── use-debounce.ts                     # Debounce hook for auto-save

@@ -4,7 +4,7 @@
 
 ### Overview
 
-The application uses NextAuth v5 (Auth.js) for authentication with multiple OAuth providers and email magic links. Admin permissions are managed via environment variables, while user-level permissions and verification badges are stored in the MongoDB profile collection.
+The application uses NextAuth v5 (Auth.js) for authentication with multiple OAuth providers and email magic links. Admin permissions are managed via environment variables, while user-level permissions and verification badges are stored in the PostgreSQL profile table.
 
 ### OAuth Providers
 
@@ -93,17 +93,17 @@ Users can change their account email address through a verified migration proces
 1. User requests email change from account settings
 2. Verification email sent to new email address (5-minute expiration)
 3. User clicks magic link in new email
-4. MongoDB transaction executes:
-   - Update `nextauth_users.email`
+4. Database transaction executes:
+   - Update `users.email`
    - Update `profiles.email`
-   - Delete all `nextauth_sessions` (sign out all devices)
+   - Delete all `sessions` (sign out all devices)
    - Delete migration record
 5. Confirmation email sent to old address
 
 **Security Features:**
 
 - Magic link verification (5-minute expiration)
-- Atomic MongoDB transaction (all-or-nothing)
+- Atomic database transaction (all-or-nothing)
 - Session invalidation prevents hijacking
 - Cannot migrate to email already in use
 - Maximum 1 pending migration per user
@@ -259,7 +259,7 @@ The mentoring platform implements multiple layers of security to protect user da
 
 ### NextAuth v5 Implementation
 
-- **Session Management**: Database sessions stored in MongoDB
+- **Session Management**: Database sessions stored in PostgreSQL
 - **Email Provider**: Passwordless authentication with magic links
 - **Session Validation**: Server-side session checks on every protected route
 - **Token Security**: NextAuth handles token encryption and validation
@@ -287,12 +287,14 @@ Sessions are restricted to authorized participants only:
 **Database Query Pattern**:
 
 ```typescript
-await MentorSession.findOne({
-  sessionId: params.sessionId,
-  $or: [
-    { mentorEmail: session.user.email },
-    { menteeEmail: session.user.email },
-  ],
+await prisma.mentorSession.findFirst({
+  where: {
+    sessionId: params.sessionId,
+    OR: [
+      { mentorEmail: session.user.email },
+      { menteeEmail: session.user.email },
+    ],
+  },
 });
 ```
 
@@ -314,7 +316,7 @@ await MentorSession.findOne({
 2. Pusher sends auth request to `/api/pusher/auth`
 3. Server validates:
    - User is authenticated (NextAuth session)
-   - User is participant in session (MongoDB query)
+   - User is participant in session (database query)
 4. Server authorizes channel or denies access
 
 **Code Location**: `app/api/pusher/auth/route.ts`
@@ -369,21 +371,30 @@ All user inputs validated before processing:
 
 **Status**: Appropriate data exposure
 
-### MongoDB Query Security
+### Database Query Security
 
-**Parameterized Queries**: All queries use Mongoose schemas
-**Injection Prevention**: Mongoose handles sanitization
-**Field Projection**: `.select()` used to limit exposed fields
+**Parameterized Queries**: All queries use Prisma ORM
+**Injection Prevention**: Prisma handles parameterization
+**Field Selection**: `select` used to limit exposed fields
 
 Example:
 
 ```typescript
-await Profile.find(query)
-  .select('name email mentoring availability slug images')
-  .limit(50);
+await prisma.profile.findMany({
+  where: query,
+  select: {
+    name: true,
+    email: true,
+    mentoring: true,
+    availability: true,
+    slug: true,
+    primaryImageCdn: true,
+  },
+  take: 50,
+});
 ```
 
-**Status**: Protected against NoSQL injection
+**Status**: Protected against SQL injection
 
 ## Transport Security
 
@@ -462,16 +473,18 @@ if (!session?.user?.email) {
 
 ### Connection Security
 
-**MongoDB URI**: Stored in environment variables
+**PostgreSQL URL**: Stored in environment variables
 **Connection String**: Not committed to git (.env.local gitignored)
-**Authentication**: Username/password or Atlas credentials
+**Authentication**: Username/password via connection string
+**SSL**: Required for production (Neon enforces TLS)
 
 **Status**: Credentials secured
 
 ### Data Validation
 
-**Mongoose Schemas**: Enforce data types
-**Required Fields**: Validated at model level
+**Prisma Schema**: Enforces data types and relations
+**Required Fields**: Validated at schema level
+**Foreign Keys**: Enforce referential integrity
 **Indexes**: Optimize queries and enforce uniqueness
 
 **Status**: Schema validation enforced
@@ -485,8 +498,8 @@ if (!session?.user?.email) {
 NEXTAUTH_SECRET=        # 32+ character random string
 NEXTAUTH_URL=           # Application URL
 
-# MongoDB
-MONGODB_URI=            # Connection string with credentials
+# PostgreSQL
+POSTGRES_URL=           # Connection string with credentials
 
 # Pusher
 PUSHER_APP_ID=          # App ID
@@ -549,7 +562,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 2. Set secure NEXTAUTH_SECRET (32+ chars)
 3. Configure Pusher production app
 4. Add rate limiting middleware
-5. Set up MongoDB Atlas with IP whitelist
+5. Set up PostgreSQL with secure connection
 6. Configure monitoring/logging
 
 ### Future Enhancements
@@ -565,7 +578,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 - [ ] HTTPS enabled and enforced
 - [ ] All environment variables set correctly
 - [ ] Pusher app configured with client events
-- [ ] MongoDB Atlas with authentication
+- [ ] PostgreSQL with authentication
 - [ ] NextAuth secret is strong (32+ characters)
 - [ ] Rate limiting middleware added
 - [ ] Error messages don't leak sensitive info
@@ -573,7 +586,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 - [ ] CORS properly configured
 - [ ] Security headers configured (Next.js defaults)
 - [ ] Dependencies updated (npm audit)
-- [ ] MongoDB indexes created
+- [ ] Database migrations applied
 - [ ] Backup strategy in place
 
 ## Vulnerability Disclosure

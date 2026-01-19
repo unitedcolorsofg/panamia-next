@@ -843,26 +843,15 @@ PostgreSQL supports in-memory testing for CI via PGLite:
 | ---------- | ---------- | --------------------- | ---------------------- |
 | PostgreSQL | PGLite     | `USE_MEMORY_POSTGRES` | `@electric-sql/pglite` |
 
-### MongoDB Memory Server
-
-Enabled via `USE_MEMORY_MONGODB=true`. Starts automatically in `lib/mongodb.ts`:
-
-```typescript
-if (process.env.USE_MEMORY_MONGODB === 'true') {
-  const { MongoMemoryServer } = require('mongodb-memory-server');
-  // Creates in-memory MongoDB instance
-}
-```
-
 ### PGLite (PostgreSQL)
 
-Enabled via `USE_MEMORY_POSTGRES=true`. The `pglite-prisma-adapter` provides Prisma integration:
+Enabled via `USE_MEMORY_POSTGRES=true`. The Prisma PGLite adapter provides in-memory testing:
 
 ```typescript
 // lib/prisma.ts
 if (process.env.USE_MEMORY_POSTGRES === 'true') {
   const { PGlite } = await import('@electric-sql/pglite');
-  const { PrismaPGlite } = await import('pglite-prisma-adapter');
+  const { PrismaPGlite } = await import('@prisma/adapter-pglite');
   // Creates in-memory PostgreSQL instance
 }
 ```
@@ -872,20 +861,19 @@ if (process.env.USE_MEMORY_POSTGRES === 'true') {
 ### Running Tests
 
 ```bash
-# With real databases
-MONGODB_URI=... POSTGRES_URL=... npm test
+# With real database
+POSTGRES_URL=... npm test
 
-# With in-memory databases (CI mode)
-USE_MEMORY_MONGODB=true USE_MEMORY_POSTGRES=true npm test
+# With in-memory database (CI mode)
+USE_MEMORY_POSTGRES=true npm test
 ```
 
 ### GitHub Actions Configuration
 
-After implementation, update GitHub repository:
+Set the following in GitHub repository settings:
 
-1. Rename variable: `USE_MEMORY_SERVER` → `USE_MEMORY_MONGODB`
-2. Add variable: `USE_MEMORY_POSTGRES=true`
-3. (Phase 2) Add secret: `POSTGRES_URL`
+- Variable: `USE_MEMORY_POSTGRES=true`
+- Secret: `POSTGRES_URL` (for production deployments)
 
 ---
 

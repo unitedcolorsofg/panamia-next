@@ -10,7 +10,7 @@ Before you begin, ensure you have:
 
 - **Node.js**: Version 20.x or higher ([Download](https://nodejs.org/))
 - **Yarn**: Package manager (see setup below)
-- **MongoDB Atlas Account**: Required for search functionality ([Sign up](https://www.mongodb.com/cloud/atlas))
+- **PostgreSQL**: Database (via Neon, Vercel Postgres, or local)
 - **Git**: For version control
 
 ### Yarn Setup
@@ -28,8 +28,6 @@ npm install -g yarn
 ```
 
 > **Note**: The CI pipeline uses `yarn install --frozen-lockfile`, so always use Yarn to install dependencies to keep `yarn.lock` in sync.
-
-> **Note**: MongoDB Atlas is required for full functionality. The directory and admin search features use Atlas Search indexes (`$search` aggregation), which are not available in local MongoDB instances.
 
 ### Optional Services
 
@@ -67,23 +65,35 @@ cp example.env .env.local
 
 Edit `.env.local` with your credentials. Key configurations:
 
-| Variable          | Description                                |
-| ----------------- | ------------------------------------------ |
-| `MONGODB_URI`     | MongoDB Atlas connection string (required) |
-| `NEXTAUTH_SECRET` | Generate with `openssl rand -base64 32`    |
-| `NEXTAUTH_URL`    | `https://localhost:3000` for development   |
-| `PUSHER_*`        | Required for mentoring video features      |
-| `EMAIL_SERVER_*`  | Required for authentication emails         |
+| Variable          | Description                              |
+| ----------------- | ---------------------------------------- |
+| `POSTGRES_URL`    | PostgreSQL connection string (required)  |
+| `NEXTAUTH_SECRET` | Generate with `openssl rand -base64 32`  |
+| `NEXTAUTH_URL`    | `https://localhost:3000` for development |
+| `PUSHER_*`        | Required for mentoring video features    |
+| `EMAIL_SERVER_*`  | Required for authentication emails       |
 
-See `example.env` for all available options with detailed comments.
+See `.env.local.example` for all available options with detailed comments.
 
-### 4. Set Up MongoDB Atlas
+### 4. Set Up PostgreSQL
 
-1. Create free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a cluster
-3. Configure Atlas Search indexes for the `profiles` collection
-4. Get connection string and add to `.env.local` as `MONGODB_URI`
-5. Add your IP address to Atlas IP whitelist
+**Option A: Neon (Recommended for development)**
+
+1. Create free account at [Neon](https://neon.tech)
+2. Create a new project
+3. Get connection string and add to `.env.local` as `POSTGRES_URL`
+
+**Option B: Local PostgreSQL**
+
+1. Install PostgreSQL locally
+2. Create a database: `createdb panamia_dev`
+3. Set `POSTGRES_URL=postgres://localhost:5432/panamia_dev`
+
+**Run migrations:**
+
+```bash
+npx prisma migrate deploy
+```
 
 ---
 
@@ -203,13 +213,13 @@ yarn start
 
 ### Core
 
-| Technology                                           | Version | Purpose                         |
-| ---------------------------------------------------- | ------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)                       | 16.x    | React framework with App Router |
-| [React](https://react.dev/)                          | 19.x    | UI library                      |
-| [TypeScript](https://www.typescriptlang.org/)        | 5.x     | Type-safe JavaScript            |
-| [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) | -       | NoSQL database                  |
-| [Mongoose](https://mongoosejs.com/)                  | 9.x     | MongoDB ODM                     |
+| Technology                                    | Version | Purpose                         |
+| --------------------------------------------- | ------- | ------------------------------- |
+| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router |
+| [React](https://react.dev/)                   | 19.x    | UI library                      |
+| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type-safe JavaScript            |
+| [PostgreSQL](https://www.postgresql.org/)     | 16.x    | Relational database             |
+| [Prisma](https://www.prisma.io/)              | 7.x     | Database ORM                    |
 
 ### UI & Styling
 
@@ -282,12 +292,12 @@ panamia.club/
 │   ├── Page/                # Page layout components
 │   └── *.tsx                # Shared components
 ├── lib/                     # Utilities & business logic
-│   ├── model/               # Mongoose schemas (user, profile, etc.)
 │   ├── validations/         # Zod validation schemas
-│   ├── bunnycdn/            # CDN integration
+│   ├── blob/                # Vercel Blob integration
 │   ├── query/               # Database queries
 │   ├── server/              # Server-side utilities
 │   └── *.ts                 # Auth, email, utils
+├── prisma/                  # Prisma schema & migrations
 ├── hooks/                   # Custom React hooks
 ├── types/                   # TypeScript type definitions
 ├── styles/                  # Global CSS & theme files

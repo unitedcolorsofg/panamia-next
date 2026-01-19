@@ -34,7 +34,7 @@ Future: Align with [ActivityPub Collections](https://www.w3.org/TR/activitystrea
 
 ### Search (`search`)
 
-Full-text search across profiles and content using MongoDB Atlas Search.
+Full-text search across profiles and content using PostgreSQL.
 
 ---
 

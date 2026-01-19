@@ -224,10 +224,10 @@ interface UserAdditions {
 
 #### Helpers
 
-| File                        | Description                                       |
-| --------------------------- | ------------------------------------------------- |
-| `lib/notifications.ts`      | `createNotification()`, `sendNotificationEmail()` |
-| `lib/model/notification.ts` | Mongoose schema                                   |
+| File                   | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| `lib/notifications.ts` | `createNotification()`, `sendNotificationEmail()` |
+| `prisma/schema.prisma` | Prisma Notification model                         |
 
 #### Email Integration
 
@@ -827,7 +827,7 @@ components/
 ### Required (Already in project)
 
 - Next.js 16
-- MongoDB / Mongoose
+- PostgreSQL / Prisma
 - NextAuth
 - Nodemailer / Brevo
 - BunnyCDN (images)
