@@ -7,7 +7,6 @@ Shared utilities, business logic, data models, and server-side helpers.
 | File            | Description                                                     |
 | --------------- | --------------------------------------------------------------- |
 | `prisma.ts`     | Prisma client singleton (PostgreSQL, supports PGLite for tests) |
-| `connectdb.ts`  | MongoDB connection singleton (caches connection for serverless) |
 | `env.config.ts` | Environment variable definitions and validation                 |
 | `interfaces.ts` | TypeScript interfaces for all data models                       |
 | `utils.ts`      | General utility functions                                       |
@@ -138,7 +137,6 @@ Vercel Blob integration for file uploads:
 | `pusher-server.ts` | Pusher server client (realtime) |
 | `pusher-client.ts` | Pusher browser client           |
 | `geolocation.ts`   | Geocoding utilities             |
-| `mongodb.ts`       | MongoDB utilities               |
 | `auth-api.ts`      | Auth helper functions           |
 
 ## Client-Side Utilities
@@ -165,6 +163,5 @@ import type { UserInterface, ArticleInterface } from '@/lib/interfaces';
 ## Notes
 
 - All files are server-side unless noted (localstorage, pusher-client)
-- Models use Mongoose with TypeScript
-- Queries return lean objects for performance
+- Database uses Prisma with PostgreSQL
 - Validations use Zod schemas
