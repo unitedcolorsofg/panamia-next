@@ -863,11 +863,6 @@
   resolved "https://registry.npmjs.org/@electric-sql/pglite-tools/-/pglite-tools-0.2.7.tgz"
   integrity sha512-9dAccClqxx4cZB+Ar9B+FZ5WgxDc/Xvl9DPrTWv+dYTf0YNubLzi4wHHRGRGhrJv15XwnyKcGOZAP1VXSneSUg==
 
-"@electric-sql/pglite@^0.3.14":
-  version "0.3.14"
-  resolved "https://registry.npmjs.org/@electric-sql/pglite/-/pglite-0.3.14.tgz"
-  integrity sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q==
-
 "@electric-sql/pglite@0.3.2":
   version "0.3.2"
   resolved "https://registry.npmjs.org/@electric-sql/pglite/-/pglite-0.3.2.tgz"
@@ -1241,11 +1236,6 @@
   resolved "https://registry.npmjs.org/@prisma/debug/-/debug-6.8.2.tgz"
   integrity sha512-4muBSSUwJJ9BYth5N8tqts8JtiLT8QI/RSAzEogwEfpbYGFo9mYsInsVo8dqXdPO2+Rm5OG5q0qWDDE3nyUbVg==
 
-"@prisma/debug@7.1.0":
-  version "7.1.0"
-  resolved "https://registry.npmjs.org/@prisma/debug/-/debug-7.1.0.tgz"
-  integrity sha512-pPAckG6etgAsEBusmZiFwM9bldLSNkn++YuC4jCTJACdK5hLOVnOzX7eSL2FgaU6Gomd6wIw21snUX2dYroMZQ==
-
 "@prisma/debug@7.2.0":
   version "7.2.0"
   resolved "https://registry.npmjs.org/@prisma/debug/-/debug-7.2.0.tgz"
@@ -1273,13 +1263,6 @@
     std-env "3.9.0"
     valibot "1.2.0"
     zeptomatch "2.0.2"
-
-"@prisma/driver-adapter-utils@7.1.0":
-  version "7.1.0"
-  resolved "https://registry.npmjs.org/@prisma/driver-adapter-utils/-/driver-adapter-utils-7.1.0.tgz"
-  integrity sha512-AlVLzeXkw81+47MvQ9M8DvTiHkRfJ8xzklTbYjpskb0cTTDVHboTI/OVwT6Wcep/bNvfLKJYO0nylBiM5rxgww==
-  dependencies:
-    "@prisma/debug" "7.1.0"
 
 "@prisma/driver-adapter-utils@7.2.0":
   version "7.2.0"
@@ -6506,14 +6489,6 @@ pg@^8.16.3:
   optionalDependencies:
     pg-cloudflare "^1.2.7"
 
-pglite-prisma-adapter@^0.7.1:
-  version "0.7.1"
-  resolved "https://registry.npmjs.org/pglite-prisma-adapter/-/pglite-prisma-adapter-0.7.1.tgz"
-  integrity sha512-4Ks3++0dmPiE3ao/FegmmJ86yXaTJASVvYEM4JQvz68NGgfcC5rmDF1r8cYne8rGYgdAxV6+n5FQUaPpvWIrFA==
-  dependencies:
-    "@prisma/driver-adapter-utils" "7.1.0"
-    postgres-array "^3.0.4"
-
 pgpass@1.0.5:
   version "1.0.5"
   resolved "https://registry.npmjs.org/pgpass/-/pgpass-1.0.5.tgz"
@@ -6592,15 +6567,15 @@ postcss@8.4.31:
     picocolors "^1.0.0"
     source-map-js "^1.0.2"
 
-postgres-array@^3.0.4, postgres-array@~3.0.1, postgres-array@3.0.4:
-  version "3.0.4"
-  resolved "https://registry.npmjs.org/postgres-array/-/postgres-array-3.0.4.tgz"
-  integrity sha512-nAUSGfSDGOaOAEGwqsRY27GPOea7CNipJPOA7lPbdEpx5Kg3qzdP0AaWC5MlhTWV9s4hFX39nomVZ+C4tnGOJQ==
-
 postgres-array@~2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/postgres-array/-/postgres-array-2.0.0.tgz"
   integrity sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==
+
+postgres-array@~3.0.1, postgres-array@3.0.4:
+  version "3.0.4"
+  resolved "https://registry.npmjs.org/postgres-array/-/postgres-array-3.0.4.tgz"
+  integrity sha512-nAUSGfSDGOaOAEGwqsRY27GPOea7CNipJPOA7lPbdEpx5Kg3qzdP0AaWC5MlhTWV9s4hFX39nomVZ+C4tnGOJQ==
 
 postgres-bytea@~1.0.0:
   version "1.0.1"

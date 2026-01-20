@@ -622,10 +622,9 @@ Since MongoDB documents reference PostgreSQL IDs:
 - [x] Add Prisma dependency and configuration
 - [x] Set up PostgreSQL (Neon)
 - [x] Create schema with users, accounts, sessions tables
-- [x] Set up PGLite for in-memory testing
-- [x] Rename `USE_MEMORY_SERVER` → `USE_MEMORY_MONGODB`
-- [x] Add `USE_MEMORY_POSTGRES` for PGLite in CI
 - [x] Both databases running, not yet integrated
+
+> **Note**: PGLite in-memory testing was attempted but found incompatible with Next.js/Turbopack. E2E tests require a real PostgreSQL instance.
 
 ### Phase 2: Migrate Auth Data (In Progress)
 
@@ -837,43 +836,33 @@ CREATE TABLE profiles (
 
 ## Testing Infrastructure
 
-PostgreSQL supports in-memory testing for CI via PGLite:
+E2E tests require a real PostgreSQL database. Set `POSTGRES_URL` in your environment or CI secrets.
 
-| Database   | Technology | Env Variable          | Package                |
-| ---------- | ---------- | --------------------- | ---------------------- |
-| PostgreSQL | PGLite     | `USE_MEMORY_POSTGRES` | `@electric-sql/pglite` |
+### Why Not In-Memory Testing?
 
-### PGLite (PostgreSQL)
+PGLite (in-memory PostgreSQL via WebAssembly) was evaluated but found **incompatible with Next.js/Turbopack's bundled environment**. The `pglite-prisma-adapter` has internal path operations that fail when bundled by Turbopack.
 
-Enabled via `USE_MEMORY_POSTGRES=true`. The Prisma PGLite adapter provides in-memory testing:
+PGLite works correctly when run as a standalone Node.js script, but fails in the Next.js dev server context with:
 
-```typescript
-// lib/prisma.ts
-if (process.env.USE_MEMORY_POSTGRES === 'true') {
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { PrismaPGlite } = await import('@prisma/adapter-pglite');
-  // Creates in-memory PostgreSQL instance
-}
 ```
-
-**Note:** Prisma Migrate doesn't support PGLite directly. Migrations are applied manually in test setup via `tests/setup/pglite-setup.ts`.
+The "path" argument must be of type string or an instance of Buffer or URL.
+Received an instance of URL
+```
 
 ### Running Tests
 
 ```bash
-# With real database
-POSTGRES_URL=... npm test
-
-# With in-memory database (CI mode)
-USE_MEMORY_POSTGRES=true npm test
+# Requires real PostgreSQL connection
+POSTGRES_URL=postgres://user:pass@host:5432/db npm test
 ```
 
 ### GitHub Actions Configuration
 
 Set the following in GitHub repository settings:
 
-- Variable: `USE_MEMORY_POSTGRES=true`
-- Secret: `POSTGRES_URL` (for production deployments)
+- Secret: `POSTGRES_URL` - Connection string for test database
+
+**Recommended**: Create a separate test database (e.g., `panamia_test` on Neon) to avoid affecting production data.
 
 ---
 

@@ -19,7 +19,8 @@
     "env:workflow": "npx tsx scripts/env-check.ts workflow",
     "env:list": "npx tsx scripts/env-check.ts list",
     "env:secrets": "npx tsx scripts/env-check.ts secrets",
-    "env:vars": "npx tsx scripts/env-check.ts vars"
+    "env:vars": "npx tsx scripts/env-check.ts vars",
+    "db:reset": "npx tsx scripts/reset-test-db.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -99,7 +100,6 @@
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
-    "@electric-sql/pglite": "^0.3.14",
     "@playwright/test": "^1.57.0",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.4",
@@ -113,7 +113,6 @@
     "eslint-config-next": "^16.0.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "pglite-prisma-adapter": "^0.7.1",
     "prettier": "^3.7.4",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "^5.9.3"

@@ -314,12 +314,6 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
-  USE_MEMORY_POSTGRES: {
-    description: 'Use in-memory PostgreSQL for testing (PGLite)',
-    location: 'VAR',
-    required: false,
-    defaultValue: 'false',
-  },
   DEV_RECEIVER_EMAIL: {
     description:
       'Development email redirect - ALL emails sent here instead of real recipients',

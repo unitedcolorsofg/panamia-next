@@ -4,12 +4,12 @@ Shared utilities, business logic, data models, and server-side helpers.
 
 ## Core Files
 
-| File            | Description                                                     |
-| --------------- | --------------------------------------------------------------- |
-| `prisma.ts`     | Prisma client singleton (PostgreSQL, supports PGLite for tests) |
-| `env.config.ts` | Environment variable definitions and validation                 |
-| `interfaces.ts` | TypeScript interfaces for all data models                       |
-| `utils.ts`      | General utility functions                                       |
+| File            | Description                                                 |
+| --------------- | ----------------------------------------------------------- |
+| `prisma.ts`     | Prisma client singleton (PostgreSQL via @prisma/adapter-pg) |
+| `env.config.ts` | Environment variable definitions and validation             |
+| `interfaces.ts` | TypeScript interfaces for all data models                   |
+| `utils.ts`      | General utility functions                                   |
 
 ## Environment Configuration
 
