@@ -1,4 +1,4 @@
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from '@/hooks/use-toast';
 import {
   Toast,
   ToastClose,
@@ -6,10 +6,18 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
+} from '@/components/ui/toast';
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts } = useToast();
+
+  // Check if we have any destructive toasts to determine viewport position
+  const hasDestructive = toasts.some((t) => t.variant === 'destructive');
+
+  // Position: destructive = bottom-right, default = top-center
+  const viewportClass = hasDestructive
+    ? 'fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col p-4 md:max-w-[420px]'
+    : 'fixed top-0 left-1/2 z-[100] flex max-h-screen w-full -translate-x-1/2 flex-col p-4 md:max-w-[420px]';
 
   return (
     <ToastProvider>
@@ -25,9 +33,9 @@ export function Toaster() {
             {action}
             <ToastClose />
           </Toast>
-        )
+        );
       })}
-      <ToastViewport />
+      <ToastViewport className={viewportClass} />
     </ToastProvider>
-  )
+  );
 }

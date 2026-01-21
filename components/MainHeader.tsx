@@ -77,10 +77,28 @@ export default function MainHeader() {
   const { data: session, status } = useSession();
   const handleSignOut = () => signOut({ redirect: true, callbackUrl: '/' });
   const [menu_active, setMenuActive] = useState(false);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const activeClasses = classNames(styles.navList, styles.navListActive);
 
   // Get admin status directly from session (no API call needed)
   const isAdmin = session?.user?.isAdmin || false;
+
+  // Check if authenticated user has a profile
+  useEffect(() => {
+    if (session?.user) {
+      axios
+        .get('/api/getProfile')
+        .then((res) => {
+          // Profile exists if we get data back with an id
+          setHasProfile(!!res.data?.id);
+        })
+        .catch(() => {
+          setHasProfile(false);
+        });
+    }
+    // When session is null, hasProfile remains null (initial state)
+    // The CTA bar only shows for authenticated users anyway
+  }, [session]);
 
   interface NavStyle {
     padding?: string;
@@ -192,10 +210,15 @@ export default function MainHeader() {
 
   return (
     <header className={styles.header}>
-      {/* Only show newsletter signup for unauthenticated users */}
+      {/* CTA bar: newsletter for unauthenticated, profile completion for authenticated without profile */}
       {status !== 'loading' && !session && (
         <div id="call-to-action-bar">
           <CallToActionBar />
+        </div>
+      )}
+      {status !== 'loading' && session && hasProfile === false && (
+        <div id="call-to-action-bar">
+          <CallToActionBar variant="complete-profile" />
         </div>
       )}
       {/* Top-right navigation buttons */}

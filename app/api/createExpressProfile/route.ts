@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         name: name,
         email: email.toString().toLowerCase(),
         slug: slugify(name),
-        active: false, // TODO: set to false on launch/approval process
+        active: true, // Self-created profiles are active immediately
         status: status as any,
         locallyBased: locally_based || null,
         descriptions: descriptions as any,
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(
     {
-      msg: 'Your profile has been submitted for review! Check your email for next steps.',
+      msg: 'Your profile has been created! You can now be found in the directory.',
     },
     { status: 200 }
   );

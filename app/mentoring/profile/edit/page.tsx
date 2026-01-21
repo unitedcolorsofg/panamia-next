@@ -15,6 +15,11 @@ export default async function EditProfilePage() {
     where: { email: session.user.email },
   });
 
+  // Require profile to access mentoring features
+  if (!profile) {
+    redirect('/form/become-a-pana?from=mentoring');
+  }
+
   const mentoring = profile?.mentoring as ProfileMentoring | null;
   const initialData = mentoring
     ? {
