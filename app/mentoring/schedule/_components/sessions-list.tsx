@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +55,11 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
       router.refresh();
     } catch (error) {
       console.error('Error cancelling session:', error);
-      alert('Failed to cancel session');
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel session',
+        variant: 'destructive',
+      });
     } finally {
       setCancelling(null);
     }

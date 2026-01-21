@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ExcelJS from 'exceljs';
 import axios from 'axios';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,15 +28,27 @@ export default function ExcelImportPage() {
       )
       .then(async (response) => {
         if (response.data.error) {
-          alert(response.data.error);
+          toast({
+            title: 'Error',
+            description: response.data.error,
+            variant: 'destructive',
+          });
         } else {
           setImportConfirmation(true);
-          alert('Profiles have been imported!');
+          toast({
+            title: 'Success',
+            description: 'Profiles have been imported!',
+          });
         }
       })
       .catch((error) => {
         console.log(error);
-        alert('There was a problem uploading these users: ' + error.message);
+        toast({
+          title: 'Error',
+          description:
+            'There was a problem uploading these users: ' + error.message,
+          variant: 'destructive',
+        });
       });
     console.log(res);
   }

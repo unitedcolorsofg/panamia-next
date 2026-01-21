@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import axios from 'axios';
 import classNames from 'classnames';
+import { toast } from '@/hooks/use-toast';
 
 import styles from './SignupModal.module.css';
 import PanaButton from './PanaButton';
@@ -37,19 +38,31 @@ export default function SignupModal() {
         )
         .then(async (response) => {
           if (response.data.error) {
-            alert(response.data.error); // soft error should display for user to correct
+            toast({
+              title: 'Error',
+              description: response.data.error,
+              variant: 'destructive',
+            });
           } else {
             signupConfirmation();
             setName('');
             setEmail('');
             setSignupType('');
-            alert('Thank you for signing up!');
+            toast({
+              title: 'Success',
+              description: 'Thank you for signing up!',
+            });
             toggleModal();
           }
         })
         .catch((error) => {
           console.log(error);
-          alert('There was a problem submitting the form: ' + error.message);
+          toast({
+            title: 'Error',
+            description:
+              'There was a problem submitting the form: ' + error.message,
+            variant: 'destructive',
+          });
           toggleModal();
         });
       console.log(res);

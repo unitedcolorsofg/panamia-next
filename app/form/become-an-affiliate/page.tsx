@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -40,9 +41,12 @@ export default function BecomeAnAffiliatePage() {
       )
       .catch((error) => {
         console.log(error);
-        alert(
-          'There was a problem submitting the form. Please refresh the page and try again.'
-        );
+        toast({
+          title: 'Error',
+          description:
+            'There was a problem submitting the form. Please refresh the page and try again.',
+          variant: 'destructive',
+        });
       });
     return response;
   };
@@ -51,7 +55,11 @@ export default function BecomeAnAffiliatePage() {
     e.preventDefault();
 
     if (!acceptTOS) {
-      alert('Please accept the Terms and Conditions to continue.');
+      toast({
+        title: 'Required',
+        description: 'Please accept the Terms and Conditions to continue.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -61,9 +69,16 @@ export default function BecomeAnAffiliatePage() {
 
     if (response) {
       if (response.data.error) {
-        alert(response.data.error);
+        toast({
+          title: 'Error',
+          description: response.data.error,
+          variant: 'destructive',
+        });
       } else {
-        alert('Your affiliate code has been activated!');
+        toast({
+          title: 'Success',
+          description: 'Your affiliate code has been activated!',
+        });
         router.push('/');
       }
     }

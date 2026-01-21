@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import axios from 'axios';
+import { toast } from '@/hooks/use-toast';
 
 import PageMeta from '@/components/PageMeta';
 import { ProfileInterface } from '@/lib/interfaces';
@@ -46,7 +47,11 @@ export default function AccountProfileAddress() {
     if (
       !(address.street1 && address.city && address.state && address.zipcode)
     ) {
-      alert('Please fill out a Street, City, State and Zipcode');
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill out a Street, City, State and Zipcode',
+        variant: 'destructive',
+      });
       setGettingCoords(false);
       return false;
     }
@@ -68,9 +73,16 @@ export default function AccountProfileAddress() {
       latInput.value = coords?.lat;
       const lngInput = document.getElementById('geo_lng') as HTMLInputElement;
       lngInput.value = coords?.lng;
-      alert('Your Latitude and Longitude have been set, please save');
+      toast({
+        title: 'Coordinates Set',
+        description: 'Your Latitude and Longitude have been set, please save',
+      });
     } catch (error) {
-      alert('Failed to get coordinates. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to get coordinates. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setGettingCoords(false);
     }

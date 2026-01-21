@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 import {
   ProfileInterface,
@@ -74,7 +75,11 @@ export const useMutateUserFollowing = () => {
       return queryClient.setQueryData(userQueryKey, response.data.data);
     },
     onError: () => {
-      alert('Failed to update. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -117,7 +122,11 @@ export const useMutateUserLists = () => {
       // return queryClient.setQueryData(userQueryKey, response.data.data);
     },
     onError: () => {
-      alert('Failed to update. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };

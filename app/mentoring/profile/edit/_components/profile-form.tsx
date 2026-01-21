@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -95,7 +96,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       console.error('Error updating profile:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to save profile: ${errorMessage}`);
+      toast({
+        title: 'Error',
+        description: `Failed to save profile: ${errorMessage}`,
+        variant: 'destructive',
+      });
     }
   };
 

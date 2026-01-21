@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,12 +40,20 @@ export function BookingForm() {
     data: Omit<CreateSessionData, 'mentorEmail' | 'scheduledAt'>
   ) => {
     if (!mentorEmail) {
-      alert('Mentor email is required');
+      toast({
+        title: 'Error',
+        description: 'Mentor email is required',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!selectedDate || !selectedTime) {
-      alert('Please select a date and time');
+      toast({
+        title: 'Missing Selection',
+        description: 'Please select a date and time',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -75,7 +84,12 @@ export function BookingForm() {
       router.refresh();
     } catch (error) {
       console.error('Error booking session:', error);
-      alert(error instanceof Error ? error.message : 'Failed to book session');
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error ? error.message : 'Failed to book session',
+        variant: 'destructive',
+      });
     }
   };
 

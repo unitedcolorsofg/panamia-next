@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 import { ProfileInterface } from '@/lib/interfaces';
 
@@ -61,14 +62,18 @@ export const useMutateProfileContact = () => {
       return axios.post('/api/profile/saveContact', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -80,14 +85,18 @@ export const useMutateProfileGenteDePana = () => {
       return axios.post('/api/profile/saveGenteDePana', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -99,14 +108,18 @@ export const useMutateProfileDesc = () => {
       return axios.post('/api/profile/saveDesc', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -118,14 +131,18 @@ export const useMutateProfileSocial = () => {
       return axios.post('/api/profile/saveSocial', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -137,14 +154,18 @@ export const useMutateProfileAddress = () => {
       return axios.post('/api/profile/saveAddress', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
@@ -156,14 +177,18 @@ export const useMutateProfileCategories = () => {
       return axios.post('/api/profile/saveCategories', updates);
     },
     onSuccess: (data) => {
-      alert('Succesfully updated profile');
+      toast({ title: 'Success', description: 'Profile updated successfully' });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
       });
     },
     onError: () => {
-      alert('Failed to update profile. Please contact us.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please contact us.',
+        variant: 'destructive',
+      });
     },
   });
 };
