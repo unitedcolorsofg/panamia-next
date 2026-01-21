@@ -90,7 +90,8 @@ export default function MainHeader() {
         .get('/api/getProfile')
         .then((res) => {
           // Profile exists if we get data back with an id
-          setHasProfile(!!res.data?.id);
+          // API returns { success: true, data: { id: ... } }
+          setHasProfile(!!res.data?.data?.id);
         })
         .catch(() => {
           setHasProfile(false);

@@ -38,7 +38,8 @@ export default function NewArticlePage() {
         try {
           const response = await fetch('/api/getProfile');
           const data = await response.json();
-          const profileExists = !!data?.id;
+          // API returns { success: true, data: { id: ... } }
+          const profileExists = !!data?.data?.id;
           setHasProfile(profileExists);
 
           if (!profileExists) {
