@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "env -u NODE_ENV node server.js",
     "dev:http": "env -u NODE_ENV next dev",
-    "build": "prisma generate && env -u NODE_ENV next build",
+    "build": "prisma generate && prisma migrate deploy && env -u NODE_ENV next build",
     "postbuild": "next-sitemap",
     "start": "env -u NODE_ENV next start",
     "lint": "next lint",
