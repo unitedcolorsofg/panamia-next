@@ -44,31 +44,39 @@ npx tsx scripts/delete-user.ts user@example.com
 
 ### `migrate-from-mongodb.ts`
 
-One-time migration script for copying data from MongoDB to PostgreSQL:
+One-time migration script for copying data from MongoDB to PostgreSQL,
+including migration of images from external CDNs to Vercel Blob:
 
 ```bash
+# Full migration (data + images)
 npx tsx scripts/migrate-from-mongodb.ts \
   --mongodb "mongodb+srv://..." \
   --postgres "postgres://..."
 
 # Preview without writing
 npx tsx scripts/migrate-from-mongodb.ts --dry-run ...
+
+# Skip image migration
+npx tsx scripts/migrate-from-mongodb.ts --skip-images ...
+
+# Only migrate images (after data migration)
+npx tsx scripts/migrate-from-mongodb.ts \
+  --postgres "postgres://..." \
+  --images-only
 ```
 
-Migrates: users, accounts, sessions, and profiles.
+**What gets migrated:**
 
-### `migrate-images-to-vercel-blob.ts`
+- users (nextauth_users → users)
+- accounts (nextauth_accounts → accounts)
+- sessions (nextauth_sessions → sessions)
+- profiles (profiles → profiles)
+- images (BunnyCDN/external → Vercel Blob)
 
-Migration script for moving profile images from external CDNs (BunnyCDN, etc.) to Vercel Blob:
+**Requirements:**
 
-```bash
-npx tsx scripts/migrate-images-to-vercel-blob.ts
-
-# Preview changes without modifying
-npx tsx scripts/migrate-images-to-vercel-blob.ts --dry-run
-```
-
-Requires `BLOB_READ_WRITE_TOKEN` environment variable.
+- `mongodb` npm package (install with `npm install mongodb`)
+- `BLOB_READ_WRITE_TOKEN` env var (for image migration)
 
 ### `reset-test-db.ts`
 

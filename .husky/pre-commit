@@ -118,27 +118,62 @@ if [ -n "$STAGED_DIRS" ]; then
 fi
 
 # =============================================================================
-# Scripts README Staleness Check
+# README Staleness Check (all directories with README.md)
 # =============================================================================
 
 echo ""
-echo "📜 Checking scripts directory documentation..."
+echo "📜 Checking for stale README.md files..."
 
-# Check if any scripts are being added or modified
-STAGED_SCRIPTS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^scripts/.*\.(ts|js|sh|cjs|mjs)$' || true)
+# Find all directories with README.md (exclude external/, node_modules/, .git/, .next/)
+README_DIRS=$(find . -name "README.md" -type f \
+  -not -path "./external/*" \
+  -not -path "./node_modules/*" \
+  -not -path "./.git/*" \
+  -not -path "./.next/*" \
+  -exec dirname {} \; 2>/dev/null | sort -u || true)
 
-if [ -n "$STAGED_SCRIPTS" ]; then
-  # Check if README.md is also being updated
-  README_UPDATED=$(git diff --cached --name-only | grep -q '^scripts/README.md$' && echo "1" || true)
+STALE_READMES=""
 
-  if [ -z "$README_UPDATED" ]; then
-    echo ""
-    echo "⚠️  WARNING: Scripts modified without updating scripts/README.md:"
-    echo "$STAGED_SCRIPTS" | sed 's/^/  📄 /'
-    echo ""
-    echo "💡 Please update scripts/README.md to document any new or changed scripts"
-    echo ""
+for dir in $README_DIRS; do
+  # Remove leading ./ for cleaner paths
+  clean_dir="${dir#./}"
+  [ "$clean_dir" = "." ] && clean_dir=""
+
+  # Build pattern for files in this directory (excluding the README itself)
+  if [ -z "$clean_dir" ]; then
+    # Root directory - check for root-level file changes
+    pattern="^[^/]+$"
+  else
+    pattern="^${clean_dir}/[^/]+"
   fi
+
+  # Check if any files in this directory are staged (excluding README.md)
+  STAGED_IN_DIR=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E "$pattern" | grep -v "README.md$" || true)
+
+  if [ -n "$STAGED_IN_DIR" ]; then
+    # Check if README.md in this directory is also being updated
+    if [ -z "$clean_dir" ]; then
+      readme_path="README.md"
+    else
+      readme_path="${clean_dir}/README.md"
+    fi
+
+    README_UPDATED=$(git diff --cached --name-only | grep -q "^${readme_path}$" && echo "1" || true)
+
+    if [ -z "$README_UPDATED" ]; then
+      STALE_READMES="$STALE_READMES
+  📂 ${readme_path}"
+    fi
+  fi
+done
+
+if [ -n "$STALE_READMES" ]; then
+  echo ""
+  echo "⚠️  WARNING: Files changed in directories without updating README.md:"
+  echo "$STALE_READMES"
+  echo ""
+  echo "💡 Consider updating the README.md files if the changes affect documentation"
+  echo ""
 fi
 
 # Run linting
