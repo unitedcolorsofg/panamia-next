@@ -117,5 +117,29 @@ if [ -n "$STAGED_DIRS" ]; then
   fi
 fi
 
+# =============================================================================
+# Scripts README Staleness Check
+# =============================================================================
+
+echo ""
+echo "📜 Checking scripts directory documentation..."
+
+# Check if any scripts are being added or modified
+STAGED_SCRIPTS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^scripts/.*\.(ts|js|sh|cjs|mjs)$' || true)
+
+if [ -n "$STAGED_SCRIPTS" ]; then
+  # Check if README.md is also being updated
+  README_UPDATED=$(git diff --cached --name-only | grep -q '^scripts/README.md$' && echo "1" || true)
+
+  if [ -z "$README_UPDATED" ]; then
+    echo ""
+    echo "⚠️  WARNING: Scripts modified without updating scripts/README.md:"
+    echo "$STAGED_SCRIPTS" | sed 's/^/  📄 /'
+    echo ""
+    echo "💡 Please update scripts/README.md to document any new or changed scripts"
+    echo ""
+  fi
+fi
+
 # Run linting
 npx lint-staged

@@ -18,50 +18,109 @@ npm run env:vars      # List variables for GitHub Variables
 
 Uses `lib/env.config.ts` as the source of truth.
 
-### `create-signin-link.js`
+### `create-signin-link.ts`
 
 Generate magic sign-in links for testing:
 
 ```bash
-node scripts/create-signin-link.js user@example.com
+npx tsx scripts/create-signin-link.ts user@example.com
 ```
 
-### `get-signin-link.js`
+### `get-signin-link.ts`
 
 Retrieve existing sign-in tokens from the database.
 
-### `migrate-bunnycdn-to-vercel-blob.cjs`
+```bash
+npx tsx scripts/get-signin-link.ts user@example.com
+```
 
-Migration script for moving profile images from BunnyCDN to Vercel Blob:
+### `delete-user.ts`
 
-- Downloads existing images
-- Uploads to Vercel Blob
-- Updates database references
+Delete a user and their associated data (accounts, sessions, profile):
+
+```bash
+npx tsx scripts/delete-user.ts user@example.com
+```
+
+### `migrate-from-mongodb.ts`
+
+One-time migration script for copying data from MongoDB to PostgreSQL:
+
+```bash
+npx tsx scripts/migrate-from-mongodb.ts \
+  --mongodb "mongodb+srv://..." \
+  --postgres "postgres://..."
+
+# Preview without writing
+npx tsx scripts/migrate-from-mongodb.ts --dry-run ...
+```
+
+Migrates: users, accounts, sessions, and profiles.
+
+### `migrate-images-to-vercel-blob.ts`
+
+Migration script for moving profile images from external CDNs (BunnyCDN, etc.) to Vercel Blob:
+
+```bash
+npx tsx scripts/migrate-images-to-vercel-blob.ts
+
+# Preview changes without modifying
+npx tsx scripts/migrate-images-to-vercel-blob.ts --dry-run
+```
+
+Requires `BLOB_READ_WRITE_TOKEN` environment variable.
+
+### `reset-test-db.ts`
+
+Reset the test database by truncating all tables (for CI):
+
+```bash
+npm run db:reset
+# or
+npx tsx scripts/reset-test-db.ts
+```
+
+### `validate-migrations.sh`
+
+Validates Prisma migration files for naming conventions and standards:
+
+```bash
+./scripts/validate-migrations.sh          # Check all migrations
+./scripts/validate-migrations.sh --staged # Check only staged migrations
+```
+
+Called automatically by pre-commit hook.
 
 ## Running Scripts
 
-Most scripts can be run with Node.js directly:
+TypeScript scripts can be run with `npx tsx`:
 
 ```bash
-node scripts/script-name.js [args]
+npx tsx scripts/script-name.ts [args]
 ```
 
-For CommonJS scripts (`.cjs`), ensure you have the required
-environment variables set or use dotenv.
+For shell scripts, ensure they're executable:
 
-## Adding New Scripts
-
-1. Create script in this directory
-2. Use `.js` for ES modules, `.cjs` for CommonJS
-3. Add documentation here
-4. Consider adding npm script alias in `package.json`
+```bash
+chmod +x scripts/script-name.sh
+./scripts/script-name.sh
+```
 
 ## Environment Variables
 
 Scripts typically need access to:
 
-- `MONGODB_URI` - Database connection
+- `POSTGRES_URL` or `DATABASE_URL` - PostgreSQL connection
 - `BLOB_READ_WRITE_TOKEN` - Vercel Blob access
 - Other service-specific credentials
 
 Load from `.env.local` or set in shell environment.
+
+## Adding New Scripts
+
+1. Create script in this directory
+2. Use `.ts` for TypeScript, `.sh` for shell scripts
+3. **Update this README** to document the new script
+4. Consider adding npm script alias in `package.json`
+
+> **Note:** The pre-commit hook will warn if scripts are modified without updating this README.
