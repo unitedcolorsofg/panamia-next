@@ -1,6 +1,6 @@
 # App Directory
 
-Next.js 14+ App Router directory containing all pages, layouts, and API routes.
+Next.js 16 App Router directory containing all pages, layouts, and API routes.
 
 ## Page Routes
 
@@ -79,13 +79,12 @@ Mentorship program pages:
 
 Public submission forms:
 
-| Route                        | Description           |
-| ---------------------------- | --------------------- |
-| `/form/contact-us`           | Contact form          |
-| `/form/become-a-pana`        | Profile signup form   |
-| `/form/become-a-pana-single` | Simplified signup     |
-| `/form/become-an-affiliate`  | Affiliate application |
-| `/form/join-the-team`        | Team application      |
+| Route                       | Description           |
+| --------------------------- | --------------------- |
+| `/form/contact-us`          | Contact form          |
+| `/form/become-a-pana`       | Profile signup form   |
+| `/form/become-an-affiliate` | Affiliate application |
+| `/form/join-the-team`       | Team application      |
 
 ### Feeds (`/feed*`)
 
@@ -134,7 +133,7 @@ See [app/api/README.md](./api/README.md) for comprehensive API documentation.
 | Pattern      | Usage                                    |
 | ------------ | ---------------------------------------- |
 | `[slug]`     | URL-safe identifier (articles, profiles) |
-| `[id]`       | MongoDB ObjectId                         |
+| `[id]`       | Database ID (UUID or numeric)            |
 | `[handle]`   | User profile handle                      |
 | `[...param]` | Catch-all routes                         |
 

@@ -10,34 +10,41 @@ Extends NextAuth types to include custom user properties:
 
 - User ID from database
 - Custom session fields
+- Extended JWT types
 
-### `index.ts`
-
-Shared type definitions used across the application.
+```typescript
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      // ... extended properties
+    };
+  }
+}
+```
 
 ## Usage
 
-Types are auto-discovered by TypeScript. Import when needed:
-
-```typescript
-import type { CustomType } from '@/types';
-```
+Type declarations in this directory are auto-discovered by TypeScript.
+No explicit imports needed for declaration files (`.d.ts`).
 
 ## Conventions
 
+- Use `.d.ts` files for type augmentation (extending library types)
 - Use `interface` for object shapes
 - Use `type` for unions, intersections, and aliases
-- Export all types for use in other files
-- Keep types close to their usage when specific to a feature
 
-## Global Types
+## Related Type Locations
 
-For types used everywhere, consider adding to:
-
-- `lib/interfaces.ts` - Data model interfaces
-- This directory - General utility types
+| Location            | Purpose                           |
+| ------------------- | --------------------------------- |
+| `types/*.d.ts`      | Library type augmentation         |
+| `lib/interfaces.ts` | Application data model types      |
+| `lib/types/`        | Feature-specific type modules     |
+| Component files     | Component prop types (co-located) |
 
 ## See Also
 
 - `/lib/interfaces.ts` - Database model interfaces
-- TypeScript documentation for advanced patterns
+- `/lib/types/` - Feature-specific types
+- TypeScript documentation for declaration files

@@ -78,7 +78,7 @@ Want to run the platform locally or contribute code?
 ### Technical Overview
 
 - **Framework**: Next.js 16 with React 19
-- **Database**: MongoDB Atlas
+- **Database**: PostgreSQL (via Prisma)
 - **Authentication**: Passwordless (magic links + OAuth)
 - **Hosting**: Vercel
 

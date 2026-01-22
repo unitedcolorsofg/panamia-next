@@ -2,11 +2,31 @@
 
 This directory contains end-to-end tests for the Panamia application using Playwright.
 
-## Test Structure
+## Directory Structure
 
-- `e2e/public-navigation.spec.ts` - Tests for public pages accessible without authentication
-- `e2e/authenticated-navigation.spec.ts` - Tests for authenticated user routes
-- `e2e/critical-paths.spec.ts` - Tests for critical user journeys and workflows
+```
+tests/
+├── e2e/                    # End-to-end test specs
+│   ├── public-navigation.spec.ts
+│   ├── authenticated-navigation.spec.ts
+│   ├── critical-paths.spec.ts
+│   ├── notifications.spec.ts
+│   ├── mentoring-notifications.spec.ts
+│   └── screenname.spec.ts
+├── setup/                  # Test setup and fixtures
+└── README.md
+```
+
+## Test Files
+
+| File                               | Description                          |
+| ---------------------------------- | ------------------------------------ |
+| `public-navigation.spec.ts`        | Public pages without authentication  |
+| `authenticated-navigation.spec.ts` | Routes requiring authentication      |
+| `critical-paths.spec.ts`           | Critical user journeys and workflows |
+| `notifications.spec.ts`            | Notification system tests            |
+| `mentoring-notifications.spec.ts`  | Mentoring notification flow tests    |
+| `screenname.spec.ts`               | Screenname selection and validation  |
 
 ## Running Tests
 

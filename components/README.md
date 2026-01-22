@@ -28,6 +28,8 @@ Base components from [shadcn/ui](https://ui.shadcn.com/) - the building blocks:
 | `table.tsx`         | Data tables                  |
 | `tabs.tsx`          | Tab navigation               |
 | `textarea.tsx`      | Multi-line text input        |
+| `toast.tsx`         | Toast notifications          |
+| `toaster.tsx`       | Toast container/viewport     |
 
 ## Admin Components (`Admin/`)
 
@@ -115,17 +117,18 @@ Pana MIA brand animations and effects:
 
 ## Utility Components
 
-| Component              | Description                              |
-| ---------------------- | ---------------------------------------- |
-| `AuthorBadge.tsx`      | Author attribution with verification     |
-| `UserSearch.tsx`       | Search users (for co-authors, reviewers) |
-| `ScreennamePrompt.tsx` | Prompt to set screenname                 |
-| `SignupModal.tsx`      | Signup modal dialog                      |
-| `Spinner.tsx`          | Loading spinner                          |
-| `Entity.tsx`           | Entity display component                 |
-| `DropDownBtn.tsx`      | Dropdown button                          |
-| `GlobalHead.tsx`       | Global head metadata                     |
-| `PageMeta.tsx`         | Page-specific metadata                   |
+| Component                  | Description                              |
+| -------------------------- | ---------------------------------------- |
+| `AuthorBadge.tsx`          | Author attribution with verification     |
+| `UserSearch.tsx`           | Search users (for co-authors, reviewers) |
+| `ScreennamePrompt.tsx`     | Prompt to set screenname                 |
+| `SignupModal.tsx`          | Signup modal dialog                      |
+| `Spinner.tsx`              | Loading spinner                          |
+| `Entity.tsx`               | Entity display component                 |
+| `DropDownBtn.tsx`          | Dropdown button                          |
+| `GlobalHead.tsx`           | Global head metadata                     |
+| `PageMeta.tsx`             | Page-specific metadata                   |
+| `VercelToolbarWrapper.tsx` | Vercel toolbar for development           |
 
 ## Theme Components
 

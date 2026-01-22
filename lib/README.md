@@ -9,6 +9,7 @@ Shared utilities, business logic, data models, and server-side helpers.
 | `prisma.ts`     | Prisma client singleton (PostgreSQL via @prisma/adapter-pg) |
 | `env.config.ts` | Environment variable definitions and validation             |
 | `interfaces.ts` | TypeScript interfaces for all data models                   |
+| `profile.ts`    | Profile utility functions                                   |
 | `utils.ts`      | General utility functions                                   |
 
 ## Environment Configuration
@@ -61,16 +62,16 @@ Primary data is stored in PostgreSQL via Prisma. See `prisma/schema.prisma` for 
 
 ## Query Helpers (`query/`)
 
-Reusable database query functions:
+Reusable client-side query functions (React Query mutations/queries):
 
-| File               | Description                  |
-| ------------------ | ---------------------------- |
-| `user.ts`          | User lookup queries          |
-| `profile.ts`       | Profile search and retrieval |
-| `directory.ts`     | Directory listing queries    |
-| `notifications.ts` | Notification queries         |
-| `userlist.ts`      | List queries                 |
-| `admin.ts`         | Admin-specific queries       |
+| File               | Description                       |
+| ------------------ | --------------------------------- |
+| `user.ts`          | User mutations (screenname, etc.) |
+| `profile.ts`       | Profile mutations (save, update)  |
+| `directory.ts`     | Directory listing queries         |
+| `notifications.ts` | Notification queries              |
+| `userlist.ts`      | List queries                      |
+| `admin.ts`         | Admin-specific queries            |
 
 ## Server Utilities (`server/`)
 
@@ -83,6 +84,7 @@ Server-side only functions (not for client):
 | `directory.ts`   | Directory data fetching          |
 | `interaction.ts` | Track user interactions          |
 | `admin.ts`       | Admin operations                 |
+| `admin-auth.ts`  | Admin authentication helpers     |
 
 ## Validations (`validations/`)
 
@@ -108,6 +110,11 @@ Vercel Blob integration for file uploads:
 - `generateSlug(title)` - URL-safe slug from title
 - `calculateReadingTime(content)` - Estimate read time in minutes
 - `generateExcerpt(content)` - Auto-generate excerpt
+
+### Mentoring (`mentoring.ts`)
+
+- Session type helpers
+- Mentoring-related utilities
 
 ### Mastodon (`mastodon.ts`)
 

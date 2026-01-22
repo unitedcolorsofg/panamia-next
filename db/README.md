@@ -1,33 +1,30 @@
 # DB Directory
 
-MongoDB queries and database utilities.
+Legacy MongoDB query files (for reference only).
+
+> **Note:** The application now uses PostgreSQL via Prisma. These files are kept for
+> historical reference and migration purposes only.
 
 ## Files
 
 ### `profiles_by_recent.mongodb.js`
 
 MongoDB shell script for querying profiles by recent activity.
-Can be run in MongoDB Compass or mongosh.
+Was used with MongoDB Compass or mongosh during the MongoDB era.
 
-## Usage
+## Current Database
 
-These files are typically used for:
+The application uses **PostgreSQL** with Prisma ORM. See:
 
-- Ad-hoc database queries
-- Data exploration
-- Migration scripts
-- Debugging
+- `/prisma/schema.prisma` - Database schema
+- `/lib/prisma.ts` - Prisma client singleton
+- `/lib/query/` - Query helper functions
+- `/lib/server/` - Server-side database operations
 
-Run in MongoDB shell:
+## Migration
+
+For migrating data from MongoDB to PostgreSQL, see:
 
 ```bash
-mongosh "mongodb+srv://..." --file db/profiles_by_recent.mongodb.js
+npx tsx scripts/migrate-from-mongodb.ts --help
 ```
-
-Or paste into MongoDB Compass query interface.
-
-## Notes
-
-- These are NOT used by the application at runtime
-- For application database logic, see `/lib/model/`
-- Keep sensitive queries local (don't commit credentials)
