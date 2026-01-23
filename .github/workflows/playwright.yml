@@ -45,12 +45,12 @@ jobs:
       - name: Run database migrations
         run: npx prisma migrate deploy
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url_pooled }}
+          POSTGRES_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
 
       - name: Validate environment variables
         run: npm run env:check
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url_pooled }}
+          POSTGRES_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -65,7 +65,7 @@ jobs:
       - name: Build Next.js app
         run: yarn build
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url_pooled }}
+          POSTGRES_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -81,7 +81,7 @@ jobs:
       - name: Run Playwright tests
         run: yarn test
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url_pooled }}
+          POSTGRES_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
