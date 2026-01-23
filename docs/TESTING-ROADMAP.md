@@ -1,5 +1,35 @@
 # Testing Roadmap
 
+## GitHub Automated Testing Infrastructure
+
+When code is pushed to GitHub or a pull request is opened, automated tests run using a temporary database that is completely separate from production.
+
+### How It Works
+
+1. **Create test database** — GitHub creates a new, empty database branch in Neon (e.g., `test-12345678`)
+2. **Apply migrations** — All database migrations run against the empty database, verifying they work correctly
+3. **Run tests** — Playwright tests run against this isolated database
+4. **Delete test database** — The temporary branch is automatically deleted, even if tests fail
+
+Your production database is never touched during testing.
+
+### Required GitHub Secrets
+
+These must be configured in GitHub → Repository Settings → Secrets and variables → Actions:
+
+| Secret            | Where to Find It                                       |
+| ----------------- | ------------------------------------------------------ |
+| `NEON_PROJECT_ID` | Neon Console → Your Project → Settings → Project ID    |
+| `NEON_API_KEY`    | Neon Console → Account (top right) → API Keys → Create |
+
+See `.env.local.example` for detailed setup instructions.
+
+### Workflow File
+
+The test workflow is defined in `.github/workflows/playwright.yml`.
+
+---
+
 ## Implemented Playwright Tests
 
 Tests organized by category in `tests/e2e/`:

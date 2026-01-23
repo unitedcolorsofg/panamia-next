@@ -31,14 +31,15 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Create empty Neon branch for this CI run
-      - name: Create Neon branch
+      # Create empty Neon database branch for this test run
+      # Branch is deleted after tests complete (pass or fail)
+      - name: Create Neon test branch
         id: neon
         uses: neondatabase/create-branch-action@v5
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          branch_name: ci-${{ github.run_id }}
+          branch_name: test-${{ github.run_id }}
 
       # Run migrations on empty database
       - name: Run database migrations
@@ -100,11 +101,11 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # Always delete the branch, even if tests fail
-      - name: Delete Neon branch
+      # Always delete the test branch, even if tests fail
+      - name: Delete Neon test branch
         if: always()
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          branch: ci-${{ github.run_id }}
+          branch: test-${{ github.run_id }}
