@@ -94,7 +94,7 @@ jobs:
           NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
           PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
