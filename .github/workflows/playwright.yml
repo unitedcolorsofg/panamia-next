@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: 'yarn'
 
       - name: Enable Corepack
         run: corepack enable
@@ -58,6 +59,12 @@ jobs:
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
           RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
