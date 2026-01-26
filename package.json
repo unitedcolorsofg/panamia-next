@@ -103,7 +103,7 @@
     "@playwright/test": "^1.58.0",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.4",
-    "@types/node": "^24.10.2",
+    "@types/node": "^25.0.10",
     "@types/pg": "^8.16.0",
     "@types/pusher-js": "^5.1.0",
     "@types/react": "^19.2.9",
