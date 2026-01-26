@@ -36,7 +36,7 @@ jobs:
       # Branch is deleted after tests complete (pass or fail)
       - name: Create Neon test branch
         id: neon
-        uses: neondatabase/create-branch-action@v5
+        uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           api_key: ${{ secrets.NEON_API_KEY }}
