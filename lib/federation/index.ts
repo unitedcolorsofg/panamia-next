@@ -1,8 +1,8 @@
 /**
- * Federation Module
+ * Social Module
  *
- * This module provides ActivityPub federation capabilities for panamia.club,
- * integrating with activities.next as a capability provider.
+ * This module provides social features for panamia.club,
+ * using ActivityPub for federation with Mastodon, Pixelfed, etc.
  *
  * IMPORTANT: The external/activities.next/ directory is READ-ONLY.
  * All integration happens through wrapper modules in this directory.
@@ -10,20 +10,29 @@
  * @see docs/SOCIAL-ROADMAP.md for implementation details
  */
 
-export const federationConfig = {
-  enabled: process.env.FEDERATION_ENABLED === 'true',
-  domain: process.env.FEDERATION_DOMAIN || 'panamia.club',
-  instanceName: process.env.FEDERATION_INSTANCE_NAME || 'Pana Mia Club',
-  instanceDescription: process.env.FEDERATION_INSTANCE_DESCRIPTION,
-  adminEmail: process.env.FEDERATION_ADMIN_EMAIL,
+/**
+ * Get the domain from NEXT_PUBLIC_HOST_URL
+ * Falls back to 'panamia.club' if not set
+ */
+function getDomain(): string {
+  const hostUrl = process.env.NEXT_PUBLIC_HOST_URL;
+  if (!hostUrl) return 'panamia.club';
 
-  features: {
-    autoFederateArticles:
-      process.env.FEDERATION_AUTO_FEDERATE_ARTICLES === 'true',
-    allowRemoteFollows: process.env.FEDERATION_ALLOW_REMOTE_FOLLOWS !== 'false',
-    allowRemoteInteractions:
-      process.env.FEDERATION_ALLOW_REMOTE_INTERACTIONS !== 'false',
-  },
+  try {
+    const url = new URL(hostUrl);
+    return url.hostname;
+  } catch {
+    return 'panamia.club';
+  }
+}
+
+export const socialConfig = {
+  domain: getDomain(),
+
+  // Optional instance metadata (shown to remote ActivityPub servers)
+  instanceName: process.env.SOCIAL_INSTANCE_NAME || 'Pana Mia Club',
+  instanceDescription: process.env.SOCIAL_INSTANCE_DESCRIPTION,
+  adminEmail: process.env.SOCIAL_ADMIN_EMAIL,
 
   // ActivityPub endpoints
   endpoints: {
@@ -38,29 +47,36 @@ export const federationConfig = {
 };
 
 /**
- * Check if federation is enabled
- */
-export function isFederationEnabled(): boolean {
-  return federationConfig.enabled;
-}
-
-/**
  * Get the full ActivityPub actor URL for a screenname
  */
 export function getActorUrl(screenname: string): string {
-  return `https://${federationConfig.domain}${federationConfig.endpoints.actor(screenname)}`;
+  return `https://${socialConfig.domain}${socialConfig.endpoints.actor(screenname)}`;
 }
 
 /**
  * Get the inbox URL for a screenname
  */
 export function getInboxUrl(screenname: string): string {
-  return `https://${federationConfig.domain}${federationConfig.endpoints.inbox(screenname)}`;
+  return `https://${socialConfig.domain}${socialConfig.endpoints.inbox(screenname)}`;
 }
 
 /**
  * Get the outbox URL for a screenname
  */
 export function getOutboxUrl(screenname: string): string {
-  return `https://${federationConfig.domain}${federationConfig.endpoints.outbox(screenname)}`;
+  return `https://${socialConfig.domain}${socialConfig.endpoints.outbox(screenname)}`;
+}
+
+/**
+ * Get the followers URL for a screenname
+ */
+export function getFollowersUrl(screenname: string): string {
+  return `https://${socialConfig.domain}${socialConfig.endpoints.followers(screenname)}`;
+}
+
+/**
+ * Get the following URL for a screenname
+ */
+export function getFollowingUrl(screenname: string): string {
+  return `https://${socialConfig.domain}${socialConfig.endpoints.following(screenname)}`;
 }

@@ -4,32 +4,32 @@ Integrated social features for panamia.club using [activities.next](https://gith
 
 ## Overview
 
-This document outlines the plan to add native social features to panamia.club. Users interact with a familiar social timeline experience—they don't need to know about ActivityPub or the Fediverse. Behind the scenes, the social layer federates with Mastodon, Pixelfed, and other ActivityPub servers.
+This document outlines the plan to add native social features to panamia.club. Behind the scenes, the social layer federates with Mastodon, Pixelfed, and other ActivityPub servers.
 
 ### Design Philosophy
 
 1. **Native experience**: Social features feel like part of panamia, not a "federation" bolt-on
-2. **Invisible federation**: Users follow accounts and see posts; protocol details are hidden
+2. **Invisible federation**: Users follow accounts and see posts; implementation details are not displayed
 3. **Articles + Social**: Article comments come from the social layer (local + remote replies)
 4. **Read-only upstream**: activities.next code imported via git subtree, never modified
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          panamia.club                               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
+┌────────────────────────────────────────────────────────────────────┐
+│                          panamia.club                              │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
 │  ┌─────────────────┐     ┌─────────────────────────────────────┐   │
-│  │    Article      │     │         Social Timeline              │   │
+│  │    Article      │     │         Social Timeline             │   │
 │  │  "My New Post"  │     │  ┌─────────────────────────────┐    │   │
 │  │                 │     │  │ @author: Check out my new   │    │   │
 │  │  [content...]   │     │  │ article about...            │    │   │
 │  │                 │     │  │ 🔗 panamia.club/articles/...│    │   │
 │  │  ─────────────  │     │  └─────────────────────────────┘    │   │
 │  │  Comments:      │     │  ┌─────────────────────────────┐    │   │
-│  │  ┌───────────┐  │     │  │ @coauthor: We worked hard   │    │   │
-│  │  │ @user@mast│◄─┼─────┼──│ on this piece...            │    │   │
+│  │  ┌───────────┐  │     │  │ @coauthor: Excited to share │    │   │
+│  │  │ @user@mast│◄─┼─────┼──│ this new article...         │    │   │
 │  │  │ Great!    │  │     │  │ 🔗 panamia.club/articles/...│    │   │
 │  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
 │  │  ┌───────────┐  │     │  ┌─────────────────────────────┐    │   │
@@ -37,15 +37,15 @@ This document outlines the plan to add native social features to panamia.club. U
 │  │  │ Love it!  │  │     │  │ replied to @author...       │    │   │
 │  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
 │  └─────────────────┘     └─────────────────────────────────────┘   │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  lib/federation/           external/activities.next/ (READ-ONLY)   │
+│                                                                    │
+├────────────────────────────────────────────────────────────────────┤
+│  lib/federation/           external/activities.next/ (Read-only)   │
 │  └── Panamia wrappers      └── ActivityPub capability provider     │
-├─────────────────────────────────────────────────────────────────────┤
-│  PostgreSQL                                                         │
+├────────────────────────────────────────────────────────────────────┤
+│  PostgreSQL                                                        │
 │  ├── articles, profiles, users (panamia tables)                    │
 │  └── social_actors, social_statuses, social_follows (social_*)     │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Article ↔ Social Integration
@@ -53,7 +53,7 @@ This document outlines the plan to add native social features to panamia.club. U
 When an article is published:
 
 1. **Author + co-authors** can each pre-compose an announcement post (optional)
-2. **On publish**: All announcement posts go live simultaneously
+2. **On publish**: All announcement posts go live simultaneously for "social splash effect"
 3. **Replies to announcements** appear as comments below the article
 4. **Comments section** shows replies from local users AND remote users (Mastodon, etc.)
 
@@ -353,16 +353,18 @@ lib/federation/
 
 ## Configuration
 
-```bash
-# Social features
-SOCIAL_ENABLED=true
-SOCIAL_DOMAIN=panamia.club
+Social features use the existing `NEXT_PUBLIC_HOST_URL` for domain detection. No additional environment variables required for basic functionality.
 
-# Optional customization
+Optional variables for ActivityPub metadata (shown to remote servers):
+
+```bash
+# Optional: Instance metadata for ActivityPub
 SOCIAL_INSTANCE_NAME="Pana Mia Club"
 SOCIAL_INSTANCE_DESCRIPTION="Panama's creative community"
 SOCIAL_ADMIN_EMAIL=admin@panamia.club
 ```
+
+Note: No `SOCIAL_ENABLED` flag—ship when ready, fix when broken.
 
 ## User Experience
 
@@ -402,10 +404,9 @@ SOCIAL_ADMIN_EMAIL=admin@panamia.club
 
 If social features cause issues:
 
-1. Set `SOCIAL_ENABLED=false`
-2. Social endpoints return 503
-3. Articles continue working normally
-4. Existing social data preserved but inactive
+1. Revert the deployment or push a fix
+2. Articles and core features continue working normally
+3. Existing social data preserved in database
 
 ## References
 
