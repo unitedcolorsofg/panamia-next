@@ -48,6 +48,44 @@ This document outlines the plan to add native social features to panamia.club. B
 └────────────────────────────────────────────────────────────────────┘
 ```
 
+### Dependency Management
+
+We selectively import and execute code from `external/activities.next/`. To avoid pulling in 50+ unnecessary dependencies, we trace only what's needed.
+
+**Approach**: When importing modules from activities.next, track their dependencies in a manifest:
+
+```
+lib/federation/DEPENDENCIES.json    ← Generated manifest of required deps
+scripts/trace-federation-deps.ts    ← Analyzes imports, generates manifest
+scripts/validate-federation-deps.ts ← CI check: deps in manifest exist in package.json
+```
+
+**Workflow**:
+
+1. Import a module from `external/activities.next/lib/...`
+2. Run `npx tsx scripts/trace-federation-deps.ts <entry-files>`
+3. Script traces imports, outputs `DEPENDENCIES.json`
+4. Add missing deps to root `package.json`
+5. CI validates deps stay in sync
+
+**Example DEPENDENCIES.json**:
+
+```json
+{
+  "description": "Dependencies required for ActivityPub federation",
+  "source": "external/activities.next",
+  "dependencies": {
+    "jsonwebtoken": {
+      "version": "^9.0.0",
+      "reason": "HTTP signature signing",
+      "imports": ["external/activities.next/lib/utils/signature.ts"]
+    }
+  },
+  "existingInRoot": ["zod"],
+  "newDepsNeeded": ["jsonwebtoken"]
+}
+```
+
 ### Article ↔ Social Integration
 
 When an article is published:

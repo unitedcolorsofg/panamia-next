@@ -1,0 +1,21 @@
+{
+  "$schema": "./dependencies.schema.json",
+  "description": "Dependencies required for ActivityPub federation from external/activities.next",
+  "source": "external/activities.next",
+  "generatedAt": "2026-01-27T19:46:30.315Z",
+  "entryPoints": ["external/activities.next/lib/activities/index.ts"],
+  "dependencies": {
+    "@/lib": {
+      "version": null,
+      "reason": "Imported by 1 file(s)",
+      "imports": ["external/activities.next/lib/activities/index.ts"]
+    },
+    "@llun/activities.schema": {
+      "version": "0.4.3",
+      "reason": "Imported by 1 file(s)",
+      "imports": ["external/activities.next/lib/activities/index.ts"]
+    }
+  },
+  "existingInRoot": [],
+  "newDepsNeeded": ["@/lib", "@llun/activities.schema"]
+}
