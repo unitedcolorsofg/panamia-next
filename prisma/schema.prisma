@@ -395,6 +395,12 @@ model Profile {
   whatsappCommunity Boolean @default(false)
   affiliate         String?
 
+  // Social features eligibility
+  // Gate for social actor creation - requires verification before enabling
+  socialEligible         Boolean   @default(false)
+  socialEligibleAt       DateTime?
+  socialIneligibleReason String?   // 'age_unverified', 'suspended', 'pending', etc.
+
   // Social integration
   socialActor SocialActor?
 

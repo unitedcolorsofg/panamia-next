@@ -10,6 +10,11 @@
  * @see docs/SOCIAL-ROADMAP.md for implementation details
  */
 
+// Re-export submodules
+export * from './gates';
+export * from './crypto/keys';
+export * from './wrappers/actor';
+
 /**
  * Get the domain from NEXT_PUBLIC_HOST_URL
  * Falls back to 'panamia.club' if not set
