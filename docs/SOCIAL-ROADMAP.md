@@ -1,589 +1,415 @@
-# Social Federation Roadmap
+# Social Roadmap
 
-Integration of [activities.next](https://github.com/llun/activities.next) as a capability provider for ActivityPub federation.
+Integrated social features for panamia.club using [activities.next](https://github.com/llun/activities.next) as a capability provider.
 
 ## Overview
 
-This document outlines the plan to integrate activities.next into panamia.club, enabling federation with the Fediverse (Mastodon, Pixelfed, etc.). Rather than running activities.next as a separate sidecar service, we integrate it as a **capability provider** with panamia-specific wrappers.
+This document outlines the plan to add native social features to panamia.club. Users interact with a familiar social timeline experience—they don't need to know about ActivityPub or the Fediverse. Behind the scenes, the social layer federates with Mastodon, Pixelfed, and other ActivityPub servers.
 
-### Key Principles
+### Design Philosophy
 
-1. **Read-only upstream**: activities.next code is imported via git subtree and must not be modified
-2. **Wrapper pattern**: All integration happens through wrapper modules in `lib/federation/`
-3. **Shared database**: Single PostgreSQL instance with namespaced tables (`social_` prefix)
-4. **Gradual rollout**: Federation features released incrementally behind feature flags
+1. **Native experience**: Social features feel like part of panamia, not a "federation" bolt-on
+2. **Invisible federation**: Users follow accounts and see posts; protocol details are hidden
+3. **Articles + Social**: Article comments come from the social layer (local + remote replies)
+4. **Read-only upstream**: activities.next code imported via git subtree, never modified
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        panamia.club                              │
-├─────────────────────────────────────────────────────────────────┤
-│  app/                    │  lib/federation/                     │
-│  ├── api/                │  ├── wrappers/     ← Panamia APIs    │
-│  ├── articles/           │  │   ├── actor.ts                    │
-│  └── profile/            │  │   ├── status.ts                   │
-│                          │  │   ├── follow.ts                   │
-│                          │  │   └── timeline.ts                 │
-│                          │  ├── bridges/      ← Data mapping    │
-│                          │  │   ├── profile-to-actor.ts         │
-│                          │  │   └── article-to-status.ts        │
-│                          │  └── index.ts      ← Public API      │
-├──────────────────────────┴──────────────────────────────────────┤
-│  external/activities.next/  ← Git subtree (READ-ONLY)           │
-│  ├── lib/                                                        │
-│  │   ├── actions/                                                │
-│  │   ├── activities/                                             │
-│  │   ├── database/                                               │
-│  │   ├── models/                                                 │
-│  │   └── services/                                               │
-│  └── migrations/                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  PostgreSQL (shared)                                             │
-│  ├── users, accounts, sessions, profiles, articles (panamia)    │
-│  └── social_actors, social_statuses, social_follows, ... (fed)  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          panamia.club                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────┐     ┌─────────────────────────────────────┐   │
+│  │    Article      │     │         Social Timeline              │   │
+│  │  "My New Post"  │     │  ┌─────────────────────────────┐    │   │
+│  │                 │     │  │ @author: Check out my new   │    │   │
+│  │  [content...]   │     │  │ article about...            │    │   │
+│  │                 │     │  │ 🔗 panamia.club/articles/...│    │   │
+│  │  ─────────────  │     │  └─────────────────────────────┘    │   │
+│  │  Comments:      │     │  ┌─────────────────────────────┐    │   │
+│  │  ┌───────────┐  │     │  │ @coauthor: We worked hard   │    │   │
+│  │  │ @user@mast│◄─┼─────┼──│ on this piece...            │    │   │
+│  │  │ Great!    │  │     │  │ 🔗 panamia.club/articles/...│    │   │
+│  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
+│  │  ┌───────────┐  │     │  ┌─────────────────────────────┐    │   │
+│  │  │ @local    │◄─┼─────┼──│ @someone@mastodon.social    │    │   │
+│  │  │ Love it!  │  │     │  │ replied to @author...       │    │   │
+│  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
+│  └─────────────────┘     └─────────────────────────────────────┘   │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│  lib/federation/           external/activities.next/ (READ-ONLY)   │
+│  └── Panamia wrappers      └── ActivityPub capability provider     │
+├─────────────────────────────────────────────────────────────────────┤
+│  PostgreSQL                                                         │
+│  ├── articles, profiles, users (panamia tables)                    │
+│  └── social_actors, social_statuses, social_follows (social_*)     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Article ↔ Social Integration
+
+When an article is published:
+
+1. **Author + co-authors** can each pre-compose an announcement post (optional)
+2. **On publish**: All announcement posts go live simultaneously
+3. **Replies to announcements** appear as comments below the article
+4. **Comments section** shows replies from local users AND remote users (Mastodon, etc.)
+
+```
+Article (published)
+├── Announcement by @author (SocialStatus, optional)
+│   └── Reply from @reader@mastodon.social
+│   └── Reply from @local_user
+├── Announcement by @coauthor1 (SocialStatus, optional)
+│   └── Reply from @fan@pixelfed.social
+└── Announcement by @coauthor2 (SocialStatus, optional)
+
+Comments Section renders ALL replies across ALL announcements
 ```
 
 ## Database Strategy
 
 ### Schema Namespacing
 
-activities.next uses Knex.js for migrations with these tables:
+Prefix all social tables with `social_` to avoid conflicts with panamia tables:
 
-- `actors`, `accounts`, `sessions` (auth - conflicts with panamia!)
-- `statuses`, `attachments`, `tags`, `recipients`
-- `follows`, `likes`, `timelines`
-- `medias`, `poll_choices`, `poll_answers`
-- `clients`, `tokens`, `auth_codes` (OAuth)
+| Table              | Purpose                                 |
+| ------------------ | --------------------------------------- |
+| social_actors      | ActivityPub actors (linked to Profile)  |
+| social_statuses    | Posts, announcements, replies           |
+| social_follows     | Follow relationships (local + remote)   |
+| social_likes       | Likes/favorites                         |
+| social_timelines   | Timeline entries for each actor         |
+| social_attachments | Media attachments on posts              |
+| social_tags        | Hashtags and mentions                   |
+| social_recipients  | Post recipients (to/cc for ActivityPub) |
 
-**Solution**: Prefix all federation tables with `social_`:
-
-| Original Table | Namespaced Table   | Purpose                                 |
-| -------------- | ------------------ | --------------------------------------- |
-| actors         | social_actors      | ActivityPub actors (linked to profiles) |
-| statuses       | social_statuses    | Federated posts/articles                |
-| follows        | social_follows     | Federation follow relationships         |
-| likes          | social_likes       | Federated likes/favorites               |
-| timelines      | social_timelines   | Federated timeline entries              |
-| attachments    | social_attachments | Media attachments                       |
-| tags           | social_tags        | Hashtags and mentions                   |
-| recipients     | social_recipients  | Post recipients (to/cc)                 |
-| medias         | social_medias      | Uploaded media files                    |
-| counters       | social_counters    | Activity counters                       |
-
-**Excluded tables** (use panamia's existing auth):
-
-- `accounts`, `sessions`, `account_providers` → Use panamia's PostgreSQL auth
-- `clients`, `tokens`, `auth_codes` → Use panamia's NextAuth.js
-
-### Migration Strategy
-
-1. **Convert Knex to Prisma**: Transform activities.next migrations to Prisma format
-2. **Namespace prefix**: All tables get `social_` prefix via `@@map("social_tablename")`
-3. **Separate migration folder**: `prisma/migrations/federation/`
-4. **Migration naming**: `YYYYMMDD_social_description.sql`
-
-Example Prisma schema addition:
+### Key Models
 
 ```prisma
-// Federation tables (activities.next integration)
-// These tables are namespaced with 'social_' prefix
+// Profile ↔ SocialActor (1:1, optional)
+// Local users who enable social features get an actor
 
 model SocialActor {
   id                  String    @id @default(cuid())
-  username            String
-  domain              String
-  profileId           String?   @unique  // Link to panamia Profile
+  username            String    // screenname
+  domain              String    // panamia.club for local, remote domain for others
+  profileId           String?   @unique
   profile             Profile?  @relation(fields: [profileId], references: [id])
+
+  // ActivityPub fields
+  publicKey           String
+  privateKey          String?   // null for remote actors
+  inboxUrl            String
+  outboxUrl           String
+  followersUrl        String
+  followingUrl        String
+
+  // Metadata
   name                String?
   summary             String?
-  publicKey           String
-  privateKey          String?
   iconUrl             String?
-  headerImageUrl      String?
-  followersUrl        String
-  inboxUrl            String
-  sharedInboxUrl      String?
+
+  // Counts
   followingCount      Int       @default(0)
   followersCount      Int       @default(0)
   statusCount         Int       @default(0)
-  manuallyApprovesFollowers Boolean @default(false)
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   statuses            SocialStatus[]
   outgoingFollows     SocialFollow[] @relation("FollowActor")
   incomingFollows     SocialFollow[] @relation("FollowTarget")
-  likes               SocialLike[]
 
   @@unique([username, domain])
   @@map("social_actors")
 }
 
+// SocialStatus - posts, announcements, replies
+// NOT 1:1 with Article - multiple authors can announce the same article
+
 model SocialStatus {
-  id          String   @id @default(cuid())
-  actorId     String
-  actor       SocialActor  @relation(fields: [actorId], references: [id])
-  articleId   String?  @unique  // Link to panamia Article
-  article     Article? @relation(fields: [articleId], references: [id])
-  type        String   // Note, Article, etc.
-  content     String?
-  summary     String?  // Content warning
-  inReplyTo   String?
-  url         String?
-  published   DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String        @id @default(cuid())
+  uri             String        @unique  // ActivityPub URI
+  actorId         String
+  actor           SocialActor   @relation(fields: [actorId], references: [id])
 
-  attachments SocialAttachment[]
-  tags        SocialTag[]
-  recipients  SocialRecipient[]
-  likes       SocialLike[]
+  // Link to article (for announcements)
+  articleId       String?
+  article         Article?      @relation(fields: [articleId], references: [id])
 
+  // Content
+  type            String        // Note (default), Article, etc.
+  content         String?       // HTML content
+  contentWarning  String?       // CW/spoiler text
+  url             String?       // Canonical URL
+
+  // Threading
+  inReplyToUri    String?       // AP URI of parent status
+  inReplyToId     String?       // Local ID if we have the parent
+  inReplyTo       SocialStatus? @relation("StatusReplies", fields: [inReplyToId], references: [id])
+  replies         SocialStatus[] @relation("StatusReplies")
+
+  // For article announcements: draft content before publish
+  isDraft         Boolean       @default(false)
+
+  // Timestamps
+  published       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  attachments     SocialAttachment[]
+  tags            SocialTag[]
+  likes           SocialLike[]
+
+  @@index([articleId])
+  @@index([inReplyToUri])
+  @@index([actorId, published])
   @@map("social_statuses")
 }
 
-// ... additional models
+// ArticleAnnouncement - draft announcements that publish with article
+// Separate from SocialStatus to track pre-composed drafts
+
+model ArticleAnnouncement {
+  id          String   @id @default(cuid())
+  articleId   String
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  authorId    String   // User ID (author or co-author)
+  author      User     @relation(fields: [authorId], references: [id])
+
+  // Draft content
+  content     String   // The announcement text
+  attachments Json     @default("[]")  // Optional media
+
+  // After publish, links to the created SocialStatus
+  statusId    String?  @unique
+  status      SocialStatus? @relation(fields: [statusId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([articleId, authorId])  // One announcement per author per article
+  @@map("article_announcements")
+}
 ```
 
-## Git Subtree Integration
+### Migration Notes
 
-### Initial Setup
-
-```bash
-# Add activities.next as a remote
-git remote add activities-upstream https://github.com/llun/activities.next.git
-
-# Fetch and add subtree
-git subtree add --prefix=external/activities.next activities-upstream main --squash
-
-# Create .gitattributes to mark as read-only (informational)
-echo "external/activities.next/** linguist-vendored" >> .gitattributes
-```
-
-### Updating Upstream
-
-```bash
-# Pull latest changes from upstream
-git subtree pull --prefix=external/activities.next activities-upstream main --squash
-```
-
-### Directory Structure
-
-```
-external/
-└── activities.next/
-    ├── lib/
-    │   ├── actions/        # Action handlers
-    │   ├── activities/     # ActivityPub activity processing
-    │   ├── database/       # Database abstraction
-    │   ├── models/         # Data models (Actor, Status, etc.)
-    │   └── services/       # Business logic
-    ├── migrations/         # Original Knex migrations (reference only)
-    └── README.md
-```
-
-## Enforcement Mechanisms
-
-### Pre-commit Hook
-
-Add to `.husky/pre-commit`:
-
-```bash
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-# Check for modifications to external/activities.next
-EXTERNAL_CHANGES=$(git diff --cached --name-only | grep "^external/activities.next/")
-
-if [ -n "$EXTERNAL_CHANGES" ]; then
-  echo "❌ ERROR: Modifications to external/activities.next/ are not allowed!"
-  echo ""
-  echo "The following files were modified:"
-  echo "$EXTERNAL_CHANGES"
-  echo ""
-  echo "This directory contains read-only upstream code from activities.next."
-  echo "To update upstream code, use: git subtree pull --prefix=external/activities.next activities-upstream main --squash"
-  echo ""
-  echo "If you need to extend functionality, create wrappers in lib/federation/"
-  exit 1
-fi
-```
-
-### Playwright Upstream Verification Test
-
-Create `tests/e2e/upstream-integrity.spec.ts`:
-
-```typescript
-import { test, expect } from '@playwright/test';
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-
-test.describe('Upstream Integrity', () => {
-  test('external/activities.next matches upstream', async () => {
-    // Skip in CI if explicitly disabled
-    if (process.env.SKIP_UPSTREAM_CHECK === 'true') {
-      test.skip();
-      return;
-    }
-
-    const externalPath = path.join(process.cwd(), 'external/activities.next');
-
-    // Check if external directory exists
-    expect(fs.existsSync(externalPath)).toBe(true);
-
-    // Get the subtree commit hash
-    const subtreeLog = execSync(
-      'git log -1 --format="%H" -- external/activities.next',
-      { encoding: 'utf-8' }
-    ).trim();
-
-    // Verify subtree was properly added
-    expect(subtreeLog.length).toBe(40); // Git SHA length
-
-    // Check for local modifications
-    const localChanges = execSync(
-      'git status --porcelain external/activities.next',
-      { encoding: 'utf-8' }
-    ).trim();
-
-    expect(localChanges).toBe('');
-  });
-
-  test('no uncommitted changes to external code', async () => {
-    const status = execSync('git diff --name-only external/activities.next', {
-      encoding: 'utf-8',
-    }).trim();
-
-    expect(status).toBe('');
-  });
-});
-```
-
-### GitHub Actions Workflow
-
-Add to `.github/workflows/upstream-check.yml`:
-
-```yaml
-name: Upstream Integrity Check
-
-on:
-  push:
-    paths:
-      - 'external/activities.next/**'
-  pull_request:
-    paths:
-      - 'external/activities.next/**'
-  schedule:
-    # Check weekly for upstream updates
-    - cron: '0 0 * * 0'
-
-jobs:
-  verify-upstream:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Add upstream remote
-        run: git remote add activities-upstream https://github.com/llun/activities.next.git || true
-
-      - name: Fetch upstream
-        run: git fetch activities-upstream main
-
-      - name: Check for upstream updates
-        id: check-updates
-        run: |
-          # Get current subtree state
-          CURRENT=$(git log -1 --format="%H" -- external/activities.next)
-
-          # Check if upstream has newer commits
-          UPSTREAM_HEAD=$(git rev-parse activities-upstream/main)
-
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "upstream=$UPSTREAM_HEAD" >> $GITHUB_OUTPUT
-
-          if [ "$CURRENT" != "$UPSTREAM_HEAD" ]; then
-            echo "updates_available=true" >> $GITHUB_OUTPUT
-          else
-            echo "updates_available=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Notify if updates available
-        if: steps.check-updates.outputs.updates_available == 'true'
-        run: |
-          echo "::warning::Upstream activities.next has updates available"
-          echo "Current: ${{ steps.check-updates.outputs.current }}"
-          echo "Upstream: ${{ steps.check-updates.outputs.upstream }}"
-```
+- **Deprecate `mastodonPostUrl`** on Article model (will be removed in future migration)
+- Add `ArticleAnnouncement` relation to Article
+- Add `SocialStatus` relation to Article (for published announcements)
 
 ## Implementation Phases
 
-### Phase 1: Infrastructure Setup
+### Phase 1: Infrastructure Setup ✓
 
-**Goal**: Set up git subtree and enforcement mechanisms
+**Status**: Complete
 
-- [ ] Add activities.next as git subtree in `external/activities.next/`
-- [ ] Create pre-commit hook to prevent external modifications
-- [ ] Add Playwright upstream integrity test
-- [ ] Add GitHub Actions workflow for upstream monitoring
-- [ ] Create `lib/federation/` directory structure
-- [ ] Add TypeScript path alias for external imports
+- [x] Add activities.next as git subtree in `external/activities.next/`
+- [x] Create pre-commit hook to prevent external modifications
+- [x] Add Playwright upstream integrity test
+- [x] Add GitHub Actions workflow for upstream monitoring
+- [x] Create `lib/federation/` directory structure
+- [x] Add TypeScript path alias for external imports
 
-**Files created**:
+### Phase 2: Database Schema
 
-- `external/activities.next/` (subtree)
-- `.husky/pre-commit` (updated)
-- `tests/e2e/upstream-integrity.spec.ts`
-- `.github/workflows/upstream-check.yml`
-- `lib/federation/index.ts`
+**Goal**: Add social tables to PostgreSQL
 
-### Phase 2: Database Schema Integration
+- [ ] Create Prisma models with `social_` prefix
+- [ ] Add SocialActor model (linked to Profile)
+- [ ] Add SocialStatus model (posts, replies)
+- [ ] Add ArticleAnnouncement model (draft announcements)
+- [ ] Add SocialFollow model (follow relationships)
+- [ ] Add SocialLike model (favorites)
+- [ ] Add supporting models (attachments, tags, recipients)
+- [ ] Create migration
+- [ ] Deprecate `mastodonPostUrl` field on Article
 
-**Goal**: Add namespaced federation tables to PostgreSQL
+### Phase 3: Actor Management
 
-- [ ] Create Prisma models for federation tables with `social_` prefix
-- [ ] Create migration: `prisma/migrations/YYYYMMDD_add_federation_tables/`
-- [ ] Add Profile ↔ SocialActor relationship
-- [ ] Add Article ↔ SocialStatus relationship
-- [ ] Document schema in DATABASE-ROADMAP.md
+**Goal**: Local users can have social identities
 
-**Prisma models**:
+- [ ] Create actor when user enables social features
+- [ ] Generate RSA keypair for HTTP signatures
+- [ ] WebFinger endpoint (`/.well-known/webfinger`)
+- [ ] Actor endpoint (`/users/[screenname]`)
+- [ ] Sync actor when profile changes (name, bio, avatar)
 
-- `SocialActor` - ActivityPub actors (linked to Profile)
-- `SocialStatus` - Federated posts (linked to Article)
-- `SocialFollow` - Follow relationships
-- `SocialLike` - Likes/favorites
-- `SocialAttachment` - Media attachments
-- `SocialTag` - Hashtags and mentions
-- `SocialRecipient` - To/cc recipients
-- `SocialTimeline` - Timeline entries
+### Phase 4: Social Timeline (Local)
 
-### Phase 3: Actor Bridge
+**Goal**: Users can post and see posts from followed accounts
 
-**Goal**: Bridge panamia profiles to ActivityPub actors
+- [ ] Create post composer UI
+- [ ] Timeline page showing posts from followed accounts
+- [ ] Post detail page
+- [ ] Reply to posts
+- [ ] Like posts
+- [ ] Follow/unfollow local users
+- [ ] User's own posts list
 
-- [ ] Create `lib/federation/bridges/profile-to-actor.ts`
-- [ ] Implement actor creation from profile
-- [ ] Generate RSA keypair for signing
-- [ ] Create WebFinger endpoint (`/.well-known/webfinger`)
-- [ ] Create actor endpoint (`/users/[screenname]`)
-- [ ] Add actor update sync when profile changes
+### Phase 5: Article Announcements
 
-**Key functions**:
+**Goal**: Authors can announce articles when published
 
-```typescript
-// lib/federation/wrappers/actor.ts
-export async function createActorFromProfile(
-  profileId: string
-): Promise<SocialActor>;
-export async function updateActorFromProfile(
-  profileId: string
-): Promise<SocialActor>;
-export async function getActorByScreenname(
-  screenname: string
-): Promise<SocialActor | null>;
-export async function getActorByHandle(
-  handle: string
-): Promise<SocialActor | null>;
-```
+- [ ] Add announcement composer to article edit page
+- [ ] Each author/co-author can write their own announcement
+- [ ] Draft announcements stored in ArticleAnnouncement
+- [ ] On article publish: create SocialStatus for each announcement
+- [ ] Announcements include link to article
 
-### Phase 4: Status Bridge (Articles)
+### Phase 6: Article Comments from Social
 
-**Goal**: Federate published articles as ActivityPub Notes/Articles
+**Goal**: Article comments section shows social replies
 
-- [ ] Create `lib/federation/bridges/article-to-status.ts`
-- [ ] Create status when article is published
-- [ ] Update status when article is edited
-- [ ] Delete status when article is unpublished/removed
-- [ ] Add federation toggle to article publish flow
+- [ ] Query all SocialStatuses that are replies to article announcements
+- [ ] Render replies as comments below article
+- [ ] Allow logged-in users to reply (creates SocialStatus)
+- [ ] Show reply author info (local or remote)
+- [ ] Threaded replies support
 
-**Key functions**:
+### Phase 7: Federation - Outbound
 
-```typescript
-// lib/federation/wrappers/status.ts
-export async function federateArticle(articleId: string): Promise<SocialStatus>;
-export async function updateFederatedArticle(
-  articleId: string
-): Promise<SocialStatus>;
-export async function unfederateArticle(articleId: string): Promise<void>;
-```
+**Goal**: Local posts federate to remote servers
 
-### Phase 5: Inbox/Outbox Implementation
+- [ ] HTTP signature signing for outgoing requests
+- [ ] Deliver Create activities to followers' inboxes
+- [ ] Deliver Follow activities to remote actors
+- [ ] Deliver Like activities
+- [ ] Deliver Undo activities (unfollow, unlike)
 
-**Goal**: Handle incoming and outgoing ActivityPub activities
+### Phase 8: Federation - Inbound
 
-- [ ] Create inbox endpoint (`/users/[screenname]/inbox`)
-- [ ] Create outbox endpoint (`/users/[screenname]/outbox`)
-- [ ] Implement HTTP signature verification
-- [ ] Implement HTTP signature signing for outgoing requests
-- [ ] Handle Follow activities (incoming follow requests)
-- [ ] Handle Accept/Reject activities (follow responses)
-- [ ] Handle Create activities (incoming posts)
-- [ ] Handle Like activities (incoming likes)
-- [ ] Handle Announce activities (boosts)
-- [ ] Handle Delete activities (post deletions)
-- [ ] Handle Undo activities (unfollows, unlikes)
+**Goal**: Receive and process activities from remote servers
 
-### Phase 6: Timeline & Discovery
+- [ ] Inbox endpoint (`/users/[screenname]/inbox`)
+- [ ] HTTP signature verification
+- [ ] Process Follow activities (follow requests)
+- [ ] Process Create activities (remote posts/replies)
+- [ ] Process Like activities
+- [ ] Process Delete activities
+- [ ] Process Undo activities
 
-**Goal**: Display federated content in panamia
+### Phase 9: Remote Follows & Discovery
 
-- [ ] Create federated timeline view
-- [ ] Add followers/following lists
-- [ ] Implement user search (local + federated)
-- [ ] Add follow button to profiles
-- [ ] Display boost/like counts on articles
+**Goal**: Users can follow accounts on other servers
 
-### Phase 7: Notifications Integration
+- [ ] Search for remote accounts by handle (@user@domain)
+- [ ] WebFinger lookup for remote actors
+- [ ] Fetch and cache remote actor profiles
+- [ ] Follow remote accounts
+- [ ] Display remote posts in timeline
 
-**Goal**: Integrate federation events with panamia notifications
+### Phase 10: Polish & Moderation
 
-- [ ] Create federation notification types
-- [ ] Notify on new followers
-- [ ] Notify on mentions
-- [ ] Notify on boosts
-- [ ] Notify on likes
+**Goal**: Production-ready social features
 
-## Wrapper Module Structure
+- [ ] Block users (local and remote)
+- [ ] Block instances
+- [ ] Report content
+- [ ] Content warnings support
+- [ ] Rate limiting on federation endpoints
+- [ ] Admin dashboard for moderation
+
+## Directory Structure
 
 ```
 lib/federation/
 ├── index.ts                 # Public API exports
-├── config.ts               # Federation configuration
-├── constants.ts            # ActivityPub constants
+├── config.ts                # Configuration
 │
-├── wrappers/               # High-level panamia APIs
-│   ├── actor.ts            # Actor management
-│   ├── status.ts           # Status/post management
-│   ├── follow.ts           # Follow management
-│   ├── timeline.ts         # Timeline queries
-│   └── webfinger.ts        # WebFinger resolution
+├── wrappers/                # High-level APIs
+│   ├── actor.ts             # Actor CRUD
+│   ├── status.ts            # Post/reply CRUD
+│   ├── follow.ts            # Follow management
+│   ├── timeline.ts          # Timeline queries
+│   └── announcement.ts      # Article announcements
 │
-├── bridges/                # Data transformation
-│   ├── profile-to-actor.ts # Profile → ApActor
-│   ├── article-to-status.ts# Article → ApStatus
-│   └── notification.ts     # Fed events → Notifications
+├── bridges/                 # Data transformation
+│   ├── profile-to-actor.ts  # Profile → SocialActor
+│   └── status-to-comment.ts # SocialStatus → Comment display
 │
-├── activities/             # ActivityPub activity handlers
-│   ├── inbox.ts            # Incoming activity processing
-│   ├── outbox.ts           # Outgoing activity creation
-│   └── handlers/           # Specific activity type handlers
-│       ├── follow.ts
+├── activities/              # ActivityPub handlers
+│   ├── inbox.ts             # Incoming processing
+│   ├── outbox.ts            # Outgoing delivery
+│   └── handlers/
 │       ├── create.ts
+│       ├── follow.ts
 │       ├── like.ts
-│       ├── announce.ts
 │       └── delete.ts
 │
-├── crypto/                 # HTTP signatures
-│   ├── keys.ts             # RSA keypair management
-│   ├── sign.ts             # Request signing
-│   └── verify.ts           # Signature verification
+├── crypto/                  # HTTP signatures
+│   ├── keys.ts
+│   ├── sign.ts
+│   └── verify.ts
 │
-└── utils/                  # Utilities
-    ├── url.ts              # URL construction
-    ├── json-ld.ts          # JSON-LD context handling
-    └── content-type.ts     # Accept header handling
+└── webfinger/               # WebFinger protocol
+    └── index.ts
 ```
 
 ## Configuration
 
-### Environment Variables
-
 ```bash
-# Federation configuration
-FEDERATION_ENABLED=true
-FEDERATION_DOMAIN=panamia.club
-FEDERATION_INSTANCE_NAME="Pana Mia Club"
-FEDERATION_INSTANCE_DESCRIPTION="Panama's creative community"
-FEDERATION_ADMIN_EMAIL=admin@panamia.club
+# Social features
+SOCIAL_ENABLED=true
+SOCIAL_DOMAIN=panamia.club
 
-# Feature flags
-FEDERATION_AUTO_FEDERATE_ARTICLES=false  # Require opt-in per article
-FEDERATION_ALLOW_REMOTE_FOLLOWS=true
-FEDERATION_ALLOW_REMOTE_INTERACTIONS=true
+# Optional customization
+SOCIAL_INSTANCE_NAME="Pana Mia Club"
+SOCIAL_INSTANCE_DESCRIPTION="Panama's creative community"
+SOCIAL_ADMIN_EMAIL=admin@panamia.club
 ```
 
-### lib/federation/config.ts
+## User Experience
 
-```typescript
-export const federationConfig = {
-  enabled: process.env.FEDERATION_ENABLED === 'true',
-  domain: process.env.FEDERATION_DOMAIN || 'panamia.club',
-  instanceName: process.env.FEDERATION_INSTANCE_NAME || 'Pana Mia Club',
-  instanceDescription: process.env.FEDERATION_INSTANCE_DESCRIPTION,
-  adminEmail: process.env.FEDERATION_ADMIN_EMAIL,
+### For Article Authors
 
-  features: {
-    autoFederateArticles:
-      process.env.FEDERATION_AUTO_FEDERATE_ARTICLES === 'true',
-    allowRemoteFollows: process.env.FEDERATION_ALLOW_REMOTE_FOLLOWS !== 'false',
-    allowRemoteInteractions:
-      process.env.FEDERATION_ALLOW_REMOTE_INTERACTIONS !== 'false',
-  },
+1. Write article as normal
+2. Before publishing, optionally write an announcement post
+3. Co-authors can each write their own announcement
+4. On publish, announcements go live automatically
+5. View comments (replies) below the article
 
-  // ActivityPub endpoints
-  endpoints: {
-    webfinger: '/.well-known/webfinger',
-    nodeinfo: '/.well-known/nodeinfo',
-    actor: (screenname: string) => `/users/${screenname}`,
-    inbox: (screenname: string) => `/users/${screenname}/inbox`,
-    outbox: (screenname: string) => `/users/${screenname}/outbox`,
-    followers: (screenname: string) => `/users/${screenname}/followers`,
-    following: (screenname: string) => `/users/${screenname}/following`,
-  },
-};
-```
+### For Social Users
 
-## Testing Strategy
+1. Enable social features in account settings
+2. Choose a handle (@screenname@panamia.club)
+3. Post updates, follow others, engage with content
+4. See posts from followed accounts in timeline
+5. Follow accounts from other servers (@user@mastodon.social)
 
-### Unit Tests
+### For Article Readers
 
-- Wrapper functions (mock database)
-- Bridge transformations (profile ↔ actor, article ↔ status)
-- HTTP signature generation/verification
-- ActivityPub JSON-LD validation
+1. Read article
+2. See comments section below (powered by social replies)
+3. Reply to join the conversation (requires account)
+4. Comments from Mastodon users appear alongside local comments
 
-### Integration Tests
+## Security
 
-- Actor creation from profile
-- Article federation flow
-- Follow/unfollow flow
-- Inbox activity processing
+1. **HTTP Signatures**: All federation requests signed/verified
+2. **Domain Verification**: Actor domains must match request origins
+3. **Rate Limiting**: Protect against abuse from remote servers
+4. **Content Sanitization**: Strip unsafe HTML from federated content
+5. **Private Keys**: Encrypted at rest
+6. **Moderation Tools**: Block users, instances, report content
 
-### E2E Tests (Playwright)
+## Rollback
 
-- WebFinger resolution
-- Actor profile fetch
-- Follow button interaction
-- Federated timeline display
-- Upstream integrity verification
+If social features cause issues:
 
-## Security Considerations
-
-1. **HTTP Signatures**: All federation requests must be signed
-2. **Domain Verification**: Verify actor domains match request origins
-3. **Rate Limiting**: Limit incoming federation requests
-4. **Content Sanitization**: Sanitize all federated content (HTML, URLs)
-5. **Block Lists**: Support instance and user blocking
-6. **Private Keys**: Store actor private keys encrypted at rest
-
-## Rollback Plan
-
-If federation causes issues:
-
-1. Set `FEDERATION_ENABLED=false` to disable all federation
-2. Federation endpoints return 503 Service Unavailable
-3. Existing federated content remains but stops syncing
-4. Local functionality continues unaffected
+1. Set `SOCIAL_ENABLED=false`
+2. Social endpoints return 503
+3. Articles continue working normally
+4. Existing social data preserved but inactive
 
 ## References
 
 - [ActivityPub W3C Spec](https://www.w3.org/TR/activitypub/)
 - [activities.next Repository](https://github.com/llun/activities.next)
-- [ActivityPub Rocks](https://activitypub.rocks/)
 - [Mastodon ActivityPub Docs](https://docs.joinmastodon.org/spec/activitypub/)
-- [Guide for ActivityPub Implementers](https://socialhub.activitypub.rocks/t/guide-for-new-activitypub-implementers/479)
+- [WebFinger RFC 7033](https://tools.ietf.org/html/rfc7033)
