@@ -23,7 +23,9 @@
       "@/components/*": ["components/*"],
       "@/lib/*": ["lib/*"],
       "@/app/*": ["app/*"],
-      "@/model/*": ["api/auth/lib/model/*"]
+      "@/model/*": ["api/auth/lib/model/*"],
+      "@/federation/*": ["lib/federation/*"],
+      "@/external/*": ["external/*"]
     },
     "plugins": [
       {
@@ -38,5 +40,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts/migrate-from-mongodb.ts"]
+  "exclude": ["node_modules", "scripts/migrate-from-mongodb.ts", "external/**"]
 }

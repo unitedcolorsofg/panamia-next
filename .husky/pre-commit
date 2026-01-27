@@ -1,6 +1,33 @@
 #!/bin/sh
 
 # =============================================================================
+# External Code Protection (activities.next subtree)
+# =============================================================================
+
+echo ""
+echo "🔒 Checking for modifications to external code..."
+
+# Check for modifications to external/activities.next
+EXTERNAL_CHANGES=$(git diff --cached --name-only | grep "^external/activities.next/" || true)
+
+if [ -n "$EXTERNAL_CHANGES" ]; then
+  echo ""
+  echo "❌ ERROR: Modifications to external/activities.next/ are not allowed!"
+  echo ""
+  echo "The following files were modified:"
+  echo "$EXTERNAL_CHANGES" | sed 's/^/  /'
+  echo ""
+  echo "This directory contains read-only upstream code from activities.next."
+  echo "To update upstream code, use:"
+  echo "  git subtree pull --prefix=external/activities.next activities-upstream main --squash"
+  echo ""
+  echo "If you need to extend functionality, create wrappers in lib/federation/"
+  exit 1
+fi
+
+echo "ℹ️  No modifications to external code"
+
+# =============================================================================
 # Prisma Migration Validation
 # =============================================================================
 

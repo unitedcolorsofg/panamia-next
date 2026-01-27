@@ -1,0 +1,3 @@
+# Mark external vendored code for GitHub linguist
+# This excludes it from language statistics and diffs by default
+external/activities.next/** linguist-vendored

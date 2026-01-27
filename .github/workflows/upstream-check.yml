@@ -1,0 +1,54 @@
+name: Upstream Integrity Check
+
+on:
+  push:
+    paths:
+      - 'external/activities.next/**'
+  pull_request:
+    paths:
+      - 'external/activities.next/**'
+  schedule:
+    # Check weekly for upstream updates (Sunday at midnight UTC)
+    - cron: '0 0 * * 0'
+
+jobs:
+  verify-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: git remote add activities-upstream https://github.com/llun/activities.next.git || true
+
+      - name: Fetch upstream
+        run: git fetch activities-upstream main
+
+      - name: Check for upstream updates
+        id: check-updates
+        run: |
+          # Get current subtree state
+          CURRENT=$(git log -1 --format="%H" -- external/activities.next)
+
+          # Check if upstream has newer commits
+          UPSTREAM_HEAD=$(git rev-parse activities-upstream/main)
+
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "upstream=$UPSTREAM_HEAD" >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT" != "$UPSTREAM_HEAD" ]; then
+            echo "updates_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "updates_available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify if updates available
+        if: steps.check-updates.outputs.updates_available == 'true'
+        run: |
+          echo "::warning::Upstream activities.next has updates available"
+          echo "Current subtree commit: ${{ steps.check-updates.outputs.current }}"
+          echo "Upstream HEAD: ${{ steps.check-updates.outputs.upstream }}"
+          echo ""
+          echo "To update, run:"
+          echo "  git subtree pull --prefix=external/activities.next activities-upstream main --squash"
