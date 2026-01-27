@@ -55,17 +55,18 @@ model User {
 
   accounts              Account[]
   sessions              Session[]
-  notificationsSent     Notification[]   @relation("NotificationActor")
-  notificationsReceived Notification[]   @relation("NotificationTarget")
-  articles              Article[]        @relation("ArticleAuthor")
-  articlesRemoved       Article[]        @relation("ArticleRemovedBy")
+  notificationsSent     Notification[]        @relation("NotificationActor")
+  notificationsReceived Notification[]        @relation("NotificationTarget")
+  articles              Article[]             @relation("ArticleAuthor")
+  articlesRemoved       Article[]             @relation("ArticleRemovedBy")
   profile               Profile?
-  following             UserFollow[]     @relation("Follower")
-  followers             UserFollow[]     @relation("Following")
+  following             UserFollow[]          @relation("Follower")
+  followers             UserFollow[]          @relation("Following")
   listsOwned            UserList[]
   listMemberships       UserListMember[]
-  mentorSessions        MentorSession[]  @relation("MentorSessions")
-  menteeSessions        MentorSession[]  @relation("MenteeSessions")
+  mentorSessions        MentorSession[]       @relation("MentorSessions")
+  menteeSessions        MentorSession[]       @relation("MenteeSessions")
+  articleAnnouncements  ArticleAnnouncement[]
 
   @@map("users")
 }
@@ -394,6 +395,9 @@ model Profile {
   whatsappCommunity Boolean @default(false)
   affiliate         String?
 
+  // Social integration
+  socialActor SocialActor?
+
   // Indexes for common queries
   @@index([email])
   @@index([slug])
@@ -447,7 +451,11 @@ model Article {
 
   // Metadata
   readingTime     Int     @default(1)
-  mastodonPostUrl String?
+  mastodonPostUrl String? // @deprecated - use SocialStatus announcements instead
+
+  // Social integration
+  announcements       ArticleAnnouncement[]
+  socialAnnouncements SocialStatus[]
 
   // Indexes for common queries
   @@index([status, publishedAt(sort: Desc)])
@@ -537,9 +545,9 @@ model BrevoContact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  email    String @unique
+  email    String    @unique
   brevoId  Int
-  listIds  Int[]  @default([])
+  listIds  Int[]     @default([])
   syncedAt DateTime?
 
   @@map("brevo_contacts")
@@ -613,9 +621,9 @@ model MentorSession {
   completedAt DateTime?
 
   // Cancellation tracking
-  cancelledAt   DateTime?
-  cancelledBy   String?
-  cancelReason  String?
+  cancelledAt  DateTime?
+  cancelledBy  String?
+  cancelReason String?
 
   // Decline tracking
   declinedAt    DateTime?
@@ -662,4 +670,260 @@ model IntakeForm {
   @@index([formType])
   @@index([complete])
   @@map("intake_forms")
+}
+
+// =============================================================================
+// SOCIAL / ACTIVITYPUB FEDERATION
+// =============================================================================
+// Native social features with ActivityPub federation capability.
+// Users experience a native social timeline; federation happens behind the scenes.
+//
+// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+// See: docs/SOCIAL-ROADMAP.md for architecture details
+//
+// All social tables prefixed with 'social_' to avoid conflicts.
+
+/// ActivityPub actor representing a user's social identity.
+/// Local users (panamia.club) have privateKey for signing outgoing requests.
+/// Remote users (mastodon.social, etc.) only have publicKey for verification.
+model SocialActor {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Identity
+  username String // screenname for local, username for remote
+  domain   String // panamia.club for local, remote domain for others
+
+  // Link to local profile (null for remote actors)
+  profileId String?  @unique
+  profile   Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  // ActivityPub URIs
+  uri            String  @unique // https://domain/users/username
+  inboxUrl       String
+  outboxUrl      String
+  followersUrl   String
+  followingUrl   String
+  sharedInboxUrl String? // For efficient delivery
+
+  // HTTP Signature keys
+  publicKey  String // PEM-encoded public key
+  privateKey String? // PEM-encoded private key (null for remote actors)
+
+  // Profile metadata (synced from Profile for local, fetched for remote)
+  name    String?
+  summary String? // Bio/description (HTML)
+  iconUrl String? // Avatar URL
+
+  // Counters (denormalized for performance)
+  followingCount Int @default(0)
+  followersCount Int @default(0)
+  statusCount    Int @default(0)
+
+  // Settings
+  manuallyApprovesFollowers Boolean @default(false)
+
+  // Relations
+  statuses        SocialStatus[]
+  outgoingFollows SocialFollow[]        @relation("FollowActor")
+  incomingFollows SocialFollow[]        @relation("FollowTarget")
+  likes           SocialLike[]
+  announcements   ArticleAnnouncement[]
+
+  @@unique([username, domain])
+  @@index([domain])
+  @@index([profileId])
+  @@map("social_actors")
+}
+
+/// Social post, announcement, or reply.
+/// Can be linked to an Article (for announcements) or standalone.
+model SocialStatus {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ActivityPub URI (unique identifier across federation)
+  uri String @unique
+
+  // Author
+  actorId String
+  actor   SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Optional link to article (for announcements)
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  // Content
+  type           String  @default("Note") // Note, Article, etc.
+  content        String? // HTML content
+  contentWarning String? // CW/spoiler text (summary in AP)
+  url            String? // Canonical URL for viewing
+
+  // Threading
+  inReplyToUri String? // ActivityPub URI of parent
+  inReplyToId  String? // Local ID if we have it
+  inReplyTo    SocialStatus?  @relation("StatusReplies", fields: [inReplyToId], references: [id], onDelete: SetNull)
+  replies      SocialStatus[] @relation("StatusReplies")
+
+  // Visibility (ActivityPub addressing)
+  // to/cc stored as JSON arrays of actor URIs
+  recipientTo Json @default("[]")
+  recipientCc Json @default("[]")
+
+  // Publishing
+  published DateTime? // null = draft
+  isDraft   Boolean   @default(false)
+
+  // Counters (denormalized)
+  repliesCount   Int @default(0)
+  likesCount     Int @default(0)
+  announcesCount Int @default(0) // Boosts/reblogs
+
+  // Relations
+  attachments SocialAttachment[]
+  tags        SocialTag[]
+  likes       SocialLike[]
+
+  // Reverse relation for ArticleAnnouncement
+  articleAnnouncement ArticleAnnouncement?
+
+  @@index([actorId, published(sort: Desc)])
+  @@index([articleId])
+  @@index([inReplyToUri])
+  @@index([inReplyToId])
+  @@map("social_statuses")
+}
+
+/// Draft announcement that publishes with an article.
+/// Each author/co-author can have one announcement per article.
+model ArticleAnnouncement {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Article being announced
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Author (must be article author or co-author)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // The actor who will post (derived from author's profile)
+  actorId String?
+  actor   SocialActor? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  // Draft content
+  content String // The announcement text (plain text or markdown)
+
+  // After publish, links to the created SocialStatus
+  statusId String?       @unique
+  status   SocialStatus? @relation(fields: [statusId], references: [id], onDelete: SetNull)
+
+  @@unique([articleId, authorId]) // One announcement per author per article
+  @@index([articleId])
+  @@index([authorId])
+  @@map("article_announcements")
+}
+
+/// Follow relationship between actors (local or remote).
+model SocialFollow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Who is following
+  actorId String
+  actor   SocialActor @relation("FollowActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Who is being followed
+  targetActorId String
+  targetActor   SocialActor @relation("FollowTarget", fields: [targetActorId], references: [id], onDelete: Cascade)
+
+  // ActivityPub URI of the Follow activity
+  uri String? @unique
+
+  // Status
+  status     SocialFollowStatus @default(pending)
+  acceptedAt DateTime?
+
+  @@unique([actorId, targetActorId])
+  @@index([actorId])
+  @@index([targetActorId])
+  @@index([status])
+  @@map("social_follows")
+}
+
+enum SocialFollowStatus {
+  pending
+  accepted
+  rejected
+}
+
+/// Like/favorite on a status.
+model SocialLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Who liked
+  actorId String
+  actor   SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  // What was liked
+  statusId String
+  status   SocialStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+
+  // ActivityPub URI of the Like activity
+  uri String? @unique
+
+  @@unique([actorId, statusId])
+  @@index([actorId])
+  @@index([statusId])
+  @@map("social_likes")
+}
+
+/// Media attachment on a status.
+model SocialAttachment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  statusId String
+  status   SocialStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+
+  // Media details
+  type       String // image, video, audio, etc.
+  mediaType  String? // MIME type
+  url        String // URL to the media
+  previewUrl String? // Thumbnail URL
+  remoteUrl  String? // Original URL if fetched from remote
+
+  // Metadata
+  name        String? // Alt text / description
+  description String? // Longer description
+  blurhash    String? // Blurhash for placeholder
+  width       Int?
+  height      Int?
+
+  @@index([statusId])
+  @@map("social_attachments")
+}
+
+/// Hashtag or mention in a status.
+model SocialTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  statusId String
+  status   SocialStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+
+  // Tag details
+  type String // Hashtag, Mention, Emoji
+  name String // #hashtag, @mention, :emoji:
+  href String? // URL to tag page or mentioned actor
+
+  @@index([statusId])
+  @@index([type, name])
+  @@map("social_tags")
 }
