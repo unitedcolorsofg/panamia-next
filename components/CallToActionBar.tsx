@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import styles from './CallToActionBar.module.css';
 import { Button } from '@/components/ui/button';
@@ -9,15 +8,13 @@ interface CallToActionBarProps {
   variant?: 'newsletter' | 'complete-profile';
 }
 
+// Check if this is the production site (inlined at build time)
+const isProductionSite =
+  process.env.NEXT_PUBLIC_HOST_URL?.includes('panamia.club') ?? true;
+
 export default function CallToActionBar({
   variant = 'newsletter',
 }: CallToActionBarProps) {
-  // Check if hostname contains "panamia.club" (only runs once during initialization)
-  const [isProductionSite] = useState(() => {
-    if (typeof window === 'undefined') return true; // Default during SSR
-    return window.location.hostname.includes('panamia.club');
-  });
-
   // Authenticated user without profile - prompt to complete profile
   if (variant === 'complete-profile') {
     return (
