@@ -60,67 +60,11 @@ model User {
   articles              Article[]             @relation("ArticleAuthor")
   articlesRemoved       Article[]             @relation("ArticleRemovedBy")
   profile               Profile?
-  following             UserFollow[]          @relation("Follower")
-  followers             UserFollow[]          @relation("Following")
-  listsOwned            UserList[]
-  listMemberships       UserListMember[]
   mentorSessions        MentorSession[]       @relation("MentorSessions")
   menteeSessions        MentorSession[]       @relation("MenteeSessions")
   articleAnnouncements  ArticleAnnouncement[]
 
   @@map("users")
-}
-
-// =============================================================================
-// Social Features (Following, Lists)
-// =============================================================================
-// User-to-user following relationship and user-curated lists
-// Migrated from MongoDB user.following[] and userlist collections
-
-model UserFollow {
-  id          String   @id @default(cuid())
-  followerId  String
-  followingId String
-  createdAt   DateTime @default(now())
-
-  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
-  @@map("user_follows")
-}
-
-model UserList {
-  id          String   @id @default(cuid())
-  ownerId     String
-  name        String
-  description String?
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  owner   User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members UserListMember[]
-
-  @@index([ownerId])
-  @@map("user_lists")
-}
-
-model UserListMember {
-  id      String   @id @default(cuid())
-  listId  String
-  userId  String
-  addedAt DateTime @default(now())
-
-  list UserList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([listId, userId])
-  @@index([listId])
-  @@index([userId])
-  @@map("user_list_members")
 }
 
 model Account {

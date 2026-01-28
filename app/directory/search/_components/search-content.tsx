@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Heart } from 'lucide-react';
 import { useSearch } from '@/lib/query/directory';
-import { useUser, useMutateUserFollowing } from '@/lib/query/user';
 import { calcDistance } from '@/lib/geolocation';
 import { forceInt } from '@/lib/standardized';
 import { SearchResultCard } from './search-result-card';
@@ -55,8 +54,6 @@ export function DirectorySearchContent() {
   const [searchInput, setSearchInput] = useState(params.searchTerm);
 
   const { data: searchData, isLoading } = useSearch(params);
-  const { data: userData } = useUser();
-  const followMutation = useMutateUserFollowing();
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,18 +85,6 @@ export function DirectorySearchContent() {
     const newParams = new URLSearchParams(searchParams?.toString() || '');
     newParams.set('p', newPage.toString());
     router.push(`/directory/search/?${newParams}`);
-  };
-
-  const handleFollow = (profileId: string) => {
-    followMutation.mutate({ action: 'follow', id: profileId });
-  };
-
-  const handleUnfollow = (profileId: string) => {
-    followMutation.mutate({ action: 'unfollow', id: profileId });
-  };
-
-  const isFollowing = (profileId: string) => {
-    return userData?.following?.includes(profileId) || false;
   };
 
   const calculateDistance = (lat: number, lng: number) => {
@@ -211,11 +196,7 @@ export function DirectorySearchContent() {
                 <SearchResultCard
                   key={profileId}
                   profile={profile}
-                  isFollowing={isFollowing(profileId)}
                   distance={distance}
-                  onFollow={handleFollow}
-                  onUnfollow={handleUnfollow}
-                  isAuthenticated={!!session}
                   isMentor={isMentor}
                 />
               );
@@ -264,7 +245,7 @@ export function DirectorySearchContent() {
           </CardContent>
         </Card>
 
-        {/* Follow CTA */}
+        {/* Social CTA */}
         {!session && (
           <Card>
             <CardContent className="p-6 text-center">
@@ -277,7 +258,7 @@ export function DirectorySearchContent() {
                 </Link>{' '}
                 to follow{' '}
                 <Heart className="inline h-4 w-4 fill-red-500 text-red-500" />{' '}
-                your favorite profiles and get notified about their updates!
+                your favorite profiles and see their posts in your timeline!
               </p>
             </CardContent>
           </Card>

@@ -17,7 +17,6 @@ Next.js 16 App Router directory containing all pages, layouts, and API routes.
 | `/articles/[slug]`  | View single article                          |
 | `/articles/new`     | Create new article (auth required)           |
 | `/profile/[handle]` | Public profile view                          |
-| `/list/[id]`        | View a curated list                          |
 | `/signin`           | Authentication page                          |
 | `/links`            | Link tree style page                         |
 | `/podcasts`         | Podcast listings                             |
@@ -30,8 +29,6 @@ Authenticated user pages for managing their own content:
 | Route                          | Description                            |
 | ------------------------------ | -------------------------------------- |
 | `/account/user/edit`           | Edit user settings (email, screenname) |
-| `/account/user/following`      | Manage followed profiles               |
-| `/account/user/lists`          | Manage personal lists                  |
 | `/account/profile`             | Profile dashboard                      |
 | `/account/profile/edit`        | Edit profile basics                    |
 | `/account/profile/desc`        | Edit profile description               |

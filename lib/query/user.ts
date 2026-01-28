@@ -1,12 +1,7 @@
 import axios from 'axios';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
-import {
-  ProfileInterface,
-  UserInterface,
-  UserlistInterface,
-} from '@/lib/interfaces';
+import { UserInterface } from '@/lib/interfaces';
 
 export const userQueryKey = ['user'];
 
@@ -31,102 +26,5 @@ export const useUser = () => {
   return useQuery<UserInterface | undefined, Error>({
     queryKey: userQueryKey,
     queryFn: () => fetchUser(),
-  });
-};
-
-export async function fetchUserFollowing() {
-  const user = await axios
-    .get('/api/user/getFollowing', {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-  if (user) {
-    return user.data.data;
-  }
-  return undefined;
-}
-
-export const useUserFollowing = () => {
-  return useQuery<ProfileInterface[] | undefined, Error>({
-    queryKey: [userQueryKey, 'following'],
-    queryFn: () => fetchUserFollowing(),
-  });
-};
-
-export const useMutateUserFollowing = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (updates: any) => {
-      return axios.post('/api/user/updateFollowing', updates);
-    },
-    onSuccess: (response) => {
-      console.log(response.data.msg);
-      queryClient.invalidateQueries({
-        queryKey: userQueryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: [userQueryKey, 'following'],
-      });
-      return queryClient.setQueryData(userQueryKey, response.data.data);
-    },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update. Please contact us.',
-        variant: 'destructive',
-      });
-    },
-  });
-};
-
-export async function fetchUserLists() {
-  const user = await axios
-    .get('/api/user/getList/', {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-  if (user) {
-    return user.data.data;
-  }
-  return undefined;
-}
-
-export const useUserLists = () => {
-  return useQuery<UserlistInterface[] | undefined, Error>({
-    queryKey: [userQueryKey, 'lists'],
-    queryFn: () => fetchUserLists(),
-  });
-};
-
-export const useMutateUserLists = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (updates: any) => {
-      return axios.post('/api/user/updateList/', updates);
-    },
-    onSuccess: (response) => {
-      console.log(response.data.msg);
-      queryClient.invalidateQueries({
-        queryKey: [userQueryKey, 'lists'],
-      });
-      // return queryClient.setQueryData(userQueryKey, response.data.data);
-    },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update. Please contact us.',
-        variant: 'destructive',
-      });
-    },
   });
 };

@@ -254,29 +254,57 @@ model ArticleAnnouncement {
 - [x] Create `lib/federation/` directory structure
 - [x] Add TypeScript path alias for external imports
 
-### Phase 2: Database Schema
+### Phase 2: Database Schema ✓
+
+**Status**: Complete
 
 **Goal**: Add social tables to PostgreSQL
 
-- [ ] Create Prisma models with `social_` prefix
-- [ ] Add SocialActor model (linked to Profile)
-- [ ] Add SocialStatus model (posts, replies)
-- [ ] Add ArticleAnnouncement model (draft announcements)
-- [ ] Add SocialFollow model (follow relationships)
-- [ ] Add SocialLike model (favorites)
-- [ ] Add supporting models (attachments, tags, recipients)
-- [ ] Create migration
-- [ ] Deprecate `mastodonPostUrl` field on Article
+- [x] Create Prisma models with `social_` prefix
+- [x] Add SocialActor model (linked to Profile)
+- [x] Add SocialStatus model (posts, replies)
+- [x] Add ArticleAnnouncement model (draft announcements)
+- [x] Add SocialFollow model (follow relationships)
+- [x] Add SocialLike model (favorites)
+- [x] Add supporting models (attachments, tags, recipients)
+- [x] Create migration
+- [x] Deprecate `mastodonPostUrl` field on Article
 
-### Phase 3: Actor Management
+### Phase 3: Actor Management ✓
+
+**Status**: Complete
 
 **Goal**: Local users can have social identities
 
-- [ ] Create actor when user enables social features
-- [ ] Generate RSA keypair for HTTP signatures
-- [ ] WebFinger endpoint (`/.well-known/webfinger`)
-- [ ] Actor endpoint (`/users/[screenname]`)
-- [ ] Sync actor when profile changes (name, bio, avatar)
+- [x] Create actor when user enables social features
+- [x] Generate RSA keypair for HTTP signatures
+- [x] WebFinger endpoint (`/.well-known/webfinger`)
+- [x] Actor endpoint (`/users/[screenname]`)
+- [x] Sync actor when profile changes (name, bio, avatar)
+
+### Phase 3.5: Legacy Feature Removal ✓
+
+**Status**: Complete
+
+**Goal**: Remove legacy UserFollow/UserList features to make way for social layer
+
+The existing following and lists features were removed to avoid parallel
+feature sets. SocialFollow is now the sole follow mechanism.
+
+**Removed**:
+
+- Database models: `UserFollow`, `UserList`, `UserListMember`
+- API routes: `/api/user/getFollowing`, `/api/user/updateFollowing`,
+  `/api/user/getList`, `/api/user/updateList`, `/api/list/*`, and legacy
+  `/api/addFollower`, `/api/removeFollower`, `/api/getFollowing`, etc.
+- UI pages: `/account/user/following`, `/account/user/lists`, `/list/[id]`
+- Query hooks: `useUserFollowing`, `useMutateUserFollowing`, `useUserLists`,
+  `useMutateUserLists`
+
+**Added**:
+
+- Navigation item "Timeline Posts" → `/social/timeline` (placeholder)
+- Migration to drop `user_follows`, `user_lists`, `user_list_members` tables
 
 ### Phase 4: Social Timeline (Local)
 

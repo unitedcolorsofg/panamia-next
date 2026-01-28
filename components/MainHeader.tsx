@@ -30,8 +30,7 @@ import {
   Search,
   UserCircle,
   User,
-  Heart,
-  List,
+  MessageCircle,
   Compass,
   Video,
   Users,
@@ -307,20 +306,11 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/account/user/following"
+                  href="/social/timeline"
                   className="flex cursor-pointer items-center"
                 >
-                  <Heart className="mr-2 h-4 w-4" />
-                  Following
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/account/user/lists"
-                  className="flex cursor-pointer items-center"
-                >
-                  <List className="mr-2 h-4 w-4" />
-                  My Lists
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Timeline Posts
                 </Link>
               </DropdownMenuItem>
 

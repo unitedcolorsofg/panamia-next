@@ -27,8 +27,7 @@ Current user operations:
 ### Profile Editing (via `/api/user/*` or `/api/profile/*`)
 
 These endpoints handle profile data updates. Similar endpoints exist under
-`/api/admin/*`, `/api/affiliate/*`, `/api/geo/*`, and `/api/list/*` for
-different contexts:
+`/api/admin/*`, `/api/affiliate/*`, and `/api/geo/*` for different contexts:
 
 | Endpoint            | Method | Description                    |
 | ------------------- | ------ | ------------------------------ |
@@ -112,21 +111,9 @@ Community articles feature:
 
 ## Social Features
 
-| Endpoint                | Method | Description         |
-| ----------------------- | ------ | ------------------- |
-| `/api/addFollower`      | POST   | Follow a profile    |
-| `/api/removeFollower`   | POST   | Unfollow a profile  |
-| `/api/checkIfFollowing` | GET    | Check follow status |
-| `/api/getFollowers`     | GET    | List followers      |
-| `/api/getFollowing`     | GET    | List following      |
-
-## Lists
-
-| Endpoint               | Method | Description      |
-| ---------------------- | ------ | ---------------- |
-| `/api/getUserList`     | GET    | Get user's lists |
-| `/api/list/get`        | GET    | Get list by ID   |
-| `/api/list/updateList` | POST   | Update list      |
+Social features (follow, timeline, etc.) are being rebuilt using the social
+layer documented in `docs/SOCIAL-ROADMAP.md`. The legacy `/api/addFollower`,
+`/api/list/*` endpoints have been removed.
 
 ## Admin (`/api/admin/*`)
 
@@ -183,7 +170,6 @@ Several API groups provide the same operations but scoped to different contexts:
 | `/api/admin/*`     | Admin managing any profile   |
 | `/api/affiliate/*` | Affiliate partner operations |
 | `/api/geo/*`       | Geographic/location-based    |
-| `/api/list/*`      | List-related operations      |
 | `/api/user/*`      | User account operations      |
 
 ## Response Format

@@ -3,17 +3,13 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, HeartCrack, MapPin, User } from 'lucide-react';
+import { MapPin, User } from 'lucide-react';
 import Link from 'next/link';
 import { SearchResultsInterface } from '@/lib/query/directory';
 
 interface SearchResultCardProps {
   profile: SearchResultsInterface;
-  isFollowing: boolean;
   distance?: number;
-  onFollow: (id: string) => void;
-  onUnfollow: (id: string) => void;
-  isAuthenticated: boolean;
   isMentor?: boolean;
 }
 
@@ -26,14 +22,9 @@ function detailLimit(details: string) {
 
 export function SearchResultCard({
   profile,
-  isFollowing,
   distance,
-  onFollow,
-  onUnfollow,
-  isAuthenticated,
   isMentor,
 }: SearchResultCardProps) {
-  const profileId = profile._id as string;
   const primaryImage = profile.images?.primaryCDN || '/img/bg_coconut_blue.jpg';
 
   return (
@@ -47,7 +38,7 @@ export function SearchResultCard({
             className="h-full w-full object-cover"
           />
           {isMentor && (
-            <Badge className="absolute right-2 top-2 bg-blue-600 text-white">
+            <Badge className="absolute top-2 right-2 bg-blue-600 text-white">
               Mentor
             </Badge>
           )}
@@ -55,14 +46,9 @@ export function SearchResultCard({
 
         {/* Profile Content */}
         <CardContent className="flex flex-1 flex-col gap-3 p-6">
-          {/* Name and Follow Status */}
+          {/* Name */}
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold">{profile.name}</h3>
-            {isFollowing && (
-              <span title="You're following this profile">
-                <Heart className="h-5 w-5 fill-red-500 text-red-500" />
-              </span>
-            )}
           </div>
 
           {/* Five Words */}
@@ -100,25 +86,7 @@ export function SearchResultCard({
                 View Profile
               </Link>
             </Button>
-
-            {isAuthenticated && (
-              <>
-                {isFollowing ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => onUnfollow(profileId)}
-                  >
-                    <HeartCrack className="h-4 w-4" />
-                    Unfollow
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => onFollow(profileId)}>
-                    <Heart className="h-4 w-4" />
-                    Follow
-                  </Button>
-                )}
-              </>
-            )}
+            {/* TODO: Add social follow/unfollow buttons per docs/SOCIAL-ROADMAP.md Phase 4 */}
           </div>
         </CardContent>
       </div>

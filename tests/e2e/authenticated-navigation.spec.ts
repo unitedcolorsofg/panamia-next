@@ -31,22 +31,6 @@ test.describe('Authenticated User Navigation', () => {
     const url = page.url();
     expect(url).toBeTruthy();
   });
-
-  test('account user following page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/following', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account user lists page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/lists', { waitUntil: 'domcontentloaded' });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
 });
 
 test.describe('Authenticated Profile Navigation', () => {
@@ -135,8 +119,6 @@ test.describe('404 Error Prevention', () => {
     const routes = [
       '/account/user/',
       '/account/user/edit',
-      '/account/user/following',
-      '/account/user/lists',
       '/account/profile/edit',
       '/account/profile/contact',
       '/account/profile/address',

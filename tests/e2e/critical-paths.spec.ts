@@ -84,21 +84,3 @@ test.describe('Form Pages', () => {
     }
   });
 });
-
-test.describe('List Pages', () => {
-  test('list page with invalid ID handles gracefully', async ({ page }) => {
-    // Navigate to a list page with an invalid ID format
-    // Use a valid ObjectId format that doesn't exist (24 hex characters)
-    const response = await page.goto('/list/000000000000000000000000', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    // Should handle gracefully - either 404 or redirect, not 500 server error
-    const status = response?.status();
-    expect(status).not.toBe(500);
-
-    // Page should still load without crashing
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-});
