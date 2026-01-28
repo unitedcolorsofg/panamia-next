@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "[[ \"$VERCEL_GIT_COMMIT_REF\" == dependabot/* ]] || git diff --quiet HEAD^ HEAD -- . ':!docs' ':!*.md'"
+  "ignoreCommand": "[[ \"$VERCEL_GIT_COMMIT_REF\" == dependabot/* ]] || [[ $(git rev-parse --verify HEAD^2 2>/dev/null) ]] || git diff --quiet HEAD^ HEAD -- . ':!docs' ':!*.md'"
 }
