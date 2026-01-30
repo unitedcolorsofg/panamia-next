@@ -341,7 +341,8 @@ model Profile {
 
   // Social features eligibility
   // Gate for social actor creation - requires verification before enabling
-  socialEligible         Boolean   @default(false)
+  // TODO: Revert default to false once admin tooling exists to manage eligibility
+  socialEligible         Boolean   @default(true)
   socialEligibleAt       DateTime?
   socialIneligibleReason String?   // 'age_unverified', 'suspended', 'pending', etc.
 

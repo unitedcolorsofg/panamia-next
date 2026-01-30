@@ -14,6 +14,9 @@
 export * from './gates';
 export * from './crypto/keys';
 export * from './wrappers/actor';
+export * from './wrappers/status';
+export * from './wrappers/follow';
+export * from './wrappers/timeline';
 
 /**
  * Get the domain from NEXT_PUBLIC_HOST_URL

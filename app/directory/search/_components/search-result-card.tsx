@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, User } from 'lucide-react';
 import Link from 'next/link';
 import { SearchResultsInterface } from '@/lib/query/directory';
+import { DirectoryFollowButton } from './directory-follow-button';
 
 interface SearchResultCardProps {
   profile: SearchResultsInterface;
@@ -86,7 +87,9 @@ export function SearchResultCard({
                 View Profile
               </Link>
             </Button>
-            {/* TODO: Add social follow/unfollow buttons per docs/SOCIAL-ROADMAP.md Phase 4 */}
+            {profile.slug && (
+              <DirectoryFollowButton profileSlug={profile.slug as string} />
+            )}
           </div>
         </CardContent>
       </div>

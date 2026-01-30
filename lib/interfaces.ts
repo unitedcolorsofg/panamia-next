@@ -334,3 +334,46 @@ export interface ArticleInterface {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * Social Timeline Types
+ * @see docs/SOCIAL-ROADMAP.md Phase 4
+ */
+
+export interface SocialStatusDisplay {
+  id: string;
+  uri: string;
+  content: string;
+  contentWarning?: string | null;
+  published: string | Date | null;
+  repliesCount: number;
+  likesCount: number;
+  liked: boolean;
+  actor: {
+    id: string;
+    username: string;
+    domain: string;
+    name?: string | null;
+    iconUrl?: string | null;
+  };
+  inReplyTo?: {
+    id: string;
+    uri: string;
+    actorUsername: string;
+  } | null;
+}
+
+export interface SocialActorDisplay {
+  id: string;
+  username: string;
+  domain: string;
+  name?: string | null;
+  summary?: string | null;
+  iconUrl?: string | null;
+  followingCount: number;
+  followersCount: number;
+  statusCount: number;
+  isFollowing?: boolean;
+  isFollowedBy?: boolean;
+  createdAt?: Date | string;
+}

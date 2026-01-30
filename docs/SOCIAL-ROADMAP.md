@@ -282,6 +282,13 @@ model ArticleAnnouncement {
 - [x] Actor endpoint (`/users/[screenname]`)
 - [x] Sync actor when profile changes (name, bio, avatar)
 
+**Note on Username Sync**: The actor `username` is set from `profile.slug` at
+creation time and is **never updated** afterward. This is intentional—changing
+ActivityPub usernames breaks federation since remote servers cache the old
+username. The `syncActorFromProfile()` function updates `name`, `summary`, and
+`iconUrl` but not `username`. If a user needs a different social username, they
+would need to delete and recreate their actor (losing followers).
+
 ### Phase 3.5: Legacy Feature Removal ✓
 
 **Status**: Complete
@@ -306,17 +313,31 @@ feature sets. SocialFollow is now the sole follow mechanism.
 - Navigation item "Timeline Posts" → `/social/timeline` (placeholder)
 - Migration to drop `user_follows`, `user_lists`, `user_list_members` tables
 
-### Phase 4: Social Timeline (Local)
+### Phase 4: Social Timeline (Local) ✓
+
+**Status**: Complete
 
 **Goal**: Users can post and see posts from followed accounts
 
-- [ ] Create post composer UI
-- [ ] Timeline page showing posts from followed accounts
-- [ ] Post detail page
-- [ ] Reply to posts
-- [ ] Like posts
-- [ ] Follow/unfollow local users
-- [ ] User's own posts list
+- [x] Create post composer UI (`PostComposer` with 500 char limit, CW support)
+- [x] Timeline page showing posts from followed accounts (`/social/timeline`)
+- [x] Post detail page (`/social/status/[statusId]`)
+- [x] Reply to posts (inline composer on post detail)
+- [x] Like posts (optimistic UI with `useLikePost`/`useUnlikePost`)
+- [x] Follow/unfollow local users (`FollowButton` component)
+- [x] User's own posts list (`/social/[actor]` profile page)
+- [x] Follow buttons in directory search results
+
+**Implementation**:
+
+- Wrappers: `lib/federation/wrappers/{status,follow,timeline}.ts`
+- API routes: `app/api/social/{timeline,statuses,actors,follows}/`
+- React Query hooks: `lib/query/social.ts`
+- UI components: `components/social/`
+- Pages: `app/social/{timeline,[actor],status/[statusId]}/`
+
+**Hybrid Layout**: Actor profile page uses tabs (Posts | Followers | Following)
+instead of separate pages. Timeline page has Home/Public tabs.
 
 ### Phase 5: Article Announcements
 
