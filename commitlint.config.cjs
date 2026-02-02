@@ -22,7 +22,8 @@ module.exports = {
         // Mentoring marketplace
         'mentoring',      // Mentor profiles, discover, scheduling, sessions, booking
 
-        // Community content (planned)
+        // Social & community
+        'social',         // Timeline, posts, actors, follows, ActivityPub federation
         'articles',       // Community articles, co-authors, peer-review
         'comments',       // Comment system (future)
 
@@ -38,8 +39,12 @@ module.exports = {
         // Financial
         'donations',      // Donation tiers, Stripe integration
 
-        // Administration
+        // Administration & compliance
         'admin',          // Admin dashboard, user management, moderation
+        'policy',         // Legal TOS, social gates, moderation policy, verification, compliance
+
+        // Analytics & tracking
+        'analytics',      // Google Analytics, GoHighLevel, conversion tracking, event instrumentation
 
         // Infrastructure & tooling
         'api',            // API routes, middleware
