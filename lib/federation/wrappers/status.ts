@@ -105,7 +105,7 @@ export async function createStatus(
 
   // Update with proper URI now that we have the ID
   const uri = generateStatusUri(actor.username, status.id);
-  const url = `https://${socialConfig.domain}/social/status/${status.id}`;
+  const url = `https://${socialConfig.domain}/p/${actor.username}/${status.id}`;
 
   const updatedStatus = await prisma.socialStatus.update({
     where: { id: status.id },

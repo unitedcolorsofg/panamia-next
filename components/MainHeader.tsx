@@ -306,7 +306,7 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/social/timeline"
+                  href="/timeline"
                   className="flex cursor-pointer items-center"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />

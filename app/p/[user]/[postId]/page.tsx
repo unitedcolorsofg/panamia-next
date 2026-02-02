@@ -11,13 +11,13 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 export default function StatusDetailPage({
   params,
 }: {
-  params: Promise<{ statusId: string }>;
+  params: Promise<{ user: string; postId: string }>;
 }) {
-  const { statusId } = use(params);
+  const { postId } = use(params);
 
-  const { data: statusData, isLoading: statusLoading } = useStatus(statusId);
+  const { data: statusData, isLoading: statusLoading } = useStatus(postId);
   const { data: repliesData, isLoading: repliesLoading } =
-    useStatusReplies(statusId);
+    useStatusReplies(postId);
   const { data: myActor } = useMyActor();
 
   if (statusLoading) {
@@ -39,7 +39,7 @@ export default function StatusDetailPage({
             This post may have been deleted or doesn&apos;t exist.
           </p>
           <Button variant="outline" asChild>
-            <Link href="/social/timeline">
+            <Link href="/timeline/">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Timeline
             </Link>
@@ -57,7 +57,7 @@ export default function StatusDetailPage({
       <div className="mx-auto max-w-2xl space-y-6">
         {/* Back button */}
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/social/timeline">
+          <Link href="/timeline/">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Timeline
           </Link>

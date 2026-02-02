@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface PostActionsProps {
   statusId: string;
+  actorUsername: string;
   liked: boolean;
   likesCount: number;
   repliesCount: number;
@@ -16,6 +17,7 @@ interface PostActionsProps {
 
 export function PostActions({
   statusId,
+  actorUsername,
   liked,
   likesCount,
   repliesCount,
@@ -42,7 +44,7 @@ export function PostActions({
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/social/status/${statusId}`;
+    const url = `${window.location.origin}/p/${actorUsername}/${statusId}`;
     try {
       await navigator.clipboard.writeText(url);
       toast({

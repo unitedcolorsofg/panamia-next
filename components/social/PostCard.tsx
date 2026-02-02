@@ -49,7 +49,7 @@ export function PostCard({
       <CardContent className={isDetail ? 'px-0 pt-0' : 'pt-4'}>
         {/* Header */}
         <div className="flex items-start gap-3">
-          <Link href={`/social/${status.actor.username}`}>
+          <Link href={`/profile/${status.actor.username}`}>
             <Avatar className="h-10 w-10">
               <AvatarImage src={status.actor.iconUrl || undefined} />
               <AvatarFallback>{actorInitials}</AvatarFallback>
@@ -59,20 +59,20 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href={`/social/${status.actor.username}`}
+                href={`/profile/${status.actor.username}`}
                 className="truncate font-semibold hover:underline"
               >
                 {status.actor.name || status.actor.username}
               </Link>
               <Link
-                href={`/social/${status.actor.username}`}
+                href={`/profile/${status.actor.username}`}
                 className="text-muted-foreground truncate text-sm"
               >
                 @{status.actor.username}
               </Link>
               <span className="text-muted-foreground text-sm">&middot;</span>
               <Link
-                href={`/social/status/${status.id}`}
+                href={`/p/${status.actor.username}/${status.id}`}
                 className="text-muted-foreground text-sm hover:underline"
               >
                 {timeAgo}
@@ -84,7 +84,7 @@ export function PostCard({
               <p className="text-muted-foreground mt-1 text-sm">
                 Replying to{' '}
                 <Link
-                  href={`/social/${status.inReplyTo.actorUsername}`}
+                  href={`/profile/${status.inReplyTo.actorUsername}`}
                   className="text-primary hover:underline"
                 >
                   @{status.inReplyTo.actorUsername}
@@ -126,6 +126,7 @@ export function PostCard({
             <div className="mt-3">
               <PostActions
                 statusId={status.id}
+                actorUsername={status.actor.username}
                 liked={status.liked}
                 likesCount={status.likesCount}
                 repliesCount={status.repliesCount}

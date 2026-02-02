@@ -7,6 +7,7 @@ import { ProfileLocation } from './_components/profile-location';
 import { ProfileGallery } from './_components/profile-gallery';
 import { ProfileTags } from './_components/profile-tags';
 import { MentoringSection } from './_components/mentoring-section';
+import { SocialSection } from './_components/social-section';
 
 interface PageProps {
   params: Promise<{ handle: string }>;
@@ -94,6 +95,9 @@ export default async function ProfilePage({ params }: PageProps) {
 
         {/* Tags */}
         {profile.tags && <ProfileTags tags={profile.tags} />}
+
+        {/* Social Activity */}
+        <SocialSection handle={handle} />
       </div>
     </main>
   );
