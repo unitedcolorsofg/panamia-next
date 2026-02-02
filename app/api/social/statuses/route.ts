@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { content, contentWarning, inReplyTo } = body;
+  const { content, contentWarning, inReplyTo, visibility } = body;
 
   if (!content || typeof content !== 'string') {
     return NextResponse.json(
@@ -77,11 +77,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate visibility if provided
+  const validVisibilities = ['public', 'unlisted', 'private'] as const;
+  const resolvedVisibility =
+    visibility && validVisibilities.includes(visibility)
+      ? visibility
+      : 'unlisted';
+
   const result = await createStatus(
     profile.socialActor.id,
     content,
     contentWarning,
-    inReplyTo
+    inReplyTo,
+    resolvedVisibility
   );
 
   if (!result.success) {

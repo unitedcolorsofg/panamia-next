@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PostCard, PostList, PostComposer } from '@/components/social';
 import { useStatus, useStatusReplies, useMyActor } from '@/lib/query/social';
+import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 export default function StatusDetailPage({
@@ -77,6 +78,10 @@ export default function StatusDetailPage({
               <h3 className="mb-3 text-sm font-medium">Reply to this post</h3>
               <PostComposer
                 inReplyTo={status.id}
+                replyVisibility={getVisibilityFromRecipients(
+                  status.recipientTo,
+                  status.recipientCc
+                )}
                 placeholder={`Reply to @${status.actor.username}...`}
               />
             </CardContent>

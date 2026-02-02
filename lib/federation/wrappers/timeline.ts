@@ -151,9 +151,10 @@ export async function getActorPosts(
 }
 
 /**
- * Get public timeline (all local posts)
+ * Get public timeline (local posts with public visibility)
  *
- * Shows all published posts from local users.
+ * Shows published posts from local users that have public visibility.
+ * Unlisted posts are excluded (they're accessible by URL but not shown here).
  * Does not include remote posts.
  */
 export async function getPublicTimeline(
@@ -162,6 +163,7 @@ export async function getPublicTimeline(
   limit: number = 20
 ): Promise<TimelineResult> {
   const prisma = await getPrisma();
+  const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
   const statuses = await prisma.socialStatus.findMany({
     where: {
@@ -170,6 +172,8 @@ export async function getPublicTimeline(
       actor: {
         domain: socialConfig.domain, // Local actors only
       },
+      // Only show posts with public visibility (recipientTo contains Public)
+      recipientTo: { array_contains: PUBLIC },
     },
     include: {
       actor: true,

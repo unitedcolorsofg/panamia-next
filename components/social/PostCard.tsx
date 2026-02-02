@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { PostActions } from './PostActions';
 import { PostComposer } from './PostComposer';
 import { SocialStatusDisplay } from '@/lib/interfaces';
+import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -140,6 +141,10 @@ export function PostCard({
               <div className="border-muted mt-3 border-l-2 pl-2">
                 <PostComposer
                   inReplyTo={status.id}
+                  replyVisibility={getVisibilityFromRecipients(
+                    status.recipientTo,
+                    status.recipientCc
+                  )}
                   onSuccess={() => setShowReplyBox(false)}
                   placeholder={`Reply to @${status.actor.username}...`}
                 />

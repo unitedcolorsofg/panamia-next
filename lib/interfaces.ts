@@ -361,6 +361,8 @@ export interface SocialStatusDisplay {
     uri: string;
     actorUsername: string;
   } | null;
+  recipientTo?: unknown;
+  recipientCc?: unknown;
 }
 
 export interface SocialActorDisplay {

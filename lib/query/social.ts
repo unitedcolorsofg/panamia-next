@@ -337,6 +337,7 @@ export const useCreatePost = () => {
       content: string;
       contentWarning?: string;
       inReplyTo?: string;
+      visibility?: 'public' | 'unlisted' | 'private';
     }) => {
       return axios.post('/api/social/statuses', data);
     },

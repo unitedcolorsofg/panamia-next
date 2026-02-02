@@ -10,7 +10,8 @@
 import { getPrisma } from '@/lib/prisma';
 import { SocialStatus, SocialActor } from '@prisma/client';
 import { canPost, GateResult } from '../gates';
-import { socialConfig } from '../index';
+import { socialConfig, getFollowersUrl } from '../index';
+import type { PostVisibility } from '@/lib/utils/getVisibility';
 
 export type CreateStatusResult =
   | { success: true; status: SocialStatus }
@@ -34,12 +35,14 @@ export function generateStatusUri(username: string, statusId: string): string {
  * @param content - HTML content of the status
  * @param contentWarning - Optional content warning
  * @param inReplyToId - Optional status ID this is replying to
+ * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' (default: 'unlisted')
  */
 export async function createStatus(
   actorId: string,
   content: string,
   contentWarning?: string,
-  inReplyToId?: string
+  inReplyToId?: string,
+  visibility: PostVisibility = 'unlisted'
 ): Promise<CreateStatusResult> {
   const prisma = await getPrisma();
 
@@ -107,9 +110,32 @@ export async function createStatus(
   const uri = generateStatusUri(actor.username, status.id);
   const url = `https://${socialConfig.domain}/p/${actor.username}/${status.id}`;
 
+  // Compute ActivityPub recipients based on visibility
+  const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
+  const followersUrl = getFollowersUrl(actor.username);
+
+  let recipientTo: string[];
+  let recipientCc: string[];
+
+  switch (visibility) {
+    case 'public':
+      recipientTo = [PUBLIC];
+      recipientCc = [followersUrl];
+      break;
+    case 'private':
+      recipientTo = [followersUrl];
+      recipientCc = [];
+      break;
+    case 'unlisted':
+    default:
+      recipientTo = [followersUrl];
+      recipientCc = [PUBLIC];
+      break;
+  }
+
   const updatedStatus = await prisma.socialStatus.update({
     where: { id: status.id },
-    data: { uri, url },
+    data: { uri, url, recipientTo, recipientCc },
   });
 
   // Update actor's status count
