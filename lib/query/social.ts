@@ -338,6 +338,12 @@ export const useCreatePost = () => {
       contentWarning?: string;
       inReplyTo?: string;
       visibility?: 'public' | 'unlisted' | 'private';
+      attachments?: Array<{
+        type: string;
+        mediaType: string;
+        url: string;
+        name: string;
+      }>;
     }) => {
       return axios.post('/api/social/statuses', data);
     },

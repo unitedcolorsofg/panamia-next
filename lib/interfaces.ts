@@ -363,6 +363,15 @@ export interface SocialStatusDisplay {
   } | null;
   recipientTo?: unknown;
   recipientCc?: unknown;
+  attachments?: Array<{
+    id: string;
+    type: string;
+    mediaType?: string | null;
+    url: string;
+    name?: string | null;
+    width?: number | null;
+    height?: number | null;
+  }>;
 }
 
 export interface SocialActorDisplay {

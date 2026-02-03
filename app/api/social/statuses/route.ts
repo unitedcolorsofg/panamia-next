@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { content, contentWarning, inReplyTo, visibility } = body;
+  const { content, contentWarning, inReplyTo, visibility, attachments } = body;
 
   if (!content || typeof content !== 'string') {
     return NextResponse.json(
@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
     content,
     contentWarning,
     inReplyTo,
-    resolvedVisibility
+    resolvedVisibility,
+    Array.isArray(attachments) ? attachments : undefined
   );
 
   if (!result.success) {

@@ -28,9 +28,7 @@ Browse and search community members by category, location, and keywords. Feature
 
 ### Lists (`lists`)
 
-User-curated collections of profiles. Create and share themed collections like "Best Coffee Shops in Wynwood" or "Jazz Venues in Miami Beach." Lists can be public or private.
-
-Future: Align with [ActivityPub Collections](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-collection) for federation. See [ARTICLE-ROADMAP.md](./ARTICLE-ROADMAP.md) Stage 15.
+_(Future)_ User-curated collections of profiles and content, implemented as [ActivityPub Collections](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-collection) for federation compatibility. Examples: "Best Coffee Shops in Wynwood" or "Jazz Venues in Miami Beach."
 
 ### Search (`search`)
 
@@ -70,11 +68,28 @@ See [ARTICLE-ROADMAP.md](./ARTICLE-ROADMAP.md) Stage 14 for Fediverse integratio
 
 ---
 
+## Social
+
+### Social Timeline (`social`)
+
+Multimedia microblogging platform integrated into the community. Built on [ActivityPub](https://www.w3.org/TR/activitypub/) for federation with Mastodon, Pixelfed, and other fediverse servers. Features include:
+
+- **Posting**: Markdown-formatted posts with content warnings and visibility controls (public, unlisted, followers-only)
+- **Media Attachments**: Images (jpeg, png, webp, gif) and audio (webm voice memos), up to 4 per post
+- **Timeline**: Home feed (posts from followed accounts) and public feed
+- **Engagement**: Like, reply, and follow other community members
+- **Markdown Editor**: Write/Preview tabs with live markdown preview
+- **ActivityPub**: Server-side markdown-to-HTML conversion for federation compatibility
+
+See [SOCIAL-ROADMAP.md](./SOCIAL-ROADMAP.md) for implementation details.
+
+---
+
 ## Events & Calendar
 
 ### Events (`events`)
 
-Discover local events, shows, and gatherings. Integration with Shotgun Live for venue events.
+_(Future)_ Discover local events, shows, and gatherings. Stay connected to what's happening in your neighborhood.
 
 ---
 
@@ -131,20 +146,22 @@ Platform administration for user management, content moderation, and verificatio
 
 These scopes are used for technical changes that don't directly correspond to user-facing features:
 
-| Scope    | Description                            |
-| -------- | -------------------------------------- |
-| `api`    | API routes and middleware              |
-| `db`     | Database models and migrations         |
-| `ui`     | Shared UI components and design system |
-| `email`  | Email templates and delivery           |
-| `config` | Configuration and environment          |
-| `deps`   | Dependency updates                     |
-| `ci`     | CI/CD and GitHub Actions               |
-| `test`   | Testing infrastructure                 |
-| `docs`   | Documentation                          |
-| `build`  | Build configuration                    |
-| `hooks`  | Git hooks and automation               |
-| `misc`   | Miscellaneous changes                  |
+| Scope       | Description                                        |
+| ----------- | -------------------------------------------------- |
+| `api`       | API routes and middleware                          |
+| `db`        | Database models and migrations                     |
+| `ui`        | Shared UI components and design system             |
+| `email`     | Email templates and delivery                       |
+| `config`    | Configuration and environment                      |
+| `deps`      | Dependency updates                                 |
+| `ci`        | CI/CD and GitHub Actions                           |
+| `test`      | Testing infrastructure                             |
+| `docs`      | Documentation                                      |
+| `build`     | Build configuration                                |
+| `hooks`     | Git hooks and automation                           |
+| `analytics` | Google Analytics, GoHighLevel, conversion tracking |
+| `policy`    | Legal TOS, social gates, moderation, compliance    |
+| `misc`      | Miscellaneous changes                              |
 
 ---
 

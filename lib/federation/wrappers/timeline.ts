@@ -62,6 +62,7 @@ export async function getHomeTimeline(
     },
     include: {
       actor: true,
+      attachments: true,
       likes: {
         where: { actorId },
         select: { id: true },
@@ -115,6 +116,7 @@ export async function getActorPosts(
     },
     include: {
       actor: true,
+      attachments: true,
       ...(viewerActorId && {
         likes: {
           where: { actorId: viewerActorId },
@@ -177,6 +179,7 @@ export async function getPublicTimeline(
     },
     include: {
       actor: true,
+      attachments: true,
       ...(viewerActorId && {
         likes: {
           where: { actorId: viewerActorId },
@@ -225,6 +228,7 @@ export async function getStatusWithLikeStatus(
     where: { id: statusId },
     include: {
       actor: true,
+      attachments: true,
       ...(viewerActorId && {
         likes: {
           where: { actorId: viewerActorId },

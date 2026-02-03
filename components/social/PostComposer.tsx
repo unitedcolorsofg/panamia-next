@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import Image from 'next/image';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +25,12 @@ import {
   Lock,
   Unlock,
   Check,
+  Pencil,
+  Eye,
+  ImagePlus,
+  X,
+  Volume2,
+  Loader2,
 } from 'lucide-react';
 
 interface PostComposerProps {
@@ -31,6 +41,16 @@ interface PostComposerProps {
 }
 
 const MAX_LENGTH = 500;
+const MAX_ATTACHMENTS = 4;
+const ACCEPTED_FILE_TYPES =
+  'image/jpeg,image/png,image/webp,image/gif,audio/webm';
+
+interface UploadedMedia {
+  type: string;
+  mediaType: string;
+  url: string;
+  name: string;
+}
 
 const VISIBILITY_OPTIONS: {
   value: PostVisibility;
@@ -77,8 +97,44 @@ export function PostComposer({
   const [contentWarning, setContentWarning] = useState('');
   const [showCW, setShowCW] = useState(false);
   const [visibility, setVisibility] = useState<PostVisibility>('unlisted');
+  const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
+  const [attachments, setAttachments] = useState<UploadedMedia[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createPost = useCreatePost();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const available = MAX_ATTACHMENTS - attachments.length;
+    if (available <= 0) return;
+
+    const filesToUpload = Array.from(files).slice(0, available);
+    setUploading(true);
+
+    for (const file of filesToUpload) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await axios.post('/api/social/media', formData);
+        if (res.data?.success) {
+          setAttachments((prev) => [...prev, res.data.data]);
+        }
+      } catch (error) {
+        console.error('Failed to upload media:', error);
+      }
+    }
+
+    setUploading(false);
+    // Reset file input so the same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const charCount = content.length;
   const isOverLimit = charCount > MAX_LENGTH;
@@ -104,10 +160,12 @@ export function PostComposer({
           showCW && contentWarning.trim() ? contentWarning.trim() : undefined,
         inReplyTo,
         visibility: effectiveVisibility,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       setContent('');
       setContentWarning('');
       setShowCW(false);
+      setAttachments([]);
       onSuccess?.();
     } catch (error) {
       console.error('Failed to create post:', error);
@@ -135,13 +193,78 @@ export function PostComposer({
         </div>
       )}
 
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder={placeholder}
-        rows={4}
-        className="resize-none"
-      />
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'write' | 'preview')}
+      >
+        <TabsList>
+          <TabsTrigger value="write" className="flex items-center gap-1.5">
+            <Pencil className="h-3.5 w-3.5" />
+            Write
+          </TabsTrigger>
+          <TabsTrigger value="preview" className="flex items-center gap-1.5">
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="write" className="mt-2">
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={placeholder}
+            rows={4}
+            className="resize-none font-mono"
+          />
+          <p className="text-muted-foreground mt-1.5 text-xs">
+            Supports Markdown: **bold**, *italic*, [links](url), # headers, -
+            lists
+          </p>
+        </TabsContent>
+        <TabsContent value="preview" className="mt-2">
+          <div className="min-h-[106px] rounded-md border p-3">
+            {content.trim() ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                <ReactMarkdown>{content}</ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Nothing to preview yet...
+              </p>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Attachment previews */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {attachments.map((att, i) => (
+            <div key={i} className="group relative">
+              {att.type === 'image' ? (
+                <Image
+                  src={att.url}
+                  alt={att.name || ''}
+                  width={80}
+                  height={80}
+                  className="h-20 w-20 rounded-md border object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="bg-muted flex h-20 w-20 items-center justify-center rounded-md border">
+                  <Volume2 className="text-muted-foreground h-6 w-6" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => removeAttachment(i)}
+                className="bg-destructive text-destructive-foreground absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -154,6 +277,30 @@ export function PostComposer({
           >
             <AlertTriangle className="mr-1 h-4 w-4" />
             CW
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_FILE_TYPES}
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={attachments.length >= MAX_ATTACHMENTS || uploading}
+          >
+            {uploading ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="mr-1 h-4 w-4" />
+            )}
+            {attachments.length > 0
+              ? `${attachments.length}/${MAX_ATTACHMENTS}`
+              : 'Media'}
           </Button>
         </div>
 

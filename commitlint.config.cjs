@@ -5,6 +5,7 @@ module.exports = {
     // Enforce scope is required
     'scope-empty': [2, 'never'],
     // Enforce scope is from the allowed list
+    // NOTE: When adding or changing scopes, update docs/FEATURES.md to match.
     'scope-enum': [
       2,
       'always',

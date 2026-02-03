@@ -20,11 +20,17 @@ Pana Mia Club is a 501(c)(3) non-profit building tools to support regenerative, 
 
 ### 🌸 Community Directory
 
-Discover local artists, musicians, restaurants, venues, and creative businesses. Browse by category, neighborhood, or keyword. Create curated lists to share your favorite spots.
+Discover local artists, musicians, restaurants, venues, and creative businesses. Browse by category, neighborhood, or keyword.
 
 ### 📅 Events
 
 Find local shows, markets, gallery openings, and community gatherings. Stay connected to what's happening in your neighborhood.
+
+### 📣 Social Timeline
+
+A multimedia microblogging platform built into the community. Share posts with markdown formatting, images, and voice memos. Follow other community members, like and reply to posts. Built on [ActivityPub](https://www.w3.org/TR/activitypub/) for future federation with Mastodon, Pixelfed, and other fediverse servers.
+
+\_Features: Markdown editor, media attachments, post visibility controls, content-sensitivity labels
 
 ### ✍️ Community Articles
 
@@ -47,7 +53,7 @@ Every profile represents a real person or business in our community. When you di
 ## Our Values
 
 - **Community First**: Built by and for South Florida's creative community
-- **Privacy Focused**: No tracking, no ads, no selling your data
+- **Privacy Focused**: No ads, no selling your data
 - **Accessible**: Free to use, designed for everyone
 - **Source Reviewable**: Our code is publicly available for transparency and collaboration
 
@@ -93,6 +99,7 @@ See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.
 | [Quick Start](./docs/QUICK-START.md)          | Developer setup guide                  |
 | [Features](./docs/FEATURES.md)                | Platform feature overview              |
 | [Articles Roadmap](./docs/ARTICLE-ROADMAP.md) | Community articles implementation plan |
+| [Social Roadmap](./docs/SOCIAL-ROADMAP.md)    | Social timeline & federation plan      |
 | [Mentoring Guide](./docs/MENTORING.md)        | Peer mentoring feature guide           |
 | [Contributing](./docs/CONTRIBUTING.md)        | How to contribute                      |
 | [Security](./docs/SECURITY_AUDIT.md)          | Security architecture                  |

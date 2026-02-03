@@ -339,6 +339,39 @@ feature sets. SocialFollow is now the sole follow mechanism.
 **Hybrid Layout**: Actor profile page uses tabs (Posts | Followers | Following)
 instead of separate pages. Timeline page has Home/Public tabs.
 
+### Phase 4B: Markdown Editor & Media Attachments
+
+**Status**: Complete
+
+**Goal**: Upgrade PostComposer with markdown editing and media upload support
+
+**Markdown Editor**:
+
+- [x] Write/Preview tabs in PostComposer (matching ArticleEditor UX)
+- [x] Monospace textarea with markdown hint text
+- [x] Client-side preview via `react-markdown`
+- [x] Server-side MD-to-HTML conversion via `marked` for ActivityPub compatibility
+- [x] Stored content is HTML (federation-ready `Note.content`)
+
+**Media Attachments**:
+
+- [x] Upload endpoint (`POST /api/social/media`) using Vercel Blob storage
+- [x] Accepted types: images (jpeg, png, webp, gif) and audio (webm for voice memos)
+- [x] Max file size: 10 MB, max 4 attachments per post
+- [x] `SocialAttachment` records created alongside status
+- [x] Thumbnail previews in PostComposer with remove button
+- [x] `AttachmentGrid` component for display (responsive image grid, inline audio player)
+- [x] Attachments included in all timeline queries
+
+**Files**:
+
+- `components/social/PostComposer.tsx` — Write/Preview tabs, media upload button, attachment previews
+- `components/social/AttachmentGrid.tsx` — Responsive display grid for images and audio
+- `app/api/social/media/route.ts` — Vercel Blob upload endpoint
+- `lib/federation/wrappers/status.ts` — MD-to-HTML via `marked`, `SocialAttachment` creation
+- `lib/federation/wrappers/timeline.ts` — `include: { attachments: true }` on all queries
+- `lib/interfaces.ts` — `attachments` field on `SocialStatusDisplay`
+
 ### Phase 5: Article Announcements
 
 **Goal**: Authors can announce articles when published

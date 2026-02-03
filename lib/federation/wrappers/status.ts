@@ -9,6 +9,7 @@
 
 import { getPrisma } from '@/lib/prisma';
 import { SocialStatus, SocialActor } from '@prisma/client';
+import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
@@ -36,13 +37,20 @@ export function generateStatusUri(username: string, statusId: string): string {
  * @param contentWarning - Optional content warning
  * @param inReplyToId - Optional status ID this is replying to
  * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' (default: 'unlisted')
+ * @param attachments - Optional array of uploaded media metadata
  */
 export async function createStatus(
   actorId: string,
   content: string,
   contentWarning?: string,
   inReplyToId?: string,
-  visibility: PostVisibility = 'unlisted'
+  visibility: PostVisibility = 'unlisted',
+  attachments?: Array<{
+    type: string;
+    mediaType: string;
+    url: string;
+    name?: string;
+  }>
 ): Promise<CreateStatusResult> {
   const prisma = await getPrisma();
 
@@ -77,6 +85,11 @@ export async function createStatus(
     return { success: false, error: 'Content exceeds maximum length' };
   }
 
+  // Convert markdown to HTML for ActivityPub federation compatibility
+  const htmlContent = (
+    await marked.parse(content.trim(), { gfm: true })
+  ).trim();
+
   // If replying, validate the parent exists
   let inReplyToUri: string | undefined;
   if (inReplyToId) {
@@ -89,11 +102,11 @@ export async function createStatus(
     inReplyToUri = parent.uri;
   }
 
-  // Create the status
+  // Create the status (store HTML-converted content for AP federation)
   const status = await prisma.socialStatus.create({
     data: {
       actorId,
-      content,
+      content: htmlContent,
       contentWarning: contentWarning || null,
       type: 'Note',
       published: new Date(),
@@ -137,6 +150,19 @@ export async function createStatus(
     where: { id: status.id },
     data: { uri, url, recipientTo, recipientCc },
   });
+
+  // Create attachment records if provided
+  if (attachments && attachments.length > 0) {
+    await prisma.socialAttachment.createMany({
+      data: attachments.map((att) => ({
+        statusId: status.id,
+        type: att.type,
+        mediaType: att.mediaType,
+        url: att.url,
+        name: att.name || null,
+      })),
+    });
+  }
 
   // Update actor's status count
   await prisma.socialActor.update({
@@ -241,7 +267,7 @@ export async function getStatusReplies(
       inReplyToId: statusId,
       published: { not: null },
     },
-    include: { actor: true },
+    include: { actor: true, attachments: true },
     orderBy: { published: 'asc' },
     take: limit + 1,
     ...(cursor && {

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PostActions } from './PostActions';
 import { PostComposer } from './PostComposer';
+import { AttachmentGrid } from './AttachmentGrid';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
@@ -121,6 +122,11 @@ export function PostCard({
                 className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
                 dangerouslySetInnerHTML={{ __html: status.content }}
               />
+            )}
+
+            {/* Attachments */}
+            {status.attachments && status.attachments.length > 0 && (
+              <AttachmentGrid attachments={status.attachments} />
             )}
 
             {/* Actions */}
