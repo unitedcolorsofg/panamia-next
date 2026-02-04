@@ -14,6 +14,16 @@ import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 
+// Configure marked to add safety attributes to links (noopener, noreferrer, ugc)
+marked.use({
+  renderer: {
+    link({ href, title, text }) {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${href}"${titleAttr} rel="noopener noreferrer ugc" target="_blank">${text}</a>`;
+    },
+  },
+});
+
 export type CreateStatusResult =
   | { success: true; status: SocialStatus }
   | { success: false; error: string; gateResult?: GateResult };

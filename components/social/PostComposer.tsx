@@ -23,7 +23,7 @@ import {
   ChevronDown,
   Globe,
   Lock,
-  Unlock,
+  Users,
   Check,
   Pencil,
   Eye,
@@ -32,6 +32,7 @@ import {
   Volume2,
   Loader2,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostComposerProps {
   inReplyTo?: string;
@@ -62,7 +63,7 @@ const VISIBILITY_OPTIONS: {
 }[] = [
   {
     value: 'unlisted',
-    icon: Unlock,
+    icon: Users,
     label: 'Visible to All Panas',
     description:
       'Shown to All Panas, Excluded from Public Timeline but still Publicly Accessible.',
@@ -103,6 +104,7 @@ export function PostComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createPost = useCreatePost();
+  const { toast } = useToast();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -123,7 +125,15 @@ export function PostComposer({
           setAttachments((prev) => [...prev, res.data.data]);
         }
       } catch (error) {
-        console.error('Failed to upload media:', error);
+        const message =
+          axios.isAxiosError(error) && error.response?.data?.error
+            ? error.response.data.error
+            : 'Upload failed. Please try again.';
+        toast({
+          title: 'Upload failed',
+          description: message,
+          variant: 'destructive',
+        });
       }
     }
 
@@ -197,27 +207,65 @@ export function PostComposer({
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as 'write' | 'preview')}
       >
-        <TabsList>
-          <TabsTrigger value="write" className="flex items-center gap-1.5">
-            <Pencil className="h-3.5 w-3.5" />
-            Write
-          </TabsTrigger>
-          <TabsTrigger value="preview" className="flex items-center gap-1.5">
-            <Eye className="h-3.5 w-3.5" />
-            Preview
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="write" className="flex items-center gap-1.5">
+              <Pencil className="h-3.5 w-3.5" />
+              Write
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCW(!showCW)}
+              className={showCW ? 'text-yellow-600' : ''}
+            >
+              <AlertTriangle className="mr-1 h-4 w-4" />
+              CW
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_FILE_TYPES}
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={attachments.length >= MAX_ATTACHMENTS || uploading}
+            >
+              {uploading ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="mr-1 h-4 w-4" />
+              )}
+              {attachments.length > 0
+                ? `${attachments.length}/${MAX_ATTACHMENTS}`
+                : 'Media'}
+            </Button>
+          </div>
+        </div>
         <TabsContent value="write" className="mt-2">
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={placeholder}
             rows={4}
-            className="resize-none font-mono"
+            className="resize-y font-mono"
           />
           <p className="text-muted-foreground mt-1.5 text-xs">
-            Supports Markdown: **bold**, *italic*, [links](url), # headers, -
-            lists
+            **<strong>bold</strong>**, <em>_italic_</em>, [link
+            text](example.com), # headers, - lists
           </p>
         </TabsContent>
         <TabsContent value="preview" className="mt-2">
@@ -266,118 +314,77 @@ export function PostComposer({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCW(!showCW)}
-            className={showCW ? 'text-yellow-600' : ''}
-          >
-            <AlertTriangle className="mr-1 h-4 w-4" />
-            CW
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={ACCEPTED_FILE_TYPES}
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={attachments.length >= MAX_ATTACHMENTS || uploading}
-          >
-            {uploading ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-            ) : (
-              <ImagePlus className="mr-1 h-4 w-4" />
-            )}
-            {attachments.length > 0
-              ? `${attachments.length}/${MAX_ATTACHMENTS}`
-              : 'Media'}
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-3">
+        <span
+          className={`text-sm ${
+            isOverLimit
+              ? 'text-destructive font-medium'
+              : charCount > MAX_LENGTH * 0.9
+                ? 'text-yellow-600'
+                : 'text-muted-foreground'
+          }`}
+        >
+          {charCount}/{MAX_LENGTH}
+        </span>
 
-        <div className="flex items-center gap-3">
-          <span
-            className={`text-sm ${
-              isOverLimit
-                ? 'text-destructive font-medium'
-                : charCount > MAX_LENGTH * 0.9
-                  ? 'text-yellow-600'
-                  : 'text-muted-foreground'
-            }`}
-          >
-            {charCount}/{MAX_LENGTH}
-          </span>
-
-          {createPost.isPending ? (
-            <Button type="button" disabled size="sm">
-              Posting...
+        {createPost.isPending ? (
+          <Button type="button" disabled size="sm">
+            Posting...
+          </Button>
+        ) : isReply ? (
+          <Button type="submit" disabled={isDisabled} size="sm">
+            <Send className="mr-1 h-4 w-4" />
+            {currentOption.replyText}
+          </Button>
+        ) : (
+          <div className="flex">
+            <Button
+              type="submit"
+              disabled={isDisabled}
+              size="sm"
+              className="rounded-r-none"
+            >
+              <Icon className="mr-1 h-4 w-4" />
+              {currentOption.buttonText}
             </Button>
-          ) : isReply ? (
-            /* Replies: plain button with context-aware text, no dropdown */
-            <Button type="submit" disabled={isDisabled} size="sm">
-              <Send className="mr-1 h-4 w-4" />
-              {currentOption.replyText}
-            </Button>
-          ) : (
-            /* New posts: split-button with visibility dropdown */
-            <div className="flex">
-              <Button
-                type="submit"
-                disabled={isDisabled}
-                size="sm"
-                className="rounded-r-none"
-              >
-                <Icon className="mr-1 h-4 w-4" />
-                {currentOption.buttonText}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    disabled={isDisabled}
-                    size="sm"
-                    className="rounded-l-none border-l px-2"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72">
-                  {VISIBILITY_OPTIONS.map((option) => {
-                    const OptionIcon = option.icon;
-                    const selected = visibility === option.value;
-                    return (
-                      <DropdownMenuItem
-                        key={option.value}
-                        onClick={() => setVisibility(option.value)}
-                        className="flex cursor-pointer items-start gap-3 py-2"
-                      >
-                        <OptionIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{option.label}</span>
-                            {selected && <Check className="h-4 w-4 shrink-0" />}
-                          </div>
-                          <p className="text-muted-foreground text-xs">
-                            {option.description}
-                          </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  disabled={isDisabled}
+                  size="sm"
+                  className="rounded-l-none border-l px-2"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {VISIBILITY_OPTIONS.map((option) => {
+                  const OptionIcon = option.icon;
+                  const selected = visibility === option.value;
+                  return (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setVisibility(option.value)}
+                      className="flex cursor-pointer items-start gap-3 py-2"
+                    >
+                      <OptionIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{option.label}</span>
+                          {selected && <Check className="h-4 w-4 shrink-0" />}
                         </div>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-        </div>
+                        <p className="text-muted-foreground text-xs">
+                          {option.description}
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
     </form>
   );
