@@ -180,7 +180,7 @@ export default function InvitePage() {
           <CardContent>
             <p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
             <Button asChild variant="outline">
-              <Link href="/account/notifications">Back to Notifications</Link>
+              <Link href="/updates">Back to Updates</Link>
             </Button>
           </CardContent>
         </Card>

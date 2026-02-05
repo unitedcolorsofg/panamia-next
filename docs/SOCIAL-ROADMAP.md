@@ -372,6 +372,43 @@ instead of separate pages. Timeline page has Home/Public tabs.
 - `lib/federation/wrappers/timeline.ts` — `include: { attachments: true }` on all queries
 - `lib/interfaces.ts` — `attachments` field on `SocialStatusDisplay`
 
+### Phase 4C: Voice Memo Direct Messages
+
+**Status**: Complete
+
+**Goal**: Send private voice memos to other users
+
+Voice memos are ActivityPub `direct` visibility messages sent to specific recipients (1-8 users). They use the existing post infrastructure but with a dedicated composer and auto-expiration.
+
+**Features**:
+
+- [x] @-mention autocomplete for recipient selection (1-8 recipients)
+- [x] Voice recording (WebM audio, max 60 seconds)
+- [x] Optional text content alongside or instead of voice recording
+- [x] Direct visibility (recipients receive via ActivityPub `recipientTo`)
+- [x] Auto-expiration: 7-day soft delete via `expiresAt` timestamp
+- [x] Profile page "Send Voice Memo" button
+- [x] Relocated notifications to `/updates/` with VoiceMemoComposer integration
+
+**Technical Details**:
+
+- `expiresAt` field on `SocialStatus` for soft delete
+- Timeline queries filter out statuses where `expiresAt < now()`
+- `VoiceMemoComposer` component with recipient chips and audio recording
+- `SendVoiceMemoButton` component for profile pages
+- Actor search API (`GET /api/social/actors/search`) for @-autocomplete
+
+**Files**:
+
+- `components/social/VoiceMemoComposer.tsx` — DM-specific composer with recipient selection
+- `components/social/SendVoiceMemoButton.tsx` — Dialog trigger for profile pages
+- `app/api/social/actors/search/route.ts` — Actor username search for autocomplete
+- `lib/federation/wrappers/status.ts` — `direct` visibility + `expiresAt` handling
+- `lib/federation/wrappers/timeline.ts` — `notExpiredFilter` on all timeline queries
+- `app/updates/page.tsx` — Relocated from `/account/notifications/`
+
+**TODO**: Implement hard delete via Vercel Pro cron to clean up blob storage for expired messages.
+
 ### Phase 5: Article Announcements
 
 **Goal**: Authors can announce articles when published

@@ -39,7 +39,7 @@ Authenticated user pages for managing their own content:
 | `/account/profile/images`      | Manage profile images                  |
 | `/account/profile/gentedepana` | Gente de Pana settings                 |
 | `/account/articles`            | Manage your articles                   |
-| `/account/notifications`       | View notifications                     |
+| `/updates`                     | View updates & send voice memos        |
 | `/account/admin/*`             | Admin panel (admin users only)         |
 
 ### Admin Pages (`/admin/*`)

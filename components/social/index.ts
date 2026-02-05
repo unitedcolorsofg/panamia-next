@@ -5,3 +5,5 @@ export { PostList } from './PostList';
 export { ActorCard } from './ActorCard';
 export { FollowButton } from './FollowButton';
 export { SocialEligibilityGate } from './SocialEligibilityGate';
+export { VoiceMemoComposer } from './VoiceMemoComposer';
+export { SendVoiceMemoButton } from './SendVoiceMemoButton';

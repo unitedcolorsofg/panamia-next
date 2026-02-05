@@ -1,8 +1,10 @@
 /**
- * Notifications Page
+ * Updates Page
+ *
+ * Combines notification history with voice memo composer.
+ * Voice memos are posted to the social timeline.
  *
  * UPSTREAM REFERENCE: https://github.com/llun/activities.next
- * ActivityPub-shaped notification history
  */
 
 'use client';
@@ -12,8 +14,9 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCheck, Bell, RefreshCw } from 'lucide-react';
+import { CheckCheck, Bell, RefreshCw, Mic } from 'lucide-react';
 import NotificationItem from '@/components/NotificationItem';
+import { VoiceMemoComposer } from '@/components/social/VoiceMemoComposer';
 import {
   useNotifications,
   useMarkAsRead,
@@ -22,7 +25,7 @@ import {
 
 type FilterType = 'all' | 'unread';
 
-export default function NotificationsPage() {
+export default function UpdatesPage() {
   const { data: session } = useSession();
   const [filter, setFilter] = useState<FilterType>('all');
   const [offset, setOffset] = useState(0);
@@ -78,6 +81,20 @@ export default function NotificationsPage() {
   return (
     <main className="container mx-auto max-w-4xl px-4 py-8">
       <div className="space-y-6">
+        {/* Voice Memo Composer */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mic className="h-5 w-5" />
+              Voice Memo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VoiceMemoComposer />
+          </CardContent>
+        </Card>
+
+        {/* Notifications */}
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

@@ -217,10 +217,10 @@ interface UserAdditions {
 
 #### Pages
 
-| Page                     | Description                   |
-| ------------------------ | ----------------------------- |
-| `/account/notifications` | Full notification history     |
-| `/account/user/edit`     | Add email preferences section |
+| Page                 | Description                   |
+| -------------------- | ----------------------------- |
+| `/updates`           | Full notification history     |
+| `/account/user/edit` | Add email preferences section |
 
 #### Helpers
 

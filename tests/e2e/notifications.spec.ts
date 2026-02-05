@@ -8,11 +8,11 @@ import { test, expect } from '@playwright/test';
  * requires additional setup with Playwright's storageState.
  */
 
-test.describe('Notifications Page', () => {
-  test('notifications page shows unauthorized message for unauthenticated users', async ({
+test.describe('Updates Page', () => {
+  test('updates page shows unauthorized message for unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/account/notifications', {
+    await page.goto('/updates', {
       waitUntil: 'domcontentloaded',
     });
 
@@ -29,8 +29,8 @@ test.describe('Notifications Page', () => {
     await expect(loginMessage).toBeVisible();
   });
 
-  test('notifications page does not return 404', async ({ page }) => {
-    await page.goto('/account/notifications');
+  test('updates page does not return 404', async ({ page }) => {
+    await page.goto('/updates');
     await page.waitForLoadState('networkidle');
 
     // Should not be a 404 page
@@ -124,9 +124,9 @@ test.describe('Notifications in Navigation', () => {
   });
 });
 
-test.describe('Notification Routes - No 404', () => {
-  test('all notification routes return valid responses', async ({ page }) => {
-    const routes = ['/account/notifications'];
+test.describe('Updates Routes - No 404', () => {
+  test('all updates routes return valid responses', async ({ page }) => {
+    const routes = ['/updates'];
 
     for (const route of routes) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });

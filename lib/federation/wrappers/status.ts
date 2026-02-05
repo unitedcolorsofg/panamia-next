@@ -8,7 +8,7 @@
  */
 
 import { getPrisma } from '@/lib/prisma';
-import { SocialStatus, SocialActor } from '@prisma/client';
+import { SocialStatus, SocialActor, Prisma } from '@prisma/client';
 import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
@@ -39,6 +39,16 @@ export function generateStatusUri(username: string, statusId: string): string {
   return `https://${socialConfig.domain}/users/${username}/statuses/${statusId}`;
 }
 
+// Direct messages expire after 7 days (soft delete via query filter)
+const DM_EXPIRY_DAYS = 7;
+
+/**
+ * Filter condition to exclude expired statuses (soft delete).
+ */
+const notExpiredFilter: Prisma.SocialStatusWhereInput = {
+  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+};
+
 /**
  * Create a new status (post)
  *
@@ -46,8 +56,9 @@ export function generateStatusUri(username: string, statusId: string): string {
  * @param content - HTML content of the status
  * @param contentWarning - Optional content warning
  * @param inReplyToId - Optional status ID this is replying to
- * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' (default: 'unlisted')
+ * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' | 'direct' (default: 'unlisted')
  * @param attachments - Optional array of uploaded media metadata
+ * @param recipientActorIds - For 'direct' visibility: array of recipient actor IDs (max 8)
  */
 export async function createStatus(
   actorId: string,
@@ -60,7 +71,8 @@ export async function createStatus(
     mediaType: string;
     url: string;
     name?: string;
-  }>
+  }>,
+  recipientActorIds?: string[]
 ): Promise<CreateStatusResult> {
   const prisma = await getPrisma();
 
@@ -139,6 +151,7 @@ export async function createStatus(
 
   let recipientTo: string[];
   let recipientCc: string[];
+  let expiresAt: Date | null = null;
 
   switch (visibility) {
     case 'public':
@@ -149,6 +162,33 @@ export async function createStatus(
       recipientTo = [followersUrl];
       recipientCc = [];
       break;
+    case 'direct':
+      // Direct messages go to specific recipients only
+      if (!recipientActorIds || recipientActorIds.length === 0) {
+        return {
+          success: false,
+          error: 'Direct messages require at least one recipient',
+        };
+      }
+      if (recipientActorIds.length > 8) {
+        return {
+          success: false,
+          error: 'Direct messages can have at most 8 recipients',
+        };
+      }
+      // Fetch recipient actor URIs
+      const recipientActors = await prisma.socialActor.findMany({
+        where: { id: { in: recipientActorIds } },
+        select: { uri: true },
+      });
+      if (recipientActors.length !== recipientActorIds.length) {
+        return { success: false, error: 'One or more recipients not found' };
+      }
+      recipientTo = recipientActors.map((r) => r.uri);
+      recipientCc = [];
+      // Set expiration for direct messages (soft delete after 7 days)
+      expiresAt = new Date(Date.now() + DM_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+      break;
     case 'unlisted':
     default:
       recipientTo = [followersUrl];
@@ -158,7 +198,7 @@ export async function createStatus(
 
   const updatedStatus = await prisma.socialStatus.update({
     where: { id: status.id },
-    data: { uri, url, recipientTo, recipientCc },
+    data: { uri, url, recipientTo, recipientCc, expiresAt },
   });
 
   // Create attachment records if provided
@@ -276,6 +316,7 @@ export async function getStatusReplies(
     where: {
       inReplyToId: statusId,
       published: { not: null },
+      ...notExpiredFilter,
     },
     include: { actor: true, attachments: true },
     orderBy: { published: 'asc' },

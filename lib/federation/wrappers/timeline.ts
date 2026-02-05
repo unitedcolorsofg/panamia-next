@@ -8,8 +8,18 @@
  */
 
 import { getPrisma } from '@/lib/prisma';
-import { SocialStatus, SocialActor, SocialLike } from '@prisma/client';
+import { SocialStatus, SocialActor, SocialLike, Prisma } from '@prisma/client';
 import { socialConfig } from '../index';
+
+/**
+ * Filter condition to exclude expired statuses (soft delete).
+ * Includes statuses where:
+ * - expiresAt is null (no expiration)
+ * - expiresAt is in the future
+ */
+const notExpiredFilter: Prisma.SocialStatusWhereInput = {
+  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+};
 
 export type StatusWithActorAndLike = SocialStatus & {
   actor: SocialActor;
@@ -59,6 +69,7 @@ export async function getHomeTimeline(
       actorId: { in: timelineActorIds },
       published: { not: null },
       inReplyToId: null, // Only top-level posts
+      ...notExpiredFilter,
     },
     include: {
       actor: true,
@@ -113,6 +124,7 @@ export async function getActorPosts(
       actorId,
       published: { not: null },
       ...(includeReplies ? {} : { inReplyToId: null }),
+      ...notExpiredFilter,
     },
     include: {
       actor: true,
@@ -176,6 +188,7 @@ export async function getPublicTimeline(
       },
       // Only show posts with public visibility (recipientTo contains Public)
       recipientTo: { array_contains: PUBLIC },
+      ...notExpiredFilter,
     },
     include: {
       actor: true,

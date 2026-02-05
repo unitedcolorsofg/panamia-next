@@ -49,6 +49,7 @@ export async function GET(
         id: actor.id,
         username: actor.username,
         domain: actor.domain,
+        uri: actor.uri,
         name: actor.name,
         summary: actor.summary,
         iconUrl: actor.iconUrl,

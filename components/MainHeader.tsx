@@ -267,11 +267,11 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/account/notifications"
+                  href="/updates"
                   className="flex cursor-pointer items-center"
                 >
                   <Bell className="mr-2 h-4 w-4" />
-                  Notifications
+                  Updates
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

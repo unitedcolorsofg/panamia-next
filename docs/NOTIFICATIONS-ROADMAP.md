@@ -317,7 +317,7 @@ Build the foundation that articles, mentoring, and future features will use.
 | `app/api/notifications/unread-count/route.ts`  | Badge count               |
 | `app/api/notifications/[id]/read/route.ts`     | Mark as read              |
 | `app/api/notifications/mark-all-read/route.ts` | Mark all read             |
-| `app/account/notifications/page.tsx`           | Full history page         |
+| `app/updates/page.tsx`                         | Full history page         |
 | `components/NotificationFlower.tsx`            | Header button             |
 | `components/NotificationDropdown.tsx`          | Quick view dropdown       |
 | `components/NotificationItem.tsx`              | Individual notification   |
@@ -432,7 +432,7 @@ The notification flower button:
 - Displays in header next to theme toggle
 - Shows unread count badge (red dot or number)
 - Clicking opens dropdown with recent notifications
-- "View all" links to `/account/notifications`
+- "View all" links to `/updates`
 - Polling every 30 seconds for unread count (no WebSocket needed)
 
 ---

@@ -80,6 +80,7 @@ Multimedia microblogging platform integrated into the community. Built on [Activ
 - **Engagement**: Like, reply, and follow other community members
 - **Markdown Editor**: Write/Preview tabs with live markdown preview
 - **ActivityPub**: Server-side markdown-to-HTML conversion for federation compatibility
+- **Voice Memos**: Send private voice messages to 1-8 recipients with auto-expiration after 7 days
 
 See [SOCIAL-ROADMAP.md](./SOCIAL-ROADMAP.md) for implementation details.
 

@@ -87,7 +87,7 @@ export default function NotificationDropdown() {
       <DropdownMenuSeparator />
       <div className="p-1">
         <Button variant="ghost" size="sm" className="w-full" asChild>
-          <Link href="/account/notifications">View all notifications</Link>
+          <Link href="/updates">View all updates</Link>
         </Button>
       </div>
     </DropdownMenuContent>

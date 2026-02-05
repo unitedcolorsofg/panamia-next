@@ -6,13 +6,11 @@
  *  - `cc` contains Public          -> 'unlisted'
  *  - has followers URL (no Public) -> 'private'
  *  - else                          -> 'direct'
- *
- * We only use 'public' | 'unlisted' | 'private' in the UI (direct is deferred).
  */
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
-export type PostVisibility = 'public' | 'unlisted' | 'private';
+export type PostVisibility = 'public' | 'unlisted' | 'private' | 'direct';
 
 export function getVisibilityFromRecipients(
   recipientTo: unknown,
@@ -23,5 +21,13 @@ export function getVisibilityFromRecipients(
 
   if (to.includes(PUBLIC)) return 'public';
   if (cc.includes(PUBLIC)) return 'unlisted';
-  return 'private';
+
+  // Private if to contains a followers URL, direct otherwise
+  // For simplicity, treat any non-empty to without Public as private
+  // unless cc is also empty (pure direct message)
+  if (to.length > 0 && to.some((url) => url.includes('/followers'))) {
+    return 'private';
+  }
+
+  return 'direct';
 }

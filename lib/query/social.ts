@@ -337,13 +337,15 @@ export const useCreatePost = () => {
       content: string;
       contentWarning?: string;
       inReplyTo?: string;
-      visibility?: 'public' | 'unlisted' | 'private';
+      visibility?: 'public' | 'unlisted' | 'private' | 'direct';
       attachments?: Array<{
         type: string;
         mediaType: string;
         url: string;
         name: string;
       }>;
+      /** For 'direct' visibility: array of recipient actor IDs (max 8) */
+      recipientActorIds?: string[];
     }) => {
       return axios.post('/api/social/statuses', data);
     },

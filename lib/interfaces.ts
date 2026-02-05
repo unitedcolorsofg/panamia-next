@@ -378,6 +378,7 @@ export interface SocialActorDisplay {
   id: string;
   username: string;
   domain: string;
+  uri?: string;
   name?: string | null;
   summary?: string | null;
   iconUrl?: string | null;

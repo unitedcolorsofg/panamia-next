@@ -166,7 +166,7 @@ export default function ReviewPage() {
         throw new Error(data.error);
       }
 
-      router.push('/account/notifications');
+      router.push('/updates');
     } catch (err: any) {
       setError(err.message || 'Failed to approve article');
       setSubmitting(false);
@@ -193,7 +193,7 @@ export default function ReviewPage() {
         throw new Error(data.error);
       }
 
-      router.push('/account/notifications');
+      router.push('/updates');
     } catch (err: any) {
       setError(err.message || 'Failed to request revision');
       setSubmitting(false);
@@ -244,7 +244,7 @@ export default function ReviewPage() {
           <CardContent>
             <p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
             <Button asChild variant="outline">
-              <Link href="/account/notifications">Back to Notifications</Link>
+              <Link href="/updates">Back to Updates</Link>
             </Button>
           </CardContent>
         </Card>
@@ -265,7 +265,7 @@ export default function ReviewPage() {
               <Badge>{article?.reviewedBy?.status}</Badge>
             </p>
             <Button asChild variant="outline">
-              <Link href="/account/notifications">Back to Notifications</Link>
+              <Link href="/updates">Back to Updates</Link>
             </Button>
           </CardContent>
         </Card>

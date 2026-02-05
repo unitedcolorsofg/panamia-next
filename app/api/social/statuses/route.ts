@@ -68,7 +68,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { content, contentWarning, inReplyTo, visibility, attachments } = body;
+  const {
+    content,
+    contentWarning,
+    inReplyTo,
+    visibility,
+    attachments,
+    recipientActorIds,
+  } = body;
 
   if (!content || typeof content !== 'string') {
     return NextResponse.json(
@@ -78,11 +85,29 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate visibility if provided
-  const validVisibilities = ['public', 'unlisted', 'private'] as const;
+  const validVisibilities = [
+    'public',
+    'unlisted',
+    'private',
+    'direct',
+  ] as const;
   const resolvedVisibility =
     visibility && validVisibilities.includes(visibility)
       ? visibility
       : 'unlisted';
+
+  // Direct messages require recipientActorIds
+  if (resolvedVisibility === 'direct') {
+    if (!Array.isArray(recipientActorIds) || recipientActorIds.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Direct messages require at least one recipient',
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   const result = await createStatus(
     profile.socialActor.id,
@@ -90,7 +115,8 @@ export async function POST(request: NextRequest) {
     contentWarning,
     inReplyTo,
     resolvedVisibility,
-    Array.isArray(attachments) ? attachments : undefined
+    Array.isArray(attachments) ? attachments : undefined,
+    resolvedVisibility === 'direct' ? recipientActorIds : undefined
   );
 
   if (!result.success) {
