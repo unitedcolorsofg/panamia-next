@@ -1,0 +1,22 @@
+# Paths within activities.next to monitor for upstream changes.
+# These are the library directories relevant to our federation layer.
+# Update this file as new imports from activities.next are added.
+#
+# Format: one path per line, relative to activities.next root.
+# Directories compare the full tree hash (any file change detected).
+# Files compare individual blob hashes.
+
+# Core ActivityPub activity handlers (Create, Follow, Like, etc.)
+lib/activities/
+
+# Data models (actor, status, attachment, follow, etc.)
+lib/models/
+
+# Backend services (HTTP signatures, delivery, WebFinger, etc.)
+lib/services/
+
+# Utility functions (text processing, signatures, etc.)
+lib/utils/
+
+# Shared constants and types
+lib/constants.ts
