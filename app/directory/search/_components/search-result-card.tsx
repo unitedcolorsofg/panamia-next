@@ -82,13 +82,15 @@ export function SearchResultCard({
           {/* Actions */}
           <div className="mt-auto flex flex-wrap gap-2">
             <Button variant="default" asChild>
-              <Link href={`/profile/${profile.slug}`}>
+              <Link href={`/profile/${profile.screenname}`}>
                 <User className="h-4 w-4" />
                 View Profile
               </Link>
             </Button>
-            {profile.slug && (
-              <DirectoryFollowButton profileSlug={profile.slug as string} />
+            {profile.screenname && (
+              <DirectoryFollowButton
+                screenname={profile.screenname as string}
+              />
             )}
           </div>
         </CardContent>

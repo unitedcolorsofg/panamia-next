@@ -94,6 +94,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Verify invitee has a profile with screenname
     const inviteeProfile = await prisma.profile.findUnique({
       where: { userId },
+      include: { user: { select: { screenname: true } } },
     });
     if (!inviteeProfile) {
       return NextResponse.json(
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (!inviteeProfile.slug) {
+    if (!inviteeProfile.user?.screenname) {
       return NextResponse.json(
         { success: false, error: 'User must have a screenname to be invited' },
         { status: 400 }

@@ -8,7 +8,7 @@ import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
  * Query Parameters:
  * - q: Search term (searches name, descriptions)
  * - email: Get single profile by email
- * - screenname: Get single profile by screenname/slug
+ * - screenname: Get single profile by screenname
  * - category: Filter by category (e.g., "art", "food")
  * - location: Filter by county (e.g., "miami_dade", "broward")
  * - mentors: If "true", only show mentor profiles
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     if (email) {
       const profile = await prisma.profile.findFirst({
         where: { email, active: true },
+        include: { user: { select: { screenname: true } } },
       });
 
       if (!profile) {
@@ -54,10 +55,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Single profile lookup by screenname
+    // Single profile lookup by screenname (via User)
     if (screenname) {
       const profile = await prisma.profile.findFirst({
-        where: { slug: screenname, active: true },
+        where: {
+          user: { screenname },
+          active: true,
+        },
+        include: { user: { select: { screenname: true } } },
       });
 
       if (!profile) {
@@ -77,6 +82,7 @@ export async function GET(request: NextRequest) {
     if (randomMode) {
       const allProfiles = await prisma.profile.findMany({
         where: { active: true },
+        include: { user: { select: { screenname: true } } },
       });
 
       // Shuffle and take limit
@@ -98,6 +104,7 @@ export async function GET(request: NextRequest) {
     // Directory listing with filters
     const profiles = await prisma.profile.findMany({
       where: { active: true },
+      include: { user: { select: { screenname: true } } },
       orderBy: { name: 'asc' },
     });
 
@@ -181,7 +188,7 @@ function transformProfile(p: any) {
   return {
     id: p.id,
     name: p.name,
-    screenname: p.slug,
+    screenname: p.user?.screenname || null,
     email: p.email,
     pronouns: p.pronouns,
     fiveWords: descriptions?.fiveWords,

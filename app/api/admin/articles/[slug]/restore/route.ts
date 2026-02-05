@@ -113,7 +113,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       data: {
         slug: updatedArticle.slug,
         status: updatedArticle.status,
-        restoredBy: currentProfile?.slug || currentProfile?.name || 'Admin',
+        restoredBy: currentProfile?.name || 'Admin',
         previousRemovalReason,
       },
     });

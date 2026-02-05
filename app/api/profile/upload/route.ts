@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
   const prisma = await getPrisma();
   const existingProfile = await prisma.profile.findUnique({
     where: { email },
+    include: { user: { select: { screenname: true } } },
   });
 
   if (!existingProfile) {
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const handle = existingProfile.slug;
+  // Use screenname for storage path, fall back to profile id
+  const handle = existingProfile.user?.screenname || existingProfile.id;
 
   try {
     // Use Web API formData() instead of busboy

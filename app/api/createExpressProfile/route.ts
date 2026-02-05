@@ -189,7 +189,6 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         name: name,
         email: email.toString().toLowerCase(),
-        slug: slugify(name),
         active: true, // Self-created profiles are active immediately
         status: status as any,
         locallyBased: locally_based || null,

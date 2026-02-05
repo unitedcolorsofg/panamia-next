@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPrisma } from '@/lib/prisma';
 import { unguardProfile } from '@/lib/profile';
 
-async function getProfile(slug: string) {
+async function getProfile(handle: string) {
   const prisma = await getPrisma();
-  return await prisma.profile.findUnique({ where: { slug } });
+  return await prisma.profile.findFirst({
+    where: { user: { screenname: handle } },
+  });
 }
 
 export async function GET(request: NextRequest) {

@@ -47,6 +47,7 @@ export const getSearch = async ({
     // Get all active profiles and shuffle in memory (for small datasets)
     const allProfiles = await prisma.profile.findMany({
       where: { active: true },
+      include: { user: { select: { screenname: true } } },
     });
 
     // Shuffle and take pageLimit
@@ -70,6 +71,7 @@ export const getSearch = async ({
     // Get all matching profiles and filter in memory for complex conditions
     const profiles = await prisma.profile.findMany({
       where: whereConditions,
+      include: { user: { select: { screenname: true } } },
       orderBy: { name: 'asc' },
     });
 
@@ -152,7 +154,7 @@ function transformProfile(p: any) {
     _id: p.id,
     id: p.id,
     name: p.name,
-    slug: p.slug,
+    screenname: p.user?.screenname || null,
     socials: p.socials,
     five_words: descriptions?.fiveWords,
     details: descriptions?.details,

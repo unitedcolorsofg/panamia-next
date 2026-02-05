@@ -65,30 +65,26 @@ export async function GET(request: NextRequest) {
         email: { in: emails },
         active: true,
       },
-      select: { email: true, verification: true, slug: true },
+      select: { email: true, verification: true },
     });
 
-    // Create email to profile map
+    // Create email to verification map
     const profileMap = new Map(
       profiles.map((p) => {
         const verification = p.verification as {
           panaVerified?: boolean;
         } | null;
-        return [
-          p.email,
-          { verified: verification?.panaVerified || false, slug: p.slug },
-        ];
+        return [p.email, { verified: verification?.panaVerified || false }];
       })
     );
 
-    // Format response
+    // Format response - screenname comes from User, not Profile
     const formattedUsers = users.map((u) => {
       const profileInfo = profileMap.get(u.email);
       return {
         _id: u.id,
         screenname: u.screenname,
         verified: profileInfo?.verified || false,
-        profileSlug: profileInfo?.slug,
       };
     });
 

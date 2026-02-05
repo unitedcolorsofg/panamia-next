@@ -38,7 +38,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       screenname: foundUser.screenname || null,
-      profileSlug: userProfile?.slug || null,
       verified: verification?.panaVerified || false,
     });
   } catch (error) {

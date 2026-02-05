@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       email: true,
       mentoring: true,
       availability: true,
-      slug: true,
+      user: { select: { screenname: true } },
       primaryImageId: true,
       primaryImageCdn: true,
       galleryImages: true,
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     email: p.email,
     mentoring: p.mentoring,
     availability: p.availability,
-    slug: p.slug,
+    screenname: p.user?.screenname || null,
     images: {
       primary: p.primaryImageId,
       primaryCDN: p.primaryImageCdn,

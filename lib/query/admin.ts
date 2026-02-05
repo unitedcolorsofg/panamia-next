@@ -23,7 +23,7 @@ export interface AdminSearchResultsInterface {
   score: number;
   score_details: {};
   name: String;
-  slug: String;
+  screenname: String | null;
   details: String;
   five_words: String;
   geo: {

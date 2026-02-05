@@ -31,9 +31,9 @@ export type CreateActorResult =
  * with a fresh RSA keypair for HTTP signatures.
  *
  * Prerequisites:
- * - Profile must exist
+ * - Profile must exist and be linked to a User
  * - Profile must have socialEligible = true
- * - Profile must have a slug (screenname)
+ * - User must have a screenname
  * - Profile must not already have an actor
  */
 export async function createActorForProfile(
@@ -41,10 +41,10 @@ export async function createActorForProfile(
 ): Promise<CreateActorResult> {
   const prisma = await getPrisma();
 
-  // Fetch the profile
+  // Fetch the profile with user
   const profile = await prisma.profile.findUnique({
     where: { id: profileId },
-    include: { socialActor: true },
+    include: { socialActor: true, user: true },
   });
 
   if (!profile) {
@@ -61,9 +61,12 @@ export async function createActorForProfile(
     };
   }
 
-  // Must have a screenname
-  if (!profile.slug) {
-    return { success: false, error: 'Profile must have a screenname (slug)' };
+  // Must have a linked user with screenname
+  if (!profile.user?.screenname) {
+    return {
+      success: false,
+      error: 'User must have a screenname to enable social features',
+    };
   }
 
   // Check if already has an actor
@@ -74,8 +77,8 @@ export async function createActorForProfile(
   // Generate keypair
   const { publicKey, privateKey } = generateActorKeyPair();
 
-  // Build URIs
-  const username = profile.slug;
+  // Build URIs - username comes from User.screenname
+  const username = profile.user.screenname;
   const domain = socialConfig.domain;
   const uri = getActorUrl(username);
 

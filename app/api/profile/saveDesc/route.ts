@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
 
   if (name) {
     updateData.name = name;
-    updateData.slug = slugify(name);
   }
 
   // Merge with existing descriptions

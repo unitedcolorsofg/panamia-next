@@ -105,6 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Verify reviewer has a profile with screenname
     const reviewerProfile = await prisma.profile.findUnique({
       where: { userId },
+      include: { user: { select: { screenname: true } } },
     });
     if (!reviewerProfile) {
       return NextResponse.json(
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (!reviewerProfile.slug) {
+    if (!reviewerProfile.user?.screenname) {
       return NextResponse.json(
         { success: false, error: 'Reviewer must have a screenname' },
         { status: 400 }

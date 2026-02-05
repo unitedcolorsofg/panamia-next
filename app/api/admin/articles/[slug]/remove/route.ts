@@ -128,7 +128,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         slug: updatedArticle.slug,
         status: updatedArticle.status,
         removedAt: updatedArticle.removedAt,
-        removedBy: currentProfile?.slug || currentProfile?.name || 'Admin',
+        removedBy: currentProfile?.name || 'Admin',
       },
     });
   } catch (error) {

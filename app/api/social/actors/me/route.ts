@@ -19,10 +19,10 @@ export async function GET() {
 
   const prisma = await getPrisma();
 
-  // Get user's profile with social actor
+  // Get user's profile with social actor, and user for screenname
   const profile = await prisma.profile.findFirst({
     where: { userId: session.user.id },
-    include: { socialActor: true },
+    include: { socialActor: true, user: true },
   });
 
   if (!profile) {
@@ -44,8 +44,8 @@ export async function GET() {
       actor: profile.socialActor,
       eligible: gateResult.allowed,
       reason: gateResult.reason,
-      // Include profile slug so UI can show what the username will be
-      profileSlug: profile.slug,
+      // Include screenname so UI can show what the social username will be
+      screenname: profile.user?.screenname,
     },
   });
 }

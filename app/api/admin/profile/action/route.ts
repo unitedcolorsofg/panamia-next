@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             {
               message: 'Profile has been set active',
               name: existingProfile.name,
-              handle: existingProfile.slug,
+              handle: null, // screenname is on User model
               total: totalProfiles,
             },
           ],
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
             {
               message: 'Profile has been declined',
               name: existingProfile.name,
-              handle: existingProfile.slug,
+              handle: null, // screenname is on User model
               total: totalProfiles,
             },
           ],

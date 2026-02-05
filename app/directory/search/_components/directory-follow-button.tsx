@@ -4,7 +4,7 @@ import { FollowButton } from '@/components/social';
 import { useMyActor, useActor } from '@/lib/query/social';
 
 interface DirectoryFollowButtonProps {
-  profileSlug: string;
+  screenname: string;
 }
 
 /**
@@ -12,11 +12,11 @@ interface DirectoryFollowButtonProps {
  * Only renders if both the viewer and the profile have social actors enabled.
  */
 export function DirectoryFollowButton({
-  profileSlug,
+  screenname,
 }: DirectoryFollowButtonProps) {
   const { data: myActorData, isLoading: myActorLoading } = useMyActor();
   const { data: targetActorData, isLoading: targetActorLoading } =
-    useActor(profileSlug);
+    useActor(screenname);
 
   // Don't render while loading
   if (myActorLoading || targetActorLoading) {
@@ -40,7 +40,7 @@ export function DirectoryFollowButton({
 
   return (
     <FollowButton
-      username={profileSlug}
+      username={screenname}
       isFollowing={targetActorData.isFollowing || false}
       variant="outline"
     />

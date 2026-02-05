@@ -58,12 +58,15 @@ function transformToLegacyFormat(profile: any) {
 }
 
 /**
- * Get profile by public handle/slug
+ * Get profile by public handle (User.screenname)
  * Returns profile in legacy format for page components
  */
 export const getPublicProfile = async (handle: string) => {
   const prisma = await getPrisma();
-  const profile = await prisma.profile.findUnique({ where: { slug: handle } });
+  const profile = await prisma.profile.findFirst({
+    where: { user: { screenname: handle } },
+    include: { user: { select: { screenname: true } } },
+  });
   if (!profile) return null;
   return transformToLegacyFormat(profile);
 };

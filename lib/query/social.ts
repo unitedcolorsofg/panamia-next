@@ -32,7 +32,7 @@ interface MyActorResponse {
   actor: SocialActor | null;
   eligible: boolean;
   reason?: string;
-  profileSlug?: string | null;
+  screenname?: string | null;
 }
 
 interface ActorsResponse {

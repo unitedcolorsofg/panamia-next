@@ -50,6 +50,7 @@ export async function createNotification(
   // Get actor info from profile for denormalization
   const actorProfile = await prisma.profile.findUnique({
     where: { userId: params.actorId },
+    include: { user: { select: { screenname: true } } },
   });
 
   // Determine expiration based on type and context
@@ -67,7 +68,7 @@ export async function createNotification(
       objectTitle: params.objectTitle,
       objectUrl: params.objectUrl,
       message: params.message,
-      actorScreenname: actorProfile?.slug,
+      actorScreenname: actorProfile?.user?.screenname,
       actorName: actorProfile?.name,
       read: false,
       emailSent: false,

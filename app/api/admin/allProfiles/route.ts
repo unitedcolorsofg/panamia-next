@@ -42,13 +42,14 @@ export async function GET(request: NextRequest) {
 
     const allActiveProfiles = await prisma.profile.findMany({
       where: { active: true },
+      include: { user: { select: { screenname: true } } },
     });
 
     const profiles = allActiveProfiles.map((guardedProfile) => {
       return {
         name: guardedProfile.name,
         email: guardedProfile.email,
-        handle: guardedProfile.slug,
+        handle: guardedProfile.user?.screenname || null,
         phone: guardedProfile.phoneNumber || '',
       };
     });

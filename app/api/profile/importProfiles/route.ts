@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         email,
-        slug,
         active: true,
         descriptions: descriptions as any,
         socials: socials || null,

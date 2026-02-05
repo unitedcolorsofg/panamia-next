@@ -49,7 +49,7 @@ export function SocialEligibilityGate({
       }
     };
 
-    const profileSlug = data.profileSlug;
+    const screenname = data.screenname;
 
     return (
       <Card className="mx-auto max-w-md">
@@ -64,12 +64,12 @@ export function SocialEligibilityGate({
             Post updates, follow others, and join the conversation.
           </p>
 
-          {profileSlug && (
+          {screenname && (
             <div className="bg-muted/50 rounded-lg p-3 text-center">
               <p className="text-muted-foreground mb-1 text-sm">
                 Your social handle will be:
               </p>
-              <p className="font-mono font-medium">@{profileSlug}</p>
+              <p className="font-mono font-medium">@{screenname}</p>
             </div>
           )}
 

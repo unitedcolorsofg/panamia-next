@@ -33,7 +33,7 @@ export const getAdminSearch = async ({
     select: {
       id: true,
       name: true,
-      slug: true,
+      user: { select: { screenname: true } },
       socials: true,
       descriptions: true,
       primaryImageCdn: true,
@@ -52,7 +52,7 @@ export const getAdminSearch = async ({
       _id: p.id,
       id: p.id,
       name: p.name,
-      slug: p.slug,
+      screenname: p.user?.screenname || null,
       socials: p.socials,
       five_words: descriptions?.fiveWords,
       details: descriptions?.details,
