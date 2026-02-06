@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { socialConfig, getActorUrl } from '@/lib/federation';
+import { getPrisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -44,6 +45,17 @@ export async function GET(request: NextRequest) {
   const actor = await getActorByScreenname(username);
 
   if (!actor) {
+    // Check if this is a historical screenname (user changed their screenname)
+    const prisma = await getPrisma();
+    const historical = await prisma.screennameHistory.findFirst({
+      where: { screenname: { equals: username, mode: 'insensitive' } },
+    });
+
+    if (historical) {
+      // Return 410 Gone - actor moved/deleted
+      return new NextResponse(null, { status: 410 });
+    }
+
     return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
   }
 

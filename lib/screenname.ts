@@ -113,6 +113,7 @@ export function validateScreenname(name: string): ScreennameValidationResult {
 /**
  * Checks if a screenname is available in the database.
  * Uses case-insensitive comparison.
+ * Also checks screenname history to prevent claiming old names.
  */
 export async function isScreennameAvailable(
   name: string,
@@ -120,15 +121,35 @@ export async function isScreennameAvailable(
 ): Promise<boolean> {
   const prisma = await getPrisma();
 
-  // PostgreSQL case-insensitive search
-  const existing = await prisma.user.findFirst({
+  // PostgreSQL case-insensitive search - check current users
+  const existingUser = await prisma.user.findFirst({
     where: {
       screenname: { equals: name, mode: 'insensitive' },
       ...(excludeEmail ? { NOT: { email: excludeEmail } } : {}),
     },
   });
 
-  return !existing;
+  if (existingUser) return false;
+
+  // Check screenname history (cannot claim others' old names)
+  // Allow user to reclaim their OWN old screenname
+  const historical = await prisma.screennameHistory.findFirst({
+    where: {
+      screenname: { equals: name, mode: 'insensitive' },
+      // Allow user to reclaim their own old screenname
+      ...(excludeEmail
+        ? {
+            NOT: {
+              user: { email: { equals: excludeEmail, mode: 'insensitive' } },
+            },
+          }
+        : {}),
+    },
+  });
+
+  if (historical) return false;
+
+  return true;
 }
 
 /**

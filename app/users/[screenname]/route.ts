@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { formatPublicKeyForActor } from '@/lib/federation/crypto/keys';
 import { socialConfig } from '@/lib/federation';
+import { getPrisma } from '@/lib/prisma';
 
 const ACTIVITY_JSON_TYPES = [
   'application/activity+json',
@@ -42,6 +43,17 @@ export async function GET(
   const actor = await getActorByScreenname(screenname);
 
   if (!actor) {
+    // Check if this is a historical screenname (user changed their screenname)
+    const prisma = await getPrisma();
+    const historical = await prisma.screennameHistory.findFirst({
+      where: { screenname: { equals: screenname, mode: 'insensitive' } },
+    });
+
+    if (historical) {
+      // Return 410 Gone - actor moved/deleted (ActivityPub standard)
+      return new NextResponse(null, { status: 410 });
+    }
+
     return NextResponse.json({ error: 'Actor not found' }, { status: 404 });
   }
 

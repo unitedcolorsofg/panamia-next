@@ -108,7 +108,17 @@ export default function UserEditPage() {
     return () => clearTimeout(timer);
   }, [sessionScreenname, userData?.screenname, checkScreennameAvailability]);
 
-  const updateUserSession = async () => {
+  const [showScreennameConfirmDialog, setShowScreennameConfirmDialog] =
+    useState(false);
+  const [pendingScreennameChange, setPendingScreennameChange] = useState(false);
+
+  // Check if screenname is actually changing
+  const isScreennameChanging =
+    sessionScreenname &&
+    userData?.screenname &&
+    sessionScreenname.toLowerCase() !== userData.screenname.toLowerCase();
+
+  const updateUserSession = async (skipScreennameConfirm = false) => {
     // Validate screenname before saving if it changed
     if (
       sessionScreenname &&
@@ -119,8 +129,15 @@ export default function UserEditPage() {
       return;
     }
 
+    // Show confirmation dialog if changing screenname (and user has existing one)
+    if (isScreennameChanging && !skipScreennameConfirm) {
+      setShowScreennameConfirmDialog(true);
+      return;
+    }
+
     setIsLoading(true);
     setMessage('');
+    setPendingScreennameChange(false);
     try {
       const response = await saveUserSession({
         name: sessionName,
@@ -133,12 +150,24 @@ export default function UserEditPage() {
       if (response) {
         setUserData(response);
       }
-    } catch (error) {
-      setMessage('Failed to update settings. Please try again.');
+    } catch (error: unknown) {
+      // Check if it's a rate limit error
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('You can change your screenname again on')) {
+        setMessage(errorMessage);
+      } else {
+        setMessage('Failed to update settings. Please try again.');
+      }
       console.error(error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConfirmScreennameChange = () => {
+    setShowScreennameConfirmDialog(false);
+    updateUserSession(true);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -350,6 +379,66 @@ export default function UserEditPage() {
                 </div>
               )}
             </form>
+
+            {/* Screenname Change Confirmation Dialog */}
+            <AlertDialog
+              open={showScreennameConfirmDialog}
+              onOpenChange={setShowScreennameConfirmDialog}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Screenname Change</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>
+                      <strong>Current screenname:</strong> @
+                      {userData?.screenname}
+                    </p>
+                    <p>
+                      <strong>New screenname:</strong> @{sessionScreenname}
+                    </p>
+                    <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-950">
+                      <div className="flex gap-2">
+                        <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-2 text-sm">
+                          <p className="font-semibold text-amber-800 dark:text-amber-200">
+                            Important Information
+                          </p>
+                          <ul className="list-disc space-y-1 pl-5 text-amber-700 dark:text-amber-300">
+                            <li>
+                              <strong>
+                                All timeline posts and direct messages will be
+                                deleted.
+                              </strong>
+                            </li>
+                            <li>
+                              Contributed articles will be automatically updated
+                              with your new screenname.
+                            </li>
+                            <li>
+                              Your old screenname will be reserved and cannot be
+                              claimed by others.
+                            </li>
+                            <li>
+                              You can only change your screenname once every 90
+                              days.
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleConfirmScreennameChange}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    Confirm Change
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
 

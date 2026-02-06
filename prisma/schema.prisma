@@ -43,6 +43,7 @@ model User {
   emailVerified           DateTime?
   name                    String?
   screenname              String?     @unique
+  lastScreennameChange    DateTime?   // Rate limit: once per 90 days
   role                    String      @default("user")
   accountType             AccountType @default(personal)
   lockedAt                DateTime?
@@ -63,6 +64,7 @@ model User {
   mentorSessions        MentorSession[]       @relation("MentorSessions")
   menteeSessions        MentorSession[]       @relation("MenteeSessions")
   articleAnnouncements  ArticleAnnouncement[]
+  screennameHistory     ScreennameHistory[]
 
   @@map("users")
 }
@@ -885,4 +887,28 @@ model SocialTag {
   @@index([statusId])
   @@index([type, name])
   @@map("social_tags")
+}
+
+// =============================================================================
+// SCREENNAME HISTORY
+// =============================================================================
+// Tracks old screennames to prevent reuse by other users.
+// When a user changes screenname, old one is archived here.
+
+model ScreennameHistory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // The old screenname (case-insensitive unique constraint)
+  screenname String @unique
+
+  // User who owned this screenname
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Pointer to new screenname at time of change (for potential future redirect)
+  redirectTo String?
+
+  @@index([userId])
+  @@map("screenname_history")
 }
