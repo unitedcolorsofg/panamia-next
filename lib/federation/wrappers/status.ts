@@ -49,6 +49,14 @@ const notExpiredFilter: Prisma.SocialStatusWhereInput = {
   OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
 };
 
+/** Location object for ActivityPub Place */
+export interface StatusLocation {
+  type: 'Place';
+  latitude: number;
+  longitude: number;
+  name?: string;
+}
+
 /**
  * Create a new status (post)
  *
@@ -59,6 +67,7 @@ const notExpiredFilter: Prisma.SocialStatusWhereInput = {
  * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' | 'direct' (default: 'unlisted')
  * @param attachments - Optional array of uploaded media metadata
  * @param recipientActorIds - For 'direct' visibility: array of recipient actor IDs (max 8)
+ * @param location - Optional geolocation (ActivityPub Place object)
  */
 export async function createStatus(
   actorId: string,
@@ -72,7 +81,8 @@ export async function createStatus(
     url: string;
     name?: string;
   }>,
-  recipientActorIds?: string[]
+  recipientActorIds?: string[],
+  location?: StatusLocation
 ): Promise<CreateStatusResult> {
   const prisma = await getPrisma();
 
@@ -198,7 +208,16 @@ export async function createStatus(
 
   const updatedStatus = await prisma.socialStatus.update({
     where: { id: status.id },
-    data: { uri, url, recipientTo, recipientCc, expiresAt },
+    data: {
+      uri,
+      url,
+      recipientTo,
+      recipientCc,
+      expiresAt,
+      location: location
+        ? (location as unknown as Prisma.InputJsonValue)
+        : undefined,
+    },
   });
 
   // Create attachment records if provided

@@ -731,6 +731,10 @@ model SocialStatus {
   // TODO: Implement hard delete via Vercel Pro cron to clean up blob storage
   expiresAt DateTime?
 
+  // Geolocation (ActivityPub Place object)
+  // { type: "Place", latitude: number, longitude: number, name?: string }
+  location Json?
+
   // Counters (denormalized)
   repliesCount   Int @default(0)
   likesCount     Int @default(0)

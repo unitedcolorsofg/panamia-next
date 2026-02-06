@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
     visibility,
     attachments,
     recipientActorIds,
+    location,
   } = body;
 
   if (!content || typeof content !== 'string') {
@@ -109,6 +110,27 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Validate location if provided
+  let validatedLocation = undefined;
+  if (location) {
+    if (
+      typeof location === 'object' &&
+      typeof location.latitude === 'number' &&
+      typeof location.longitude === 'number' &&
+      location.latitude >= -90 &&
+      location.latitude <= 90 &&
+      location.longitude >= -180 &&
+      location.longitude <= 180
+    ) {
+      validatedLocation = {
+        type: 'Place' as const,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        name: typeof location.name === 'string' ? location.name : undefined,
+      };
+    }
+  }
+
   const result = await createStatus(
     profile.socialActor.id,
     content,
@@ -116,7 +138,8 @@ export async function POST(request: NextRequest) {
     inReplyTo,
     resolvedVisibility,
     Array.isArray(attachments) ? attachments : undefined,
-    resolvedVisibility === 'direct' ? recipientActorIds : undefined
+    resolvedVisibility === 'direct' ? recipientActorIds : undefined,
+    validatedLocation
   );
 
   if (!result.success) {

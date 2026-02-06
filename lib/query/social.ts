@@ -346,6 +346,12 @@ export const useCreatePost = () => {
       }>;
       /** For 'direct' visibility: array of recipient actor IDs (max 8) */
       recipientActorIds?: string[];
+      /** Optional geolocation */
+      location?: {
+        latitude: number;
+        longitude: number;
+        name?: string;
+      };
     }) => {
       return axios.post('/api/social/statuses', data);
     },

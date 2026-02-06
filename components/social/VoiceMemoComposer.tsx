@@ -16,6 +16,7 @@ import {
   Loader2,
   X,
   UserCircle,
+  MapPin,
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
 
@@ -60,6 +61,13 @@ export function VoiceMemoComposer({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [uploading, setUploading] = useState(false);
+
+  // Geolocation
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -196,6 +204,55 @@ export function VoiceMemoComposer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const requestLocation = async () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: 'Geolocation not supported',
+        description: 'Your browser does not support geolocation.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setIsGettingLocation(false);
+        toast({
+          title: 'Location added',
+          description: 'Your location has been attached to this message.',
+        });
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        let message = 'Unable to get your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          message =
+            'Location access was denied. Please enable it in your browser settings.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          message = 'Location information is unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          message = 'Location request timed out.';
+        }
+        toast({
+          title: 'Location error',
+          description: message,
+          variant: 'destructive',
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const removeLocation = () => {
+    setLocation(null);
+  };
+
   const handleSubmit = async () => {
     if (recipients.length === 0) {
       toast({
@@ -245,11 +302,13 @@ export function VoiceMemoComposer({
         visibility: 'direct',
         recipientActorIds: recipients.map((r) => r.id),
         attachments: attachment ? [attachment] : undefined,
+        location: location || undefined,
       });
 
       // Reset state
       setContent('');
       discardRecording();
+      setLocation(null);
       if (!initialRecipient) {
         setRecipients([]);
       }
@@ -381,7 +440,7 @@ export function VoiceMemoComposer({
         className="resize-y font-mono"
       />
 
-      {/* Recording controls */}
+      {/* Recording controls and location */}
       <div className="space-y-3">
         {!audioBlob ? (
           <div className="flex items-center gap-3">
@@ -403,15 +462,48 @@ export function VoiceMemoComposer({
                 </span>
               </>
             ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={startRecording}
-              >
-                <Mic className="mr-1 h-4 w-4" />
-                Record Voice Memo
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startRecording}
+                >
+                  <Mic className="mr-1 h-4 w-4" />
+                  Record Voice Memo
+                </Button>
+                {!location ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={requestLocation}
+                    disabled={isGettingLocation}
+                  >
+                    {isGettingLocation ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <MapPin className="mr-1 h-4 w-4" />
+                    )}
+                    Add Location
+                  </Button>
+                ) : (
+                  <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                    <span className="text-muted-foreground">
+                      {location.latitude.toFixed(4)},{' '}
+                      {location.longitude.toFixed(4)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removeLocation}
+                      className="text-muted-foreground hover:text-foreground ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -432,6 +524,41 @@ export function VoiceMemoComposer({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+            </div>
+            {/* Location controls when audio is recorded */}
+            <div className="flex items-center gap-2">
+              {!location ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={requestLocation}
+                  disabled={isGettingLocation || isSubmitting}
+                >
+                  {isGettingLocation ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <MapPin className="mr-1 h-4 w-4" />
+                  )}
+                  Add Location
+                </Button>
+              ) : (
+                <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
+                  <MapPin className="h-4 w-4 text-green-600" />
+                  <span className="text-muted-foreground">
+                    {location.latitude.toFixed(4)},{' '}
+                    {location.longitude.toFixed(4)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeLocation}
+                    className="text-muted-foreground hover:text-foreground ml-1"
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
