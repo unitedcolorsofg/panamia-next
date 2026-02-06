@@ -41,12 +41,39 @@ export async function POST(request: NextRequest) {
   }
 
   const prisma = await getPrisma();
+  const newScreenname = screenname.trim();
 
   const updatedUser = await prisma.user.update({
     where: { id: session.user.id },
-    data: { screenname: screenname.trim() },
-    select: { screenname: true },
+    data: { screenname: newScreenname },
+    select: { screenname: true, profile: { select: { socialActor: true } } },
   });
+
+  // Sync screenname to SocialActor if one exists
+  if (updatedUser.profile?.socialActor) {
+    const actor = updatedUser.profile.socialActor;
+    // Import socialConfig dynamically to avoid circular deps
+    const {
+      socialConfig,
+      getActorUrl,
+      getInboxUrl,
+      getOutboxUrl,
+      getFollowersUrl,
+      getFollowingUrl,
+    } = await import('@/lib/federation');
+
+    await prisma.socialActor.update({
+      where: { id: actor.id },
+      data: {
+        username: newScreenname,
+        uri: getActorUrl(newScreenname),
+        inboxUrl: getInboxUrl(newScreenname),
+        outboxUrl: getOutboxUrl(newScreenname),
+        followersUrl: getFollowersUrl(newScreenname),
+        followingUrl: getFollowingUrl(newScreenname),
+      },
+    });
+  }
 
   return NextResponse.json({
     success: true,
