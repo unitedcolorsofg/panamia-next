@@ -350,10 +350,7 @@ export default function AdminArticlesPage() {
                           asChild
                           className="gap-1"
                         >
-                          <Link
-                            href={`/articles/${article.slug}`}
-                            target="_blank"
-                          >
+                          <Link href={`/a/${article.slug}`} target="_blank">
                             <ExternalLink className="h-4 w-4" />
                             View
                           </Link>

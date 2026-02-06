@@ -132,7 +132,7 @@ function ArticleCard({ article }: { article: Article }) {
           <div className="flex shrink-0 gap-2">
             {canEdit && (
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/articles/${article.slug}/edit`}>
+                <Link href={`/a/${article.slug}/edit`}>
                   <Edit3 className="mr-1 h-4 w-4" />
                   Edit
                 </Link>
@@ -140,7 +140,7 @@ function ArticleCard({ article }: { article: Article }) {
             )}
             {article.status === 'published' && (
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/articles/${article.slug}`}>
+                <Link href={`/a/${article.slug}`}>
                   <FileText className="mr-1 h-4 w-4" />
                   View
                 </Link>

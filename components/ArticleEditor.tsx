@@ -180,9 +180,7 @@ export default function ArticleEditor({
       } else {
         // Default save behavior
         const url =
-          mode === 'create'
-            ? '/api/articles'
-            : `/api/articles/${initialData.slug}`;
+          mode === 'create' ? '/api/articles' : `/api/a/${initialData.slug}`;
         const method = mode === 'create' ? 'POST' : 'PATCH';
 
         const response = await fetch(url, {
@@ -199,7 +197,7 @@ export default function ArticleEditor({
 
         // Redirect to edit page for new articles, or stay on page for edits
         if (mode === 'create') {
-          router.push(`/articles/${result.data.slug}/edit`);
+          router.push(`/a/${result.data.slug}/edit`);
         }
       }
     } catch (err: any) {
@@ -220,7 +218,7 @@ export default function ArticleEditor({
 
     try {
       const response = await fetch(
-        `/api/articles/${initialData.slug}/coauthors/invite`,
+        `/api/a/${initialData.slug}/coauthors/invite`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -260,7 +258,7 @@ export default function ArticleEditor({
 
     try {
       const response = await fetch(
-        `/api/articles/${initialData.slug}/review/request`,
+        `/api/a/${initialData.slug}/review/request`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -293,10 +291,9 @@ export default function ArticleEditor({
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/articles/${initialData.slug}/publish`,
-        { method: 'POST' }
-      );
+      const response = await fetch(`/api/a/${initialData.slug}/publish`, {
+        method: 'POST',
+      });
 
       const data = await response.json();
 
@@ -305,7 +302,7 @@ export default function ArticleEditor({
       }
 
       setArticleStatus('published');
-      router.push(`/articles/${initialData.slug}`);
+      router.push(`/a/${initialData.slug}`);
     } catch (err: any) {
       setError(err.message || 'Failed to publish article');
     } finally {
@@ -497,7 +494,7 @@ export default function ArticleEditor({
                     {inReplyTo.title}
                   </div>
                   <a
-                    href={`/articles/${inReplyTo.slug}`}
+                    href={`/a/${inReplyTo.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline dark:text-blue-400"

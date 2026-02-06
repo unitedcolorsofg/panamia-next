@@ -52,7 +52,7 @@ export default function ArticleCard({
     : author.name || 'Anonymous';
 
   return (
-    <Link href={`/articles/${slug}`}>
+    <Link href={`/a/${slug}`}>
       <Card className="group h-full overflow-hidden transition-shadow hover:shadow-lg">
         {coverImage && (
           <div className="relative aspect-video overflow-hidden">
