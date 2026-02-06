@@ -108,11 +108,18 @@ export const getProfileByUserId = async (userId: string) => {
 export const ensureProfile = async (userId: string, email?: string) => {
   const prisma = await getPrisma();
 
-  // First, try to find profile by userId
-  const userProfile = await prisma.profile.findUnique({ where: { userId } });
+  // First, try to find profile by userId (including user for screenname)
+  const userProfile = await prisma.profile.findUnique({
+    where: { userId },
+    include: { user: { select: { screenname: true } } },
+  });
 
   if (userProfile) {
-    return userProfile;
+    // Add screenname to returned profile for legacy compatibility
+    return {
+      ...userProfile,
+      screenname: userProfile.user?.screenname,
+    };
   }
 
   // If email provided, try to claim an unclaimed profile
@@ -125,10 +132,15 @@ export const ensureProfile = async (userId: string, email?: string) => {
     });
 
     if (unclaimedProfile) {
-      return await prisma.profile.update({
+      const claimed = await prisma.profile.update({
         where: { id: unclaimedProfile.id },
         data: { userId },
+        include: { user: { select: { screenname: true } } },
       });
+      return {
+        ...claimed,
+        screenname: claimed.user?.screenname,
+      };
     }
   }
 

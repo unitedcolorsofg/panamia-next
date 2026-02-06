@@ -126,7 +126,7 @@ export interface ProfileInterface {
   userId?: string; // PostgreSQL User.id (cuid format) - links to auth system
   email: string;
   name: string;
-  slug: string;
+  screenname?: string; // From User.screenname
   active?: Boolean;
   status?: ProfileStatusInterface;
   locally_based: string;

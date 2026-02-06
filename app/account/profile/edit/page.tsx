@@ -26,11 +26,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 const SpanBlank = () => {
-  return <span className="italic text-gray-400">blank</span>;
+  return <span className="text-gray-400 italic">blank</span>;
 };
 
 const SpanUnselected = () => {
-  return <span className="italic text-gray-400">unselected</span>;
+  return <span className="text-gray-400 italic">unselected</span>;
 };
 
 export default function AccountProfileEdit() {
@@ -103,9 +103,9 @@ export default function AccountProfileEdit() {
               <CheckSquare className="h-5 w-5" />
               Profile Status
             </CardTitle>
-            {profileData.slug && (
+            {profileData.screenname && (
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/profile/${profileData.slug}`}>
+                <Link href={`/profile/${profileData.screenname}`}>
                   <ExternalLink className="mr-2 h-4 w-4" />
                   View
                 </Link>
@@ -188,15 +188,16 @@ export default function AccountProfileEdit() {
               <SpanBlank />
             )}
           </div>
-          <div className="mt-4 rounded-md bg-gray-50 p-3 text-sm">
-            <div className="font-medium">
-              handle: /profile/{profileData?.slug}
+          {profileData?.screenname && (
+            <div className="mt-4 rounded-md bg-gray-50 p-3 text-sm dark:bg-gray-800">
+              <div className="font-medium">
+                handle: /profile/{profileData.screenname}
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">
+                This is the URL for your profile
+              </div>
             </div>
-            <div className="text-gray-600">
-              This is the url for your profile, please contact us if it is
-              incorrect
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -436,7 +437,7 @@ export default function AccountProfileEdit() {
           <p>
             {(profileData?.categories &&
               listSelectedCategories(profileData?.categories)) || (
-              <small className="italic text-gray-400">None</small>
+              <small className="text-gray-400 italic">None</small>
             )}
           </p>
         </CardContent>
