@@ -1,7 +1,7 @@
 /**
  * NotificationFlower Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * ActivityPub-shaped notification button (Pana flower icon)
  *
  * Displays in the header with unread notification count badge.

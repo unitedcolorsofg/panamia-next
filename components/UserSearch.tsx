@@ -1,7 +1,7 @@
 /**
  * UserSearch Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/app/api/v1/accounts/search/
  * Search and select users by screenname for invitations
  */
 

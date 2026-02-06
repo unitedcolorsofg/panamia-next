@@ -4,7 +4,7 @@
  * Combines notification history with voice memo composer.
  * Voice memos are posted to the social timeline.
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/timelines/
  */
 
 'use client';

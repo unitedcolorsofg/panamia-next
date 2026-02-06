@@ -1,7 +1,7 @@
 /**
  * ArticleEditor Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Markdown editor with live preview for article creation/editing
  */
 

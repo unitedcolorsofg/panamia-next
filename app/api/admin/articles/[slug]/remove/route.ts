@@ -1,7 +1,7 @@
 /**
  * Admin Article Remove API
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Admin-only endpoint to remove (soft delete) a published article
  */
 

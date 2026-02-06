@@ -1,7 +1,7 @@
 /**
  * Article Type RSS Feed
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/timelines/
  * RSS feed of articles by type (business_update or community_commentary)
  */
 

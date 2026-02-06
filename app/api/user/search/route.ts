@@ -1,7 +1,7 @@
 /**
  * User Search API - Search users by screenname
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/app/api/v1/accounts/search/
  * Used for co-author and reviewer invitations
  */
 

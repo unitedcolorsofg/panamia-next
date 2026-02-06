@@ -1,7 +1,7 @@
 /**
  * Resolve Review Comment API
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Mark a review comment as resolved
  */
 

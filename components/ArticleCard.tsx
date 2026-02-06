@@ -1,7 +1,7 @@
 /**
  * ArticleCard Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Preview card for article listings
  */
 

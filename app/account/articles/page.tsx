@@ -1,7 +1,7 @@
 /**
  * My Articles Dashboard
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Author's article management dashboard
  */
 

@@ -210,7 +210,7 @@ export interface Pagination {
 }
 
 /**
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/database/types/
  * ActivityPub-shaped notification for future federation
  */
 export type NotificationActivityType =
@@ -266,7 +266,7 @@ export interface NotificationPreferencesInterface {
 /**
  * Article Types
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/database/types/
  * Article schema designed for future ActivityPub federation
  */
 export type ArticleType = 'business_update' | 'community_commentary';

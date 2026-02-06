@@ -1,7 +1,7 @@
 /**
  * ArticleSearch Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Search and select articles for "in reply to" functionality
  */
 

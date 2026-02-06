@@ -100,7 +100,7 @@ This mirrors ActivityPub's Actor → Activity → Object model.
 /**
  * Notification Schema
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * See: lib/database/types/ for comparable patterns
  *
  * This schema is intentionally "ActivityPub-shaped" to enable
@@ -263,7 +263,7 @@ export const Notification =
 /**
  * Add to existing user model
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * See: lib/database/sql/accounts.ts for email preferences pattern
  */
 
@@ -328,7 +328,7 @@ Build the foundation that articles, mentoring, and future features will use.
 /**
  * lib/notifications.ts
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * See: lib/activities/actions/ for comparable patterns
  */
 
@@ -355,7 +355,7 @@ interface CreateNotificationParams {
 /**
  * Create a notification and optionally send email
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * Maps to ActivityPub Activity creation pattern
  */
 export async function createNotification(
@@ -494,7 +494,7 @@ All notification-related code MUST include upstream reference comments:
 
 ```typescript
 /**
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * See: [specific file path] for comparable pattern
  *
  * This [component/function/schema] is designed to align with

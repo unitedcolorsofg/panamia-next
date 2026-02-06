@@ -1,7 +1,7 @@
 /**
  * Articles API - Create and List
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Article management for community publishing
  */
 

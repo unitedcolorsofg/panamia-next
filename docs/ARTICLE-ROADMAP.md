@@ -241,7 +241,7 @@ All notification code MUST include upstream reference comments:
 
 ```typescript
 /**
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * See: [specific file path] for comparable pattern
  */
 ```

@@ -1,7 +1,7 @@
 /**
  * Notification Helper Functions
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * See: lib/activities/actions/ for comparable patterns
  *
  * This module provides functions to create, query, and manage notifications
@@ -39,7 +39,7 @@ export interface CreateNotificationParams {
 /**
  * Create a notification
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * Maps to ActivityPub Activity creation pattern
  */
 export async function createNotification(
@@ -207,7 +207,7 @@ export async function cleanupExpiredNotifications(): Promise<number> {
 /**
  * Determine notification expiration based on type and context
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * Retention policy aligned with ActivityPub patterns
  */
 function getExpirationDate(

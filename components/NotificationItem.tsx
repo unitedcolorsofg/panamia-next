@@ -1,7 +1,7 @@
 /**
  * NotificationItem Component
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
  * ActivityPub-shaped notification display
  */
 

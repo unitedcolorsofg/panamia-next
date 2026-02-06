@@ -1,7 +1,7 @@
 /**
  * Article Helper Functions
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Utilities for article creation, slug generation, and validation
  */
 

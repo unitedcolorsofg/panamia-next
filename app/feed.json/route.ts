@@ -1,7 +1,7 @@
 /**
  * JSON Feed
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/services/timelines/
  * JSON Feed format for published articles
  */
 

@@ -1,7 +1,7 @@
 /**
  * Admin Articles API - List All Articles
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Admin-only endpoint to view all articles regardless of status
  */
 

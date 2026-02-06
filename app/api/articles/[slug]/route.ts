@@ -1,7 +1,7 @@
 /**
  * Single Article API - Read, Update, Delete
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Individual article management
  */
 

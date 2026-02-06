@@ -111,7 +111,7 @@ model VerificationToken {
 // Notifications
 // =============================================================================
 // ActivityPub-shaped notification system
-// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+// UPSTREAM REFERENCE: external/activities.next/lib/database/types/
 //
 // Note: actor/target reference PostgreSQL user IDs (cuid format)
 // object references MongoDB ObjectIds as strings (articles, sessions, etc.)
@@ -194,7 +194,7 @@ model Notification {
 // =============================================================================
 // Articles
 // =============================================================================
-// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+// UPSTREAM REFERENCE: external/activities.next/lib/database/types/
 // Schema designed for future ActivityPub federation as Note/Article objects
 //
 // Note: authorId references PostgreSQL user ID (cuid format)
@@ -628,7 +628,7 @@ model IntakeForm {
 // Native social features with ActivityPub federation capability.
 // Users experience a native social timeline; federation happens behind the scenes.
 //
-// UPSTREAM REFERENCE: https://github.com/llun/activities.next
+// UPSTREAM REFERENCE: external/activities.next/lib/database/types/
 // See: docs/SOCIAL-ROADMAP.md for architecture details
 //
 // All social tables prefixed with 'social_' to avoid conflicts.

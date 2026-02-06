@@ -1,7 +1,7 @@
 /**
  * Review Request API
  *
- * UPSTREAM REFERENCE: https://github.com/llun/activities.next
+ * UPSTREAM REFERENCE: external/activities.next/lib/activities/actions/
  * Request a review for an article
  */
 
