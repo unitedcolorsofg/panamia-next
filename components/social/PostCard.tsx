@@ -12,7 +12,7 @@ import { AttachmentGrid } from './AttachmentGrid';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 
 interface PostCardProps {
   status: SocialStatusDisplay;
@@ -127,6 +127,22 @@ export function PostCard({
             {/* Attachments */}
             {status.attachments && status.attachments.length > 0 && (
               <AttachmentGrid attachments={status.attachments} />
+            )}
+
+            {/* Location */}
+            {status.location && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${status.location.latitude},${status.location.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
+              >
+                <MapPin className="h-4 w-4" />
+                <span>
+                  {status.location.name ||
+                    `${status.location.latitude.toFixed(4)}, ${status.location.longitude.toFixed(4)}`}
+                </span>
+              </a>
             )}
 
             {/* Actions */}

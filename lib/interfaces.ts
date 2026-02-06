@@ -372,6 +372,12 @@ export interface SocialStatusDisplay {
     width?: number | null;
     height?: number | null;
   }>;
+  location?: {
+    type: 'Place';
+    latitude: number;
+    longitude: number;
+    name?: string;
+  } | null;
 }
 
 export interface SocialActorDisplay {
