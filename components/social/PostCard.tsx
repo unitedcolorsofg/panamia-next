@@ -130,20 +130,27 @@ export function PostCard({
             )}
 
             {/* Location */}
-            {status.location && (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${status.location.latitude},${status.location.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
-              >
-                <MapPin className="h-4 w-4" />
-                <span>
-                  {status.location.name ||
-                    `${status.location.latitude.toFixed(4)}, ${status.location.longitude.toFixed(4)}`}
+            {status.location &&
+              (status.location.latitude && status.location.longitude ? (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${status.location.latitude},${status.location.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>
+                    {status.location.name ||
+                      `${status.location.latitude.toFixed(4)}, ${status.location.longitude.toFixed(4)}`}
+                    {status.location.precision === 'general' && ' (approx)'}
+                  </span>
+                </a>
+              ) : status.location.name ? (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  <MapPin className="h-4 w-4" />
+                  <span>{status.location.name}</span>
                 </span>
-              </a>
-            )}
+              ) : null)}
 
             {/* Actions */}
             <div className="mt-3">

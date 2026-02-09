@@ -113,21 +113,29 @@ export async function POST(request: NextRequest) {
 
   // Validate location if provided
   let validatedLocation = undefined;
-  if (location) {
-    if (
-      typeof location === 'object' &&
+  if (location && typeof location === 'object') {
+    const hasCoordinates =
       typeof location.latitude === 'number' &&
       typeof location.longitude === 'number' &&
       location.latitude >= -90 &&
       location.latitude <= 90 &&
       location.longitude >= -180 &&
-      location.longitude <= 180
-    ) {
+      location.longitude <= 180;
+    const hasName =
+      typeof location.name === 'string' && location.name.trim().length > 0;
+
+    // Accept locations with coordinates OR name (or both)
+    if (hasCoordinates || hasName) {
       validatedLocation = {
         type: 'Place' as const,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        name: typeof location.name === 'string' ? location.name : undefined,
+        ...(hasCoordinates && {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        }),
+        ...(hasName && { name: location.name.trim() }),
+        ...(location.precision === 'precise' || location.precision === 'general'
+          ? { precision: location.precision }
+          : {}),
       };
     }
   }

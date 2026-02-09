@@ -400,11 +400,13 @@ export const useCreatePost = () => {
       }>;
       /** For 'direct' visibility: array of recipient actor IDs (max 8) */
       recipientActorIds?: string[];
-      /** Optional geolocation */
+      /** Optional location (coordinates, name, or both) */
       location?: {
-        latitude: number;
-        longitude: number;
+        type?: 'Place';
+        latitude?: number;
+        longitude?: number;
         name?: string;
+        precision?: 'precise' | 'general';
       };
     }) => {
       return axios.post('/api/social/statuses', data);

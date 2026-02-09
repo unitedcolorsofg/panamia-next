@@ -52,9 +52,10 @@ const notExpiredFilter: Prisma.SocialStatusWhereInput = {
 /** Location object for ActivityPub Place */
 export interface StatusLocation {
   type: 'Place';
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   name?: string;
+  precision?: 'precise' | 'general';
 }
 
 /**

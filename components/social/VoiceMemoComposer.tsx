@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
+import { LocationPickerModal, LocationData } from './LocationPickerModal';
 
 const MAX_DURATION_SECONDS = 60;
 const MAX_RECIPIENTS = 8;
@@ -65,12 +66,9 @@ export function VoiceMemoComposer({
   const [uploading, setUploading] = useState(false);
   const [extractingPeaks, setExtractingPeaks] = useState(false);
 
-  // Geolocation
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // Location
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -218,51 +216,6 @@ export function VoiceMemoComposer({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const requestLocation = async () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: 'Geolocation not supported',
-        description: 'Your browser does not support geolocation.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsGettingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setIsGettingLocation(false);
-        toast({
-          title: 'Location added',
-          description: 'Your location has been attached to this message.',
-        });
-      },
-      (error) => {
-        setIsGettingLocation(false);
-        let message = 'Unable to get your location.';
-        if (error.code === error.PERMISSION_DENIED) {
-          message =
-            'Location access was denied. Please enable it in your browser settings.';
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          message = 'Location information is unavailable.';
-        } else if (error.code === error.TIMEOUT) {
-          message = 'Location request timed out.';
-        }
-        toast({
-          title: 'Location error',
-          description: message,
-          variant: 'destructive',
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
   };
 
   const removeLocation = () => {
@@ -498,22 +451,19 @@ export function VoiceMemoComposer({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={requestLocation}
-                    disabled={isGettingLocation}
+                    onClick={() => setShowLocationPicker(true)}
                   >
-                    {isGettingLocation ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <MapPin className="mr-1 h-4 w-4" />
-                    )}
+                    <MapPin className="mr-1 h-4 w-4" />
                     Add Location
                   </Button>
                 ) : (
                   <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
                     <MapPin className="h-4 w-4 text-green-600" />
                     <span className="text-muted-foreground">
-                      {location.latitude.toFixed(4)},{' '}
-                      {location.longitude.toFixed(4)}
+                      {location.name
+                        ? location.name
+                        : `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`}
+                      {location.precision === 'general' && ' (approx)'}
                     </span>
                     <button
                       type="button"
@@ -568,22 +518,20 @@ export function VoiceMemoComposer({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={requestLocation}
-                  disabled={isGettingLocation || isSubmitting}
+                  onClick={() => setShowLocationPicker(true)}
+                  disabled={isSubmitting}
                 >
-                  {isGettingLocation ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  ) : (
-                    <MapPin className="mr-1 h-4 w-4" />
-                  )}
+                  <MapPin className="mr-1 h-4 w-4" />
                   Add Location
                 </Button>
               ) : (
                 <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
                   <MapPin className="h-4 w-4 text-green-600" />
                   <span className="text-muted-foreground">
-                    {location.latitude.toFixed(4)},{' '}
-                    {location.longitude.toFixed(4)}
+                    {location.name
+                      ? location.name
+                      : `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`}
+                    {location.precision === 'general' && ' (approx)'}
                   </span>
                   <button
                     type="button"
@@ -621,6 +569,13 @@ export function VoiceMemoComposer({
           {isSubmitting ? 'Sending...' : 'Send'}
         </Button>
       </div>
+
+      {/* Location Picker Modal */}
+      <LocationPickerModal
+        open={showLocationPicker}
+        onOpenChange={setShowLocationPicker}
+        onLocationSelected={setLocation}
+      />
     </div>
   );
 }

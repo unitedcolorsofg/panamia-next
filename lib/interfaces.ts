@@ -376,9 +376,10 @@ export interface SocialStatusDisplay {
   }>;
   location?: {
     type: 'Place';
-    latitude: number;
-    longitude: number;
+    latitude?: number;
+    longitude?: number;
     name?: string;
+    precision?: 'precise' | 'general';
   } | null;
 }
 
