@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getPrisma } from '@/lib/prisma';
 import { createStatus, getPublicTimeline } from '@/lib/federation';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(request: NextRequest) {
   // Get viewer's actor if authenticated
@@ -147,6 +148,30 @@ export async function POST(request: NextRequest) {
       { success: false, error: result.error, gateResult: result.gateResult },
       { status: 400 }
     );
+  }
+
+  // Create notifications for DM recipients
+  if (resolvedVisibility === 'direct' && recipientActorIds?.length > 0) {
+    // Look up recipient actors to get their user IDs
+    const recipientActors = await prisma.socialActor.findMany({
+      where: { id: { in: recipientActorIds } },
+      include: { profile: { include: { user: true } } },
+    });
+
+    // Create a notification for each recipient
+    for (const recipientActor of recipientActors) {
+      const recipientUserId = recipientActor.profile?.userId;
+      if (recipientUserId) {
+        await createNotification({
+          type: 'Create',
+          actorId: session.user.id,
+          targetId: recipientUserId,
+          context: 'message',
+          objectId: result.status?.id,
+          objectUrl: `/updates`,
+        });
+      }
+    }
   }
 
   return NextResponse.json({

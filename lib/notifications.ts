@@ -234,6 +234,11 @@ function getExpirationDate(
     return new Date(Date.now() + RETENTION.DAYS_90!);
   }
 
+  // Direct messages expire after 30 days (notification only, not the message itself)
+  if (context === 'message') {
+    return new Date(Date.now() + RETENTION.DAYS_30!);
+  }
+
   // Social (follow, mention) expires after 30 days
   return new Date(Date.now() + RETENTION.DAYS_30!);
 }
@@ -304,6 +309,12 @@ export function getNotificationMessage(notif: {
     case 'follow':
       if (notif.type === 'Follow') {
         return `${actor} started following you`;
+      }
+      break;
+
+    case 'message':
+      if (notif.type === 'Create') {
+        return `${actor} sent you a voice memo`;
       }
       break;
 

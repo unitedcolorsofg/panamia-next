@@ -80,6 +80,7 @@ export async function createStatus(
     mediaType: string;
     url: string;
     name?: string;
+    peaks?: number[];
   }>,
   recipientActorIds?: string[],
   location?: StatusLocation
@@ -229,6 +230,7 @@ export async function createStatus(
         mediaType: att.mediaType,
         url: att.url,
         name: att.name || null,
+        ...(att.peaks ? { peaks: att.peaks } : {}),
       })),
     });
   }

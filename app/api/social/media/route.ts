@@ -90,6 +90,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Get optional peaks data for audio waveforms
+  const peaksJson = formData.get('peaks');
+  let peaks: number[] | undefined;
+  if (typeof peaksJson === 'string') {
+    try {
+      const parsed = JSON.parse(peaksJson);
+      if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'number')) {
+        peaks = parsed;
+      }
+    } catch {
+      // Invalid peaks data, ignore
+    }
+  }
+
   // Validate MIME type
   if (!ACCEPTED_TYPES.includes(file.type)) {
     return NextResponse.json(
@@ -142,6 +156,8 @@ export async function POST(request: NextRequest) {
         mediaType: file.type,
         url,
         name: file.name,
+        // Include peaks for audio files
+        ...(category === 'audio' && peaks ? { peaks } : {}),
       },
     });
   } catch (error) {

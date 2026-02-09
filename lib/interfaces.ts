@@ -232,6 +232,7 @@ export type NotificationContext =
   | 'mentoring'
   | 'mention'
   | 'follow'
+  | 'message'
   | 'system';
 
 export interface NotificationInterface {
@@ -371,6 +372,7 @@ export interface SocialStatusDisplay {
     name?: string | null;
     width?: number | null;
     height?: number | null;
+    peaks?: number[] | null;
   }>;
   location?: {
     type: 'Place';

@@ -41,6 +41,7 @@ export type TimelineResult = {
  * Excludes:
  * - Drafts (unpublished)
  * - Replies (only top-level posts in timeline)
+ * - Direct messages (shown in /updates instead)
  */
 export async function getHomeTimeline(
   actorId: string,
@@ -48,6 +49,7 @@ export async function getHomeTimeline(
   limit: number = 20
 ): Promise<TimelineResult> {
   const prisma = await getPrisma();
+  const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
   // Get list of actors this user follows
   const follows = await prisma.socialFollow.findMany({
@@ -63,12 +65,18 @@ export async function getHomeTimeline(
   // Include self in timeline
   const timelineActorIds = [...followedActorIds, actorId];
 
-  // Query statuses
+  // Query statuses (excluding direct messages)
+  // Direct messages don't have PUBLIC in recipientTo or recipientCc
   const statuses = await prisma.socialStatus.findMany({
     where: {
       actorId: { in: timelineActorIds },
       published: { not: null },
       inReplyToId: null, // Only top-level posts
+      // Exclude direct messages: must have PUBLIC in either recipientTo or recipientCc
+      OR: [
+        { recipientTo: { array_contains: PUBLIC } },
+        { recipientCc: { array_contains: PUBLIC } },
+      ],
       ...notExpiredFilter,
     },
     include: {
@@ -222,6 +230,138 @@ export async function getPublicTimeline(
     return {
       ...statusWithoutLikes,
       liked: likesArray ? likesArray.length > 0 : false,
+    };
+  });
+
+  return { statuses: statusesWithLiked, nextCursor };
+}
+
+/**
+ * Get received direct messages (inbox) for an actor
+ *
+ * Returns direct messages where the actor is a recipient.
+ * Excludes messages sent by the actor themselves.
+ */
+export async function getReceivedDirectMessages(
+  actorId: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResult> {
+  const prisma = await getPrisma();
+
+  // Get the actor's URI for recipient matching
+  const actor = await prisma.socialActor.findUnique({
+    where: { id: actorId },
+    select: { uri: true },
+  });
+
+  if (!actor) {
+    return { statuses: [], nextCursor: null };
+  }
+
+  // Direct messages have the recipient's URI in recipientTo
+  // and don't have PUBLIC in either recipientTo or recipientCc
+  const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
+
+  const statuses = await prisma.socialStatus.findMany({
+    where: {
+      published: { not: null },
+      // Must be addressed to this actor
+      recipientTo: { array_contains: actor.uri },
+      // Must NOT be from this actor (exclude sent messages)
+      actorId: { not: actorId },
+      // Exclude public posts (direct messages don't have PUBLIC)
+      NOT: {
+        OR: [
+          { recipientTo: { array_contains: PUBLIC } },
+          { recipientCc: { array_contains: PUBLIC } },
+        ],
+      },
+      ...notExpiredFilter,
+    },
+    include: {
+      actor: true,
+      attachments: true,
+      likes: {
+        where: { actorId },
+        select: { id: true },
+      },
+    },
+    orderBy: { published: 'desc' },
+    take: limit + 1,
+    ...(cursor && {
+      cursor: { id: cursor },
+      skip: 1,
+    }),
+  });
+
+  const hasMore = statuses.length > limit;
+  const items = hasMore ? statuses.slice(0, limit) : statuses;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  const statusesWithLiked: StatusWithActorAndLike[] = items.map((status) => {
+    const { likes, ...statusWithoutLikes } = status;
+    return {
+      ...statusWithoutLikes,
+      liked: likes.length > 0,
+    };
+  });
+
+  return { statuses: statusesWithLiked, nextCursor };
+}
+
+/**
+ * Get sent direct messages for an actor
+ *
+ * Returns direct messages sent by this actor to specific recipients.
+ */
+export async function getSentDirectMessages(
+  actorId: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResult> {
+  const prisma = await getPrisma();
+  const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
+
+  // Direct messages are sent by this actor and don't have PUBLIC visibility
+  const statuses = await prisma.socialStatus.findMany({
+    where: {
+      actorId,
+      published: { not: null },
+      // Exclude public posts (direct messages don't have PUBLIC)
+      NOT: {
+        OR: [
+          { recipientTo: { array_contains: PUBLIC } },
+          { recipientCc: { array_contains: PUBLIC } },
+        ],
+      },
+      ...notExpiredFilter,
+    },
+    include: {
+      actor: true,
+      attachments: true,
+      likes: {
+        where: { actorId },
+        select: { id: true },
+      },
+    },
+    orderBy: { published: 'desc' },
+    take: limit + 1,
+    ...(cursor && {
+      cursor: { id: cursor },
+      skip: 1,
+    }),
+  });
+
+  const hasMore = statuses.length > limit;
+  const items = hasMore ? statuses.slice(0, limit) : statuses;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  const statusesWithLiked: StatusWithActorAndLike[] = items.map((status) => {
+    const { likes, ...statusWithoutLikes } = status;
+    return {
+      ...statusWithoutLikes,
+      liked: likes.length > 0,
     };
   });
 

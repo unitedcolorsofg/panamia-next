@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Volume2 } from 'lucide-react';
+import { WaveformPlayer } from './WaveformPlayer';
 
 export interface AttachmentDisplay {
   id: string;
@@ -11,6 +12,7 @@ export interface AttachmentDisplay {
   name?: string | null;
   width?: number | null;
   height?: number | null;
+  peaks?: number[] | null;
 }
 
 interface AttachmentGridProps {
@@ -18,6 +20,18 @@ interface AttachmentGridProps {
 }
 
 function AudioPlayer({ attachment }: { attachment: AttachmentDisplay }) {
+  // Use WaveformPlayer if peaks are available
+  if (attachment.peaks && attachment.peaks.length > 0) {
+    return (
+      <WaveformPlayer
+        url={attachment.url}
+        peaks={attachment.peaks}
+        mediaType={attachment.mediaType || 'audio/webm'}
+      />
+    );
+  }
+
+  // Fallback to basic audio player
   return (
     <div className="bg-muted flex items-center gap-3 rounded-lg border p-3">
       <Volume2 className="text-muted-foreground h-5 w-5 shrink-0" />

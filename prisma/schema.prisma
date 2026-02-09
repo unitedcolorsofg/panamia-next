@@ -138,6 +138,7 @@ enum NotificationContext {
   mentoring
   mention
   follow
+  message
   system
 }
 
@@ -866,6 +867,9 @@ model SocialAttachment {
   blurhash    String? // Blurhash for placeholder
   width       Int?
   height      Int?
+
+  // Audio waveform data (normalized peaks 0-1, ~100 samples)
+  peaks       Json?
 
   @@index([statusId])
   @@map("social_attachments")

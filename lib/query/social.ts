@@ -220,6 +220,46 @@ async function fetchFollows(
   return undefined;
 }
 
+async function fetchInboxMessages(
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResponse | undefined> {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  params.set('limit', limit.toString());
+
+  const response = await axios
+    .get(`/api/social/messages/inbox?${params.toString()}`)
+    .catch((error: Error) => {
+      console.log(error.name, error.message);
+    });
+
+  if (response?.data?.success) {
+    return response.data.data;
+  }
+  return undefined;
+}
+
+async function fetchSentMessages(
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResponse | undefined> {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  params.set('limit', limit.toString());
+
+  const response = await axios
+    .get(`/api/social/messages/sent?${params.toString()}`)
+    .catch((error: Error) => {
+      console.log(error.name, error.message);
+    });
+
+  if (response?.data?.success) {
+    return response.data.data;
+  }
+  return undefined;
+}
+
 // ============================================================================
 // Query Hooks
 // ============================================================================
@@ -312,6 +352,20 @@ export const useFollows = (
   });
 };
 
+export const useInboxMessages = (cursor?: string, limit: number = 20) => {
+  return useQuery<TimelineResponse | undefined, Error>({
+    queryKey: [socialQueryKey, 'messages', 'inbox', cursor, limit],
+    queryFn: () => fetchInboxMessages(cursor, limit),
+  });
+};
+
+export const useSentMessages = (cursor?: string, limit: number = 20) => {
+  return useQuery<TimelineResponse | undefined, Error>({
+    queryKey: [socialQueryKey, 'messages', 'sent', cursor, limit],
+    queryFn: () => fetchSentMessages(cursor, limit),
+  });
+};
+
 // ============================================================================
 // Mutation Hooks
 // ============================================================================
@@ -355,13 +409,19 @@ export const useCreatePost = () => {
     }) => {
       return axios.post('/api/social/statuses', data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: [socialQueryKey, 'timeline'],
       });
       queryClient.invalidateQueries({
         queryKey: [socialQueryKey, 'me', 'posts'],
       });
+      // Invalidate messages if this was a direct message
+      if (variables.visibility === 'direct') {
+        queryClient.invalidateQueries({
+          queryKey: [socialQueryKey, 'messages'],
+        });
+      }
     },
   });
 };
@@ -378,6 +438,9 @@ export const useDeletePost = () => {
       });
       queryClient.invalidateQueries({
         queryKey: [socialQueryKey, 'me', 'posts'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'messages'],
       });
     },
   });

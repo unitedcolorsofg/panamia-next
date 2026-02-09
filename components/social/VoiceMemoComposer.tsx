@@ -19,6 +19,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
 
 const MAX_DURATION_SECONDS = 60;
 const MAX_RECIPIENTS = 8;
@@ -59,8 +60,10 @@ export function VoiceMemoComposer({
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
   const [duration, setDuration] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [extractingPeaks, setExtractingPeaks] = useState(false);
 
   // Geolocation
   const [location, setLocation] = useState<{
@@ -149,11 +152,23 @@ export function VoiceMemoComposer({
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach((track) => track.stop());
+
+        // Extract waveform peaks for visualization
+        setExtractingPeaks(true);
+        try {
+          const peaks = await extractPeaks(blob, 100);
+          setAudioPeaks(peaks);
+        } catch (err) {
+          console.error('Failed to extract peaks:', err);
+          // Continue without peaks - will fall back to basic player
+        } finally {
+          setExtractingPeaks(false);
+        }
       };
 
       mediaRecorder.start();
@@ -195,6 +210,7 @@ export function VoiceMemoComposer({
     }
     setAudioBlob(null);
     setAudioUrl(null);
+    setAudioPeaks(null);
     setDuration(0);
   };
 
@@ -288,6 +304,11 @@ export function VoiceMemoComposer({
           type: 'audio/webm',
         });
         formData.append('file', file);
+
+        // Include peaks for waveform visualization
+        if (audioPeaks) {
+          formData.append('peaks', JSON.stringify(audioPeaks));
+        }
 
         const uploadRes = await axios.post('/api/social/media', formData);
         if (!uploadRes.data?.success) {
@@ -508,17 +529,32 @@ export function VoiceMemoComposer({
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="bg-muted flex items-center gap-3 rounded-lg border p-3">
-              <audio controls className="h-8 flex-1" preload="metadata">
-                <source src={audioUrl!} type="audio/webm" />
-              </audio>
-              <span className="text-muted-foreground shrink-0 text-sm">
-                {formatDuration(duration)}
-              </span>
+            <div className="relative">
+              {extractingPeaks ? (
+                <div className="bg-muted flex items-center justify-center gap-2 rounded-lg border p-6">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-muted-foreground text-sm">
+                    Generating waveform...
+                  </span>
+                </div>
+              ) : audioPeaks && audioUrl ? (
+                <WaveformPlayer
+                  url={audioUrl}
+                  peaks={audioPeaks}
+                  mediaType="audio/webm"
+                />
+              ) : (
+                <div className="bg-muted flex items-center gap-3 rounded-lg border p-3">
+                  <audio controls className="h-8 flex-1" preload="metadata">
+                    <source src={audioUrl!} type="audio/webm" />
+                  </audio>
+                </div>
+              )}
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="absolute top-2 right-2"
                 onClick={discardRecording}
                 disabled={isSubmitting}
               >
