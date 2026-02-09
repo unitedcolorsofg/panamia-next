@@ -369,6 +369,86 @@ export async function getSentDirectMessages(
 }
 
 /**
+ * Get all posts that "@" a user (mentions + DMs)
+ *
+ * Returns:
+ * - Direct messages where the actor is a recipient
+ * - Public/unlisted posts that mention the actor via @username
+ *
+ * Excludes posts by the actor themselves.
+ */
+export async function getAtMeTimeline(
+  actorId: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResult> {
+  const prisma = await getPrisma();
+
+  // Get the actor's URI for recipient matching
+  const actor = await prisma.socialActor.findUnique({
+    where: { id: actorId },
+    select: { uri: true },
+  });
+
+  if (!actor) {
+    return { statuses: [], nextCursor: null };
+  }
+
+  // Query statuses that either:
+  // 1. Are DMs addressed to this actor (recipientTo contains actor.uri, no PUBLIC)
+  // 2. Have a Mention tag pointing to this actor's URI
+  const statuses = await prisma.socialStatus.findMany({
+    where: {
+      published: { not: null },
+      // Must NOT be from this actor
+      actorId: { not: actorId },
+      OR: [
+        // DMs addressed to this actor
+        { recipientTo: { array_contains: actor.uri } },
+        // Posts with a mention tag pointing to this actor
+        {
+          tags: {
+            some: {
+              type: 'Mention',
+              href: actor.uri,
+            },
+          },
+        },
+      ],
+      ...notExpiredFilter,
+    },
+    include: {
+      actor: true,
+      attachments: true,
+      likes: {
+        where: { actorId },
+        select: { id: true },
+      },
+    },
+    orderBy: { published: 'desc' },
+    take: limit + 1,
+    ...(cursor && {
+      cursor: { id: cursor },
+      skip: 1,
+    }),
+  });
+
+  const hasMore = statuses.length > limit;
+  const items = hasMore ? statuses.slice(0, limit) : statuses;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  const statusesWithLiked: StatusWithActorAndLike[] = items.map((status) => {
+    const { likes, ...statusWithoutLikes } = status;
+    return {
+      ...statusWithoutLikes,
+      liked: likes.length > 0,
+    };
+  });
+
+  return { statuses: statusesWithLiked, nextCursor };
+}
+
+/**
  * Get a single status with like status for viewer
  */
 export async function getStatusWithLikeStatus(

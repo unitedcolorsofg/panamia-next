@@ -30,7 +30,7 @@ function generateWaveformPath(
   if (peaks.length === 0) return '';
 
   const midY = height / 2;
-  const amplitude = mirror ? height * 0.15 : height * 0.35;
+  const amplitude = height * 0.35; // Same amplitude for both main and mirror
   const points: { x: number; y: number }[] = [];
 
   // Generate points from peaks
@@ -80,8 +80,6 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
 
   const width = 300;
   const height = 80;
@@ -104,34 +102,26 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      if (audio.duration > 0) {
+      if (audio.duration > 0 && isFinite(audio.duration)) {
         setProgress(audio.currentTime / audio.duration);
       }
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
       setProgress(0);
-      setCurrentTime(0);
     };
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
@@ -149,24 +139,20 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
     }
   }, [isPlaying]);
 
-  const handleSeek = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      const audio = audioRef.current;
-      if (!audio || !duration) return;
+  const handleSeek = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
 
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const seekProgress = Math.max(0, Math.min(1, x / rect.width));
-      audio.currentTime = seekProgress * duration;
-    },
-    [duration]
-  );
+    // Wait for audio to be ready if needed
+    const audioDuration = audio.duration;
+    if (!audioDuration || !isFinite(audioDuration)) return;
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const seekProgress = Math.max(0, Math.min(1, x / rect.width));
+    audio.currentTime = seekProgress * audioDuration;
+  }, []);
 
   const playheadX = progress * width;
 
@@ -195,7 +181,7 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
             viewBox={`0 0 ${width} ${height}`}
             className="h-16 w-full cursor-pointer"
             preserveAspectRatio="none"
-            onClick={handleSeek}
+            onMouseDown={handleSeek}
           >
             <defs>
               {/* Gradient for the waveform - warm to cool colors */}
@@ -226,13 +212,18 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
               <path d={mainPath} fill={`url(#${gradientId})`} />
             </g>
 
-            {/* Mirror reflection - always faded */}
+            {/* Mirror reflection - faded background (unplayed) */}
             <path
               d={mirrorPath}
               fill="currentColor"
-              className="text-slate-300 dark:text-slate-700"
-              opacity="0.15"
+              className="text-slate-300 dark:text-slate-600"
+              opacity="0.4"
             />
+
+            {/* Mirror reflection - colored revealed (played portion) */}
+            <g clipPath={`url(#${maskId})`}>
+              <path d={mirrorPath} fill={`url(#${gradientId})`} />
+            </g>
 
             {/* Playhead line */}
             {progress > 0 && (
@@ -248,10 +239,6 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
               />
             )}
           </svg>
-        </div>
-
-        <div className="text-muted-foreground w-16 shrink-0 text-right text-xs tabular-nums">
-          {formatTime(currentTime)} / {formatTime(duration)}
         </div>
       </div>
     </div>

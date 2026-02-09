@@ -1,7 +1,7 @@
 /**
  * Updates Page
  *
- * Combines voice memo composer, messages (inbox/sent), and notifications.
+ * Combines voice memo composer, messages (@-me/sent), and notifications (Pana Updates).
  * Voice memos are direct messages shown in the Messages section.
  *
  * UPSTREAM REFERENCE: external/activities.next/lib/services/timelines/
@@ -13,17 +13,8 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  CheckCheck,
-  Bell,
-  RefreshCw,
-  Mic,
-  Inbox,
-  Send,
-  MessageSquare,
-  Trash2,
-} from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCheck, Bell, Mic, AtSign, Send, Trash2 } from 'lucide-react';
 import NotificationItem from '@/components/NotificationItem';
 import { VoiceMemoComposer } from '@/components/social/VoiceMemoComposer';
 import { PostCard } from '@/components/social/PostCard';
@@ -39,45 +30,29 @@ import {
 } from '@/lib/query/social';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 
-type MainTab = 'messages' | 'notifications';
-type MessageTab = 'inbox' | 'sent';
-type NotificationFilter = 'all' | 'unread';
+type ActiveTab = 'at-me' | 'sent' | 'pana-updates';
 
 export default function UpdatesPage() {
   const { data: session } = useSession();
-  const [mainTab, setMainTab] = useState<MainTab>('messages');
-  const [messageTab, setMessageTab] = useState<MessageTab>('inbox');
-  const [notificationFilter, setNotificationFilter] =
-    useState<NotificationFilter>('all');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('at-me');
   const [notificationOffset, setNotificationOffset] = useState(0);
   const limit = 20;
 
-  // Notifications queries
+  // Notifications query (single stream, no filter)
   const {
     data: notificationsData,
     isLoading: notificationsLoading,
-    refetch: refetchNotifications,
     isFetching: notificationsFetching,
   } = useNotifications({
     limit,
     offset: notificationOffset,
-    unreadOnly: notificationFilter === 'unread',
+    unreadOnly: false,
   });
 
   // Messages queries
-  const {
-    data: inboxData,
-    isLoading: inboxLoading,
-    refetch: refetchInbox,
-    isFetching: inboxFetching,
-  } = useInboxMessages();
+  const { data: inboxData, isLoading: inboxLoading } = useInboxMessages();
 
-  const {
-    data: sentData,
-    isLoading: sentLoading,
-    refetch: refetchSent,
-    isFetching: sentFetching,
-  } = useSentMessages();
+  const { data: sentData, isLoading: sentLoading } = useSentMessages();
 
   const deletePost = useDeletePost();
   const markAsRead = useMarkAsRead();
@@ -98,18 +73,6 @@ export default function UpdatesPage() {
   const handleDeleteMessage = (statusId: string) => {
     if (confirm('Are you sure you want to delete this message?')) {
       deletePost.mutate(statusId);
-    }
-  };
-
-  const handleRefresh = () => {
-    if (mainTab === 'messages') {
-      if (messageTab === 'inbox') {
-        refetchInbox();
-      } else {
-        refetchSent();
-      }
-    } else {
-      refetchNotifications();
     }
   };
 
@@ -137,11 +100,6 @@ export default function UpdatesPage() {
   const inboxMessages = inboxData?.statuses || [];
   const sentMessages = sentData?.statuses || [];
 
-  const isRefreshing =
-    (mainTab === 'messages' && messageTab === 'inbox' && inboxFetching) ||
-    (mainTab === 'messages' && messageTab === 'sent' && sentFetching) ||
-    (mainTab === 'notifications' && notificationsFetching);
-
   return (
     <main className="container mx-auto max-w-4xl px-4 py-8">
       <div className="space-y-6">
@@ -158,24 +116,28 @@ export default function UpdatesPage() {
           </CardContent>
         </Card>
 
-        {/* Main Tabs: Messages / Notifications */}
+        {/* Main Content Card */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between">
               <Tabs
-                value={mainTab}
-                onValueChange={(v) => setMainTab(v as MainTab)}
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as ActiveTab)}
               >
                 <TabsList>
                   <TabsTrigger
-                    value="messages"
+                    value="at-me"
                     className="flex items-center gap-2"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    Messages
+                    <AtSign className="h-4 w-4" />
+                    @-me
+                  </TabsTrigger>
+                  <TabsTrigger value="sent" className="flex items-center gap-2">
+                    <Send className="h-4 w-4" />
+                    Sent
                   </TabsTrigger>
                   <TabsTrigger
-                    value="notifications"
+                    value="pana-updates"
                     className="flex items-center gap-2"
                   >
                     <Bell className="h-4 w-4" />
@@ -183,48 +145,43 @@ export default function UpdatesPage() {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex items-center gap-2">
+              {activeTab === 'pana-updates' && hasUnread && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
+                  onClick={handleMarkAllAsRead}
+                  disabled={markAllAsRead.isPending}
                 >
-                  <RefreshCw
-                    className={`mr-1 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                  />
-                  Refresh
+                  <CheckCheck className="mr-1 h-4 w-4" />
+                  Mark all read
                 </Button>
-                {mainTab === 'notifications' && hasUnread && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleMarkAllAsRead}
-                    disabled={markAllAsRead.isPending}
-                  >
-                    <CheckCheck className="mr-1 h-4 w-4" />
-                    Mark all read
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            {mainTab === 'messages' ? (
-              <MessagesContent
-                messageTab={messageTab}
-                setMessageTab={setMessageTab}
-                inboxMessages={inboxMessages}
-                sentMessages={sentMessages}
-                inboxLoading={inboxLoading}
-                sentLoading={sentLoading}
+            {activeTab === 'at-me' && (
+              <MessagesSection
+                messages={inboxMessages}
+                isLoading={inboxLoading}
+                emptyIcon={<AtSign className="mb-3 h-12 w-12 text-gray-400" />}
+                emptyTitle="No messages yet"
+                emptyDescription="When someone sends you a voice memo, it will appear here."
+              />
+            )}
+            {activeTab === 'sent' && (
+              <MessagesSection
+                messages={sentMessages}
+                isLoading={sentLoading}
+                emptyIcon={<Send className="mb-3 h-12 w-12 text-gray-400" />}
+                emptyTitle="No sent messages"
+                emptyDescription="Voice memos you send will appear here."
+                showDelete
                 onDeleteMessage={handleDeleteMessage}
                 isDeleting={deletePost.isPending}
               />
-            ) : (
-              <NotificationsContent
-                filter={notificationFilter}
-                setFilter={setNotificationFilter}
+            )}
+            {activeTab === 'pana-updates' && (
+              <NotificationsSection
                 notifications={notifications}
                 isLoading={notificationsLoading}
                 hasMore={hasMoreNotifications}
@@ -240,103 +197,69 @@ export default function UpdatesPage() {
   );
 }
 
-function MessagesContent({
-  messageTab,
-  setMessageTab,
-  inboxMessages,
-  sentMessages,
-  inboxLoading,
-  sentLoading,
+function MessagesSection({
+  messages,
+  isLoading,
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
+  showDelete = false,
   onDeleteMessage,
-  isDeleting,
+  isDeleting = false,
 }: {
-  messageTab: MessageTab;
-  setMessageTab: (tab: MessageTab) => void;
-  inboxMessages: SocialStatusDisplay[];
-  sentMessages: SocialStatusDisplay[];
-  inboxLoading: boolean;
-  sentLoading: boolean;
-  onDeleteMessage: (statusId: string) => void;
-  isDeleting: boolean;
+  messages: SocialStatusDisplay[];
+  isLoading: boolean;
+  emptyIcon: React.ReactNode;
+  emptyTitle: string;
+  emptyDescription: string;
+  showDelete?: boolean;
+  onDeleteMessage?: (statusId: string) => void;
+  isDeleting?: boolean;
 }) {
-  const messages = messageTab === 'inbox' ? inboxMessages : sentMessages;
-  const isLoading = messageTab === 'inbox' ? inboxLoading : sentLoading;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        {emptyIcon}
+        <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
+          {emptyTitle}
+        </p>
+        <p className="mt-1 text-sm text-gray-500">{emptyDescription}</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Tabs
-        value={messageTab}
-        onValueChange={(v) => setMessageTab(v as MessageTab)}
-        className="mb-4"
-      >
-        <TabsList>
-          <TabsTrigger value="inbox" className="flex items-center gap-2">
-            <Inbox className="h-4 w-4" />
-            Inbox
-          </TabsTrigger>
-          <TabsTrigger value="sent" className="flex items-center gap-2">
-            <Send className="h-4 w-4" />
-            Sent
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-        </div>
-      ) : messages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          {messageTab === 'inbox' ? (
-            <>
-              <Inbox className="mb-3 h-12 w-12 text-gray-400" />
-              <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
-                No messages yet
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                When someone sends you a voice memo, it will appear here.
-              </p>
-            </>
-          ) : (
-            <>
-              <Send className="mb-3 h-12 w-12 text-gray-400" />
-              <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
-                No sent messages
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Voice memos you send will appear here.
-              </p>
-            </>
+    <div className="space-y-4">
+      {messages.map((status) => (
+        <div key={status.id} className="relative">
+          <PostCard status={status} />
+          {showDelete && onDeleteMessage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+              onClick={() => onDeleteMessage(status.id)}
+              disabled={isDeleting}
+              title="Delete message"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {messages.map((status) => (
-            <div key={status.id} className="relative">
-              <PostCard status={status} />
-              {messageTab === 'sent' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                  onClick={() => onDeleteMessage(status.id)}
-                  disabled={isDeleting}
-                  title="Delete message"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
+      ))}
+    </div>
   );
 }
 
-function NotificationsContent({
-  filter,
-  setFilter,
+function NotificationsSection({
   notifications,
   isLoading,
   hasMore,
@@ -344,8 +267,6 @@ function NotificationsContent({
   onMarkAsRead,
   onLoadMore,
 }: {
-  filter: NotificationFilter;
-  setFilter: (filter: NotificationFilter) => void;
   notifications: any[];
   isLoading: boolean;
   hasMore: boolean;
@@ -353,60 +274,45 @@ function NotificationsContent({
   onMarkAsRead: (id: string) => void;
   onLoadMore: () => void;
 }) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+      </div>
+    );
+  }
+
+  if (notifications.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Bell className="mb-3 h-12 w-12 text-gray-400" />
+        <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
+          No notifications yet
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          When you receive notifications, they&apos;ll appear here.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Tabs
-        value={filter}
-        onValueChange={(v) => setFilter(v as NotificationFilter)}
-        className="mb-4"
-      >
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="unread">Unread</TabsTrigger>
-        </TabsList>
-      </Tabs>
+    <div className="space-y-2">
+      {notifications.map((notification: any) => (
+        <NotificationItem
+          key={notification._id}
+          notification={notification}
+          onMarkAsRead={onMarkAsRead}
+        />
+      ))}
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-        </div>
-      ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Bell className="mb-3 h-12 w-12 text-gray-400" />
-          <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
-            {filter === 'unread'
-              ? 'No unread notifications'
-              : 'No notifications yet'}
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            {filter === 'unread'
-              ? "You're all caught up!"
-              : "When you receive notifications, they'll appear here."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {notifications.map((notification: any) => (
-            <NotificationItem
-              key={notification._id}
-              notification={notification}
-              onMarkAsRead={onMarkAsRead}
-            />
-          ))}
-
-          {hasMore && (
-            <div className="pt-4 text-center">
-              <Button
-                variant="outline"
-                onClick={onLoadMore}
-                disabled={isFetching}
-              >
-                {isFetching ? 'Loading...' : 'Load more'}
-              </Button>
-            </div>
-          )}
+      {hasMore && (
+        <div className="pt-4 text-center">
+          <Button variant="outline" onClick={onLoadMore} disabled={isFetching}>
+            {isFetching ? 'Loading...' : 'Load more'}
+          </Button>
         </div>
       )}
-    </>
+    </div>
   );
 }

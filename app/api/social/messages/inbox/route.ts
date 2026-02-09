@@ -1,11 +1,13 @@
 /**
- * GET /api/social/messages/inbox - Get received direct messages
+ * GET /api/social/messages/inbox - Get posts that @-mention the user
+ *
+ * Returns both DMs and public posts that mention the user.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getPrisma } from '@/lib/prisma';
-import { getReceivedDirectMessages } from '@/lib/federation';
+import { getAtMeTimeline } from '@/lib/federation';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -35,11 +37,7 @@ export async function GET(request: NextRequest) {
   const cursor = searchParams.get('cursor') || undefined;
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
 
-  const result = await getReceivedDirectMessages(
-    profile.socialActor.id,
-    cursor,
-    limit
-  );
+  const result = await getAtMeTimeline(profile.socialActor.id, cursor, limit);
 
   return NextResponse.json({
     success: true,
