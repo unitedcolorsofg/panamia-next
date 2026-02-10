@@ -33,12 +33,11 @@ npm install -g yarn
 
 These are required for specific features:
 
-| Service                        | Purpose             | Required For          |
-| ------------------------------ | ------------------- | --------------------- |
-| [Pusher](https://pusher.com/)  | Real-time WebSocket | Mentoring video calls |
-| [Stripe](https://stripe.com/)  | Payment processing  | Donations             |
-| [BunnyCDN](https://bunny.net/) | File uploads        | Profile images        |
-| SMTP Server                    | Email delivery      | Authentication        |
+| Service                       | Purpose             | Required For          |
+| ----------------------------- | ------------------- | --------------------- |
+| [Pusher](https://pusher.com/) | Real-time WebSocket | Mentoring video calls |
+| [Stripe](https://stripe.com/) | Payment processing  | Donations             |
+| SMTP Server                   | Email delivery      | Authentication        |
 
 ---
 
@@ -55,6 +54,16 @@ cd panamia.club
 
 ```bash
 yarn install
+```
+
+### Federation Subtree
+
+The `external/activities.next/` directory contains a vendored copy of [activities.next](https://github.com/llun/activities.next), pinned to a specific upstream commit. The full source is committed to this repo, so no extra fetch is needed after cloning.
+
+`yarn install` automatically configures the `activities-upstream` git remote. To pull newer upstream changes:
+
+```bash
+yarn subtree:pull
 ```
 
 ### 3. Set Up Environment Variables
@@ -305,6 +314,8 @@ panamia.club/
 ├── scripts/                 # Utility scripts
 ├── tests/                   # Playwright E2E tests
 │   └── e2e/                 # Test specs
+├── external/                 # Vendored upstream code
+│   └── activities.next/     # Federation (git subtree)
 ├── docs/                    # Documentation
 ├── .husky/                  # Git hooks (pre-commit, commit-msg)
 ├── auth.ts                  # NextAuth v5 configuration
