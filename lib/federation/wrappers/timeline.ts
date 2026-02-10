@@ -4,6 +4,10 @@
  * High-level functions for querying timelines.
  * Supports home timeline (posts from followed + self) and user posts.
  *
+ * IMPORTANT: Direct messages and voice memos are EXCLUDED from Home and Public
+ * timelines. They should only appear in /updates (@-me and Sent tabs).
+ * DMs are identified by NOT having the PUBLIC URI in recipientTo or recipientCc.
+ *
  * @see docs/SOCIAL-ROADMAP.md
  */
 
@@ -65,19 +69,26 @@ export async function getHomeTimeline(
   // Include self in timeline
   const timelineActorIds = [...followedActorIds, actorId];
 
-  // Query statuses (excluding direct messages)
-  // Direct messages don't have PUBLIC in recipientTo or recipientCc
+  // Query statuses, EXCLUDING direct messages and voice memos.
+  // DMs/voice memos don't have PUBLIC in recipientTo or recipientCc.
+  // They should only appear in /updates (@-me and Sent tabs), never in timelines.
   const statuses = await prisma.socialStatus.findMany({
     where: {
       actorId: { in: timelineActorIds },
       published: { not: null },
       inReplyToId: null, // Only top-level posts
-      // Exclude direct messages: must have PUBLIC in either recipientTo or recipientCc
-      OR: [
-        { recipientTo: { array_contains: PUBLIC } },
-        { recipientCc: { array_contains: PUBLIC } },
+      // Use AND to combine both OR conditions properly (Prisma overwrites duplicate OR keys)
+      AND: [
+        // Must have PUBLIC visibility (excludes DMs/voice memos)
+        {
+          OR: [
+            { recipientTo: { array_contains: PUBLIC } },
+            { recipientCc: { array_contains: PUBLIC } },
+          ],
+        },
+        // Must not be expired
+        notExpiredFilter,
       ],
-      ...notExpiredFilter,
     },
     include: {
       actor: true,
@@ -187,6 +198,7 @@ export async function getPublicTimeline(
   const prisma = await getPrisma();
   const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
+  // Query public posts, EXCLUDING DMs/voice memos (shown only in /updates)
   const statuses = await prisma.socialStatus.findMany({
     where: {
       published: { not: null },
@@ -195,8 +207,10 @@ export async function getPublicTimeline(
         domain: socialConfig.domain, // Local actors only
       },
       // Only show posts with public visibility (recipientTo contains Public)
+      // DMs/voice memos don't have PUBLIC, so they're automatically excluded
       recipientTo: { array_contains: PUBLIC },
-      ...notExpiredFilter,
+      // Must not be expired (use AND to avoid OR key conflicts)
+      AND: [notExpiredFilter],
     },
     include: {
       actor: true,
@@ -241,6 +255,9 @@ export async function getPublicTimeline(
  *
  * Returns direct messages where the actor is a recipient.
  * Excludes messages sent by the actor themselves.
+ *
+ * NOTE: DMs and voice memos are shown ONLY in /updates (not in Home/Public timelines).
+ * This function is used by the @-me tab in /updates.
  */
 export async function getReceivedDirectMessages(
   actorId: string,
@@ -314,6 +331,9 @@ export async function getReceivedDirectMessages(
  * Get sent direct messages for an actor
  *
  * Returns direct messages sent by this actor to specific recipients.
+ *
+ * NOTE: DMs and voice memos are shown ONLY in /updates (not in Home/Public timelines).
+ * This function is used by the Sent tab in /updates.
  */
 export async function getSentDirectMessages(
   actorId: string,
@@ -376,6 +396,9 @@ export async function getSentDirectMessages(
  * - Public/unlisted posts that mention the actor via @username
  *
  * Excludes posts by the actor themselves.
+ *
+ * NOTE: This is the primary function for the @-me tab in /updates.
+ * DMs/voice memos appear here (and in Sent), NOT in Home/Public timelines.
  */
 export async function getAtMeTimeline(
   actorId: string,

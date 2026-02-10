@@ -139,21 +139,6 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
     }
   }, [isPlaying]);
 
-  const handleSeek = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    e.stopPropagation();
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    // Wait for audio to be ready if needed
-    const audioDuration = audio.duration;
-    if (!audioDuration || !isFinite(audioDuration)) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const seekProgress = Math.max(0, Math.min(1, x / rect.width));
-    audio.currentTime = seekProgress * audioDuration;
-  }, []);
-
   const playheadX = progress * width;
 
   return (
@@ -179,9 +164,8 @@ export function WaveformPlayer({ url, peaks, mediaType }: WaveformPlayerProps) {
         <div className="min-w-0 flex-1">
           <svg
             viewBox={`0 0 ${width} ${height}`}
-            className="h-16 w-full cursor-pointer"
+            className="h-16 w-full"
             preserveAspectRatio="none"
-            onMouseDown={handleSeek}
           >
             <defs>
               {/* Gradient for the waveform - warm to cool colors */}

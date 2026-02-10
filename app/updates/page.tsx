@@ -14,7 +14,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCheck, Bell, Mic, AtSign, Send, Trash2 } from 'lucide-react';
+import { CheckCheck, Bell, Mic, Inbox, Send, Trash2 } from 'lucide-react';
 import NotificationItem from '@/components/NotificationItem';
 import { VoiceMemoComposer } from '@/components/social/VoiceMemoComposer';
 import { PostCard } from '@/components/social/PostCard';
@@ -129,7 +129,7 @@ export default function UpdatesPage() {
                     value="at-me"
                     className="flex items-center gap-2"
                   >
-                    <AtSign className="h-4 w-4" />
+                    <Inbox className="h-4 w-4" />
                     @-me
                   </TabsTrigger>
                   <TabsTrigger value="sent" className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export default function UpdatesPage() {
               <MessagesSection
                 messages={inboxMessages}
                 isLoading={inboxLoading}
-                emptyIcon={<AtSign className="mb-3 h-12 w-12 text-gray-400" />}
+                emptyIcon={<Inbox className="mb-3 h-12 w-12 text-gray-400" />}
                 emptyTitle="No messages yet"
                 emptyDescription="When someone sends you a voice memo, it will appear here."
               />
