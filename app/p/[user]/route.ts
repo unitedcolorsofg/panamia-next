@@ -5,6 +5,9 @@
  * This is fetched by other servers when they want to know
  * about a user on panamia.club.
  *
+ * For non-ActivityPub requests (browsers), redirects to /profile/.
+ * This replaces the former page.tsx redirect.
+ *
  * @see https://www.w3.org/TR/activitypub/#actor-objects
  * @see https://docs.joinmastodon.org/spec/activitypub/#actors
  */
@@ -22,9 +25,9 @@ const ACTIVITY_JSON_TYPES = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ screenname: string }> }
+  { params }: { params: Promise<{ user: string }> }
 ) {
-  const { screenname } = await params;
+  const { user } = await params;
 
   // Check Accept header - only respond with ActivityPub if requested
   const accept = request.headers.get('accept') || '';
@@ -34,19 +37,17 @@ export async function GET(
 
   // If not requesting ActivityPub, redirect to profile page
   if (!wantsActivityPub) {
-    return NextResponse.redirect(
-      new URL(`/profile/${screenname}`, request.url)
-    );
+    return NextResponse.redirect(new URL(`/profile/${user}/`, request.url));
   }
 
   // Look up the actor
-  const actor = await getActorByScreenname(screenname);
+  const actor = await getActorByScreenname(user);
 
   if (!actor) {
     // Check if this is a historical screenname (user changed their screenname)
     const prisma = await getPrisma();
     const historical = await prisma.screennameHistory.findFirst({
-      where: { screenname: { equals: screenname, mode: 'insensitive' } },
+      where: { screenname: { equals: user, mode: 'insensitive' } },
     });
 
     if (historical) {

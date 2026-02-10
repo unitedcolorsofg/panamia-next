@@ -26,7 +26,7 @@ export type ActorWithFollowInfo = SocialActor & {
  * Generate a follow activity URI
  */
 function generateFollowUri(actorUsername: string, followId: string): string {
-  return `https://${socialConfig.domain}/users/${actorUsername}/follows/${followId}`;
+  return `https://${socialConfig.domain}/p/${actorUsername}/follows/${followId}`;
 }
 
 /**

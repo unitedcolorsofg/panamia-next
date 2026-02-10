@@ -36,7 +36,7 @@ export type StatusWithActor = SocialStatus & {
  * Generate a status URI for local statuses
  */
 export function generateStatusUri(username: string, statusId: string): string {
-  return `https://${socialConfig.domain}/users/${username}/statuses/${statusId}`;
+  return `https://${socialConfig.domain}/p/${username}/statuses/${statusId}`;
 }
 
 // Direct messages expire after 7 days (soft delete via query filter)
@@ -411,7 +411,7 @@ export async function likeStatus(
     };
   }
 
-  const likeUri = `https://${socialConfig.domain}/users/${actor.username}/likes/${statusId}`;
+  const likeUri = `https://${socialConfig.domain}/p/${actor.username}/likes/${statusId}`;
 
   await prisma.socialLike.create({
     data: {

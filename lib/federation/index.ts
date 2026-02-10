@@ -17,6 +17,17 @@ export * from './wrappers/actor';
 export * from './wrappers/status';
 export * from './wrappers/follow';
 export * from './wrappers/timeline';
+export {
+  verify as verifyHttpSignature,
+  parse as parseHttpSignature,
+} from './crypto/verify';
+export { sign as signHttpRequest, signedHeaders } from './crypto/sign';
+export {
+  fetchRemoteActor,
+  ensureRemoteActor,
+  getRemotePublicKey,
+  resolveSignaturePublicKey,
+} from './wrappers/remote-actor';
 
 /**
  * Get the domain from NEXT_PUBLIC_HOST_URL
@@ -46,11 +57,11 @@ export const socialConfig = {
   endpoints: {
     webfinger: '/.well-known/webfinger',
     nodeinfo: '/.well-known/nodeinfo',
-    actor: (screenname: string) => `/users/${screenname}`,
-    inbox: (screenname: string) => `/users/${screenname}/inbox`,
-    outbox: (screenname: string) => `/users/${screenname}/outbox`,
-    followers: (screenname: string) => `/users/${screenname}/followers`,
-    following: (screenname: string) => `/users/${screenname}/following`,
+    actor: (screenname: string) => `/p/${screenname}`,
+    inbox: (screenname: string) => `/p/${screenname}/inbox`,
+    outbox: (screenname: string) => `/p/${screenname}/outbox`,
+    followers: (screenname: string) => `/p/${screenname}/followers`,
+    following: (screenname: string) => `/p/${screenname}/following`,
   },
 };
 

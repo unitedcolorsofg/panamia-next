@@ -42,7 +42,37 @@ const nextConfig = {
         destination: '/profile/:actor/',
         permanent: true,
       },
+      // /users/ → /p/ migration (ActivityPub URIs)
+      {
+        source: '/users/:screenname',
+        destination: '/p/:screenname',
+        permanent: true,
+      },
+      {
+        source: '/users/:screenname/',
+        destination: '/p/:screenname/',
+        permanent: true,
+      },
+      {
+        source: '/users/:screenname/:path*',
+        destination: '/p/:screenname/:path*',
+        permanent: true,
+      },
     ];
+  },
+
+  // Rewrites to handle ActivityPub POST requests without trailing slash.
+  // trailingSlash: true causes 308 redirects that remote servers won't follow.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/p/:screenname/inbox',
+          destination: '/p/:screenname/inbox/',
+        },
+        { source: '/inbox', destination: '/inbox/' },
+      ],
+    };
   },
 
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
