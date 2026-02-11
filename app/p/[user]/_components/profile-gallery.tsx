@@ -35,7 +35,7 @@ export function ProfileGallery({ images }: ProfileGalleryProps) {
       <Card>
         <CardHeader>
           <CardTitle>Gallery</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Click to see full-size image
           </p>
         </CardHeader>
@@ -65,7 +65,7 @@ export function ProfileGallery({ images }: ProfileGalleryProps) {
       >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-muted-foreground text-sm">
               Click outside to dismiss
             </DialogDescription>
           </DialogHeader>

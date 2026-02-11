@@ -82,7 +82,7 @@ export function SearchResultCard({
           {/* Actions */}
           <div className="mt-auto flex flex-wrap gap-2">
             <Button variant="default" asChild>
-              <Link href={`/profile/${profile.screenname}`}>
+              <Link href={`/p/${profile.screenname}`}>
                 <User className="h-4 w-4" />
                 View Profile
               </Link>

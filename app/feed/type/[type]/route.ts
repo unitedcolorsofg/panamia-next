@@ -35,8 +35,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const feed = new Feed({
       title: `Pana MIA ${typeLabel}`,
       description: `${typeLabel} from the South Florida community`,
-      id: `${SITE_URL}/articles?type=${type}`,
-      link: `${SITE_URL}/articles?type=${type}`,
+      id: `${SITE_URL}/a?type=${type}`,
+      link: `${SITE_URL}/a?type=${type}`,
       language: 'en',
       copyright: `All rights reserved ${new Date().getFullYear()}, Pana MIA`,
       feedLinks: {
@@ -69,8 +69,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
       feed.addItem({
         title: art.title,
-        id: `${SITE_URL}/articles/${art.slug}`,
-        link: `${SITE_URL}/articles/${art.slug}`,
+        id: `${SITE_URL}/a/${art.slug}`,
+        link: `${SITE_URL}/a/${art.slug}`,
         description: art.excerpt || '',
         author: [{ name: authorName }],
         date: new Date(art.publishedAt!),

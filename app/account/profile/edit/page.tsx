@@ -105,7 +105,7 @@ export default function AccountProfileEdit() {
             </CardTitle>
             {profileData.screenname && (
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/profile/${profileData.screenname}`}>
+                <Link href={`/p/${profileData.screenname}`}>
                   <ExternalLink className="mr-2 h-4 w-4" />
                   View
                 </Link>
@@ -191,7 +191,7 @@ export default function AccountProfileEdit() {
           {profileData?.screenname && (
             <div className="mt-4 rounded-md bg-gray-50 p-3 text-sm dark:bg-gray-800">
               <div className="font-medium">
-                handle: /profile/{profileData.screenname}
+                handle: /p/{profileData.screenname}
               </div>
               <div className="text-gray-600 dark:text-gray-400">
                 This is the URL for your profile

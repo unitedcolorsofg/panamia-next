@@ -10,15 +10,15 @@ import { MentoringSection } from './_components/mentoring-section';
 import { SocialSection } from './_components/social-section';
 
 interface PageProps {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ user: string }>;
 }
 
 // Generate metadata for SEO
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { handle } = await params;
-  const profile = await getPublicProfile(handle);
+  const { user } = await params;
+  const profile = await getPublicProfile(user);
 
   if (!profile) {
     return { title: 'Profile Not Found' };
@@ -36,8 +36,8 @@ export async function generateMetadata({
 }
 
 export default async function ProfilePage({ params }: PageProps) {
-  const { handle } = await params;
-  const profile = await getPublicProfile(handle);
+  const { user } = await params;
+  const profile = await getPublicProfile(user);
 
   if (!profile) {
     notFound();
@@ -76,7 +76,7 @@ export default async function ProfilePage({ params }: PageProps) {
 
         {/* Mentoring Section - Show before other content for mentors */}
         {isMentor && profile.mentoring && (
-          <MentoringSection mentoring={profile.mentoring} handle={handle} />
+          <MentoringSection mentoring={profile.mentoring} handle={user} />
         )}
 
         {/* Socials and Links */}
@@ -97,7 +97,7 @@ export default async function ProfilePage({ params }: PageProps) {
         {profile.tags && <ProfileTags tags={profile.tags} />}
 
         {/* Social Activity */}
-        <SocialSection handle={handle} />
+        <SocialSection handle={user} />
       </div>
     </main>
   );

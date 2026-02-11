@@ -34,7 +34,7 @@ export function ActorCard({
     <Card>
       <CardContent className="pt-4">
         <div className="flex items-start gap-3">
-          <Link href={`/profile/${actor.username}`}>
+          <Link href={`/p/${actor.username}`}>
             <Avatar className="h-12 w-12">
               <AvatarImage src={actor.iconUrl || undefined} />
               <AvatarFallback>{actorInitials}</AvatarFallback>
@@ -45,13 +45,13 @@ export function ActorCard({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <Link
-                  href={`/profile/${actor.username}`}
+                  href={`/p/${actor.username}`}
                   className="block truncate font-semibold hover:underline"
                 >
                   {actor.name || actor.username}
                 </Link>
                 <Link
-                  href={`/profile/${actor.username}`}
+                  href={`/p/${actor.username}`}
                   className="text-muted-foreground block truncate text-sm"
                 >
                   @{actor.username}
@@ -75,7 +75,7 @@ export function ActorCard({
             {showStats && (
               <div className="text-muted-foreground mt-2 flex items-center gap-4 text-sm">
                 <Link
-                  href={`/profile/${actor.username}?tab=following`}
+                  href={`/p/${actor.username}?tab=following`}
                   className="hover:underline"
                 >
                   <span className="text-foreground font-semibold">
@@ -84,7 +84,7 @@ export function ActorCard({
                   Following
                 </Link>
                 <Link
-                  href={`/profile/${actor.username}?tab=followers`}
+                  href={`/p/${actor.username}?tab=followers`}
                   className="hover:underline"
                 >
                   <span className="text-foreground font-semibold">

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       objectId: articleDoc.id,
       objectType: 'article',
       objectTitle: articleDoc.title,
-      objectUrl: `/articles/${articleDoc.slug}/edit`,
+      objectUrl: `/a/${articleDoc.slug}/edit`,
     });
 
     return NextResponse.json({

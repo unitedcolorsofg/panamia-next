@@ -18,7 +18,7 @@ async function generateFeed() {
     description:
       'Stories, updates, and perspectives from the South Florida community',
     id: SITE_URL,
-    link: `${SITE_URL}/articles`,
+    link: `${SITE_URL}/a`,
     language: 'en',
     image: `${SITE_URL}/logo.png`,
     favicon: `${SITE_URL}/favicon.ico`,
@@ -54,8 +54,8 @@ async function generateFeed() {
 
     feed.addItem({
       title: art.title,
-      id: `${SITE_URL}/articles/${art.slug}`,
-      link: `${SITE_URL}/articles/${art.slug}`,
+      id: `${SITE_URL}/a/${art.slug}`,
+      link: `${SITE_URL}/a/${art.slug}`,
       description: art.excerpt || '',
       content: art.content,
       author: [{ name: authorName }],

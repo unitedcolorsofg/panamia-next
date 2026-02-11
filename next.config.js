@@ -11,58 +11,9 @@ const nextConfig = {
   // Next.js 16 uses Turbopack by default - empty config to acknowledge
   turbopack: {},
 
-  // Backward-compat redirects for /social/* → new paths
-  async redirects() {
-    return [
-      // Specific paths first (order matters — more specific before catch-all)
-      { source: '/social/timeline', destination: '/timeline', permanent: true },
-      {
-        source: '/social/timeline/',
-        destination: '/timeline/',
-        permanent: true,
-      },
-      {
-        source: '/social/status/:statusId',
-        destination: '/status/:statusId',
-        permanent: true,
-      },
-      {
-        source: '/social/status/:statusId/',
-        destination: '/status/:statusId/',
-        permanent: true,
-      },
-      // Catch-all for actor profiles
-      {
-        source: '/social/:actor',
-        destination: '/profile/:actor',
-        permanent: true,
-      },
-      {
-        source: '/social/:actor/',
-        destination: '/profile/:actor/',
-        permanent: true,
-      },
-      // /users/ → /p/ migration (ActivityPub URIs)
-      {
-        source: '/users/:screenname',
-        destination: '/p/:screenname',
-        permanent: true,
-      },
-      {
-        source: '/users/:screenname/',
-        destination: '/p/:screenname/',
-        permanent: true,
-      },
-      {
-        source: '/users/:screenname/:path*',
-        destination: '/p/:screenname/:path*',
-        permanent: true,
-      },
-    ];
-  },
-
-  // Rewrites to handle ActivityPub POST requests without trailing slash.
+  // Rewrites to handle ActivityPub requests without trailing slash.
   // trailingSlash: true causes 308 redirects that remote servers won't follow.
+  // Note: /p/:screenname rewrite removed — proxy.ts handles content negotiation.
   async rewrites() {
     return {
       beforeFiles: [

@@ -98,7 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       objectType: 'article',
       objectId: articleDoc.id,
       objectTitle: articleDoc.title,
-      objectUrl: `/articles/${articleDoc.slug}`,
+      objectUrl: `/a/${articleDoc.slug}`,
       context: 'article',
       message: reason.trim(),
     });
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         objectType: 'article',
         objectId: articleDoc.id,
         objectTitle: articleDoc.title,
-        objectUrl: `/articles/${articleDoc.slug}`,
+        objectUrl: `/a/${articleDoc.slug}`,
         context: 'article',
         message: reason.trim(),
       });

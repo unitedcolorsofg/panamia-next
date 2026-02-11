@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       title: `Pana MIA Articles by ${authorName}`,
       description: `Articles written by ${authorName}`,
       id: `${SITE_URL}/feed/author/${decodedScreenname}`,
-      link: `${SITE_URL}/articles`,
+      link: `${SITE_URL}/a`,
       language: 'en',
       copyright: `All rights reserved ${new Date().getFullYear()}, Pana MIA`,
       feedLinks: {
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     for (const art of articles) {
       feed.addItem({
         title: art.title,
-        id: `${SITE_URL}/articles/${art.slug}`,
-        link: `${SITE_URL}/articles/${art.slug}`,
+        id: `${SITE_URL}/a/${art.slug}`,
+        link: `${SITE_URL}/a/${art.slug}`,
         description: art.excerpt || '',
         author: [{ name: authorName }],
         date: new Date(art.publishedAt!),

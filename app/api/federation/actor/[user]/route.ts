@@ -1,12 +1,9 @@
 /**
- * ActivityPub Actor Endpoint
+ * ActivityPub Actor API Endpoint
  *
- * Returns the ActivityPub actor representation for a user.
- * This is fetched by other servers when they want to know
- * about a user on panamia.club.
- *
- * For non-ActivityPub requests (browsers), redirects to /profile/.
- * This replaces the former page.tsx redirect.
+ * Internal route that returns the ActivityPub actor representation for a user.
+ * Called via proxy.ts content negotiation when a remote server requests
+ * /p/:screenname with an ActivityPub Accept header.
  *
  * @see https://www.w3.org/TR/activitypub/#actor-objects
  * @see https://docs.joinmastodon.org/spec/activitypub/#actors
@@ -18,27 +15,11 @@ import { formatPublicKeyForActor } from '@/lib/federation/crypto/keys';
 import { socialConfig } from '@/lib/federation';
 import { getPrisma } from '@/lib/prisma';
 
-const ACTIVITY_JSON_TYPES = [
-  'application/activity+json',
-  'application/ld+json',
-];
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ user: string }> }
 ) {
   const { user } = await params;
-
-  // Check Accept header - only respond with ActivityPub if requested
-  const accept = request.headers.get('accept') || '';
-  const wantsActivityPub = ACTIVITY_JSON_TYPES.some((type) =>
-    accept.includes(type)
-  );
-
-  // If not requesting ActivityPub, redirect to profile page
-  if (!wantsActivityPub) {
-    return NextResponse.redirect(new URL(`/profile/${user}/`, request.url));
-  }
 
   // Look up the actor
   const actor = await getActorByScreenname(user);
@@ -69,7 +50,7 @@ export async function GET(
     preferredUsername: actor.username,
     name: actor.name || actor.username,
     summary: actor.summary || '',
-    url: `https://${socialConfig.domain}/profile/${actor.username}`,
+    url: `https://${socialConfig.domain}/p/${actor.username}`,
     inbox: actor.inboxUrl,
     outbox: actor.outboxUrl,
     followers: actor.followersUrl,
@@ -78,13 +59,12 @@ export async function GET(
     icon: actor.iconUrl
       ? {
           type: 'Image',
-          mediaType: 'image/jpeg', // Could be smarter about this
+          mediaType: 'image/jpeg',
           url: actor.iconUrl,
         }
       : undefined,
     manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
     published: actor.createdAt.toISOString(),
-    // Mastodon-specific extensions
     discoverable: true,
     endpoints: {
       sharedInbox:

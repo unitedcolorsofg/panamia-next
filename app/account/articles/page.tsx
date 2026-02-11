@@ -249,7 +249,7 @@ export default function MyArticlesPage() {
                 My Articles
               </CardTitle>
               <Button asChild>
-                <Link href="/articles/new">
+                <Link href="/a/new">
                   <Plus className="mr-2 h-4 w-4" />
                   New Article
                 </Link>
@@ -292,7 +292,7 @@ export default function MyArticlesPage() {
               </p>
               {filter === 'all' && (
                 <Button className="mt-4" asChild>
-                  <Link href="/articles/new">
+                  <Link href="/a/new">
                     <Plus className="mr-2 h-4 w-4" />
                     Create Article
                   </Link>

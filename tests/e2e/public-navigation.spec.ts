@@ -74,12 +74,12 @@ test.describe('Profile Pages', () => {
     await page.goto('/directory/search');
 
     // Wait for any profile links to appear
-    const profileLink = page.locator('a[href^="/profile/"]').first();
+    const profileLink = page.locator('a[href^="/p/"]').first();
 
     // If a profile exists, test it
     if ((await profileLink.count()) > 0) {
       await profileLink.click();
-      await expect(page).toHaveURL(/\/profile\/.+/);
+      await expect(page).toHaveURL(/\/p\/.+/);
       await expect(page).not.toHaveTitle(/404/);
     } else {
       // Skip if no profiles exist

@@ -347,17 +347,14 @@ export default function MainHeader() {
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Articles</DropdownMenuLabel>
               <DropdownMenuItem asChild>
-                <Link
-                  href="/articles"
-                  className="flex cursor-pointer items-center"
-                >
+                <Link href="/a" className="flex cursor-pointer items-center">
                   <FileText className="mr-2 h-4 w-4" />
                   Browse Articles
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/articles/new"
+                  href="/a/new"
                   className="flex cursor-pointer items-center"
                 >
                   <PenLine className="mr-2 h-4 w-4" />

@@ -25,8 +25,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const feed = new Feed({
       title: `Pana MIA Articles - #${decodedTag}`,
       description: `Articles tagged with #${decodedTag}`,
-      id: `${SITE_URL}/articles?tag=${decodedTag}`,
-      link: `${SITE_URL}/articles?tag=${decodedTag}`,
+      id: `${SITE_URL}/a?tag=${decodedTag}`,
+      link: `${SITE_URL}/a?tag=${decodedTag}`,
       language: 'en',
       copyright: `All rights reserved ${new Date().getFullYear()}, Pana MIA`,
       feedLinks: {
@@ -59,8 +59,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
       feed.addItem({
         title: art.title,
-        id: `${SITE_URL}/articles/${art.slug}`,
-        link: `${SITE_URL}/articles/${art.slug}`,
+        id: `${SITE_URL}/a/${art.slug}`,
+        link: `${SITE_URL}/a/${art.slug}`,
         description: art.excerpt || '',
         author: [{ name: authorName }],
         date: new Date(art.publishedAt!),

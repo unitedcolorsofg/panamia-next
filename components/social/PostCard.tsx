@@ -51,7 +51,7 @@ export function PostCard({
       <CardContent className={isDetail ? 'px-0 pt-0' : 'pt-4'}>
         {/* Header */}
         <div className="flex items-start gap-3">
-          <Link href={`/profile/${status.actor.username}`}>
+          <Link href={`/p/${status.actor.username}`}>
             <Avatar className="h-10 w-10">
               <AvatarImage src={status.actor.iconUrl || undefined} />
               <AvatarFallback>{actorInitials}</AvatarFallback>
@@ -61,13 +61,13 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href={`/profile/${status.actor.username}`}
+                href={`/p/${status.actor.username}`}
                 className="truncate font-semibold hover:underline"
               >
                 {status.actor.name || status.actor.username}
               </Link>
               <Link
-                href={`/profile/${status.actor.username}`}
+                href={`/p/${status.actor.username}`}
                 className="text-muted-foreground truncate text-sm"
               >
                 @{status.actor.username}
@@ -86,7 +86,7 @@ export function PostCard({
               <p className="text-muted-foreground mt-1 text-sm">
                 Replying to{' '}
                 <Link
-                  href={`/profile/${status.inReplyTo.actorUsername}`}
+                  href={`/p/${status.inReplyTo.actorUsername}`}
                   className="text-primary hover:underline"
                 >
                   @{status.inReplyTo.actorUsername}

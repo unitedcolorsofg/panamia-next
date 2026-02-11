@@ -1,7 +1,24 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const AP_TYPES = ['application/activity+json', 'application/ld+json'];
+
 export function proxy(request: NextRequest) {
+  // ActivityPub content negotiation for /p/:screenname
+  // Proxy runs before trailing-slash 308 redirects, fixing federation
+  const { pathname } = request.nextUrl;
+  const match = pathname.match(/^\/p\/([^/]+)\/?$/);
+  if (match) {
+    const accept = request.headers.get('accept') || '';
+    const wantsAP = AP_TYPES.some((t) => accept.includes(t));
+    if (wantsAP) {
+      const screenname = match[1];
+      return NextResponse.rewrite(
+        new URL(`/api/federation/actor/${screenname}`, request.url)
+      );
+    }
+  }
+
   // Enforce HTTPS in production (Vercel deployment)
   if (
     process.env.NODE_ENV === 'production' &&

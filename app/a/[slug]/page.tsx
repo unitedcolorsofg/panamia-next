@@ -165,7 +165,7 @@ export default async function ArticlePage({ params }: PageProps) {
   return (
     <main className="container mx-auto max-w-4xl px-4 py-8">
       <Link
-        href="/articles"
+        href="/a"
         className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -191,7 +191,7 @@ export default async function ArticlePage({ params }: PageProps) {
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <ArticleTypeBadge type={articleData.articleType} />
             {articleData.tags.map((tag: string) => (
-              <Link key={tag} href={`/articles?tag=${tag}`}>
+              <Link key={tag} href={`/a?tag=${tag}`}>
                 <Badge variant="outline" className="hover:bg-gray-100">
                   #{tag}
                 </Badge>

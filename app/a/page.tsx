@@ -104,13 +104,13 @@ function ArticlesContent() {
     } else {
       params.delete('type');
     }
-    router.push(`/articles?${params.toString()}`);
+    router.push(`/a?${params.toString()}`);
   };
 
   const clearTagFilter = () => {
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.delete('tag');
-    router.push(`/articles?${params.toString()}`);
+    router.push(`/a?${params.toString()}`);
   };
 
   return (
@@ -124,7 +124,7 @@ function ArticlesContent() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/articles/new">
+          <Link href="/a/new">
             <PenLine className="mr-2 h-4 w-4" />
             Write Article
           </Link>
@@ -173,7 +173,7 @@ function ArticlesContent() {
               : 'Be the first to publish an article!'}
           </p>
           <Button asChild className="mt-4">
-            <Link href="/articles/new">
+            <Link href="/a/new">
               <PenLine className="mr-2 h-4 w-4" />
               Write Article
             </Link>

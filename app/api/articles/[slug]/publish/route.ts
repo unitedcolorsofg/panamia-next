@@ -112,7 +112,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         context: 'article',
         actorId: session.user.id,
         targetId: coAuthor.userId,
-        objectUrl: `/articles/${articleDoc.slug}`,
+        objectUrl: `/a/${articleDoc.slug}`,
         objectTitle: articleDoc.title,
       });
     }
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         context: 'article',
         actorId: session.user.id,
         targetId: reviewedBy.userId,
-        objectUrl: `/articles/${articleDoc.slug}`,
+        objectUrl: `/a/${articleDoc.slug}`,
         objectTitle: articleDoc.title,
       });
     }

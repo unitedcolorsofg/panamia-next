@@ -27,7 +27,7 @@ export default function NewArticlePage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/signin?callbackUrl=/articles/new');
+      router.push('/signin?callbackUrl=/a/new');
     }
   }, [status, router]);
 
@@ -111,7 +111,7 @@ export default function NewArticlePage() {
               You must be signed in to create articles.
             </p>
             <Button asChild>
-              <Link href="/signin?callbackUrl=/articles/new">Sign In</Link>
+              <Link href="/signin?callbackUrl=/a/new">Sign In</Link>
             </Button>
           </CardContent>
         </Card>

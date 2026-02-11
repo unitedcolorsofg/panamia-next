@@ -210,7 +210,7 @@ export default function HomePage() {
               </div>
             </div>
             <Button variant="outline" asChild>
-              <Link href="/articles">View All</Link>
+              <Link href="/a">View All</Link>
             </Button>
           </div>
           {articlesLoading ? (
@@ -225,7 +225,7 @@ export default function HomePage() {
                 Be the first to share a story with the community.
               </p>
               <Button asChild className="mt-4">
-                <Link href="/articles/new">Write an Article</Link>
+                <Link href="/a/new">Write an Article</Link>
               </Button>
             </div>
           ) : (

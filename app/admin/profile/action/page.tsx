@@ -38,7 +38,7 @@ function ProfileActionContent() {
           if (response?.data?.success) {
             const data = response.data.data[0];
             setActionResponse(data.message);
-            setProfileUrl(`/profile/${data.handle}`);
+            setProfileUrl(`/p/${data.handle}`);
             setProfileName(data.name);
             setTotalProfiles(data.total);
           } else {

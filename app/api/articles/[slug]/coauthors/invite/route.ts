@@ -152,7 +152,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       objectId: articleDoc.id,
       objectType: 'article',
       objectTitle: articleDoc.title,
-      objectUrl: `/articles/${articleDoc.slug}/invite`,
+      objectUrl: `/a/${articleDoc.slug}/invite`,
       message: message || undefined,
     });
 
