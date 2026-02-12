@@ -111,8 +111,6 @@ GET /api/user/author/{userId}
 ```json
 {
   "screenname": "user_screenname",
-  "name": "User Name",
-  "profileSlug": "profile-slug",
   "verified": true
 }
 ```

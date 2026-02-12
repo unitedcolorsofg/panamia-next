@@ -7,7 +7,6 @@ import { BadgeCheck } from 'lucide-react';
 interface AuthorData {
   screenname?: string;
   name?: string;
-  profileSlug?: string;
   verified?: boolean;
   deleted?: boolean;
 }
@@ -79,11 +78,11 @@ export default function AuthorBadge({
     </>
   );
 
-  // Link to profile if available
-  if (author.profileSlug) {
+  // Link to profile if screenname available
+  if (author.screenname) {
     return (
       <Link
-        href={`/pana/${author.profileSlug}`}
+        href={`/p/${author.screenname}/`}
         className={`font-medium text-blue-600 hover:underline dark:text-blue-400 ${className}`}
       >
         {content}
@@ -91,7 +90,7 @@ export default function AuthorBadge({
     );
   }
 
-  // No profile - just display the name
+  // No screenname - just display the name
   return (
     <span
       className={`font-medium text-gray-900 dark:text-gray-100 ${className}`}

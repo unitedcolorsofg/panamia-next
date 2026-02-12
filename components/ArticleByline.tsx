@@ -15,7 +15,6 @@ interface AuthorInfo {
   _id: string;
   screenname?: string;
   name?: string;
-  profileSlug?: string;
   verified?: boolean;
 }
 
@@ -49,10 +48,10 @@ function AuthorLink({
     ? `@${author.screenname}`
     : author.name || 'Anonymous';
 
-  if (author.profileSlug) {
+  if (author.screenname) {
     return (
       <Link
-        href={`/p/${author.profileSlug}`}
+        href={`/p/${author.screenname}/`}
         className="inline-flex items-center gap-1 font-medium hover:text-blue-600 dark:hover:text-blue-400"
       >
         {prefix && <span className="font-normal text-gray-500">{prefix}</span>}

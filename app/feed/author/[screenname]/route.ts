@@ -64,8 +64,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: { status: 'published' },
       orderBy: { publishedAt: 'desc' },
     });
-    const coAuthoredArticles = allPublishedArticles.filter((art) => {
-      const coAuthors = (art.coAuthors as unknown as CoAuthor[]) || [];
+    const coAuthoredArticles = allPublishedArticles.filter((a) => {
+      const coAuthors = (a.coAuthors as unknown as CoAuthor[]) || [];
       return coAuthors.some(
         (ca) => ca.userId === author.id && ca.status === 'accepted'
       );
@@ -73,9 +73,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Combine and dedupe
     const articleMap = new Map(primaryArticles.map((a) => [a.id, a]));
-    for (const art of coAuthoredArticles) {
-      if (!articleMap.has(art.id)) {
-        articleMap.set(art.id, art);
+    for (const coAuthored of coAuthoredArticles) {
+      if (!articleMap.has(coAuthored.id)) {
+        articleMap.set(coAuthored.id, coAuthored);
       }
     }
     const articles = Array.from(articleMap.values())
@@ -86,15 +86,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
       .slice(0, 50);
 
-    for (const art of articles) {
+    for (const article of articles) {
       feed.addItem({
-        title: art.title,
-        id: `${SITE_URL}/a/${art.slug}`,
-        link: `${SITE_URL}/a/${art.slug}`,
-        description: art.excerpt || '',
+        title: article.title,
+        id: `${SITE_URL}/a/${article.slug}`,
+        link: `${SITE_URL}/a/${article.slug}`,
+        description: article.excerpt || '',
         author: [{ name: authorName }],
-        date: new Date(art.publishedAt!),
-        category: art.tags?.map((t: string) => ({ name: t })) || [],
+        date: new Date(article.publishedAt!),
+        category: article.tags?.map((t: string) => ({ name: t })) || [],
       });
     }
 

@@ -19,7 +19,6 @@ interface UserResult {
   screenname: string;
   name?: string;
   verified?: boolean;
-  profileSlug?: string;
 }
 
 interface UserSearchProps {

@@ -46,22 +46,22 @@ async function generateFeed() {
     authors.map((a) => [a.id, { screenname: a.screenname }])
   );
 
-  for (const art of articles) {
-    const author = authorMap.get(art.authorId);
+  for (const article of articles) {
+    const author = authorMap.get(article.authorId);
     const authorName = author?.screenname
       ? `@${author.screenname}`
       : 'Anonymous';
 
     feed.addItem({
-      title: art.title,
-      id: `${SITE_URL}/a/${art.slug}`,
-      link: `${SITE_URL}/a/${art.slug}`,
-      description: art.excerpt || '',
-      content: art.content,
+      title: article.title,
+      id: `${SITE_URL}/a/${article.slug}`,
+      link: `${SITE_URL}/a/${article.slug}`,
+      description: article.excerpt || '',
+      content: article.content,
       author: [{ name: authorName }],
-      date: new Date(art.publishedAt!),
-      category: art.tags?.map((tag: string) => ({ name: tag })) || [],
-      image: art.coverImage || undefined,
+      date: new Date(article.publishedAt!),
+      category: article.tags?.map((tag: string) => ({ name: tag })) || [],
+      image: article.coverImage || undefined,
     });
   }
 

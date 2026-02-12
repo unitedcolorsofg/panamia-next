@@ -54,7 +54,6 @@ export const unguardProfile = (profile: any) => {
   const publicProfile: any = {
     _id: profile._id || profile.id,
     id: profile.id || profile._id,
-    slug: profile.slug,
     name: profile.name,
     details: descriptions?.details || profile.details,
     background: descriptions?.background || profile.background,
