@@ -63,6 +63,13 @@ export async function GET(
           url: actor.iconUrl,
         }
       : undefined,
+    image: {
+      type: 'Image',
+      mediaType: 'image/jpeg',
+      url:
+        actor.headerUrl ||
+        `https://${socialConfig.domain}/img/federation/header.jpg`,
+    },
     manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
     published: actor.createdAt.toISOString(),
     discoverable: true,

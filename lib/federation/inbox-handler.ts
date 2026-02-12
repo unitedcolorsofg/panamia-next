@@ -87,6 +87,8 @@ export async function handleInboxPost(
   switch (activity.type) {
     case 'Follow':
       return handleFollow(activity, targetActor);
+    case 'Undo':
+      return handleUndo(activity, targetActor);
     default:
       // Accept but ignore other activity types for POC
       return NextResponse.json({ status: 'accepted' }, { status: 202 });
@@ -175,6 +177,68 @@ async function handleFollow(
     },
     { status: 202 }
   );
+}
+
+/**
+ * Handle an incoming Undo activity.
+ *
+ * Currently supports Undo of Follow — removes the follow relationship
+ * and decrements both actors' follow counts.
+ */
+async function handleUndo(
+  activity: Activity,
+  targetActor: SocialActor
+): Promise<NextResponse> {
+  const innerObject =
+    typeof activity.object === 'string' ? null : activity.object;
+
+  // Only handle Undo Follow for now
+  if (!innerObject || innerObject.type !== 'Follow') {
+    return NextResponse.json({ status: 'accepted' }, { status: 202 });
+  }
+
+  const remoteActorUri =
+    typeof activity.actor === 'string' ? activity.actor : '';
+  if (!remoteActorUri) {
+    return NextResponse.json({ error: 'Invalid actor' }, { status: 400 });
+  }
+
+  const remoteActor = await ensureRemoteActor(remoteActorUri);
+  if (!remoteActor) {
+    return NextResponse.json({ status: 'accepted' }, { status: 202 });
+  }
+
+  const prisma = await getPrisma();
+
+  // Find and delete the follow record
+  const existingFollow = await prisma.socialFollow.findUnique({
+    where: {
+      actorId_targetActorId: {
+        actorId: remoteActor.id,
+        targetActorId: targetActor.id,
+      },
+    },
+  });
+
+  if (existingFollow) {
+    await prisma.socialFollow.delete({
+      where: { id: existingFollow.id },
+    });
+
+    // Decrement follow counts
+    await Promise.all([
+      prisma.socialActor.update({
+        where: { id: remoteActor.id },
+        data: { followingCount: { decrement: 1 } },
+      }),
+      prisma.socialActor.update({
+        where: { id: targetActor.id },
+        data: { followersCount: { decrement: 1 } },
+      }),
+    ]);
+  }
+
+  return NextResponse.json({ status: 'accepted' }, { status: 202 });
 }
 
 /**

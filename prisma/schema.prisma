@@ -667,7 +667,8 @@ model SocialActor {
   // Profile metadata (synced from Profile for local, fetched for remote)
   name    String?
   summary String? // Bio/description (HTML)
-  iconUrl String? // Avatar URL
+  iconUrl   String? // Avatar URL
+  headerUrl String? // Banner/header image URL
 
   // Counters (denormalized for performance)
   followingCount Int @default(0)

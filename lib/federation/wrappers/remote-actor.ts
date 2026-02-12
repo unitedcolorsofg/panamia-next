@@ -38,6 +38,10 @@ interface RemoteActorDocument {
     type: string;
     url: string;
   };
+  image?: {
+    type: string;
+    url: string;
+  };
   endpoints?: {
     sharedInbox?: string;
   };
@@ -104,6 +108,7 @@ export async function ensureRemoteActor(
         publicKey: person.publicKey.publicKeyPem,
         privateKey: null,
         iconUrl: person.icon?.url,
+        headerUrl: person.image?.url,
         manuallyApprovesFollowers: person.manuallyApprovesFollowers ?? false,
       },
     });
@@ -124,6 +129,7 @@ export async function ensureRemoteActor(
         sharedInboxUrl: person.endpoints?.sharedInbox || person.inbox,
         publicKey: person.publicKey.publicKeyPem,
         iconUrl: person.icon?.url,
+        headerUrl: person.image?.url,
       },
     });
   }

@@ -64,11 +64,10 @@ const VISIBILITY_OPTIONS: {
   {
     value: 'unlisted',
     icon: Users,
-    label: 'Visible to All Panas',
-    description:
-      'Shown to All Panas, Excluded from Public Timeline but still Publicly Accessible.',
-    buttonText: 'Visible to All Panas',
-    replyText: 'Reply to All Panas',
+    label: 'Visible to Local Panas',
+    description: 'Visible to local Panas only. Not shared via federation.',
+    buttonText: 'Visible to Local Panas',
+    replyText: 'Reply to Local Panas',
   },
   {
     value: 'private',
