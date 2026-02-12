@@ -90,7 +90,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         throw new Error(responseData.error || 'Failed to update profile');
       }
 
-      router.push('/mentoring/profile');
+      router.push('/m/profile');
       router.refresh();
     } catch (error) {
       console.error('Error updating profile:', error);

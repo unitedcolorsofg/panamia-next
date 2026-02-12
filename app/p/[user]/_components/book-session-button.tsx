@@ -18,7 +18,7 @@ export function BookSessionButton({ handle }: BookSessionButtonProps) {
       router.push('/api/auth/signin');
       return;
     }
-    router.push(`/mentoring/schedule/book?mentor=${handle}`);
+    router.push(`/m/schedule/book?mentor=${handle}`);
   };
 
   return (

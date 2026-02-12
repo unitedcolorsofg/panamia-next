@@ -318,7 +318,7 @@ export default function MainHeader() {
               <DropdownMenuLabel>Mentoring</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/mentoring/discover"
+                  href="/m/discover"
                   className="flex cursor-pointer items-center"
                 >
                   <Users className="mr-2 h-4 w-4" />
@@ -327,7 +327,7 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/mentoring/profile/edit"
+                  href="/m/profile/edit"
                   className="flex cursor-pointer items-center"
                 >
                   <Compass className="mr-2 h-4 w-4" />
@@ -336,7 +336,7 @@ export default function MainHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="/mentoring/schedule"
+                  href="/m/schedule"
                   className="flex cursor-pointer items-center"
                 >
                   <Video className="mr-2 h-4 w-4" />

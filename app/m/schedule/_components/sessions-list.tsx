@@ -145,7 +145,7 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
 
               {type === 'upcoming' && session.status === 'scheduled' && (
                 <div className="flex space-x-2">
-                  <Link href={`/mentoring/session/${session.sessionId}`}>
+                  <Link href={`/m/session/${session.sessionId}`}>
                     <Button>Join Session</Button>
                   </Link>
                   <Button
@@ -161,7 +161,7 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
               )}
 
               {type === 'past' && session.status === 'completed' && (
-                <Link href={`/mentoring/session/${session.sessionId}`}>
+                <Link href={`/m/session/${session.sessionId}`}>
                   <Button variant="outline">View Session Details</Button>
                 </Link>
               )}

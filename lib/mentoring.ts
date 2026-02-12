@@ -43,21 +43,21 @@ export const SESSION_TYPE_INFO: Record<
  * Get the URL for a specific mentoring session
  */
 export function getSessionUrl(sessionId: string): string {
-  return `/mentoring/session/${sessionId}`;
+  return `/m/session/${sessionId}`;
 }
 
 /**
  * Get the URL for the mentoring schedule page
  */
 export function getScheduleUrl(): string {
-  return '/mentoring/schedule';
+  return '/m/schedule';
 }
 
 /**
  * Get the URL for the mentoring discovery page
  */
 export function getDiscoverUrl(): string {
-  return '/mentoring/discover';
+  return '/m/discover';
 }
 
 /**

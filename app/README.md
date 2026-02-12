@@ -59,18 +59,18 @@ Site administration (requires admin role):
 | `/account/admin/podcasts`  | Podcast management         |
 | `/account/admin/import`    | Import profiles            |
 
-### Mentoring (`/mentoring/*`)
+### Mentoring (`/m/*`)
 
 Mentorship program pages:
 
-| Route                      | Description                |
-| -------------------------- | -------------------------- |
-| `/mentoring/discover`      | Find mentors               |
-| `/mentoring/profile`       | Your mentor/mentee profile |
-| `/mentoring/profile/edit`  | Edit mentoring profile     |
-| `/mentoring/schedule`      | View/manage schedule       |
-| `/mentoring/schedule/book` | Book a session             |
-| `/mentoring/session/[id]`  | View session details       |
+| Route              | Description                |
+| ------------------ | -------------------------- |
+| `/m/discover`      | Find mentors               |
+| `/m/profile`       | Your mentor/mentee profile |
+| `/m/profile/edit`  | Edit mentoring profile     |
+| `/m/schedule`      | View/manage schedule       |
+| `/m/schedule/book` | Book a session             |
+| `/m/session/[id]`  | View session details       |
 
 ### Forms (`/form/*`)
 

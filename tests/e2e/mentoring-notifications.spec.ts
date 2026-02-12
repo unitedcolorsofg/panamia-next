@@ -92,7 +92,7 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
   test('mentoring schedule page redirects unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/mentoring/schedule');
+    await page.goto('/m/schedule');
 
     // Should redirect to signin page
     await expect(page).toHaveURL(/signin/);
@@ -101,7 +101,7 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
   test('mentoring discover page redirects unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/mentoring/discover');
+    await page.goto('/m/discover');
 
     // Should redirect to signin page
     await expect(page).toHaveURL(/signin/);
@@ -110,7 +110,7 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
   test('mentoring profile page redirects unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/mentoring/profile');
+    await page.goto('/m/profile');
 
     // Should redirect to signin page
     await expect(page).toHaveURL(/signin/);
@@ -119,7 +119,7 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
   test('mentoring session page redirects unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/mentoring/session/test-session-id');
+    await page.goto('/m/session/test-session-id');
 
     // Should redirect to signin page
     await expect(page).toHaveURL(/signin/);

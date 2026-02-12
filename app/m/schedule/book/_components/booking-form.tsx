@@ -80,7 +80,7 @@ export function BookingForm() {
       }
 
       const result = await response.json();
-      router.push('/mentoring/schedule');
+      router.push('/m/schedule');
       router.refresh();
     } catch (error) {
       console.error('Error booking session:', error);

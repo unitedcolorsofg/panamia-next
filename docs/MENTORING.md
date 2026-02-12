@@ -349,7 +349,7 @@ The mentoring feature uses a hybrid architecture:
 
 **Frontend:**
 
-- Next.js 15 App Router (`app/(mentoring)/`)
+- Next.js 15 App Router (`app/m/`)
 - React 19 Server and Client Components
 - shadcn/ui for UI components
 - React Hook Form + Zod for forms
@@ -437,7 +437,7 @@ export const mentoringProfileSchema = z.object({
 });
 ```
 
-**3. Update Form** (`app/(mentoring)/profile/edit/_components/profile-form.tsx`):
+**3. Update Form** (`app/m/profile/edit/_components/profile-form.tsx`):
 
 ```typescript
 <Input
@@ -446,7 +446,7 @@ export const mentoringProfileSchema = z.object({
 />
 ```
 
-**4. Update Profile View** (`app/(mentoring)/profile/page.tsx`):
+**4. Update Profile View** (`app/m/profile/page.tsx`):
 
 ```typescript
 {profile.mentoring.newField && (
@@ -459,7 +459,7 @@ export const mentoringProfileSchema = z.object({
 
 #### Adding a Custom Video Control
 
-**1. Add State** (`app/(mentoring)/session/[sessionId]/_components/video-room.tsx`):
+**1. Add State** (`app/m/session/[sessionId]/_components/video-room.tsx`):
 
 ```typescript
 const [customFeature, setCustomFeature] = useState(false);
@@ -525,7 +525,7 @@ export async function PATCH(request: NextRequest) {
 }
 ```
 
-**Update Form** (`app/(mentoring)/profile/edit/_components/profile-form.tsx`):
+**Update Form** (`app/m/profile/edit/_components/profile-form.tsx`):
 
 ```typescript
 const onSubmit = async (data: MentoringProfileData) => {
@@ -540,7 +540,7 @@ const onSubmit = async (data: MentoringProfileData) => {
       throw new Error('Failed to update profile');
     }
 
-    router.push('/mentoring/profile');
+    router.push('/m/profile');
     router.refresh();
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -619,7 +619,7 @@ const onSubmit = async (data: MentoringProfileData) => {
 ### File Structure
 
 ```
-app/(mentoring)/
+app/m/
 ├── layout.tsx                          # Protected layout with nav
 ├── discover/
 │   ├── page.tsx                        # Mentor discovery page

@@ -127,9 +127,7 @@ export function VideoRoom({
       } catch (error) {
         console.error('Error initializing WebRTC:', error);
       }
-    }
-
-;
+    };
 
     initWebRTC();
 
@@ -172,34 +170,34 @@ export function VideoRoom({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
-    window.location.href = '/mentoring/schedule';
+    window.location.href = '/m/schedule';
   };
 
   return (
-    <div className="grid grid-cols-3 gap-4 h-full">
+    <div className="grid h-full grid-cols-3 gap-4">
       {/* Video Section */}
-      <div className="col-span-2 bg-black rounded-lg relative">
+      <div className="relative col-span-2 rounded-lg bg-black">
         {/* Remote video (large) */}
         <video
           ref={remoteVideoRef}
           autoPlay
           playsInline
-          className="w-full h-full object-cover rounded-lg"
+          className="h-full w-full rounded-lg object-cover"
         />
 
         {/* Local video (small, corner overlay) */}
-        <div className="absolute bottom-4 right-4 w-48 h-36 bg-gray-900 rounded-lg overflow-hidden border-2 border-white">
+        <div className="absolute right-4 bottom-4 h-36 w-48 overflow-hidden rounded-lg border-2 border-white bg-gray-900">
           <video
             ref={localVideoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         </div>
 
         {/* Controls */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-4">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 space-x-4">
           <Button
             onClick={toggleMute}
             variant={isMuted ? 'destructive' : 'default'}
@@ -218,7 +216,7 @@ export function VideoRoom({
         </div>
 
         {!isConnected && (
-          <div className="absolute top-4 left-4 bg-yellow-500 text-white px-4 py-2 rounded-lg">
+          <div className="absolute top-4 left-4 rounded-lg bg-yellow-500 px-4 py-2 text-white">
             Connecting...
           </div>
         )}

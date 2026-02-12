@@ -269,7 +269,7 @@ The mentoring platform implements multiple layers of security to protect user da
 All mentoring routes are protected via layout authentication:
 
 ```typescript
-// app/(mentoring)/layout.tsx
+// app/m/layout.tsx
 const session = await auth();
 if (!session?.user) {
   redirect('/api/auth/signin');

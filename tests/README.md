@@ -55,7 +55,7 @@ A Husky pre-commit hook automatically checks test coverage for modified pages:
   ```
   ⚠️  WARNING: Modified pages may not have Playwright test coverage:
 
-    📄 app/mentoring/profile/page.tsx → /mentoring/profile
+    📄 app/m/profile/page.tsx → /m/profile
 
   💡 Consider adding test cases to tests/e2e/
   ```

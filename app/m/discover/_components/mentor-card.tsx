@@ -46,7 +46,7 @@ export function MentorCard({ mentor }: MentorCardProps) {
         <p className="text-sm text-gray-700">{mentor.mentoring.bio}</p>
 
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2">Expertise</p>
+          <p className="mb-2 text-xs font-semibold text-gray-500">Expertise</p>
           <div className="flex flex-wrap gap-2">
             {mentor.mentoring.expertise.map((skill) => (
               <Badge key={skill} variant="secondary">
@@ -57,7 +57,7 @@ export function MentorCard({ mentor }: MentorCardProps) {
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2">Languages</p>
+          <p className="mb-2 text-xs font-semibold text-gray-500">Languages</p>
           <div className="flex flex-wrap gap-2">
             {mentor.mentoring.languages.map((lang) => (
               <Badge key={lang} variant="outline">
@@ -67,7 +67,7 @@ export function MentorCard({ mentor }: MentorCardProps) {
           </div>
         </div>
 
-        <Link href={`/mentoring/schedule/book?mentor=${mentor.email}`}>
+        <Link href={`/m/schedule/book?mentor=${mentor.email}`}>
           <Button className="w-full">Book Session</Button>
         </Link>
       </CardContent>

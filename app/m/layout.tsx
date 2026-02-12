@@ -22,19 +22,19 @@ export default async function MentoringLayout({
               Pana Mia
             </Link>
             <Link
-              href="/mentoring/discover"
+              href="/m/discover"
               className="text-muted-foreground hover:text-foreground"
             >
               Discover
             </Link>
             <Link
-              href="/mentoring/schedule"
+              href="/m/schedule"
               className="text-muted-foreground hover:text-foreground"
             >
               My Sessions
             </Link>
             <Link
-              href="/mentoring/profile"
+              href="/m/profile"
               className="text-muted-foreground hover:text-foreground"
             >
               Mentoring Profile

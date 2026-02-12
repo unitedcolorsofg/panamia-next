@@ -25,7 +25,7 @@ export default async function MentoringProfilePage() {
       <div className="max-w-2xl space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="mb-8 text-3xl font-bold">Mentoring Profile</h1>
-          <Link href="/mentoring/profile/edit">
+          <Link href="/m/profile/edit">
             <Button>Edit Profile</Button>
           </Link>
         </div>

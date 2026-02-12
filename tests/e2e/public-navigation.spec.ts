@@ -162,7 +162,7 @@ test.describe('Custom Sign-In Page', () => {
 
   test('signin page preserves callback URL', async ({ page }) => {
     // Navigate to signin with a callback URL
-    await page.goto('/signin?callbackUrl=/mentoring/discover');
+    await page.goto('/signin?callbackUrl=/m/discover');
 
     // Page should load without errors
     await expect(page).not.toHaveTitle(/404/);

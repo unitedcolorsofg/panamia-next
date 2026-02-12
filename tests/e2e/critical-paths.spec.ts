@@ -42,21 +42,21 @@ test.describe('Critical User Paths', () => {
 
 test.describe('Mentoring Features', () => {
   test('mentor discovery page requires authentication', async ({ page }) => {
-    await page.goto('/mentoring/discover');
+    await page.goto('/m/discover');
 
     // Should redirect to custom signin page for unauthenticated users
     await expect(page).toHaveURL(/\/signin/);
   });
 
   test('mentor schedule page requires authentication', async ({ page }) => {
-    await page.goto('/mentoring/schedule');
+    await page.goto('/m/schedule');
 
     // Should redirect to custom signin page for unauthenticated users
     await expect(page).toHaveURL(/\/signin/);
   });
 
   test('mentor profile page loads or redirects', async ({ page }) => {
-    await page.goto('/mentoring/profile', { waitUntil: 'domcontentloaded' });
+    await page.goto('/m/profile', { waitUntil: 'domcontentloaded' });
 
     // Should redirect to signin for unauthenticated users or load the profile page
     const url = page.url();
