@@ -57,7 +57,7 @@ export const socialConfig = {
   endpoints: {
     webfinger: '/.well-known/webfinger',
     nodeinfo: '/.well-known/nodeinfo',
-    actor: (screenname: string) => `/p/${screenname}`,
+    actor: (screenname: string) => `/p/${screenname}/`,
     inbox: (screenname: string) => `/p/${screenname}/inbox`,
     outbox: (screenname: string) => `/p/${screenname}/outbox`,
     followers: (screenname: string) => `/p/${screenname}/followers`,

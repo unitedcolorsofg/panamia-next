@@ -50,7 +50,7 @@ export async function GET(
     preferredUsername: actor.username,
     name: actor.name || actor.username,
     summary: actor.summary || '',
-    url: `https://${socialConfig.domain}/p/${actor.username}`,
+    url: `https://${socialConfig.domain}/p/${actor.username}/`,
     inbox: actor.inboxUrl,
     outbox: actor.outboxUrl,
     followers: actor.followersUrl,

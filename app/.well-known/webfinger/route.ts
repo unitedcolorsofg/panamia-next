@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       {
         rel: 'http://webfinger.net/rel/profile-page',
         type: 'text/html',
-        href: `https://${domain}/p/${username}`,
+        href: `https://${domain}/p/${username}/`,
       },
     ],
   };
