@@ -25,12 +25,12 @@ This document outlines the plan to add native social features to panamia.club. B
 │  │  "My New Post"  │     │  ┌─────────────────────────────┐    │   │
 │  │                 │     │  │ @author: Check out my new   │    │   │
 │  │  [content...]   │     │  │ article about...            │    │   │
-│  │                 │     │  │ 🔗 panamia.club/articles/...│    │   │
+│  │                 │     │  │ 🔗 panamia.club/a/...│    │   │
 │  │  ─────────────  │     │  └─────────────────────────────┘    │   │
 │  │  Comments:      │     │  ┌─────────────────────────────┐    │   │
 │  │  ┌───────────┐  │     │  │ @coauthor: Excited to share │    │   │
 │  │  │ @user@mast│◄─┼─────┼──│ this new article...         │    │   │
-│  │  │ Great!    │  │     │  │ 🔗 panamia.club/articles/...│    │   │
+│  │  │ Great!    │  │     │  │ 🔗 panamia.club/a/...│    │   │
 │  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
 │  │  ┌───────────┐  │     │  ┌─────────────────────────────┐    │   │
 │  │  │ @local    │◄─┼─────┼──│ @someone@mastodon.social    │    │   │
@@ -310,7 +310,7 @@ feature sets. SocialFollow is now the sole follow mechanism.
 
 **Added**:
 
-- Navigation item "Timeline Posts" → `/social/timeline` (placeholder)
+- Navigation item "Timeline Posts" → `/timeline`
 - Migration to drop `user_follows`, `user_lists`, `user_list_members` tables
 
 ### Phase 4: Social Timeline (Local) ✓
@@ -320,12 +320,12 @@ feature sets. SocialFollow is now the sole follow mechanism.
 **Goal**: Users can post and see posts from followed accounts
 
 - [x] Create post composer UI (`PostComposer` with 500 char limit, CW support)
-- [x] Timeline page showing posts from followed accounts (`/social/timeline`)
-- [x] Post detail page (`/social/status/[statusId]`)
+- [x] Timeline page showing posts from followed accounts (`/timeline`)
+- [x] Post detail page (`/status/[statusId]`)
 - [x] Reply to posts (inline composer on post detail)
 - [x] Like posts (optimistic UI with `useLikePost`/`useUnlikePost`)
 - [x] Follow/unfollow local users (`FollowButton` component)
-- [x] User's own posts list (`/social/[actor]` profile page)
+- [x] User's own posts list (`/p/[user]` profile page)
 - [x] Follow buttons in directory search results
 
 **Implementation**:
@@ -334,7 +334,7 @@ feature sets. SocialFollow is now the sole follow mechanism.
 - API routes: `app/api/social/{timeline,statuses,actors,follows}/`
 - React Query hooks: `lib/query/social.ts`
 - UI components: `components/social/`
-- Pages: `app/social/{timeline,[actor],status/[statusId]}/`
+- Pages: `app/{timeline,p/[user],status/[statusId]}/`
 
 **Hybrid Layout**: Actor profile page uses tabs (Posts | Followers | Following)
 instead of separate pages. Timeline page has Home/Public tabs.
@@ -443,7 +443,7 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 
 **Goal**: Receive and process activities from remote servers
 
-- [ ] Inbox endpoint (`/users/[screenname]/inbox`)
+- [ ] Inbox endpoint (`/p/[user]/inbox`)
 - [ ] HTTP signature verification
 - [ ] Process Follow activities (follow requests)
 - [ ] Process Create activities (remote posts/replies)

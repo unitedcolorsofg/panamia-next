@@ -276,11 +276,11 @@ All notification code MUST include upstream reference comments:
 
 #### Pages
 
-| Page                    | Description                 |
-| ----------------------- | --------------------------- |
-| `/articles/new`         | Create new article          |
-| `/articles/[slug]/edit` | Edit article (authors only) |
-| `/account/articles`     | Author's article dashboard  |
+| Page                | Description                 |
+| ------------------- | --------------------------- |
+| `/a/new`            | Create new article          |
+| `/a/[slug]/edit`    | Edit article (authors only) |
+| `/account/articles` | Author's article dashboard  |
 
 #### Editor
 
@@ -356,10 +356,10 @@ Re-request review when ready
 
 #### Pages
 
-| Page                      | Description                |
-| ------------------------- | -------------------------- |
-| `/articles/[slug]/invite` | Invitation acceptance page |
-| `/articles/[slug]/review` | Reviewer interface         |
+| Page               | Description                |
+| ------------------ | -------------------------- |
+| `/a/[slug]/invite` | Invitation acceptance page |
+| `/a/[slug]/review` | Reviewer interface         |
 
 #### Components
 
@@ -400,10 +400,10 @@ Article is publishable when ALL conditions met:
 
 #### Pages
 
-| Page               | Description                     |
-| ------------------ | ------------------------------- |
-| `/articles`        | Article exploration/browse page |
-| `/articles/[slug]` | Public article view             |
+| Page        | Description                     |
+| ----------- | ------------------------------- |
+| `/a`        | Article exploration/browse page |
+| `/a/[slug]` | Public article view             |
 
 #### Article Page Layout
 
@@ -460,7 +460,7 @@ Add new section to existing homepage:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### /articles Exploration Page
+#### /a Exploration Page
 
 - Filter by article type (business update / community commentary)
 - Filter by tags
@@ -502,20 +502,20 @@ Add new section to existing homepage:
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Pana MIA Community Articles</title>
-    <link>https://panamia.club/articles</link>
+    <link>https://panamia.club/a</link>
     <description>Community articles from South Florida</description>
     <language>en-us</language>
     <lastBuildDate>RFC 822 date</lastBuildDate>
 
     <item>
       <title>Article Title</title>
-      <link>https://panamia.club/articles/slug</link>
+      <link>https://panamia.club/a/slug</link>
       <description><![CDATA[Excerpt or first paragraph...]]></description>
       <dc:creator>Author Screenname</dc:creator>
       <pubDate>RFC 822 date</pubDate>
       <category>tag1</category>
       <category>tag2</category>
-      <guid isPermaLink="true">https://panamia.club/articles/slug</guid>
+      <guid isPermaLink="true">https://panamia.club/a/slug</guid>
     </item>
   </channel>
 </rss>
@@ -780,7 +780,7 @@ app/
 │           └── [slug]/
 │               ├── remove/route.ts
 │               └── restore/route.ts
-├── articles/
+├── a/
 │   ├── page.tsx                        # Browse/explore
 │   ├── new/page.tsx                    # Create
 │   └── [slug]/

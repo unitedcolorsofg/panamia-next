@@ -13,10 +13,10 @@ Next.js 16 App Router directory containing all pages, layouts, and API routes.
 | `/directory`        | Browse business directory                    |
 | `/directory/search` | Search directory with filters                |
 | `/directorio`       | Spanish alias for directory                  |
-| `/articles`         | Browse community articles                    |
-| `/articles/[slug]`  | View single article                          |
-| `/articles/new`     | Create new article (auth required)           |
-| `/profile/[handle]` | Public profile view                          |
+| `/a`                | Browse community articles                    |
+| `/a/[slug]`         | View single article                          |
+| `/a/new`            | Create new article (auth required)           |
+| `/p/[user]`         | Public profile view                          |
 | `/signin`           | Authentication page                          |
 | `/links`            | Link tree style page                         |
 | `/podcasts`         | Podcast listings                             |
@@ -131,7 +131,7 @@ See [app/api/README.md](./api/README.md) for comprehensive API documentation.
 | ------------ | ---------------------------------------- |
 | `[slug]`     | URL-safe identifier (articles, profiles) |
 | `[id]`       | Database ID (UUID or numeric)            |
-| `[handle]`   | User profile handle                      |
+| `[user]`     | User screenname (profile, federation)    |
 | `[...param]` | Catch-all routes                         |
 
 ## See Also
