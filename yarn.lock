@@ -150,7 +150,7 @@
   dependencies:
     "@babel/types" "^7.28.5"
 
-"@babel/runtime@^7.1.2", "@babel/runtime@^7.23.2", "@babel/runtime@^7.28.6":
+"@babel/runtime@^7.1.2", "@babel/runtime@^7.28.6":
   version "7.28.6"
   resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.28.6.tgz"
   integrity sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==
@@ -1651,14 +1651,14 @@
     postcss "^8.4.41"
     tailwindcss "4.1.18"
 
-"@tanem/svg-injector@^10.1.68":
-  version "10.1.68"
-  resolved "https://registry.npmjs.org/@tanem/svg-injector/-/svg-injector-10.1.68.tgz"
-  integrity sha512-UkJajeR44u73ujtr5GVSbIlELDWD/mzjqWe54YMK61ljKxFcJoPd9RBSaO7xj02ISCWUqJW99GjrS+sVF0UnrA==
+"@tanem/svg-injector@^11.2.0":
+  version "11.2.1"
+  resolved "https://registry.yarnpkg.com/@tanem/svg-injector/-/svg-injector-11.2.1.tgz#7983a6680782b1124054cd5ab3108074e7fca65e"
+  integrity sha512-iCjVNLKa9Il8VQRkTItcv0i9yl0iQt2ajFqecUtGoeK5woLwmCANmQAysQP6Neq39kRI/lILxv49D1O/DtbDvw==
   dependencies:
-    "@babel/runtime" "^7.23.2"
+    "@babel/runtime" "^7.28.6"
     content-type "^1.0.5"
-    tslib "^2.6.2"
+    tslib "^2.8.1"
 
 "@tanstack/query-core@5.90.20":
   version "5.90.20"
@@ -6433,13 +6433,13 @@ react-style-singleton@^2.2.2, react-style-singleton@^2.2.3:
     get-nonce "^1.0.0"
     tslib "^2.0.0"
 
-react-svg@^16.4.2:
-  version "16.4.2"
-  resolved "https://registry.yarnpkg.com/react-svg/-/react-svg-16.4.2.tgz#0ef517d87494542978eb6eb69bd273342f6c8c2a"
-  integrity sha512-S33tu0R30U9p+hwMoDi6RxfRW0aC6Se5ntGCpvVfVe02FHbS2THLTKgpTaKP0oIKQnJMqEvh/NLTWuNA4Nbp6w==
+react-svg@^17.1.1:
+  version "17.1.1"
+  resolved "https://registry.yarnpkg.com/react-svg/-/react-svg-17.1.1.tgz#dcf93b324362cbc796d1ad87188a7d9a22bec8f5"
+  integrity sha512-cR0nx4jOkbFzSB9A6ou2CGm6n+lIwWyCtLt4tXj+aXu/7fbU01VX166aRiHERJGIQtQE+aR4uTLH1DFYIRrnjA==
   dependencies:
     "@babel/runtime" "^7.28.6"
-    "@tanem/svg-injector" "^10.1.68"
+    "@tanem/svg-injector" "^11.2.0"
     "@types/prop-types" "^15.7.15"
     prop-types "^15.8.1"
 
@@ -7230,7 +7230,7 @@ tsconfig-paths@^3.15.0:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tslib@^2.0.0, tslib@^2.1.0, tslib@^2.4.0, tslib@^2.6.2, tslib@^2.8.0:
+tslib@^2.0.0, tslib@^2.1.0, tslib@^2.4.0, tslib@^2.8.0, tslib@^2.8.1:
   version "2.8.1"
   resolved "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz"
   integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
