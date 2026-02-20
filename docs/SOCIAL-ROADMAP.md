@@ -279,7 +279,7 @@ model ArticleAnnouncement {
 - [x] Create actor when user enables social features
 - [x] Generate RSA keypair for HTTP signatures
 - [x] WebFinger endpoint (`/.well-known/webfinger`)
-- [x] Actor endpoint (`/users/[screenname]`)
+- [x] Actor endpoint (`/p/[screenname]`)
 - [x] Sync actor when profile changes (name, bio, avatar)
 
 **Note on Username Sync**: The actor `username` is set from `profile.slug` at
@@ -372,6 +372,94 @@ instead of separate pages. Timeline page has Home/Public tabs.
 - `lib/federation/wrappers/timeline.ts` — `include: { attachments: true }` on all queries
 - `lib/interfaces.ts` — `attachments` field on `SocialStatusDisplay`
 
+**Planned: FLOSS Audio/Video Expansion**
+
+**Status**: Not started
+
+The current media implementation has two gaps to address:
+
+1. **Audio/webm Safari bug** — `audio/webm` (the only accepted audio type) is not playable on Safari or iOS. Voice memo users on iPhone cannot hear recordings.
+2. **No video support** — video MIME types are not accepted by the upload endpoint.
+
+**FLOSS codec philosophy**: The project favors royalty-free, open codecs consistent with `docs/FLOSS-ALTERNATIVES.md`. H.264/AAC (MP4) carries patent licensing obligations through at least 2028. HLS is an Apple-controlled proprietary container format. WebM, VP9, AV1, and Opus are royalty-free and have no patent encumbrances.
+
+**Safari coverage**: Safari's WebM/VP9 support remains incomplete and requires Apple to ship. Rather than building an HLS transcoding pipeline to accommodate one proprietary browser, audio/video playback will explicitly target Chromium-based browsers and Firefox. Safari users will see a clear unsupported-browser message for audio/video content. This matches the project's FLOSS sensibilities and keeps infrastructure simple.
+
+**Codec stack**:
+
+| Format | Codec | Container            | Use                                     |
+| ------ | ----- | -------------------- | --------------------------------------- |
+| Audio  | Opus  | `.ogg` / `.webm`     | Voice memos, audio posts                |
+| Video  | VP9   | `.webm`              | Short video clips                       |
+| Video  | AV1   | `.webm`              | Future: higher quality at lower bitrate |
+| Images | —     | jpeg, png, webp, gif | Unchanged                               |
+
+**Playback compatibility**:
+
+| Browser       | audio/ogg (Opus) | video/webm (VP9) |
+| ------------- | ---------------- | ---------------- |
+| Chrome / Edge | ✓                | ✓                |
+| Firefox       | ✓                | ✓                |
+| Safari / iOS  | ✗                | ✗                |
+
+**Client-side transcoding with ffmpeg.wasm**:
+
+[`@ffmpeg/ffmpeg`](https://github.com/ffmpegwasm/ffmpeg.wasm) runs a WebAssembly build of ffmpeg in the browser. Transcoding happens before upload — the server receives a finished `.webm` file and stores it without any server-side processing. ffmpeg.wasm is LGPL licensed.
+
+Audio pipeline:
+
+```
+MediaRecorder (audio/webm, browser-native) → ffmpeg.wasm → audio/ogg (Opus) → upload
+```
+
+Video pipeline:
+
+```
+<input type="file"> (any format) → ffmpeg.wasm → video/webm (VP9+Opus) → upload
+```
+
+The ffmpeg.wasm WASM binary (~31 MB) is loaded on demand only when the user selects a file to upload, not on page load.
+
+**Video playback with Vidstack**:
+
+[Vidstack](https://www.vidstack.io/) (MIT license) is a React-native video player with accessible controls, poster image support, and a minimal API. It uses the browser's native `<video>` element for WebM playback — no HLS required.
+
+```tsx
+// AttachmentGrid.tsx — video attachment rendering
+import { MediaPlayer, MediaProvider } from '@vidstack/react';
+
+<MediaPlayer src={attachment.url} title={attachment.description ?? 'Video'}>
+  <MediaProvider />
+  {/* default accessible controls */}
+</MediaPlayer>;
+```
+
+**Updated accepted MIME types** (`app/api/social/media/route.ts`):
+
+```typescript
+const ACCEPTED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'audio/ogg', // Opus audio (replaces audio/webm)
+  'video/webm', // VP9 video
+];
+```
+
+The existing `audio/webm` MIME type accepted by `VoiceMemoComposer` will be removed from the server allowlist once the client-side Opus transcode is in place.
+
+**Implementation tasks**:
+
+- [ ] Add `@ffmpeg/ffmpeg` and `@ffmpeg/util` to dependencies
+- [ ] Create `lib/media/transcode.ts` — Opus audio transcode via ffmpeg.wasm
+- [ ] Create `lib/media/transcodeVideo.ts` — VP9 video transcode via ffmpeg.wasm
+- [ ] Update `PostComposer.tsx` — run audio/video through transcode before upload
+- [ ] Update `VoiceMemoComposer.tsx` — replace raw `audio/webm` upload with Opus transcode
+- [ ] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/webm`, remove `audio/webm`
+- [ ] Update `AttachmentGrid.tsx` — add Vidstack player for `video/webm` attachments
+- [ ] Add Safari/iOS unsupported-browser notice for audio/video playback
+
 ### Phase 4C: Voice Memo Direct Messages
 
 **Status**: Complete
@@ -433,23 +521,38 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 
 **Goal**: Local posts federate to remote servers
 
-- [ ] HTTP signature signing for outgoing requests
+- [x] HTTP signature signing for outgoing requests
+- [x] Outbox endpoint (`/p/[user]/outbox`) — public-only statuses
+- [x] Following endpoint (`/p/[user]/following`) — collection summary
+- [x] Actor banner/header image in JSON-LD (`image` property)
 - [ ] Deliver Create activities to followers' inboxes
 - [ ] Deliver Follow activities to remote actors
 - [ ] Deliver Like activities
 - [ ] Deliver Undo activities (unfollow, unlike)
 
+**Visibility & Federation**:
+
+- **Public**: Federated via outbox and delivered to followers' inboxes
+- **Visible to Local Panas** (unlisted): Local-only. Excluded from federation outbox.
+- **Followers only**: Addressed to the actor's followers collection, which **includes remote followers**. Once delivery is implemented, these posts will be pushed to remote followers' inboxes via signed POST.
+- **Direct**: Sent to specific recipients only
+
 ### Phase 8: Federation - Inbound
 
 **Goal**: Receive and process activities from remote servers
 
-- [ ] Inbox endpoint (`/p/[user]/inbox`)
-- [ ] HTTP signature verification
-- [ ] Process Follow activities (follow requests)
+- [x] Inbox endpoint (`/p/[user]/inbox`)
+- [x] HTTP signature verification
+- [x] Process Follow activities (auto-accept, send Accept back)
+- [x] Process Undo Follow activities (remove follow, decrement counts)
+- [ ] Follow request approval flow (`manuallyApprovesFollowers`)
+  - [ ] Pending follow requests shown in `/updates`
+  - [ ] Accept/Reject UI with notification
+  - [ ] Send Accept or Reject activity back to remote actor
+  - [ ] User setting to toggle manual approval (default: auto-accept)
 - [ ] Process Create activities (remote posts/replies)
 - [ ] Process Like activities
 - [ ] Process Delete activities
-- [ ] Process Undo activities
 
 ### Phase 9: Remote Follows & Discovery
 
@@ -520,8 +623,6 @@ SOCIAL_INSTANCE_NAME="Pana Mia Club"
 SOCIAL_INSTANCE_DESCRIPTION="Panama's creative community"
 SOCIAL_ADMIN_EMAIL=admin@panamia.club
 ```
-
-Note: No `SOCIAL_ENABLED` flag—ship when ready, fix when broken.
 
 ## User Experience
 
