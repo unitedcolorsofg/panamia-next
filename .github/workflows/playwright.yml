@@ -110,9 +110,9 @@ jobs:
 
       # Always delete the test branch, even if tests fail
       - name: Delete Neon test branch
-        if: always()
+        if: always() && steps.neon.outcome == 'success'
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          branch: test-${{ github.run_id }}
+          branch: ${{ steps.neon.outputs.branch_id }}
