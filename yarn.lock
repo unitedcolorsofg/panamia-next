@@ -506,6 +506,28 @@
     lodash.isundefined "^3.0.1"
     lodash.uniq "^4.5.0"
 
+"@ffmpeg/core@^0.12.10":
+  version "0.12.10"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/core/-/core-0.12.10.tgz#3177e88852bfbfaad5d258e9e0ac1fd9dffd3223"
+  integrity sha512-dzNplnn2Nxle2c2i2rrDhqcB19q9cglCkWnoMTDN9Q9l3PvdjZWd1HfSPjCNWc/p8Q3CT+Es9fWOR0UhAeYQZA==
+
+"@ffmpeg/ffmpeg@^0.12.15":
+  version "0.12.15"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/ffmpeg/-/ffmpeg-0.12.15.tgz#e5b05c2b5c946f3464b3aa85461e4654a4649d80"
+  integrity sha512-1C8Obr4GsN3xw+/1Ww6PFM84wSQAGsdoTuTWPOj2OizsRDLT4CXTaVjPhkw6ARyDus1B9X/L2LiXHqYYsGnRFw==
+  dependencies:
+    "@ffmpeg/types" "^0.12.4"
+
+"@ffmpeg/types@^0.12.4":
+  version "0.12.4"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/types/-/types-0.12.4.tgz#aecd9b1a035882ee0bdf8853af37271a3b447473"
+  integrity sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==
+
+"@ffmpeg/util@^0.12.2":
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/@ffmpeg/util/-/util-0.12.2.tgz#6bab9d8022a5bed9a6ff0933e5235b9b38698599"
+  integrity sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==
+
 "@floating-ui/core@^1.7.3":
   version "1.7.3"
   resolved "https://registry.npmjs.org/@floating-ui/core/-/core-1.7.3.tgz"
@@ -2345,6 +2367,11 @@
     get-port "5.1.1"
     jsonc-parser "^3.3.1"
     strip-ansi "6.0.1"
+
+"@vidstack/react@^0.6.15":
+  version "0.6.15"
+  resolved "https://registry.yarnpkg.com/@vidstack/react/-/react-0.6.15.tgz#04ed8b01a31ecc45c6752aaa05251b01fc54c7da"
+  integrity sha512-S8KkYCte84Pqwb8Zd9vuOCe2YuaXqRdtYQ22zSvDUPlS7m8ilYs6ypfHwZzmgSVZdayVU1C703aFMSdcLfpxpg==
 
 abort-controller@^3.0.0:
   version "3.0.0"
