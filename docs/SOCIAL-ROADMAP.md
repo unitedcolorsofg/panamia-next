@@ -372,9 +372,9 @@ instead of separate pages. Timeline page has Home/Public tabs.
 - `lib/federation/wrappers/timeline.ts` — `include: { attachments: true }` on all queries
 - `lib/interfaces.ts` — `attachments` field on `SocialStatusDisplay`
 
-**Planned: FLOSS Audio/Video Expansion**
+**FLOSS Audio/Video Expansion**
 
-**Status**: Not started
+**Status**: Complete
 
 The current media implementation has two gaps to address:
 
@@ -451,14 +451,14 @@ The existing `audio/webm` MIME type accepted by `VoiceMemoComposer` will be remo
 
 **Implementation tasks**:
 
-- [ ] Add `@ffmpeg/ffmpeg` and `@ffmpeg/util` to dependencies
-- [ ] Create `lib/media/transcode.ts` — Opus audio transcode via ffmpeg.wasm
-- [ ] Create `lib/media/transcodeVideo.ts` — VP9 video transcode via ffmpeg.wasm
-- [ ] Update `PostComposer.tsx` — run audio/video through transcode before upload
-- [ ] Update `VoiceMemoComposer.tsx` — replace raw `audio/webm` upload with Opus transcode
-- [ ] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/webm`, remove `audio/webm`
-- [ ] Update `AttachmentGrid.tsx` — add Vidstack player for `video/webm` attachments
-- [ ] Add Safari/iOS unsupported-browser notice for audio/video playback
+- [x] Add `@ffmpeg/ffmpeg`, `@ffmpeg/util`, `@ffmpeg/core`, and `@vidstack/react` to dependencies
+- [x] Create `scripts/copy-ffmpeg-wasm.js` — copies WASM to `public/ffmpeg/` via postinstall
+- [x] Create `lib/media/transcode.ts` — `transcodeToOpus` and `transcodeToWebMVideo` via ffmpeg.wasm singleton
+- [x] Update `PostComposer.tsx` — run audio/video through transcode before upload, show "Transcoding… X%"
+- [x] Update `VoiceMemoComposer.tsx` — replace raw `audio/webm` upload with Opus transcode, Safari guard
+- [x] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/webm`, remove `audio/webm`
+- [x] Update `AttachmentGrid.tsx` — Vidstack player for `video/webm`, Safari fallback for audio and video
+- [x] Add Safari/iOS "Please use Chrome or Firefox 💛" notice for audio/video playback
 
 ### Phase 4C: Voice Memo Direct Messages
 

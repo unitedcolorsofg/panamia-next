@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/copy-ffmpeg-wasm.js",
     "dev": "env -u NODE_ENV node server.js",
     "dev:http": "env -u NODE_ENV next dev",
     "build": "prisma generate && prisma migrate deploy && env -u NODE_ENV next build",
@@ -24,6 +25,10 @@
     "db:reset": "npx tsx scripts/reset-test-db.ts"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@vidstack/react": "^0.6.15",
     "@auth/prisma-adapter": "^2.11.1",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",

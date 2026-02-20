@@ -3,6 +3,11 @@
 import Image from 'next/image';
 import { Volume2 } from 'lucide-react';
 import { WaveformPlayer } from './WaveformPlayer';
+import { MediaPlayer, MediaOutlet, MediaCommunitySkin } from '@vidstack/react';
+
+const isSafari = () =>
+  typeof navigator !== 'undefined' &&
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 export interface AttachmentDisplay {
   id: string;
@@ -20,13 +25,24 @@ interface AttachmentGridProps {
 }
 
 function AudioPlayer({ attachment }: { attachment: AttachmentDisplay }) {
+  if (isSafari()) {
+    return (
+      <div className="bg-muted flex items-center gap-3 rounded-lg border p-3 text-sm">
+        <Volume2 className="text-muted-foreground h-5 w-5 shrink-0" />
+        <span className="text-muted-foreground">
+          Please use Chrome or Firefox 💛
+        </span>
+      </div>
+    );
+  }
+
   // Use WaveformPlayer if peaks are available
   if (attachment.peaks && attachment.peaks.length > 0) {
     return (
       <WaveformPlayer
         url={attachment.url}
         peaks={attachment.peaks}
-        mediaType={attachment.mediaType || 'audio/webm'}
+        mediaType={attachment.mediaType || 'audio/ogg'}
       />
     );
   }
@@ -38,10 +54,33 @@ function AudioPlayer({ attachment }: { attachment: AttachmentDisplay }) {
       <audio controls className="h-8 w-full" preload="metadata">
         <source
           src={attachment.url}
-          type={attachment.mediaType || 'audio/webm'}
+          type={attachment.mediaType || 'audio/ogg'}
         />
       </audio>
     </div>
+  );
+}
+
+function VideoPlayer({ attachment }: { attachment: AttachmentDisplay }) {
+  if (isSafari()) {
+    return (
+      <div className="bg-muted flex items-center justify-center rounded-lg border p-6 text-sm">
+        <span className="text-muted-foreground">
+          Please use Chrome or Firefox 💛
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <MediaPlayer
+      src={attachment.url}
+      title={attachment.name ?? 'Video'}
+      className="w-full overflow-hidden rounded-lg border"
+    >
+      <MediaOutlet />
+      <MediaCommunitySkin />
+    </MediaPlayer>
   );
 }
 
@@ -70,6 +109,7 @@ export function AttachmentGrid({ attachments }: AttachmentGridProps) {
 
   const images = attachments.filter((a) => a.type === 'image');
   const audio = attachments.filter((a) => a.type === 'audio');
+  const videos = attachments.filter((a) => a.type === 'video');
 
   return (
     <div className="mt-3 space-y-2">
@@ -93,6 +133,11 @@ export function AttachmentGrid({ attachments }: AttachmentGridProps) {
       {/* Audio players */}
       {audio.map((a) => (
         <AudioPlayer key={a.id} attachment={a} />
+      ))}
+
+      {/* Video players */}
+      {videos.map((a) => (
+        <VideoPlayer key={a.id} attachment={a} />
       ))}
     </div>
   );

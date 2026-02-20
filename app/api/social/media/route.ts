@@ -6,7 +6,8 @@
  *
  * Supported types:
  *   - Images: image/jpeg, image/png, image/webp, image/gif
- *   - Audio:  audio/webm (voice memos)
+ *   - Audio:  audio/ogg (Opus, transcoded client-side from webm)
+ *   - Video:  video/webm (VP8/VP9, transcoded client-side)
  *
  * Max file size: 10 MB
  */
@@ -25,15 +26,22 @@ const ACCEPTED_IMAGE_TYPES = [
   'image/gif',
 ];
 
-const ACCEPTED_AUDIO_TYPES = ['audio/webm'];
+const ACCEPTED_AUDIO_TYPES = ['audio/ogg'];
 
-const ACCEPTED_TYPES = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_AUDIO_TYPES];
+const ACCEPTED_VIDEO_TYPES = ['video/webm'];
+
+const ACCEPTED_TYPES = [
+  ...ACCEPTED_IMAGE_TYPES,
+  ...ACCEPTED_AUDIO_TYPES,
+  ...ACCEPTED_VIDEO_TYPES,
+];
 
 function getMediaCategory(
   mimeType: string
 ): 'image' | 'audio' | 'video' | null {
   if (ACCEPTED_IMAGE_TYPES.includes(mimeType)) return 'image';
   if (ACCEPTED_AUDIO_TYPES.includes(mimeType)) return 'audio';
+  if (ACCEPTED_VIDEO_TYPES.includes(mimeType)) return 'video';
   return null;
 }
 
@@ -43,7 +51,8 @@ function getExtension(mimeType: string): string {
     'image/png': 'png',
     'image/webp': 'webp',
     'image/gif': 'gif',
-    'audio/webm': 'webm',
+    'audio/ogg': 'ogg',
+    'video/webm': 'webm',
   };
   return map[mimeType] || 'bin';
 }

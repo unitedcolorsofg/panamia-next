@@ -16,6 +16,11 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { useCreatePost } from '@/lib/query/social';
+import { transcodeToOpus, transcodeToWebMVideo } from '@/lib/media/transcode';
+
+const isSafari = () =>
+  typeof navigator !== 'undefined' &&
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import {
   AlertTriangle,
@@ -44,7 +49,7 @@ interface PostComposerProps {
 const MAX_LENGTH = 500;
 const MAX_ATTACHMENTS = 4;
 const ACCEPTED_FILE_TYPES =
-  'image/jpeg,image/png,image/webp,image/gif,audio/webm';
+  'image/jpeg,image/png,image/webp,image/gif,audio/*,video/*';
 
 interface UploadedMedia {
   type: string;
@@ -100,6 +105,8 @@ export function PostComposer({
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [attachments, setAttachments] = useState<UploadedMedia[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [safariMediaNotice, setSafariMediaNotice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createPost = useCreatePost();
@@ -113,17 +120,45 @@ export function PostComposer({
     if (available <= 0) return;
 
     const filesToUpload = Array.from(files).slice(0, available);
+
+    // Warn Safari users that audio/video playback won't work on their device
+    const hasMedia = filesToUpload.some(
+      (f) => f.type.startsWith('audio/') || f.type.startsWith('video/')
+    );
+    if (hasMedia && isSafari()) {
+      setSafariMediaNotice(true);
+    }
+
     setUploading(true);
 
     for (const file of filesToUpload) {
       try {
+        let uploadBlob: Blob = file;
+        let uploadName = file.name;
+
+        if (file.type.startsWith('audio/')) {
+          uploadBlob = await transcodeToOpus(file);
+          uploadName = uploadName.replace(/\.[^.]+$/, '') + '.ogg';
+        } else if (file.type.startsWith('video/')) {
+          setVideoProgress(0);
+          uploadBlob = await transcodeToWebMVideo(file, (ratio) => {
+            setVideoProgress(Math.round(ratio * 100));
+          });
+          setVideoProgress(null);
+          uploadName = uploadName.replace(/\.[^.]+$/, '') + '.webm';
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append(
+          'file',
+          new File([uploadBlob], uploadName, { type: uploadBlob.type })
+        );
         const res = await axios.post('/api/social/media', formData);
         if (res.data?.success) {
           setAttachments((prev) => [...prev, res.data.data]);
         }
       } catch (error) {
+        setVideoProgress(null);
         const message =
           axios.isAxiosError(error) && error.response?.data?.error
             ? error.response.data.error
@@ -248,9 +283,13 @@ export function PostComposer({
               ) : (
                 <ImagePlus className="mr-1 h-4 w-4" />
               )}
-              {attachments.length > 0
-                ? `${attachments.length}/${MAX_ATTACHMENTS}`
-                : 'Media'}
+              {videoProgress !== null
+                ? `Transcoding… ${videoProgress}%`
+                : uploading
+                  ? 'Uploading…'
+                  : attachments.length > 0
+                    ? `${attachments.length}/${MAX_ATTACHMENTS}`
+                    : 'Media'}
             </Button>
           </div>
         </div>
@@ -281,6 +320,14 @@ export function PostComposer({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Safari media notice */}
+      {safariMediaNotice && (
+        <p className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+          Audio/video playback requires Chrome or Firefox 💛 — your upload will
+          succeed but won&apos;t play on this device.
+        </p>
+      )}
 
       {/* Attachment previews */}
       {attachments.length > 0 && (

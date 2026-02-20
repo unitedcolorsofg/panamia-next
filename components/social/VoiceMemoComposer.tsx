@@ -21,6 +21,11 @@ import {
 import { useDebounce } from '@/hooks/use-debounce';
 import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
 import { LocationPickerModal, LocationData } from './LocationPickerModal';
+import { transcodeToOpus } from '@/lib/media/transcode';
+
+const isSafari = () =>
+  typeof navigator !== 'undefined' &&
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const MAX_DURATION_SECONDS = 60;
 const MAX_RECIPIENTS = 8;
@@ -65,6 +70,7 @@ export function VoiceMemoComposer({
   const [duration, setDuration] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [extractingPeaks, setExtractingPeaks] = useState(false);
+  const [transcoding, setTranscoding] = useState(false);
 
   // Location
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -135,6 +141,16 @@ export function VoiceMemoComposer({
   }, []);
 
   const startRecording = async () => {
+    if (isSafari()) {
+      toast({
+        title: 'Browser not supported',
+        description:
+          'Voice memos require Chrome or Firefox. Please use Chrome or Firefox 💛',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, {
@@ -151,21 +167,34 @@ export function VoiceMemoComposer({
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
+        const rawBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach((track) => track.stop());
 
-        // Extract waveform peaks for visualization
+        // Extract peaks from the raw webm blob (Web Audio API handles webm fine)
         setExtractingPeaks(true);
+        let peaks: number[] | null = null;
         try {
-          const peaks = await extractPeaks(blob, 100);
+          peaks = await extractPeaks(rawBlob, 100);
           setAudioPeaks(peaks);
         } catch (err) {
           console.error('Failed to extract peaks:', err);
-          // Continue without peaks - will fall back to basic player
         } finally {
           setExtractingPeaks(false);
+        }
+
+        // Transcode to Opus/ogg for cross-browser upload
+        setTranscoding(true);
+        try {
+          const oggBlob = await transcodeToOpus(rawBlob);
+          setAudioBlob(oggBlob);
+          setAudioUrl(URL.createObjectURL(oggBlob));
+        } catch (err) {
+          console.error('Failed to transcode audio:', err);
+          // Fall back to raw webm if transcode fails
+          setAudioBlob(rawBlob);
+          setAudioUrl(URL.createObjectURL(rawBlob));
+        } finally {
+          setTranscoding(false);
         }
       };
 
@@ -253,9 +282,12 @@ export function VoiceMemoComposer({
       // Upload voice memo if present
       if (audioBlob) {
         const formData = new FormData();
-        const file = new File([audioBlob], 'voice-memo.webm', {
-          type: 'audio/webm',
-        });
+        const isOgg = audioBlob.type === 'audio/ogg';
+        const file = new File(
+          [audioBlob],
+          isOgg ? 'voice-memo.ogg' : 'voice-memo.webm',
+          { type: audioBlob.type }
+        );
         formData.append('file', file);
 
         // Include peaks for waveform visualization
@@ -480,23 +512,28 @@ export function VoiceMemoComposer({
         ) : (
           <div className="space-y-3">
             <div className="relative">
-              {extractingPeaks ? (
+              {extractingPeaks || transcoding ? (
                 <div className="bg-muted flex items-center justify-center gap-2 rounded-lg border p-6">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span className="text-muted-foreground text-sm">
-                    Generating waveform...
+                    {transcoding
+                      ? 'Transcoding audio...'
+                      : 'Generating waveform...'}
                   </span>
                 </div>
               ) : audioPeaks && audioUrl ? (
                 <WaveformPlayer
                   url={audioUrl}
                   peaks={audioPeaks}
-                  mediaType="audio/webm"
+                  mediaType={audioBlob?.type || 'audio/ogg'}
                 />
               ) : (
                 <div className="bg-muted flex items-center gap-3 rounded-lg border p-3">
                   <audio controls className="h-8 flex-1" preload="metadata">
-                    <source src={audioUrl!} type="audio/webm" />
+                    <source
+                      src={audioUrl!}
+                      type={audioBlob?.type || 'audio/ogg'}
+                    />
                   </audio>
                 </div>
               )}
