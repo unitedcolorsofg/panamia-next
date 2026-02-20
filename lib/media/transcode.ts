@@ -63,6 +63,8 @@ export async function transcodeToWebMVideo(
   await ffmpeg.exec([
     '-i',
     inputName,
+    '-vf',
+    'scale=-2:min(720\\,ih)', // cap at 720p, no upscaling, preserve aspect ratio
     '-c:v',
     'libvpx',
     '-c:a',
@@ -70,7 +72,7 @@ export async function transcodeToWebMVideo(
     '-b:v',
     '0',
     '-crf',
-    '10',
+    '33', // CRF 10 → 33: social-media quality, ~10× smaller files
     'output.webm',
   ]);
   const data = (await ffmpeg.readFile('output.webm')) as Uint8Array;

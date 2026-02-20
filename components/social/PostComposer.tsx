@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { upload } from '@vercel/blob/client';
 import { useCreatePost } from '@/lib/query/social';
 import { transcodeToOpus, transcodeToWebMVideo } from '@/lib/media/transcode';
 
@@ -133,29 +134,56 @@ export function PostComposer({
 
     for (const file of filesToUpload) {
       try {
-        let uploadBlob: Blob = file;
-        let uploadName = file.name;
-
         if (file.type.startsWith('audio/')) {
-          uploadBlob = await transcodeToOpus(file);
-          uploadName = uploadName.replace(/\.[^.]+$/, '') + '.ogg';
+          // Transcode → direct Vercel Blob upload (bypasses function payload limit)
+          const oggBlob = await transcodeToOpus(file);
+          const uuid = crypto.randomUUID();
+          const blobResult = await upload(`social/media/${uuid}.ogg`, oggBlob, {
+            access: 'public',
+            handleUploadUrl: '/api/social/media/upload',
+          });
+          setAttachments((prev) => [
+            ...prev,
+            {
+              type: 'audio',
+              mediaType: 'audio/ogg',
+              url: blobResult.url,
+              name: file.name,
+            },
+          ]);
         } else if (file.type.startsWith('video/')) {
+          // Transcode → direct Vercel Blob upload (bypasses function payload limit)
           setVideoProgress(0);
-          uploadBlob = await transcodeToWebMVideo(file, (ratio) => {
+          const webmBlob = await transcodeToWebMVideo(file, (ratio) => {
             setVideoProgress(Math.round(ratio * 100));
           });
           setVideoProgress(null);
-          uploadName = uploadName.replace(/\.[^.]+$/, '') + '.webm';
-        }
-
-        const formData = new FormData();
-        formData.append(
-          'file',
-          new File([uploadBlob], uploadName, { type: uploadBlob.type })
-        );
-        const res = await axios.post('/api/social/media', formData);
-        if (res.data?.success) {
-          setAttachments((prev) => [...prev, res.data.data]);
+          const uuid = crypto.randomUUID();
+          const blobResult = await upload(
+            `social/media/${uuid}.webm`,
+            webmBlob,
+            {
+              access: 'public',
+              handleUploadUrl: '/api/social/media/upload',
+            }
+          );
+          setAttachments((prev) => [
+            ...prev,
+            {
+              type: 'video',
+              mediaType: 'video/webm',
+              url: blobResult.url,
+              name: file.name,
+            },
+          ]);
+        } else {
+          // Images: small enough to flow through the API route as before
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await axios.post('/api/social/media', formData);
+          if (res.data?.success) {
+            setAttachments((prev) => [...prev, res.data.data]);
+          }
         }
       } catch (error) {
         setVideoProgress(null);

@@ -19,6 +19,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { upload } from '@vercel/blob/client';
 import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
 import { LocationPickerModal, LocationData } from './LocationPickerModal';
 import { transcodeToOpus } from '@/lib/media/transcode';
@@ -279,27 +280,23 @@ export function VoiceMemoComposer({
     try {
       let attachment = null;
 
-      // Upload voice memo if present
+      // Upload voice memo if present — direct to Vercel Blob (no function payload limit)
       if (audioBlob) {
-        const formData = new FormData();
         const isOgg = audioBlob.type === 'audio/ogg';
-        const file = new File(
-          [audioBlob],
-          isOgg ? 'voice-memo.ogg' : 'voice-memo.webm',
-          { type: audioBlob.type }
+        const ext = isOgg ? 'ogg' : 'webm';
+        const uuid = crypto.randomUUID();
+        const blobResult = await upload(
+          `social/media/${uuid}.${ext}`,
+          audioBlob,
+          { access: 'public', handleUploadUrl: '/api/social/media/upload' }
         );
-        formData.append('file', file);
-
-        // Include peaks for waveform visualization
-        if (audioPeaks) {
-          formData.append('peaks', JSON.stringify(audioPeaks));
-        }
-
-        const uploadRes = await axios.post('/api/social/media', formData);
-        if (!uploadRes.data?.success) {
-          throw new Error(uploadRes.data?.error || 'Upload failed');
-        }
-        attachment = uploadRes.data.data;
+        attachment = {
+          type: 'audio',
+          mediaType: audioBlob.type,
+          url: blobResult.url,
+          name: `voice-memo.${ext}`,
+          ...(audioPeaks ? { peaks: audioPeaks } : {}),
+        };
       }
 
       // Create the direct message
