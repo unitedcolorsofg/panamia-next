@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { Volume2 } from 'lucide-react';
 import { WaveformPlayer } from './WaveformPlayer';
-import { MediaPlayer, MediaOutlet, MediaCommunitySkin } from '@vidstack/react';
 
 const isSafari = () =>
   typeof navigator !== 'undefined' &&
@@ -73,14 +72,14 @@ function VideoPlayer({ attachment }: { attachment: AttachmentDisplay }) {
   }
 
   return (
-    <MediaPlayer
-      src={attachment.url}
-      title={attachment.name ?? 'Video'}
-      className="w-full overflow-hidden rounded-lg border"
+    <video
+      controls
+      preload="metadata"
+      className="w-full rounded-lg border"
+      aria-label={attachment.name ?? 'Video'}
     >
-      <MediaOutlet />
-      <MediaCommunitySkin />
-    </MediaPlayer>
+      <source src={attachment.url} type="video/webm" />
+    </video>
   );
 }
 
