@@ -121,6 +121,25 @@ export default class BrevoApi {
     });
   }
 
+  async sendEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
+    textContent?: string
+  ) {
+    const endpoint = `${this.config.base_url}/smtp/email`;
+    return this.postCall(endpoint, {
+      sender: {
+        email: this.config.sender_email,
+        name: this.config.sender_name,
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+      ...(textContent && { textContent }),
+    });
+  }
+
   async findContact(email: string) {
     const call = this.config.api_schema.Contacts.getByEmail;
     const full_endpoint = `${this.config.base_url}${call.endpoint}`;

@@ -4,7 +4,7 @@ import {
   emailMigrationConfirmationText,
 } from '@/auth';
 import { getPrisma } from '@/lib/prisma';
-import nodemailer from 'nodemailer';
+import BrevoApi from '@/lib/brevo_api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,33 +91,14 @@ export async function POST(request: NextRequest) {
       timeStyle: 'short',
     });
 
-    const transport = nodemailer.createTransport({
-      host: process.env.EMAIL_SERVER_HOST!,
-      port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_SERVER_USER!,
-        pass: process.env.EMAIL_SERVER_PASSWORD!,
-      },
-    });
-
     // Send confirmation to old email (non-blocking - don't fail migration if this fails)
-    transport
-      .sendMail({
-        from: process.env.EMAIL_FROM!,
-        to: oldEmail,
-        subject: 'Your Pana MIA Account Email Was Changed',
-        html: emailMigrationConfirmationHtml({
-          oldEmail,
-          newEmail,
-          timestamp,
-        }),
-        text: emailMigrationConfirmationText({
-          oldEmail,
-          newEmail,
-          timestamp,
-        }),
-      })
+    new BrevoApi()
+      .sendEmail(
+        oldEmail,
+        'Your Pana MIA Account Email Was Changed',
+        emailMigrationConfirmationHtml({ oldEmail, newEmail, timestamp }),
+        emailMigrationConfirmationText({ oldEmail, newEmail, timestamp })
+      )
       .catch((error: Error) => {
         console.error('Failed to send confirmation email:', error);
       });

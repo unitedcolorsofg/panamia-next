@@ -4,8 +4,8 @@ import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { createTransport } from 'nodemailer';
 import { getPrisma, getPrismaSync } from '@/lib/prisma';
+import BrevoApi from '@/lib/brevo_api';
 import { ProfileMentoring } from '@/lib/interfaces';
 
 // Custom email templates for magic link authentication
@@ -484,29 +484,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     //   // Implementation requires @atproto/oauth-client or similar
     // },
     EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM,
-      async sendVerificationRequest({ identifier: email, url, provider }) {
+      async sendVerificationRequest({ identifier: email, url }) {
         const { host } = new URL(url);
-        const transport = createTransport(provider.server);
-        const result = await transport.sendMail({
-          to: email,
-          from: provider.from,
-          subject: `Sign in to Pana MIA`,
-          text: text({ url, host }),
-          html: html({ url, host, email }),
-        });
-        const failed = result.rejected.concat(result.pending).filter(Boolean);
-        if (failed.length) {
-          throw new Error(`Email(s) (${failed.join(', ')}) could not be sent`);
-        }
+        await new BrevoApi().sendEmail(
+          email,
+          'Sign in to Pana MIA',
+          html({ url, host, email }),
+          text({ url, host })
+        );
       },
     }),
   ],
@@ -539,7 +524,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Block sign-in and send verification email
         try {
           const prisma = await getPrisma();
-          const nodemailer = await import('nodemailer');
           const { nanoid } = await import('nanoid');
 
           // Check if verification already sent recently
@@ -587,31 +571,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             'localhost:3000';
           const verificationUrl = `${protocol}://${host}/verify-oauth-email?token=${verificationToken}`;
 
-          const transport = nodemailer.createTransport({
-            host: process.env.EMAIL_SERVER_HOST!,
-            port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-            secure: false,
-            auth: {
-              user: process.env.EMAIL_SERVER_USER!,
-              pass: process.env.EMAIL_SERVER_PASSWORD!,
-            },
-          });
-
-          await transport.sendMail({
-            from: process.env.EMAIL_FROM!,
-            to: user.email,
-            subject: 'Verify Your Email for Pana MIA',
-            html: oauthVerificationHtml({
+          await new BrevoApi().sendEmail(
+            user.email,
+            'Verify Your Email for Pana MIA',
+            oauthVerificationHtml({
               url: verificationUrl,
               email: user.email,
               provider: account?.provider || 'OAuth',
             }),
-            text: oauthVerificationText({
+            oauthVerificationText({
               url: verificationUrl,
               email: user.email,
               provider: account?.provider || 'OAuth',
-            }),
-          });
+            })
+          );
 
           console.log('Verification email sent to:', user.email);
           return '/signin?verificationSent=true';

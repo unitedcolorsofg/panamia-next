@@ -6,7 +6,7 @@ import {
 } from '@/auth';
 import { getPrisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
-import nodemailer from 'nodemailer';
+import BrevoApi from '@/lib/brevo_api';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -115,31 +115,20 @@ export async function POST(request: NextRequest) {
     const host = request.headers.get('host') || 'localhost:3000';
     const migrationUrl = `${protocol}://${host}/migrate-email?token=${migrationToken}`;
 
-    const transport = nodemailer.createTransport({
-      host: process.env.EMAIL_SERVER_HOST!,
-      port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_SERVER_USER!,
-        pass: process.env.EMAIL_SERVER_PASSWORD!,
-      },
-    });
-
-    await transport.sendMail({
-      from: process.env.EMAIL_FROM!,
-      to: normalizedNewEmail,
-      subject: 'Verify Your Pana MIA Email Migration',
-      html: emailMigrationVerificationHtml({
+    await new BrevoApi().sendEmail(
+      normalizedNewEmail,
+      'Verify Your Pana MIA Email Migration',
+      emailMigrationVerificationHtml({
         url: migrationUrl,
         oldEmail: currentEmail,
         newEmail: normalizedNewEmail,
       }),
-      text: emailMigrationVerificationText({
+      emailMigrationVerificationText({
         url: migrationUrl,
         oldEmail: currentEmail,
         newEmail: normalizedNewEmail,
-      }),
-    });
+      })
+    );
 
     return NextResponse.json({
       success: true,

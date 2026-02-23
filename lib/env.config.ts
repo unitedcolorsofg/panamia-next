@@ -200,38 +200,7 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // EMAIL (SMTP for magic links)
-  // =============================================================================
-  EMAIL_FROM: {
-    description: 'From address for magic link emails',
-    location: 'VAR',
-    required: false,
-    example: 'noreply@example.com',
-  },
-  EMAIL_SERVER_HOST: {
-    description: 'SMTP server hostname',
-    location: 'VAR',
-    required: false,
-  },
-  EMAIL_SERVER_PORT: {
-    description: 'SMTP server port',
-    location: 'VAR',
-    required: false,
-    defaultValue: '587',
-  },
-  EMAIL_SERVER_USER: {
-    description: 'SMTP username',
-    location: 'VAR',
-    required: false,
-  },
-  EMAIL_SERVER_PASSWORD: {
-    description: 'SMTP password',
-    location: 'SECRET',
-    required: false,
-  },
-
-  // =============================================================================
-  // BREVO (Email Service)
+  // BREVO (Transactional Email)
   // =============================================================================
   BREVO_APIKEY: {
     description: 'Brevo (Sendinblue) API key',

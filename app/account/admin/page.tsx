@@ -7,7 +7,6 @@ import {
   IconUsers,
   IconFileDescription,
   IconEdit,
-  IconUpload,
   IconArticle,
 } from '@tabler/icons-react';
 import PageMeta from '@/components/PageMeta';
@@ -70,13 +69,6 @@ export default function AdminDashboardPage() {
       href: '/account/admin/users',
       icon: IconUsers,
       color: 'text-red-600',
-    },
-    {
-      title: 'Import',
-      description: 'Import data and bulk operations',
-      href: '/account/admin/import',
-      icon: IconUpload,
-      color: 'text-teal-600',
     },
   ];
 

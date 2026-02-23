@@ -7,7 +7,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvider';
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
-import { VercelToolbarWrapper } from '@/components/VercelToolbarWrapper';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -58,7 +57,6 @@ export default function RootLayout({
               <MainHeader />
               <div id="layout-main">{children}</div>
               <MainFooter />
-              <VercelToolbarWrapper />
             </Providers>
           </FlowerPowerProvider>
         </ThemeProvider>

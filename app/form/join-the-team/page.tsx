@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   Accordion,
   AccordionContent,
@@ -14,15 +15,14 @@ export const metadata: Metadata = {
 
 export default function JoinTheTeamPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/20">
+    <div className="from-background to-muted/20 flex min-h-screen flex-col bg-gradient-to-b">
       <div className="container mx-auto max-w-4xl px-4 py-12">
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="mb-4 text-4xl font-bold">Join The Team</h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-muted-foreground text-lg">
             Passionate about community and local growth? We&apos;re looking for
-            enthusiastic contributors to help us transform South Florida! Apply
-            via the form below
+            enthusiastic contributors to help us transform South Florida!
           </p>
         </div>
 
@@ -204,15 +204,21 @@ export default function JoinTheTeamPage() {
           </Accordion>
         </div>
 
-        {/* Google Form Embed */}
-        <div className="w-full">
-          <iframe
-            src="https://docs.google.com/forms/d/e/1FAIpQLScD2cLJ7LM8dhcbaArXPRTn1XkA74siZMs-f16rikHiRCVCvg/viewform?embedded=true"
-            className="h-[1200px] w-full rounded-lg border-0 md:h-[1400px]"
-            title="Join The Team Application Form"
+        {/* Contact Us */}
+        <div className="rounded-lg border p-6 text-center">
+          <p className="mb-4 text-lg font-semibold">
+            Interested in joining the team?
+          </p>
+          <p className="text-muted-foreground mb-6">
+            Send us a message through our Contact Us form and let us know which
+            role interests you.
+          </p>
+          <Link
+            href="/form/contact-us"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-block rounded-md px-6 py-3 font-semibold transition-colors"
           >
-            Loading...
-          </iframe>
+            Contact Us
+          </Link>
         </div>
       </div>
     </div>
