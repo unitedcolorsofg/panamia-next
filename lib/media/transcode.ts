@@ -72,7 +72,7 @@ export async function transcodeToWebMVideo(
     '-b:v',
     '0',
     '-crf',
-    '33', // CRF 10 → 33: social-media quality, ~10× smaller files
+    '26', // CRF 26: YouTube-720p quality, ~3-6 MB/min, fits under 40 MB Mastodon limit
     'output.webm',
   ]);
   const data = (await ffmpeg.readFile('output.webm')) as Uint8Array;
