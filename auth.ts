@@ -1,5 +1,4 @@
 import NextAuth from 'next-auth';
-import EmailProvider from 'next-auth/providers/email';
 import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
@@ -483,8 +482,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     //   type: 'oauth' as const,
     //   // Implementation requires @atproto/oauth-client or similar
     // },
-    EmailProvider({
-      async sendVerificationRequest({ identifier: email, url }) {
+    // Custom email magic-link provider using Brevo HTTP API.
+    // Intentionally NOT imported from 'next-auth/providers/email' because that
+    // module (@auth/core/providers/nodemailer.js) has a top-level
+    // `import { createTransport } from "nodemailer"` which breaks builds on
+    // runtimes without a Node.js net/tls stack (Cloudflare Workers, etc.).
+    {
+      id: 'nodemailer',
+      type: 'email' as const,
+      name: 'Email',
+      maxAge: 24 * 60 * 60,
+      from: process.env.BREVO_SENDEREMAIL || 'noreply@panamia.club',
+      async sendVerificationRequest({
+        identifier: email,
+        url,
+      }: {
+        identifier: string;
+        url: string;
+      }) {
         const { host } = new URL(url);
         await new BrevoApi().sendEmail(
           email,
@@ -493,7 +508,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           text({ url, host })
         );
       },
-    }),
+      generateVerificationToken: async () => {
+        const { randomUUID } = await import('crypto');
+        return randomUUID();
+      },
+      normalizeIdentifier: (identifier: string) => {
+        const [local, domain] = identifier.toLowerCase().trim().split('@');
+        return `${local}@${domain.split(',')[0]}`;
+      },
+      options: {},
+    } as any,
   ],
   session: {
     strategy: 'database',
