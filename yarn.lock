@@ -2133,13 +2133,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ffmpeg/core@npm:^0.12.10":
-  version: 0.12.10
-  resolution: "@ffmpeg/core@npm:0.12.10"
-  checksum: 10c0/099a739f0ac6419d638e8fde175307722dddf53a0dbab744a045475f0fa1b4bbb28036ab51c990298b6f88d2907d44612e0a02e57a72bb0beb36837ca742e7a2
-  languageName: node
-  linkType: hard
-
 "@ffmpeg/ffmpeg@npm:^0.12.15":
   version: 0.12.15
   resolution: "@ffmpeg/ffmpeg@npm:0.12.15"
@@ -10839,7 +10832,6 @@ __metadata:
     "@auth/prisma-adapter": "npm:^2.11.1"
     "@commitlint/cli": "npm:^20.4.2"
     "@commitlint/config-conventional": "npm:^20.4.2"
-    "@ffmpeg/core": "npm:^0.12.10"
     "@ffmpeg/ffmpeg": "npm:^0.12.15"
     "@ffmpeg/util": "npm:^0.12.2"
     "@fortawesome/fontawesome-svg-core": "npm:^7.2.0"
