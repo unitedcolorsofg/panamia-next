@@ -166,6 +166,16 @@ These scopes are used for technical changes that don't directly correspond to us
 
 ---
 
+## Deferred Upgrades
+
+Ideas that were intentionally deferred — not forgotten. Revisit once the Cloudflare migration is stable.
+
+| Upgrade                | Why Deferred                     | Notes                                                                                                                                                                                                                                                                  |
+| ---------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Yarn PnP (Plug'n'Play) | Cloudflare migration in progress | Currently on Berry v4 with `nodeLinker: node-modules`. PnP eliminates `node_modules` entirely for faster installs and stricter dependency isolation, but requires editor plugins and some packages may need patching. Low-risk upgrade once the new hosting is proven. |
+
+---
+
 ## Commit Scope Reference
 
 When contributing, use these scopes in commit messages:
