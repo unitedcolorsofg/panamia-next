@@ -6,7 +6,6 @@ Static assets served directly by Next.js.
 
 ```
 public/
-├── CosaHecha/       # SVG illustrations and artwork
 ├── img/             # Static images and photos
 ├── logos/           # Brand logos
 ├── favicon.ico      # Site favicon
@@ -31,11 +30,6 @@ In code:
 
 ## Asset Categories
 
-### CosaHecha
-
-SVG illustrations from the Cosa Hecha art collection.
-Used throughout the site for visual identity.
-
 ### img
 
 Static images that don't need to be processed:
@@ -58,4 +52,5 @@ Brand logos in various formats and sizes.
 - Files here are NOT processed by webpack/Next.js
 - Use `next/image` for optimized image loading
 - Large files increase initial bundle size
-- User-uploaded content goes to Vercel Blob, not here
+- User-uploaded content goes to Blob storage, not here
+- Cloudflare Pages enforces a 25 MiB per-file limit on static assets
