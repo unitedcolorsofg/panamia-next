@@ -3,9 +3,9 @@ import type { NextRequest } from 'next/server';
 
 const AP_TYPES = ['application/activity+json', 'application/ld+json'];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // ActivityPub content negotiation for /p/:screenname
-  // Proxy runs before trailing-slash 308 redirects, fixing federation
+  // Runs before trailing-slash 308 redirects, fixing federation
   const { pathname } = request.nextUrl;
   const match = pathname.match(/^\/p\/([^/]+)\/?$/);
   if (match) {
@@ -17,16 +17,6 @@ export function proxy(request: NextRequest) {
         new URL(`/api/federation/actor/${screenname}`, request.url)
       );
     }
-  }
-
-  // Enforce HTTPS in production (Vercel deployment)
-  if (
-    process.env.NODE_ENV === 'production' &&
-    request.headers.get('x-forwarded-proto') !== 'https'
-  ) {
-    const url = request.nextUrl.clone();
-    url.protocol = 'https:';
-    return NextResponse.redirect(url, { status: 301 });
   }
 
   // Set security headers
@@ -61,7 +51,6 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-// Apply proxy to all routes
 export const config = {
   matcher: [
     /*
