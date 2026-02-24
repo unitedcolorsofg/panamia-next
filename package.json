@@ -9,6 +9,7 @@
     "dev": "env -u NODE_ENV node server.js",
     "dev:http": "env -u NODE_ENV next dev",
     "build": "prisma generate && prisma migrate deploy && env -u NODE_ENV next build",
+    "build:cf": "prisma generate && prisma migrate deploy && opennextjs-cloudflare build",
     "postbuild": "next-sitemap",
     "start": "env -u NODE_ENV next start",
     "lint": "next lint",
@@ -104,6 +105,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
+    "@opennextjs/cloudflare": "^1.17.0",
     "@playwright/test": "^1.58.2",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.4",
@@ -120,6 +122,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.68.1"
   }
 }
