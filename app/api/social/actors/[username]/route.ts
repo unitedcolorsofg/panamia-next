@@ -4,7 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import {
   getActorByScreenname,
   getFollowRelationship,
@@ -31,10 +33,9 @@ export async function GET(
   const session = await auth();
 
   if (session?.user?.id) {
-    const prisma = await getPrisma();
-    const profile = await prisma.profile.findFirst({
-      where: { userId: session.user.id },
-      include: { socialActor: true },
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, session.user.id),
+      with: { socialActor: true },
     });
     viewerActorId = profile?.socialActor?.id || null;
   }

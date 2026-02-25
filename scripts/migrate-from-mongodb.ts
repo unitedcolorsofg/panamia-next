@@ -28,10 +28,17 @@
  *   - images (BunnyCDN/external -> Vercel Blob)
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../lib/schema';
+import { eq, like, or } from 'drizzle-orm';
 import * as https from 'https';
 import * as http from 'http';
+
+type DB = PostgresJsDatabase<typeof schema>;
+
+const { users, accounts, sessions, profiles } = schema;
 
 // Dynamically import mongodb only when needed
 let MongoClient: typeof import('mongodb').MongoClient;
@@ -173,7 +180,7 @@ function extractFilename(urlOrPath: string | null | undefined): string | null {
 }
 
 async function migrateImages(
-  prisma: PrismaClient,
+  db: DB,
   dryRun: boolean
 ): Promise<{ success: number; errors: number }> {
   console.log('\n' + '='.repeat(60));
@@ -188,25 +195,31 @@ async function migrateImages(
     return { success: 0, errors: 0 };
   }
 
-  const profiles = await prisma.profile.findMany({
-    where: {
-      OR: [
-        { primaryImageCdn: { contains: 'b-cdn.net' } },
-        { primaryImageCdn: { contains: 'bunnycdn' } },
-        { primaryImageCdn: { contains: 'cdn.' } },
-      ],
-    },
-  });
+  const profileRows = await db
+    .select()
+    .from(profiles)
+    .where(
+      or(
+        like(profiles.primaryImageCdn, '%b-cdn.net%'),
+        like(profiles.primaryImageCdn, '%bunnycdn%'),
+        like(profiles.primaryImageCdn, '%cdn.%')
+      )
+    );
 
-  console.log(`\nFound ${profiles.length} profiles with external CDN images\n`);
+  console.log(
+    `\nFound ${profileRows.length} profiles with external CDN images\n`
+  );
 
   let successCount = 0;
   let errorCount = 0;
 
-  for (const profile of profiles) {
+  for (const profile of profileRows) {
     console.log(`Processing: ${profile.name} (${profile.slug})`);
 
-    const updates: Prisma.ProfileUpdateInput = {};
+    const updates: {
+      primaryImageCdn?: string;
+      galleryImages?: Record<string, string | null>;
+    } = {};
     let hasUpdates = false;
 
     // Check primary image
@@ -285,15 +298,12 @@ async function migrateImages(
       }
 
       if (galleryHasUpdates && !dryRun) {
-        updates.galleryImages = galleryUpdates as Prisma.InputJsonValue;
+        updates.galleryImages = galleryUpdates;
       }
     }
 
     if (hasUpdates && !dryRun && Object.keys(updates).length > 0) {
-      await prisma.profile.update({
-        where: { id: profile.id },
-        data: updates,
-      });
+      await db.update(profiles).set(updates).where(eq(profiles.id, profile.id));
       console.log(`  -> Database updated`);
       successCount++;
     } else if (hasUpdates) {
@@ -309,15 +319,21 @@ async function migrateImages(
 // =============================================================================
 
 async function main() {
-  const { mongodb, postgres, dryRun, skipImages, imagesOnly } = parseArgs();
+  const {
+    mongodb,
+    postgres: postgresUrl,
+    dryRun,
+    skipImages,
+    imagesOnly,
+  } = parseArgs();
 
   if (dryRun) {
     console.log('DRY RUN - No data will be written\n');
   }
 
   console.log('Connecting to PostgreSQL...');
-  const adapter = new PrismaPg({ connectionString: postgres });
-  const prisma = new PrismaClient({ adapter });
+  const client = postgres(postgresUrl);
+  const db = drizzle(client, { schema });
   console.log('Connected to PostgreSQL\n');
 
   // Track statistics
@@ -339,7 +355,7 @@ async function main() {
       console.log('Connecting to MongoDB...');
       const mongoClient = new MongoClient(mongodb);
       await mongoClient.connect();
-      const db = mongoClient.db();
+      const mongoDb = mongoClient.db();
       console.log('Connected to MongoDB\n');
 
       const userIdMap = new Map<string, string>();
@@ -349,7 +365,10 @@ async function main() {
         // USERS
         // =====================================================================
         console.log('Reading users...');
-        mongoUsers = await db.collection('nextauth_users').find({}).toArray();
+        mongoUsers = await mongoDb
+          .collection('nextauth_users')
+          .find({})
+          .toArray();
         console.log(`Found ${mongoUsers.length} users\n`);
 
         if (!dryRun) {
@@ -358,23 +377,17 @@ async function main() {
             const newId = generateCuid();
             userIdMap.set(user._id.toString(), newId);
 
-            await prisma.user.create({
-              data: {
-                id: newId,
-                email: user.email,
-                emailVerified: user.emailVerified
-                  ? new Date(user.emailVerified)
-                  : null,
-                name: user.name || null,
-                screenname: user.screenname || null,
-                role: user.role || 'user',
-                createdAt: user.createdAt
-                  ? new Date(user.createdAt)
-                  : new Date(),
-                updatedAt: user.updatedAt
-                  ? new Date(user.updatedAt)
-                  : new Date(),
-              },
+            await db.insert(users).values({
+              id: newId,
+              email: user.email,
+              emailVerified: user.emailVerified
+                ? new Date(user.emailVerified)
+                : null,
+              name: user.name || null,
+              screenname: user.screenname || null,
+              role: user.role || 'user',
+              createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+              updatedAt: user.updatedAt ? new Date(user.updatedAt) : new Date(),
             });
           }
           console.log(`Imported ${mongoUsers.length} users\n`);
@@ -384,7 +397,7 @@ async function main() {
         // ACCOUNTS
         // =====================================================================
         console.log('Reading accounts...');
-        mongoAccounts = await db
+        mongoAccounts = await mongoDb
           .collection('nextauth_accounts')
           .find({})
           .toArray();
@@ -402,21 +415,19 @@ async function main() {
               continue;
             }
 
-            await prisma.account.create({
-              data: {
-                id: generateCuid(),
-                userId,
-                type: account.type || 'oauth',
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                refresh_token: account.refresh_token || null,
-                access_token: account.access_token || null,
-                expires_at: account.expires_at || null,
-                token_type: account.token_type || null,
-                scope: account.scope || null,
-                id_token: account.id_token || null,
-                session_state: account.session_state || null,
-              },
+            await db.insert(accounts).values({
+              id: generateCuid(),
+              userId,
+              type: account.type || 'oauth',
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refresh_token: account.refresh_token || null,
+              access_token: account.access_token || null,
+              expires_at: account.expires_at || null,
+              token_type: account.token_type || null,
+              scope: account.scope || null,
+              id_token: account.id_token || null,
+              session_state: account.session_state || null,
             });
             imported++;
           }
@@ -429,7 +440,7 @@ async function main() {
         // SESSIONS (active only)
         // =====================================================================
         console.log('Reading sessions...');
-        mongoSessions = await db
+        mongoSessions = await mongoDb
           .collection('nextauth_sessions')
           .find({ expires: { $gt: new Date() } })
           .toArray();
@@ -447,13 +458,11 @@ async function main() {
               continue;
             }
 
-            await prisma.session.create({
-              data: {
-                id: generateCuid(),
-                sessionToken: session.sessionToken,
-                userId,
-                expires: new Date(session.expires),
-              },
+            await db.insert(sessions).values({
+              id: generateCuid(),
+              sessionToken: session.sessionToken,
+              userId,
+              expires: new Date(session.expires),
             });
             imported++;
           }
@@ -466,7 +475,7 @@ async function main() {
         // PROFILES
         // =====================================================================
         console.log('Reading profiles...');
-        mongoProfiles = await db.collection('profiles').find({}).toArray();
+        mongoProfiles = await mongoDb.collection('profiles').find({}).toArray();
         console.log(`Found ${mongoProfiles.length} profiles\n`);
 
         if (!dryRun) {
@@ -476,8 +485,8 @@ async function main() {
           for (const profile of mongoProfiles as any[]) {
             let userId: string | null = null;
             if (profile.email) {
-              const user = await prisma.user.findUnique({
-                where: { email: profile.email.toLowerCase() },
+              const user = await db.query.users.findFirst({
+                where: eq(users.email, profile.email.toLowerCase()),
               });
               if (user) {
                 userId = user.id;
@@ -485,63 +494,61 @@ async function main() {
               }
             }
 
-            await prisma.profile.create({
-              data: {
-                id: generateCuid(),
-                userId,
-                email:
-                  profile.email?.toLowerCase() ||
-                  `unknown-${generateCuid()}@placeholder.local`,
-                name: profile.name || 'Unknown',
-                slug: profile.slug || null,
-                phoneNumber: profile.phoneNumber || null,
-                pronouns: profile.pronouns || null,
-                primaryImageId: profile.images?.primaryId || null,
-                primaryImageCdn: profile.images?.primaryCDN || null,
-                addressName: profile.primary_address?.name || null,
-                addressLine1: profile.primary_address?.line1 || null,
-                addressLine2: profile.primary_address?.line2 || null,
-                addressLocality: profile.primary_address?.city || null,
-                addressRegion: profile.primary_address?.state || null,
-                addressPostalCode: profile.primary_address?.zipCode || null,
-                addressCountry: profile.primary_address?.country || 'US',
-                active: profile.active ?? false,
-                locallyBased: profile.locally_based || null,
-                descriptions:
-                  profile.five_words || profile.details || profile.background
-                    ? {
-                        fiveWords: profile.five_words || null,
-                        details: profile.details || null,
-                        background: profile.background || null,
-                        tags: profile.tags || null,
-                      }
-                    : undefined,
-                socials: profile.socialLinks || profile.socials || undefined,
-                galleryImages: profile.images?.gallery1CDN
+            await db.insert(profiles).values({
+              id: generateCuid(),
+              userId,
+              email:
+                profile.email?.toLowerCase() ||
+                `unknown-${generateCuid()}@placeholder.local`,
+              name: profile.name || 'Unknown',
+              slug: profile.slug || null,
+              phoneNumber: profile.phoneNumber || null,
+              pronouns: profile.pronouns || null,
+              primaryImageId: profile.images?.primaryId || null,
+              primaryImageCdn: profile.images?.primaryCDN || null,
+              addressName: profile.primary_address?.name || null,
+              addressLine1: profile.primary_address?.line1 || null,
+              addressLine2: profile.primary_address?.line2 || null,
+              addressLocality: profile.primary_address?.city || null,
+              addressRegion: profile.primary_address?.state || null,
+              addressPostalCode: profile.primary_address?.zipCode || null,
+              addressCountry: profile.primary_address?.country || 'US',
+              active: profile.active ?? false,
+              locallyBased: profile.locally_based || null,
+              descriptions:
+                profile.five_words || profile.details || profile.background
                   ? {
-                      gallery1: profile.images?.gallery1 || null,
-                      gallery1CDN: profile.images?.gallery1CDN || null,
-                      gallery2: profile.images?.gallery2 || null,
-                      gallery2CDN: profile.images?.gallery2CDN || null,
-                      gallery3: profile.images?.gallery3 || null,
-                      gallery3CDN: profile.images?.gallery3CDN || null,
+                      fiveWords: profile.five_words || null,
+                      details: profile.details || null,
+                      background: profile.background || null,
+                      tags: profile.tags || null,
                     }
                   : undefined,
-                categories: profile.categories || undefined,
-                counties: profile.counties || undefined,
-                geo: profile.geo || undefined,
-                mentoring: profile.mentoring || undefined,
-                availability: profile.availability || undefined,
-                verification: profile.verification || undefined,
-                roles: profile.roles || undefined,
-                gentedepana: profile.gentedepana || undefined,
-                createdAt: profile.createdAt
-                  ? new Date(profile.createdAt)
-                  : new Date(),
-                updatedAt: profile.updatedAt
-                  ? new Date(profile.updatedAt)
-                  : new Date(),
-              },
+              socials: profile.socialLinks || profile.socials || undefined,
+              galleryImages: profile.images?.gallery1CDN
+                ? {
+                    gallery1: profile.images?.gallery1 || null,
+                    gallery1CDN: profile.images?.gallery1CDN || null,
+                    gallery2: profile.images?.gallery2 || null,
+                    gallery2CDN: profile.images?.gallery2CDN || null,
+                    gallery3: profile.images?.gallery3 || null,
+                    gallery3CDN: profile.images?.gallery3CDN || null,
+                  }
+                : undefined,
+              categories: profile.categories || undefined,
+              counties: profile.counties || undefined,
+              geo: profile.geo || undefined,
+              mentoring: profile.mentoring || undefined,
+              availability: profile.availability || undefined,
+              verification: profile.verification || undefined,
+              roles: profile.roles || undefined,
+              gentedepana: profile.gentedepana || undefined,
+              createdAt: profile.createdAt
+                ? new Date(profile.createdAt)
+                : new Date(),
+              updatedAt: profile.updatedAt
+                ? new Date(profile.updatedAt)
+                : new Date(),
             });
           }
           console.log(
@@ -558,7 +565,7 @@ async function main() {
     // IMAGE MIGRATION
     // =========================================================================
     if (!skipImages) {
-      imageStats = await migrateImages(prisma, dryRun);
+      imageStats = await migrateImages(db, dryRun);
     }
 
     // =========================================================================
@@ -589,7 +596,7 @@ async function main() {
     console.error('\nError:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
     console.log('\nPostgreSQL connection closed.');
   }
 }

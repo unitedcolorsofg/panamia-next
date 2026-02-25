@@ -1,6 +1,8 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,9 +13,8 @@ export default async function MentoringProfilePage() {
     redirect('/api/auth/signin');
   }
 
-  const prisma = await getPrisma();
-  const profile = await prisma.profile.findUnique({
-    where: { email: session.user.email },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.email, session.user.email),
   });
 
   const mentoring = profile?.mentoring as ProfileMentoring | null;

@@ -1,4 +1,6 @@
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { interactions } from '@/lib/schema';
+import { eq, sql } from 'drizzle-orm';
 
 const interactionActions = {
   newsletter_signup: {
@@ -35,16 +37,16 @@ export const saveInteraction = async ({
   affiliate,
 }: SaveInteraction) => {
   const points = interactionActions[action].points;
-  const prisma = await getPrisma();
 
-  const newInteraction = await prisma.interaction.create({
-    data: {
-      email: email,
-      action: action,
+  const [newInteraction] = await db
+    .insert(interactions)
+    .values({
+      email,
+      action,
       affiliate: affiliate || null,
-      points: points,
-    },
-  });
+      points,
+    })
+    .returning();
 
   if (affiliate) {
     // const update = await calculatePoints(affiliate)
@@ -53,18 +55,15 @@ export const saveInteraction = async ({
 };
 
 export const calculatePoints = async (affiliate: string) => {
-  const prisma = await getPrisma();
-
-  // Aggregate points by affiliate using Prisma
-  const pointsSum = await prisma.interaction.groupBy({
-    by: ['affiliate'],
-    where: {
-      affiliate: affiliate,
-    },
-    _sum: {
-      points: true,
-    },
-  });
+  // Aggregate points by affiliate using Drizzle
+  const pointsSum = await db
+    .select({
+      affiliate: interactions.affiliate,
+      totalPoints: sql<string>`sum(${interactions.points})`,
+    })
+    .from(interactions)
+    .where(eq(interactions.affiliate, affiliate))
+    .groupBy(interactions.affiliate);
 
   // points and interactions should eventually be historically tracked to minimize large db calls
   console.log(pointsSum);

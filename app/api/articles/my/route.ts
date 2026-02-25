@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { eq, inArray, desc } from 'drizzle-orm';
 
 interface CoAuthor {
   userId: string;
@@ -27,7 +29,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
     const currentUserId = session.user.id;
 
     const searchParams = request.nextUrl.searchParams;
@@ -36,18 +37,19 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Build status filter
-    const statusFilter = status
-      ? { in: status.split(',') as any[] }
-      : undefined;
+    const statusValues = status ? status.split(',') : null;
 
     // Query articles where user is author
-    const authorArticles = await prisma.article.findMany({
-      where: {
-        authorId: currentUserId,
-        ...(statusFilter ? { status: statusFilter as any } : {}),
-      },
-      orderBy: { updatedAt: 'desc' },
-      select: {
+    const authorArticles = await db.query.articles.findMany({
+      where: (t, { eq, and, inArray }) =>
+        statusValues
+          ? and(
+              eq(t.authorId, currentUserId),
+              inArray(t.status, statusValues as any[])
+            )
+          : eq(t.authorId, currentUserId),
+      orderBy: (t, { desc }) => [desc(t.updatedAt)],
+      columns: {
         id: true,
         slug: true,
         title: true,
@@ -63,10 +65,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Query all articles to check coAuthors (JSONB filtering)
-    const allArticles = await prisma.article.findMany({
-      where: statusFilter ? { status: statusFilter as any } : undefined,
-      orderBy: { updatedAt: 'desc' },
-      select: {
+    const allArticles = await db.query.articles.findMany({
+      where: statusValues
+        ? (t, { inArray }) => inArray(t.status, statusValues as any[])
+        : undefined,
+      orderBy: (t, { desc }) => [desc(t.updatedAt)],
+      columns: {
         id: true,
         slug: true,
         title: true,
@@ -95,10 +99,10 @@ export async function GET(request: NextRequest) {
 
     // Apply pagination
     const total = combined.length;
-    const articles = combined.slice(offset, offset + limit);
+    const paginatedArticles = combined.slice(offset, offset + limit);
 
     // Determine user's role in each article
-    const articlesWithRole = articles.map((a) => {
+    const articlesWithRole = paginatedArticles.map((a) => {
       const isAuthor = a.authorId === currentUserId;
       const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
       const coAuthorEntry = coAuthors?.find(
@@ -117,7 +121,7 @@ export async function GET(request: NextRequest) {
       data: {
         articles: articlesWithRole,
         total,
-        hasMore: offset + articles.length < total,
+        hasMore: offset + paginatedArticles.length < total,
       },
     });
   } catch (error) {

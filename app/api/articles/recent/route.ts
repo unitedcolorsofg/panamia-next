@@ -6,7 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 
 interface CoAuthor {
   userId: string;
@@ -25,41 +27,52 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type'); // 'business_update' or 'community_commentary'
     const tag = searchParams.get('tag');
 
-    const prisma = await getPrisma();
-
-    // Build query
-    const where: any = { status: 'published' };
+    // Build query conditions
+    const conditions: any[] = [eq(articles.status, 'published')];
 
     if (type && ['business_update', 'community_commentary'].includes(type)) {
-      where.articleType = type;
+      conditions.push(eq(articles.articleType, type as any));
     }
 
     if (tag) {
-      where.tags = { has: tag.toLowerCase() };
+      conditions.push(
+        sql`${articles.tags} @> ARRAY[${tag.toLowerCase()}]::text[]`
+      );
     }
 
+    const whereClause =
+      conditions.length > 1 ? and(...conditions) : conditions[0];
+
     // Fetch articles and count
-    const [articles, total] = await Promise.all([
-      prisma.article.findMany({
-        where,
-        orderBy: { publishedAt: 'desc' },
-        skip: offset,
-        take: limit,
+    const [articleRows, countResult] = await Promise.all([
+      db.query.articles.findMany({
+        where: () => whereClause,
+        orderBy: (t, { desc }) => [desc(t.publishedAt)],
+        offset,
+        limit,
       }),
-      prisma.article.count({ where }),
+      db
+        .select({ count: sql<string>`count(*)` })
+        .from(articles)
+        .where(whereClause),
     ]);
 
+    const total = Number(countResult[0].count);
+
     // Enrich with author info
-    const authorIds = [...new Set(articles.map((a) => a.authorId))];
-    const authors = await prisma.user.findMany({
-      where: { id: { in: authorIds } },
-      select: { id: true, screenname: true },
-    });
+    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorRows =
+      authorIds.length > 0
+        ? await db.query.users.findMany({
+            where: (t, { inArray }) => inArray(t.id, authorIds),
+            columns: { id: true, screenname: true },
+          })
+        : [];
     const authorMap = new Map(
-      authors.map((a) => [a.id, { screenname: a.screenname }])
+      authorRows.map((a) => [a.id, { screenname: a.screenname }])
     );
 
-    const enrichedArticles = articles.map((a) => {
+    const enrichedArticles = articleRows.map((a) => {
       const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
       return {
         id: a.id,
@@ -85,7 +98,7 @@ export async function GET(request: NextRequest) {
           total,
           limit,
           offset,
-          hasMore: offset + articles.length < total,
+          hasMore: offset + articleRows.length < total,
         },
       },
     });

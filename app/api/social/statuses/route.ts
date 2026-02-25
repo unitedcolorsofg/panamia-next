@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles, socialActors } from '@/lib/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { createStatus, getPublicTimeline } from '@/lib/federation';
 import { createNotification } from '@/lib/notifications';
 
@@ -15,10 +17,9 @@ export async function GET(request: NextRequest) {
   const session = await auth();
 
   if (session?.user?.id) {
-    const prisma = await getPrisma();
-    const profile = await prisma.profile.findFirst({
-      where: { userId: session.user.id },
-      include: { socialActor: true },
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, session.user.id),
+      with: { socialActor: true },
     });
     viewerActorId = profile?.socialActor?.id;
   }
@@ -44,12 +45,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
-
   // Get user's actor
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
-    include: { socialActor: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
+    with: { socialActor: true },
   });
 
   if (!profile?.socialActor) {
@@ -161,9 +160,9 @@ export async function POST(request: NextRequest) {
   // Create notifications for DM recipients
   if (resolvedVisibility === 'direct' && recipientActorIds?.length > 0) {
     // Look up recipient actors to get their user IDs
-    const recipientActors = await prisma.socialActor.findMany({
-      where: { id: { in: recipientActorIds } },
-      include: { profile: { include: { user: true } } },
+    const recipientActors = await db.query.socialActors.findMany({
+      where: inArray(socialActors.id, recipientActorIds),
+      with: { profile: { with: { user: true } } },
     });
 
     // Create a notification for each recipient

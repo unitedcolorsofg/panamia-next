@@ -7,7 +7,7 @@
  * @see docs/SOCIAL-ROADMAP.md
  */
 
-import { Profile } from '@prisma/client';
+import type { Profile } from '@/lib/schema';
 
 export type GateResult = {
   allowed: boolean;

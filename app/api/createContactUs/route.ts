@@ -1,7 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { contactSubmissions } from '@/lib/schema';
 import BrevoApi from '@/lib/brevo_api';
 import { splitName } from '@/lib/standardized';
 
@@ -138,14 +139,11 @@ export async function POST(request: NextRequest) {
 
   // Save to database
   try {
-    const prisma = await getPrisma();
-    await prisma.contactSubmission.create({
-      data: {
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        message: message.trim(),
-        acknowledged: false,
-      },
+    await db.insert(contactSubmissions).values({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      message: message.trim(),
+      acknowledged: false,
     });
   } catch (error) {
     console.error('Database error saving contact form:', error);

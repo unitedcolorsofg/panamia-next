@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
@@ -48,9 +50,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -103,9 +105,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify reviewer has a profile with screenname
-    const reviewerProfile = await prisma.profile.findUnique({
-      where: { userId },
-      include: { user: { select: { screenname: true } } },
+    const reviewerProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      with: { user: { columns: { screenname: true } } },
     });
     if (!reviewerProfile) {
       return NextResponse.json(
@@ -153,13 +155,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       comments: [],
     };
 
-    await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: {
-        reviewedBy: newReviewedBy as any,
-        status: 'pending_review',
-      },
-    });
+    await db
+      .update(articles)
+      .set({ reviewedBy: newReviewedBy as any, status: 'pending_review' })
+      .where(eq(articles.id, articleDoc.id));
 
     // Create notification for reviewer
     await createNotification({

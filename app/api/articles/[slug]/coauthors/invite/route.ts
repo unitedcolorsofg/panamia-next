@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
@@ -38,11 +40,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
     // Verify current user has a profile
-    const currentProfile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
+    const currentProfile = await db.query.profiles.findFirst({
+      where: (t, { eq }) => eq(t.userId, session.user.id),
     });
     if (!currentProfile) {
       return NextResponse.json(
@@ -51,7 +51,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: (t, { eq }) => eq(t.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -92,9 +94,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify invitee has a profile with screenname
-    const inviteeProfile = await prisma.profile.findUnique({
-      where: { userId },
-      include: { user: { select: { screenname: true } } },
+    const inviteeProfile = await db.query.profiles.findFirst({
+      where: (t, { eq }) => eq(t.userId, userId),
+      with: { user: { columns: { screenname: true } } },
     });
     if (!inviteeProfile) {
       return NextResponse.json(
@@ -138,10 +140,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     ];
 
-    await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: { coAuthors: newCoAuthors as any },
-    });
+    await db
+      .update(articles)
+      .set({ coAuthors: newCoAuthors })
+      .where(eq(articles.id, articleDoc.id));
 
     // Create notification for invitee
     await createNotification({

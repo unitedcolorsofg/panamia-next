@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import {
+  users,
+  screennameHistory,
+  socialStatuses,
+  socialActors,
+} from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
 
 // Rate limit: once per 90 days (~3 months)
@@ -34,16 +41,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
   const newScreenname = screenname.trim();
 
   // Fetch current user state including rate limit check
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      screenname: true,
-      lastScreennameChange: true,
-      profile: { select: { socialActor: { select: { id: true } } } },
+  const currentUser = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { screenname: true, lastScreennameChange: true },
+    with: {
+      profile: {
+        columns: {},
+        with: { socialActor: { columns: { id: true } } },
+      },
     },
   });
 
@@ -90,12 +98,10 @@ export async function POST(request: NextRequest) {
 
   // Archive current screenname to history (if they have one and it's changing)
   if (currentUser?.screenname) {
-    await prisma.screennameHistory.create({
-      data: {
-        screenname: currentUser.screenname,
-        userId: session.user.id,
-        redirectTo: newScreenname,
-      },
+    await db.insert(screennameHistory).values({
+      screenname: currentUser.screenname,
+      userId: session.user.id,
+      redirectTo: newScreenname,
     });
   }
 
@@ -105,31 +111,28 @@ export async function POST(request: NextRequest) {
     const actorId = currentUser.profile!.socialActor!.id;
 
     // Delete all statuses authored by this actor
-    await prisma.socialStatus.deleteMany({
-      where: { actorId },
-    });
+    await db.delete(socialStatuses).where(eq(socialStatuses.actorId, actorId));
 
     // Reset status count
-    await prisma.socialActor.update({
-      where: { id: actorId },
-      data: { statusCount: 0 },
-    });
+    await db
+      .update(socialActors)
+      .set({ statusCount: 0 })
+      .where(eq(socialActors.id, actorId));
   }
 
   // Update user screenname and record change timestamp
-  const updatedUser = await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
+  const [updatedUser] = await db
+    .update(users)
+    .set({
       screenname: newScreenname,
       lastScreennameChange: currentUser?.screenname ? new Date() : undefined,
-    },
-    select: { screenname: true, profile: { select: { socialActor: true } } },
-  });
+    })
+    .where(eq(users.id, session.user.id))
+    .returning({ screenname: users.screenname });
 
   // Sync screenname to SocialActor if one exists
-  if (updatedUser.profile?.socialActor) {
-    const actor = updatedUser.profile.socialActor;
-    // Import socialConfig dynamically to avoid circular deps
+  const socialActorId = currentUser?.profile?.socialActor?.id;
+  if (socialActorId) {
     const {
       getActorUrl,
       getInboxUrl,
@@ -138,17 +141,17 @@ export async function POST(request: NextRequest) {
       getFollowingUrl,
     } = await import('@/lib/federation');
 
-    await prisma.socialActor.update({
-      where: { id: actor.id },
-      data: {
+    await db
+      .update(socialActors)
+      .set({
         username: newScreenname,
         uri: getActorUrl(newScreenname),
         inboxUrl: getInboxUrl(newScreenname),
         outboxUrl: getOutboxUrl(newScreenname),
         followersUrl: getFollowersUrl(newScreenname),
         followingUrl: getFollowingUrl(newScreenname),
-      },
-    });
+      })
+      .where(eq(socialActors.id, socialActorId));
   }
 
   return NextResponse.json({

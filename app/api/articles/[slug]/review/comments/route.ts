@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -49,9 +51,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -93,10 +95,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       comments: [...reviewedBy.comments, newComment],
     };
 
-    await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: { reviewedBy: updatedReviewedBy as any },
-    });
+    await db
+      .update(articles)
+      .set({ reviewedBy: updatedReviewedBy as any })
+      .where(eq(articles.id, articleDoc.id));
 
     return NextResponse.json({
       success: true,
@@ -127,9 +129,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },

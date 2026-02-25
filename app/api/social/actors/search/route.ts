@@ -11,7 +11,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { socialActors } from '@/lib/schema';
+import { and, isNotNull, ilike, asc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -34,32 +36,26 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const prisma = await getPrisma();
-
   // Search local actors by username (case-insensitive)
   // Only return actors that have a linked profile (local users with social enabled)
   // Includes current user (allows sending voice memos to yourself)
-  const actors = await prisma.socialActor.findMany({
-    where: {
-      profileId: { not: null },
-      // Case-insensitive username search
-      username: {
-        contains: query,
-        mode: 'insensitive',
-      },
-    },
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      iconUrl: true,
-      uri: true,
-    },
-    orderBy: {
-      username: 'asc',
-    },
-    take: limit,
-  });
+  const actors = await db
+    .select({
+      id: socialActors.id,
+      username: socialActors.username,
+      name: socialActors.name,
+      iconUrl: socialActors.iconUrl,
+      uri: socialActors.uri,
+    })
+    .from(socialActors)
+    .where(
+      and(
+        isNotNull(socialActors.profileId),
+        ilike(socialActors.username, `%${query}%`)
+      )
+    )
+    .orderBy(asc(socialActors.username))
+    .limit(limit);
 
   return NextResponse.json({
     success: true,

@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -29,9 +31,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -55,13 +57,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Unpublish - revert to draft
-    const updatedArticle = await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: {
-        status: 'draft',
-        publishedAt: null,
-      },
-    });
+    const [updatedArticle] = await db
+      .update(articles)
+      .set({ status: 'draft', publishedAt: null })
+      .where(eq(articles.id, articleDoc.id))
+      .returning();
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { and, ne, sql } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 
 export async function GET(request: NextRequest) {
@@ -9,42 +11,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const prisma = await getPrisma();
-
   const { searchParams } = new URL(request.url);
   const expertise = searchParams.get('expertise');
   const language = searchParams.get('language');
   const freeOnly = searchParams.get('freeOnly') === 'true';
 
-  // Build Prisma query with JSON path conditions
-  const whereConditions: any = {
-    email: { not: session.user.email },
-    mentoring: {
-      path: ['enabled'],
-      equals: true,
-    },
-  };
-
   // Get all profiles with mentoring enabled and filter in JS
-  // (Prisma JSON array contains requires raw queries)
-  const profiles = await prisma.profile.findMany({
-    where: whereConditions,
-    select: {
+  const mentorProfiles = await db.query.profiles.findMany({
+    where: and(
+      ne(profiles.email, session.user.email),
+      sql`${profiles.mentoring}->>'enabled' = 'true'`
+    ),
+    columns: {
       id: true,
       name: true,
       email: true,
       mentoring: true,
       availability: true,
-      user: { select: { screenname: true } },
       primaryImageId: true,
       primaryImageCdn: true,
       galleryImages: true,
     },
-    take: 100, // Get more to filter
+    with: { user: { columns: { screenname: true } } },
+    limit: 100,
   });
 
   // Filter by expertise, language, and hourly rate in JS
-  let mentors = profiles.filter((p) => {
+  let mentors = mentorProfiles.filter((p) => {
     const mentoring = p.mentoring as ProfileMentoring | null;
     if (!mentoring?.enabled) return false;
 

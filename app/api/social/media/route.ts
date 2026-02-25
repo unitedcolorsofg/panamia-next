@@ -14,7 +14,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { uploadFile } from '@/lib/blob/api';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -66,12 +68,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
-
   // Get user's social actor
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
-    include: { socialActor: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
+    with: { socialActor: true },
   });
 
   if (!profile?.socialActor) {

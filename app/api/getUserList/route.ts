@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users } from '@/lib/schema';
+import { count, desc } from 'drizzle-orm';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 
 export async function GET(request: NextRequest) {
@@ -25,9 +27,8 @@ export async function GET(request: NextRequest) {
   const per_page = 20;
   const offset = per_page * page_number - per_page;
 
-  const prisma = await getPrisma();
-
-  const listCount = await prisma.user.count();
+  const [{ total }] = await db.select({ total: count() }).from(users);
+  const listCount = Number(total);
   const pagination = {
     count: listCount,
     per_page: per_page,
@@ -36,21 +37,21 @@ export async function GET(request: NextRequest) {
     total_pages: listCount > 0 ? Math.ceil(listCount / per_page) : 1,
   };
 
-  const paginatedList = await prisma.user.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: per_page,
-    skip: offset,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      screenname: true,
-      role: true,
-      accountType: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const paginatedList = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      screenname: users.screenname,
+      role: users.role,
+      accountType: users.accountType,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt))
+    .limit(per_page)
+    .offset(offset);
 
   // Format response for backward compatibility
   const formattedList = paginatedList.map((user) => ({

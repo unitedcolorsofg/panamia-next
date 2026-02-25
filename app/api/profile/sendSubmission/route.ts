@@ -1,6 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
@@ -27,9 +29,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
-  const existingProfile = await prisma.profile.findUnique({
-    where: { email },
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.email, email),
   });
 
   const brevo_config = getBrevoConfig();

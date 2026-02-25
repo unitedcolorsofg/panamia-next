@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
 import { isValidMastodonUrl } from '@/lib/mastodon';
 
 interface RouteParams {
@@ -22,11 +24,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findFirst({
-      where: { slug, status: 'published' },
-      select: { mastodonPostUrl: true },
+    const articleDoc = await db.query.articles.findFirst({
+      where: and(eq(articles.slug, slug), eq(articles.status, 'published')),
+      columns: { mastodonPostUrl: true },
     });
 
     if (!articleDoc) {
@@ -68,9 +68,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -102,10 +102,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Allow clearing the URL
     if (mastodonPostUrl === null || mastodonPostUrl === '') {
-      const updated = await prisma.article.update({
-        where: { id: articleDoc.id },
-        data: { mastodonPostUrl: null },
-      });
+      const [updated] = await db
+        .update(articles)
+        .set({ mastodonPostUrl: null })
+        .where(eq(articles.id, articleDoc.id))
+        .returning();
 
       return NextResponse.json({
         success: true,
@@ -126,10 +127,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Save the URL
-    const updated = await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: { mastodonPostUrl },
-    });
+    const [updated] = await db
+      .update(articles)
+      .set({ mastodonPostUrl })
+      .where(eq(articles.id, articleDoc.id))
+      .returning();
 
     return NextResponse.json({
       success: true,

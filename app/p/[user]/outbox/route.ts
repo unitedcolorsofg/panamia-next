@@ -12,7 +12,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { socialStatuses } from '@/lib/schema';
+import { and, desc, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { socialConfig } from '@/lib/federation';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -51,21 +53,20 @@ export async function GET(
   }
 
   // With ?page=true → return OrderedCollectionPage with Create activities
-  const prisma = await getPrisma();
-
-  const statuses = await prisma.socialStatus.findMany({
-    where: {
-      actorId: actor.id,
-      published: { not: null },
-      inReplyToId: null, // Top-level posts only
-      recipientTo: { array_contains: PUBLIC }, // Public only (excludes unlisted)
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-    },
-    include: {
-      attachments: true,
-    },
-    orderBy: { published: 'desc' },
-    take: 20,
+  const statuses = await db.query.socialStatuses.findMany({
+    where: and(
+      eq(socialStatuses.actorId, actor.id),
+      sql`${socialStatuses.published} IS NOT NULL`,
+      isNull(socialStatuses.inReplyToId),
+      sql`${socialStatuses.recipientTo} @> ${JSON.stringify([PUBLIC])}::jsonb`,
+      or(
+        isNull(socialStatuses.expiresAt),
+        gt(socialStatuses.expiresAt, new Date())
+      )
+    ),
+    with: { attachments: true },
+    orderBy: (t, { desc }) => [desc(t.published)],
+    limit: 20,
   });
 
   const orderedItems = statuses.map((status) => ({

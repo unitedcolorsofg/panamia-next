@@ -1,6 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq, sql } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
 
@@ -19,21 +21,24 @@ interface ProfileStatus {
 }
 
 export async function POST(request: NextRequest) {
-  const prisma = await getPrisma();
   const body = await request.json();
   const { email, access, action } = body;
 
   let totalProfiles = 0;
   try {
-    totalProfiles = await prisma.profile.count({ where: { active: true } });
+    const [countResult] = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(profiles)
+      .where(eq(profiles.active, true));
+    totalProfiles = Number(countResult?.count ?? 0);
   } catch (e: any) {
     console.log('profile.count failed', e);
   }
 
   if (email) {
     const emailCheck = email.toString().toLowerCase();
-    const existingProfile = await prisma.profile.findUnique({
-      where: { email: emailCheck },
+    const existingProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.email, emailCheck),
     });
 
     if (!existingProfile) {
@@ -53,13 +58,13 @@ export async function POST(request: NextRequest) {
         approved: new Date().toISOString(),
       };
 
-      await prisma.profile.update({
-        where: { email: emailCheck },
-        data: {
+      await db
+        .update(profiles)
+        .set({
           active: true,
-          status: newStatus as any,
-        },
-      });
+          status: newStatus,
+        })
+        .where(eq(profiles.email, emailCheck));
 
       if (!original_approved_date) {
         // Send Approval email if first time approved
@@ -100,13 +105,13 @@ export async function POST(request: NextRequest) {
         declined: new Date().toISOString(),
       };
 
-      await prisma.profile.update({
-        where: { email: emailCheck },
-        data: {
+      await db
+        .update(profiles)
+        .set({
           active: false,
-          status: newStatus as any,
-        },
-      });
+          status: newStatus,
+        })
+        .where(eq(profiles.email, emailCheck));
 
       if (!original_declined_date) {
         const brevo = new BrevoApi();

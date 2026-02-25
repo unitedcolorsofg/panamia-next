@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 
 export async function PATCH(request: Request) {
@@ -11,8 +13,6 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const prisma = await getPrisma();
-
     const body = await request.json();
     const {
       enabled,
@@ -56,12 +56,11 @@ export async function PATCH(request: Request) {
       hourlyRate: hourlyRate || 0,
     };
 
-    const profile = await prisma.profile.update({
-      where: { email: session.user.email },
-      data: {
-        mentoring: mentoringData as any,
-      },
-    });
+    const [profile] = await db
+      .update(profiles)
+      .set({ mentoring: mentoringData as any })
+      .where(eq(profiles.email, session.user.email))
+      .returning({ mentoring: profiles.mentoring });
 
     return NextResponse.json({
       success: true,

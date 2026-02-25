@@ -6,7 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
 import { fetchArticleComments } from '@/lib/mastodon';
 
 interface RouteParams {
@@ -21,12 +23,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    const prisma = await getPrisma();
-
     // Find the article
-    const articleDoc = await prisma.article.findFirst({
-      where: { slug, status: 'published' },
-      select: { mastodonPostUrl: true },
+    const articleDoc = await db.query.articles.findFirst({
+      where: and(eq(articles.slug, slug), eq(articles.status, 'published')),
+      columns: { mastodonPostUrl: true },
     });
 
     if (!articleDoc) {

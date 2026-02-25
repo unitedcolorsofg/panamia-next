@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
@@ -38,9 +40,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: (t, { eq }) => eq(t.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -89,10 +91,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       };
     }
 
-    await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: { coAuthors: updatedCoAuthors as any },
-    });
+    await db
+      .update(articles)
+      .set({ coAuthors: updatedCoAuthors })
+      .where(eq(articles.id, articleDoc.id));
 
     // Notify the author
     await createNotification({

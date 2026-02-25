@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { deleteFile, uploadFile } from '@/lib/blob/api';
 
 interface ResponseData {
@@ -34,10 +36,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
-  const existingProfile = await prisma.profile.findUnique({
-    where: { email },
-    include: { user: { select: { screenname: true } } },
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.email, email),
+    with: { user: { columns: { screenname: true } } },
   });
 
   if (!existingProfile) {
@@ -135,16 +136,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Update profile with new images
-    const updatedProfile = await prisma.profile.update({
-      where: { id: existingProfile.id },
-      data: {
+    const [updatedProfile] = await db
+      .update(profiles)
+      .set({
         ...primaryImageUpdate,
         galleryImages:
           Object.keys(galleryImagesUpdate).length > 0
             ? (galleryImagesUpdate as any)
             : undefined,
-      },
-    });
+      })
+      .where(eq(profiles.id, existingProfile.id))
+      .returning();
 
     console.log('save');
 

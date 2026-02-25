@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { pusherServer } from '@/lib/pusher-server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions } from '@/lib/schema';
+import { and, eq, or } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -28,15 +30,14 @@ export async function POST(request: NextRequest) {
 
   if (channelType === 'session') {
     // Verify user is participant in this session
-    const prisma = await getPrisma();
-    const mentorSession = await prisma.mentorSession.findFirst({
-      where: {
-        sessionId: resourceId,
-        OR: [
-          { mentorEmail: session.user.email },
-          { menteeEmail: session.user.email },
-        ],
-      },
+    const mentorSession = await db.query.mentorSessions.findFirst({
+      where: and(
+        eq(mentorSessions.sessionId, resourceId),
+        or(
+          eq(mentorSessions.mentorEmail, session.user.email),
+          eq(mentorSessions.menteeEmail, session.user.email)
+        )
+      ),
     });
 
     if (!mentorSession) {

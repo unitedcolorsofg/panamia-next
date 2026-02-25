@@ -1,4 +1,6 @@
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, screennameHistory } from '@/lib/schema';
+import { and, eq, ne, sql } from 'drizzle-orm';
 
 // Reserved screennames that cannot be used
 export const RESERVED_SCREENNAMES = [
@@ -119,35 +121,42 @@ export async function isScreennameAvailable(
   name: string,
   excludeEmail?: string
 ): Promise<boolean> {
-  const prisma = await getPrisma();
-
   // PostgreSQL case-insensitive search - check current users
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      screenname: { equals: name, mode: 'insensitive' },
-      ...(excludeEmail ? { NOT: { email: excludeEmail } } : {}),
-    },
+  const conditions = [
+    sql`lower(${users.screenname}) = lower(${name})`,
+    ...(excludeEmail ? [ne(users.email, excludeEmail)] : []),
+  ];
+
+  const existingUser = await db.query.users.findFirst({
+    where: and(...conditions),
   });
 
   if (existingUser) return false;
 
   // Check screenname history (cannot claim others' old names)
   // Allow user to reclaim their OWN old screenname
-  const historical = await prisma.screennameHistory.findFirst({
-    where: {
-      screenname: { equals: name, mode: 'insensitive' },
-      // Allow user to reclaim their own old screenname
-      ...(excludeEmail
-        ? {
-            NOT: {
-              user: { email: { equals: excludeEmail, mode: 'insensitive' } },
-            },
-          }
-        : {}),
-    },
-  });
+  if (excludeEmail) {
+    // Historical: same screenname but not belonging to excludeEmail user
+    const historical = await db
+      .select({ id: screennameHistory.id })
+      .from(screennameHistory)
+      .innerJoin(users, eq(screennameHistory.userId, users.id))
+      .where(
+        and(
+          sql`lower(${screennameHistory.screenname}) = lower(${name})`,
+          sql`lower(${users.email}) != lower(${excludeEmail})`
+        )
+      )
+      .limit(1);
 
-  if (historical) return false;
+    if (historical.length > 0) return false;
+  } else {
+    const historical = await db.query.screennameHistory.findFirst({
+      where: sql`lower(${screennameHistory.screenname}) = lower(${name})`,
+    });
+
+    if (historical) return false;
+  }
 
   return true;
 }

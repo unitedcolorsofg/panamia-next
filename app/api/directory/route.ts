@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles, users } from '@/lib/schema';
+import { and, asc, eq } from 'drizzle-orm';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 /**
@@ -17,7 +19,6 @@ import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
  * - random: If "true", return random profiles (for homepage)
  */
 export async function GET(request: NextRequest) {
-  const prisma = await getPrisma();
   const searchParams = request.nextUrl.searchParams;
 
   // Parse query parameters
@@ -37,9 +38,9 @@ export async function GET(request: NextRequest) {
   try {
     // Single profile lookup by email
     if (email) {
-      const profile = await prisma.profile.findFirst({
-        where: { email, active: true },
-        include: { user: { select: { screenname: true } } },
+      const profile = await db.query.profiles.findFirst({
+        where: and(eq(profiles.email, email), eq(profiles.active, true)),
+        with: { user: { columns: { screenname: true } } },
       });
 
       if (!profile) {
@@ -57,15 +58,12 @@ export async function GET(request: NextRequest) {
 
     // Single profile lookup by screenname (via User)
     if (screenname) {
-      const profile = await prisma.profile.findFirst({
-        where: {
-          user: { screenname },
-          active: true,
-        },
-        include: { user: { select: { screenname: true } } },
+      const user = await db.query.users.findFirst({
+        where: eq(users.screenname, screenname),
+        with: { profile: true },
       });
 
-      if (!profile) {
+      if (!user?.profile || !user.profile.active) {
         return NextResponse.json(
           { error: 'Profile not found' },
           { status: 404 }
@@ -74,15 +72,18 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: transformProfile(profile),
+        data: transformProfile({
+          ...user.profile,
+          user: { screenname: user.screenname },
+        }),
       });
     }
 
     // Random profiles (for homepage discovery)
     if (randomMode) {
-      const allProfiles = await prisma.profile.findMany({
-        where: { active: true },
-        include: { user: { select: { screenname: true } } },
+      const allProfiles = await db.query.profiles.findMany({
+        where: eq(profiles.active, true),
+        with: { user: { columns: { screenname: true } } },
       });
 
       // Shuffle and take limit
@@ -102,13 +103,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Directory listing with filters
-    const profiles = await prisma.profile.findMany({
-      where: { active: true },
-      include: { user: { select: { screenname: true } } },
-      orderBy: { name: 'asc' },
+    const allProfiles = await db.query.profiles.findMany({
+      where: eq(profiles.active, true),
+      with: { user: { columns: { screenname: true } } },
+      orderBy: (p, { asc }) => [asc(p.name)],
     });
 
-    let filtered = profiles;
+    let filtered = allProfiles;
 
     // Filter by search term
     if (searchTerm) {
@@ -179,7 +180,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Transform Prisma profile to API response format
+ * Transform Drizzle profile to API response format
  */
 function transformProfile(p: any) {
   const descriptions = p.descriptions as ProfileDescriptions | null;

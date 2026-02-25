@@ -7,9 +7,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import type { Article } from '@/lib/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { calculateReadingTime, generateExcerpt } from '@/lib/article';
-import type { Article } from '@prisma/client';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -57,9 +59,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
 
     if (!articleDoc) {
       return NextResponse.json(
@@ -101,10 +103,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Enrich co-authors with screennames (only for users with edit access)
     if ((isAuthor || isCoAuthor) && coAuthors?.length) {
       const coAuthorIds = coAuthors.map((ca) => ca.userId);
-      const coAuthorUsers = await prisma.user.findMany({
-        where: { id: { in: coAuthorIds } },
-        select: { id: true, screenname: true },
-      });
+      const coAuthorUsers =
+        coAuthorIds.length > 0
+          ? await db
+              .select({ id: users.id, screenname: users.screenname })
+              .from(users)
+              .where(inArray(users.id, coAuthorIds))
+          : [];
       const userMap = new Map(coAuthorUsers.map((u) => [u.id, u.screenname]));
 
       responseData.coAuthors = coAuthors.map((ca) => ({
@@ -119,9 +124,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Enrich reviewer with screenname (only for users with edit access)
     if ((isAuthor || isCoAuthor) && reviewedBy?.userId) {
-      const reviewerUser = await prisma.user.findUnique({
-        where: { id: reviewedBy.userId },
-        select: { screenname: true },
+      const reviewerUser = await db.query.users.findFirst({
+        where: eq(users.id, reviewedBy.userId),
+        columns: { screenname: true },
       });
       responseData.reviewedBy = {
         userId: reviewedBy.userId,
@@ -136,9 +141,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Enrich inReplyTo with parent article info (for editors)
     if ((isAuthor || isCoAuthor) && articleDoc.inReplyTo) {
-      const parentArticle = await prisma.article.findUnique({
-        where: { id: articleDoc.inReplyTo },
-        select: { id: true, slug: true, title: true },
+      const parentArticle = await db.query.articles.findFirst({
+        where: eq(articles.id, articleDoc.inReplyTo),
+        columns: { id: true, slug: true, title: true },
       });
       if (parentArticle) {
         responseData.inReplyTo = {
@@ -187,9 +192,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -257,8 +262,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Validate inReplyTo if provided
     if (updates.inReplyTo) {
-      const parentArticle = await prisma.article.findUnique({
-        where: { id: updates.inReplyTo as string },
+      const parentArticle = await db.query.articles.findFirst({
+        where: eq(articles.id, updates.inReplyTo as string),
       });
       if (!parentArticle || parentArticle.status !== 'published') {
         return NextResponse.json(
@@ -269,10 +274,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Apply updates
-    const updatedArticle = await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: updates as any,
-    });
+    const [updatedArticle] = await db
+      .update(articles)
+      .set(updates as any)
+      .where(eq(articles.id, articleDoc.id))
+      .returning();
 
     return NextResponse.json({
       success: true,
@@ -308,9 +314,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -334,7 +340,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await prisma.article.delete({ where: { id: articleDoc.id } });
+    await db.delete(articles).where(eq(articles.id, articleDoc.id));
 
     return NextResponse.json({
       success: true,

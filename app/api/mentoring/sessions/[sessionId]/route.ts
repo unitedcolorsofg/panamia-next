@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions, profiles } from '@/lib/schema';
+import { and, eq, or } from 'drizzle-orm';
 import {
   updateSessionNotesSchema,
   cancelSessionSchema,
@@ -13,7 +15,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  // Next.js 15: params is now a Promise
   const { sessionId } = await params;
 
   const session = await auth();
@@ -21,16 +22,14 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const prisma = await getPrisma();
-
-  const mentorSession = await prisma.mentorSession.findFirst({
-    where: {
-      sessionId: sessionId,
-      OR: [
-        { mentorEmail: session.user.email },
-        { menteeEmail: session.user.email },
-      ],
-    },
+  const mentorSession = await db.query.mentorSessions.findFirst({
+    where: and(
+      eq(mentorSessions.sessionId, sessionId),
+      or(
+        eq(mentorSessions.mentorEmail, session.user.email),
+        eq(mentorSessions.menteeEmail, session.user.email)
+      )
+    ),
   });
 
   if (!mentorSession) {
@@ -45,15 +44,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  // Next.js 15: params is now a Promise
   const { sessionId } = await params;
 
   const session = await auth();
   if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const prisma = await getPrisma();
 
   const body = await request.json();
   const { action } = body;
@@ -64,24 +60,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
     }
 
-    const updated = await prisma.mentorSession.updateMany({
-      where: {
-        sessionId: sessionId,
-        OR: [
-          { mentorEmail: session.user.email },
-          { menteeEmail: session.user.email },
-        ],
-      },
-      data: { notes: validation.data.notes },
-    });
+    const updated = await db
+      .update(mentorSessions)
+      .set({ notes: validation.data.notes })
+      .where(
+        and(
+          eq(mentorSessions.sessionId, sessionId),
+          or(
+            eq(mentorSessions.mentorEmail, session.user.email),
+            eq(mentorSessions.menteeEmail, session.user.email)
+          )
+        )
+      )
+      .returning();
 
-    if (updated.count === 0) {
+    if (updated.length === 0) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     // Fetch the updated session
-    const updatedSession = await prisma.mentorSession.findUnique({
-      where: { sessionId },
+    const updatedSession = await db.query.mentorSessions.findFirst({
+      where: eq(mentorSessions.sessionId, sessionId),
     });
 
     return NextResponse.json({ session: updatedSession });
@@ -94,14 +93,14 @@ export async function PATCH(
     }
 
     // Find session first
-    const mentorSession = await prisma.mentorSession.findFirst({
-      where: {
-        sessionId: sessionId,
-        OR: [
-          { mentorEmail: session.user.email },
-          { menteeEmail: session.user.email },
-        ],
-      },
+    const mentorSession = await db.query.mentorSessions.findFirst({
+      where: and(
+        eq(mentorSessions.sessionId, sessionId),
+        or(
+          eq(mentorSessions.mentorEmail, session.user.email),
+          eq(mentorSessions.menteeEmail, session.user.email)
+        )
+      ),
     });
 
     if (!mentorSession) {
@@ -119,15 +118,16 @@ export async function PATCH(
     }
 
     // Update session
-    const updatedSession = await prisma.mentorSession.update({
-      where: { id: mentorSession.id },
-      data: {
+    const [updatedSession] = await db
+      .update(mentorSessions)
+      .set({
         status: 'cancelled',
         cancelledAt: new Date(),
         cancelledBy: session.user.email,
         cancelReason: validation.data.reason,
-      },
-    });
+      })
+      .where(eq(mentorSessions.id, mentorSession.id))
+      .returning();
 
     // Determine who to notify (the other party)
     const isMentor = mentorSession.mentorEmail === session.user.email;
@@ -136,9 +136,9 @@ export async function PATCH(
       : mentorSession.mentorEmail;
 
     // Get the other party's userId from their profile
-    const otherPartyProfile = await prisma.profile.findUnique({
-      where: { email: otherPartyEmail },
-      select: { userId: true },
+    const otherPartyProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.email, otherPartyEmail),
+      columns: { userId: true },
     });
 
     if (otherPartyProfile?.userId) {

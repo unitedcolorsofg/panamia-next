@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createActorForProfile, canCreateSocialActor } from '@/lib/federation';
 
 export async function GET() {
@@ -17,12 +19,10 @@ export async function GET() {
     );
   }
 
-  const prisma = await getPrisma();
-
   // Get user's profile with social actor, and user for screenname
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
-    include: { socialActor: true, user: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
+    with: { socialActor: true, user: true },
   });
 
   if (!profile) {
@@ -59,11 +59,9 @@ export async function POST() {
     );
   }
 
-  const prisma = await getPrisma();
-
   // Get user's profile
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
   });
 
   if (!profile) {

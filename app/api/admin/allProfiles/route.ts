@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 interface ResponseData {
   error?: string;
@@ -27,10 +29,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
     });
 
     if (existingUser?.role !== 'admin') {
@@ -40,12 +40,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const allActiveProfiles = await prisma.profile.findMany({
-      where: { active: true },
-      include: { user: { select: { screenname: true } } },
+    const allActiveProfiles = await db.query.profiles.findMany({
+      where: eq(profiles.active, true),
+      with: { user: { columns: { screenname: true } } },
     });
 
-    const profiles = allActiveProfiles.map((guardedProfile) => {
+    const profilesList = allActiveProfiles.map((guardedProfile) => {
       return {
         name: guardedProfile.name,
         email: guardedProfile.email,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { success: true, data: profiles },
+      { success: true, data: profilesList },
       { status: 200 }
     );
   } catch (error) {

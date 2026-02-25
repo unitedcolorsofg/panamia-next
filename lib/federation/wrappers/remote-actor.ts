@@ -2,21 +2,16 @@
  * Remote Actor Fetching & Upsert
  *
  * Functions for fetching remote ActivityPub actors and persisting them locally.
- *
- * Ported from:
- * - external/activities.next/lib/activities/requests/getActorPerson.ts (fetch pattern)
- * - external/activities.next/lib/actions/utils.ts (recordActorIfNeeded pattern)
- *
- * Changes: uses fetch instead of got, Prisma instead of Knex mixins
  */
 
-import { getPrisma } from '@/lib/prisma';
-import { SocialActor } from '@prisma/client';
+import { db } from '@/lib/db';
+import { socialActors } from '@/lib/schema';
+import type { SocialActor } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { parse as parseSignature } from '../crypto/verify';
 
 /**
  * Minimal shape of an ActivityPub actor document.
- * Defined inline to avoid depending on @llun/activities.schema.
  */
 interface RemoteActorDocument {
   id: string;
@@ -49,8 +44,6 @@ interface RemoteActorDocument {
   manuallyApprovesFollowers?: boolean;
 }
 
-// Ported from external/activities.next/lib/activities/requests/getActorPerson.ts
-// Change: uses native fetch instead of got
 export async function fetchRemoteActor(
   actorId: string
 ): Promise<RemoteActorDocument | null> {
@@ -71,15 +64,11 @@ export async function fetchRemoteActor(
   }
 }
 
-// Ported from external/activities.next/lib/actions/utils.ts (recordActorIfNeeded)
-// Change: uses Prisma instead of Knex mixins
 export async function ensureRemoteActor(
   actorId: string
 ): Promise<SocialActor | null> {
-  const prisma = await getPrisma();
-
-  const existingActor = await prisma.socialActor.findUnique({
-    where: { uri: actorId },
+  const existingActor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.uri, actorId),
   });
 
   // Don't update local actors
@@ -93,8 +82,9 @@ export async function ensureRemoteActor(
 
     const domain = new URL(person.id).hostname;
 
-    return prisma.socialActor.create({
-      data: {
+    const [actor] = await db
+      .insert(socialActors)
+      .values({
         uri: actorId,
         username: person.preferredUsername,
         domain,
@@ -110,8 +100,10 @@ export async function ensureRemoteActor(
         iconUrl: person.icon?.url,
         headerUrl: person.image?.url,
         manuallyApprovesFollowers: person.manuallyApprovesFollowers ?? false,
-      },
-    });
+      })
+      .returning();
+
+    return actor ?? null;
   }
 
   // Update remote actor if stale (older than 3 days)
@@ -121,17 +113,20 @@ export async function ensureRemoteActor(
     const person = await fetchRemoteActor(actorId);
     if (!person) return existingActor;
 
-    return prisma.socialActor.update({
-      where: { uri: actorId },
-      data: {
+    const [actor] = await db
+      .update(socialActors)
+      .set({
         inboxUrl: person.inbox,
         followersUrl: person.followers || '',
         sharedInboxUrl: person.endpoints?.sharedInbox || person.inbox,
         publicKey: person.publicKey.publicKeyPem,
         iconUrl: person.icon?.url,
         headerUrl: person.image?.url,
-      },
-    });
+      })
+      .where(eq(socialActors.uri, actorId))
+      .returning();
+
+    return actor ?? existingActor;
   }
 
   return existingActor;
@@ -139,29 +134,20 @@ export async function ensureRemoteActor(
 
 /**
  * Resolve a keyId from an HTTP Signature to a public key.
- *
- * keyId is typically "https://remote.example/users/alice#main-key".
- * We strip the fragment to get the actor URI, look up in DB first,
- * then fetch remotely if needed.
  */
 export async function getRemotePublicKey(
   keyId: string
 ): Promise<{ publicKey: string; actorUri: string } | null> {
-  // Strip fragment (#main-key) to get actor URI
   const actorUri = keyId.replace(/#.*$/, '');
 
-  const prisma = await getPrisma();
-
-  // Check DB first
-  const existing = await prisma.socialActor.findUnique({
-    where: { uri: actorUri },
+  const existing = await db.query.socialActors.findFirst({
+    where: eq(socialActors.uri, actorUri),
   });
 
   if (existing?.publicKey) {
     return { publicKey: existing.publicKey, actorUri };
   }
 
-  // Fetch remotely
   const person = await fetchRemoteActor(actorUri);
   if (!person?.publicKey?.publicKeyPem) return null;
 
@@ -170,7 +156,6 @@ export async function getRemotePublicKey(
 
 /**
  * Resolve the public key for verifying an HTTP Signature.
- * Extracts keyId from the Signature header, then resolves the key.
  */
 export async function resolveSignaturePublicKey(
   signatureHeader: string

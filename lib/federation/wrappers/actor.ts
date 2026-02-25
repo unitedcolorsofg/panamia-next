@@ -7,8 +7,10 @@
  * @see docs/SOCIAL-ROADMAP.md
  */
 
-import { getPrisma } from '@/lib/prisma';
-import { Profile, SocialActor } from '@prisma/client';
+import { db } from '@/lib/db';
+import { socialActors, profiles } from '@/lib/schema';
+import type { Profile, SocialActor } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
 import { canCreateSocialActor, GateResult } from '../gates';
 import {
@@ -26,25 +28,14 @@ export type CreateActorResult =
 
 /**
  * Create a SocialActor for a Profile.
- *
- * This enables social features for the user. The actor is created
- * with a fresh RSA keypair for HTTP signatures.
- *
- * Prerequisites:
- * - Profile must exist and be linked to a User
- * - Profile must have socialEligible = true
- * - User must have a screenname
- * - Profile must not already have an actor
  */
 export async function createActorForProfile(
   profileId: string
 ): Promise<CreateActorResult> {
-  const prisma = await getPrisma();
-
-  // Fetch the profile with user
-  const profile = await prisma.profile.findUnique({
-    where: { id: profileId },
-    include: { socialActor: true, user: true },
+  // Fetch the profile with user and socialActor
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, profileId),
+    with: { socialActor: true, user: true },
   });
 
   if (!profile) {
@@ -83,8 +74,9 @@ export async function createActorForProfile(
   const uri = getActorUrl(username);
 
   // Create the actor
-  const actor = await prisma.socialActor.create({
-    data: {
+  const [actor] = await db
+    .insert(socialActors)
+    .values({
       username,
       domain,
       profileId: profile.id,
@@ -97,42 +89,39 @@ export async function createActorForProfile(
       privateKey,
       name: profile.name,
       summary: getProfileSummary(profile),
-      iconUrl: profile.primaryImageCdn || undefined,
-    },
-  });
+      iconUrl: profile.primaryImageCdn ?? undefined,
+    })
+    .returning();
 
   return { success: true, actor };
 }
 
 /**
  * Update a SocialActor when its Profile changes.
- *
- * Syncs name, bio, and avatar from Profile to Actor.
  */
 export async function syncActorFromProfile(
   profileId: string
 ): Promise<SocialActor | null> {
-  const prisma = await getPrisma();
-
-  const profile = await prisma.profile.findUnique({
-    where: { id: profileId },
-    include: { socialActor: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, profileId),
+    with: { socialActor: true },
   });
 
   if (!profile || !profile.socialActor) {
     return null;
   }
 
-  const actor = await prisma.socialActor.update({
-    where: { id: profile.socialActor.id },
-    data: {
+  const [actor] = await db
+    .update(socialActors)
+    .set({
       name: profile.name,
       summary: getProfileSummary(profile),
-      iconUrl: profile.primaryImageCdn || undefined,
-    },
-  });
+      iconUrl: profile.primaryImageCdn ?? undefined,
+    })
+    .where(eq(socialActors.id, profile.socialActor.id))
+    .returning();
 
-  return actor;
+  return actor ?? null;
 }
 
 /**
@@ -141,14 +130,12 @@ export async function syncActorFromProfile(
 export async function getActorByScreenname(
   screenname: string
 ): Promise<SocialActor | null> {
-  const prisma = await getPrisma();
-
-  return prisma.socialActor.findFirst({
-    where: {
-      username: screenname,
-      domain: socialConfig.domain,
-    },
-  });
+  return (
+    (await db.query.socialActors.findFirst({
+      where: (a, { and, eq }) =>
+        and(eq(a.username, screenname), eq(a.domain, socialConfig.domain)),
+    })) ?? null
+  );
 }
 
 /**
@@ -157,8 +144,6 @@ export async function getActorByScreenname(
 export async function getActorByHandle(
   handle: string
 ): Promise<SocialActor | null> {
-  const prisma = await getPrisma();
-
   // Parse handle: @username@domain or username@domain
   const cleaned = handle.replace(/^@/, '');
   const parts = cleaned.split('@');
@@ -169,20 +154,23 @@ export async function getActorByHandle(
 
   const [username, domain] = parts;
 
-  return prisma.socialActor.findFirst({
-    where: { username, domain },
-  });
+  return (
+    (await db.query.socialActors.findFirst({
+      where: (a, { and, eq }) =>
+        and(eq(a.username, username), eq(a.domain, domain)),
+    })) ?? null
+  );
 }
 
 /**
  * Get a SocialActor by ActivityPub URI.
  */
 export async function getActorByUri(uri: string): Promise<SocialActor | null> {
-  const prisma = await getPrisma();
-
-  return prisma.socialActor.findUnique({
-    where: { uri },
-  });
+  return (
+    (await db.query.socialActors.findFirst({
+      where: eq(socialActors.uri, uri),
+    })) ?? null
+  );
 }
 
 /**

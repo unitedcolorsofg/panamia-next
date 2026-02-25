@@ -3,19 +3,22 @@
  * Create Sign-In Link Script
  *
  * Generates a magic sign-in link for a given email address.
- * Uses PostgreSQL verification_tokens table via Prisma.
+ * Uses PostgreSQL verification_tokens table via Drizzle.
  *
  * Usage: npx tsx scripts/create-signin-link.ts <email>
  */
 
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../lib/schema';
+import { eq } from 'drizzle-orm';
 import { config } from 'dotenv';
 import crypto from 'crypto';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
+const { verificationTokens } = schema;
 const EMAIL = process.argv[2];
 
 async function createSignInLink() {
@@ -30,16 +33,16 @@ async function createSignInLink() {
     process.exit(1);
   }
 
-  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
-  const prisma = new PrismaClient({ adapter });
+  const client = postgres(process.env.POSTGRES_URL);
+  const db = drizzle(client, { schema });
 
   try {
     console.log('Connecting to PostgreSQL...');
 
     // Delete any existing tokens for this email
-    await prisma.verificationToken.deleteMany({
-      where: { identifier: EMAIL },
-    });
+    await db
+      .delete(verificationTokens)
+      .where(eq(verificationTokens.identifier, EMAIL));
 
     // Generate a random token (similar to how NextAuth does it)
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -58,12 +61,10 @@ async function createSignInLink() {
       .digest('hex');
 
     // Create new verification token (store the HASHED token)
-    await prisma.verificationToken.create({
-      data: {
-        identifier: EMAIL,
-        token: hashedToken,
-        expires: expires,
-      },
+    await db.insert(verificationTokens).values({
+      identifier: EMAIL,
+      token: hashedToken,
+      expires,
     });
 
     // Construct the sign-in URL (use the RAW token in the URL)
@@ -80,7 +81,7 @@ async function createSignInLink() {
     console.error('❌ Error:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
   }
 }
 

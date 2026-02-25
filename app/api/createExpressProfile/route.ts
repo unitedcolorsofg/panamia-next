@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import BrevoApi from '@/lib/brevo_api';
 import { createUniqueString, slugify, splitName } from '@/lib/standardized';
@@ -56,7 +58,6 @@ const callBrevo_createContact = async (email: string, name: string) => {
   const brevo = new BrevoApi();
 
   if (brevo.ready) {
-    // const contact = await brevo.findContact(email);
     const [firstName, lastName] = splitName(name);
     const attributes = {
       FIRSTNAME: firstName,
@@ -144,9 +145,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const prisma = await getPrisma();
-  const existingProfile = await prisma.profile.findUnique({
-    where: { email: email.toString().toLowerCase() },
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.email, email.toString().toLowerCase()),
   });
 
   if (existingProfile) {
@@ -184,21 +184,19 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    await prisma.profile.create({
-      data: {
-        userId: session.user.id,
-        name: name,
-        email: email.toString().toLowerCase(),
-        active: true, // Self-created profiles are active immediately
-        status: status as any,
-        locallyBased: locally_based || null,
-        descriptions: descriptions as any,
-        socials: socials || null,
-        phoneNumber: phone_number || null,
-        whatsappCommunity: whatsapp_community || false,
-        pronouns: pronounsStr,
-        affiliate: affiliate || null,
-      },
+    await db.insert(profiles).values({
+      userId: session.user.id,
+      name: name,
+      email: email.toString().toLowerCase(),
+      active: true, // Self-created profiles are active immediately
+      status: status as any,
+      locallyBased: locally_based || null,
+      descriptions: descriptions as any,
+      socials: socials || null,
+      phoneNumber: phone_number || null,
+      whatsappCommunity: whatsapp_community || false,
+      pronouns: pronounsStr,
+      affiliate: affiliate || null,
     });
   } catch (error) {
     console.error('Database error saving profile:', error);

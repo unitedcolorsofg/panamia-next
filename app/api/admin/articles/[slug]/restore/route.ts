@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles, articles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 
 interface RouteParams {
@@ -43,14 +45,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
     // Get current user's profile for response
-    const currentProfile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
+    const currentProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, session.user.id),
     });
 
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -70,13 +72,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const previousRemovalReason = articleDoc.removalReason;
 
     // Restore article to published
-    const updatedArticle = await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: {
+    const [updatedArticle] = await db
+      .update(articles)
+      .set({
         status: 'published',
         // Keep removedAt, removedBy, removalReason for audit trail
-      },
-    });
+      })
+      .where(eq(articles.id, articleDoc.id))
+      .returning();
 
     // Notify the author
     await createNotification({

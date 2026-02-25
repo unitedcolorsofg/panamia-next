@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SocialStatusDisplay, SocialActorDisplay } from '@/lib/interfaces';
-import { SocialActor, SocialStatus } from '@prisma/client';
+import type { SocialActor, SocialStatus } from '@/lib/schema';
 
 export const socialQueryKey = ['social'];
 

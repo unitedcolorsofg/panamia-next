@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, profiles } from '@/lib/schema';
+import { eq, and, ne, ilike, inArray } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 
 /**
@@ -35,11 +37,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const prisma = await getPrisma();
-
     // Get current user to exclude from results
-    const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const currentUser = await db.query.users.findFirst({
+      where: eq(users.email, session.user.email),
     });
     if (!currentUser) {
       return NextResponse.json(
@@ -49,28 +49,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Search users by screenname (case-insensitive prefix match)
-    const users = await prisma.user.findMany({
-      where: {
-        id: { not: currentUser.id },
-        screenname: { startsWith: query, mode: 'insensitive' },
-      },
-      select: { id: true, screenname: true, email: true },
-      take: limit,
+    const foundUsers = await db.query.users.findMany({
+      where: and(
+        ne(users.id, currentUser.id),
+        ilike(users.screenname, `${query}%`)
+      ),
+      columns: { id: true, screenname: true, email: true },
+      limit,
     });
 
     // Get profile info for verified badge
-    const emails = users.map((u) => u.email);
-    const profiles = await prisma.profile.findMany({
-      where: {
-        email: { in: emails },
-        active: true,
-      },
-      select: { email: true, verification: true },
-    });
+    const emails = foundUsers.map((u) => u.email);
+    const foundProfiles =
+      emails.length > 0
+        ? await db.query.profiles.findMany({
+            where: and(
+              inArray(profiles.email, emails),
+              eq(profiles.active, true)
+            ),
+            columns: { email: true, verification: true },
+          })
+        : [];
 
     // Create email to verification map
     const profileMap = new Map(
-      profiles.map((p) => {
+      foundProfiles.map((p) => {
         const verification = p.verification as {
           panaVerified?: boolean;
         } | null;
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Format response - screenname comes from User, not Profile
-    const formattedUsers = users.map((u) => {
+    const formattedUsers = foundUsers.map((u) => {
       const profileInfo = profileMap.get(u.email);
       return {
         _id: u.id,

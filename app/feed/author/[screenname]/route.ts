@@ -7,7 +7,9 @@
 
 import { NextRequest } from 'next/server';
 import { Feed } from 'feed';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 
@@ -25,12 +27,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { screenname } = await params;
     const decodedScreenname = decodeURIComponent(screenname);
 
-    const prisma = await getPrisma();
-
     // Find author by screenname
-    const author = await prisma.user.findFirst({
-      where: { screenname: decodedScreenname },
-      select: { id: true, screenname: true },
+    const author = await db.query.users.findFirst({
+      where: eq(users.screenname, decodedScreenname),
+      columns: { id: true, screenname: true },
     });
     if (!author) {
       return new Response('Author not found', { status: 404 });
@@ -53,16 +53,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     // Get articles by this author (primary author)
-    const primaryArticles = await prisma.article.findMany({
-      where: { status: 'published', authorId: author.id },
-      orderBy: { publishedAt: 'desc' },
-      take: 50,
+    const primaryArticles = await db.query.articles.findMany({
+      where: and(
+        eq(articles.status, 'published'),
+        eq(articles.authorId, author.id)
+      ),
+      orderBy: (t, { desc }) => [desc(t.publishedAt)],
+      limit: 50,
     });
 
     // Get articles where this user is a co-author
-    const allPublishedArticles = await prisma.article.findMany({
-      where: { status: 'published' },
-      orderBy: { publishedAt: 'desc' },
+    const allPublishedArticles = await db.query.articles.findMany({
+      where: eq(articles.status, 'published'),
+      orderBy: (t, { desc }) => [desc(t.publishedAt)],
     });
     const coAuthoredArticles = allPublishedArticles.filter((a) => {
       const coAuthors = (a.coAuthors as unknown as CoAuthor[]) || [];
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         articleMap.set(coAuthored.id, coAuthored);
       }
     }
-    const articles = Array.from(articleMap.values())
+    const articleList = Array.from(articleMap.values())
       .sort(
         (a, b) =>
           new Date(b.publishedAt!).getTime() -
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
       .slice(0, 50);
 
-    for (const article of articles) {
+    for (const article of articleList) {
       feed.addItem({
         title: article.title,
         id: `${SITE_URL}/a/${article.slug}`,

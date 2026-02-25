@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { likeStatus, unlikeStatus } from '@/lib/federation';
 
 export async function POST(
@@ -22,12 +24,10 @@ export async function POST(
 
   const { statusId } = await params;
 
-  const prisma = await getPrisma();
-
   // Get user's actor
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
-    include: { socialActor: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
+    with: { socialActor: true },
   });
 
   if (!profile?.socialActor) {
@@ -66,12 +66,10 @@ export async function DELETE(
 
   const { statusId } = await params;
 
-  const prisma = await getPrisma();
-
   // Get user's actor
-  const profile = await prisma.profile.findFirst({
-    where: { userId: session.user.id },
-    include: { socialActor: true },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
+    with: { socialActor: true },
   });
 
   if (!profile?.socialActor) {

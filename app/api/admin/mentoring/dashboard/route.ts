@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions, profiles } from '@/lib/schema';
 import { ProfileMentoring } from '@/lib/interfaces';
-import { SessionStatus } from '@prisma/client';
+import { and, asc, eq, gte, isNotNull, lte, sql } from 'drizzle-orm';
 
 interface DashboardMetrics {
   totalMentors: number;
@@ -46,10 +47,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const prisma = await getPrisma();
-
   // TODO: Add admin role check
-  // const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  // const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email) });
   // if (user?.role !== 'admin') {
   //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   // }
@@ -71,55 +70,52 @@ export async function GET(request: NextRequest) {
     // Set startDate to beginning of day (00:00:00.000)
     startDate.setHours(0, 0, 0, 0);
 
-    // Date filter for sessions
-    const dateFilter = {
-      scheduledAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    };
-
     console.log('Date filter:', {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
     });
 
     // Debug: Check total sessions without date filter
-    const totalSessionsInDB = await prisma.mentorSession.count();
+    const [{ count: totalSessionsInDB }] = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(mentorSessions);
     console.log('Total sessions in DB:', totalSessionsInDB);
 
     // 1. Total mentors and active mentors
     // Get all profiles with mentoring enabled
-    const mentorProfiles = await prisma.profile.findMany({
-      where: {
-        mentoring: {
-          path: ['enabled'],
-          equals: true,
-        },
-      },
-      select: {
-        mentoring: true,
-      },
-    });
+    const mentorProfiles = await db
+      .select({ mentoring: profiles.mentoring })
+      .from(profiles)
+      .where(sql`${profiles.mentoring}->>'enabled' = 'true'`);
     const totalMentors = mentorProfiles.length;
 
     // Active mentors (those with at least one completed session in date range)
-    const activeMentorsSessions = await prisma.mentorSession.findMany({
-      where: {
-        status: 'completed',
-        ...dateFilter,
-      },
-      distinct: ['mentorEmail'],
-      select: { mentorEmail: true },
-    });
+    const activeMentorsSessions = await db
+      .selectDistinct({ mentorEmail: mentorSessions.mentorEmail })
+      .from(mentorSessions)
+      .where(
+        and(
+          eq(mentorSessions.status, 'completed'),
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      );
     const activeMentors = activeMentorsSessions.length;
 
     // 2. Session counts by status (filtered by date)
-    const sessionCountsByStatus = await prisma.mentorSession.groupBy({
-      by: ['status'],
-      where: dateFilter,
-      _count: { id: true },
-    });
+    const sessionCountsByStatus = await db
+      .select({
+        status: mentorSessions.status,
+        count: sql<string>`count(*)`.as('count'),
+      })
+      .from(mentorSessions)
+      .where(
+        and(
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      )
+      .groupBy(mentorSessions.status);
 
     const sessions = {
       total: 0,
@@ -130,19 +126,25 @@ export async function GET(request: NextRequest) {
     };
 
     sessionCountsByStatus.forEach((item) => {
-      sessions.total += item._count.id;
-      if (item.status === 'scheduled') sessions.scheduled = item._count.id;
-      if (item.status === 'in_progress') sessions.inProgress = item._count.id;
-      if (item.status === 'completed') sessions.completed = item._count.id;
-      if (item.status === 'cancelled') sessions.cancelled = item._count.id;
+      sessions.total += Number(item.count);
+      if (item.status === 'scheduled') sessions.scheduled = Number(item.count);
+      if (item.status === 'in_progress')
+        sessions.inProgress = Number(item.count);
+      if (item.status === 'completed') sessions.completed = Number(item.count);
+      if (item.status === 'cancelled') sessions.cancelled = Number(item.count);
     });
 
     // 3. Average session duration (filtered by date)
-    const avgDuration = await prisma.mentorSession.aggregate({
-      where: dateFilter,
-      _avg: { duration: true },
-    });
-    const averageSessionDuration = avgDuration._avg.duration || 0;
+    const [avgResult] = await db
+      .select({ avg: sql<string | null>`avg(${mentorSessions.duration})` })
+      .from(mentorSessions)
+      .where(
+        and(
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      );
+    const averageSessionDuration = Number(avgResult?.avg ?? 0);
 
     // 4. Top expertise areas (no date filter - all mentors)
     // Process expertise from fetched mentor profiles
@@ -169,20 +171,32 @@ export async function GET(request: NextRequest) {
     };
 
     // 6. Mentee engagement (filtered by date)
-    const uniqueMenteesSessions = await prisma.mentorSession.findMany({
-      where: dateFilter,
-      distinct: ['menteeEmail'],
-      select: { menteeEmail: true },
-    });
+    const uniqueMenteesSessions = await db
+      .selectDistinct({ menteeEmail: mentorSessions.menteeEmail })
+      .from(mentorSessions)
+      .where(
+        and(
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      );
     const uniqueMentees = uniqueMenteesSessions.length;
 
-    const menteeBookings = await prisma.mentorSession.groupBy({
-      by: ['menteeEmail'],
-      where: dateFilter,
-      _count: { id: true },
-    });
+    const menteeBookings = await db
+      .select({
+        menteeEmail: mentorSessions.menteeEmail,
+        count: sql<string>`count(*)`.as('count'),
+      })
+      .from(mentorSessions)
+      .where(
+        and(
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      )
+      .groupBy(mentorSessions.menteeEmail);
     const returningMentees = menteeBookings.filter(
-      (m) => m._count.id > 1
+      (m) => Number(m.count) > 1
     ).length;
 
     const menteeEngagement = {
@@ -192,18 +206,21 @@ export async function GET(request: NextRequest) {
     };
 
     // 7. Cancellation rates (filtered by date)
-    const cancelledSessions = await prisma.mentorSession.findMany({
-      where: {
-        status: 'cancelled',
-        cancelledBy: { not: null },
-        ...dateFilter,
-      },
-      select: {
-        cancelledBy: true,
-        mentorEmail: true,
-        menteeEmail: true,
-      },
-    });
+    const cancelledSessions = await db
+      .select({
+        cancelledBy: mentorSessions.cancelledBy,
+        mentorEmail: mentorSessions.mentorEmail,
+        menteeEmail: mentorSessions.menteeEmail,
+      })
+      .from(mentorSessions)
+      .where(
+        and(
+          eq(mentorSessions.status, 'cancelled'),
+          isNotNull(mentorSessions.cancelledBy),
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      );
 
     let cancelledByMentor = 0;
     let cancelledByMentee = 0;
@@ -230,12 +247,16 @@ export async function GET(request: NextRequest) {
     };
 
     // 8. Chart data: Sessions over time
-    // Prisma doesn't have dateToString, so we fetch and group in JS
-    const sessionsForChart = await prisma.mentorSession.findMany({
-      where: dateFilter,
-      select: { scheduledAt: true },
-      orderBy: { scheduledAt: 'asc' },
-    });
+    const sessionsForChart = await db
+      .select({ scheduledAt: mentorSessions.scheduledAt })
+      .from(mentorSessions)
+      .where(
+        and(
+          gte(mentorSessions.scheduledAt, startDate),
+          lte(mentorSessions.scheduledAt, endDate)
+        )
+      )
+      .orderBy(asc(mentorSessions.scheduledAt));
 
     const sessionsByDate = new Map<string, number>();
     for (const s of sessionsForChart) {

@@ -1,5 +1,7 @@
 // Admin search and dashboard utilities
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { and, asc, gte, ilike, or, sql } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import { AdminSearchInterface } from '../query/admin';
 import { dateXdays } from '../standardized';
@@ -19,34 +21,30 @@ export const getAdminSearch = async ({
     return { success: false, data: [] };
   }
 
-  const prisma = await getPrisma();
   const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
 
-  // Basic search using ILIKE for name and email
-  const profiles = await prisma.profile.findMany({
-    where: {
-      OR: [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
-        { email: { contains: searchTerm, mode: 'insensitive' } },
-      ],
-    },
-    select: {
+  const profilesList = await db.query.profiles.findMany({
+    where: or(
+      ilike(profiles.name, `%${searchTerm}%`),
+      ilike(profiles.email, `%${searchTerm}%`)
+    ),
+    columns: {
       id: true,
       name: true,
-      user: { select: { screenname: true } },
       socials: true,
       descriptions: true,
       primaryImageCdn: true,
       addressLocality: true,
       geo: true,
     },
-    skip,
-    take: pageLimit,
-    orderBy: { name: 'asc' },
+    with: { user: { columns: { screenname: true } } },
+    offset: skip,
+    limit: pageLimit,
+    orderBy: (p, { asc }) => [asc(p.name)],
   });
 
   // Transform to match expected format
-  const data = profiles.map((p) => {
+  const data = profilesList.map((p) => {
     const descriptions = p.descriptions as ProfileDescriptions | null;
     return {
       _id: p.id,
@@ -66,16 +64,14 @@ export const getAdminSearch = async ({
 };
 
 export const getAdminDashboard = async () => {
-  const prisma = await getPrisma();
-
-  const recentProfiles = await prisma.profile.findMany({
-    where: {
-      createdAt: { gte: dateXdays(35) },
-    },
-    orderBy: { createdAt: 'desc' },
+  const recentProfiles = await db.query.profiles.findMany({
+    where: gte(profiles.createdAt, dateXdays(35)),
+    orderBy: (p, { desc }) => [desc(p.createdAt)],
   });
 
-  const allProfiles = await prisma.profile.count();
+  const [{ count }] = await db
+    .select({ count: sql<string>`count(*)` })
+    .from(profiles);
 
-  return { recent: recentProfiles, all: allProfiles };
+  return { recent: recentProfiles, all: Number(count) };
 };

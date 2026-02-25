@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -16,11 +18,9 @@ export async function POST(request: NextRequest) {
 
   const { primary_address, counties } = body;
 
-  const prisma = await getPrisma();
-
   // Find user's profile
-  const existingProfile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
   });
 
   if (!existingProfile) {
@@ -48,16 +48,17 @@ export async function POST(request: NextRequest) {
 
     // Set geo coordinates if available
     if (primary_address.lat && primary_address.lng) {
-      updateData.geoLat = parseFloat(primary_address.lat);
-      updateData.geoLng = parseFloat(primary_address.lng);
+      updateData.addressLat = String(parseFloat(primary_address.lat));
+      updateData.addressLng = String(parseFloat(primary_address.lng));
     }
   }
 
   try {
-    const updatedProfile = await prisma.profile.update({
-      where: { id: existingProfile.id },
-      data: updateData,
-    });
+    const [updatedProfile] = await db
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.id, existingProfile.id))
+      .returning();
 
     return NextResponse.json(
       { success: true, data: updatedProfile },

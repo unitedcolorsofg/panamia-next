@@ -1,5 +1,7 @@
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Check if the current session user is an admin
@@ -12,15 +14,9 @@ export async function checkAdminAuth() {
     return null;
   }
 
-  const prisma = await getPrisma();
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email.toLowerCase() },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-    },
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email.toLowerCase()),
+    columns: { id: true, email: true, role: true },
   });
 
   if (!user || user.role !== 'admin') {

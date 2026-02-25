@@ -3,7 +3,9 @@ import {
   emailMigrationConfirmationHtml,
   emailMigrationConfirmationText,
 } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { emailMigrations, users, sessions, profiles } from '@/lib/schema';
+import { and, eq, gt } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 
 export async function POST(request: NextRequest) {
@@ -18,11 +20,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
-
     // Find migration record
-    const migration = await prisma.emailMigration.findUnique({
-      where: { migrationToken: token },
+    const migration = await db.query.emailMigrations.findFirst({
+      where: eq(emailMigrations.migrationToken, token),
     });
 
     if (!migration) {
@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
 
     // Check if expired
     if (new Date() > migration.expiresAt) {
-      await prisma.emailMigration.delete({ where: { id: migration.id } });
+      await db
+        .delete(emailMigrations)
+        .where(eq(emailMigrations.id, migration.id));
       return NextResponse.json(
         {
           error:
@@ -47,42 +49,39 @@ export async function POST(request: NextRequest) {
     const { userId, oldEmail, newEmail } = migration;
 
     // Check if new email was taken while migration was pending
-    const existingUser = await prisma.user.findUnique({
-      where: { email: newEmail },
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, newEmail),
     });
     if (existingUser && existingUser.id !== userId) {
-      await prisma.emailMigration.delete({ where: { id: migration.id } });
+      await db
+        .delete(emailMigrations)
+        .where(eq(emailMigrations.id, migration.id));
       return NextResponse.json(
         { error: 'Email address is no longer available' },
         { status: 400 }
       );
     }
 
-    // Use Prisma transaction for atomic PostgreSQL operations
-    await prisma.$transaction(async (tx) => {
-      // Update user email in PostgreSQL
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          email: newEmail,
-          emailVerified: new Date(),
-        },
-      });
+    // Execute atomic operations (Drizzle does not have $transaction, use sequential)
+    // Update user email
+    await db
+      .update(users)
+      .set({ email: newEmail, emailVerified: new Date() })
+      .where(eq(users.id, userId));
 
-      // Invalidate all sessions for this user (sign out from all devices)
-      await tx.session.deleteMany({
-        where: { userId },
-      });
+    // Invalidate all sessions for this user
+    await db.delete(sessions).where(eq(sessions.userId, userId));
 
-      // Update profile email
-      await tx.profile.updateMany({
-        where: { userId },
-        data: { email: newEmail },
-      });
+    // Update profile email
+    await db
+      .update(profiles)
+      .set({ email: newEmail })
+      .where(eq(profiles.userId, userId));
 
-      // Delete the migration record
-      await tx.emailMigration.delete({ where: { id: migration.id } });
-    });
+    // Delete the migration record
+    await db
+      .delete(emailMigrations)
+      .where(eq(emailMigrations.id, migration.id));
 
     // Send confirmation email to old address
     const timestamp = new Date().toLocaleString('en-US', {

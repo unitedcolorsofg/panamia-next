@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles, users } from '@/lib/schema';
+import { eq, sql } from 'drizzle-orm';
 import { unguardProfile } from '@/lib/profile';
-
-async function getProfile(handle: string) {
-  const prisma = await getPrisma();
-  return await prisma.profile.findFirst({
-    where: { user: { screenname: handle } },
-  });
-}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const handle = searchParams.get('handle');
 
   if (handle) {
-    const existingProfile = await getProfile(handle.toLowerCase());
-    if (existingProfile) {
+    // Find user by screenname (case-insensitive), then load their profile
+    const user = await db.query.users.findFirst({
+      where: sql`lower(${users.screenname}) = lower(${handle})`,
+      with: { profile: true },
+    });
+
+    if (user?.profile) {
       return NextResponse.json({
         success: true,
-        data: unguardProfile(existingProfile),
+        data: unguardProfile(user.profile),
       });
     }
   }

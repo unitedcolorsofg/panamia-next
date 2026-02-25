@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, profiles } from '@/lib/schema';
+import { eq, and } from 'drizzle-orm';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,11 +15,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const prisma = await getPrisma();
-
     // Find user by ID
-    const foundUser = await prisma.user.findUnique({
-      where: { id },
+    const foundUser = await db.query.users.findFirst({
+      where: eq(users.id, id),
     });
 
     if (!foundUser) {
@@ -25,11 +25,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find associated profile if exists
-    const userProfile = await prisma.profile.findFirst({
-      where: {
-        email: foundUser.email,
-        active: true,
-      },
+    const userProfile = await db.query.profiles.findFirst({
+      where: and(
+        eq(profiles.email, foundUser.email),
+        eq(profiles.active, true)
+      ),
     });
 
     const verification = userProfile?.verification as {

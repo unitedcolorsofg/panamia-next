@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { slugify } from '@/lib/standardized';
 import { ProfileDescriptions } from '@/lib/interfaces';
 
@@ -18,11 +20,9 @@ export async function POST(request: NextRequest) {
 
   const { name, five_words, details, background, tags } = body;
 
-  const prisma = await getPrisma();
-
   // Find user's profile
-  const existingProfile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
+  const existingProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, session.user.id),
   });
 
   if (!existingProfile) {
@@ -52,10 +52,11 @@ export async function POST(request: NextRequest) {
   updateData.descriptions = descriptions;
 
   try {
-    const updatedProfile = await prisma.profile.update({
-      where: { id: existingProfile.id },
-      data: updateData,
-    });
+    const [updatedProfile] = await db
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.id, existingProfile.id))
+      .returning();
 
     return NextResponse.json(
       { success: true, data: updatedProfile },

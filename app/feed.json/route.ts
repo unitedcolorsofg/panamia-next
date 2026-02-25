@@ -6,13 +6,13 @@
  */
 
 import { Feed } from 'feed';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { eq, desc, inArray } from 'drizzle-orm';
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 
 async function generateFeed() {
-  const prisma = await getPrisma();
-
   const feed = new Feed({
     title: 'Pana MIA Community Articles',
     description:
@@ -30,23 +30,26 @@ async function generateFeed() {
   });
 
   // Get recent published articles
-  const articles = await prisma.article.findMany({
-    where: { status: 'published' },
-    orderBy: { publishedAt: 'desc' },
-    take: 50,
+  const articleList = await db.query.articles.findMany({
+    where: eq(articles.status, 'published'),
+    orderBy: (t, { desc }) => [desc(t.publishedAt)],
+    limit: 50,
   });
 
   // Get author info
-  const authorIds = [...new Set(articles.map((a) => a.authorId))];
-  const authors = await prisma.user.findMany({
-    where: { id: { in: authorIds } },
-    select: { id: true, screenname: true },
-  });
+  const authorIds = [...new Set(articleList.map((a) => a.authorId))];
+  const authorList =
+    authorIds.length > 0
+      ? await db
+          .select({ id: users.id, screenname: users.screenname })
+          .from(users)
+          .where(inArray(users.id, authorIds))
+      : [];
   const authorMap = new Map(
-    authors.map((a) => [a.id, { screenname: a.screenname }])
+    authorList.map((a) => [a.id, { screenname: a.screenname }])
   );
 
-  for (const article of articles) {
+  for (const article of articleList) {
     const author = authorMap.get(article.authorId);
     const authorName = author?.screenname
       ? `@${author.screenname}`

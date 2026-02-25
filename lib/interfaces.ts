@@ -87,7 +87,7 @@ export interface MentoringInterface {
 }
 
 /**
- * Profile Descriptions JSONB structure (Prisma)
+ * Profile Descriptions JSONB structure
  */
 export interface ProfileDescriptions {
   details?: string;
@@ -98,13 +98,12 @@ export interface ProfileDescriptions {
 }
 
 /**
- * Profile Mentoring JSONB structure (Prisma)
- * Note: Same as MentoringInterface but typed for JSONB field
+ * Profile Mentoring JSONB structure
  */
 export type ProfileMentoring = MentoringInterface;
 
 /**
- * International address structure (Prisma columns)
+ * International address structure
  */
 export interface InternationalAddress {
   name?: string;

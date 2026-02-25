@@ -2,19 +2,26 @@
  * Status Management
  *
  * High-level functions for creating and managing SocialStatuses.
- * Handles posts, replies, and content warnings.
  *
  * @see docs/SOCIAL-ROADMAP.md
  */
 
-import { getPrisma } from '@/lib/prisma';
-import { SocialStatus, SocialActor, Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import {
+  socialStatuses,
+  socialActors,
+  socialAttachments,
+  socialLikes,
+} from '@/lib/schema';
+import type { SocialStatus, SocialActor } from '@/lib/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
+import type { JsonValue } from '@/lib/types';
 
-// Configure marked to add safety attributes to links (noopener, noreferrer, ugc)
+// Configure marked to add safety attributes to links
 marked.use({
   renderer: {
     link({ href, title, text }) {
@@ -43,11 +50,11 @@ export function generateStatusUri(username: string, statusId: string): string {
 const DM_EXPIRY_DAYS = 7;
 
 /**
- * Filter condition to exclude expired statuses (soft delete).
+ * Returns a Drizzle WHERE condition to exclude expired statuses.
  */
-const notExpiredFilter: Prisma.SocialStatusWhereInput = {
-  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-};
+function notExpiredCondition() {
+  return sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`;
+}
 
 /** Location object for ActivityPub Place */
 export interface StatusLocation {
@@ -60,15 +67,6 @@ export interface StatusLocation {
 
 /**
  * Create a new status (post)
- *
- * @param actorId - The actor creating the status
- * @param content - HTML content of the status
- * @param contentWarning - Optional content warning
- * @param inReplyToId - Optional status ID this is replying to
- * @param visibility - Post visibility: 'public' | 'unlisted' | 'private' | 'direct' (default: 'unlisted')
- * @param attachments - Optional array of uploaded media metadata
- * @param recipientActorIds - For 'direct' visibility: array of recipient actor IDs (max 8)
- * @param location - Optional geolocation (ActivityPub Place object)
  */
 export async function createStatus(
   actorId: string,
@@ -86,12 +84,10 @@ export async function createStatus(
   recipientActorIds?: string[],
   location?: StatusLocation
 ): Promise<CreateStatusResult> {
-  const prisma = await getPrisma();
-
   // Fetch the actor with profile
-  const actor = await prisma.socialActor.findUnique({
-    where: { id: actorId },
-    include: { profile: true },
+  const actor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, actorId),
+    with: { profile: true },
   });
 
   if (!actor) {
@@ -119,7 +115,7 @@ export async function createStatus(
     return { success: false, error: 'Content exceeds maximum length' };
   }
 
-  // Convert markdown to HTML for ActivityPub federation compatibility
+  // Convert markdown to HTML
   const htmlContent = (
     await marked.parse(content.trim(), { gfm: true })
   ).trim();
@@ -127,8 +123,8 @@ export async function createStatus(
   // If replying, validate the parent exists
   let inReplyToUri: string | undefined;
   if (inReplyToId) {
-    const parent = await prisma.socialStatus.findUnique({
-      where: { id: inReplyToId },
+    const parent = await db.query.socialStatuses.findFirst({
+      where: eq(socialStatuses.id, inReplyToId),
     });
     if (!parent) {
       return { success: false, error: 'Parent status not found' };
@@ -136,9 +132,10 @@ export async function createStatus(
     inReplyToUri = parent.uri;
   }
 
-  // Create the status (store HTML-converted content for AP federation)
-  const status = await prisma.socialStatus.create({
-    data: {
+  // Create the status with placeholder URI
+  const [status] = await db
+    .insert(socialStatuses)
+    .values({
       actorId,
       content: htmlContent,
       contentWarning: contentWarning || null,
@@ -147,17 +144,16 @@ export async function createStatus(
       isDraft: false,
       inReplyToId: inReplyToId || null,
       inReplyToUri: inReplyToUri || null,
-      // URI will be set after we have the ID
       uri: '',
       url: '',
-    },
-  });
+    })
+    .returning();
 
   // Update with proper URI now that we have the ID
   const uri = generateStatusUri(actor.username, status.id);
   const url = `https://${socialConfig.domain}/p/${actor.username}/${status.id}`;
 
-  // Compute ActivityPub recipients based on visibility
+  // Compute ActivityPub recipients
   const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
   const followersUrl = getFollowersUrl(actor.username);
 
@@ -174,8 +170,7 @@ export async function createStatus(
       recipientTo = [followersUrl];
       recipientCc = [];
       break;
-    case 'direct':
-      // Direct messages go to specific recipients only
+    case 'direct': {
       if (!recipientActorIds || recipientActorIds.length === 0) {
         return {
           success: false,
@@ -188,19 +183,23 @@ export async function createStatus(
           error: 'Direct messages can have at most 8 recipients',
         };
       }
-      // Fetch recipient actor URIs
-      const recipientActors = await prisma.socialActor.findMany({
-        where: { id: { in: recipientActorIds } },
-        select: { uri: true },
-      });
-      if (recipientActors.length !== recipientActorIds.length) {
+      const recipientActorsRows = await db
+        .select({ uri: socialActors.uri })
+        .from(socialActors)
+        .where(
+          sql`${socialActors.id} = ANY(ARRAY[${sql.join(
+            recipientActorIds.map((id) => sql`${id}`),
+            sql`, `
+          )}]::text[])`
+        );
+      if (recipientActorsRows.length !== recipientActorIds.length) {
         return { success: false, error: 'One or more recipients not found' };
       }
-      recipientTo = recipientActors.map((r) => r.uri);
+      recipientTo = recipientActorsRows.map((r) => r.uri);
       recipientCc = [];
-      // Set expiration for direct messages (soft delete after 7 days)
       expiresAt = new Date(Date.now() + DM_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
       break;
+    }
     case 'unlisted':
     default:
       recipientTo = [followersUrl];
@@ -208,46 +207,45 @@ export async function createStatus(
       break;
   }
 
-  const updatedStatus = await prisma.socialStatus.update({
-    where: { id: status.id },
-    data: {
+  const [updatedStatus] = await db
+    .update(socialStatuses)
+    .set({
       uri,
       url,
       recipientTo,
       recipientCc,
       expiresAt,
-      location: location
-        ? (location as unknown as Prisma.InputJsonValue)
-        : undefined,
-    },
-  });
+      location: location ? (location as unknown as JsonValue) : null,
+    })
+    .where(eq(socialStatuses.id, status.id))
+    .returning();
 
   // Create attachment records if provided
   if (attachments && attachments.length > 0) {
-    await prisma.socialAttachment.createMany({
-      data: attachments.map((att) => ({
+    await db.insert(socialAttachments).values(
+      attachments.map((att) => ({
         statusId: status.id,
         type: att.type,
         mediaType: att.mediaType,
         url: att.url,
         name: att.name || null,
-        ...(att.peaks ? { peaks: att.peaks } : {}),
-      })),
-    });
+        peaks: att.peaks ? (att.peaks as JsonValue) : null,
+      }))
+    );
   }
 
   // Update actor's status count
-  await prisma.socialActor.update({
-    where: { id: actorId },
-    data: { statusCount: { increment: 1 } },
-  });
+  await db
+    .update(socialActors)
+    .set({ statusCount: sql`${socialActors.statusCount} + 1` })
+    .where(eq(socialActors.id, actorId));
 
   // If this is a reply, increment parent's reply count
   if (inReplyToId) {
-    await prisma.socialStatus.update({
-      where: { id: inReplyToId },
-      data: { repliesCount: { increment: 1 } },
-    });
+    await db
+      .update(socialStatuses)
+      .set({ repliesCount: sql`${socialStatuses.repliesCount} + 1` })
+      .where(eq(socialStatuses.id, inReplyToId));
   }
 
   return { success: true, status: updatedStatus };
@@ -259,12 +257,12 @@ export async function createStatus(
 export async function getStatus(
   statusId: string
 ): Promise<StatusWithActor | null> {
-  const prisma = await getPrisma();
-
-  return prisma.socialStatus.findUnique({
-    where: { id: statusId },
-    include: { actor: true },
-  });
+  return (
+    (await db.query.socialStatuses.findFirst({
+      where: eq(socialStatuses.id, statusId),
+      with: { actor: true },
+    })) ?? null
+  );
 }
 
 /**
@@ -273,12 +271,12 @@ export async function getStatus(
 export async function getStatusByUri(
   uri: string
 ): Promise<StatusWithActor | null> {
-  const prisma = await getPrisma();
-
-  return prisma.socialStatus.findUnique({
-    where: { uri },
-    include: { actor: true },
-  });
+  return (
+    (await db.query.socialStatuses.findFirst({
+      where: eq(socialStatuses.uri, uri),
+      with: { actor: true },
+    })) ?? null
+  );
 }
 
 /**
@@ -288,10 +286,8 @@ export async function deleteStatus(
   statusId: string,
   actorId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const prisma = await getPrisma();
-
-  const status = await prisma.socialStatus.findUnique({
-    where: { id: statusId },
+  const status = await db.query.socialStatuses.findFirst({
+    where: eq(socialStatuses.id, statusId),
   });
 
   if (!status) {
@@ -302,23 +298,20 @@ export async function deleteStatus(
     return { success: false, error: 'Not authorized to delete this status' };
   }
 
-  // Delete the status (cascades to attachments, tags, likes)
-  await prisma.socialStatus.delete({
-    where: { id: statusId },
-  });
+  await db.delete(socialStatuses).where(eq(socialStatuses.id, statusId));
 
   // Decrement actor's status count
-  await prisma.socialActor.update({
-    where: { id: actorId },
-    data: { statusCount: { decrement: 1 } },
-  });
+  await db
+    .update(socialActors)
+    .set({ statusCount: sql`${socialActors.statusCount} - 1` })
+    .where(eq(socialActors.id, actorId));
 
   // If this was a reply, decrement parent's reply count
   if (status.inReplyToId) {
-    await prisma.socialStatus.update({
-      where: { id: status.inReplyToId },
-      data: { repliesCount: { decrement: 1 } },
-    });
+    await db
+      .update(socialStatuses)
+      .set({ repliesCount: sql`${socialStatuses.repliesCount} - 1` })
+      .where(eq(socialStatuses.id, status.inReplyToId));
   }
 
   return { success: true };
@@ -332,28 +325,24 @@ export async function getStatusReplies(
   cursor?: string,
   limit: number = 20
 ): Promise<{ replies: StatusWithActor[]; nextCursor: string | null }> {
-  const prisma = await getPrisma();
-
-  const replies = await prisma.socialStatus.findMany({
-    where: {
-      inReplyToId: statusId,
-      published: { not: null },
-      ...notExpiredFilter,
-    },
-    include: { actor: true, attachments: true },
-    orderBy: { published: 'asc' },
-    take: limit + 1,
-    ...(cursor && {
-      cursor: { id: cursor },
-      skip: 1,
-    }),
+  const replies = await db.query.socialStatuses.findMany({
+    where: (s, { and, eq, isNotNull, gt }) =>
+      and(
+        eq(s.inReplyToId, statusId),
+        isNotNull(s.published),
+        cursor ? gt(s.id, cursor) : undefined,
+        sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`
+      ),
+    with: { actor: true, attachments: true },
+    orderBy: (s, { asc }) => [asc(s.published), asc(s.id)],
+    limit: limit + 1,
   });
 
   const hasMore = replies.length > limit;
   const items = hasMore ? replies.slice(0, limit) : replies;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  return { replies: items, nextCursor };
+  return { replies: items as StatusWithActor[], nextCursor };
 }
 
 /**
@@ -368,10 +357,8 @@ export async function likeStatus(
   likesCount: number;
   error?: string;
 }> {
-  const prisma = await getPrisma();
-
-  const status = await prisma.socialStatus.findUnique({
-    where: { id: statusId },
+  const status = await db.query.socialStatuses.findFirst({
+    where: eq(socialStatuses.id, statusId),
   });
 
   if (!status) {
@@ -384,22 +371,19 @@ export async function likeStatus(
   }
 
   // Check if already liked
-  const existingLike = await prisma.socialLike.findUnique({
-    where: {
-      actorId_statusId: {
-        actorId,
-        statusId,
-      },
-    },
+  const existingLike = await db.query.socialLikes.findFirst({
+    where: and(
+      eq(socialLikes.actorId, actorId),
+      eq(socialLikes.statusId, statusId)
+    ),
   });
 
   if (existingLike) {
     return { success: true, liked: true, likesCount: status.likesCount };
   }
 
-  // Create like
-  const actor = await prisma.socialActor.findUnique({
-    where: { id: actorId },
+  const actor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, actorId),
   });
 
   if (!actor) {
@@ -413,21 +397,23 @@ export async function likeStatus(
 
   const likeUri = `https://${socialConfig.domain}/p/${actor.username}/likes/${statusId}`;
 
-  await prisma.socialLike.create({
-    data: {
-      actorId,
-      statusId,
-      uri: likeUri,
-    },
+  await db.insert(socialLikes).values({
+    actorId,
+    statusId,
+    uri: likeUri,
   });
 
-  // Increment likes count
-  const updatedStatus = await prisma.socialStatus.update({
-    where: { id: statusId },
-    data: { likesCount: { increment: 1 } },
-  });
+  const [updatedStatus] = await db
+    .update(socialStatuses)
+    .set({ likesCount: sql`${socialStatuses.likesCount} + 1` })
+    .where(eq(socialStatuses.id, statusId))
+    .returning();
 
-  return { success: true, liked: true, likesCount: updatedStatus.likesCount };
+  return {
+    success: true,
+    liked: true,
+    likesCount: updatedStatus?.likesCount ?? status.likesCount + 1,
+  };
 }
 
 /**
@@ -442,10 +428,8 @@ export async function unlikeStatus(
   likesCount: number;
   error?: string;
 }> {
-  const prisma = await getPrisma();
-
-  const status = await prisma.socialStatus.findUnique({
-    where: { id: statusId },
+  const status = await db.query.socialStatuses.findFirst({
+    where: eq(socialStatuses.id, statusId),
   });
 
   if (!status) {
@@ -457,30 +441,28 @@ export async function unlikeStatus(
     };
   }
 
-  // Check if liked
-  const existingLike = await prisma.socialLike.findUnique({
-    where: {
-      actorId_statusId: {
-        actorId,
-        statusId,
-      },
-    },
+  const existingLike = await db.query.socialLikes.findFirst({
+    where: and(
+      eq(socialLikes.actorId, actorId),
+      eq(socialLikes.statusId, statusId)
+    ),
   });
 
   if (!existingLike) {
     return { success: true, liked: false, likesCount: status.likesCount };
   }
 
-  // Delete like
-  await prisma.socialLike.delete({
-    where: { id: existingLike.id },
-  });
+  await db.delete(socialLikes).where(eq(socialLikes.id, existingLike.id));
 
-  // Decrement likes count
-  const updatedStatus = await prisma.socialStatus.update({
-    where: { id: statusId },
-    data: { likesCount: { decrement: 1 } },
-  });
+  const [updatedStatus] = await db
+    .update(socialStatuses)
+    .set({ likesCount: sql`${socialStatuses.likesCount} - 1` })
+    .where(eq(socialStatuses.id, statusId))
+    .returning();
 
-  return { success: true, liked: false, likesCount: updatedStatus.likesCount };
+  return {
+    success: true,
+    liked: false,
+    likesCount: updatedStatus?.likesCount ?? Math.max(0, status.likesCount - 1),
+  };
 }

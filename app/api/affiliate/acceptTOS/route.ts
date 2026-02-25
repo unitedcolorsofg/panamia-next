@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { unguardUser } from '@/lib/user';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
-import { Prisma } from '@prisma/client';
 
 interface AffiliateData {
   activated: boolean;
@@ -35,10 +36,8 @@ export async function POST(request: NextRequest) {
     const { accept_tos } = body;
     console.log('accept_tos', accept_tos);
 
-    const prisma = await getPrisma();
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email.toLowerCase()),
     });
 
     if (!existingUser) {
@@ -71,14 +70,12 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        // Convert to plain JSON for Prisma
-        const affiliateJson = JSON.parse(
-          JSON.stringify(updatedAffiliate)
-        ) as Prisma.InputJsonValue;
-        const updatedUser = await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { affiliate: affiliateJson },
-        });
+        const affiliateJson = JSON.parse(JSON.stringify(updatedAffiliate));
+        const [updatedUser] = await db
+          .update(users)
+          .set({ affiliate: affiliateJson })
+          .where(eq(users.id, existingUser.id))
+          .returning();
         console.log('existingUser.affiliate', updatedUser.affiliate);
 
         // send Brevo template email

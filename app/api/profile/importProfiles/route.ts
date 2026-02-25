@@ -1,7 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
 import { ProfileDescriptions } from '@/lib/interfaces';
 
 interface ResponseData {
@@ -43,8 +44,6 @@ export async function POST(request: NextRequest) {
   console.log('phone_number', phone_number);
 
   try {
-    const prisma = await getPrisma();
-
     // Build descriptions JSONB
     const descriptions: ProfileDescriptions = {
       details: details || null,
@@ -53,16 +52,17 @@ export async function POST(request: NextRequest) {
       tags: tags || null,
     };
 
-    const newProfile = await prisma.profile.create({
-      data: {
+    const [newProfile] = await db
+      .insert(profiles)
+      .values({
         name,
         email,
         active: true,
         descriptions: descriptions as any,
         socials: socials || null,
         phoneNumber: phone_number || null,
-      },
-    });
+      })
+      .returning();
 
     return NextResponse.json(
       { msg: 'Successfully created new Profile: ' + newProfile.id },

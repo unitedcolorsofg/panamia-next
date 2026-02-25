@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { newsletterSignups, brevoContacts } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 import { splitName } from '@/lib/standardized';
 
@@ -16,9 +18,8 @@ const validateEmail = (email: string): boolean => {
 };
 
 const callBrevo_createContact = async (email: string, name: string) => {
-  const prisma = await getPrisma();
-  const existingContact = await prisma.brevoContact.findUnique({
-    where: { email },
+  const existingContact = await db.query.brevoContacts.findFirst({
+    where: eq(brevoContacts.email, email),
   });
   if (existingContact) {
     return false; // skip since already created/updated in Brevo
@@ -43,12 +44,10 @@ const callBrevo_createContact = async (email: string, name: string) => {
       attributes,
       list_ids
     );
-    await prisma.brevoContact.create({
-      data: {
-        email,
-        brevoId: brevoResponse.id,
-        listIds: list_ids,
-      },
+    await db.insert(brevoContacts).values({
+      email,
+      brevoId: brevoResponse.id,
+      listIds: list_ids,
     });
   }
 };
@@ -84,9 +83,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email address.' });
   }
 
-  const prisma = await getPrisma();
-  const existingSignup = await prisma.newsletterSignup.findUnique({
-    where: { email: email.toLowerCase() },
+  const existingSignup = await db.query.newsletterSignups.findFirst({
+    where: eq(newsletterSignups.email, email.toLowerCase()),
   });
   if (existingSignup) {
     return NextResponse.json(
@@ -96,12 +94,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const newSignup = await prisma.newsletterSignup.create({
-      data: {
-        name: name,
-        email: email.toLowerCase(),
-        signupType: signup_type,
-      },
+    await db.insert(newsletterSignups).values({
+      name: name,
+      email: email.toLowerCase(),
+      signupType: signup_type,
     });
 
     await Promise.allSettled([

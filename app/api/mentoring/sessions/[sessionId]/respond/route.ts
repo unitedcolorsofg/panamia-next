@@ -8,7 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { respondSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getSessionUrl, getScheduleUrl } from '@/lib/mentoring';
@@ -24,8 +26,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const { sessionId } = await params;
-
-  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = respondSessionSchema.safeParse(body);
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Find the session
-  const mentorSession = await prisma.mentorSession.findUnique({
-    where: { sessionId },
+  const mentorSession = await db.query.mentorSessions.findFirst({
+    where: eq(mentorSessions.sessionId, sessionId),
   });
 
   if (!mentorSession) {
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Get mentee's userId from their profile
-  const menteeProfile = await prisma.profile.findUnique({
-    where: { email: mentorSession.menteeEmail },
-    select: { userId: true },
+  const menteeProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.email, mentorSession.menteeEmail),
+    columns: { userId: true },
   });
 
   if (!menteeProfile?.userId) {
@@ -89,13 +89,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   // Update session based on action
   if (action === 'accept') {
-    const updatedSession = await prisma.mentorSession.update({
-      where: { id: mentorSession.id },
-      data: { status: 'scheduled' },
-    });
+    const [updatedSession] = await db
+      .update(mentorSessions)
+      .set({ status: 'scheduled' })
+      .where(eq(mentorSessions.id, mentorSession.id))
+      .returning();
 
     // Notify mentee of acceptance
-    // actorId = mentor (current user), targetId = mentee
     await createNotification({
       type: 'Accept',
       actorId: session.user.id,
@@ -114,18 +114,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
   } else {
     // Decline
-    const updatedSession = await prisma.mentorSession.update({
-      where: { id: mentorSession.id },
-      data: {
+    const [updatedSession] = await db
+      .update(mentorSessions)
+      .set({
         status: 'declined',
         declinedAt: new Date(),
         declinedBy: session.user.email,
         declineReason: reason,
-      },
-    });
+      })
+      .where(eq(mentorSessions.id, mentorSession.id))
+      .returning();
 
     // Notify mentee of decline
-    // actorId = mentor (current user), targetId = mentee
     await createNotification({
       type: 'Reject',
       actorId: session.user.id,

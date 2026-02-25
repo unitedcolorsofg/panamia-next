@@ -9,7 +9,9 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { and, eq, inArray } from 'drizzle-orm';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ArticleTypeBadge from '@/components/ArticleTypeBadge';
@@ -32,19 +34,17 @@ interface ReviewedBy {
 }
 
 async function getArticle(slug: string) {
-  const prisma = await getPrisma();
-
-  const articleDoc = await prisma.article.findFirst({
-    where: { slug, status: 'published' },
+  const articleDoc = await db.query.articles.findFirst({
+    where: and(eq(articles.slug, slug), eq(articles.status, 'published')),
   });
   if (!articleDoc) {
     return null;
   }
 
   // Get author info
-  const authorDoc = await prisma.user.findUnique({
-    where: { id: articleDoc.authorId },
-    select: { id: true, screenname: true },
+  const authorDoc = await db.query.users.findFirst({
+    where: eq(users.id, articleDoc.authorId),
+    columns: { id: true, screenname: true },
   });
   const authorInfo = authorDoc
     ? {
@@ -59,10 +59,10 @@ async function getArticle(slug: string) {
   const coAuthorIds = acceptedCoAuthors.map((ca) => ca.userId);
   const coAuthorDocs =
     coAuthorIds.length > 0
-      ? await prisma.user.findMany({
-          where: { id: { in: coAuthorIds } },
-          select: { id: true, screenname: true },
-        })
+      ? await db
+          .select({ id: users.id, screenname: users.screenname })
+          .from(users)
+          .where(inArray(users.id, coAuthorIds))
       : [];
   const coAuthorsInfo = coAuthorDocs.map((u) => ({
     screenname: u.screenname,
@@ -72,9 +72,9 @@ async function getArticle(slug: string) {
   let reviewerInfo = null;
   const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
   if (reviewedBy?.userId && reviewedBy.status === 'approved') {
-    const reviewerDoc = await prisma.user.findUnique({
-      where: { id: reviewedBy.userId },
-      select: { screenname: true },
+    const reviewerDoc = await db.query.users.findFirst({
+      where: eq(users.id, reviewedBy.userId),
+      columns: { screenname: true },
     });
     if (reviewerDoc) {
       reviewerInfo = {
@@ -86,9 +86,9 @@ async function getArticle(slug: string) {
   // Get parent article if this is a reply
   let parentArticle = null;
   if (articleDoc.inReplyTo) {
-    const parentDoc = await prisma.article.findUnique({
-      where: { id: articleDoc.inReplyTo },
-      select: { slug: true, title: true, status: true },
+    const parentDoc = await db.query.articles.findFirst({
+      where: eq(articles.id, articleDoc.inReplyTo),
+      columns: { slug: true, title: true, status: true },
     });
     if (parentDoc && parentDoc.status === 'published') {
       parentArticle = {
@@ -99,22 +99,22 @@ async function getArticle(slug: string) {
   }
 
   // Get reply articles
-  const replies = await prisma.article.findMany({
-    where: {
-      inReplyTo: articleDoc.id,
-      status: 'published',
-    },
-    orderBy: { publishedAt: 'desc' },
-    take: 10,
+  const replies = await db.query.articles.findMany({
+    where: and(
+      eq(articles.inReplyTo, articleDoc.id),
+      eq(articles.status, 'published')
+    ),
+    orderBy: (t, { desc }) => [desc(t.publishedAt)],
+    limit: 10,
   });
 
   const replyAuthorIds = replies.map((r) => r.authorId);
   const replyAuthors =
     replyAuthorIds.length > 0
-      ? await prisma.user.findMany({
-          where: { id: { in: replyAuthorIds } },
-          select: { id: true, screenname: true },
-        })
+      ? await db
+          .select({ id: users.id, screenname: users.screenname })
+          .from(users)
+          .where(inArray(users.id, replyAuthorIds))
       : [];
   const replyAuthorMap = new Map(
     replyAuthors.map((a) => [a.id, { screenname: a.screenname }])

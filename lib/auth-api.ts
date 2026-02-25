@@ -1,7 +1,9 @@
 // lib/auth-api.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Session } from 'next-auth';
-import { getPrismaSync } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { sessions } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Get session in Pages Router API routes
@@ -10,7 +12,7 @@ import { getPrismaSync } from '@/lib/prisma';
  * and causes "headers was called outside a request scope" errors in Pages Router.
  *
  * This helper extracts the session token from cookies and validates it using
- * NextAuth's session management via Prisma.
+ * NextAuth's session management via Drizzle.
  *
  * @example
  * ```ts
@@ -43,12 +45,9 @@ export async function getApiSession(
       return null;
     }
 
-    // Use Prisma to get session and user
-    const prisma = getPrismaSync();
-
-    const session = await prisma.session.findUnique({
-      where: { sessionToken },
-      include: { user: true },
+    const session = await db.query.sessions.findFirst({
+      where: eq(sessions.sessionToken, sessionToken),
+      with: { user: true },
     });
 
     if (!session) {

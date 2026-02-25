@@ -12,7 +12,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { socialConfig, getActorUrl } from '@/lib/federation';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { screennameHistory } from '@/lib/schema';
+import { sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -46,9 +48,8 @@ export async function GET(request: NextRequest) {
 
   if (!actor) {
     // Check if this is a historical screenname (user changed their screenname)
-    const prisma = await getPrisma();
-    const historical = await prisma.screennameHistory.findFirst({
-      where: { screenname: { equals: username, mode: 'insensitive' } },
+    const historical = await db.query.screennameHistory.findFirst({
+      where: sql`lower(${screennameHistory.screenname}) = lower(${username})`,
     });
 
     if (historical) {

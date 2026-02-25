@@ -1,5 +1,7 @@
 // Directory search utilities (migrated from MongoDB Atlas Search to PostgreSQL)
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 interface SearchInterface {
@@ -39,15 +41,14 @@ export const getSearch = async ({
   freeOnly,
 }: SearchInterface) => {
   console.log('getSearch');
-  const prisma = await getPrisma();
 
   // Random profiles
   if (random > 0) {
     // PostgreSQL doesn't have $sample, so we use a workaround
     // Get all active profiles and shuffle in memory (for small datasets)
-    const allProfiles = await prisma.profile.findMany({
-      where: { active: true },
-      include: { user: { select: { screenname: true } } },
+    const allProfiles = await db.query.profiles.findMany({
+      where: eq(profiles.active, true),
+      with: { user: { columns: { screenname: true } } },
     });
 
     // Shuffle and take pageLimit
@@ -63,20 +64,15 @@ export const getSearch = async ({
   if (searchTerm) {
     const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
 
-    // Build where clause
-    const whereConditions: any = {
-      active: true,
-    };
-
-    // Get all matching profiles and filter in memory for complex conditions
-    const profiles = await prisma.profile.findMany({
-      where: whereConditions,
-      include: { user: { select: { screenname: true } } },
-      orderBy: { name: 'asc' },
+    // Get all active profiles and filter in memory for complex conditions
+    const allProfiles = await db.query.profiles.findMany({
+      where: eq(profiles.active, true),
+      with: { user: { columns: { screenname: true } } },
+      orderBy: (p, { asc }) => [asc(p.name)],
     });
 
     // Filter by search term (name, descriptions)
-    let filtered = profiles.filter((p) => {
+    let filtered = allProfiles.filter((p) => {
       const descriptions = p.descriptions as ProfileDescriptions | null;
       const searchLower = searchTerm.toLowerCase();
 
@@ -144,7 +140,7 @@ export const getSearch = async ({
 };
 
 /**
- * Transform Prisma profile to expected output format
+ * Transform Drizzle profile to expected output format
  */
 function transformProfile(p: any) {
   const descriptions = p.descriptions as ProfileDescriptions | null;

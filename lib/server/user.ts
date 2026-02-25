@@ -1,14 +1,15 @@
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { generateAffiliateCode } from '../standardized';
 
 /**
  * Get user by email
- * Now uses PostgreSQL via Prisma
+ * Now uses PostgreSQL via Drizzle
  */
 export const getUser = async (email: string) => {
-  const prisma = await getPrisma();
-  return await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
+  return await db.query.users.findFirst({
+    where: eq(users.email, email.toLowerCase()),
   });
 };
 
@@ -34,11 +35,8 @@ export const uniqueAffiliateCode = async () => {
  * Affiliate code is stored in Profile.affiliate String field
  */
 export const getProfileByAffiliateCode = async (code: string) => {
-  const prisma = await getPrisma();
-  return await prisma.profile.findFirst({
-    where: {
-      affiliate: code,
-    },
+  return await db.query.profiles.findFirst({
+    where: eq(profiles.affiliate, code),
   });
 };
 

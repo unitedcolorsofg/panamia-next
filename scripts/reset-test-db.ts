@@ -12,8 +12,7 @@
  * Only use with a dedicated test database, never production.
  */
 
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import postgres from 'postgres';
 
 async function resetDatabase() {
   if (!process.env.POSTGRES_URL) {
@@ -33,15 +32,14 @@ async function resetDatabase() {
   }
 
   console.log('Connecting to database...');
-  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
-  const prisma = new PrismaClient({ adapter });
+  const client = postgres(process.env.POSTGRES_URL);
 
   try {
     // Get all table names from the public schema
-    const tables = await prisma.$queryRaw<{ tablename: string }[]>`
+    const tables = await client<{ tablename: string }[]>`
       SELECT tablename FROM pg_tables
       WHERE schemaname = 'public'
-      AND tablename NOT LIKE '_prisma%'
+      AND tablename NOT LIKE '__drizzle%'
     `;
 
     if (tables.length === 0) {
@@ -54,7 +52,7 @@ async function resetDatabase() {
 
     // Disable foreign key checks and truncate all tables
     console.log('\nTruncating tables...');
-    await prisma.$executeRawUnsafe(`
+    await client.unsafe(`
       DO $$
       DECLARE
         r RECORD;
@@ -63,7 +61,7 @@ async function resetDatabase() {
         SET session_replication_role = replica;
 
         -- Truncate all tables
-        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '_prisma%') LOOP
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '__drizzle%') LOOP
           EXECUTE 'TRUNCATE TABLE "' || r.tablename || '" RESTART IDENTITY CASCADE';
         END LOOP;
 
@@ -77,7 +75,7 @@ async function resetDatabase() {
     console.error('Error resetting database:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
   }
 }
 

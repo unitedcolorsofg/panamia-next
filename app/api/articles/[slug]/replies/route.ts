@@ -6,7 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { and, eq, inArray } from 'drizzle-orm';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -20,10 +22,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    const prisma = await getPrisma();
-
     // Find the parent article
-    const parentArticle = await prisma.article.findUnique({ where: { slug } });
+    const parentArticle = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!parentArticle) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -40,20 +42,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find reply articles
-    const replies = await prisma.article.findMany({
-      where: {
-        inReplyTo: parentArticle.id,
-        status: 'published',
-      },
-      orderBy: { publishedAt: 'desc' },
+    const replies = await db.query.articles.findMany({
+      where: and(
+        eq(articles.inReplyTo, parentArticle.id),
+        eq(articles.status, 'published')
+      ),
+      orderBy: (a, { desc }) => [desc(a.publishedAt)],
     });
 
     // Enrich with author info
     const authorIds = [...new Set(replies.map((a) => a.authorId))];
-    const authors = await prisma.user.findMany({
-      where: { id: { in: authorIds } },
-      select: { id: true, screenname: true },
-    });
+    const authors = await db
+      .select({ id: users.id, screenname: users.screenname })
+      .from(users)
+      .where(inArray(users.id, authorIds));
     const authorMap = new Map(
       authors.map((a) => [a.id, { screenname: a.screenname }])
     );

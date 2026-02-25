@@ -32,26 +32,16 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Create empty Neon database branch for this test run
-      # Branch is deleted after tests complete (pass or fail)
-      - name: Create Neon test branch
-        id: neon
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          branch_name: test-${{ github.run_id }}
-
-      # Run migrations on empty database
+      # Run migrations against dedicated Supabase test project
       - name: Run database migrations
-        run: npx prisma migrate deploy
+        run: npx drizzle-kit migrate
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url }}
+          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL_TEST }}
 
       - name: Validate environment variables
         run: npm run env:check
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -72,7 +62,8 @@ jobs:
       - name: Build Next.js app
         run: yarn build
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
+          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL_TEST }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -88,7 +79,7 @@ jobs:
       - name: Run Playwright tests
         run: yarn test
         env:
-          POSTGRES_URL: ${{ steps.neon.outputs.db_url }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -107,12 +98,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-
-      # Always delete the test branch, even if tests fail
-      - name: Delete Neon test branch
-        if: always() && steps.neon.outcome == 'success'
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          branch: ${{ steps.neon.outputs.branch_id }}

@@ -10,8 +10,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { SocialActor } from '@prisma/client';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { socialFollows, socialActors } from '@/lib/schema';
+import type { SocialActor } from '@/lib/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import { verify } from './crypto/verify';
 import { signedHeaders } from './crypto/sign';
 import {
@@ -97,14 +99,6 @@ export async function handleInboxPost(
 
 /**
  * Handle an incoming Follow activity.
- *
- * 1. Upsert the remote actor
- * 2. Create a SocialFollow record (accepted)
- * 3. Send an Accept activity back (fire-and-forget)
- *
- * Follow handling ported from external/activities.next/app/api/users/[username]/inbox/route.ts
- * Accept activity format ported from external/activities.next/lib/activities/index.ts
- * acceptFollow() (lines 501–553)
  */
 async function handleFollow(
   activity: Activity,
@@ -125,45 +119,38 @@ async function handleFollow(
     );
   }
 
-  const prisma = await getPrisma();
-
   // Check for existing follow
-  const existing = await prisma.socialFollow.findUnique({
-    where: {
-      actorId_targetActorId: {
-        actorId: remoteActor.id,
-        targetActorId: targetActor.id,
-      },
-    },
+  const existing = await db.query.socialFollows.findFirst({
+    where: and(
+      eq(socialFollows.actorId, remoteActor.id),
+      eq(socialFollows.targetActorId, targetActor.id)
+    ),
   });
 
   if (!existing) {
     // Create follow (immediately accepted for POC)
-    const follow = await prisma.socialFollow.create({
-      data: {
-        actorId: remoteActor.id,
-        targetActorId: targetActor.id,
-        status: 'accepted',
-        acceptedAt: new Date(),
-        uri: activity.id,
-      },
+    await db.insert(socialFollows).values({
+      actorId: remoteActor.id,
+      targetActorId: targetActor.id,
+      status: 'accepted',
+      acceptedAt: new Date(),
+      uri: activity.id,
     });
 
     // Update follower counts
     await Promise.all([
-      prisma.socialActor.update({
-        where: { id: remoteActor.id },
-        data: { followingCount: { increment: 1 } },
-      }),
-      prisma.socialActor.update({
-        where: { id: targetActor.id },
-        data: { followersCount: { increment: 1 } },
-      }),
+      db
+        .update(socialActors)
+        .set({ followingCount: sql`${socialActors.followingCount} + 1` })
+        .where(eq(socialActors.id, remoteActor.id)),
+      db
+        .update(socialActors)
+        .set({ followersCount: sql`${socialActors.followersCount} + 1` })
+        .where(eq(socialActors.id, targetActor.id)),
     ]);
   }
 
   // Send Accept back (fire-and-forget)
-  // Ported from external/activities.next/lib/activities/index.ts acceptFollow() (lines 515–542)
   sendAccept(targetActor, remoteActor, activity).catch((err) => {
     console.error('[handleFollow] Failed to send Accept:', err);
   });
@@ -181,9 +168,6 @@ async function handleFollow(
 
 /**
  * Handle an incoming Undo activity.
- *
- * Currently supports Undo of Follow — removes the follow relationship
- * and decrements both actors' follow counts.
  */
 async function handleUndo(
   activity: Activity,
@@ -208,33 +192,29 @@ async function handleUndo(
     return NextResponse.json({ status: 'accepted' }, { status: 202 });
   }
 
-  const prisma = await getPrisma();
-
   // Find and delete the follow record
-  const existingFollow = await prisma.socialFollow.findUnique({
-    where: {
-      actorId_targetActorId: {
-        actorId: remoteActor.id,
-        targetActorId: targetActor.id,
-      },
-    },
+  const existingFollow = await db.query.socialFollows.findFirst({
+    where: and(
+      eq(socialFollows.actorId, remoteActor.id),
+      eq(socialFollows.targetActorId, targetActor.id)
+    ),
   });
 
   if (existingFollow) {
-    await prisma.socialFollow.delete({
-      where: { id: existingFollow.id },
-    });
+    await db
+      .delete(socialFollows)
+      .where(eq(socialFollows.id, existingFollow.id));
 
     // Decrement follow counts
     await Promise.all([
-      prisma.socialActor.update({
-        where: { id: remoteActor.id },
-        data: { followingCount: { decrement: 1 } },
-      }),
-      prisma.socialActor.update({
-        where: { id: targetActor.id },
-        data: { followersCount: { decrement: 1 } },
-      }),
+      db
+        .update(socialActors)
+        .set({ followingCount: sql`${socialActors.followingCount} - 1` })
+        .where(eq(socialActors.id, remoteActor.id)),
+      db
+        .update(socialActors)
+        .set({ followersCount: sql`${socialActors.followersCount} - 1` })
+        .where(eq(socialActors.id, targetActor.id)),
     ]);
   }
 
@@ -243,10 +223,6 @@ async function handleUndo(
 
 /**
  * Send an Accept activity in response to a Follow.
- *
- * Ported from external/activities.next/lib/activities/index.ts
- * acceptFollow() (lines 501–553)
- * Changes: uses native fetch instead of got/request
  */
 async function sendAccept(
   localActor: SocialActor,

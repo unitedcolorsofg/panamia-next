@@ -2,8 +2,17 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import WikimediaProvider from 'next-auth/providers/wikimedia';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import { getPrisma, getPrismaSync } from '@/lib/prisma';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { db } from '@/lib/db';
+import {
+  users,
+  accounts,
+  sessions,
+  verificationTokens,
+  oAuthVerifications,
+  profiles,
+} from '@/lib/schema';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 import { ProfileMentoring } from '@/lib/interfaces';
 
@@ -401,11 +410,13 @@ function getProviderVerificationConfig(
   return 'verification-required';
 }
 
-// Initialize Prisma adapter for PostgreSQL auth
-const prisma = getPrismaSync();
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
+  }),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -547,19 +558,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (providerConfig === 'verification-required') {
         // Block sign-in and send verification email
         try {
-          const prisma = await getPrisma();
           const { nanoid } = await import('nanoid');
 
           // Check if verification already sent recently
-          const existingVerification = await prisma.oAuthVerification.findFirst(
-            {
-              where: {
-                provider: account?.provider,
-                providerAccountId: account?.providerAccountId,
-                expiresAt: { gt: new Date() },
-              },
-            }
-          );
+          const existingVerification =
+            await db.query.oAuthVerifications.findFirst({
+              where: and(
+                eq(oAuthVerifications.provider, account?.provider ?? ''),
+                eq(
+                  oAuthVerifications.providerAccountId,
+                  account?.providerAccountId ?? ''
+                ),
+                gt(oAuthVerifications.expiresAt, new Date())
+              ),
+            });
 
           if (existingVerification) {
             console.log('Verification email already sent for:', user.email);
@@ -571,18 +583,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
           // Create verification record
-          await prisma.oAuthVerification.create({
-            data: {
-              email: user.email.toLowerCase(),
-              provider: account?.provider || '',
-              providerAccountId: account?.providerAccountId || '',
-              verificationToken,
-              expiresAt,
-              oauthProfile: {
-                name: user.name,
-                email: user.email,
-                image: user.image,
-              },
+          await db.insert(oAuthVerifications).values({
+            email: user.email.toLowerCase(),
+            provider: account?.provider ?? '',
+            providerAccountId: account?.providerAccountId ?? '',
+            verificationToken,
+            expiresAt,
+            oauthProfile: {
+              name: user.name,
+              email: user.email,
+              image: user.image,
             },
           });
 
@@ -620,12 +630,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // Trusted provider - proceed with auto-claim
       try {
-        const prisma = await getPrisma();
-        const unclaimedProfile = await prisma.profile.findFirst({
-          where: {
-            email: user.email.toLowerCase(),
-            userId: null,
-          },
+        const unclaimedProfile = await db.query.profiles.findFirst({
+          where: and(
+            eq(profiles.email, user.email.toLowerCase()),
+            isNull(profiles.userId)
+          ),
         });
 
         if (unclaimedProfile && user.id) {
@@ -635,10 +644,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             'from trusted provider:',
             account?.provider
           );
-          await prisma.profile.update({
-            where: { id: unclaimedProfile.id },
-            data: { userId: user.id },
-          });
+          await db
+            .update(profiles)
+            .set({ userId: user.id })
+            .where(eq(profiles.id, unclaimedProfile.id));
           console.log('Profile claimed successfully');
         }
       } catch (error) {
@@ -674,9 +683,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         let verification: ProfileVerification | null = null;
         let roles: ProfileRoles | null = null;
         try {
-          const prisma = await getPrisma();
-          const userProfile = await prisma.profile.findUnique({
-            where: { userId: user.id },
+          const userProfile = await db.query.profiles.findFirst({
+            where: eq(profiles.userId, user.id),
           });
           if (userProfile) {
             verification =

@@ -6,7 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { eq, and, ne, ilike } from 'drizzle-orm';
 
 /**
  * GET /api/articles/search
@@ -26,24 +28,31 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const prisma = await getPrisma();
-
-    // Build search query
-    const where: any = {
-      status: 'published',
-      title: { contains: query, mode: 'insensitive' },
-    };
+    // Build search conditions
+    const conditions: any[] = [
+      eq(articles.status, 'published'),
+      ilike(articles.title, `%${query}%`),
+    ];
 
     if (excludeSlug) {
-      where.slug = { not: excludeSlug };
+      conditions.push(ne(articles.slug, excludeSlug));
     }
 
     // Search articles
-    const articles = await prisma.article.findMany({
-      where,
-      orderBy: { publishedAt: 'desc' },
-      take: limit,
-      select: {
+    const articleRows = await db.query.articles.findMany({
+      where: (t, { eq, and, ne, ilike }) => {
+        const conds: any[] = [
+          eq(t.status, 'published'),
+          ilike(t.title, `%${query}%`),
+        ];
+        if (excludeSlug) {
+          conds.push(ne(t.slug, excludeSlug));
+        }
+        return and(...conds);
+      },
+      orderBy: (t, { desc }) => [desc(t.publishedAt)],
+      limit,
+      columns: {
         id: true,
         slug: true,
         title: true,
@@ -54,16 +63,19 @@ export async function GET(request: NextRequest) {
     });
 
     // Get author info
-    const authorIds = [...new Set(articles.map((a) => a.authorId))];
-    const authors = await prisma.user.findMany({
-      where: { id: { in: authorIds } },
-      select: { id: true, screenname: true },
-    });
+    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorRows =
+      authorIds.length > 0
+        ? await db.query.users.findMany({
+            where: (t, { inArray }) => inArray(t.id, authorIds),
+            columns: { id: true, screenname: true },
+          })
+        : [];
     const authorMap = new Map(
-      authors.map((a) => [a.id, { screenname: a.screenname }])
+      authorRows.map((a) => [a.id, { screenname: a.screenname }])
     );
 
-    const enrichedArticles = articles.map((a) => ({
+    const enrichedArticles = articleRows.map((a) => ({
       id: a.id,
       slug: a.slug,
       title: a.title,

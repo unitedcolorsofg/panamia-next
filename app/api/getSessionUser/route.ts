@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { uniqueAffiliateCode } from '@/lib/server/user';
-import { Prisma } from '@prisma/client';
 
 interface AffiliateData {
   activated: boolean;
@@ -33,11 +34,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const prisma = await getPrisma();
-
   // Check if user exists
-  let existingUser = await prisma.user.findUnique({
-    where: { email },
+  let existingUser = await db.query.users.findFirst({
+    where: eq(users.email, email),
   });
 
   if (!existingUser) {
@@ -53,19 +52,18 @@ export async function GET(request: NextRequest) {
     };
 
     try {
-      // Convert to plain JSON for Prisma
-      const affiliateJson = JSON.parse(
-        JSON.stringify(affiliateData)
-      ) as Prisma.InputJsonValue;
-      existingUser = await prisma.user.create({
-        data: {
+      const affiliateJson = JSON.parse(JSON.stringify(affiliateData));
+      const [newUser] = await db
+        .insert(users)
+        .values({
           email,
           name: session.user?.name || null,
           role: 'user',
           affiliate: affiliateJson,
           alternateEmails: [],
-        },
-      });
+        })
+        .returning();
+      existingUser = newUser;
       return NextResponse.json({
         success: true,
         data: formatUserResponse(existingUser),
@@ -90,14 +88,13 @@ export async function GET(request: NextRequest) {
       points: 0,
     };
 
-    // Convert to plain JSON for Prisma
-    const affiliateJson = JSON.parse(
-      JSON.stringify(affiliateData)
-    ) as Prisma.InputJsonValue;
-    existingUser = await prisma.user.update({
-      where: { id: existingUser.id },
-      data: { affiliate: affiliateJson },
-    });
+    const affiliateJson = JSON.parse(JSON.stringify(affiliateData));
+    const [updatedUser] = await db
+      .update(users)
+      .set({ affiliate: affiliateJson })
+      .where(eq(users.id, existingUser.id))
+      .returning();
+    existingUser = updatedUser;
   }
 
   return NextResponse.json({

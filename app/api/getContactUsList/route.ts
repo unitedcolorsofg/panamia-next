@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { contactSubmissions } from '@/lib/schema';
+import { count, desc } from 'drizzle-orm';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 
 export async function GET(request: NextRequest) {
@@ -25,9 +27,10 @@ export async function GET(request: NextRequest) {
   const per_page = 20;
   const offset = per_page * page_number - per_page;
 
-  const prisma = await getPrisma();
-
-  const contactUsCount = await prisma.contactSubmission.count();
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(contactSubmissions);
+  const contactUsCount = Number(total);
   const pagination = {
     count: contactUsCount,
     per_page: per_page,
@@ -36,10 +39,10 @@ export async function GET(request: NextRequest) {
     total_pages: contactUsCount > 0 ? Math.ceil(contactUsCount / per_page) : 1,
   };
 
-  const contactUsList = await prisma.contactSubmission.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: per_page,
-    skip: offset,
+  const contactUsList = await db.query.contactSubmissions.findMany({
+    orderBy: (t, { desc }) => [desc(t.createdAt)],
+    limit: per_page,
+    offset,
   });
 
   return NextResponse.json({

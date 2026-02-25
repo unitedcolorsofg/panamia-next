@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions, profiles } from '@/lib/schema';
+import type { SessionType, SessionStatus } from '@/lib/schema';
+import { and, desc, eq, or } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 import { createSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
 import { getScheduleUrl } from '@/lib/mentoring';
 import { nanoid } from 'nanoid';
-import { SessionType, SessionStatus, Prisma } from '@prisma/client';
 
 // GET - List sessions for current user
 export async function GET(request: NextRequest) {
@@ -15,39 +17,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const prisma = await getPrisma();
-
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role'); // 'mentor' | 'mentee' | 'all'
   const status = searchParams.get('status'); // 'pending' | 'scheduled' | 'completed' | 'all'
 
-  // Build where clause
-  const where: Prisma.MentorSessionWhereInput = {};
+  // Build where condition
+  const roleCondition =
+    role === 'mentor'
+      ? eq(mentorSessions.mentorEmail, session.user.email)
+      : role === 'mentee'
+        ? eq(mentorSessions.menteeEmail, session.user.email)
+        : or(
+            eq(mentorSessions.mentorEmail, session.user.email),
+            eq(mentorSessions.menteeEmail, session.user.email)
+          );
 
-  // Role filter
-  if (role === 'mentor') {
-    where.mentorEmail = session.user.email;
-  } else if (role === 'mentee') {
-    where.menteeEmail = session.user.email;
-  } else {
-    where.OR = [
-      { mentorEmail: session.user.email },
-      { menteeEmail: session.user.email },
-    ];
-  }
+  const statusCondition =
+    status && status !== 'all'
+      ? eq(mentorSessions.status, status as SessionStatus)
+      : undefined;
 
-  // Status filter
-  if (status && status !== 'all') {
-    where.status = status as SessionStatus;
-  }
-
-  const sessions = await prisma.mentorSession.findMany({
-    where,
-    orderBy: { scheduledAt: 'desc' },
-    take: 50,
+  const sessionsList = await db.query.mentorSessions.findMany({
+    where: and(roleCondition, statusCondition),
+    orderBy: (ms, { desc }) => [desc(ms.scheduledAt)],
+    limit: 50,
   });
 
-  return NextResponse.json({ sessions });
+  return NextResponse.json({ sessions: sessionsList });
 }
 
 // POST - Create new session request (requires mentor confirmation)
@@ -56,8 +52,6 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = createSessionSchema.safeParse(body);
@@ -73,8 +67,8 @@ export async function POST(request: NextRequest) {
     validation.data;
 
   // Verify mentor exists and has mentoring enabled
-  const mentor = await prisma.profile.findUnique({
-    where: { email: mentorEmail },
+  const mentor = await db.query.profiles.findFirst({
+    where: eq(profiles.email, mentorEmail),
   });
 
   const mentoring = mentor?.mentoring as ProfileMentoring | null;
@@ -96,8 +90,9 @@ export async function POST(request: NextRequest) {
   // Create session with unique ID for Pusher channel
   // Status is 'pending' until mentor accepts
   const sessionId = nanoid(16);
-  const newSession = await prisma.mentorSession.create({
-    data: {
+  const [newSession] = await db
+    .insert(mentorSessions)
+    .values({
       mentorEmail,
       menteeEmail: session.user.email,
       scheduledAt: new Date(scheduledAt),
@@ -106,8 +101,8 @@ export async function POST(request: NextRequest) {
       sessionType: sessionType as SessionType,
       sessionId,
       status: 'pending',
-    },
-  });
+    })
+    .returning();
 
   // Notify mentor of the session request
   // actorId = mentee (current user), targetId = mentor

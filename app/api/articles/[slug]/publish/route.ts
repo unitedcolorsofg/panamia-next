@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
 
@@ -41,9 +43,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const prisma = await getPrisma();
-
-    const articleDoc = await prisma.article.findUnique({ where: { slug } });
+    const articleDoc = await db.query.articles.findFirst({
+      where: eq(articles.slug, slug),
+    });
     if (!articleDoc) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
@@ -93,13 +95,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Publish the article
-    const updatedArticle = await prisma.article.update({
-      where: { id: articleDoc.id },
-      data: {
-        status: 'published',
-        publishedAt: new Date(),
-      },
-    });
+    const [updatedArticle] = await db
+      .update(articles)
+      .set({ status: 'published', publishedAt: new Date() })
+      .where(eq(articles.id, articleDoc.id))
+      .returning();
 
     // Notify co-authors that article is published
     const acceptedCoAuthors = coAuthors?.filter(

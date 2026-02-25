@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { oAuthVerifications, users, accounts, profiles } from '@/lib/schema';
+import { and, eq, isNull } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,11 +15,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
-
     // Find verification record
-    const verification = await prisma.oAuthVerification.findUnique({
-      where: { verificationToken: token },
+    const verification = await db.query.oAuthVerifications.findFirst({
+      where: eq(oAuthVerifications.verificationToken, token),
     });
 
     if (!verification) {
@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
 
     // Check if expired
     if (new Date() > verification.expiresAt) {
-      await prisma.oAuthVerification.delete({ where: { id: verification.id } });
+      await db
+        .delete(oAuthVerifications)
+        .where(eq(oAuthVerifications.id, verification.id));
       return NextResponse.json(
         {
           error:
@@ -41,65 +43,58 @@ export async function POST(request: NextRequest) {
 
     const { email, provider, providerAccountId } = verification;
 
-    // Use Prisma transaction for atomic user/account creation
-    const result = await prisma.$transaction(async (tx) => {
-      // Check if user already exists with this email
-      let userId: string;
-      let existingUser = await tx.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser) {
-        userId = existingUser.id;
-
-        // Check if account link already exists
-        const existingAccount = await tx.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider,
-              providerAccountId,
-            },
-          },
-        });
-
-        if (!existingAccount) {
-          // Create account link
-          await tx.account.create({
-            data: {
-              userId,
-              type: 'oauth',
-              provider,
-              providerAccountId,
-            },
-          });
-        }
-      } else {
-        // Create new user with account in one transaction
-        const newUser = await tx.user.create({
-          data: {
-            email,
-            emailVerified: new Date(),
-            accounts: {
-              create: {
-                type: 'oauth',
-                provider,
-                providerAccountId,
-              },
-            },
-          },
-        });
-        userId = newUser.id;
-      }
-
-      return { userId };
+    // Check if user already exists with this email
+    let userId: string;
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
     });
 
-    // Auto-claim profile (PostgreSQL operation, separate from transaction)
-    const unclaimedProfile = await prisma.profile.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        userId: null,
-      },
+    if (existingUser) {
+      userId = existingUser.id;
+
+      // Check if account link already exists
+      const existingAccount = await db.query.accounts.findFirst({
+        where: and(
+          eq(accounts.provider, provider),
+          eq(accounts.providerAccountId, providerAccountId)
+        ),
+      });
+
+      if (!existingAccount) {
+        // Create account link
+        await db.insert(accounts).values({
+          userId,
+          type: 'oauth',
+          provider,
+          providerAccountId,
+        });
+      }
+    } else {
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email,
+          emailVerified: new Date(),
+        })
+        .returning({ id: users.id });
+      userId = newUser.id;
+
+      // Create account link
+      await db.insert(accounts).values({
+        userId,
+        type: 'oauth',
+        provider,
+        providerAccountId,
+      });
+    }
+
+    // Auto-claim profile
+    const unclaimedProfile = await db.query.profiles.findFirst({
+      where: and(
+        eq(profiles.email, email.toLowerCase()),
+        isNull(profiles.userId)
+      ),
     });
 
     if (unclaimedProfile) {
@@ -109,15 +104,17 @@ export async function POST(request: NextRequest) {
         'after email verification for provider:',
         provider
       );
-      await prisma.profile.update({
-        where: { id: unclaimedProfile.id },
-        data: { userId: result.userId },
-      });
+      await db
+        .update(profiles)
+        .set({ userId })
+        .where(eq(profiles.id, unclaimedProfile.id));
       console.log('Profile claimed successfully');
     }
 
     // Delete verification record
-    await prisma.oAuthVerification.delete({ where: { id: verification.id } });
+    await db
+      .delete(oAuthVerifications)
+      .where(eq(oAuthVerifications.id, verification.id));
 
     return NextResponse.json({
       success: true,

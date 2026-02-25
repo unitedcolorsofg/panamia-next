@@ -3,7 +3,7 @@
  * Get Sign-In Token Status Script
  *
  * Checks if a verification token exists for a given email address.
- * Uses PostgreSQL verification_tokens table via Prisma.
+ * Uses PostgreSQL verification_tokens table via Drizzle.
  *
  * NOTE: This script cannot reconstruct a sign-in URL because NextAuth
  * stores hashed tokens (SHA-256(rawToken + secret)). To create a new
@@ -12,13 +12,16 @@
  * Usage: npx tsx scripts/get-signin-link.ts <email>
  */
 
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../lib/schema';
+import { eq } from 'drizzle-orm';
 import { config } from 'dotenv';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
+const { verificationTokens } = schema;
 const EMAIL = process.argv[2];
 
 async function getSignInTokenStatus() {
@@ -33,16 +36,16 @@ async function getSignInTokenStatus() {
     process.exit(1);
   }
 
-  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
-  const prisma = new PrismaClient({ adapter });
+  const client = postgres(process.env.POSTGRES_URL);
+  const db = drizzle(client, { schema });
 
   try {
     console.log('Connecting to PostgreSQL...');
 
     // Find verification tokens for this email
-    const tokens = await prisma.verificationToken.findMany({
-      where: { identifier: EMAIL },
-      orderBy: { expires: 'desc' },
+    const tokens = await db.query.verificationTokens.findMany({
+      where: eq(verificationTokens.identifier, EMAIL),
+      orderBy: (vt, { desc }) => [desc(vt.expires)],
     });
 
     if (tokens.length === 0) {
@@ -85,7 +88,7 @@ async function getSignInTokenStatus() {
     console.error('❌ Error:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
   }
 }
 

@@ -7,15 +7,17 @@
  * This module provides functions to create, query, and manage notifications
  * using an ActivityPub-shaped schema for future federation compatibility.
  *
- * Storage: PostgreSQL via Prisma
+ * Storage: PostgreSQL via Drizzle ORM
  * Actor info: Fetched from PostgreSQL profile (denormalized at creation time)
  */
 
-import { getPrisma, getPrismaSync } from './prisma';
+import { db } from '@/lib/db';
+import { profiles, notifications } from '@/lib/schema';
 import type {
   NotificationActivityType,
   NotificationContext,
 } from './interfaces';
+import { and, eq, isNotNull, lt, sql } from 'drizzle-orm';
 
 // Retention periods in milliseconds
 const RETENTION = {
@@ -45,35 +47,31 @@ export interface CreateNotificationParams {
 export async function createNotification(
   params: CreateNotificationParams
 ): Promise<void> {
-  const prisma = await getPrisma();
-
   // Get actor info from profile for denormalization
-  const actorProfile = await prisma.profile.findUnique({
-    where: { userId: params.actorId },
-    include: { user: { select: { screenname: true } } },
+  const actorProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, params.actorId),
+    with: { user: { columns: { screenname: true } } },
   });
 
   // Determine expiration based on type and context
   const expiresAt = getExpirationDate(params.type, params.context);
 
   // Create notification
-  await prisma.notification.create({
-    data: {
-      type: params.type,
-      actor: params.actorId,
-      target: params.targetId,
-      context: params.context,
-      object: params.objectId,
-      objectType: params.objectType,
-      objectTitle: params.objectTitle,
-      objectUrl: params.objectUrl,
-      message: params.message,
-      actorScreenname: actorProfile?.user?.screenname,
-      actorName: actorProfile?.name,
-      read: false,
-      emailSent: false,
-      expiresAt,
-    },
+  await db.insert(notifications).values({
+    type: params.type,
+    actor: params.actorId,
+    target: params.targetId,
+    context: params.context,
+    object: params.objectId,
+    objectType: params.objectType,
+    objectTitle: params.objectTitle,
+    objectUrl: params.objectUrl,
+    message: params.message,
+    actorScreenname: actorProfile?.user?.screenname,
+    actorName: actorProfile?.name,
+    read: false,
+    emailSent: false,
+    expiresAt,
   });
 
   // TODO: Check email preferences and send if enabled
@@ -92,33 +90,35 @@ export async function getNotifications(
     context?: NotificationContext;
   } = {}
 ) {
-  const prisma = getPrismaSync();
   const { limit = 20, offset = 0, unreadOnly = false, context } = options;
 
-  const where: any = { target: userId };
+  const conditions = [
+    eq(notifications.target, userId),
+    ...(unreadOnly ? [eq(notifications.read, false)] : []),
+    ...(context ? [eq(notifications.context, context)] : []),
+  ];
 
-  if (unreadOnly) {
-    where.read = false;
-  }
+  const whereClause = and(...conditions);
 
-  if (context) {
-    where.context = context;
-  }
-
-  const [notifications, total] = await Promise.all([
-    prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: offset,
-      take: limit,
+  const [notificationsList, [{ count }]] = await Promise.all([
+    db.query.notifications.findMany({
+      where: whereClause,
+      orderBy: (n, { desc }) => [desc(n.createdAt)],
+      offset,
+      limit,
     }),
-    prisma.notification.count({ where }),
+    db
+      .select({ count: sql<string>`count(*)` })
+      .from(notifications)
+      .where(whereClause),
   ]);
 
+  const total = Number(count);
+
   return {
-    notifications,
+    notifications: notificationsList,
     total,
-    hasMore: offset + notifications.length < total,
+    hasMore: offset + notificationsList.length < total,
   };
 }
 
@@ -126,14 +126,14 @@ export async function getNotifications(
  * Get unread notification count for a user
  */
 export async function getUnreadCount(userId: string): Promise<number> {
-  const prisma = getPrismaSync();
+  const [{ count }] = await db
+    .select({ count: sql<string>`count(*)` })
+    .from(notifications)
+    .where(
+      and(eq(notifications.target, userId), eq(notifications.read, false))
+    );
 
-  return await prisma.notification.count({
-    where: {
-      target: userId,
-      read: false,
-    },
-  });
+  return Number(count);
 }
 
 /**
@@ -143,28 +143,31 @@ export async function markAsRead(
   notificationId: string,
   userId: string
 ): Promise<boolean> {
-  const prisma = getPrismaSync();
+  const updated = await db
+    .update(notifications)
+    .set({ read: true, readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.target, userId)
+      )
+    )
+    .returning({ id: notifications.id });
 
-  const result = await prisma.notification.updateMany({
-    where: { id: notificationId, target: userId },
-    data: { read: true, readAt: new Date() },
-  });
-
-  return result.count > 0;
+  return updated.length > 0;
 }
 
 /**
  * Mark all notifications as read for a user
  */
 export async function markAllAsRead(userId: string): Promise<number> {
-  const prisma = getPrismaSync();
+  const updated = await db
+    .update(notifications)
+    .set({ read: true, readAt: new Date() })
+    .where(and(eq(notifications.target, userId), eq(notifications.read, false)))
+    .returning({ id: notifications.id });
 
-  const result = await prisma.notification.updateMany({
-    where: { target: userId, read: false },
-    data: { read: true, readAt: new Date() },
-  });
-
-  return result.count;
+  return updated.length;
 }
 
 /**
@@ -174,16 +177,17 @@ export async function deleteNotification(
   notificationId: string,
   userId: string
 ): Promise<boolean> {
-  const prisma = getPrismaSync();
+  const deleted = await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.target, userId)
+      )
+    )
+    .returning({ id: notifications.id });
 
-  const result = await prisma.notification.deleteMany({
-    where: {
-      id: notificationId,
-      target: userId,
-    },
-  });
-
-  return result.count > 0;
+  return deleted.length > 0;
 }
 
 /**
@@ -191,17 +195,12 @@ export async function deleteNotification(
  * Call this periodically (e.g., via cron job)
  */
 export async function cleanupExpiredNotifications(): Promise<number> {
-  const prisma = getPrismaSync();
+  const deleted = await db
+    .delete(notifications)
+    .where(lt(notifications.expiresAt, new Date()))
+    .returning({ id: notifications.id });
 
-  const result = await prisma.notification.deleteMany({
-    where: {
-      expiresAt: {
-        lt: new Date(),
-      },
-    },
-  });
-
-  return result.count;
+  return deleted.length;
 }
 
 /**

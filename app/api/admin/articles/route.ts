@@ -7,7 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { eq, and, or, desc, ilike, inArray, sql } from 'drizzle-orm';
+import type { ArticleStatus } from '@/lib/schema';
 
 interface CoAuthor {
   userId: string;
@@ -41,63 +44,78 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(50, parseInt(searchParams.get('limit') || '20'));
     const search = searchParams.get('search')?.trim();
 
-    // Build query
-    const where: any = {};
+    // Build where conditions
+    const statusCondition =
+      status && ['draft', 'published', 'removed'].includes(status)
+        ? eq(articles.status, status as ArticleStatus)
+        : undefined;
 
-    if (status && ['draft', 'published', 'removed'].includes(status)) {
-      where.status = status;
-    }
+    const searchCondition = search
+      ? or(
+          ilike(articles.title, `%${search}%`),
+          ilike(articles.slug, `%${search}%`)
+        )
+      : undefined;
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    const whereClause = and(statusCondition, searchCondition);
 
     // Get total count and articles
-    const [total, articles] = await Promise.all([
-      prisma.article.count({ where }),
-      prisma.article.findMany({
-        where,
-        orderBy: { updatedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
+    const [countResult, articleRows] = await Promise.all([
+      db
+        .select({ count: sql<string>`count(*)` })
+        .from(articles)
+        .where(whereClause),
+      db
+        .select()
+        .from(articles)
+        .where(whereClause)
+        .orderBy(desc(articles.updatedAt))
+        .offset((page - 1) * limit)
+        .limit(limit),
     ]);
 
+    const total = Number(countResult[0]?.count ?? 0);
+
     // Get author info for all articles
-    const authorIds = [...new Set(articles.map((a) => a.authorId))];
-    const authors = await prisma.user.findMany({
-      where: { id: { in: authorIds } },
-      select: { id: true, screenname: true, email: true },
-    });
+    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorRows =
+      authorIds.length > 0
+        ? await db
+            .select({
+              id: users.id,
+              screenname: users.screenname,
+              email: users.email,
+            })
+            .from(users)
+            .where(inArray(users.id, authorIds))
+        : [];
     const authorMap = new Map(
-      authors.map((a) => [a.id, { screenname: a.screenname, email: a.email }])
+      authorRows.map((a) => [
+        a.id,
+        { screenname: a.screenname, email: a.email },
+      ])
     );
 
     // Get admin info for removed articles
-    const removedByIds = articles
+    const removedByIds = articleRows
       .filter((a) => a.removedBy)
       .map((a) => a.removedBy as string);
-    const admins =
+    const adminRows =
       removedByIds.length > 0
-        ? await prisma.user.findMany({
-            where: { id: { in: removedByIds } },
-            select: { id: true, screenname: true },
-          })
+        ? await db
+            .select({ id: users.id, screenname: users.screenname })
+            .from(users)
+            .where(inArray(users.id, removedByIds))
         : [];
-    const adminMap = new Map(admins.map((a) => [a.id, a.screenname]));
+    const adminMap = new Map(adminRows.map((a) => [a.id, a.screenname]));
 
-    const enrichedArticles = articles.map((a) => {
+    const enrichedArticles = articleRows.map((a) => {
       const coAuthors = (a.coAuthors as unknown as CoAuthor[]) || [];
       return {
         id: a.id,

@@ -2,14 +2,14 @@
  * Follow Management
  *
  * High-level functions for managing follow relationships.
- * For Phase 4 (local only), follows are immediately accepted.
- * Federation (Phase 7+) will add pending/accepted states for remote follows.
  *
  * @see docs/SOCIAL-ROADMAP.md
  */
 
-import { getPrisma } from '@/lib/prisma';
-import { SocialFollow, SocialActor } from '@prisma/client';
+import { db } from '@/lib/db';
+import { socialFollows, socialActors } from '@/lib/schema';
+import type { SocialFollow, SocialActor } from '@/lib/schema';
+import { and, eq, sql, desc } from 'drizzle-orm';
 import { canFollow, GateResult } from '../gates';
 import { socialConfig } from '../index';
 
@@ -31,16 +31,11 @@ function generateFollowUri(actorUsername: string, followId: string): string {
 
 /**
  * Create a follow relationship
- *
- * For local follows, status is immediately 'accepted'.
- * Future: remote follows will start as 'pending'.
  */
 export async function createFollow(
   actorId: string,
   targetActorId: string
 ): Promise<FollowResult> {
-  const prisma = await getPrisma();
-
   // Can't follow yourself
   if (actorId === targetActorId) {
     return { success: false, error: 'Cannot follow yourself' };
@@ -48,12 +43,12 @@ export async function createFollow(
 
   // Fetch both actors
   const [actor, targetActor] = await Promise.all([
-    prisma.socialActor.findUnique({
-      where: { id: actorId },
-      include: { profile: true },
+    db.query.socialActors.findFirst({
+      where: eq(socialActors.id, actorId),
+      with: { profile: true },
     }),
-    prisma.socialActor.findUnique({
-      where: { id: targetActorId },
+    db.query.socialActors.findFirst({
+      where: eq(socialActors.id, targetActorId),
     }),
   ]);
 
@@ -78,13 +73,11 @@ export async function createFollow(
   }
 
   // Check if already following
-  const existing = await prisma.socialFollow.findUnique({
-    where: {
-      actorId_targetActorId: {
-        actorId,
-        targetActorId,
-      },
-    },
+  const existing = await db.query.socialFollows.findFirst({
+    where: and(
+      eq(socialFollows.actorId, actorId),
+      eq(socialFollows.targetActorId, targetActorId)
+    ),
   });
 
   if (existing) {
@@ -94,35 +87,36 @@ export async function createFollow(
   // Create the follow (local = immediately accepted)
   const isLocalTarget = targetActor.domain === socialConfig.domain;
 
-  const follow = await prisma.socialFollow.create({
-    data: {
+  const [follow] = await db
+    .insert(socialFollows)
+    .values({
       actorId,
       targetActorId,
       status: isLocalTarget ? 'accepted' : 'pending',
       acceptedAt: isLocalTarget ? new Date() : null,
-      // URI will be set after we have the ID
       uri: '',
-    },
-  });
+    })
+    .returning();
 
   // Update with proper URI
   const uri = generateFollowUri(actor.username, follow.id);
-  const updatedFollow = await prisma.socialFollow.update({
-    where: { id: follow.id },
-    data: { uri },
-  });
+  const [updatedFollow] = await db
+    .update(socialFollows)
+    .set({ uri })
+    .where(eq(socialFollows.id, follow.id))
+    .returning();
 
   // Update counts for accepted follows
   if (updatedFollow.status === 'accepted') {
     await Promise.all([
-      prisma.socialActor.update({
-        where: { id: actorId },
-        data: { followingCount: { increment: 1 } },
-      }),
-      prisma.socialActor.update({
-        where: { id: targetActorId },
-        data: { followersCount: { increment: 1 } },
-      }),
+      db
+        .update(socialActors)
+        .set({ followingCount: sql`${socialActors.followingCount} + 1` })
+        .where(eq(socialActors.id, actorId)),
+      db
+        .update(socialActors)
+        .set({ followersCount: sql`${socialActors.followersCount} + 1` })
+        .where(eq(socialActors.id, targetActorId)),
     ]);
   }
 
@@ -136,37 +130,30 @@ export async function deleteFollow(
   actorId: string,
   targetActorId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const prisma = await getPrisma();
-
-  const follow = await prisma.socialFollow.findUnique({
-    where: {
-      actorId_targetActorId: {
-        actorId,
-        targetActorId,
-      },
-    },
+  const follow = await db.query.socialFollows.findFirst({
+    where: and(
+      eq(socialFollows.actorId, actorId),
+      eq(socialFollows.targetActorId, targetActorId)
+    ),
   });
 
   if (!follow) {
     return { success: true }; // Already not following
   }
 
-  // Delete the follow
-  await prisma.socialFollow.delete({
-    where: { id: follow.id },
-  });
+  await db.delete(socialFollows).where(eq(socialFollows.id, follow.id));
 
   // Update counts if it was accepted
   if (follow.status === 'accepted') {
     await Promise.all([
-      prisma.socialActor.update({
-        where: { id: actorId },
-        data: { followingCount: { decrement: 1 } },
-      }),
-      prisma.socialActor.update({
-        where: { id: targetActorId },
-        data: { followersCount: { decrement: 1 } },
-      }),
+      db
+        .update(socialActors)
+        .set({ followingCount: sql`${socialActors.followingCount} - 1` })
+        .where(eq(socialActors.id, actorId)),
+      db
+        .update(socialActors)
+        .set({ followersCount: sql`${socialActors.followersCount} - 1` })
+        .where(eq(socialActors.id, targetActorId)),
     ]);
   }
 
@@ -180,15 +167,11 @@ export async function isFollowing(
   actorId: string,
   targetActorId: string
 ): Promise<boolean> {
-  const prisma = await getPrisma();
-
-  const follow = await prisma.socialFollow.findUnique({
-    where: {
-      actorId_targetActorId: {
-        actorId,
-        targetActorId,
-      },
-    },
+  const follow = await db.query.socialFollows.findFirst({
+    where: and(
+      eq(socialFollows.actorId, actorId),
+      eq(socialFollows.targetActorId, targetActorId)
+    ),
   });
 
   return follow?.status === 'accepted';
@@ -202,20 +185,16 @@ export async function getFollowers(
   cursor?: string,
   limit: number = 20
 ): Promise<{ actors: SocialActor[]; nextCursor: string | null }> {
-  const prisma = await getPrisma();
-
-  const follows = await prisma.socialFollow.findMany({
-    where: {
-      targetActorId: actorId,
-      status: 'accepted',
-    },
-    include: { actor: true },
-    orderBy: { acceptedAt: 'desc' },
-    take: limit + 1,
-    ...(cursor && {
-      cursor: { id: cursor },
-      skip: 1,
-    }),
+  const follows = await db.query.socialFollows.findMany({
+    where: (f, { and, eq, lt }) =>
+      and(
+        eq(f.targetActorId, actorId),
+        eq(f.status, 'accepted'),
+        cursor ? lt(f.id, cursor) : undefined
+      ),
+    with: { actor: true },
+    orderBy: [desc(socialFollows.acceptedAt), desc(socialFollows.id)],
+    limit: limit + 1,
   });
 
   const hasMore = follows.length > limit;
@@ -236,20 +215,16 @@ export async function getFollowing(
   cursor?: string,
   limit: number = 20
 ): Promise<{ actors: SocialActor[]; nextCursor: string | null }> {
-  const prisma = await getPrisma();
-
-  const follows = await prisma.socialFollow.findMany({
-    where: {
-      actorId,
-      status: 'accepted',
-    },
-    include: { targetActor: true },
-    orderBy: { acceptedAt: 'desc' },
-    take: limit + 1,
-    ...(cursor && {
-      cursor: { id: cursor },
-      skip: 1,
-    }),
+  const follows = await db.query.socialFollows.findMany({
+    where: (f, { and, eq, lt }) =>
+      and(
+        eq(f.actorId, actorId),
+        eq(f.status, 'accepted'),
+        cursor ? lt(f.id, cursor) : undefined
+      ),
+    with: { targetActor: true },
+    orderBy: [desc(socialFollows.acceptedAt), desc(socialFollows.id)],
+    limit: limit + 1,
   });
 
   const hasMore = follows.length > limit;
@@ -264,7 +239,6 @@ export async function getFollowing(
 
 /**
  * Get follow relationships for an actor relative to a viewer
- * Returns whether the viewer follows/is followed by the actor
  */
 export async function getFollowRelationship(
   viewerActorId: string | null,
@@ -274,24 +248,18 @@ export async function getFollowRelationship(
     return { isFollowing: false, isFollowedBy: false };
   }
 
-  const prisma = await getPrisma();
-
   const [following, followedBy] = await Promise.all([
-    prisma.socialFollow.findUnique({
-      where: {
-        actorId_targetActorId: {
-          actorId: viewerActorId,
-          targetActorId,
-        },
-      },
+    db.query.socialFollows.findFirst({
+      where: and(
+        eq(socialFollows.actorId, viewerActorId),
+        eq(socialFollows.targetActorId, targetActorId)
+      ),
     }),
-    prisma.socialFollow.findUnique({
-      where: {
-        actorId_targetActorId: {
-          actorId: targetActorId,
-          targetActorId: viewerActorId,
-        },
-      },
+    db.query.socialFollows.findFirst({
+      where: and(
+        eq(socialFollows.actorId, targetActorId),
+        eq(socialFollows.targetActorId, viewerActorId)
+      ),
     }),
   ]);
 

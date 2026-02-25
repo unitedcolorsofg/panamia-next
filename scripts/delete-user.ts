@@ -14,13 +14,16 @@
  * Usage: npx tsx scripts/delete-user.ts <email>
  */
 
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../lib/schema';
+import { eq } from 'drizzle-orm';
 import { config } from 'dotenv';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
+const { users, profiles, notifications, verificationTokens } = schema;
 const USER_EMAIL = process.argv[2];
 
 async function deleteUser() {
@@ -35,16 +38,16 @@ async function deleteUser() {
     process.exit(1);
   }
 
-  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_URL });
-  const prisma = new PrismaClient({ adapter });
+  const client = postgres(process.env.POSTGRES_URL);
+  const db = drizzle(client, { schema });
 
   try {
     console.log(`\n🗑️  Deleting all data for: ${USER_EMAIL}\n`);
 
     // Find user first
-    const user = await prisma.user.findUnique({
-      where: { email: USER_EMAIL },
-      include: {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, USER_EMAIL),
+      with: {
         accounts: true,
         sessions: true,
         profile: true,
@@ -55,24 +58,25 @@ async function deleteUser() {
       console.log('⚠ User not found');
 
       // Check if there's a profile without a user
-      const orphanProfile = await prisma.profile.findUnique({
-        where: { email: USER_EMAIL },
+      const orphanProfile = await db.query.profiles.findFirst({
+        where: eq(profiles.email, USER_EMAIL),
       });
 
       if (orphanProfile) {
-        await prisma.profile.delete({ where: { id: orphanProfile.id } });
+        await db.delete(profiles).where(eq(profiles.id, orphanProfile.id));
         console.log(
           `✓ profiles: deleted orphan profile (id: ${orphanProfile.id})`
         );
       }
 
       // Delete verification tokens
-      const tokensResult = await prisma.verificationToken.deleteMany({
-        where: { identifier: USER_EMAIL },
-      });
-      if (tokensResult.count > 0) {
+      const deletedTokens = await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.identifier, USER_EMAIL))
+        .returning();
+      if (deletedTokens.length > 0) {
         console.log(
-          `✓ verification_tokens: deleted ${tokensResult.count} token(s)`
+          `✓ verification_tokens: deleted ${deletedTokens.length} token(s)`
         );
       }
 
@@ -82,35 +86,36 @@ async function deleteUser() {
 
     // Delete profile first (if exists)
     if (user.profile) {
-      await prisma.profile.delete({ where: { id: user.profile.id } });
+      await db.delete(profiles).where(eq(profiles.id, user.profile.id));
       console.log(`✓ profiles: deleted profile (id: ${user.profile.id})`);
     }
 
-    // Delete notifications (both sent and received - cascades via relation)
-    const notificationsSent = await prisma.notification.deleteMany({
-      where: { actor: user.id },
-    });
-    const notificationsReceived = await prisma.notification.deleteMany({
-      where: { target: user.id },
-    });
+    // Delete notifications (both sent and received)
+    const notificationsSent = await db
+      .delete(notifications)
+      .where(eq(notifications.actor, user.id))
+      .returning();
+    const notificationsReceived = await db
+      .delete(notifications)
+      .where(eq(notifications.target, user.id))
+      .returning();
     console.log(
-      `✓ notifications: deleted ${notificationsSent.count + notificationsReceived.count} notification(s)`
+      `✓ notifications: deleted ${notificationsSent.length + notificationsReceived.length} notification(s)`
     );
 
     // Delete user (cascades to accounts, sessions, follows, list memberships)
-    await prisma.user.delete({
-      where: { email: USER_EMAIL },
-    });
+    await db.delete(users).where(eq(users.email, USER_EMAIL));
     console.log(`✓ users: deleted user (id: ${user.id})`);
     console.log(`✓ accounts: deleted ${user.accounts.length} account(s)`);
     console.log(`✓ sessions: deleted ${user.sessions.length} session(s)`);
 
     // Delete verification tokens
-    const tokensResult = await prisma.verificationToken.deleteMany({
-      where: { identifier: USER_EMAIL },
-    });
+    const deletedTokens = await db
+      .delete(verificationTokens)
+      .where(eq(verificationTokens.identifier, USER_EMAIL))
+      .returning();
     console.log(
-      `✓ verification_tokens: deleted ${tokensResult.count} token(s)`
+      `✓ verification_tokens: deleted ${deletedTokens.length} token(s)`
     );
 
     console.log('\n✅ User deletion complete!');
@@ -119,7 +124,7 @@ async function deleteUser() {
     console.error('❌ Error:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
     console.log('Database connection closed.');
   }
 }

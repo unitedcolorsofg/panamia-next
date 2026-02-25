@@ -1,6 +1,8 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { mentorSessions } from '@/lib/schema';
+import { and, eq, or } from 'drizzle-orm';
 import { VideoRoom } from './_components/video-room';
 
 export default async function SessionPage({
@@ -16,16 +18,14 @@ export default async function SessionPage({
     redirect('/api/auth/signin');
   }
 
-  const prisma = await getPrisma();
-
-  const mentorSession = await prisma.mentorSession.findFirst({
-    where: {
-      sessionId: sessionId,
-      OR: [
-        { mentorEmail: session.user.email },
-        { menteeEmail: session.user.email },
-      ],
-    },
+  const mentorSession = await db.query.mentorSessions.findFirst({
+    where: and(
+      eq(mentorSessions.sessionId, sessionId),
+      or(
+        eq(mentorSessions.mentorEmail, session.user.email),
+        eq(mentorSessions.menteeEmail, session.user.email)
+      )
+    ),
   });
 
   if (!mentorSession) {

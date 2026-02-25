@@ -7,7 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { articles, users } from '@/lib/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import {
   generateUniqueSlug,
   calculateReadingTime,
@@ -27,11 +29,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prisma = await getPrisma();
-
     // Get user and verify they have a screenname
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const currentUser = await db.query.users.findFirst({
+      where: (t, { eq }) => eq(t.id, session.user.id),
     });
     if (!currentUser) {
       return NextResponse.json(
@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
 
     // Validate inReplyTo if provided
     if (inReplyTo) {
-      const parentArticle = await prisma.article.findUnique({
-        where: { id: inReplyTo },
+      const parentArticle = await db.query.articles.findFirst({
+        where: (t, { eq }) => eq(t.id, inReplyTo),
       });
       if (!parentArticle || parentArticle.status !== 'published') {
         return NextResponse.json(
@@ -91,8 +91,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create article
-    const newArticle = await prisma.article.create({
-      data: {
+    const [newArticle] = await db
+      .insert(articles)
+      .values({
         slug,
         title: title.trim(),
         content: content || '',
@@ -105,8 +106,8 @@ export async function POST(request: NextRequest) {
         status: 'draft',
         readingTime,
         inReplyTo: inReplyTo || null,
-      },
-    });
+      })
+      .returning();
 
     return NextResponse.json({
       success: true,
@@ -131,8 +132,6 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma();
-
     const searchParams = request.nextUrl.searchParams;
     const articleType = searchParams.get('type') as
       | 'business_update'
@@ -142,23 +141,26 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const where: any = { status: 'published' };
+    const conditions: any[] = [eq(articles.status, 'published')];
 
     if (articleType) {
-      where.articleType = articleType;
+      conditions.push(eq(articles.articleType, articleType));
     }
 
     if (tag) {
-      where.tags = { has: tag };
+      conditions.push(sql`${articles.tags} @> ARRAY[${tag}]::text[]`);
     }
 
-    const [articles, total] = await Promise.all([
-      prisma.article.findMany({
-        where,
-        orderBy: { publishedAt: 'desc' },
-        skip: offset,
-        take: limit,
-        select: {
+    const whereClause =
+      conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    const [articleRows, countResult] = await Promise.all([
+      db.query.articles.findMany({
+        where: () => whereClause,
+        orderBy: (t, { desc }) => [desc(t.publishedAt)],
+        offset,
+        limit,
+        columns: {
           id: true,
           slug: true,
           title: true,
@@ -171,15 +173,20 @@ export async function GET(request: NextRequest) {
           coverImage: true,
         },
       }),
-      prisma.article.count({ where }),
+      db
+        .select({ count: sql<string>`count(*)` })
+        .from(articles)
+        .where(whereClause),
     ]);
+
+    const total = Number(countResult[0].count);
 
     return NextResponse.json({
       success: true,
       data: {
-        articles,
+        articles: articleRows,
         total,
-        hasMore: offset + articles.length < total,
+        hasMore: offset + articleRows.length < total,
       },
     });
   } catch (error) {

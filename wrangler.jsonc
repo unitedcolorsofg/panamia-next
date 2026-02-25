@@ -14,6 +14,13 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "panamia-next"
     }
+  ],
+
+  // Hyperdrive binding for Supabase PostgreSQL access from Workers
+  // Replace <hyperdrive-id> with your actual Hyperdrive instance ID from:
+  // https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "<hyperdrive-id>" }
   ]
 
   // Deferred: R2 incremental cache (add once basic deployment is stable)

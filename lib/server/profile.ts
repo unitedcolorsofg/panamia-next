@@ -1,16 +1,19 @@
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles, users } from '@/lib/schema';
+import { and, eq, isNull } from 'drizzle-orm';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 /**
  * Get profile by email address
  */
 export const getProfile = async (email: string) => {
-  const prisma = await getPrisma();
-  return await prisma.profile.findUnique({ where: { email } });
+  return await db.query.profiles.findFirst({
+    where: eq(profiles.email, email),
+  });
 };
 
 /**
- * Transform Prisma profile to legacy format for page components
+ * Transform Drizzle profile to legacy format for page components
  * This provides backward compatibility during migration
  */
 function transformToLegacyFormat(profile: any) {
@@ -62,13 +65,18 @@ function transformToLegacyFormat(profile: any) {
  * Returns profile in legacy format for page components
  */
 export const getPublicProfile = async (handle: string) => {
-  const prisma = await getPrisma();
-  const profile = await prisma.profile.findFirst({
-    where: { user: { screenname: handle } },
-    include: { user: { select: { screenname: true } } },
+  // Query via user (screenname is on User, not Profile)
+  const user = await db.query.users.findFirst({
+    where: eq(users.screenname, handle),
+    with: { profile: true },
   });
-  if (!profile) return null;
-  return transformToLegacyFormat(profile);
+
+  if (!user?.profile) return null;
+
+  return transformToLegacyFormat({
+    ...user.profile,
+    user: { screenname: user.screenname },
+  });
 };
 
 /**
@@ -81,8 +89,9 @@ export const getPublicProfile = async (handle: string) => {
  * @returns Profile document or null if not found
  */
 export const getProfileByUserId = async (userId: string) => {
-  const prisma = await getPrisma();
-  return await prisma.profile.findUnique({ where: { userId } });
+  return await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+  });
 };
 
 /**
@@ -106,12 +115,10 @@ export const getProfileByUserId = async (userId: string) => {
  * @see docs/DATABASE-ROADMAP.md for architecture details
  */
 export const ensureProfile = async (userId: string, email?: string) => {
-  const prisma = await getPrisma();
-
   // First, try to find profile by userId (including user for screenname)
-  const userProfile = await prisma.profile.findUnique({
-    where: { userId },
-    include: { user: { select: { screenname: true } } },
+  const userProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+    with: { user: { columns: { screenname: true } } },
   });
 
   if (userProfile) {
@@ -124,22 +131,29 @@ export const ensureProfile = async (userId: string, email?: string) => {
 
   // If email provided, try to claim an unclaimed profile
   if (email) {
-    const unclaimedProfile = await prisma.profile.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        userId: null,
-      },
+    const unclaimedProfile = await db.query.profiles.findFirst({
+      where: and(
+        eq(profiles.email, email.toLowerCase()),
+        isNull(profiles.userId)
+      ),
     });
 
     if (unclaimedProfile) {
-      const claimed = await prisma.profile.update({
-        where: { id: unclaimedProfile.id },
-        data: { userId },
-        include: { user: { select: { screenname: true } } },
+      const [claimed] = await db
+        .update(profiles)
+        .set({ userId })
+        .where(eq(profiles.id, unclaimedProfile.id))
+        .returning();
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: { screenname: true },
       });
+
       return {
         ...claimed,
-        screenname: claimed.user?.screenname,
+        screenname: user?.screenname,
+        user: { screenname: user?.screenname },
       };
     }
   }
