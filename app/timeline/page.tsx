@@ -1,15 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  PostComposer,
-  PostList,
-  SocialEligibilityGate,
-} from '@/components/social';
+import { PostList, SocialEligibilityGate } from '@/components/social';
+
+const PostComposer = dynamic(
+  () =>
+    import('@/components/social/PostComposer').then((m) => ({
+      default: m.PostComposer,
+    })),
+  { ssr: false }
+);
 import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
 import { Home, Globe } from 'lucide-react';
 

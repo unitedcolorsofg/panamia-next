@@ -6,8 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
 import { PostActions } from './PostActions';
-import { PostComposer } from './PostComposer';
+
+const PostComposer = dynamic(
+  () => import('./PostComposer').then((m) => ({ default: m.PostComposer })),
+  { ssr: false }
+);
 import { AttachmentGrid } from './AttachmentGrid';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';

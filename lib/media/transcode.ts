@@ -1,11 +1,11 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile } from '@ffmpeg/util';
+import type { FFmpeg } from '@ffmpeg/ffmpeg';
 
 let ffmpegInstance: FFmpeg | null = null;
 
 async function getFFmpeg(): Promise<FFmpeg> {
   if (ffmpegInstance) return ffmpegInstance;
-  const ffmpeg = new FFmpeg();
+  const { FFmpeg: FFmpegClass } = await import('@ffmpeg/ffmpeg');
+  const ffmpeg = new FFmpegClass();
   await ffmpeg.load({
     coreURL:
       'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js',
@@ -22,6 +22,7 @@ async function getFFmpeg(): Promise<FFmpeg> {
  */
 export async function transcodeToOpus(blob: Blob): Promise<Blob> {
   const ffmpeg = await getFFmpeg();
+  const { fetchFile } = await import('@ffmpeg/util');
   const inputData = await fetchFile(blob);
   await ffmpeg.writeFile('input.webm', inputData);
   await ffmpeg.exec([
@@ -60,6 +61,7 @@ export async function transcodeToWebMVideo(
   const ext = blob.type.split('/')[1]?.split(';')[0] || 'mp4';
   const inputName = `input.${ext}`;
 
+  const { fetchFile } = await import('@ffmpeg/util');
   const inputData = await fetchFile(blob);
   await ffmpeg.writeFile(inputName, inputData);
   await ffmpeg.exec([

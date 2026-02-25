@@ -1,10 +1,19 @@
 'use client';
 
 import { use } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PostCard, PostList, PostComposer } from '@/components/social';
+import { PostCard, PostList } from '@/components/social';
+
+const PostComposer = dynamic(
+  () =>
+    import('@/components/social/PostComposer').then((m) => ({
+      default: m.PostComposer,
+    })),
+  { ssr: false }
+);
 import { useStatus, useStatusReplies, useMyActor } from '@/lib/query/social';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { Loader2, ArrowLeft } from 'lucide-react';

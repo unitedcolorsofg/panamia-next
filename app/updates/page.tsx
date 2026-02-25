@@ -15,9 +15,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCheck, Bell, Mic, Inbox, Send, Trash2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import NotificationItem from '@/components/NotificationItem';
-import { VoiceMemoComposer } from '@/components/social/VoiceMemoComposer';
 import { PostCard } from '@/components/social/PostCard';
+
+const VoiceMemoComposer = dynamic(
+  () =>
+    import('@/components/social/VoiceMemoComposer').then((m) => ({
+      default: m.VoiceMemoComposer,
+    })),
+  { ssr: false }
+);
 import {
   useNotifications,
   useMarkAsRead,
