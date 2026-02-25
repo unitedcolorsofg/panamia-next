@@ -1,31 +1,33 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "panamia-next",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2026-02-24",
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
-  "services": [
-    {
-      // Self-reference required for OpenNext caching
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "panamia-next"
-    }
-  ],
-
-  // Hyperdrive binding for Supabase PostgreSQL access from Workers
-  // Replace <hyperdrive-id> with your actual Hyperdrive instance ID from:
-  // https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
-  "hyperdrive": [
-    { "binding": "HYPERDRIVE", "id": "<hyperdrive-id>" }
-  ]
-
-  // Deferred: R2 incremental cache (add once basic deployment is stable)
-  // "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "panamia-next-opennext-cache" }]
-
-  // Deferred: Cloudflare image optimization
-  // "images": { "binding": "IMAGES" }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "panamia-next",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			// Self-reference required for OpenNext caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "panamia-next"
+		}
+	],
+	// Hyperdrive binding for Supabase PostgreSQL access from Workers
+	// https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "<hyperdrive-id>"
+		}
+	]
+	// Deferred: R2 incremental cache (add once basic deployment is stable)
+	// "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "panamia-next-opennext-cache" }]
+	// Deferred: Cloudflare image optimization
+	// "images": { "binding": "IMAGES" }
 }
