@@ -1,3 +1,8 @@
 import { defineCloudflareConfig } from '@opennextjs/cloudflare';
 
-export default defineCloudflareConfig();
+const cfConfig = defineCloudflareConfig();
+
+export default {
+  ...cfConfig,
+  buildCommand: 'yarn build:next',
+};
