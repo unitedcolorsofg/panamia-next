@@ -112,7 +112,7 @@ export const getProfileByUserId = async (userId: string) => {
  * @returns Profile document or null if no profile exists
  *
  * @see auth.ts signIn callback for automatic claiming at sign-in
- * @see docs/DATABASE-ROADMAP.md for architecture details
+ * @see docs/DATABASE-DESIGN.md for architecture details
  */
 export const ensureProfile = async (userId: string, email?: string) => {
   // First, try to find profile by userId (including user for screenname)

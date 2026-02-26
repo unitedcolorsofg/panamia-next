@@ -207,7 +207,7 @@ CREATE TABLE profiles (
 );
 ```
 
-See [DATABASE-ROADMAP.md](./DATABASE-ROADMAP.md) for migration history.
+See [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) for database design.
 
 ---
 
