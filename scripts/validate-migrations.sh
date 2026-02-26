@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/validate-migrations.sh
-# Validates Prisma migration naming and documentation standards
+# Validates Drizzle migration naming and documentation standards
 #
 # Usage:
 #   ./scripts/validate-migrations.sh           # Validate all migrations
@@ -12,7 +12,7 @@
 
 set -e
 
-MIGRATIONS_DIR="prisma/migrations"
+MIGRATIONS_DIR="drizzle"
 ERRORS=0
 STAGED_ONLY=false
 
@@ -21,33 +21,37 @@ if [ "$1" = "--staged" ]; then
   STAGED_ONLY=true
 fi
 
-# Pattern: 14-digit timestamp + underscore + snake_case (lowercase letters, numbers, underscores)
-VALID_DIR_PATTERN='^[0-9]{14}_[a-z][a-z0-9_]*$'
+# Pattern: 4-digit sequence + underscore + snake_case (lowercase letters, numbers, underscores)
+# Matches Drizzle Kit output: 0000_name.sql, 0001_add_users.sql, etc.
+VALID_FILE_PATTERN='^[0-9]{4}_[a-z][a-z0-9_]*\.sql$'
 
-# Required header fields in migration.sql
+# Required header fields in each migration file
 REQUIRED_HEADERS=("Purpose:" "Ticket:" "Reversible:")
 
-echo "🗄️  Validating Prisma migrations..."
+echo "🗄️  Validating Drizzle migrations..."
 
 # Check if migrations directory exists
 if [ ! -d "$MIGRATIONS_DIR" ]; then
   echo "ℹ️  No migrations directory found at $MIGRATIONS_DIR"
-  echo "   This is expected if PostgreSQL migration hasn't started yet."
+  echo "   Run 'npx drizzle-kit generate' to create the first migration."
   exit 0
 fi
 
-# Get list of migrations to validate
+# Get list of migration files to validate
 if [ "$STAGED_ONLY" = true ]; then
-  # Only check staged migration files
-  MIGRATIONS_TO_CHECK=$(git diff --cached --name-only --diff-filter=A | grep -E "^$MIGRATIONS_DIR/[^/]+/migration\.sql$" | xargs -I{} dirname {} | xargs -I{} basename {} 2>/dev/null || true)
+  # Only check staged migration files (flat .sql files, not meta/ snapshots)
+  MIGRATIONS_TO_CHECK=$(git diff --cached --name-only --diff-filter=A \
+    | grep -E "^$MIGRATIONS_DIR/[0-9]{4}_[a-z][a-z0-9_]*\.sql$" \
+    | xargs -I{} basename {} 2>/dev/null || true)
 
   if [ -z "$MIGRATIONS_TO_CHECK" ]; then
     echo "ℹ️  No new migrations staged"
     exit 0
   fi
 else
-  # Check all migrations
-  MIGRATIONS_TO_CHECK=$(ls -1 "$MIGRATIONS_DIR" 2>/dev/null | grep -v "migration_lock.toml" || true)
+  # Check all migration files (exclude meta/ directory and TEMPLATE.sql)
+  MIGRATIONS_TO_CHECK=$(ls -1 "$MIGRATIONS_DIR" 2>/dev/null \
+    | grep -E "^[0-9]{4}_[a-z][a-z0-9_]*\.sql$" || true)
 
   if [ -z "$MIGRATIONS_TO_CHECK" ]; then
     echo "ℹ️  No migrations found"
@@ -55,36 +59,28 @@ else
   fi
 fi
 
-# Validate each migration
-for dirname in $MIGRATIONS_TO_CHECK; do
-  dir="$MIGRATIONS_DIR/$dirname"
+# Validate each migration file
+for filename in $MIGRATIONS_TO_CHECK; do
+  filepath="$MIGRATIONS_DIR/$filename"
 
-  # Skip if not a directory
-  [ -d "$dir" ] || continue
+  # Skip if not a file
+  [ -f "$filepath" ] || continue
 
-  echo "  Checking: $dirname"
+  echo "  Checking: $filename"
 
-  # 1. Validate directory naming convention
-  if ! [[ "$dirname" =~ $VALID_DIR_PATTERN ]]; then
-    echo "    ❌ Invalid migration name: $dirname"
-    echo "       Expected format: YYYYMMDDHHMMSS_snake_case_description"
-    echo "       Example: 20250115093000_add_users_table"
+  # 1. Validate file naming convention
+  if ! [[ "$filename" =~ $VALID_FILE_PATTERN ]]; then
+    echo "    ❌ Invalid migration name: $filename"
+    echo "       Expected format: NNNN_snake_case_description.sql"
+    echo "       Example: 0001_add_users_table.sql"
     ERRORS=$((ERRORS + 1))
     continue
   fi
 
-  # 2. Validate migration.sql exists
-  sql_file="$dir/migration.sql"
-  if [ ! -f "$sql_file" ]; then
-    echo "    ❌ Missing migration.sql in $dirname"
-    ERRORS=$((ERRORS + 1))
-    continue
-  fi
-
-  # 3. Validate required documentation headers
+  # 2. Validate required documentation headers (checked in first 30 lines)
   for header in "${REQUIRED_HEADERS[@]}"; do
-    if ! head -30 "$sql_file" | grep -q "^-- $header"; then
-      echo "    ❌ Missing '-- $header' header in migration.sql"
+    if ! head -30 "$filepath" | grep -q "^-- $header"; then
+      echo "    ❌ Missing '-- $header' header in $filename"
       ERRORS=$((ERRORS + 1))
     fi
   done
@@ -95,9 +91,9 @@ echo ""
 if [ $ERRORS -gt 0 ]; then
   echo "❌ Found $ERRORS validation error(s)"
   echo ""
-  echo "📋 Required migration.sql header format:"
+  echo "📋 Required migration header format:"
   echo ""
-  echo "   -- Migration: name_matching_folder"
+  echo "   -- Migration: name_matching_file"
   echo "   -- Purpose: Brief description of why this migration exists"
   echo "   -- Ticket: PANA-XXX or N/A for infrastructure"
   echo "   -- Reversible: Yes | No | Partial"
@@ -105,7 +101,7 @@ if [ $ERRORS -gt 0 ]; then
   echo "   -- Rollback: (optional but recommended)"
   echo "   --   DROP TABLE IF EXISTS table_name;"
   echo ""
-  echo "See prisma/migrations/TEMPLATE.sql for a complete example."
+  echo "See drizzle/TEMPLATE.sql for a complete example."
   exit 1
 fi
 

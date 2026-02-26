@@ -28,18 +28,20 @@ fi
 echo "ℹ️  No modifications to external code"
 
 # =============================================================================
-# Prisma Migration Validation
+# Drizzle Migration Validation
 # =============================================================================
 
 echo ""
-echo "🗄️  Checking Prisma migration standards..."
+echo "🗄️  Checking Drizzle migration standards..."
+
+# Migration files are flat .sql files in drizzle/ (e.g. 0000_name.sql)
+# drizzle/meta/ contains auto-generated snapshots — excluded from all checks
 
 # Check for NEW migrations (additions only)
-STAGED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=A | grep -E '^prisma/migrations/[^/]+/migration\.sql$' || true)
-STAGED_MIGRATION_DIRS=$(git diff --cached --name-only --diff-filter=A | grep -E '^prisma/migrations/' | grep -v 'migration_lock.toml' | grep -v 'TEMPLATE.sql' || true)
+STAGED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=A | grep -E '^drizzle/[0-9]{4}_[a-z][a-z0-9_]*\.sql$' || true)
 
 # Check for MODIFIED existing migrations (not allowed)
-MODIFIED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=M | grep -E '^prisma/migrations/[^/]+/migration\.sql$' || true)
+MODIFIED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=M | grep -E '^drizzle/[0-9]{4}_[a-z][a-z0-9_]*\.sql$' || true)
 
 if [ -n "$MODIFIED_MIGRATIONS" ]; then
   echo ""
@@ -50,12 +52,12 @@ if [ -n "$MODIFIED_MIGRATIONS" ]; then
   echo "Modified files:"
   echo "$MODIFIED_MIGRATIONS" | sed 's/^/  /'
   echo ""
-  echo "💡 Use 'npx prisma migrate dev --name fix_description' to create a new migration"
+  echo "💡 Use 'npx drizzle-kit generate' to create a new migration"
   exit 1
 fi
 
 # Validate new migrations with the validation script
-if [ -n "$STAGED_MIGRATION_DIRS" ]; then
+if [ -n "$STAGED_MIGRATIONS" ]; then
   if [ -x "scripts/validate-migrations.sh" ]; then
     ./scripts/validate-migrations.sh --staged || exit 1
   else
