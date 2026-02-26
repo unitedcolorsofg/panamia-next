@@ -258,18 +258,13 @@ export const envConfig: Record<string, EnvVarConfig> = {
     required: false,
     docsUrl: 'https://dashboard.pusher.com/',
   },
-  PUSHER_KEY: {
-    description: 'Pusher key (for server auth)',
-    location: 'SECRET',
-    required: false,
-  },
   PUSHER_SECRET: {
     description: 'Pusher secret',
     location: 'SECRET',
     required: false,
   },
   NEXT_PUBLIC_PUSHER_KEY: {
-    description: 'Pusher key (public, for client)',
+    description: 'Pusher key (used by both server and client)',
     location: 'VAR',
     required: false,
   },
