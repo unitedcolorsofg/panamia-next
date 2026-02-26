@@ -12,6 +12,9 @@
 /.next/
 /out/
 
+# cloudflare / opennextjs build output
+/.open-next/
+
 # production
 /build
 /scripts/images
