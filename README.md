@@ -84,9 +84,9 @@ Want to run the platform locally or contribute code?
 ### Technical Overview
 
 - **Framework**: Next.js 16 with React 19
-- **Database**: PostgreSQL (via Prisma)
+- **Database**: PostgreSQL via Supabase (Drizzle ORM)
 - **Authentication**: Passwordless (magic links + OAuth)
-- **Hosting**: Vercel
+- **Hosting**: Cloudflare Workers
 
 See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.
 
@@ -98,6 +98,7 @@ See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.
 | --------------------------------------------- | -------------------------------------- |
 | [Quick Start](./docs/QUICK-START.md)          | Developer setup guide                  |
 | [Features](./docs/FEATURES.md)                | Platform feature overview              |
+| [Database Design](./docs/DATABASE-DESIGN.md)  | Schema, migrations, connection setup   |
 | [Articles Roadmap](./docs/ARTICLE-ROADMAP.md) | Community articles implementation plan |
 | [Social Roadmap](./docs/SOCIAL-ROADMAP.md)    | Social timeline & federation plan      |
 | [Mentoring Guide](./docs/MENTORING.md)        | Peer mentoring feature guide           |
