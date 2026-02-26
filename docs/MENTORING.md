@@ -43,7 +43,7 @@ The Pana Mia Club mentoring feature enables **peer-to-peer video mentoring** wit
 - **WebRTC** (Prototype): Direct peer-to-peer connections for video/audio
 - **Pusher**: Real-time signaling and chat infrastructure
 - **NextAuth v5**: Secure authentication
-- **PostgreSQL**: Relational database with Prisma ORM
+- **PostgreSQL**: Relational database with Drizzle ORM
 - **shadcn/ui**: Modern, accessible UI components
 
 ### Current Limitations
@@ -357,7 +357,7 @@ The mentoring feature uses a hybrid architecture:
 **Backend:**
 
 - Next.js API Routes (`app/api/mentoring/`, `app/api/pusher/`)
-- PostgreSQL with Prisma for data persistence
+- PostgreSQL (Supabase) with Drizzle ORM for data persistence
 - NextAuth v5 for authentication
 - Pusher for real-time communication
 
@@ -396,10 +396,10 @@ NEXTAUTH_URL=https://localhost:3000
 
 #### Database Setup
 
-Run Prisma migrations to create the database schema:
+Run Drizzle migrations to create the database schema:
 
 ```bash
-npx prisma migrate deploy
+npx drizzle-kit migrate
 ```
 
 #### Pusher App Configuration
@@ -413,18 +413,18 @@ In your Pusher dashboard, ensure:
 
 #### Database Schema
 
-The mentoring feature uses the following Prisma models (see `prisma/schema.prisma`):
+The mentoring feature uses the following Drizzle models (see `lib/schema/index.ts`):
 
 - **Profile**: Extended with `mentoring` JSONB field for mentor settings
 - **MentorSession**: Tracks scheduled sessions between mentors and mentees
 
-Indexes are defined in the Prisma schema and created automatically during migrations.
+Indexes are defined in the Drizzle schema and created automatically during migrations.
 
 ### Extending the Feature
 
 #### Adding a New Field to Profile
 
-**1. Update Prisma Schema** (`prisma/schema.prisma`):
+**1. Update Drizzle Schema** (`lib/schema/index.ts`):
 
 Add the field to the Profile model's `mentoring` JSONB structure, then update the TypeScript interface in `lib/interfaces.ts`.
 
@@ -491,7 +491,9 @@ Currently, the profile form has a placeholder API call. To implement:
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { mentoringProfileSchema } from '@/lib/validations/mentoring-profile';
 
 export async function PATCH(request: NextRequest) {
@@ -499,8 +501,6 @@ export async function PATCH(request: NextRequest) {
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const prisma = await getPrisma();
 
   const body = await request.json();
   const validation = mentoringProfileSchema.safeParse(body);
@@ -512,10 +512,11 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const updated = await prisma.profile.update({
-    where: { email: session.user.email },
-    data: { mentoring: validation.data },
-  });
+  const [updated] = await db
+    .update(profiles)
+    .set({ mentoring: validation.data })
+    .where(eq(profiles.email, session.user.email))
+    .returning();
 
   if (!updated) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
@@ -598,7 +599,7 @@ const onSubmit = async (data: MentoringProfileData) => {
 - **Cause**: Validation errors or database connection
 - **Check**: Browser console for validation errors
 - **Check**: PostgreSQL is running and accessible
-- **Run**: `npx prisma migrate status` to verify migrations
+- **Run**: `npx drizzle-kit migrate` to apply migrations
 
 #### Build/Development Issues
 
@@ -663,13 +664,13 @@ app/api/pusher/
 lib/
 ├── pusher-server.ts                    # Pusher server SDK
 ├── pusher-client.ts                    # Pusher client SDK
-├── prisma.ts                           # Prisma client singleton
+├── db.ts                               # Drizzle ORM client
 └── validations/
     ├── mentoring-profile.ts            # Profile validation
     └── session.ts                      # Session validation
 
-prisma/
-└── schema.prisma                       # Database schema (Profile, MentorSession)
+lib/schema/
+└── index.ts                            # Database schema (Profile, MentorSession)
 
 hooks/
 └── use-debounce.ts                     # Debounce hook for auto-save

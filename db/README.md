@@ -2,7 +2,7 @@
 
 Legacy MongoDB query files (for reference only).
 
-> **Note:** The application now uses PostgreSQL via Prisma. These files are kept for
+> **Note:** The application now uses PostgreSQL via Drizzle ORM. These files are kept for
 > historical reference and migration purposes only.
 
 ## Files
@@ -14,10 +14,11 @@ Was used with MongoDB Compass or mongosh during the MongoDB era.
 
 ## Current Database
 
-The application uses **PostgreSQL** with Prisma ORM. See:
+The application uses **PostgreSQL** (Supabase) with Drizzle ORM. See:
 
-- `/prisma/schema.prisma` - Database schema
-- `/lib/prisma.ts` - Prisma client singleton
+- `/lib/schema/index.ts` - Database schema (Drizzle)
+- `/lib/db.ts` - Drizzle client (uses Hyperdrive in CF Workers, POSTGRES_URL locally)
+- `/drizzle/` - Migration files
 - `/lib/query/` - Query helper functions
 - `/lib/server/` - Server-side database operations
 

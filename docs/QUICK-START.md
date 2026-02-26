@@ -306,7 +306,8 @@ panamia.club/
 │   ├── query/               # Database queries
 │   ├── server/              # Server-side utilities
 │   └── *.ts                 # Auth, email, utils
-├── prisma/                  # Prisma schema & migrations
+├── drizzle/                 # Drizzle migration files
+├── lib/schema/              # Drizzle schema (TypeScript)
 ├── hooks/                   # Custom React hooks
 ├── types/                   # TypeScript type definitions
 ├── styles/                  # Global CSS & theme files

@@ -1,5 +1,10 @@
 # Database Architecture Roadmap
 
+> **Status: Historical** — The MongoDB → PostgreSQL migration described here is complete.
+> The app now uses **Drizzle ORM + postgres.js + Supabase** (Cloudflare Hyperdrive in production).
+> See `lib/schema/index.ts` for the current schema and `drizzle/` for migrations.
+> The Prisma code examples below are retained as historical context only.
+
 This document outlines the strategy for evolving Pana MIA's database architecture to support transactional features (bookings, marketplace, etc.) while preserving the flexibility of document-based content storage.
 
 ---
@@ -482,18 +487,15 @@ export async function ensureProfile(userId: string) {
 
 ### Overview
 
-PostgreSQL migrations are managed via Prisma Migrate with automated validation enforced through git hooks.
+PostgreSQL migrations are managed via Drizzle Kit with automated validation enforced through git hooks.
 
 ```
-prisma/
-├── schema.prisma              # Declarative schema (source of truth)
-└── migrations/
-    ├── TEMPLATE.sql           # Reference template for manual migrations
-    ├── migration_lock.toml    # Prisma lock file
-    ├── 20250115093000_init_users_and_auth/
-    │   └── migration.sql      # Generated + documented
-    └── 20250120140000_add_pet_sitting_tables/
-        └── migration.sql
+lib/schema/index.ts            # Declarative schema (source of truth, TypeScript)
+drizzle/
+├── TEMPLATE.sql               # Reference template for new migrations
+├── meta/                      # Auto-generated snapshots (drizzle-kit)
+├── 0000_init.sql              # Generated + documented
+└── 0001_add_feature.sql
 ```
 
 ### Naming Convention

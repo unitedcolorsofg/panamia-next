@@ -311,7 +311,7 @@ Build the foundation that articles, mentoring, and future features will use.
 
 | File                                           | Purpose                   |
 | ---------------------------------------------- | ------------------------- |
-| `prisma/schema.prisma`                         | Prisma Notification model |
+| `lib/schema/index.ts`                          | Prisma Notification model |
 | `lib/notifications.ts`                         | Helper functions          |
 | `app/api/notifications/route.ts`               | List notifications        |
 | `app/api/notifications/unread-count/route.ts`  | Badge count               |

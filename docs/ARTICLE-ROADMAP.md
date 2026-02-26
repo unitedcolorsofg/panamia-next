@@ -227,7 +227,7 @@ interface UserAdditions {
 | File                   | Description                                       |
 | ---------------------- | ------------------------------------------------- |
 | `lib/notifications.ts` | `createNotification()`, `sendNotificationEmail()` |
-| `prisma/schema.prisma` | Prisma Notification model                         |
+| `lib/schema/index.ts`  | Prisma Notification model                         |
 
 #### Email Integration
 

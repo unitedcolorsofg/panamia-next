@@ -4,13 +4,13 @@ Shared utilities, business logic, data models, and server-side helpers.
 
 ## Core Files
 
-| File            | Description                                                 |
-| --------------- | ----------------------------------------------------------- |
-| `prisma.ts`     | Prisma client singleton (PostgreSQL via @prisma/adapter-pg) |
-| `env.config.ts` | Environment variable definitions and validation             |
-| `interfaces.ts` | TypeScript interfaces for all data models                   |
-| `profile.ts`    | Profile utility functions                                   |
-| `utils.ts`      | General utility functions                                   |
+| File            | Description                                                              |
+| --------------- | ------------------------------------------------------------------------ |
+| `db.ts`         | Drizzle ORM client (uses Hyperdrive in CF Workers, POSTGRES_URL locally) |
+| `env.config.ts` | Environment variable definitions and validation                          |
+| `interfaces.ts` | TypeScript interfaces for all data models                                |
+| `profile.ts`    | Profile utility functions                                                |
+| `utils.ts`      | General utility functions                                                |
 
 ## Environment Configuration
 
@@ -35,9 +35,9 @@ See `.env.local.example` for annotated variable list.
 
 ## Database
 
-### Prisma Models (PostgreSQL)
+### Drizzle Schema (PostgreSQL / Supabase)
 
-Primary data is stored in PostgreSQL via Prisma. See `prisma/schema.prisma` for the full schema.
+Primary data is stored in PostgreSQL via Drizzle ORM. See `lib/schema/index.ts` for the full schema.
 
 | Model               | Description                             |
 | ------------------- | --------------------------------------- |
@@ -157,11 +157,14 @@ Vercel Blob integration for file uploads:
 ## Usage Patterns
 
 ```typescript
-// Prisma (PostgreSQL) - Primary database
-import { getPrisma } from '@/lib/prisma';
-const prisma = await getPrisma();
-const user = await prisma.user.findUnique({ where: { email } });
-const profile = await prisma.profile.findFirst({ where: { email } });
+// Drizzle ORM (PostgreSQL) - Primary database
+import { db } from '@/lib/db';
+import { users, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+const user = await db.query.users.findFirst({ where: eq(users.email, email) });
+const profile = await db.query.profiles.findFirst({
+  where: eq(profiles.email, email),
+});
 
 // Interfaces
 import type { UserInterface, ArticleInterface } from '@/lib/interfaces';
@@ -170,5 +173,5 @@ import type { UserInterface, ArticleInterface } from '@/lib/interfaces';
 ## Notes
 
 - All files are server-side unless noted (localstorage, pusher-client)
-- Database uses Prisma with PostgreSQL
+- Database uses Drizzle ORM with PostgreSQL (Supabase), Hyperdrive in production
 - Validations use Zod schemas
