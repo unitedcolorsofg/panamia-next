@@ -5,7 +5,8 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    // Migrations use the direct (unpooled) connection, not the pooled URL
-    url: process.env.POSTGRES_DIRECT_URL!,
+    // Prefer the direct (unpooled) URL for migrations; fall back to POSTGRES_URL
+    // if POSTGRES_DIRECT_URL is not set (e.g. in Cloudflare's build environment).
+    url: (process.env.POSTGRES_DIRECT_URL ?? process.env.POSTGRES_URL)!,
   },
 });
