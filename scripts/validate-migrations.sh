@@ -28,12 +28,12 @@ VALID_FILE_PATTERN='^[0-9]{4}_[a-z][a-z0-9_]*\.sql$'
 # Required header fields in each migration file
 REQUIRED_HEADERS=("Purpose:" "Ticket:" "Reversible:")
 
-echo "🗄️  Validating Drizzle migrations..."
+echo "Validating Drizzle migrations..."
 
 # Check if migrations directory exists
 if [ ! -d "$MIGRATIONS_DIR" ]; then
-  echo "ℹ️  No migrations directory found at $MIGRATIONS_DIR"
-  echo "   Run 'npx drizzle-kit generate' to create the first migration."
+  echo "No migrations directory found at $MIGRATIONS_DIR"
+  echo "  Run 'npx drizzle-kit generate' to create the first migration."
   exit 0
 fi
 
@@ -45,7 +45,7 @@ if [ "$STAGED_ONLY" = true ]; then
     | xargs -I{} basename {} 2>/dev/null || true)
 
   if [ -z "$MIGRATIONS_TO_CHECK" ]; then
-    echo "ℹ️  No new migrations staged"
+    echo "No new migrations staged"
     exit 0
   fi
 else
@@ -54,7 +54,7 @@ else
     | grep -E "^[0-9]{4}_[a-z][a-z0-9_]*\.sql$" || true)
 
   if [ -z "$MIGRATIONS_TO_CHECK" ]; then
-    echo "ℹ️  No migrations found"
+    echo "No migrations found"
     exit 0
   fi
 fi
@@ -70,9 +70,9 @@ for filename in $MIGRATIONS_TO_CHECK; do
 
   # 1. Validate file naming convention
   if ! [[ "$filename" =~ $VALID_FILE_PATTERN ]]; then
-    echo "    ❌ Invalid migration name: $filename"
-    echo "       Expected format: NNNN_snake_case_description.sql"
-    echo "       Example: 0001_add_users_table.sql"
+    echo "    ERROR: Invalid migration name: $filename"
+    echo "           Expected format: NNNN_snake_case_description.sql"
+    echo "           Example: 0001_add_users_table.sql"
     ERRORS=$((ERRORS + 1))
     continue
   fi
@@ -80,7 +80,7 @@ for filename in $MIGRATIONS_TO_CHECK; do
   # 2. Validate required documentation headers (checked in first 30 lines)
   for header in "${REQUIRED_HEADERS[@]}"; do
     if ! head -30 "$filepath" | grep -q "^-- $header"; then
-      echo "    ❌ Missing '-- $header' header in $filename"
+      echo "    ERROR: Missing '-- $header' header in $filename"
       ERRORS=$((ERRORS + 1))
     fi
   done
@@ -89,9 +89,9 @@ done
 echo ""
 
 if [ $ERRORS -gt 0 ]; then
-  echo "❌ Found $ERRORS validation error(s)"
+  echo "ERROR: Found $ERRORS validation error(s)"
   echo ""
-  echo "📋 Required migration header format:"
+  echo "Required migration header format:"
   echo ""
   echo "   -- Migration: name_matching_file"
   echo "   -- Purpose: Brief description of why this migration exists"
@@ -105,4 +105,4 @@ if [ $ERRORS -gt 0 ]; then
   exit 1
 fi
 
-echo "✅ All migrations valid"
+echo "All migrations valid"

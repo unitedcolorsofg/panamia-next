@@ -18,33 +18,33 @@ Pana Mia Club is a 501(c)(3) non-profit building tools to support regenerative, 
 
 ## What We Offer
 
-### 🌸 Community Directory
+### Community Directory
 
 Discover local artists, musicians, restaurants, venues, and creative businesses. Browse by category, neighborhood, or keyword.
 
-### 📅 Events
+### Events
 
 Find local shows, markets, gallery openings, and community gatherings. Stay connected to what's happening in your neighborhood.
 
-### 📣 Social Timeline
+### Social Timeline
 
 A multimedia microblogging platform built into the community. Share posts with markdown formatting, images, and voice memos. Follow other community members, like and reply to posts. Built on [ActivityPub](https://www.w3.org/TR/activitypub/) for future federation with Mastodon, Pixelfed, and other fediverse servers.
 
 _Features: Markdown editor, media attachments, post visibility controls, content-sensitivity labels_
 
-### ✍️ Community Articles
+### Community Articles
 
 Share your voice with the community. Write about local culture, neighborhood guides, business spotlights, or creative projects. Collaborate with co-authors and get feedback through peer review before publishing.
 
 _Features: Co-authorship, peer review, RSS feeds_
 
-### 🤝 Peer Mentoring
+### Peer Mentoring
 
 Connect one-on-one with community members for mentoring sessions. Whether you're seeking guidance on starting a business, navigating the local scene, or staying centered—find someone who's been there.
 
 _Features: Video calls, scheduling, session notes_
 
-### 💝 Support Local
+### Support Local
 
 Every profile represents a real person or business in our community. When you discover someone through Pana Mia, you're supporting the local economy.
 
@@ -79,7 +79,7 @@ We welcome developers, designers, writers, and community organizers. See our [Co
 
 Want to run the platform locally or contribute code?
 
-👉 **[Quick Start Guide](./docs/QUICK-START.md)** — Get the development environment running
+**[Quick Start Guide](./docs/QUICK-START.md)** — Get the development environment running
 
 ### Technical Overview
 
@@ -124,4 +124,4 @@ See [LICENSE](./LICENSE) file for details.
 
 ---
 
-_Built with 🌺 in South Florida_
+_Built in South Florida_

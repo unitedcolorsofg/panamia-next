@@ -1,18 +1,63 @@
 #!/bin/sh
 
 # =============================================================================
+# Emoji Screening
+# =============================================================================
+# Rejects commits that introduce emoji characters into staged text files.
+# Ranges checked: U+1F000-U+1FFFF (emoji), U+2600-U+27BF (misc symbols).
+
+echo ""
+echo "Checking for emoji in staged files..."
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -v "^external/" || true)
+
+EMOJI_FILES=""
+
+for file in $STAGED_FILES; do
+  [ -f "$file" ] || continue
+
+  # Check staged content via python3; skip binary/non-UTF-8 files silently
+  if git show ":$file" 2>/dev/null \
+    | python3 -c "
+import sys
+try:
+    text = sys.stdin.buffer.read().decode('utf-8')
+except Exception:
+    sys.exit(0)
+sys.exit(any(0x1F000 <= ord(c) <= 0x1FFFF or 0x2600 <= ord(c) <= 0x27BF for c in text))
+" 2>/dev/null; then
+    : # no emoji
+  else
+    EMOJI_FILES="$EMOJI_FILES
+  $file"
+  fi
+done
+
+if [ -n "$EMOJI_FILES" ]; then
+  echo ""
+  echo "ERROR: Emoji characters found in staged files:"
+  echo "$EMOJI_FILES"
+  echo ""
+  echo "Remove emoji and use plain text equivalents, then re-stage."
+  exit 1
+fi
+
+echo "No emoji found"
+
+# =============================================================================
 # External Code Protection (activities.next subtree)
 # =============================================================================
 
 echo ""
-echo "🔒 Checking for modifications to external code..."
+echo "Checking for modifications to external code..."
 
 # Check for modifications to external/activities.next
 EXTERNAL_CHANGES=$(git diff --cached --name-only | grep "^external/activities.next/" || true)
 
 if [ -n "$EXTERNAL_CHANGES" ]; then
   echo ""
-  echo "❌ ERROR: Modifications to external/activities.next/ are not allowed!"
+  echo "ERROR: Modifications to external/activities.next/ are not allowed!"
   echo ""
   echo "The following files were modified:"
   echo "$EXTERNAL_CHANGES" | sed 's/^/  /'
@@ -25,17 +70,17 @@ if [ -n "$EXTERNAL_CHANGES" ]; then
   exit 1
 fi
 
-echo "ℹ️  No modifications to external code"
+echo "No modifications to external code"
 
 # =============================================================================
 # Drizzle Migration Validation
 # =============================================================================
 
 echo ""
-echo "🗄️  Checking Drizzle migration standards..."
+echo "Checking Drizzle migration standards..."
 
 # Migration files are flat .sql files in drizzle/ (e.g. 0000_name.sql)
-# drizzle/meta/ contains auto-generated snapshots — excluded from all checks
+# drizzle/meta/ contains auto-generated snapshots -- excluded from all checks
 
 # Check for NEW migrations (additions only)
 STAGED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=A | grep -E '^drizzle/[0-9]{4}_[a-z][a-z0-9_]*\.sql$' || true)
@@ -45,14 +90,14 @@ MODIFIED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=M | grep -E '^
 
 if [ -n "$MODIFIED_MIGRATIONS" ]; then
   echo ""
-  echo "❌ ERROR: Cannot modify existing migrations!"
-  echo "   Migrations are immutable once committed."
-  echo "   Create a new migration instead."
+  echo "ERROR: Cannot modify existing migrations!"
+  echo "  Migrations are immutable once committed."
+  echo "  Create a new migration instead."
   echo ""
   echo "Modified files:"
   echo "$MODIFIED_MIGRATIONS" | sed 's/^/  /'
   echo ""
-  echo "💡 Use 'npx drizzle-kit generate' to create a new migration"
+  echo "Use 'npx drizzle-kit generate' to create a new migration"
   exit 1
 fi
 
@@ -61,10 +106,10 @@ if [ -n "$STAGED_MIGRATIONS" ]; then
   if [ -x "scripts/validate-migrations.sh" ]; then
     ./scripts/validate-migrations.sh --staged || exit 1
   else
-    echo "⚠️  Warning: scripts/validate-migrations.sh not found or not executable"
+    echo "Warning: scripts/validate-migrations.sh not found or not executable"
   fi
 else
-  echo "ℹ️  No new migrations to validate"
+  echo "No new migrations to validate"
 fi
 
 # =============================================================================
@@ -72,7 +117,7 @@ fi
 # =============================================================================
 
 echo ""
-echo "🔍 Checking Playwright test coverage for modified pages..."
+echo "Checking Playwright test coverage for modified pages..."
 
 # Get staged app pages (|| true prevents exit on no matches with set -e)
 STAGED_PAGES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^app/.*page\.tsx$' || true)
@@ -91,24 +136,24 @@ if [ -n "$STAGED_PAGES" ]; then
     FOUND_PARTIAL=$(grep -rq "goto(['\"\`].*$ROUTE" tests/ 2>/dev/null && echo "1" || true)
     if [ -z "$FOUND_EXACT" ] && [ -z "$FOUND_PARTIAL" ]; then
       UNCOVERED_PAGES="$UNCOVERED_PAGES
-  📄 $page → $ROUTE"
+  $page -> $ROUTE"
     fi
   done
 
   if [ -n "$UNCOVERED_PAGES" ]; then
     echo ""
-    echo "⚠️  WARNING: Modified pages may not have Playwright test coverage:"
+    echo "WARNING: Modified pages may not have Playwright test coverage:"
     echo "$UNCOVERED_PAGES"
     echo ""
-    echo "💡 Consider adding test cases to tests/e2e/"
-    echo "   Run 'npm run test:ui' to create tests interactively"
+    echo "Consider adding test cases to tests/e2e/"
+    echo "Run 'npm run test:ui' to create tests interactively"
     echo ""
   fi
 fi
 
 # Check for new folders without README.md
 echo ""
-echo "📁 Checking for new folders without README.md..."
+echo "Checking for new folders without README.md..."
 
 # Get all staged files and extract unique directories
 STAGED_DIRS=$(git diff --cached --name-only --diff-filter=A | xargs -I{} dirname {} 2>/dev/null | sort -u || true)
@@ -131,17 +176,17 @@ if [ -n "$STAGED_DIRS" ]; then
       ADDING_README=$(git diff --cached --name-only | grep -q "^$dir/README.md$" && echo "1" || true)
       if [ -z "$ADDING_README" ]; then
         MISSING_READMES="$MISSING_READMES
-  📂 $dir"
+  $dir"
       fi
     fi
   done
 
   if [ -n "$MISSING_READMES" ]; then
     echo ""
-    echo "⚠️  WARNING: New folders may be missing README.md:"
+    echo "WARNING: New folders may be missing README.md:"
     echo "$MISSING_READMES"
     echo ""
-    echo "💡 Consider adding a README.md to explain the folder's purpose"
+    echo "Consider adding a README.md to explain the folder's purpose"
     echo ""
   fi
 fi
@@ -151,7 +196,7 @@ fi
 # =============================================================================
 
 echo ""
-echo "📜 Checking for stale README.md files..."
+echo "Checking for stale README.md files..."
 
 # Find all directories with README.md (exclude external/, node_modules/, .git/, .next/)
 README_DIRS=$(find . -name "README.md" -type f \
@@ -191,17 +236,17 @@ for dir in $README_DIRS; do
 
     if [ -z "$README_UPDATED" ]; then
       STALE_READMES="$STALE_READMES
-  📂 ${readme_path}"
+  ${readme_path}"
     fi
   fi
 done
 
 if [ -n "$STALE_READMES" ]; then
   echo ""
-  echo "⚠️  WARNING: Files changed in directories without updating README.md:"
+  echo "WARNING: Files changed in directories without updating README.md:"
   echo "$STALE_READMES"
   echo ""
-  echo "💡 Consider updating the README.md files if the changes affect documentation"
+  echo "Consider updating the README.md files if the changes affect documentation"
   echo ""
 fi
 
