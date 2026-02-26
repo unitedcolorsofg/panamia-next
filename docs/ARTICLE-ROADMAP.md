@@ -227,7 +227,7 @@ interface UserAdditions {
 | File                   | Description                                       |
 | ---------------------- | ------------------------------------------------- |
 | `lib/notifications.ts` | `createNotification()`, `sendNotificationEmail()` |
-| `lib/schema/index.ts`  | Prisma Notification model                         |
+| `lib/schema/index.ts`  | Drizzle Notification model                        |
 
 #### Email Integration
 
@@ -827,7 +827,7 @@ components/
 ### Required (Already in project)
 
 - Next.js 16
-- PostgreSQL / Prisma
+- PostgreSQL / Drizzle
 - NextAuth
 - Nodemailer / Brevo
 - BunnyCDN (images)

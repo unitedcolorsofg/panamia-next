@@ -107,7 +107,7 @@ Benefits:
 │                                                                     │
 │  ┌──────────────────────┐         ┌──────────────────────────────┐ │
 │  │   PostgreSQL         │         │         MongoDB              │ │
-│  │   (via Prisma)       │         │       (via Mongoose)         │ │
+│  │   (via Drizzle)      │         │       (via Mongoose)         │ │
 │  ├──────────────────────┤         ├──────────────────────────────┤ │
 │  │ users (authoritative)│         │ profiles                     │ │
 │  │ - id (cuid) PK ──────────────────→ userId                     │ │
@@ -274,7 +274,7 @@ No big-bang rewrite required:
 
 ## Implementation
 
-### Prisma Schema
+### Historical: Prisma Schema (replaced by lib/schema/index.ts)
 
 ```prisma
 // prisma/schema.prisma
@@ -544,17 +544,17 @@ Every `migration.sql` must include a header with these fields:
 
 ```bash
 # Wrong: editing existing migration
-git add prisma/migrations/20250115_init/migration.sql  # ❌ Blocked
+git add drizzle/0000_init.sql  # ❌ Blocked by pre-commit hook
 
 # Right: create a new migration
-npx prisma migrate dev --name fix_user_email_constraint  # ✅
+npx drizzle-kit generate  # generates drizzle/0001_fix_user_email.sql ✅
 ```
 
 ### Git Hooks Enforcement
 
 The `.husky/pre-commit` hook validates:
 
-1. **Naming convention** - Directory must match `YYYYMMDDHHMMSS_snake_case`
+1. **Naming convention** - File must match `NNNN_snake_case.sql`
 2. **Required headers** - `Purpose:`, `Ticket:`, `Reversible:` must be present
 3. **Immutability** - Modifications to existing migrations are blocked
 
@@ -567,21 +567,21 @@ Run validation manually:
 
 ### Tracking Applied Migrations
 
-Prisma tracks applied migrations in the `_prisma_migrations` table:
+Drizzle Kit tracks applied migrations in the `__drizzle_migrations` table:
 
 ```sql
 -- View migration history
-SELECT migration_name, finished_at, applied_steps_count
-FROM _prisma_migrations
-ORDER BY finished_at;
+SELECT id, hash, created_at
+FROM __drizzle_migrations
+ORDER BY created_at;
 ```
 
-Or via CLI:
+Or inspect `drizzle/meta/_journal.json` which records all applied migrations locally.
 
 ```bash
-npx prisma migrate status    # Shows applied/pending migrations
-npx prisma migrate deploy    # Apply pending migrations (production)
-npx prisma migrate dev       # Apply + generate (development)
+npx drizzle-kit migrate   # Apply pending migrations (dev + production)
+npx drizzle-kit generate  # Generate new migration from schema diff
+npx drizzle-kit studio    # Open visual schema browser
 ```
 
 ### Workflow
@@ -589,21 +589,21 @@ npx prisma migrate dev       # Apply + generate (development)
 **Development:**
 
 ```bash
-# 1. Modify prisma/schema.prisma
-# 2. Generate and apply migration
-npx prisma migrate dev --name add_feature_name
+# 1. Modify lib/schema/index.ts
+# 2. Generate migration
+npx drizzle-kit generate
 
-# 3. Add documentation to generated migration.sql
-# 4. Commit both schema.prisma and migrations/
-git add prisma/
+# 3. Add documentation headers to the generated .sql file
+# 4. Commit schema + migration
+git add lib/schema/index.ts drizzle/
 git commit -m "feat(db): add feature tables"
 ```
 
 **Production Deployment:**
 
 ```bash
-# CI/CD runs:
-npx prisma migrate deploy  # Applies pending migrations
+# CI/CD runs (or yarn build:cf):
+npx drizzle-kit migrate   # Applies pending migrations
 ```
 
 ### MongoDB ↔ PostgreSQL Coordination
@@ -621,7 +621,7 @@ Since MongoDB documents reference PostgreSQL IDs:
 
 ### Phase 1: Add PostgreSQL (Parallel Operation) ✅
 
-- [x] Add Prisma dependency and configuration
+- [x] Add Drizzle dependency and configuration
 - [x] Set up PostgreSQL (Neon)
 - [x] Create schema with users, accounts, sessions tables
 - [x] Both databases running, not yet integrated
@@ -632,7 +632,7 @@ Since MongoDB documents reference PostgreSQL IDs:
 
 - [x] Create export script (`scripts/export-auth-data.ts`)
 - [x] Create import script with ObjectId → cuid transformation (`scripts/import-auth-data.ts`)
-- [x] Switch auth.ts to use Prisma adapter (PostgreSQL-only, no toggle needed)
+- [x] Switch auth.ts to use Drizzle adapter (PostgreSQL-only, no toggle needed)
 - [x] Remove `@auth/mongodb-adapter` dependency
 - [ ] Run export script on production data (from commit 6fe64f9)
 - [ ] Run import script to PostgreSQL
@@ -654,8 +654,8 @@ Since MongoDB documents reference PostgreSQL IDs:
 - [x] Update API routes to use both connections
   - Profile routes use `ensureProfile()` with userId from session
   - Admin check uses `session.user.isAdmin` (from ADMIN_EMAILS)
-  - OAuth/email-migration routes use Prisma for auth operations
-- [x] Convert auth scripts to TypeScript with Prisma
+  - OAuth/email-migration routes use Drizzle for auth operations
+- [x] Convert auth scripts to TypeScript with Drizzle
   - `scripts/create-signin-link.ts` - creates magic sign-in links
   - `scripts/get-signin-link.ts` - checks token status
   - `scripts/delete-user.ts` - deletes from both PostgreSQL and MongoDB
@@ -687,14 +687,14 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
 ### Phase 5: Migrate Notifications ✅
 
 - [x] Create `notifications` table in PostgreSQL with real FKs to `users`
-  - Added `Notification` model to Prisma schema with enums
+  - Added Notification model to Drizzle schema with enums
   - Migration: `20260114135300_add_notifications`
   - Includes ActivityPub-shaped fields (type, actor, target, context)
   - Denormalized display data to avoid cross-database joins
 - [x] Create migration script (`scripts/migrate-notifications.ts`)
   - Maps MongoDB user ObjectIds to PostgreSQL user IDs via email
   - Supports dry-run mode for validation
-- [x] Update notification queries to use Prisma (`lib/notifications.ts`)
+- [x] Update notification queries to use Drizzle (`lib/notifications.ts`)
   - `createNotification()` - creates with denormalized actor info
   - `getNotifications()` - paginated list with filtering
   - `getUnreadCount()`, `markAsRead()`, `markAllAsRead()`
@@ -710,7 +710,7 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
 ### Phase 6: Migrate Articles ✅
 
 - [x] Create `articles` table with JSONB for flexible metadata
-  - Added `Article` model to Prisma schema with enums
+  - Added Article model to Drizzle schema with enums
   - Migration: `20260114160000_add_articles`
   - Includes self-referencing `inReplyTo` for article threading
   - JSONB columns for `coAuthors` and `reviewedBy` nested data
@@ -718,7 +718,7 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for license details.
   - Maps MongoDB user ObjectIds to PostgreSQL user IDs via email
   - Preserves all article metadata including tags, reading time, etc.
   - Supports dry-run mode for validation
-- [x] Update article queries to use Prisma
+- [x] Update article queries to use Drizzle
   - All `/api/articles/*` routes updated
   - All `/api/admin/articles/*` routes updated
   - All RSS/JSON feed routes (`/feed.*`) updated
@@ -758,8 +758,8 @@ CREATE TABLE articles (
 
 - [x] Create `profiles` table with JSONB for flexible nested data
 - [x] Migrate profile data from MongoDB
-- [x] Update profile queries to use Prisma
-- [x] Profile model in Prisma (legacy `users.ts` remains for directory)
+- [x] Update profile queries to use Drizzle
+- [x] Profile model in Drizzle (legacy `users.ts` remains for directory)
 
 **Schema approach:**
 
@@ -792,15 +792,15 @@ CREATE TABLE profiles (
 
 - [x] Create `UserFollow` table for follow relationships
 - [x] Create `UserList` and `UserListMember` tables for curated lists
-- [x] Convert follow/unfollow routes to Prisma
-- [x] Convert user list routes to Prisma
+- [x] Convert follow/unfollow routes to Drizzle
+- [x] Convert user list routes to Drizzle
 - [x] Remove unused MongoDB models (followers, userlist, user, event, links, newsletter, podcasts)
 
 ### Phase 9: MongoDB Decommissioning ✅
 
 **Completed migrations:**
 
-| Model                  | Prisma Model        | Status      |
+| Model                  | Drizzle Model       | Status      |
 | ---------------------- | ------------------- | ----------- |
 | `contactus.ts`         | `ContactSubmission` | ✅ Migrated |
 | `signup.ts`            | `NewsletterSignup`  | ✅ Migrated |
@@ -842,7 +842,7 @@ E2E tests require a real PostgreSQL database. Set `POSTGRES_URL` in your environ
 
 ### Why Not In-Memory Testing?
 
-PGLite (in-memory PostgreSQL via WebAssembly) was evaluated but found **incompatible with Next.js/Turbopack's bundled environment**. The `pglite-prisma-adapter` has internal path operations that fail when bundled by Turbopack.
+PGLite (in-memory PostgreSQL via WebAssembly) was evaluated but found **incompatible with Next.js/Turbopack's bundled environment**. The `pglite-drizzle-adapter` has internal path operations that fail when bundled by Turbopack.
 
 PGLite works correctly when run as a standalone Node.js script, but fails in the Next.js dev server context with:
 

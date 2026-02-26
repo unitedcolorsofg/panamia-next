@@ -107,8 +107,8 @@ This mirrors ActivityPub's Actor → Activity → Object model.
  * future federation without schema migration.
  */
 
-// NOTE: This example shows the schema design. Actual implementation uses Prisma.
-// See prisma/schema.prisma for the current Notification model.
+// NOTE: This example shows the schema design. Actual implementation uses Drizzle.
+// See lib/schema/index.ts for the current Notification model.
 
 // ActivityPub-compatible activity types
 // See: https://www.w3.org/TR/activitystreams-vocabulary/#activity-types
@@ -309,18 +309,18 @@ Build the foundation that articles, mentoring, and future features will use.
 
 #### Files to Create
 
-| File                                           | Purpose                   |
-| ---------------------------------------------- | ------------------------- |
-| `lib/schema/index.ts`                          | Prisma Notification model |
-| `lib/notifications.ts`                         | Helper functions          |
-| `app/api/notifications/route.ts`               | List notifications        |
-| `app/api/notifications/unread-count/route.ts`  | Badge count               |
-| `app/api/notifications/[id]/read/route.ts`     | Mark as read              |
-| `app/api/notifications/mark-all-read/route.ts` | Mark all read             |
-| `app/updates/page.tsx`                         | Full history page         |
-| `components/NotificationFlower.tsx`            | Header button             |
-| `components/NotificationDropdown.tsx`          | Quick view dropdown       |
-| `components/NotificationItem.tsx`              | Individual notification   |
+| File                                           | Purpose                    |
+| ---------------------------------------------- | -------------------------- |
+| `lib/schema/index.ts`                          | Drizzle Notification model |
+| `lib/notifications.ts`                         | Helper functions           |
+| `app/api/notifications/route.ts`               | List notifications         |
+| `app/api/notifications/unread-count/route.ts`  | Badge count                |
+| `app/api/notifications/[id]/read/route.ts`     | Mark as read               |
+| `app/api/notifications/mark-all-read/route.ts` | Mark all read              |
+| `app/updates/page.tsx`                         | Full history page          |
+| `components/NotificationFlower.tsx`            | Header button              |
+| `components/NotificationDropdown.tsx`          | Quick view dropdown        |
+| `components/NotificationItem.tsx`              | Individual notification    |
 
 #### Helper Functions
 
@@ -508,7 +508,7 @@ All notification-related code MUST include upstream reference comments:
 
 ### Required (Already in project)
 
-- PostgreSQL / Prisma
+- PostgreSQL / Drizzle
 - NextAuth (user context)
 - Nodemailer / Brevo (email)
 

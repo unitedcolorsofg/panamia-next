@@ -21,15 +21,15 @@ Screennames are semi-public identifiers that:
 
 ## Data Model
 
-### User Schema (Prisma)
+### User Schema (Drizzle)
 
-```prisma
-// prisma/schema.prisma
-model User {
+```typescript
+// lib/schema/index.ts
+export const users = pgTable('users', {
   // ...
-  screenname String? @unique
+  screenname: text('screenname').unique(),
   // ...
-}
+});
 ```
 
 Note: PostgreSQL handles case-insensitive uniqueness via the `citext` extension or application-level normalization. The current implementation normalizes screennames to lowercase before storage.

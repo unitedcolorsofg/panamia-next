@@ -101,7 +101,7 @@ See `.env.local.example` for all available options with detailed comments.
 **Run migrations:**
 
 ```bash
-npx prisma migrate deploy
+npx drizzle-kit migrate
 ```
 
 ---
@@ -228,7 +228,7 @@ yarn start
 | [React](https://react.dev/)                   | 19.x    | UI library                      |
 | [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type-safe JavaScript            |
 | [PostgreSQL](https://www.postgresql.org/)     | 16.x    | Relational database             |
-| [Prisma](https://www.prisma.io/)              | 7.x     | Database ORM                    |
+| [Drizzle ORM](https://orm.drizzle.team/)      | 0.44    | Database ORM + migrations       |
 
 ### UI & Styling
 

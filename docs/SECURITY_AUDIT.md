@@ -287,14 +287,14 @@ Sessions are restricted to authorized participants only:
 **Database Query Pattern**:
 
 ```typescript
-await prisma.mentorSession.findFirst({
-  where: {
-    sessionId: params.sessionId,
-    OR: [
-      { mentorEmail: session.user.email },
-      { menteeEmail: session.user.email },
-    ],
-  },
+await db.query.mentorSessions.findFirst({
+  where: and(
+    eq(mentorSessions.sessionId, params.sessionId),
+    or(
+      eq(mentorSessions.mentorEmail, session.user.email),
+      eq(mentorSessions.menteeEmail, session.user.email)
+    )
+  ),
 });
 ```
 
@@ -373,16 +373,16 @@ All user inputs validated before processing:
 
 ### Database Query Security
 
-**Parameterized Queries**: All queries use Prisma ORM
-**Injection Prevention**: Prisma handles parameterization
+**Parameterized Queries**: All queries use Drizzle ORM
+**Injection Prevention**: Drizzle + postgres.js handle parameterization
 **Field Selection**: `select` used to limit exposed fields
 
 Example:
 
 ```typescript
-await prisma.profile.findMany({
+await db.query.profiles.findMany({
   where: query,
-  select: {
+  columns: {
     name: true,
     email: true,
     mentoring: true,
@@ -482,7 +482,7 @@ if (!session?.user?.email) {
 
 ### Data Validation
 
-**Prisma Schema**: Enforces data types and relations
+**Drizzle Schema**: Enforces data types and relations
 **Required Fields**: Validated at schema level
 **Foreign Keys**: Enforce referential integrity
 **Indexes**: Optimize queries and enforce uniqueness

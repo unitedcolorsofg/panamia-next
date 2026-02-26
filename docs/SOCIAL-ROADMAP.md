@@ -126,113 +126,96 @@ Prefix all social tables with `social_` to avoid conflicts with panamia tables:
 
 ### Key Models
 
-```prisma
+```typescript
+// lib/schema/index.ts — key social models (abbreviated)
+
 // Profile ↔ SocialActor (1:1, optional)
 // Local users who enable social features get an actor
-
-model SocialActor {
-  id                  String    @id @default(cuid())
-  username            String    // screenname
-  domain              String    // panamia.club for local, remote domain for others
-  profileId           String?   @unique
-  profile             Profile?  @relation(fields: [profileId], references: [id])
-
-  // ActivityPub fields
-  publicKey           String
-  privateKey          String?   // null for remote actors
-  inboxUrl            String
-  outboxUrl           String
-  followersUrl        String
-  followingUrl        String
-
-  // Metadata
-  name                String?
-  summary             String?
-  iconUrl             String?
-
-  // Counts
-  followingCount      Int       @default(0)
-  followersCount      Int       @default(0)
-  statusCount         Int       @default(0)
-
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  statuses            SocialStatus[]
-  outgoingFollows     SocialFollow[] @relation("FollowActor")
-  incomingFollows     SocialFollow[] @relation("FollowTarget")
-
-  @@unique([username, domain])
-  @@map("social_actors")
-}
+export const socialActors = pgTable(
+  'social_actors',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    username: text('username').notNull(), // screenname
+    domain: text('domain').notNull(), // panamia.club for local
+    profileId: text('profile_id').unique(),
+    publicKey: text('public_key').notNull(),
+    privateKey: text('private_key'), // null for remote actors
+    inboxUrl: text('inbox_url').notNull(),
+    outboxUrl: text('outbox_url').notNull(),
+    followersUrl: text('followers_url').notNull(),
+    followingUrl: text('following_url').notNull(),
+    name: text('name'),
+    summary: text('summary'),
+    iconUrl: text('icon_url'),
+    followingCount: integer('following_count').notNull().default(0),
+    followersCount: integer('followers_count').notNull().default(0),
+    statusCount: integer('status_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [unique().on(t.username, t.domain)]
+);
 
 // SocialStatus - posts, announcements, replies
 // NOT 1:1 with Article - multiple authors can announce the same article
-
-model SocialStatus {
-  id              String        @id @default(cuid())
-  uri             String        @unique  // ActivityPub URI
-  actorId         String
-  actor           SocialActor   @relation(fields: [actorId], references: [id])
-
-  // Link to article (for announcements)
-  articleId       String?
-  article         Article?      @relation(fields: [articleId], references: [id])
-
-  // Content
-  type            String        // Note (default), Article, etc.
-  content         String?       // HTML content
-  contentWarning  String?       // CW/spoiler text
-  url             String?       // Canonical URL
-
-  // Threading
-  inReplyToUri    String?       // AP URI of parent status
-  inReplyToId     String?       // Local ID if we have the parent
-  inReplyTo       SocialStatus? @relation("StatusReplies", fields: [inReplyToId], references: [id])
-  replies         SocialStatus[] @relation("StatusReplies")
-
-  // For article announcements: draft content before publish
-  isDraft         Boolean       @default(false)
-
-  // Timestamps
-  published       DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  attachments     SocialAttachment[]
-  tags            SocialTag[]
-  likes           SocialLike[]
-
-  @@index([articleId])
-  @@index([inReplyToUri])
-  @@index([actorId, published])
-  @@map("social_statuses")
-}
+export const socialStatuses = pgTable(
+  'social_statuses',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    uri: text('uri').notNull().unique(), // ActivityPub URI
+    actorId: text('actor_id').notNull(),
+    articleId: text('article_id'),
+    type: text('type').notNull(), // Note, Article, etc.
+    content: text('content'),
+    contentWarning: text('content_warning'),
+    url: text('url'),
+    inReplyToUri: text('in_reply_to_uri'),
+    inReplyToId: text('in_reply_to_id'),
+    isDraft: boolean('is_draft').notNull().default(false),
+    published: timestamp('published', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [
+    index().on(t.articleId),
+    index().on(t.inReplyToUri),
+    index().on(t.actorId, t.published),
+  ]
+);
 
 // ArticleAnnouncement - draft announcements that publish with article
-// Separate from SocialStatus to track pre-composed drafts
-
-model ArticleAnnouncement {
-  id          String   @id @default(cuid())
-  articleId   String
-  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  authorId    String   // User ID (author or co-author)
-  author      User     @relation(fields: [authorId], references: [id])
-
-  // Draft content
-  content     String   // The announcement text
-  attachments Json     @default("[]")  // Optional media
-
-  // After publish, links to the created SocialStatus
-  statusId    String?  @unique
-  status      SocialStatus? @relation(fields: [statusId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([articleId, authorId])  // One announcement per author per article
-  @@map("article_announcements")
-}
+export const articleAnnouncements = pgTable(
+  'article_announcements',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    articleId: text('article_id').notNull(),
+    authorId: text('author_id').notNull(),
+    content: text('content').notNull(),
+    attachments: jsonb('attachments').notNull().default([]),
+    statusId: text('status_id').unique(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (t) => [unique().on(t.articleId, t.authorId)]
+);
 ```
 
 ### Migration Notes
@@ -260,7 +243,7 @@ model ArticleAnnouncement {
 
 **Goal**: Add social tables to PostgreSQL
 
-- [x] Create Prisma models with `social_` prefix
+- [x] Create Drizzle models with `social_` prefix
 - [x] Add SocialActor model (linked to Profile)
 - [x] Add SocialStatus model (posts, replies)
 - [x] Add ArticleAnnouncement model (draft announcements)

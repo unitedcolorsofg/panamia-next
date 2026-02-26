@@ -142,17 +142,18 @@ We prioritize FLOSS solutions where:
 
 ### Authentication
 
-| Package         | Version       | License | Purpose                    |
-| --------------- | ------------- | ------- | -------------------------- |
-| **NextAuth.js** | 5.0.0-beta.30 | ISC     | Authentication for Next.js |
-| **Prisma**      | 7.2.0         | Apache  | Database adapter           |
+| Package                   | Version       | License | Purpose                    |
+| ------------------------- | ------------- | ------- | -------------------------- |
+| **NextAuth.js**           | 5.0.0-beta.30 | ISC     | Authentication for Next.js |
+| **@auth/drizzle-adapter** | 1.9.0         | ISC     | NextAuth database adapter  |
 
 ### Database
 
-| Package        | Version | License            | Purpose                     | Status     |
-| -------------- | ------- | ------------------ | --------------------------- | ---------- |
-| **PostgreSQL** | 16.x    | PostgreSQL License | Relational database (FLOSS) | ✅ Primary |
-| **Prisma**     | 7.2.0   | Apache 2.0         | PostgreSQL ORM              | ✅ Active  |
+| Package         | Version | License            | Purpose                     | Status     |
+| --------------- | ------- | ------------------ | --------------------------- | ---------- |
+| **PostgreSQL**  | 16.x    | PostgreSQL License | Relational database (FLOSS) | ✅ Primary |
+| **Drizzle ORM** | 0.44.x  | Apache 2.0         | PostgreSQL ORM              | ✅ Active  |
+| **postgres.js** | 3.x     | BSD                | PostgreSQL driver           | ✅ Active  |
 
 ### Development Tools
 
@@ -177,8 +178,8 @@ All data has been migrated to PostgreSQL. The project now uses only FLOSS-compli
 
 | Phase    | Data                             | Status      | Notes                        |
 | -------- | -------------------------------- | ----------- | ---------------------------- |
-| Phase 1  | PostgreSQL infrastructure        | ✅ Complete | Prisma + Neon                |
-| Phase 2  | Auth (users, accounts, sessions) | ✅ Complete | NextAuth → Prisma adapter    |
+| Phase 1  | PostgreSQL infrastructure        | ✅ Complete | Drizzle + Supabase           |
+| Phase 2  | Auth (users, accounts, sessions) | ✅ Complete | NextAuth → Drizzle adapter   |
 | Phase 3  | Reference updates                | ✅ Complete | All references use PG IDs    |
 | Phase 4  | Sidecars                         | ✅ Complete | Transactional features on PG |
 | Phase 5  | Notifications                    | ✅ Complete | Full relational model        |
@@ -214,7 +215,7 @@ See [DATABASE-ROADMAP.md](./DATABASE-ROADMAP.md) for migration history.
 
 **Status:** Using PostgreSQL full-text search
 
-With the MongoDB migration complete, search functionality uses PostgreSQL's built-in full-text search capabilities via Prisma.
+With the MongoDB migration complete, search functionality uses PostgreSQL's built-in full-text search capabilities via Drizzle ORM.
 
 **Current Implementation:**
 
