@@ -11,6 +11,15 @@ const nextConfig = {
   // Next.js 16 uses Turbopack by default - empty config to acknowledge
   turbopack: {},
 
+  experimental: {
+    // Exclude @vercel/og from output file tracing — this app does not use next/og.
+    // Without this, Next.js traces @vercel/og internals and opennextjs-cloudflare
+    // bundles resvg.wasm + yoga.wasm + index.edge.js (~2.2 MiB) into the Worker.
+    outputFileTracingExcludes: {
+      '*': ['node_modules/next/dist/compiled/@vercel/og/**'],
+    },
+  },
+
   // Rewrites to handle ActivityPub requests without trailing slash.
   // trailingSlash: true causes 308 redirects that remote servers won't follow.
   // Note: /p/:screenname rewrite removed — proxy.ts handles content negotiation.
