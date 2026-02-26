@@ -23,7 +23,11 @@
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
-			"id": "<hyperdrive-id>"
+			"id": "<hyperdrive-id>",
+			// Required by wrangler's getPlatformProxy (used by opennextjs-cloudflare deploy).
+			// In production the real Hyperdrive service is used — this value only satisfies
+			// wrangler's local-emulation check and is never used to open a real connection.
+			"localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 		}
 	]
 	// Deferred: R2 incremental cache (add once basic deployment is stable)
