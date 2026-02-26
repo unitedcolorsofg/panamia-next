@@ -29,11 +29,25 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // DATABASE
   // =============================================================================
   POSTGRES_URL: {
-    description: 'PostgreSQL connection string (Neon) - required for auth',
+    description:
+      'Supabase PostgreSQL connection string (direct or session-mode pooler). ' +
+      'In Cloudflare Workers this is overridden by the HYPERDRIVE binding. ' +
+      'Do NOT use the transaction-mode pooler (port 6543) — it breaks prepared statements.',
     location: 'SECRET',
     required: true,
-    example: 'postgres://user:password@host:5432/database?sslmode=require',
-    docsUrl: 'https://neon.tech/docs/introduction',
+    example:
+      'postgresql://postgres:[PASSWORD]@db.[project-ref].supabase.co:5432/postgres',
+    docsUrl: 'https://supabase.com/docs/guides/database/connecting-to-postgres',
+  },
+  POSTGRES_DIRECT_URL: {
+    description:
+      'Supabase direct (unpooled) connection string — used only by drizzle-kit migrate. ' +
+      'Never used by the app at runtime.',
+    location: 'SECRET',
+    required: false,
+    example:
+      'postgresql://postgres:[PASSWORD]@db.[project-ref].supabase.co:5432/postgres',
+    docsUrl: 'https://supabase.com/docs/guides/database/connecting-to-postgres',
   },
 
   // =============================================================================
