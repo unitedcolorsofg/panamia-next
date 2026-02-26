@@ -23,7 +23,7 @@
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
-			"id": "<hyperdrive-id>",
+			"id": "985dd5bf59c84a799dc3eac9122facaf",
 			// Required by wrangler's getPlatformProxy (used by opennextjs-cloudflare deploy).
 			// In production the real Hyperdrive service is used — this value only satisfies
 			// wrangler's local-emulation check and is never used to open a real connection.
