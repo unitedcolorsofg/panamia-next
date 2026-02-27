@@ -137,7 +137,7 @@ export type IntakeFormType = (typeof intakeFormType.enumValues)[number];
 export type SocialFollowStatus = (typeof socialFollowStatus.enumValues)[number];
 
 // =============================================================================
-// NextAuth Tables
+// Auth Tables (better-auth)
 // =============================================================================
 
 export const users = pgTable('users', {
@@ -147,7 +147,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   emailVerified: timestamp('email_verified', { withTimezone: true }),
   name: text('name'),
-  image: text('image'), // Required by @auth/drizzle-adapter
+  image: text('image'),
   screenname: text('screenname').unique(),
   lastScreennameChange: timestamp('last_screenname_change', {
     withTimezone: true,
@@ -177,45 +177,59 @@ export const accounts = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => createId()),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
     userId: text('user_id').notNull(),
-    type: text('type').notNull(),
-    provider: text('provider').notNull(),
-    providerAccountId: text('provider_account_id').notNull(),
-    refresh_token: text('refresh_token'),
-    access_token: text('access_token'),
-    expires_at: integer('expires_at'),
-    token_type: text('token_type'),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    idToken: text('id_token'),
+    accessTokenExpiresAt: timestamp('access_token_expires_at', {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
+      withTimezone: true,
+    }),
     scope: text('scope'),
-    id_token: text('id_token'),
-    session_state: text('session_state'),
+    password: text('password'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   },
   (table) => ({
     providerAccountUnique: uniqueIndex('accounts_provider_account_unique').on(
-      table.provider,
-      table.providerAccountId
+      table.providerId,
+      table.accountId
     ),
   })
 );
 
 export const sessions = pgTable('sessions', {
-  sessionToken: text('session_token').primaryKey(),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  token: text('token').notNull().unique(),
   userId: text('user_id').notNull(),
-  expires: timestamp('expires', { withTimezone: true }).notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
 });
 
-export const verificationTokens = pgTable(
-  'verification_tokens',
-  {
-    identifier: text('identifier').notNull(),
-    token: text('token').notNull().unique(),
-    expires: timestamp('expires', { withTimezone: true }).notNull(),
-  },
-  (table) => ({
-    identifierTokenUnique: uniqueIndex(
-      'verification_tokens_identifier_token_unique'
-    ).on(table.identifier, table.token),
-  })
-);
+export const verification = pgTable('verification_tokens', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }),
+});
 
 // =============================================================================
 // Notifications
@@ -925,6 +939,8 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
+export const verificationRelations = relations(verification, (_) => ({}));
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   actorUser: one(users, {
     fields: [notifications.actor],
@@ -1102,7 +1118,7 @@ export const screennameHistoryRelations = relations(
 export type User = typeof users.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
-export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type Verification = typeof verification.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Article = typeof articles.$inferSelect;

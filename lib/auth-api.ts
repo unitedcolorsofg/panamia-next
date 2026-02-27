@@ -1,18 +1,16 @@
 // lib/auth-api.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { Session } from 'next-auth';
+import type { AppSession } from '@/auth';
 import { db } from '@/lib/db';
-import { sessions } from '@/lib/schema';
+import { sessions, users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
 /**
  * Get session in Pages Router API routes
  *
- * NextAuth v5's auth() function is designed for App Router Server Components
- * and causes "headers was called outside a request scope" errors in Pages Router.
- *
+ * better-auth's auth() function is designed for App Router Server Components.
  * This helper extracts the session token from cookies and validates it using
- * NextAuth's session management via Drizzle.
+ * the sessions table directly.
  *
  * @example
  * ```ts
@@ -29,14 +27,12 @@ import { eq } from 'drizzle-orm';
  */
 export async function getApiSession(
   req: NextApiRequest,
-  res: NextApiResponse
-): Promise<Session | null> {
+  _res: NextApiResponse
+): Promise<AppSession | null> {
   try {
-    // Extract session token from cookies
-    // NextAuth v5 uses "__Secure-authjs.session-token" in production (HTTPS)
-    // and "authjs.session-token" in development (HTTP)
-    const secureCookieName = '__Secure-authjs.session-token';
-    const cookieName = 'authjs.session-token';
+    // better-auth cookie names
+    const secureCookieName = '__Secure-better-auth.session_token';
+    const cookieName = 'better-auth.session_token';
 
     const sessionToken =
       req.cookies[secureCookieName] || req.cookies[cookieName];
@@ -46,7 +42,7 @@ export async function getApiSession(
     }
 
     const session = await db.query.sessions.findFirst({
-      where: eq(sessions.sessionToken, sessionToken),
+      where: eq(sessions.token, sessionToken),
       with: { user: true },
     });
 
@@ -55,22 +51,19 @@ export async function getApiSession(
     }
 
     // Check if session is expired
-    if (session.expires && new Date(session.expires) < new Date()) {
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
       return null;
     }
 
-    // Return session in NextAuth format
-    // Note: This returns a minimal session - callbacks in auth.ts add additional
-    // properties like isAdmin, panaVerified, etc. when using the full auth flow.
+    const user = session.user as typeof users.$inferSelect;
+
     return {
       user: {
-        id: session.user.id,
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified ?? null,
         name: '',
-        email: session.user.email || '',
         image: '',
-        emailVerified: session.user.emailVerified,
-        // These are populated by session callback in auth.ts, but we provide defaults
-        // for the API-only session lookup
         isAdmin: false,
         panaVerified: false,
         legalAgeVerified: false,
@@ -78,7 +71,7 @@ export async function getApiSession(
         isEventOrganizer: false,
         isContentModerator: false,
       },
-      expires: session.expires.toISOString(),
+      expires: session.expiresAt.toISOString(),
     };
   } catch (error) {
     console.error('Error getting API session:', error);

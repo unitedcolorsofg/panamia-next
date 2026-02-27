@@ -189,7 +189,7 @@ async function migrateImages(
 
   if (!BLOB_TOKEN && !dryRun) {
     console.log(
-      '\n⚠️  BLOB_READ_WRITE_TOKEN not set - skipping image migration'
+      '\n[warning]  BLOB_READ_WRITE_TOKEN not set - skipping image migration'
     );
     console.log('   Set this environment variable to enable image migration');
     return { success: 0, errors: 0 };
@@ -418,16 +418,17 @@ async function main() {
             await db.insert(accounts).values({
               id: generateCuid(),
               userId,
-              type: account.type || 'oauth',
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-              refresh_token: account.refresh_token || null,
-              access_token: account.access_token || null,
-              expires_at: account.expires_at || null,
-              token_type: account.token_type || null,
+              providerId: account.provider,
+              accountId: account.providerAccountId,
+              refreshToken: account.refresh_token || null,
+              accessToken: account.access_token || null,
+              accessTokenExpiresAt: account.expires_at
+                ? new Date(account.expires_at * 1000)
+                : null,
               scope: account.scope || null,
-              id_token: account.id_token || null,
-              session_state: account.session_state || null,
+              idToken: account.id_token || null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
             });
             imported++;
           }
@@ -460,9 +461,11 @@ async function main() {
 
             await db.insert(sessions).values({
               id: generateCuid(),
-              sessionToken: session.sessionToken,
+              token: session.sessionToken,
               userId,
-              expires: new Date(session.expires),
+              expiresAt: new Date(session.expires),
+              createdAt: new Date(),
+              updatedAt: new Date(),
             });
             imported++;
           }

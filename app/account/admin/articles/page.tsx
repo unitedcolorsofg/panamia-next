@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {

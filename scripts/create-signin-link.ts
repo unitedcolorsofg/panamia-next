@@ -18,18 +18,18 @@ import crypto from 'crypto';
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
-const { verificationTokens } = schema;
+const { verification } = schema;
 const EMAIL = process.argv[2];
 
 async function createSignInLink() {
   if (!EMAIL) {
-    console.error('❌ Error: Please provide an email address');
+    console.error('Error: Please provide an email address');
     console.log('Usage: npx tsx scripts/create-signin-link.ts <email>');
     process.exit(1);
   }
 
   if (!process.env.POSTGRES_URL) {
-    console.error('❌ Error: POSTGRES_URL environment variable is required');
+    console.error('Error: POSTGRES_URL environment variable is required');
     process.exit(1);
   }
 
@@ -40,9 +40,7 @@ async function createSignInLink() {
     console.log('Connecting to PostgreSQL...');
 
     // Delete any existing tokens for this email
-    await db
-      .delete(verificationTokens)
-      .where(eq(verificationTokens.identifier, EMAIL));
+    await db.delete(verification).where(eq(verification.identifier, EMAIL));
 
     // Generate a random token (similar to how NextAuth does it)
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -61,24 +59,24 @@ async function createSignInLink() {
       .digest('hex');
 
     // Create new verification token (store the HASHED token)
-    await db.insert(verificationTokens).values({
+    await db.insert(verification).values({
       identifier: EMAIL,
-      token: hashedToken,
-      expires,
+      value: hashedToken,
+      expiresAt: expires,
     });
 
     // Construct the sign-in URL (use the RAW token in the URL)
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const signInUrl = `${baseUrl}/api/auth/callback/email?token=${rawToken}&email=${encodeURIComponent(EMAIL)}`;
 
-    console.log('✅ New sign-in link created!\n');
+    console.log('[ok] New sign-in link created!\n');
     console.log('Email:', EMAIL);
     console.log('Expires:', expires.toISOString());
-    console.log('\n📧 Sign-in link:');
+    console.log('\nSign-in link:');
     console.log(signInUrl);
     console.log('\nCopy and paste this URL into your browser to sign in.\n');
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
     process.exit(1);
   } finally {
     await client.end();

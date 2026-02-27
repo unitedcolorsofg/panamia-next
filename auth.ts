@@ -1,20 +1,18 @@
-import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import AppleProvider from 'next-auth/providers/apple';
-import WikimediaProvider from 'next-auth/providers/wikimedia';
-import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { magicLink, genericOAuth } from 'better-auth/plugins';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import {
   users,
-  accounts,
   sessions,
-  verificationTokens,
+  accounts,
+  verification,
   oAuthVerifications,
   profiles,
 } from '@/lib/schema';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
-import { ProfileMentoring } from '@/lib/interfaces';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -376,141 +374,105 @@ export function oauthVerificationText(params: {
   return `Verify Your Email for Pana MIA\n\nYou signed in using ${providerName}. To complete sign-in and verify email ownership, click the link below:\n\n${url}\n\nThis link expires in 5 minutes for security.\n\nIf you didn't request this, you can safely ignore this email.`;
 }
 
-// Helper function to determine OAuth provider verification requirement
+// =============================================================================
+// AppSession type — shared shape for server-side session access
+// =============================================================================
+
+export type AppSession = {
+  user: {
+    id: string;
+    email: string;
+    emailVerified: Date | null;
+    name?: string | null;
+    image?: string | null;
+
+    // Admin role (from environment variable)
+    isAdmin: boolean;
+
+    // Verification badges (from profile)
+    panaVerified: boolean;
+    legalAgeVerified: boolean;
+
+    // Scoped roles (from profile)
+    isMentoringModerator: boolean;
+    isEventOrganizer: boolean;
+    isContentModerator: boolean;
+  };
+  expires: string;
+};
+
+// =============================================================================
+// Provider verification configuration
+// =============================================================================
+
 function getProviderVerificationConfig(
   provider?: string
 ): 'trusted' | 'verification-required' | 'disabled' {
   if (!provider) return 'disabled';
 
-  // Email provider is always trusted (we send the magic link)
-  if (provider === 'email') return 'trusted';
+  // Magic link provider is always trusted (we send the link)
+  if (provider === 'credential' || provider === 'magic-link') return 'trusted';
 
-  // Check for instance-specific config (e.g., OAUTH_MASTODON_SOCIAL for mastodon.social)
+  // Check for instance-specific mastodon config
   if (provider === 'mastodon') {
     const instance = process.env.MASTODON_INSTANCE || 'https://mastodon.social';
     const hostname = new URL(instance).hostname;
-    // Check for explicit mastodon.social config
     if (hostname === 'mastodon.social') {
       const config = process.env.OAUTH_MASTODON_SOCIAL;
       if (config)
         return config as 'trusted' | 'verification-required' | 'disabled';
     }
-    // Otherwise use generic mastodon config
     const genericConfig = process.env.OAUTH_MASTODON;
     if (genericConfig)
       return genericConfig as 'trusted' | 'verification-required' | 'disabled';
   }
 
-  // Check provider-level config
   const envKey = `OAUTH_${provider.toUpperCase()}`;
   const config = process.env[envKey];
   if (config) return config as 'trusted' | 'verification-required' | 'disabled';
 
-  // Default to verification-required for unknown providers
   return 'verification-required';
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
+// =============================================================================
+// better-auth instance
+// =============================================================================
+
+export const betterAuthInstance = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema: {
+      user: users,
+      session: sessions,
+      account: accounts,
+      verification,
+    },
+    usePlural: true,
   }),
-  providers: [
-    GoogleProvider({
+  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    'http://localhost:3000',
+  socialProviders: {
+    google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope:
-            'openid email profile https://www.googleapis.com/auth/calendar.events',
-        },
-      },
-    }),
-    AppleProvider({
+      scope: [
+        'openid',
+        'email',
+        'profile',
+        'https://www.googleapis.com/auth/calendar.events',
+      ],
+    },
+    apple: {
       clientId: process.env.APPLE_CLIENT_ID!,
       clientSecret: process.env.APPLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: 'name email',
-        },
-      },
-    }),
-    // NOTE: Wikimedia removed from trusted providers - emails are optional and may not be verified
-    // Users can make emails private, so email verification is not guaranteed
-    WikimediaProvider({
-      clientId: process.env.WIKIMEDIA_CLIENT_ID!,
-      clientSecret: process.env.WIKIMEDIA_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          // Request email explicitly (users can make it private)
-          scope: 'identify email',
-        },
-      },
-    }),
-    // Mastodon - Custom OAuth provider (users enter their own instance)
-    // Only mastodon.social is trusted for auto-claim; other instances are untrusted
-    // @ts-ignore - Custom OAuth provider type compatibility
-    {
-      id: 'mastodon',
-      name: 'Mastodon',
-      type: 'oauth' as const,
-      authorization: {
-        url: process.env.MASTODON_INSTANCE
-          ? `${process.env.MASTODON_INSTANCE}/oauth/authorize`
-          : 'https://mastodon.social/oauth/authorize',
-        params: { scope: 'read:accounts profile:email' },
-      },
-      token: {
-        url: process.env.MASTODON_INSTANCE
-          ? `${process.env.MASTODON_INSTANCE}/oauth/token`
-          : 'https://mastodon.social/oauth/token',
-      },
-      userinfo: {
-        url: process.env.MASTODON_INSTANCE
-          ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
-          : 'https://mastodon.social/api/v1/accounts/verify_credentials',
-      },
-      profile(profile) {
-        return {
-          id: profile.id,
-          name: profile.display_name || profile.username,
-          email: profile.email || null,
-          image: profile.avatar,
-        };
-      },
-      clientId: process.env.MASTODON_CLIENT_ID!,
-      clientSecret: process.env.MASTODON_CLIENT_SECRET!,
     },
-    // TODO: Add Bluesky OAuth provider when NextAuth support is available
-    // Bluesky uses AT Protocol OAuth with email scope: transition:email
-    // Requires client metadata file, DPoP, and PAR
-    // Reference: https://docs.bsky.app/docs/advanced-guides/oauth-client
-    // {
-    //   id: 'bluesky',
-    //   name: 'Bluesky',
-    //   type: 'oauth' as const,
-    //   // Implementation requires @atproto/oauth-client or similar
-    // },
-    // Custom email magic-link provider using Brevo HTTP API.
-    // Intentionally NOT imported from 'next-auth/providers/email' because that
-    // module (@auth/core/providers/nodemailer.js) has a top-level
-    // `import { createTransport } from "nodemailer"` which breaks builds on
-    // runtimes without a Node.js net/tls stack (Cloudflare Workers, etc.).
-    {
-      id: 'nodemailer',
-      type: 'email' as const,
-      name: 'Email',
-      maxAge: 24 * 60 * 60,
-      from: process.env.BREVO_SENDEREMAIL || 'noreply@panamia.club',
-      async sendVerificationRequest({
-        identifier: email,
-        url,
-      }: {
-        identifier: string;
-        url: string;
-      }) {
+  },
+  plugins: [
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
         const { host } = new URL(url);
         await new BrevoApi().sendEmail(
           email,
@@ -519,217 +481,196 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           text({ url, host })
         );
       },
-      generateVerificationToken: async () => {
-        const { randomUUID } = await import('crypto');
-        return randomUUID();
-      },
-      normalizeIdentifier: (identifier: string) => {
-        const [local, domain] = identifier.toLowerCase().trim().split('@');
-        return `${local}@${domain.split(',')[0]}`;
-      },
-      options: {},
-    } as any,
+    }),
+    genericOAuth({
+      config: [
+        // Wikimedia — emails are optional and may not be verified
+        {
+          providerId: 'wikimedia',
+          clientId: process.env.WIKIMEDIA_CLIENT_ID!,
+          clientSecret: process.env.WIKIMEDIA_CLIENT_SECRET!,
+          authorizationUrl:
+            'https://meta.wikimedia.org/w/rest.php/oauth2/authorize',
+          tokenUrl: 'https://meta.wikimedia.org/w/rest.php/oauth2/access_token',
+          userInfoUrl:
+            'https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile',
+          scopes: ['identify', 'email'],
+          mapProfileToUser: (profile: Record<string, unknown>) => ({
+            id: String(profile.sub || profile.id),
+            email: (profile.email as string) || undefined,
+            name: (profile.realname as string) || (profile.username as string),
+            image: undefined,
+          }),
+        },
+        // Mastodon — custom OAuth per-instance
+        {
+          providerId: 'mastodon',
+          clientId: process.env.MASTODON_CLIENT_ID!,
+          clientSecret: process.env.MASTODON_CLIENT_SECRET!,
+          authorizationUrl: process.env.MASTODON_INSTANCE
+            ? `${process.env.MASTODON_INSTANCE}/oauth/authorize`
+            : 'https://mastodon.social/oauth/authorize',
+          tokenUrl: process.env.MASTODON_INSTANCE
+            ? `${process.env.MASTODON_INSTANCE}/oauth/token`
+            : 'https://mastodon.social/oauth/token',
+          userInfoUrl: process.env.MASTODON_INSTANCE
+            ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
+            : 'https://mastodon.social/api/v1/accounts/verify_credentials',
+          scopes: ['read:accounts'],
+          mapProfileToUser: (profile: Record<string, unknown>) => ({
+            id: String(profile.id),
+            email: (profile.email as string) || undefined,
+            name:
+              (profile.display_name as string) ||
+              (profile.username as string) ||
+              undefined,
+            image: (profile.avatar as string) || undefined,
+          }),
+        },
+      ],
+    }),
   ],
-  session: {
-    strategy: 'database',
-  },
-  callbacks: {
-    async signIn({ user, account, profile: oauthProfile }) {
-      // Require email for all sign-in methods
-      if (!user.email) {
-        console.error('Sign-in blocked: No email provided by OAuth provider', {
-          provider: account?.provider,
-          userId: user.id,
-        });
-        return '/signin?error=EmailRequired';
-      }
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (!user.email) {
+            console.error('Sign-in blocked: No email provided', {
+              userId: user.id,
+            });
+            return false;
+          }
+        },
+      },
+    },
+    account: {
+      create: {
+        before: async (account) => {
+          const config = getProviderVerificationConfig(account.providerId);
 
-      // Determine provider verification requirement
-      const providerConfig = getProviderVerificationConfig(account?.provider);
+          if (config === 'disabled') {
+            console.log(
+              'Sign-in blocked: Provider is disabled:',
+              account.providerId
+            );
+            return false;
+          }
 
-      if (providerConfig === 'disabled') {
-        console.log(
-          'Sign-in blocked: Provider is disabled:',
-          account?.provider
-        );
-        return '/signin?error=ProviderDisabled';
-      }
+          if (config === 'verification-required') {
+            // TODO(QA): send verification email via oAuthVerifications + redirect
+            // to /signin?verificationSent=true. Requires an HTTP-level hook to
+            // intercept the OAuth callback and redirect. For now we block the
+            // account creation — the user will see a generic auth error.
+            console.log(
+              'Sign-in blocked: Provider requires verification:',
+              account.providerId
+            );
+            return false;
+          }
+        },
+        after: async (account) => {
+          // Auto-claim an unclaimed profile for trusted providers
+          if (!account.userId) return;
+          try {
+            const user = await db.query.users.findFirst({
+              where: eq(users.id, account.userId),
+            });
+            if (!user?.email) return;
 
-      if (providerConfig === 'verification-required') {
-        // Block sign-in and send verification email
-        try {
-          const { nanoid } = await import('nanoid');
-
-          // Check if verification already sent recently
-          const existingVerification =
-            await db.query.oAuthVerifications.findFirst({
+            const unclaimedProfile = await db.query.profiles.findFirst({
               where: and(
-                eq(oAuthVerifications.provider, account?.provider ?? ''),
-                eq(
-                  oAuthVerifications.providerAccountId,
-                  account?.providerAccountId ?? ''
-                ),
-                gt(oAuthVerifications.expiresAt, new Date())
+                eq(profiles.email, user.email.toLowerCase()),
+                isNull(profiles.userId)
               ),
             });
 
-          if (existingVerification) {
-            console.log('Verification email already sent for:', user.email);
-            return '/signin?verificationSent=true';
+            if (unclaimedProfile) {
+              console.log(
+                'Auto-claiming profile for user:',
+                user.email,
+                'from provider:',
+                account.providerId
+              );
+              await db
+                .update(profiles)
+                .set({ userId: account.userId })
+                .where(eq(profiles.id, unclaimedProfile.id));
+              console.log('Profile claimed successfully');
+            }
+          } catch (error) {
+            console.error('Error auto-claiming profile:', error);
           }
-
-          // Generate verification token
-          const verificationToken = nanoid(32);
-          const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-          // Create verification record
-          await db.insert(oAuthVerifications).values({
-            email: user.email.toLowerCase(),
-            provider: account?.provider ?? '',
-            providerAccountId: account?.providerAccountId ?? '',
-            verificationToken,
-            expiresAt,
-            oauthProfile: {
-              name: user.name,
-              email: user.email,
-              image: user.image,
-            },
-          });
-
-          // Send verification email
-          const protocol = process.env.NEXTAUTH_URL?.startsWith('https')
-            ? 'https'
-            : 'http';
-          const host =
-            process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '') ||
-            'localhost:3000';
-          const verificationUrl = `${protocol}://${host}/verify-oauth-email?token=${verificationToken}`;
-
-          await new BrevoApi().sendEmail(
-            user.email,
-            'Verify Your Email for Pana MIA',
-            oauthVerificationHtml({
-              url: verificationUrl,
-              email: user.email,
-              provider: account?.provider || 'OAuth',
-            }),
-            oauthVerificationText({
-              url: verificationUrl,
-              email: user.email,
-              provider: account?.provider || 'OAuth',
-            })
-          );
-
-          console.log('Verification email sent to:', user.email);
-          return '/signin?verificationSent=true';
-        } catch (error) {
-          console.error('Error sending verification email:', error);
-          return '/signin?error=VerificationFailed';
-        }
-      }
-
-      // Trusted provider - proceed with auto-claim
-      try {
-        const unclaimedProfile = await db.query.profiles.findFirst({
-          where: and(
-            eq(profiles.email, user.email.toLowerCase()),
-            isNull(profiles.userId)
-          ),
-        });
-
-        if (unclaimedProfile && user.id) {
-          console.log(
-            'Auto-claiming profile for user:',
-            user.email,
-            'from trusted provider:',
-            account?.provider
-          );
-          await db
-            .update(profiles)
-            .set({ userId: user.id })
-            .where(eq(profiles.id, unclaimedProfile.id));
-          console.log('Profile claimed successfully');
-        }
-      } catch (error) {
-        console.error('Error auto-claiming profile:', error);
-        // Don't block sign-in if claiming fails
-      }
-
-      return true;
-    },
-    async session({ session, user }) {
-      // console.log('Session callback called:', { session, user })
-
-      // Attach user data to session
-      if (user) {
-        // Check admin status from environment variable
-        const adminEmails =
-          process.env.ADMIN_EMAILS?.split(',').map((e) =>
-            e.trim().toLowerCase()
-          ) || [];
-        const isAdmin =
-          user.email && adminEmails.includes(user.email.toLowerCase());
-
-        // Fetch profile to get verification badges and roles
-        interface ProfileVerification {
-          panaVerified?: boolean;
-          legalAgeVerified?: boolean;
-        }
-        interface ProfileRoles {
-          mentoringModerator?: boolean;
-          eventOrganizer?: boolean;
-          contentModerator?: boolean;
-        }
-        let verification: ProfileVerification | null = null;
-        let roles: ProfileRoles | null = null;
-        try {
-          const userProfile = await db.query.profiles.findFirst({
-            where: eq(profiles.userId, user.id),
-          });
-          if (userProfile) {
-            verification =
-              userProfile.verification as ProfileVerification | null;
-            roles = userProfile.roles as ProfileRoles | null;
-          }
-        } catch (error) {
-          console.error('Error fetching profile in session callback:', error);
-        }
-
-        session.user = {
-          ...session.user,
-          id: user.id,
-          email: user.email || '',
-          emailVerified: user.emailVerified,
-          // Privacy: clear name and image
-          name: '',
-          image: '',
-
-          // Admin role (from environment variable)
-          isAdmin: isAdmin || false,
-
-          // Verification badges (from profile)
-          panaVerified: verification?.panaVerified || false,
-          legalAgeVerified: verification?.legalAgeVerified || false,
-
-          // Scoped roles (from profile)
-          isMentoringModerator: roles?.mentoringModerator || false,
-          isEventOrganizer: roles?.eventOrganizer || false,
-          isContentModerator: roles?.contentModerator || false,
-        };
-      }
-
-      // console.log('Session callback returning:', session)
-      return session;
+        },
+      },
     },
   },
-  pages: {
-    signIn: '/signin', // Use our custom sign-in page instead of /api/auth/signin
-  },
-  theme: {
-    logo: '/logos/2023_logo_pink.svg',
-    brandColor: '#4ab3ea',
-    buttonText: '#fff',
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: false,
 });
+
+// =============================================================================
+// auth() compat shim — returns AppSession shape for server components
+// =============================================================================
+
+interface ProfileVerification {
+  panaVerified?: boolean;
+  legalAgeVerified?: boolean;
+}
+interface ProfileRoles {
+  mentoringModerator?: boolean;
+  eventOrganizer?: boolean;
+  contentModerator?: boolean;
+}
+
+export async function auth(): Promise<AppSession | null> {
+  try {
+    const session = await betterAuthInstance.api.getSession({
+      headers: await headers(),
+    });
+    if (!session) return null;
+
+    // Check admin status from environment variable
+    const adminEmails =
+      process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
+      [];
+    const isAdmin = session.user.email
+      ? adminEmails.includes(session.user.email.toLowerCase())
+      : false;
+
+    // Fetch profile to get verification badges and roles
+    let profileVerification: ProfileVerification | null = null;
+    let profileRoles: ProfileRoles | null = null;
+    try {
+      const userProfile = await db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+      });
+      if (userProfile) {
+        profileVerification =
+          userProfile.verification as ProfileVerification | null;
+        profileRoles = userProfile.roles as ProfileRoles | null;
+      }
+    } catch (error) {
+      console.error('Error fetching profile in auth():', error);
+    }
+
+    return {
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified ? new Date() : null,
+        // Privacy: clear name and image (use profile data instead)
+        name: '',
+        image: '',
+        isAdmin: isAdmin || false,
+        panaVerified: profileVerification?.panaVerified || false,
+        legalAgeVerified: profileVerification?.legalAgeVerified || false,
+        isMentoringModerator: profileRoles?.mentoringModerator || false,
+        isEventOrganizer: profileRoles?.eventOrganizer || false,
+        isContentModerator: profileRoles?.contentModerator || false,
+      },
+      expires: session.session.expiresAt.toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const handler = betterAuthInstance.handler;

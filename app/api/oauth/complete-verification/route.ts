@@ -55,18 +55,20 @@ export async function POST(request: NextRequest) {
       // Check if account link already exists
       const existingAccount = await db.query.accounts.findFirst({
         where: and(
-          eq(accounts.provider, provider),
-          eq(accounts.providerAccountId, providerAccountId)
+          eq(accounts.providerId, provider),
+          eq(accounts.accountId, providerAccountId)
         ),
       });
 
       if (!existingAccount) {
         // Create account link
+        const now = new Date();
         await db.insert(accounts).values({
           userId,
-          type: 'oauth',
-          provider,
-          providerAccountId,
+          providerId: provider,
+          accountId: providerAccountId,
+          createdAt: now,
+          updatedAt: now,
         });
       }
     } else {
@@ -81,11 +83,13 @@ export async function POST(request: NextRequest) {
       userId = newUser.id;
 
       // Create account link
+      const now = new Date();
       await db.insert(accounts).values({
         userId,
-        type: 'oauth',
-        provider,
-        providerAccountId,
+        providerId: provider,
+        accountId: providerAccountId,
+        createdAt: now,
+        updatedAt: now,
       });
     }
 

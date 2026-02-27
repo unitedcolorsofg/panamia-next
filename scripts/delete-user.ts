@@ -23,18 +23,18 @@ import { config } from 'dotenv';
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
-const { users, profiles, notifications, verificationTokens } = schema;
+const { users, profiles, notifications, verification } = schema;
 const USER_EMAIL = process.argv[2];
 
 async function deleteUser() {
   if (!USER_EMAIL) {
-    console.error('❌ Error: Please provide an email address');
+    console.error('Error: Please provide an email address');
     console.log('Usage: npx tsx scripts/delete-user.ts <email>');
     process.exit(1);
   }
 
   if (!process.env.POSTGRES_URL) {
-    console.error('❌ Error: POSTGRES_URL environment variable is required');
+    console.error('Error: POSTGRES_URL environment variable is required');
     process.exit(1);
   }
 
@@ -42,7 +42,7 @@ async function deleteUser() {
   const db = drizzle(client, { schema });
 
   try {
-    console.log(`\n🗑️  Deleting all data for: ${USER_EMAIL}\n`);
+    console.log(`\nDeleting all data for: ${USER_EMAIL}\n`);
 
     // Find user first
     const user = await db.query.users.findFirst({
@@ -55,7 +55,7 @@ async function deleteUser() {
     });
 
     if (!user) {
-      console.log('⚠ User not found');
+      console.log('[warning] User not found');
 
       // Check if there's a profile without a user
       const orphanProfile = await db.query.profiles.findFirst({
@@ -65,29 +65,29 @@ async function deleteUser() {
       if (orphanProfile) {
         await db.delete(profiles).where(eq(profiles.id, orphanProfile.id));
         console.log(
-          `✓ profiles: deleted orphan profile (id: ${orphanProfile.id})`
+          `[ok] profiles: deleted orphan profile (id: ${orphanProfile.id})`
         );
       }
 
       // Delete verification tokens
       const deletedTokens = await db
-        .delete(verificationTokens)
-        .where(eq(verificationTokens.identifier, USER_EMAIL))
+        .delete(verification)
+        .where(eq(verification.identifier, USER_EMAIL))
         .returning();
       if (deletedTokens.length > 0) {
         console.log(
-          `✓ verification_tokens: deleted ${deletedTokens.length} token(s)`
+          `[ok] verification_tokens: deleted ${deletedTokens.length} token(s)`
         );
       }
 
-      console.log('\n✅ Cleanup complete!\n');
+      console.log('\n[ok] Cleanup complete!\n');
       return;
     }
 
     // Delete profile first (if exists)
     if (user.profile) {
       await db.delete(profiles).where(eq(profiles.id, user.profile.id));
-      console.log(`✓ profiles: deleted profile (id: ${user.profile.id})`);
+      console.log(`[ok] profiles: deleted profile (id: ${user.profile.id})`);
     }
 
     // Delete notifications (both sent and received)
@@ -100,28 +100,28 @@ async function deleteUser() {
       .where(eq(notifications.target, user.id))
       .returning();
     console.log(
-      `✓ notifications: deleted ${notificationsSent.length + notificationsReceived.length} notification(s)`
+      `[ok] notifications: deleted ${notificationsSent.length + notificationsReceived.length} notification(s)`
     );
 
     // Delete user (cascades to accounts, sessions, follows, list memberships)
     await db.delete(users).where(eq(users.email, USER_EMAIL));
-    console.log(`✓ users: deleted user (id: ${user.id})`);
-    console.log(`✓ accounts: deleted ${user.accounts.length} account(s)`);
-    console.log(`✓ sessions: deleted ${user.sessions.length} session(s)`);
+    console.log(`[ok] users: deleted user (id: ${user.id})`);
+    console.log(`[ok] accounts: deleted ${user.accounts.length} account(s)`);
+    console.log(`[ok] sessions: deleted ${user.sessions.length} session(s)`);
 
     // Delete verification tokens
     const deletedTokens = await db
-      .delete(verificationTokens)
-      .where(eq(verificationTokens.identifier, USER_EMAIL))
+      .delete(verification)
+      .where(eq(verification.identifier, USER_EMAIL))
       .returning();
     console.log(
-      `✓ verification_tokens: deleted ${deletedTokens.length} token(s)`
+      `[ok] verification_tokens: deleted ${deletedTokens.length} token(s)`
     );
 
-    console.log('\n✅ User deletion complete!');
+    console.log('\n[ok] User deletion complete!');
     console.log(`All data for ${USER_EMAIL} has been removed.\n`);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
     process.exit(1);
   } finally {
     await client.end();
