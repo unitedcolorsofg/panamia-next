@@ -4,7 +4,7 @@
 
 ### Overview
 
-The application uses NextAuth v5 (Auth.js) for authentication with multiple OAuth providers and email magic links. Admin permissions are managed via environment variables, while user-level permissions and verification badges are stored in the PostgreSQL profile table.
+The application uses better-auth for authentication with multiple OAuth providers and email magic links. Admin permissions are managed via environment variables, while user-level permissions and verification badges are stored in the PostgreSQL profile table.
 
 ### OAuth Providers
 
@@ -69,7 +69,7 @@ These providers may not reliably verify email ownership:
 3. Verification email sent to OAuth-provided email address (5-minute expiration)
 4. User clicks verification link
 5. Email ownership confirmed
-6. NextAuth account created
+6. better-auth account created
 7. Profile automatically claimed if email matches
 8. User can now sign in normally via OAuth
 
@@ -257,12 +257,12 @@ The mentoring platform implements multiple layers of security to protect user da
 
 ## Authentication Layer
 
-### NextAuth v5 Implementation
+### better-auth Implementation
 
 - **Session Management**: Database sessions stored in PostgreSQL
 - **Email Provider**: Passwordless authentication with magic links
 - **Session Validation**: Server-side session checks on every protected route
-- **Token Security**: NextAuth handles token encryption and validation
+- **Token Security**: better-auth handles token encryption and validation
 
 ### Protected Routes
 
@@ -315,7 +315,7 @@ await db.query.mentorSessions.findFirst({
 1. Client requests channel subscription
 2. Pusher sends auth request to `/api/pusher/auth`
 3. Server validates:
-   - User is authenticated (NextAuth session)
+   - User is authenticated (better-auth session)
    - User is participant in session (database query)
 4. Server authorizes channel or denies access
 
@@ -405,11 +405,11 @@ await db.query.profiles.findMany({
 
 - getUserMedia API (camera/microphone access)
 - Secure WebSocket connections (Pusher)
-- Cookie security (NextAuth sessions)
+- Cookie security (better-auth sessions)
 
 **Configuration**: Next.js automatically handles secure headers in production
 
-**Status**: ⚠️ Requires HTTPS in production (standard practice)
+**Status**: [!] Requires HTTPS in production (standard practice)
 
 ### WebRTC Security (Prototype Feature)
 
@@ -426,7 +426,7 @@ await db.query.profiles.findMany({
 - May not work behind symmetric NATs or strict firewalls
 - Suitable for testing and development only
 
-**Status**: ⚠️ Prototype - Standard WebRTC security model, but connectivity not guaranteed
+**Status**: [!] Prototype - Standard WebRTC security model, but connectivity not guaranteed
 
 ## API Security
 
@@ -443,7 +443,7 @@ if (!session?.user?.email) {
 
 **Rate Limiting**: Not implemented (recommended for production)
 
-**Status**: Authentication enforced, ⚠️ rate limiting recommended
+**Status**: Authentication enforced, [!] rate limiting recommended
 
 ### CORS Configuration
 
@@ -464,7 +464,7 @@ if (!session?.user?.email) {
 
 ### CSRF Protection
 
-**NextAuth**: Built-in CSRF protection
+**better-auth**: Built-in CSRF protection
 **API Routes**: Uses HTTP-only cookies
 
 **Status**: Protected
@@ -494,9 +494,9 @@ if (!session?.user?.email) {
 ### Required Secrets
 
 ```env
-# NextAuth
-NEXTAUTH_SECRET=        # 32+ character random string
-NEXTAUTH_URL=           # Application URL
+# better-auth
+BETTER_AUTH_SECRET=     # 32+ character random string
+BETTER_AUTH_URL=        # Application URL
 
 # PostgreSQL
 POSTGRES_URL=           # Connection string with credentials
@@ -554,7 +554,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 1. All authentication/authorization implemented
 2. Input validation comprehensive
 3. Pusher channels secured
-4. ⚠️ Add rate limiting to production
+4. [!] Add rate limiting to production
 
 ### Before Production Deployment
 
@@ -579,7 +579,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 - [ ] All environment variables set correctly
 - [ ] Pusher app configured with client events
 - [ ] PostgreSQL with authentication
-- [ ] NextAuth secret is strong (32+ characters)
+- [ ] BETTER_AUTH_SECRET is strong (32+ characters)
 - [ ] Rate limiting middleware added
 - [ ] Error messages don't leak sensitive info
 - [ ] Logging configured (but not logging secrets)

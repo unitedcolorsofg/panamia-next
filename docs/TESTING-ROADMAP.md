@@ -75,7 +75,7 @@ See [Playwright Authentication Docs](https://playwright.dev/docs/auth).
 - [ ] Unauthenticated users redirected to signin page
 - [ ] Only session participants can access session pages
 - [ ] Pusher channel authentication verifies session membership
-- [ ] API routes check authentication via NextAuth
+- [ ] API routes check authentication via better-auth
 - [ ] Users cannot access other users' sessions
 
 ### Mentoring - Profile Management

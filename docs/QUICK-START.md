@@ -222,13 +222,14 @@ yarn start
 
 ### Core
 
-| Technology                                    | Version | Purpose                         |
-| --------------------------------------------- | ------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router |
-| [React](https://react.dev/)                   | 19.x    | UI library                      |
-| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type-safe JavaScript            |
-| [PostgreSQL](https://www.postgresql.org/)     | 16.x    | Relational database             |
-| [Drizzle ORM](https://orm.drizzle.team/)      | 0.44    | Database ORM + migrations       |
+| Technology                                         | Version | Purpose                              |
+| -------------------------------------------------- | ------- | ------------------------------------ |
+| [Next.js](https://nextjs.org/)                     | 16.x    | React framework with App Router      |
+| [Vinext](https://github.com/nicholasgasior/vinext) | 0.0.x   | Vite-based dev/build CLI for Next.js |
+| [React](https://react.dev/)                        | 19.x    | UI library                           |
+| [TypeScript](https://www.typescriptlang.org/)      | 5.x     | Type-safe JavaScript                 |
+| [PostgreSQL](https://www.postgresql.org/)          | 16.x    | Relational database                  |
+| [Drizzle ORM](https://orm.drizzle.team/)           | 0.44    | Database ORM + migrations            |
 
 ### UI & Styling
 
@@ -244,7 +245,7 @@ yarn start
 
 | Technology                                      | Purpose           |
 | ----------------------------------------------- | ----------------- |
-| [NextAuth.js v5](https://next-auth.js.org/)     | Authentication    |
+| [better-auth](https://www.better-auth.com/)     | Authentication    |
 | [TanStack Query](https://tanstack.com/query/)   | Server state      |
 | [React Hook Form](https://react-hook-form.com/) | Form handling     |
 | [Zod](https://zod.dev/)                         | Schema validation |
@@ -319,7 +320,7 @@ panamia.club/
 │   └── activities.next/     # Federation (git subtree)
 ├── docs/                    # Documentation
 ├── .husky/                  # Git hooks (pre-commit, commit-msg)
-├── auth.ts                  # NextAuth v5 configuration
+├── auth.ts                  # better-auth configuration
 ├── middleware.ts            # Next.js middleware (HTTPS, headers)
 └── package.json             # Dependencies & scripts
 ```

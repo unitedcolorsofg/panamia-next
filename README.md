@@ -83,9 +83,9 @@ Want to run the platform locally or contribute code?
 
 ### Technical Overview
 
-- **Framework**: Next.js 16 with React 19
+- **Framework**: Next.js 16 + Vinext (Vite) with React 19
 - **Database**: PostgreSQL via Supabase (Drizzle ORM)
-- **Authentication**: Passwordless (magic links + OAuth)
+- **Authentication**: Passwordless (magic links + OAuth via better-auth)
 - **Hosting**: Cloudflare Workers
 
 See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.

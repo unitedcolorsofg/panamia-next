@@ -1,6 +1,6 @@
 # Pana Mia Club - Mentoring Feature Guide
 
-> ⚠️ **PROTOTYPE STATUS**: The peer-to-peer video mentoring feature using WebRTC is currently in **prototype/experimental stage**. While functional for testing and development, it may not work in all network configurations (especially behind strict firewalls or NATs) and is not yet production-ready. TURN server configuration is planned for future releases to improve connectivity.
+> [!] **PROTOTYPE STATUS**: The peer-to-peer video mentoring feature using WebRTC is currently in **prototype/experimental stage**. While functional for testing and development, it may not work in all network configurations (especially behind strict firewalls or NATs) and is not yet production-ready. TURN server configuration is planned for future releases to improve connectivity.
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ The Pana Mia Club mentoring feature enables **peer-to-peer video mentoring** wit
 
 - **WebRTC** (Prototype): Direct peer-to-peer connections for video/audio
 - **Pusher**: Real-time signaling and chat infrastructure
-- **NextAuth v5**: Secure authentication
+- **better-auth**: Secure authentication
 - **PostgreSQL**: Relational database with Drizzle ORM
 - **shadcn/ui**: Modern, accessible UI components
 
@@ -358,7 +358,7 @@ The mentoring feature uses a hybrid architecture:
 
 - Next.js API Routes (`app/api/mentoring/`, `app/api/pusher/`)
 - PostgreSQL (Supabase) with Drizzle ORM for data persistence
-- NextAuth v5 for authentication
+- better-auth for authentication
 - Pusher for real-time communication
 
 **Real-time:**
@@ -389,9 +389,9 @@ POSTGRES_URL=postgres://localhost:5432/panamia_dev
 # OR Neon:
 # POSTGRES_URL=postgres://user:pass@host.neon.tech/panamia
 
-# NextAuth
-NEXTAUTH_SECRET=your_32_char_random_string
-NEXTAUTH_URL=https://localhost:3000
+# better-auth
+BETTER_AUTH_SECRET=your_32_char_random_string
+BETTER_AUTH_URL=https://localhost:3000
 ```
 
 #### Database Setup
@@ -761,4 +761,4 @@ See project LICENSE file.
 
 ---
 
-**Built with ❤️ by the Pana Mia Club community**
+**Built with <3 by the Pana Mia Club community**

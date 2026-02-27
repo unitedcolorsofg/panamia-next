@@ -172,7 +172,7 @@ interface UserAdditions {
 
 ### Stage 0: Prerequisites
 
-**Status**: ✅ Complete
+**Status**: [done] Complete
 
 - Screenname feature implemented
 - AuthorBadge component ready
@@ -181,7 +181,7 @@ interface UserAdditions {
 
 ### Stage 1: In-App Notification System
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 **Foundation for all invitation and review workflows**
 
@@ -250,7 +250,7 @@ All notification code MUST include upstream reference comments:
 
 ### Stage 2: Account Type & Article Schema
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### User Model Updates
 
@@ -297,7 +297,7 @@ All notification code MUST include upstream reference comments:
 
 ### Stage 3: Co-Author & Reviewer Workflow
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### Invitation Flow
 
@@ -375,7 +375,7 @@ Re-request review when ready
 
 ### Stage 4: Publishing & Public Display
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### Publishing Rules
 
@@ -483,7 +483,7 @@ Add new section to existing homepage:
 
 ### Stage 5: RSS Feeds
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### Endpoints
 
@@ -544,7 +544,7 @@ Add to `<head>` in layout:
 
 ### Stage 6: Article Threading
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### "In Reply To" Feature
 
@@ -578,7 +578,7 @@ Child article shows "In reply to: [Title]" header.
 
 ### Stage 7: Admin Moderation
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### Capabilities
 
@@ -605,7 +605,7 @@ Child article shows "In reply to: [Title]" header.
 
 ### Stage 8: Mastodon Comments
 
-**Status**: ✅ Complete (not yet user tested)
+**Status**: [done] Complete (not yet user tested)
 
 #### Overview
 
@@ -828,7 +828,7 @@ components/
 
 - Next.js 16
 - PostgreSQL / Drizzle
-- NextAuth
+- better-auth
 - Nodemailer / Brevo
 - BunnyCDN (images)
 - Tailwind CSS

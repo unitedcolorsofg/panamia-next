@@ -86,7 +86,7 @@ We prioritize FLOSS solutions where:
 
 ### Google Analytics (REMOVED )
 
-**Status:** 🚫 Removed in Phase 9
+**Status:** [no] Removed in Phase 9
 
 **Why we removed it:**
 
@@ -111,12 +111,13 @@ We prioritize FLOSS solutions where:
 
 ### Core Framework & Libraries
 
-| Package        | Version | License    | Purpose                      |
-| -------------- | ------- | ---------- | ---------------------------- |
-| **Next.js**    | 16.0.8  | MIT        | React framework with SSR/SSG |
-| **React**      | 19.2.1  | MIT        | UI library                   |
-| **TypeScript** | 5.9.3   | Apache 2.0 | Type-safe JavaScript         |
-| **Node.js**    | 20+     | MIT        | JavaScript runtime           |
+| Package        | Version | License    | Purpose                              |
+| -------------- | ------- | ---------- | ------------------------------------ |
+| **Next.js**    | 16.0.8  | MIT        | React framework with SSR/SSG         |
+| **Vinext**     | 0.0.13  | MIT        | Vite-based dev/build CLI for Next.js |
+| **React**      | 19.2.1  | MIT        | UI library                           |
+| **TypeScript** | 5.9.3   | Apache 2.0 | Type-safe JavaScript                 |
+| **Node.js**    | 20+     | MIT        | JavaScript runtime                   |
 
 ### UI & Styling
 
@@ -142,18 +143,17 @@ We prioritize FLOSS solutions where:
 
 ### Authentication
 
-| Package                   | Version       | License | Purpose                    |
-| ------------------------- | ------------- | ------- | -------------------------- |
-| **NextAuth.js**           | 5.0.0-beta.30 | ISC     | Authentication for Next.js |
-| **@auth/drizzle-adapter** | 1.9.0         | ISC     | NextAuth database adapter  |
+| Package         | Version | License | Purpose                             |
+| --------------- | ------- | ------- | ----------------------------------- |
+| **better-auth** | 1.x     | MIT     | Authentication (magic link + OAuth) |
 
 ### Database
 
-| Package         | Version | License            | Purpose                     | Status     |
-| --------------- | ------- | ------------------ | --------------------------- | ---------- |
-| **PostgreSQL**  | 16.x    | PostgreSQL License | Relational database (FLOSS) | ✅ Primary |
-| **Drizzle ORM** | 0.44.x  | Apache 2.0         | PostgreSQL ORM              | ✅ Active  |
-| **postgres.js** | 3.x     | BSD                | PostgreSQL driver           | ✅ Active  |
+| Package         | Version | License            | Purpose                     | Status         |
+| --------------- | ------- | ------------------ | --------------------------- | -------------- |
+| **PostgreSQL**  | 16.x    | PostgreSQL License | Relational database (FLOSS) | [done] Primary |
+| **Drizzle ORM** | 0.44.x  | Apache 2.0         | PostgreSQL ORM              | [done] Active  |
+| **postgres.js** | 3.x     | BSD                | PostgreSQL driver           | [done] Active  |
 
 ### Development Tools
 
@@ -172,22 +172,22 @@ We prioritize FLOSS solutions where:
 **Historical Note:**
 MongoDB was previously used but has been fully removed due to its SSPL license, which is not considered FLOSS by the Free Software Foundation and Open Source Initiative.
 
-**Migration Status: ✅ Complete**
+**Migration Status: [done] Complete**
 
 All data has been migrated to PostgreSQL. The project now uses only FLOSS-compliant database technology:
 
-| Phase    | Data                             | Status      | Notes                        |
-| -------- | -------------------------------- | ----------- | ---------------------------- |
-| Phase 1  | PostgreSQL infrastructure        | ✅ Complete | Drizzle + Supabase           |
-| Phase 2  | Auth (users, accounts, sessions) | ✅ Complete | NextAuth → Drizzle adapter   |
-| Phase 3  | Reference updates                | ✅ Complete | All references use PG IDs    |
-| Phase 4  | Sidecars                         | ✅ Complete | Transactional features on PG |
-| Phase 5  | Notifications                    | ✅ Complete | Full relational model        |
-| Phase 6  | Articles                         | ✅ Complete | Content + JSONB metadata     |
-| Phase 7  | Profiles                         | ✅ Complete | Flexible fields → JSONB      |
-| Phase 8  | MongoDB removal                  | ✅ Complete | All MongoDB code removed     |
-| Phase 9  | Auth token migrations            | ✅ Complete | Email/OAuth verification     |
-| Phase 10 | Complete removal                 | ✅ Complete | No MongoDB dependencies      |
+| Phase    | Data                             | Status          | Notes                         |
+| -------- | -------------------------------- | --------------- | ----------------------------- |
+| Phase 1  | PostgreSQL infrastructure        | [done] Complete | Drizzle + Supabase            |
+| Phase 2  | Auth (users, accounts, sessions) | [done] Complete | better-auth + Drizzle adapter |
+| Phase 3  | Reference updates                | [done] Complete | All references use PG IDs     |
+| Phase 4  | Sidecars                         | [done] Complete | Transactional features on PG  |
+| Phase 5  | Notifications                    | [done] Complete | Full relational model         |
+| Phase 6  | Articles                         | [done] Complete | Content + JSONB metadata      |
+| Phase 7  | Profiles                         | [done] Complete | Flexible fields → JSONB       |
+| Phase 8  | MongoDB removal                  | [done] Complete | All MongoDB code removed      |
+| Phase 9  | Auth token migrations            | [done] Complete | Email/OAuth verification      |
+| Phase 10 | Complete removal                 | [done] Complete | No MongoDB dependencies       |
 
 **PostgreSQL JSONB for Flexible Data:**
 

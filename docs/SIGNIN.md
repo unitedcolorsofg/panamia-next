@@ -14,7 +14,7 @@ Users with the same email address registered with multiple OAuth providers can f
 
 #### 1. First sign-in with Google (trusted provider)
 
-- NextAuth creates user record with `alice@example.com`
+- better-auth creates user record with `alice@example.com`
 - Creates account link: `{userId: "abc123", provider: "google", providerAccountId: "google-id-456"}`
 - Profile auto-claimed immediately
 
@@ -122,7 +122,7 @@ if (!existingAccount) {
 
 ## Security Note
 
-This is a **feature** of NextAuth called "account linking" and it's secure because:
+This is a **feature** of better-auth called "account linking" and it's secure because:
 
 - Each provider independently verified the email address
 - The linking happens at the `userId` level (identified by email)
@@ -133,7 +133,7 @@ This is a **feature** of NextAuth called "account linking" and it's secure becau
 
 ### Account Linking for Trusted Providers
 
-Trusted providers (Google, Apple, Email, mastodon.social) create account links automatically through NextAuth's default flow.
+Trusted providers (Google, Apple, Email, mastodon.social) create account links automatically through better-auth's default flow.
 
 ### Account Linking for Verification-Required Providers
 
