@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Nunito, Rubik } from 'next/font/google';
+import { Nunito, Montserrat } from 'next/font/google';
 import './globals.css';
 import '../styles/flower-power.css';
 import { Providers } from './providers';
@@ -13,10 +13,10 @@ const nunito = Nunito({
   variable: '--font-nunito',
 });
 
-const rubik = Rubik({
+const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-rubik',
+  variable: '--font-montserrat',
 });
 
 export const metadata: Metadata = {
@@ -45,7 +45,7 @@ export default function RootLayout({
           href="/feed.json"
         />
       </head>
-      <body className={`${nunito.variable} ${rubik.variable} font-sans`}>
+      <body className={`${nunito.variable} ${montserrat.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="flower-power"
