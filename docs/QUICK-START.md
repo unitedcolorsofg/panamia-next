@@ -321,7 +321,7 @@ panamia.club/
 ├── docs/                    # Documentation
 ├── .husky/                  # Git hooks (pre-commit, commit-msg)
 ├── auth.ts                  # better-auth configuration
-├── middleware.ts            # Next.js middleware (HTTPS, headers)
+├── proxy.ts                 # Request proxy (HTTPS headers, ActivityPub routing)
 └── package.json             # Dependencies & scripts
 ```
 
