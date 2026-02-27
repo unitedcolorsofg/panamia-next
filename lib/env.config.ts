@@ -51,16 +51,16 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // AUTHENTICATION (NextAuth)
+  // AUTHENTICATION (better-auth)
   // =============================================================================
-  NEXTAUTH_SECRET: {
+  BETTER_AUTH_SECRET: {
     description:
-      'NextAuth.js encryption secret (generate with: openssl rand -base64 32)',
+      'better-auth encryption secret (generate with: openssl rand -base64 32)',
     location: 'SECRET',
     required: true,
   },
-  NEXTAUTH_URL: {
-    description: 'Base URL for NextAuth callbacks',
+  BETTER_AUTH_URL: {
+    description: 'Base URL for better-auth callbacks',
     location: 'VAR',
     required: true,
     defaultValue: 'http://localhost:3000',

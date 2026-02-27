@@ -83,7 +83,7 @@ Want to run the platform locally or contribute code?
 
 ### Technical Overview
 
-- **Framework**: Next.js 16 + Vinext (Vite) with React 19
+- **Framework**: Next.js 16 App Router with React 19 (Vite dev via Vinext)
 - **Database**: PostgreSQL via Supabase (Drizzle ORM)
 - **Authentication**: Passwordless (magic links + OAuth via better-auth)
 - **Hosting**: Cloudflare Workers
