@@ -1,37 +1,27 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "panamia-next",
-	"main": ".open-next/worker.js",
+	"main": "worker/index.ts",
 	"compatibility_date": "2026-02-24",
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
 	"assets": {
-		"directory": ".open-next/assets",
+		"directory": "dist/client",
 		"binding": "ASSETS"
 	},
-	"services": [
-		{
-			// Self-reference required for OpenNext caching
-			"binding": "WORKER_SELF_REFERENCE",
-			"service": "panamia-next"
-		}
-	],
 	// Hyperdrive binding for Supabase PostgreSQL access from Workers
 	// https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
 			"id": "985dd5bf59c84a799dc3eac9122facaf",
-			// Required by wrangler's getPlatformProxy (used by opennextjs-cloudflare deploy).
-			// In production the real Hyperdrive service is used — this value only satisfies
-			// wrangler's local-emulation check and is never used to open a real connection.
+			// localConnectionString satisfies wrangler's local-emulation check only;
+			// the real Hyperdrive service is used in production.
 			"localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 		}
 	]
-	// Deferred: R2 incremental cache (add once basic deployment is stable)
-	// "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "panamia-next-opennext-cache" }]
-	// Deferred: Cloudflare image optimization
+	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 }

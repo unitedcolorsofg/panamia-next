@@ -30,8 +30,9 @@
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "dev:vinext": "vite dev --port 3001",
-    "build:vinext": "vite build"
+    "dev:vinext": "vinext dev --port 3001",
+    "build:vinext": "drizzle-kit migrate && vinext build",
+    "deploy:vinext": "vinext deploy"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -97,6 +98,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.25.6",
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
     "@opennextjs/cloudflare": "^1.17.0",
@@ -120,6 +122,6 @@
     "typescript": "^5.9.3",
     "vinext": "^0.0.13",
     "vite": "^7.3.1",
-    "wrangler": "^4.68.1"
+    "wrangler": "^4.69.0"
   }
 }
