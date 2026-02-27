@@ -1,3 +1,7 @@
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -40,6 +44,16 @@ const nextConfig = {
       test: '/pana/[username]',
       loader: 'raw-loader',
     });
+
+    if (isServer) {
+      // Stub out @vercel/og — this app does not use next/og.
+      // Prevents resvg.wasm + yoga.wasm + index.edge.js (~2.2 MiB) from being
+      // traced into .nft.json and subsequently bundled into the Cloudflare Worker.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'next/dist/compiled/@vercel/og': `${__dirname}/lib/stubs/vercel-og.js`,
+      };
+    }
 
     // Important: return the modified config
     return config;
