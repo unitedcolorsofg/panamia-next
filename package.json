@@ -29,7 +29,9 @@
     "db:reset": "npx tsx scripts/reset-test-db.ts",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "dev:vinext": "vite dev --port 3001",
+    "build:vinext": "vite build"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -104,6 +106,7 @@
     "@types/pusher-js": "^5.1.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-rsc": "^0.5.21",
     "baseline-browser-mapping": "^2.10.0",
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
@@ -113,6 +116,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "react-server-dom-webpack": "^19.2.4",
     "typescript": "^5.9.3",
     "vinext": "^0.0.13",
     "vite": "^7.3.1",
