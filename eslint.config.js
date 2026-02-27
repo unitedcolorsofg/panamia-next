@@ -1,19 +1,14 @@
-import nextConfig from 'eslint-config-next';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
 
-const eslintConfig = [
-  ...nextConfig,
+export default [
   {
+    files: ['**/*.{ts,tsx}'],
+    plugins: { '@typescript-eslint': tsPlugin },
+    languageOptions: { parser: tsParser },
     rules: {
+      ...tsPlugin.configs['recommended'].rules,
       'react/no-unescaped-entities': 0,
-      '@next/next/no-html-link-for-pages': 'off',
-      '@next/next/no-img-element': 'off',
-      '@next/next/no-page-custom-font': 'off',
-      '@next/next/no-duplicate-head': 'off',
-      '@next/next/no-before-interactive-script-outside-document': 'off',
-      '@next/next/no-styled-jsx-in-document': 'off',
-      '@next/next/no-typos': 'off',
     },
   },
 ];
-
-export default eslintConfig;

@@ -9,7 +9,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -25,20 +25,29 @@
       "@/app/*": ["app/*"],
       "@/model/*": ["api/auth/lib/model/*"],
       "@/federation/*": ["lib/federation/*"],
-      "@/external/*": ["external/*"]
-    },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+      "@/external/*": ["external/*"],
+      "next/server": ["node_modules/vinext/dist/shims/server"],
+      "next/navigation": ["node_modules/vinext/dist/shims/navigation"],
+      "next/link": ["node_modules/vinext/dist/shims/link"],
+      "next/image": ["node_modules/vinext/dist/shims/image"],
+      "next/dynamic": ["node_modules/vinext/dist/shims/dynamic"],
+      "next/headers": ["node_modules/vinext/dist/shims/headers"],
+      "next/cache": ["node_modules/vinext/dist/shims/cache"],
+      "next/head": ["node_modules/vinext/dist/shims/head"],
+      "next/script": ["node_modules/vinext/dist/shims/script"],
+      "next/router": ["node_modules/vinext/dist/shims/router"],
+      "next/og": ["node_modules/vinext/dist/shims/og"],
+      "next/font/google": ["node_modules/vinext/dist/shims/font-google"],
+      "next/font/local": ["node_modules/vinext/dist/shims/font-local"],
+      "next/dist/shared/lib/constants": ["lib/shims/next-constants"],
+      "next": ["lib/shims/next-root"]
+    }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", "scripts/migrate-from-mongodb.ts", "external/**"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "scripts/migrate-from-mongodb.ts",
+    "external/**",
+    "worker/**"
+  ]
 }
