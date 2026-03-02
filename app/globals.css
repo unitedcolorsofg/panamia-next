@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Font family CSS variables — loaded via direct <link> in app/layout.tsx
+   (replaces next/font/google which generated malformed Google Fonts URLs) */
+:root {
+  --font-nunito: 'Nunito', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
 @theme {
   /* Custom Pana colors */
   --color-pana-blue: #4ab3ea;

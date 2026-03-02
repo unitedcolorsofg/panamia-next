@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Nunito, Montserrat } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import '../styles/flower-power.css';
@@ -8,17 +7,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvider';
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  variable: '--font-nunito',
-});
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-montserrat',
-});
 
 export const metadata: Metadata = {
   title: 'Pana Mia',
@@ -35,6 +23,16 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400..900&family=Montserrat:wght@400;500;600;700&family=Rubik:wght@400;500&display=swap"
+        />
         <link
           rel="alternate"
           type="application/rss+xml"
@@ -48,7 +46,7 @@ export default async function RootLayout({
           href="/feed.json"
         />
       </head>
-      <body className={`${nunito.variable} ${montserrat.variable} font-sans`}>
+      <body className="font-sans">
         <ThemeProvider
           attribute="class"
           defaultTheme="flower-power"
