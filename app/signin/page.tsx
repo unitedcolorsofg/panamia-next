@@ -292,13 +292,13 @@ function SignInPageContent() {
 }
 
 export default function SignInPage() {
-  // Read at runtime from CF Worker env — NOT baked in at build time.
-  // In CF dashboard, set as RECAPTCHA_SITE_KEY (no NEXT_PUBLIC_ prefix needed
-  // since this is a server component that passes the key as a prop to the client).
-  const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
+  // NEXT_PUBLIC_* vars are baked into the bundle by Vite at build time.
+  // Set this in CF dashboard Build variables (not Runtime), so it is present
+  // during `yarn build`. The site key is public — baking it in is intentional.
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   if (!recaptchaSiteKey) {
-    console.error('RECAPTCHA_SITE_KEY is not configured');
+    console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not configured');
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-red-600">
