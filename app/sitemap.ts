@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { articles, profiles, users } from '@/lib/schema';
 import { and, eq, isNotNull } from 'drizzle-orm';
 
-const SITE_URL = 'https://panamia.club';
+const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL ?? 'https://panamia.club';
 
 const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: SITE_URL, priority: 1.0, changeFrequency: 'weekly' },
