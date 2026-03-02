@@ -93,7 +93,6 @@
     "@cloudflare/vite-plugin": "^1.25.6",
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
-    "@opennextjs/cloudflare": "^1.17.0",
     "@playwright/test": "^1.58.2",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^25.3.0",

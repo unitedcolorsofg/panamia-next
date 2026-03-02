@@ -11,7 +11,7 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
-import { getDb } from '@/lib/db';
+import { getDb } from '../lib/db';
 
 interface Env {
   ASSETS: Fetcher;
