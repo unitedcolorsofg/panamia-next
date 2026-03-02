@@ -226,12 +226,16 @@ export const envConfig: Record<string, EnvVarConfig> = {
     docsUrl: 'https://app.brevo.com/settings/keys/api',
   },
   BREVO_SENDEREMAIL: {
-    description: 'Brevo sender email address',
+    description:
+      'Brevo sender email address. ' +
+      'Baked into the bundle by Vite at build time — must be in CF Build variables (not Runtime).',
     location: 'VAR',
     required: false,
   },
   BREVO_SENDERNAME: {
-    description: 'Brevo sender display name',
+    description:
+      'Brevo sender display name. ' +
+      'Baked into the bundle by Vite at build time — must be in CF Build variables (not Runtime).',
     location: 'VAR',
     required: false,
   },
