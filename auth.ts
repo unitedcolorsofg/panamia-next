@@ -2,16 +2,15 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink, genericOAuth } from 'better-auth/plugins';
 import { headers } from 'next/headers';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import {
   users,
   sessions,
   accounts,
   verification,
-  oAuthVerifications,
   profiles,
 } from '@/lib/schema';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 
 // Custom email templates for magic link authentication
@@ -97,7 +96,7 @@ function html(params: { url: string; host: string; email: string }) {
 }
 
 function text(params: { url: string; host: string }) {
-  const { url, host } = params;
+  const { url } = params;
   return `Sign in to Pana MIA\n\n${url}\n\nThis link will expire in 24 hours and can only be used once.\n\nIf you didn't request this email, you can safely ignore it.\n`;
 }
 
@@ -435,173 +434,190 @@ function getProviderVerificationConfig(
 }
 
 // =============================================================================
-// better-auth instance
+// better-auth instance — lazy singleton
 // =============================================================================
+//
+// betterAuth is initialized on the first request, not at module-load time.
+// This ensures getDb() is called after worker/index.ts has primed the db cache
+// with the HYPERDRIVE env binding — never with an undefined connection string.
 
-export const betterAuthInstance = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: 'pg',
-    schema: {
-      user: users,
-      session: sessions,
-      account: accounts,
-      verification,
-    },
-    usePlural: true,
-  }),
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      scope: [
-        'openid',
-        'email',
-        'profile',
-        'https://www.googleapis.com/auth/calendar.events',
-      ],
-    },
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID!,
-      clientSecret: process.env.APPLE_CLIENT_SECRET!,
-    },
-  },
-  plugins: [
-    magicLink({
-      sendMagicLink: async ({ email, url }) => {
-        const { host } = new URL(url);
-        await new BrevoApi().sendEmail(
-          email,
-          'Sign in to Pana MIA',
-          html({ url, host, email }),
-          text({ url, host })
-        );
+type BetterAuthInstance = ReturnType<typeof betterAuth>;
+let _betterAuthInstance: BetterAuthInstance | null = null;
+
+function getBetterAuth(): BetterAuthInstance {
+  if (_betterAuthInstance) return _betterAuthInstance;
+
+  const db = getDb();
+
+  _betterAuthInstance = betterAuth({
+    database: drizzleAdapter(db, {
+      provider: 'pg',
+      schema: {
+        user: users,
+        session: sessions,
+        account: accounts,
+        verification,
       },
+      usePlural: true,
     }),
-    genericOAuth({
-      config: [
-        // Wikimedia — emails are optional and may not be verified
-        {
-          providerId: 'wikimedia',
-          clientId: process.env.WIKIMEDIA_CLIENT_ID!,
-          clientSecret: process.env.WIKIMEDIA_CLIENT_SECRET!,
-          authorizationUrl:
-            'https://meta.wikimedia.org/w/rest.php/oauth2/authorize',
-          tokenUrl: 'https://meta.wikimedia.org/w/rest.php/oauth2/access_token',
-          userInfoUrl:
-            'https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile',
-          scopes: ['identify', 'email'],
-          mapProfileToUser: (profile: Record<string, unknown>) => ({
-            id: String(profile.sub || profile.id),
-            email: (profile.email as string) || undefined,
-            name: (profile.realname as string) || (profile.username as string),
-            image: undefined,
-          }),
-        },
-        // Mastodon — custom OAuth per-instance
-        {
-          providerId: 'mastodon',
-          clientId: process.env.MASTODON_CLIENT_ID!,
-          clientSecret: process.env.MASTODON_CLIENT_SECRET!,
-          authorizationUrl: process.env.MASTODON_INSTANCE
-            ? `${process.env.MASTODON_INSTANCE}/oauth/authorize`
-            : 'https://mastodon.social/oauth/authorize',
-          tokenUrl: process.env.MASTODON_INSTANCE
-            ? `${process.env.MASTODON_INSTANCE}/oauth/token`
-            : 'https://mastodon.social/oauth/token',
-          userInfoUrl: process.env.MASTODON_INSTANCE
-            ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
-            : 'https://mastodon.social/api/v1/accounts/verify_credentials',
-          scopes: ['read:accounts'],
-          mapProfileToUser: (profile: Record<string, unknown>) => ({
-            id: String(profile.id),
-            email: (profile.email as string) || undefined,
-            name:
-              (profile.display_name as string) ||
-              (profile.username as string) ||
-              undefined,
-            image: (profile.avatar as string) || undefined,
-          }),
-        },
-      ],
-    }),
-  ],
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => {
-          if (!user.email) {
-            console.error('Sign-in blocked: No email provided', {
-              userId: user.id,
-            });
-            return false;
-          }
-        },
+    secret: process.env.BETTER_AUTH_SECRET,
+    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    socialProviders: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        scope: [
+          'openid',
+          'email',
+          'profile',
+          'https://www.googleapis.com/auth/calendar.events',
+        ],
+      },
+      apple: {
+        clientId: process.env.APPLE_CLIENT_ID!,
+        clientSecret: process.env.APPLE_CLIENT_SECRET!,
       },
     },
-    account: {
-      create: {
-        before: async (account) => {
-          const config = getProviderVerificationConfig(account.providerId);
-
-          if (config === 'disabled') {
-            console.log(
-              'Sign-in blocked: Provider is disabled:',
-              account.providerId
-            );
-            return false;
-          }
-
-          if (config === 'verification-required') {
-            // TODO(QA): send verification email via oAuthVerifications + redirect
-            // to /signin?verificationSent=true. Requires an HTTP-level hook to
-            // intercept the OAuth callback and redirect. For now we block the
-            // account creation — the user will see a generic auth error.
-            console.log(
-              'Sign-in blocked: Provider requires verification:',
-              account.providerId
-            );
-            return false;
-          }
+    plugins: [
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          const { host } = new URL(url);
+          await new BrevoApi().sendEmail(
+            email,
+            'Sign in to Pana MIA',
+            html({ url, host, email }),
+            text({ url, host })
+          );
         },
-        after: async (account) => {
-          // Auto-claim an unclaimed profile for trusted providers
-          if (!account.userId) return;
-          try {
-            const user = await db.query.users.findFirst({
-              where: eq(users.id, account.userId),
-            });
-            if (!user?.email) return;
+      }),
+      genericOAuth({
+        config: [
+          // Wikimedia — emails are optional and may not be verified
+          {
+            providerId: 'wikimedia',
+            clientId: process.env.WIKIMEDIA_CLIENT_ID!,
+            clientSecret: process.env.WIKIMEDIA_CLIENT_SECRET!,
+            authorizationUrl:
+              'https://meta.wikimedia.org/w/rest.php/oauth2/authorize',
+            tokenUrl:
+              'https://meta.wikimedia.org/w/rest.php/oauth2/access_token',
+            userInfoUrl:
+              'https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile',
+            scopes: ['identify', 'email'],
+            mapProfileToUser: (profile: Record<string, unknown>) => ({
+              id: String(profile.sub || profile.id),
+              email: (profile.email as string) || undefined,
+              name:
+                (profile.realname as string) || (profile.username as string),
+              image: undefined,
+            }),
+          },
+          // Mastodon — custom OAuth per-instance
+          {
+            providerId: 'mastodon',
+            clientId: process.env.MASTODON_CLIENT_ID!,
+            clientSecret: process.env.MASTODON_CLIENT_SECRET!,
+            authorizationUrl: process.env.MASTODON_INSTANCE
+              ? `${process.env.MASTODON_INSTANCE}/oauth/authorize`
+              : 'https://mastodon.social/oauth/authorize',
+            tokenUrl: process.env.MASTODON_INSTANCE
+              ? `${process.env.MASTODON_INSTANCE}/oauth/token`
+              : 'https://mastodon.social/oauth/token',
+            userInfoUrl: process.env.MASTODON_INSTANCE
+              ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
+              : 'https://mastodon.social/api/v1/accounts/verify_credentials',
+            scopes: ['read:accounts'],
+            mapProfileToUser: (profile: Record<string, unknown>) => ({
+              id: String(profile.id),
+              email: (profile.email as string) || undefined,
+              name:
+                (profile.display_name as string) ||
+                (profile.username as string) ||
+                undefined,
+              image: (profile.avatar as string) || undefined,
+            }),
+          },
+        ],
+      }),
+    ],
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            if (!user.email) {
+              console.error('Sign-in blocked: No email provided', {
+                userId: user.id,
+              });
+              return false;
+            }
+          },
+        },
+      },
+      account: {
+        create: {
+          before: async (account) => {
+            const config = getProviderVerificationConfig(account.providerId);
 
-            const unclaimedProfile = await db.query.profiles.findFirst({
-              where: and(
-                eq(profiles.email, user.email.toLowerCase()),
-                isNull(profiles.userId)
-              ),
-            });
-
-            if (unclaimedProfile) {
+            if (config === 'disabled') {
               console.log(
-                'Auto-claiming profile for user:',
-                user.email,
-                'from provider:',
+                'Sign-in blocked: Provider is disabled:',
                 account.providerId
               );
-              await db
-                .update(profiles)
-                .set({ userId: account.userId })
-                .where(eq(profiles.id, unclaimedProfile.id));
-              console.log('Profile claimed successfully');
+              return false;
             }
-          } catch (error) {
-            console.error('Error auto-claiming profile:', error);
-          }
+
+            if (config === 'verification-required') {
+              // TODO(QA): send verification email via oAuthVerifications + redirect
+              // to /signin?verificationSent=true. Requires an HTTP-level hook to
+              // intercept the OAuth callback and redirect. For now we block the
+              // account creation — the user will see a generic auth error.
+              console.log(
+                'Sign-in blocked: Provider requires verification:',
+                account.providerId
+              );
+              return false;
+            }
+          },
+          after: async (account) => {
+            // Auto-claim an unclaimed profile for trusted providers
+            if (!account.userId) return;
+            try {
+              const user = await db.query.users.findFirst({
+                where: eq(users.id, account.userId),
+              });
+              if (!user?.email) return;
+
+              const unclaimedProfile = await db.query.profiles.findFirst({
+                where: and(
+                  eq(profiles.email, user.email.toLowerCase()),
+                  isNull(profiles.userId)
+                ),
+              });
+
+              if (unclaimedProfile) {
+                console.log(
+                  'Auto-claiming profile for user:',
+                  user.email,
+                  'from provider:',
+                  account.providerId
+                );
+                await db
+                  .update(profiles)
+                  .set({ userId: account.userId })
+                  .where(eq(profiles.id, unclaimedProfile.id));
+                console.log('Profile claimed successfully');
+              }
+            } catch (error) {
+              console.error('Error auto-claiming profile:', error);
+            }
+          },
         },
       },
     },
-  },
-});
+  });
+
+  return _betterAuthInstance;
+}
 
 // =============================================================================
 // auth() compat shim — returns AppSession shape for server components
@@ -619,7 +635,7 @@ interface ProfileRoles {
 
 export async function auth(): Promise<AppSession | null> {
   try {
-    const session = await betterAuthInstance.api.getSession({
+    const session = await getBetterAuth().api.getSession({
       headers: await headers(),
     });
     if (!session) return null;
@@ -636,7 +652,7 @@ export async function auth(): Promise<AppSession | null> {
     let profileVerification: ProfileVerification | null = null;
     let profileRoles: ProfileRoles | null = null;
     try {
-      const userProfile = await db.query.profiles.findFirst({
+      const userProfile = await getDb().query.profiles.findFirst({
         where: eq(profiles.userId, session.user.id),
       });
       if (userProfile) {
@@ -670,4 +686,4 @@ export async function auth(): Promise<AppSession | null> {
   }
 }
 
-export const handler = betterAuthInstance.handler;
+export const handler = (request: Request) => getBetterAuth().handler(request);

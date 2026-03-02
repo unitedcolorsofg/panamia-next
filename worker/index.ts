@@ -11,9 +11,11 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
+import { getDb } from '@/lib/db';
 
 interface Env {
   ASSETS: Fetcher;
+  HYPERDRIVE: { connectionString: string };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -28,6 +30,10 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // Prime the db cache with HYPERDRIVE before any application code runs.
+    // All subsequent getDb() calls (from server components, API routes, auth hooks)
+    // return this cached instance without needing env passed explicitly.
+    getDb(env);
     const url = new URL(request.url);
 
     // Image optimization via Cloudflare Images binding.
