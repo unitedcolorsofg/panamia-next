@@ -21,7 +21,7 @@
 			// the real Hyperdrive service is used in production.
 			"localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 		}
-	]
+	],
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 
