@@ -201,8 +201,12 @@ export const envConfig: Record<string, EnvVarConfig> = {
   // =============================================================================
   // RECAPTCHA
   // =============================================================================
-  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: {
-    description: 'Google reCAPTCHA v3 site key (public)',
+  RECAPTCHA_SITE_KEY: {
+    description:
+      'Google reCAPTCHA v3 site key. ' +
+      'Read at runtime by the server component (app/signin/page.tsx) and passed ' +
+      'as a prop — NOT NEXT_PUBLIC_ because NEXT_PUBLIC_* vars are baked in at ' +
+      'Vite build time and are absent when the CF dashboard variable is set post-build.',
     location: 'VAR',
     required: true,
     docsUrl: 'https://www.google.com/recaptcha/admin',

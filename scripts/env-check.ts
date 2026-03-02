@@ -11,9 +11,9 @@
  *   1 - Missing required variables
  */
 
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { config } from 'dotenv';
+import { config, parse as dotenvParse } from 'dotenv';
 
 // Load .env.local if it exists (local dev), otherwise use raw env (CI)
 const envLocalPath = resolve(process.cwd(), '.env.local');
@@ -60,6 +60,7 @@ function checkEnv() {
   const missing: string[] = [];
   const present: string[] = [];
   const optional: string[] = [];
+  const stale: string[] = [];
 
   for (const [name, config] of Object.entries(envConfig)) {
     const value = process.env[name];
@@ -75,38 +76,70 @@ function checkEnv() {
     }
   }
 
+  // Detect stale variables in .env.local that are no longer in envConfig
+  if (existsSync(envLocalPath)) {
+    const fileContent = readFileSync(envLocalPath, 'utf-8');
+    const parsed = dotenvParse(fileContent);
+    const knownKeys = new Set(Object.keys(envConfig));
+    for (const key of Object.keys(parsed)) {
+      if (!knownKeys.has(key)) {
+        stale.push(key);
+      }
+    }
+  }
+
   // Print results
   if (present.length > 0) {
     console.log(
-      `${GREEN}✓ Required variables present: ${present.length}${RESET}`
+      `${GREEN}OK Required variables present: ${present.length}${RESET}`
     );
   }
 
   if (missing.length > 0) {
-    console.log(`\n${RED}✗ Missing required variables:${RESET}`);
+    console.log(`\n${RED}MISSING required variables:${RESET}`);
     for (const name of missing) {
       const config = envConfig[name];
-      console.log(`  ${RED}•${RESET} ${name} [${config.location}]`);
+      console.log(`  ${RED}-${RESET} ${name} [${config.location}]`);
       console.log(`    ${config.description}`);
     }
   }
 
+  if (stale.length > 0) {
+    console.log(
+      `\n${YELLOW}STALE variables in .env.local (not in envConfig):${RESET}`
+    );
+    for (const name of stale) {
+      console.log(`  ${YELLOW}-${RESET} ${name}`);
+    }
+    console.log(
+      `  ${YELLOW}Update or remove these from .env.local and lib/env.config.ts.${RESET}`
+    );
+  }
+
   if (optional.length > 0 && args.includes('--verbose')) {
     console.log(
-      `\n${YELLOW}○ Optional variables not set: ${optional.length}${RESET}`
+      `\n${YELLOW}Optional variables not set: ${optional.length}${RESET}`
     );
     for (const name of optional) {
-      console.log(`  ${YELLOW}•${RESET} ${name}`);
+      console.log(`  ${YELLOW}-${RESET} ${name}`);
     }
   }
 
   console.log('');
 
-  if (missing.length > 0) {
+  if (missing.length > 0 || stale.length > 0) {
     console.log(`${RED}${BOLD}Environment validation failed!${RESET}`);
-    console.log(
-      `Set the missing variables in .env.local or GitHub Secrets/Variables.\n`
-    );
+    if (missing.length > 0) {
+      console.log(
+        `Set the missing variables in .env.local or GitHub Secrets/Variables.`
+      );
+    }
+    if (stale.length > 0) {
+      console.log(
+        `Remove stale variables from .env.local (they are no longer used).`
+      );
+    }
+    console.log('');
     process.exit(1);
   } else {
     console.log(`${GREEN}${BOLD}Environment validation passed!${RESET}\n`);
