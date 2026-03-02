@@ -250,31 +250,6 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // PUSHER (Real-time)
-  // =============================================================================
-  PUSHER_APP_ID: {
-    description: 'Pusher application ID',
-    location: 'VAR',
-    required: false,
-    docsUrl: 'https://dashboard.pusher.com/',
-  },
-  PUSHER_SECRET: {
-    description: 'Pusher secret',
-    location: 'SECRET',
-    required: false,
-  },
-  NEXT_PUBLIC_PUSHER_KEY: {
-    description: 'Pusher key (used by both server and client)',
-    location: 'VAR',
-    required: false,
-  },
-  NEXT_PUBLIC_PUSHER_CLUSTER: {
-    description: 'Pusher cluster region',
-    location: 'VAR',
-    required: false,
-  },
-
-  // =============================================================================
   // STRIPE (Payments)
   // =============================================================================
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: {
@@ -305,7 +280,7 @@ export const envConfig: Record<string, EnvVarConfig> = {
  */
 export function getSecrets(): string[] {
   return Object.entries(envConfig)
-    .filter(([_, config]) => config.location === 'SECRET')
+    .filter(([, config]) => config.location === 'SECRET')
     .map(([name]) => name);
 }
 
@@ -314,7 +289,7 @@ export function getSecrets(): string[] {
  */
 export function getVars(): string[] {
   return Object.entries(envConfig)
-    .filter(([_, config]) => config.location === 'VAR')
+    .filter(([, config]) => config.location === 'VAR')
     .map(([name]) => name);
 }
 
@@ -323,7 +298,7 @@ export function getVars(): string[] {
  */
 export function getRequired(): string[] {
   return Object.entries(envConfig)
-    .filter(([_, config]) => config.required)
+    .filter(([, config]) => config.required)
     .map(([name]) => name);
 }
 
@@ -355,7 +330,7 @@ export function generateWorkflowSnippet(): string {
 
   // Secrets first
   const secrets = Object.entries(envConfig)
-    .filter(([_, config]) => config.location === 'SECRET')
+    .filter(([, config]) => config.location === 'SECRET')
     .sort(([a], [b]) => a.localeCompare(b));
 
   if (secrets.length > 0) {
@@ -367,7 +342,7 @@ export function generateWorkflowSnippet(): string {
 
   // Then vars
   const vars = Object.entries(envConfig)
-    .filter(([_, config]) => config.location === 'VAR')
+    .filter(([, config]) => config.location === 'VAR')
     .sort(([a], [b]) => a.localeCompare(b));
 
   if (vars.length > 0) {

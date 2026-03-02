@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { mentorSessions, profiles } from '@/lib/schema';
 import type { SessionType, SessionStatus } from '@/lib/schema';
-import { and, desc, eq, or } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { ProfileMentoring } from '@/lib/interfaces';
 import { createSessionSchema } from '@/lib/validations/session';
 import { createNotification } from '@/lib/notifications';
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create session with unique ID for Pusher channel
+  // Create session with unique ID
   // Status is 'pending' until mentor accepts
   const sessionId = nanoid(16);
   const [newSession] = await db

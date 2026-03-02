@@ -61,3 +61,4 @@ scripts/auth-data-export-*.json
 scripts/id-mapping-*.json
 scripts/unmapped-user-ids-*.json
 
+.env.local.*
