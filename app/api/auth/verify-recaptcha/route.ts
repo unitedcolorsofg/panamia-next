@@ -40,21 +40,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, score: data.score });
     }
 
-    // Allow v2 keys in development or non-production deployments (v2 doesn't return score).
+    // Allow v2 keys when not on panamia.club (dev, workers.dev previews, etc.).
     // Note: dev script uses `env -u NODE_ENV` so NODE_ENV is undefined in dev.
-    // isDevOrPreview is true when NODE_ENV isn't 'production', OR when the request
-    // host doesn't match NEXT_PUBLIC_HOST_URL (catches workers.dev previews, etc.).
     const host = request.headers.get('host') || '';
-    let productionHost: string | null = null;
-    try {
-      const productionUrl = process.env.NEXT_PUBLIC_HOST_URL;
-      if (productionUrl) productionHost = new URL(productionUrl).hostname;
-    } catch {
-      /* invalid URL — fall back to NODE_ENV check only */
-    }
     const isDevOrPreview =
-      process.env.NODE_ENV !== 'production' ||
-      (productionHost !== null && !host.includes(productionHost));
+      process.env.NODE_ENV !== 'production' || !host.includes('panamia.club');
     if (data.success && data.score === undefined && isDevOrPreview) {
       console.warn('reCAPTCHA: v2 keys detected in dev mode, allowing request');
       return NextResponse.json({ success: true, score: 1.0 });

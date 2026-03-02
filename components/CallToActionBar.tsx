@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './CallToActionBar.module.css';
 import { Button } from '@/components/ui/button';
@@ -8,13 +9,16 @@ interface CallToActionBarProps {
   variant?: 'newsletter' | 'complete-profile';
 }
 
-// Check if this is the production site (inlined at build time)
-const isProductionSite =
-  process.env.NEXT_PUBLIC_HOST_URL?.includes('panamia.club') ?? true;
-
 export default function CallToActionBar({
   variant = 'newsletter',
 }: CallToActionBarProps) {
+  // Runtime hostname check — must be client-side to catch workers.dev vs panamia.club.
+  // Default true so the server render and initial hydration show the production state,
+  // then flip immediately on mount if we're not on panamia.club.
+  const [isProductionSite, setIsProductionSite] = useState(true);
+  useEffect(() => {
+    setIsProductionSite(window.location.hostname.includes('panamia.club'));
+  }, []);
   // Authenticated user without profile - prompt to complete profile
   if (variant === 'complete-profile') {
     return (
