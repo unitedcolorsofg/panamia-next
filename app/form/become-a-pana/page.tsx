@@ -15,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Shield } from 'lucide-react';
 
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();
@@ -29,7 +28,7 @@ function BecomeAPanaForm() {
   const [name, setName] = useState('');
   const [locallyBased, setLocallyBased] = useState('');
   const [details, setDetails] = useState('');
-  const [background, setBackground] = useState('');
+  const [background] = useState('');
   const [socialsWebsite, setSocialsWebsite] = useState('');
   const [socialsInstagram, setSocialsInstagram] = useState('');
   const [socialsFacebook, setSocialsFacebook] = useState('');
@@ -903,10 +902,7 @@ function BecomeAPanaForm() {
                     </p>
                     <p>
                       You can{' '}
-                      <Link
-                        href="/api/auth/signin"
-                        className="text-pana-blue underline"
-                      >
+                      <Link href="/signin" className="text-pana-blue underline">
                         Sign In
                       </Link>{' '}
                       using your profile email to see other features and

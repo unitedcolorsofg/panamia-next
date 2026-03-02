@@ -190,7 +190,9 @@ export function DirectorySearchContent() {
               const distance =
                 lat && lng ? calculateDistance(lat, lng) : undefined;
               const profileId = profile._id as string;
-              const isMentor = (profile as any).mentoring?.enabled === true;
+              const isMentor =
+                (profile as { mentoring?: { enabled?: boolean } }).mentoring
+                  ?.enabled === true;
 
               return (
                 <SearchResultCard
@@ -251,7 +253,7 @@ export function DirectorySearchContent() {
             <CardContent className="p-6 text-center">
               <p className="text-gray-600 dark:text-gray-400">
                 <Link
-                  href="/api/auth/signin"
+                  href="/signin"
                   className="font-semibold text-blue-600 hover:underline"
                 >
                   Sign Up

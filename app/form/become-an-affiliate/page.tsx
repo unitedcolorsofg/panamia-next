@@ -21,7 +21,7 @@ import { CheckCircle2 } from 'lucide-react';
 
 export default function BecomeAnAffiliatePage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [acceptTOS, setAcceptTOS] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -106,7 +106,7 @@ export default function BecomeAnAffiliatePage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/api/auth/signin">Sign In</Link>
+              <Link href="/signin">Sign In</Link>
             </Button>
           </CardContent>
         </Card>

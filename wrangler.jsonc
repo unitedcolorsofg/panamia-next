@@ -24,4 +24,10 @@
 	]
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
+
+	// Capture Worker exceptions in Cloudflare dashboard → Workers & Pages → Observability
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	}
 }

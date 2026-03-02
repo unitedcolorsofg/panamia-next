@@ -106,7 +106,7 @@ export default function MainHeader({
               asChild
               className="h-10 px-4"
             >
-              <Link href="/api/auth/signin">Sign In</Link>
+              <Link href="/signin">Sign In</Link>
             </Button>
           </>
         )}
