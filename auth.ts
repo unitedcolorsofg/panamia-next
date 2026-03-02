@@ -28,13 +28,15 @@ function html(params: { url: string; host: string; email: string }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in to Pana MIA</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+  <!-- Preheader: visible in inbox preview, hidden in body -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your sign-in link for Pana MIA &mdash; expires in 24 hours.</div>
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
-          <!-- Header -->
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 8px; max-width: 600px;">
           <tr>
             <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
               <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
@@ -42,47 +44,51 @@ function html(params: { url: string; host: string; email: string }) {
             </td>
           </tr>
 
-          <!-- Content -->
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Sign in to your account</h2>
 
-              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                Hi there! Click the button below to securely sign in to <strong>${escapedHost}</strong>.
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                Hi there! We received a sign-in request for your account on <strong>${escapedHost}</strong>. Click the button below to sign in.
+              </p>
+
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                This is a one-time link — it can only be used once and will expire automatically after <strong>24 hours</strong>. If you need a new link after it expires, you can request one at any time from the sign-in page.
               </p>
 
               <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                This link will expire in <strong>24 hours</strong> and can only be used once.
+                For your security, do not forward this email to anyone. Pana MIA staff will never ask you for this link.
               </p>
 
-              <!-- Button -->
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td align="center" style="padding: 20px 0;">
-                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600;">
                       Sign in to Pana MIA
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                Or copy and paste this link into your browser:
+              <p style="margin: 30px 0 8px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Button not working? Copy and paste this link into your browser:
               </p>
-              <p style="margin: 10px 0 0 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
+              <p style="margin: 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
                 ${url}
               </p>
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
-                This email was sent to <strong>${escapedEmail}</strong>.
+              <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+                This email was sent to <strong>${escapedEmail}</strong> because a sign-in was requested for this address.
               </p>
-              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
-                If you didn't request this email, you can safely ignore it. The link will expire automatically.
+              <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                If you did not request this, you can safely ignore this email. The link will expire on its own and your account will not be affected.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                Pana MIA &middot; <a href="https://panamia.club" style="color: #9ca3af; text-decoration: underline;">panamia.club</a> &middot; <a href="mailto:hola@panamia.club" style="color: #9ca3af; text-decoration: underline;">hola@panamia.club</a>
               </p>
             </td>
           </tr>
@@ -96,8 +102,29 @@ function html(params: { url: string; host: string; email: string }) {
 }
 
 function text(params: { url: string; host: string }) {
-  const { url } = params;
-  return `Sign in to Pana MIA\n\n${url}\n\nThis link will expire in 24 hours and can only be used once.\n\nIf you didn't request this email, you can safely ignore it.\n`;
+  const { url, host } = params;
+  return [
+    'Sign in to Pana MIA',
+    '====================',
+    '',
+    'Hi there!',
+    '',
+    `We received a sign-in request for your account on ${host}, South Florida's Creative Community.`,
+    '',
+    'Use the link below to sign in (or copy and paste it into your browser):',
+    '',
+    url,
+    '',
+    'This link expires in 24 hours and works only once. After it expires you can request a new link from the sign-in page.',
+    '',
+    'For your security, do not forward this email to anyone. Pana MIA staff will never ask you for this link.',
+    '',
+    "Didn't request this? You can safely ignore this email. Your account has not been accessed and no changes were made.",
+    '',
+    '---',
+    "Pana MIA \u00b7 South Florida's Creative Community",
+    'panamia.club \u00b7 hola@panamia.club',
+  ].join('\n');
 }
 
 // Email template for email migration verification (sent to new email)
@@ -119,12 +146,15 @@ export function emailMigrationVerificationHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your email change &mdash; Pana MIA</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+  <!-- Preheader: visible in inbox preview, hidden in body -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Confirm your Pana MIA email address change &mdash; link expires in 5 minutes.</div>
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 8px; max-width: 600px;">
           <tr>
             <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
               <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
@@ -134,35 +164,40 @@ export function emailMigrationVerificationHtml(params: {
 
           <tr>
             <td style="padding: 40px;">
-              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Verify Your Email Migration</h2>
+              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Verify Your Email Address Change</h2>
 
-              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                You requested to migrate your Pana MIA account email from <strong>${escapedOldEmail}</strong> to <strong>${escapedNewEmail}</strong>.
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                You recently requested to change the email address on your Pana MIA account.
+              </p>
+
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                Current address: <strong>${escapedOldEmail}</strong><br>
+                New address: <strong>${escapedNewEmail}</strong>
               </p>
 
               <div style="margin: 0 0 30px 0; padding: 20px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; font-weight: 600;">Important:</p>
-                <ul style="margin: 0; padding-left: 20px; color: #92400e; font-size: 14px; line-height: 1.6;">
-                  <li>This link expires in <strong>5 minutes</strong></li>
-                  <li>You will be signed out of all devices</li>
-                  <li>A confirmation will be sent to your old email</li>
+                <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; font-weight: 600;">Before you confirm, please note:</p>
+                <ul style="margin: 0; padding-left: 20px; color: #92400e; font-size: 14px; line-height: 1.8;">
+                  <li>This confirmation link expires in <strong>5 minutes</strong></li>
+                  <li>You will be signed out of all active sessions</li>
+                  <li>A notification will be sent to your current address (${escapedOldEmail})</li>
                 </ul>
               </div>
 
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td align="center" style="padding: 20px 0;">
-                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                      Complete Email Migration
+                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                      Confirm Email Change
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                Or copy and paste this link into your browser:
+              <p style="margin: 30px 0 8px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Button not working? Copy and paste this link into your browser:
               </p>
-              <p style="margin: 10px 0 0 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
+              <p style="margin: 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
                 ${url}
               </p>
             </td>
@@ -170,8 +205,11 @@ export function emailMigrationVerificationHtml(params: {
 
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
-                If you didn't request this email migration, please ignore this email and contact us immediately.
+              <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                If you did not request this email change, please ignore this message. Your account will not be affected. If you believe someone else is attempting to access your account, contact us at <a href="mailto:hola@panamia.club" style="color: #9ca3af;">hola@panamia.club</a>.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                Pana MIA &middot; <a href="https://panamia.club" style="color: #9ca3af; text-decoration: underline;">panamia.club</a> &middot; <a href="mailto:hola@panamia.club" style="color: #9ca3af; text-decoration: underline;">hola@panamia.club</a>
               </p>
             </td>
           </tr>
@@ -190,7 +228,31 @@ export function emailMigrationVerificationText(params: {
   newEmail: string;
 }) {
   const { url, oldEmail, newEmail } = params;
-  return `Verify Your Email Migration\n\nYou requested to migrate your Pana MIA account email from ${oldEmail} to ${newEmail}.\n\nImportant:\n- This link expires in 5 minutes\n- You will be signed out of all devices\n- A confirmation will be sent to your old email\n\nClick here to complete the migration:\n${url}\n\nIf you didn't request this, please ignore this email and contact us immediately.`;
+  return [
+    'Verify Your Email Address Change \u2014 Pana MIA',
+    '==============================================',
+    '',
+    'You recently requested to change the email address on your Pana MIA account.',
+    '',
+    `  Current address: ${oldEmail}`,
+    `  New address:     ${newEmail}`,
+    '',
+    'To confirm this change, open the link below in your browser:',
+    '',
+    url,
+    '',
+    'Before you confirm, please note:',
+    '  - This link expires in 5 minutes',
+    '  - You will be signed out of all active sessions',
+    `  - A notification will be sent to your current address (${oldEmail})`,
+    '',
+    'If you did not request this change, ignore this email. Your account will not be affected.',
+    'If you believe someone else is attempting to access your account, contact us at hola@panamia.club.',
+    '',
+    '---',
+    "Pana MIA \u00b7 South Florida's Creative Community",
+    'panamia.club \u00b7 hola@panamia.club',
+  ].join('\n');
 }
 
 // Email template for migration confirmation (sent to old email)
@@ -210,13 +272,16 @@ export function emailMigrationConfirmationHtml(params: {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Pana MIA account email was changed</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+  <!-- Preheader: visible in inbox preview, hidden in body -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Security notice: the email address on your Pana MIA account was changed on ${timestamp}.</div>
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 8px; max-width: 600px;">
           <tr>
             <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
               <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
@@ -228,32 +293,35 @@ export function emailMigrationConfirmationHtml(params: {
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Your Account Email Was Changed</h2>
 
-              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                Your Pana MIA account email was successfully migrated on <strong>${timestamp}</strong>.
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                This is a security notification from Pana MIA. The email address on your account was successfully changed on <strong>${timestamp}</strong>.
               </p>
 
-              <div style="margin: 0 0 30px 0; padding: 20px; background-color: #eff6ff; border-left: 4px solid ${brandColor}; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #1e40af; font-size: 14px;"><strong>Previous email:</strong> ${escapedOldEmail}</p>
+              <div style="margin: 0 0 24px 0; padding: 20px; background-color: #eff6ff; border-left: 4px solid ${brandColor}; border-radius: 4px;">
+                <p style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px;"><strong>Previous email:</strong> ${escapedOldEmail}</p>
                 <p style="margin: 0; color: #1e40af; font-size: 14px;"><strong>New email:</strong> ${escapedNewEmail}</p>
               </div>
 
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                If you made this change, no further action is needed. You have been signed out of all active sessions — sign in using your new email address to continue using Pana MIA.
+              </p>
+
               <div style="margin: 0 0 20px 0; padding: 20px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 600;">If you didn't authorize this change:</p>
+                <p style="margin: 0 0 8px 0; color: #991b1b; font-size: 14px; font-weight: 600;">Did not authorize this change?</p>
                 <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
-                  Please contact us immediately at <a href="mailto:hola@panamia.club" style="color: #dc2626; text-decoration: underline;">hola@panamia.club</a>. Your account security may be compromised.
+                  Contact us immediately at <a href="mailto:hola@panamia.club" style="color: #dc2626; text-decoration: underline;">hola@panamia.club</a>. Please include the date and time shown above so we can investigate promptly.
                 </p>
               </div>
-
-              <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                You have been signed out of all devices. Please sign in with your new email address to continue using Pana MIA.
-              </p>
             </td>
           </tr>
 
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
-                This is an automated security notification. Please do not reply to this email.
+              <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                This automated security notification was sent to ${escapedOldEmail} because it was the address on your account at the time of the change.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                Pana MIA &middot; <a href="https://panamia.club" style="color: #9ca3af; text-decoration: underline;">panamia.club</a> &middot; <a href="mailto:hola@panamia.club" style="color: #9ca3af; text-decoration: underline;">hola@panamia.club</a>
               </p>
             </td>
           </tr>
@@ -272,7 +340,24 @@ export function emailMigrationConfirmationText(params: {
   timestamp: string;
 }) {
   const { oldEmail, newEmail, timestamp } = params;
-  return `Your Account Email Was Changed\n\nYour Pana MIA account email was successfully migrated on ${timestamp}.\n\nPrevious email: ${oldEmail}\nNew email: ${newEmail}\n\nIf you didn't authorize this change, please contact us immediately at hola@panamia.club. Your account security may be compromised.\n\nYou have been signed out of all devices. Please sign in with your new email address to continue using Pana MIA.`;
+  return [
+    'Your Pana MIA Account Email Was Changed',
+    '========================================',
+    '',
+    `This is a security notification. The email address on your Pana MIA account was changed on ${timestamp}.`,
+    '',
+    `  Previous email: ${oldEmail}`,
+    `  New email:      ${newEmail}`,
+    '',
+    'If you authorized this change, no further action is needed. You have been signed out of all active sessions. Sign in using your new email address to continue using Pana MIA.',
+    '',
+    'Did not authorize this change?',
+    'Contact us immediately at hola@panamia.club. Please include the date and time shown above so we can investigate promptly.',
+    '',
+    '---',
+    "Pana MIA \u00b7 South Florida's Creative Community",
+    'panamia.club \u00b7 hola@panamia.club',
+  ].join('\n');
 }
 
 // Email template for OAuth email verification (sent to OAuth-provided email)
@@ -294,13 +379,15 @@ export function oauthVerificationHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your email &mdash; Pana MIA</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+  <!-- Preheader: visible in inbox preview, hidden in body -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Confirm your email address to complete sign-in to Pana MIA via ${providerName} &mdash; expires in 5 minutes.</div>
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px;">
-          <!-- Header -->
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 8px; max-width: 600px;">
           <tr>
             <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 3px solid ${brandColor};">
               <h1 style="margin: 0; color: #111827; font-size: 28px; font-weight: 700;">Pana MIA</h1>
@@ -308,48 +395,51 @@ export function oauthVerificationHtml(params: {
             </td>
           </tr>
 
-          <!-- Content -->
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 22px; font-weight: 600;">Verify your email address</h2>
 
-              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                You signed in to Pana MIA using <strong>${providerName}</strong>.
-                To complete your sign-in and verify email ownership, click the button below.
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                You recently signed in to Pana MIA using <strong>${providerName}</strong>. To complete your sign-in and confirm that you own this email address, click the button below.
+              </p>
+
+              <p style="margin: 0 0 16px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                We send this verification step the first time you sign in via a new provider to make sure the email address belongs to you.
               </p>
 
               <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                This link will expire in <strong>5 minutes</strong> for security.
+                This verification link expires in <strong>5 minutes</strong>. If it expires, return to Pana MIA and sign in again to receive a fresh link.
               </p>
 
-              <!-- Button -->
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td align="center" style="padding: 20px 0;">
-                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                      Verify Email &amp; Sign In
+                    <a href="${url}" style="display: inline-block; background-color: ${buttonBg}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                      Verify Email &amp; Complete Sign-In
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                Or copy and paste this link into your browser:
+              <p style="margin: 30px 0 8px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Button not working? Copy and paste this link into your browser:
               </p>
-              <p style="margin: 10px 0 0 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
+              <p style="margin: 0; color: ${brandColor}; font-size: 13px; word-break: break-all; line-height: 1.6;">
                 ${url}
               </p>
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
-                This email was sent to <strong>${escapedEmail}</strong>.
+              <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+                This email was sent to <strong>${escapedEmail}</strong> because it is the address associated with your ${providerName} account.
               </p>
-              <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
-                If you didn't request this, you can safely ignore it. The link will expire automatically.
+              <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 13px; line-height: 1.6;">
+                If you did not attempt to sign in using ${providerName}, you can safely ignore this email. The link will expire on its own.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                Pana MIA &middot; <a href="https://panamia.club" style="color: #9ca3af; text-decoration: underline;">panamia.club</a> &middot; <a href="mailto:hola@panamia.club" style="color: #9ca3af; text-decoration: underline;">hola@panamia.club</a>
               </p>
             </td>
           </tr>
@@ -367,10 +457,27 @@ export function oauthVerificationText(params: {
   email: string;
   provider: string;
 }) {
-  const { url, provider } = params;
+  const { url, email, provider } = params;
   const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
 
-  return `Verify Your Email for Pana MIA\n\nYou signed in using ${providerName}. To complete sign-in and verify email ownership, click the link below:\n\n${url}\n\nThis link expires in 5 minutes for security.\n\nIf you didn't request this, you can safely ignore this email.`;
+  return [
+    'Verify Your Email Address \u2014 Pana MIA',
+    '=========================================',
+    '',
+    `Hi ${email},`,
+    '',
+    `You recently signed in to Pana MIA using ${providerName}. To complete your sign-in and confirm that you own this email address, open the link below:`,
+    '',
+    url,
+    '',
+    `We send this verification step the first time you sign in via a new provider. It expires in 5 minutes. If it expires, return to Pana MIA and sign in again to receive a fresh link.`,
+    '',
+    `If you did not attempt to sign in using ${providerName}, you can safely ignore this email. Your account has not been accessed.`,
+    '',
+    '---',
+    "Pana MIA \u00b7 South Florida's Creative Community",
+    'panamia.club \u00b7 hola@panamia.club',
+  ].join('\n');
 }
 
 // =============================================================================
