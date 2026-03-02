@@ -563,7 +563,7 @@ function getBetterAuth(): BetterAuthInstance {
         user: users,
         session: sessions,
         account: accounts,
-        verification,
+        verifications: verification, // usePlural: true makes better-auth look up 'verifications'
       },
       usePlural: true,
     }),
