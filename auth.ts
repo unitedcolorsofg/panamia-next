@@ -568,7 +568,18 @@ function getBetterAuth(): BetterAuthInstance {
       usePlural: true,
     }),
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
+    // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
+    baseURL:
+      process.env.NEXT_PUBLIC_HOST_URL ||
+      process.env.BETTER_AUTH_URL ||
+      'http://localhost:3000',
+    trustedOrigins: [
+      process.env.NEXT_PUBLIC_HOST_URL,
+      process.env.BETTER_AUTH_URL,
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ].filter(Boolean) as string[],
     socialProviders: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID!,
