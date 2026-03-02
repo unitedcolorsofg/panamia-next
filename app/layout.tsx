@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Nunito, Montserrat } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 import '../styles/flower-power.css';
 import { Providers } from './providers';
@@ -24,11 +25,13 @@ export const metadata: Metadata = {
   description: 'Community platform for Pana Mia',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const host = (await headers()).get('host') ?? '';
+  const isProductionSite = host.includes('panamia.club');
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -54,7 +57,7 @@ export default function RootLayout({
         >
           <FlowerPowerProvider>
             <Providers>
-              <MainHeader />
+              <MainHeader isProductionSite={isProductionSite} />
               <div id="layout-main">{children}</div>
               <MainFooter />
             </Providers>
