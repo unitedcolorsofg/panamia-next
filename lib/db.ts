@@ -2,11 +2,12 @@
  * Drizzle Database Client
  *
  * getDb(env) must be called from the Cloudflare Worker entry point (worker/index.ts)
- * at the start of every request to prime the per-connection-string cache. All other
- * call sites call getDb() without arguments and receive the already-cached instance.
+ * at the start of every request. In production a fresh postgres.js client is created
+ * on each call — Hyperdrive manages the actual Supabase connection pool, so a new
+ * local socket to Hyperdrive is cheap and avoids stale-connection failures.
  *
  * - Production (CF Workers): env.HYPERDRIVE.connectionString via Hyperdrive, max: 1
- * - Local dev (Node.js / vinext dev): process.env.POSTGRES_URL, default pool
+ * - Local dev (Node.js / vinext dev): process.env.POSTGRES_URL, cached per URL
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -19,32 +20,30 @@ export interface CloudflareEnv {
 
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 
-// Cache instances by connection string.
-// In production a single Hyperdrive URL is reused for the lifetime of the isolate.
-const instances = new Map<string, DbInstance>();
+// Cache for local-dev connections only (keyed by connection string).
+// NOT used for Hyperdrive — a fresh client is created per request to avoid stale sockets.
+const localInstances = new Map<string, DbInstance>();
 
-// Holds the Hyperdrive-backed instance primed by the Worker entry (worker/index.ts).
-// getDb() without args returns this when available, so app code always uses Hyperdrive
-// rather than creating a parallel direct-to-Supabase connection via process.env.POSTGRES_URL.
+// Holds the per-request Hyperdrive-backed instance primed by the Worker entry.
+// A fresh instance is set on every request so app code (getDb() without args) always
+// uses the current request's client rather than a stale one from a previous request.
 let hyperdriveInstance: DbInstance | null = null;
 
 export function getDb(env?: CloudflareEnv): DbInstance {
   const hyperdrive = env?.HYPERDRIVE;
 
   if (hyperdrive) {
-    // Priming call from Worker entry — create (or reuse) the Hyperdrive-backed instance.
-    const connectionString = hyperdrive.connectionString;
-    const cached = instances.get(connectionString);
-    if (cached) {
-      hyperdriveInstance = cached;
-      return cached;
-    }
+    // Always create a fresh postgres.js client for each Worker request.
+    // Hyperdrive manages the actual connection pool to Supabase; a new client here is just
+    // a new local socket to Hyperdrive — cheap. Reusing a cached client across requests
+    // leads to stale-connection failures once Hyperdrive silently closes an idle socket.
+    //
     // max: 1 — Workers have no persistent connection pool.
     // prepare: false — Hyperdrive only supports the simple query protocol,
     //   not the extended protocol (prepared statements) that postgres.js uses by default.
     //   https://developers.cloudflare.com/hyperdrive/examples/postgres-js/
-    // debug — log every query + surface the underlying postgres error code when a query fails.
-    const client = postgres(connectionString, {
+    // debug — log every query so failures are visible in wrangler tail.
+    const client = postgres(hyperdrive.connectionString, {
       max: 1,
       prepare: false,
       debug: (connection, query, params) => {
@@ -56,13 +55,12 @@ export function getDb(env?: CloudflareEnv): DbInstance {
       },
     });
     const instance = drizzle(client, { schema });
-    instances.set(connectionString, instance);
     hyperdriveInstance = instance;
     return instance;
   }
 
   // No env provided (app code, auth module, API routes, etc.).
-  // Prefer the Hyperdrive instance primed by the Worker entry for this isolate.
+  // Prefer the Hyperdrive instance primed by the Worker entry for this request.
   if (hyperdriveInstance) return hyperdriveInstance;
 
   // Fallback: local dev (Node.js / vinext dev) where HYPERDRIVE binding is absent.
@@ -73,11 +71,11 @@ export function getDb(env?: CloudflareEnv): DbInstance {
         'Provide the HYPERDRIVE binding (production) or set POSTGRES_URL (local dev).'
     );
   }
-  const cached = instances.get(connectionString);
+  const cached = localInstances.get(connectionString);
   if (cached) return cached;
   const client = postgres(connectionString);
   const instance = drizzle(client, { schema });
-  instances.set(connectionString, instance);
+  localInstances.set(connectionString, instance);
   return instance;
 }
 

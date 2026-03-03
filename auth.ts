@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink, genericOAuth } from 'better-auth/plugins';
 import { headers } from 'next/headers';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import {
   users,
   sessions,
@@ -545,16 +545,15 @@ function getProviderVerificationConfig(
 // =============================================================================
 //
 // betterAuth is initialized on the first request, not at module-load time.
-// This ensures getDb() is called after worker/index.ts has primed the db cache
-// with the HYPERDRIVE env binding — never with an undefined connection string.
+// The `db` proxy from @/lib/db is passed to drizzleAdapter — every property access
+// on the proxy calls getDb() which returns the current request's hyperdriveInstance,
+// so better-auth queries always use the fresh per-request client.
 
 type BetterAuthInstance = ReturnType<typeof betterAuth>;
 let _betterAuthInstance: BetterAuthInstance | null = null;
 
 function getBetterAuth(): BetterAuthInstance {
   if (_betterAuthInstance) return _betterAuthInstance;
-
-  const db = getDb();
 
   _betterAuthInstance = betterAuth({
     database: drizzleAdapter(db, {
@@ -770,7 +769,7 @@ export async function auth(): Promise<AppSession | null> {
     let profileVerification: ProfileVerification | null = null;
     let profileRoles: ProfileRoles | null = null;
     try {
-      const userProfile = await getDb().query.profiles.findFirst({
+      const userProfile = await db.query.profiles.findFirst({
         where: eq(profiles.userId, session.user.id),
       });
       if (userProfile) {
