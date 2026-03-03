@@ -23,23 +23,45 @@ type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 // In production a single Hyperdrive URL is reused for the lifetime of the isolate.
 const instances = new Map<string, DbInstance>();
 
+// Holds the Hyperdrive-backed instance primed by the Worker entry (worker/index.ts).
+// getDb() without args returns this when available, so app code always uses Hyperdrive
+// rather than creating a parallel direct-to-Supabase connection via process.env.POSTGRES_URL.
+let hyperdriveInstance: DbInstance | null = null;
+
 export function getDb(env?: CloudflareEnv): DbInstance {
   const hyperdrive = env?.HYPERDRIVE;
-  const connectionString =
-    hyperdrive?.connectionString ?? process.env.POSTGRES_URL;
 
+  if (hyperdrive) {
+    // Priming call from Worker entry — create (or reuse) the Hyperdrive-backed instance.
+    const connectionString = hyperdrive.connectionString;
+    const cached = instances.get(connectionString);
+    if (cached) {
+      hyperdriveInstance = cached;
+      return cached;
+    }
+    // max: 1 is required with Hyperdrive — Workers have no persistent connection pool.
+    const client = postgres(connectionString, { max: 1 });
+    const instance = drizzle(client, { schema });
+    instances.set(connectionString, instance);
+    hyperdriveInstance = instance;
+    return instance;
+  }
+
+  // No env provided (app code, auth module, API routes, etc.).
+  // Prefer the Hyperdrive instance primed by the Worker entry for this isolate.
+  if (hyperdriveInstance) return hyperdriveInstance;
+
+  // Fallback: local dev (Node.js / vinext dev) where HYPERDRIVE binding is absent.
+  const connectionString = process.env.POSTGRES_URL;
   if (!connectionString) {
     throw new Error(
       'Database: no connection string. ' +
         'Provide the HYPERDRIVE binding (production) or set POSTGRES_URL (local dev).'
     );
   }
-
   const cached = instances.get(connectionString);
   if (cached) return cached;
-
-  // max: 1 is required with Hyperdrive — Workers have no persistent connection pool.
-  const client = postgres(connectionString, hyperdrive ? { max: 1 } : {});
+  const client = postgres(connectionString);
   const instance = drizzle(client, { schema });
   instances.set(connectionString, instance);
   return instance;
