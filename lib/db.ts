@@ -43,7 +43,18 @@ export function getDb(env?: CloudflareEnv): DbInstance {
     // prepare: false — Hyperdrive only supports the simple query protocol,
     //   not the extended protocol (prepared statements) that postgres.js uses by default.
     //   https://developers.cloudflare.com/hyperdrive/examples/postgres-js/
-    const client = postgres(connectionString, { max: 1, prepare: false });
+    // debug — log every query + surface the underlying postgres error code when a query fails.
+    const client = postgres(connectionString, {
+      max: 1,
+      prepare: false,
+      debug: (connection, query, params) => {
+        const short = (typeof query === 'string' ? query : String(query)).slice(
+          0,
+          80
+        );
+        console.log('[db]', short, params?.length ? `p[${params.length}]` : '');
+      },
+    });
     const instance = drizzle(client, { schema });
     instances.set(connectionString, instance);
     hyperdriveInstance = instance;
