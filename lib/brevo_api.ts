@@ -5,8 +5,8 @@ export default class BrevoApi {
   config = {
     apiKey: process.env.BREVO_APIKEY || '',
     base_url: 'https://api.brevo.com/v3',
-    sender_email: process.env.BREVO_SENDEREMAIL || '',
-    sender_name: process.env.BREVO_SENDERNAME || 'PanaMia Club',
+    sender_email: process.env.NEXT_PUBLIC_BREVO_SENDEREMAIL || '',
+    sender_name: process.env.NEXT_PUBLIC_BREVO_SENDERNAME || 'PanaMia Club',
     default_receiver: process.env.DEV_RECEIVER_EMAIL,
     lists: {
       addedByWebsite: process.env.BREVO_LIST_ADDEDBYWEBSITE,
