@@ -39,8 +39,11 @@ export function getDb(env?: CloudflareEnv): DbInstance {
       hyperdriveInstance = cached;
       return cached;
     }
-    // max: 1 is required with Hyperdrive — Workers have no persistent connection pool.
-    const client = postgres(connectionString, { max: 1 });
+    // max: 1 — Workers have no persistent connection pool.
+    // prepare: false — Hyperdrive only supports the simple query protocol,
+    //   not the extended protocol (prepared statements) that postgres.js uses by default.
+    //   https://developers.cloudflare.com/hyperdrive/examples/postgres-js/
+    const client = postgres(connectionString, { max: 1, prepare: false });
     const instance = drizzle(client, { schema });
     instances.set(connectionString, instance);
     hyperdriveInstance = instance;
