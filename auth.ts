@@ -560,10 +560,10 @@ function getBetterAuth(): BetterAuthInstance {
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema: {
-        user: users,
-        session: sessions,
-        account: accounts,
-        verifications: verification, // usePlural: true makes better-auth look up 'verifications'
+        users,
+        sessions,
+        accounts,
+        verifications: verification, // Drizzle export is `verification`, but usePlural key must be `verifications`
       },
       usePlural: true,
     }),
