@@ -1,4 +1,5 @@
 #!/usr/bin/env npx tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * One-Time Migration: MongoDB to PostgreSQL
  *
@@ -380,9 +381,7 @@ async function main() {
             await db.insert(users).values({
               id: newId,
               email: user.email,
-              emailVerified: user.emailVerified
-                ? new Date(user.emailVerified)
-                : null,
+              emailVerified: !!user.emailVerified,
               name: user.name || null,
               screenname: user.screenname || null,
               role: user.role || 'user',

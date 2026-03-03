@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         .insert(users)
         .values({
           email,
-          emailVerified: new Date(),
+          emailVerified: true,
         })
         .returning({ id: users.id });
       userId = newUser.id;

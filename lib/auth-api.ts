@@ -27,6 +27,7 @@ import { eq } from 'drizzle-orm';
  */
 export async function getApiSession(
   req: NextApiRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _res: NextApiResponse
 ): Promise<AppSession | null> {
   try {
@@ -61,7 +62,7 @@ export async function getApiSession(
       user: {
         id: user.id,
         email: user.email,
-        emailVerified: user.emailVerified ?? null,
+        emailVerified: user.emailVerified ? new Date() : null,
         name: '',
         image: '',
         isAdmin: false,

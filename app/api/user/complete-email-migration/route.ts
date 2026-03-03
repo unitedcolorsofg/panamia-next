@@ -5,7 +5,7 @@ import {
 } from '@/auth';
 import { db } from '@/lib/db';
 import { emailMigrations, users, sessions, profiles } from '@/lib/schema';
-import { and, eq, gt } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 
 export async function POST(request: NextRequest) {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // Update user email
     await db
       .update(users)
-      .set({ email: newEmail, emailVerified: new Date() })
+      .set({ email: newEmail, emailVerified: true })
       .where(eq(users.id, userId));
 
     // Invalidate all sessions for this user

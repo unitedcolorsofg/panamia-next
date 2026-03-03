@@ -145,7 +145,7 @@ export const users = pgTable('users', {
     .primaryKey()
     .$defaultFn(() => createId()),
   email: text('email').notNull().unique(),
-  emailVerified: timestamp('email_verified', { withTimezone: true }),
+  emailVerified: boolean('email_verified').notNull().default(false),
   name: text('name'),
   image: text('image'),
   screenname: text('screenname').unique(),
@@ -939,7 +939,7 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
-export const verificationRelations = relations(verification, (_) => ({}));
+export const verificationRelations = relations(verification, () => ({}));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   actorUser: one(users, {

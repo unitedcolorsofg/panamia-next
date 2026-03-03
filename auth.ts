@@ -669,21 +669,6 @@ function getBetterAuth(): BetterAuthInstance {
             }
           },
         },
-        update: {
-          // better-auth passes emailVerified as a boolean (true/false) but our schema
-          // stores it as a timestamptz column. Convert boolean → Date | null so Drizzle
-          // can serialize it correctly (PgTimestamp.mapToDriverValue calls .toISOString()).
-          before: async (user) => {
-            if (typeof user.emailVerified === 'boolean') {
-              return {
-                data: {
-                  ...user,
-                  emailVerified: user.emailVerified ? new Date() : null,
-                },
-              };
-            }
-          },
-        },
       },
       account: {
         create: {
