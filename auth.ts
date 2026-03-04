@@ -558,14 +558,24 @@ function getBetterAuth(): BetterAuthInstance {
   _betterAuthInstance = betterAuth({
     database: drizzleAdapter(db, {
       provider: 'pg',
+      // Singular keys required: usePlural:false means the adapter looks up models by singular
+      // name (e.g. "session", "user") — matching better-auth's internal model names exactly.
+      // Our Drizzle export names are plural (users, sessions, …) so we alias them here.
       schema: {
-        users,
-        sessions,
-        accounts,
-        verifications: verification, // Drizzle export is `verification`, but usePlural key must be `verifications`
+        user: users,
+        session: sessions,
+        account: accounts,
+        verification, // Drizzle export is already singular
       },
-      usePlural: true,
+      // usePlural:false so getModelName("user") === "user" (not "users").
+      // This makes experimental.joins work: the adapter builds `with: { user: true }`
+      // which matches our sessionsRelations / accountsRelations relation key.
+      usePlural: false,
     }),
+    // Use Drizzle's relational API (single JOIN query) for session lookups.
+    // Without this, the adapter falls back to two separate queries (sessions SELECT +
+    // users SELECT via handleFallbackJoin) which hangs in CF Workers with max:1.
+    experimental: { joins: true },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
