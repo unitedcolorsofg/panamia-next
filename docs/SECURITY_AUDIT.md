@@ -407,9 +407,9 @@ await db.query.profiles.findMany({
 - Secure WebSocket connections (Pusher)
 - Cookie security (better-auth sessions)
 
-**Configuration**: Next.js automatically handles secure headers in production
+**Configuration**: Cloudflare Workers enforces HTTPS at the edge; Vinext does not add Next.js-style security headers automatically — headers must be set explicitly in route handlers or via Cloudflare Transform Rules.
 
-**Status**: [!] Requires HTTPS in production (standard practice)
+**Status**: [!] Requires HTTPS in production (enforced by Cloudflare at the edge)
 
 ### WebRTC Security (Prototype Feature)
 
@@ -447,10 +447,11 @@ if (!session?.user?.email) {
 
 ### CORS Configuration
 
-**Default**: Next.js restricts cross-origin requests
+**Default**: Cloudflare Workers does not apply automatic CORS restrictions — all origins are allowed unless explicitly restricted in route handlers. Sensitive API routes enforce authentication via session checks rather than CORS.
 **Pusher**: Configured with specific auth endpoint
+**better-auth**: Enforces `trustedOrigins` — requests from unlisted origins are rejected
 
-**Status**: Secure defaults
+**Status**: Auth-enforced; CORS should be tightened on public-facing mutation endpoints
 
 ## Client-Side Security
 
@@ -473,12 +474,13 @@ if (!session?.user?.email) {
 
 ### Connection Security
 
-**PostgreSQL URL**: Stored in environment variables
+**PostgreSQL URL**: Stored in environment variables (`POSTGRES_URL` for local dev, `POSTGRES_DIRECT_URL` for migrations)
 **Connection String**: Not committed to git (.env.local gitignored)
-**Authentication**: Username/password via connection string
-**SSL**: Required for production (Neon enforces TLS)
+**Production**: Accessed via Cloudflare Hyperdrive — Workers connect to Hyperdrive, which manages a pool of authenticated TLS connections to Supabase. The raw database credentials are configured in Hyperdrive, not exposed to the Worker.
+**Authentication**: Username/password via Supabase pooler connection string
+**SSL**: Enforced by Supabase and Hyperdrive
 
-**Status**: Credentials secured
+**Status**: Credentials secured; Hyperdrive adds an additional isolation layer in production
 
 ### Data Validation
 
@@ -559,7 +561,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 ### Before Production Deployment
 
 1. Enable HTTPS (required)
-2. Set secure NEXTAUTH_SECRET (32+ chars)
+2. Set secure BETTER_AUTH_SECRET (32+ chars)
 3. Configure Pusher production app
 4. Add rate limiting middleware
 5. Set up PostgreSQL with secure connection
@@ -584,7 +586,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 - [ ] Error messages don't leak sensitive info
 - [ ] Logging configured (but not logging secrets)
 - [ ] CORS properly configured
-- [ ] Security headers configured (Next.js defaults)
+- [ ] Security headers configured (Cloudflare Transform Rules or explicit route handlers)
 - [ ] Dependencies updated (npm audit)
 - [ ] Database migrations applied
 - [ ] Backup strategy in place
@@ -617,13 +619,14 @@ If you discover a security vulnerability, please [contact us](https://www.panami
 
 ## Security Testing Results
 
-**Last Updated**: 2025-12-04
+**Last Updated**: 2026-03-04
 
 ### Automated Scans
 
+- [ ] [GitHub Dependabot](https://github.com/unitedcolorsofg/panamia-next/security/dependabot) — dependency vulnerability alerts (review regularly)
+- [ ] [Supabase Security Advisor](https://supabase.com/dashboard/project/_/advisors/security) — database-level security checks (RLS policies, exposed schemas, auth settings)
 - [ ] npm audit (no high/critical vulnerabilities)
 - [ ] OWASP ZAP scan
-- [ ] Dependency check
 
 ### Manual Testing
 
