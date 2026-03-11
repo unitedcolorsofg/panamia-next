@@ -13,30 +13,6 @@ We prioritize FLOSS solutions where:
 
 ## Current Proprietary Services
 
-### Pusher (Real-time Communication)
-
-**Status:** Keeping (already integrated, works well)
-
-**Why we're keeping it:**
-
-- Already integrated and working well
-- Reliable WebRTC signaling for peer mentoring
-- Reasonable pricing for our scale
-- Migration would require significant effort
-
-**FLOSS Alternatives for Future Consideration:**
-
-| Alternative              | License          | Pros                                | Cons                       | Migration Effort |
-| ------------------------ | ---------------- | ----------------------------------- | -------------------------- | ---------------- |
-| **Socket.io**            | MIT              | Widely adopted, good docs           | Self-hosted complexity     | High             |
-| **Supabase Realtime**    | Apache 2.0       | Managed service, generous free tier | Tied to Supabase ecosystem | High             |
-| **Soketi**               | MIT              | Pusher-compatible, self-hosted      | Self-hosting required      | Medium           |
-| **Ably** (has FLOSS SDK) | Apache 2.0 (SDK) | Good performance                    | Service is proprietary     | High             |
-
-**Recommendation:** Keep Pusher for now. Evaluate Soketi if self-hosting becomes viable.
-
----
-
 ### Stripe (Payment Processing)
 
 **Status:** Keeping (industry standard, few viable alternatives)
@@ -60,41 +36,101 @@ We prioritize FLOSS solutions where:
 
 ---
 
-### BunnyCDN (File Storage/CDN)
+### Cloudflare Workers
 
-**Status:** Keeping (performant, cost-effective)
+**Status:** Keeping (current deployment platform)
 
 **Why we're keeping it:**
 
-- Excellent performance and pricing
-- Simple API
-- Global CDN coverage
-- Low vendor lock-in (S3-compatible API)
+- Entire app is deployed on CF Workers via Vinext
+- Edge computing with global distribution
+- Integrated with Hyperdrive, D1, and Durable Objects
+- Excellent performance and developer experience
+
+**Note:** Although proprietary, this is fundamentally a hosting decision. The underlying functionality — running a Node.js-compatible server that handles HTTP requests — is easily replicated using FLOSS tools. A self-hosted Node.js deployment (e.g., via the custom `server.js` used in local dev) would preserve full application portability.
 
 **FLOSS Alternatives:**
 
-| Alternative          | License    | Pros                            | Cons                    | Migration Effort |
-| -------------------- | ---------- | ------------------------------- | ----------------------- | ---------------- |
-| **MinIO**            | AGPL-3.0   | S3-compatible, self-hosted      | Requires infrastructure | Medium           |
-| **Cloudflare R2**    | N/A        | Zero egress fees, S3-compatible | Service is proprietary  | Low              |
-| **Backblaze B2**     | N/A        | Affordable, S3-compatible       | Limited CDN             | Low              |
-| **Supabase Storage** | Apache 2.0 | Integrated with Supabase        | Limited CDN features    | Medium           |
+| Alternative          | License       | Pros                            | Cons                       | Migration Effort |
+| -------------------- | ------------- | ------------------------------- | -------------------------- | ---------------- |
+| **Self-hosted Node** | MIT           | Full control, no vendor lock-in | Infrastructure overhead    | Medium           |
+| **Deno Deploy**      | MIT (runtime) | Edge computing, similar model   | Service itself proprietary | Medium           |
+| **fly.io**           | N/A           | Easy deployment, global edge    | Service is proprietary     | Low              |
 
-**Recommendation:** Keep BunnyCDN. If migration needed, MinIO (self-hosted) or Cloudflare R2 (managed) are good options.
+**Recommendation:** Keep CF Workers. The application architecture is designed to remain portable — the FLOSS exit path is self-hosted Node.js.
 
 ---
 
-### Google Analytics (REMOVED )
+### Cloudflare D1
 
-**Status:** [no] Removed in Phase 9
+**Status:** Planned (sidecar service)
 
-**Why we removed it:**
+**Why we're using it:**
 
-- Privacy concerns
-- Proprietary tracking
-- Not essential for current operations
+- Purpose-built for Cloudflare Workers (co-located, no network hop for writes)
+- Used exclusively for a sidecar service — not for core app data
+- Global read replication via D1 Session API
+- Very low cost at scale
 
-**FLOSS Alternatives (if analytics needed in future):**
+**Note:** Like CF Workers, this is a hosting decision. D1 is SQLite under the hood, and SQLite itself is public domain. The underlying data model and queries are fully portable to any SQLite-compatible system. Core app data remains in FLOSS PostgreSQL (Supabase).
+
+**FLOSS Alternatives:**
+
+| Alternative            | License       | Pros                                          | Cons                          | Migration Effort  |
+| ---------------------- | ------------- | --------------------------------------------- | ----------------------------- | ----------------- |
+| **Turso (libSQL)**     | MIT           | SQLite-compatible, self-hostable, edge-native | Separate infrastructure       | Low               |
+| **Self-hosted SQLite** | Public Domain | Zero dependencies                             | Not distributed               | Low (single node) |
+| **PostgreSQL**         | PostgreSQL    | Full-featured, already in use for app data    | Different query model from D1 | Medium            |
+
+**Recommendation:** Keep D1 for the relay. Turso (libSQL) is the FLOSS exit path if the project ever moves off Cloudflare.
+
+---
+
+### GoHighLevel (CRM / Marketing Automation)
+
+**Status:** In use by the wider organizational team — integration under evaluation
+
+**Current use:**
+
+- CRM for member and lead management
+- Email marketing automation
+- Landing pages and conversion funnels
+
+**Why we're keeping it:**
+
+- Already in use across the organization; not a project-level decision
+- Comprehensive all-in-one platform with strong automation capabilities
+
+**FLOSS Alternatives:**
+
+| Alternative  | License  | Pros                                            | Cons                              | Migration Effort |
+| ------------ | -------- | ----------------------------------------------- | --------------------------------- | ---------------- |
+| **Mautic**   | GPL-3.0  | Full-featured marketing automation, self-hosted | Requires infrastructure, older UX | High             |
+| **CiviCRM**  | AGPL-3.0 | Nonprofit/community-focused CRM                 | Complex setup                     | High             |
+| **Listmonk** | AGPL-3.0 | Self-hosted newsletter and email                | Email only, no CRM                | Low              |
+| **Cal.com**  | AGPL-3.0 | Scheduling and booking (partial overlap)        | Limited CRM features              | N/A              |
+
+**Recommendation:** Evaluate Mautic before committing to GoHighLevel. If GoHighLevel is adopted, document the integration scope clearly and plan an exit path.
+
+---
+
+### Google Analytics
+
+**Status:** Not yet implemented — under evaluation
+
+**Planned use:**
+
+- Web traffic analytics
+- User behavior and conversion tracking
+
+**Why we may adopt it:**
+
+- Industry-standard analytics
+- Deep integration with Google advertising ecosystem
+
+**Privacy concern:** GA sends extensive user data to Google's servers, which conflicts with the project's privacy values. FLOSS alternatives are strongly preferred.
+
+**FLOSS Alternatives (preferred):**
 
 | Alternative     | License  | Pros                     | Cons                         |
 | --------------- | -------- | ------------------------ | ---------------------------- |
@@ -103,7 +139,7 @@ We prioritize FLOSS solutions where:
 | **Matomo**      | GPL-3.0  | Feature-rich, GA-like    | Heavier, more complex        |
 | **GoatCounter** | EUPL-1.2 | Simple, privacy-focused  | Basic features               |
 
-**Recommendation:** Umami for simplicity or Plausible for better UX.
+**Recommendation:** Implement Umami or Plausible before considering GA. A FLOSS analytics solution should be the default choice.
 
 ---
 
@@ -113,7 +149,6 @@ We prioritize FLOSS solutions where:
 
 | Package        | Version | License    | Purpose                              |
 | -------------- | ------- | ---------- | ------------------------------------ |
-| **Next.js**    | 16.0.8  | MIT        | React framework with SSR/SSG         |
 | **Vinext**     | 0.0.13  | MIT        | Vite-based dev/build CLI for Next.js |
 | **React**      | 19.2.1  | MIT        | UI library                           |
 | **TypeScript** | 5.9.3   | Apache 2.0 | Type-safe JavaScript                 |
@@ -149,11 +184,11 @@ We prioritize FLOSS solutions where:
 
 ### Database
 
-| Package         | Version | License            | Purpose                     | Status         |
-| --------------- | ------- | ------------------ | --------------------------- | -------------- |
-| **PostgreSQL**  | 16.x    | PostgreSQL License | Relational database (FLOSS) | [done] Primary |
-| **Drizzle ORM** | 0.44.x  | Apache 2.0         | PostgreSQL ORM              | [done] Active  |
-| **postgres.js** | 3.x     | BSD                | PostgreSQL driver           | [done] Active  |
+| Package         | Version | License            | Purpose                     | Status |
+| --------------- | ------- | ------------------ | --------------------------- | ------ |
+| **PostgreSQL**  | 16.x    | PostgreSQL License | Relational database (FLOSS) | Active |
+| **Drizzle ORM** | 0.44.x  | Apache 2.0         | PostgreSQL ORM              | Active |
+| **postgres.js** | 3.x     | BSD                | PostgreSQL driver           | Active |
 
 ### Development Tools
 
@@ -167,55 +202,11 @@ We prioritize FLOSS solutions where:
 
 ---
 
-## MongoDB Migration Complete
-
-**Historical Note:**
-MongoDB was previously used but has been fully removed due to its SSPL license, which is not considered FLOSS by the Free Software Foundation and Open Source Initiative.
-
-**Migration Status: [done] Complete**
-
-All data has been migrated to PostgreSQL. The project now uses only FLOSS-compliant database technology:
-
-| Phase    | Data                             | Status          | Notes                         |
-| -------- | -------------------------------- | --------------- | ----------------------------- |
-| Phase 1  | PostgreSQL infrastructure        | [done] Complete | Drizzle + Supabase            |
-| Phase 2  | Auth (users, accounts, sessions) | [done] Complete | better-auth + Drizzle adapter |
-| Phase 3  | Reference updates                | [done] Complete | All references use PG IDs     |
-| Phase 4  | Sidecars                         | [done] Complete | Transactional features on PG  |
-| Phase 5  | Notifications                    | [done] Complete | Full relational model         |
-| Phase 6  | Articles                         | [done] Complete | Content + JSONB metadata      |
-| Phase 7  | Profiles                         | [done] Complete | Flexible fields → JSONB       |
-| Phase 8  | MongoDB removal                  | [done] Complete | All MongoDB code removed      |
-| Phase 9  | Auth token migrations            | [done] Complete | Email/OAuth verification      |
-| Phase 10 | Complete removal                 | [done] Complete | No MongoDB dependencies       |
-
-**PostgreSQL JSONB for Flexible Data:**
-
-PostgreSQL's JSONB columns provide the document flexibility previously provided by MongoDB while maintaining full FLOSS compliance:
-
-```sql
--- Profiles with flexible nested data
-CREATE TABLE profiles (
-  id TEXT PRIMARY KEY,
-  user_id TEXT REFERENCES users(id),  -- Real FK!
-  email TEXT UNIQUE,
-  name TEXT,
-  socials JSONB,        -- Flexible nested data
-  categories JSONB,
-  mentoring JSONB,
-  created_at TIMESTAMPTZ
-);
-```
-
-See [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) for database design.
-
----
-
 ### Search (PostgreSQL Full-Text Search)
 
 **Status:** Using PostgreSQL full-text search
 
-With the MongoDB migration complete, search functionality uses PostgreSQL's built-in full-text search capabilities via Drizzle ORM.
+Search functionality uses PostgreSQL's built-in full-text search capabilities via Drizzle ORM.
 
 **Current Implementation:**
 
@@ -237,41 +228,18 @@ With the MongoDB migration complete, search functionality uses PostgreSQL's buil
 
 ### GitHub (Git Hosting)
 
-**Status:** Keeping (ecosystem, contributor familiarity)
+**Status:** Keeping (ecosystem and contributor familiarity)
 
-**Why we're keeping it:**
+**FLOSS Alternatives:**
 
-- Industry standard, most contributors are familiar with it
-- Excellent CI/CD with GitHub Actions
-- Free for open source projects
-- Strong community and discoverability
+| Alternative             | License | Pros                     | Cons                 |
+| ----------------------- | ------- | ------------------------ | -------------------- |
+| **Forgejo** / **Gitea** | MIT     | Self-hosted, lightweight | Smaller ecosystem    |
+| **GitLab CE**           | MIT     | Full DevOps platform     | Heavy resource usage |
+| **Codeberg**            | Forgejo | Non-profit hosted, EU    | Smaller community    |
+| **Radicle**             | MIT     | P2P, decentralized       | Different paradigm   |
 
-**FLOSS Alternatives (Self-Hosted):**
-
-| Alternative                            | License  | Pros                                           | Cons                      |
-| -------------------------------------- | -------- | ---------------------------------------------- | ------------------------- |
-| **[Gitea](https://gitea.io/)**         | MIT      | Lightweight, easy deploy, Go-based             | Smaller community         |
-| **[Forgejo](https://forgejo.org/)**    | MIT      | Gitea fork, ActivityPub federation in progress | Newer, smaller ecosystem  |
-| **[GitLab CE](https://gitlab.com/)**   | MIT      | Full DevOps platform                           | Heavy resource usage      |
-| **[Gogs](https://gogs.io/)**           | MIT      | Minimal, single binary                         | Less features than Gitea  |
-| **[Sourcehut](https://sr.ht/)**        | AGPL-3.0 | Email-driven workflow, minimal                 | Different paradigm        |
-| **[cgit](https://git.zx2c4.com/cgit)** | GPL-2.0  | Ultra-minimal web interface                    | No collaboration features |
-
-**FLOSS Alternatives (Hosted Services):**
-
-| Service                                              | Based On  | Pros                             | Cons              |
-| ---------------------------------------------------- | --------- | -------------------------------- | ----------------- |
-| **[Codeberg](https://codeberg.org/)**                | Forgejo   | Non-profit, EU-hosted            | Smaller community |
-| **[GitLab.com](https://gitlab.com/)**                | GitLab    | Free tier, CI/CD included        | Heavy UI          |
-| **[Sourcehut](https://sr.ht/)**                      | Sourcehut | Email workflow, paid after alpha | Learning curve    |
-| **[Disroot](https://disroot.org/en/services/gitea)** | Gitea     | Community-run collective         | Limited resources |
-
-**Federated / Decentralized:**
-
-| Project                             | Protocol             | Notes                            |
-| ----------------------------------- | -------------------- | -------------------------------- |
-| **[Forgejo](https://forgejo.org/)** | ForgeFed/ActivityPub | Federation in active development |
-| **[Radicle](https://radicle.xyz/)** | P2P                  | Peer-to-peer code collaboration  |
+**Recommendation:** Keep GitHub. Revisit if federation (ForgeFed/ActivityPub via Forgejo) matures.
 
 ---
 
@@ -290,7 +258,6 @@ Prefer (in order):
 1. MIT / Apache 2.0 / BSD (permissive)
 2. LGPL / MPL (weak copyleft)
 3. GPL / AGPL (strong copyleft)
-4. SSPL / BSL (source-available but restricted)
 
 ### 3. Practical Considerations
 
@@ -307,17 +274,18 @@ Proprietary solutions acceptable when:
 - No viable FLOSS alternative exists
 - Handling sensitive operations (payments, compliance)
 - Migration cost is prohibitive
-- Vendor lock-in is minimal
+- Vendor lock-in is minimal (data remains portable)
 
 ---
 
 ## Future Evaluation Dates
 
-| Service  | Next Review | Reason                   |
-| -------- | ----------- | ------------------------ |
-| Pusher   | Q2 2026     | Check Soketi maturity    |
-| Stripe   | Q4 2025     | Review payment landscape |
-| BunnyCDN | Q1 2026     | Evaluate MinIO/R2 costs  |
+| Service            | Next Review | Reason                           |
+| ------------------ | ----------- | -------------------------------- |
+| Stripe             | Q4 2026     | Review payment landscape         |
+| GoHighLevel        | Q2 2026     | Decide before implementation     |
+| Cloudflare Workers | Q1 2028     | Evaluate self-hosted portability |
+| Cloudflare D1      | Q1 2028     | Evaluate Turso maturity          |
 
 ---
 
