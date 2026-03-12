@@ -1,0 +1,39 @@
+diff --git a/cjs/react-server-dom-webpack-client.browser.development.js b/cjs/react-server-dom-webpack-client.browser.development.js
+index 957b8ea8853aa420ea137b97059763b0d08f734b..f945f752ef68e175e2c2ba4d35c37f30ea5adc60 100644
+--- a/cjs/react-server-dom-webpack-client.browser.development.js
++++ b/cjs/react-server-dom-webpack-client.browser.development.js
+@@ -4793,7 +4793,7 @@
+       initializingChunk = null,
+       mightHaveStaticConstructor = /\bclass\b.*\bstatic\b/,
+       MIN_CHUNK_SIZE = 65536,
+-      supportsCreateTask = !!console.createTask,
++      supportsCreateTask = (function() { try { return !!console.createTask && (console.createTask(''), true); } catch(e) { return false; } })(),
+       fakeFunctionCache = new Map(),
+       fakeFunctionIdx = 0,
+       createFakeJSXCallStack = {
+diff --git a/cjs/react-server-dom-webpack-client.edge.development.js b/cjs/react-server-dom-webpack-client.edge.development.js
+index 593097af3d9c0019d756287f70135cd2b93d2519..1c1a4ff937cd8b9814eae9f4527e5ae9229f49c4 100644
+--- a/cjs/react-server-dom-webpack-client.edge.development.js
++++ b/cjs/react-server-dom-webpack-client.edge.development.js
+@@ -4820,7 +4820,7 @@
+       initializingChunk = null,
+       mightHaveStaticConstructor = /\bclass\b.*\bstatic\b/,
+       MIN_CHUNK_SIZE = 65536,
+-      supportsCreateTask = !!console.createTask,
++      supportsCreateTask = (function() { try { return !!console.createTask && (console.createTask(''), true); } catch(e) { return false; } })(),
+       fakeFunctionCache = new Map(),
+       fakeFunctionIdx = 0,
+       createFakeJSXCallStack = {
+diff --git a/cjs/react-server-dom-webpack-client.node.development.js b/cjs/react-server-dom-webpack-client.node.development.js
+index b3598b1caae6386fc5265bb8322e5af4b081b49b..dadda648f200af72d6c3b0792d08eb033ae950eb 100644
+--- a/cjs/react-server-dom-webpack-client.node.development.js
++++ b/cjs/react-server-dom-webpack-client.node.development.js
+@@ -4925,7 +4925,7 @@
+       initializingChunk = null,
+       mightHaveStaticConstructor = /\bclass\b.*\bstatic\b/,
+       MIN_CHUNK_SIZE = 65536,
+-      supportsCreateTask = !!console.createTask,
++      supportsCreateTask = (function() { try { return !!console.createTask && (console.createTask(''), true); } catch(e) { return false; } })(),
+       fakeFunctionCache = new Map(),
+       fakeFunctionIdx = 0,
+       createFakeJSXCallStack = {

@@ -21,13 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'yarn'
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -42,8 +42,8 @@ jobs:
         run: npm run env:check
         env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
@@ -59,38 +59,32 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build Next.js app
+      - name: Build app
         run: yarn build
         env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL_TEST }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
           NEXT_PUBLIC_GOOGLE_ENABLED: ${{ vars.NEXT_PUBLIC_GOOGLE_ENABLED }}
           NEXT_PUBLIC_APPLE_ENABLED: ${{ vars.NEXT_PUBLIC_APPLE_ENABLED }}
           NEXT_PUBLIC_MASTODON_ENABLED: ${{ vars.NEXT_PUBLIC_MASTODON_ENABLED }}
           NEXT_PUBLIC_WIKIMEDIA_ENABLED: ${{ vars.NEXT_PUBLIC_WIKIMEDIA_ENABLED }}
-          NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
-          NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
-          PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
 
       - name: Run Playwright tests
         run: yarn test
         env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
           NEXT_PUBLIC_GOOGLE_ENABLED: ${{ vars.NEXT_PUBLIC_GOOGLE_ENABLED }}
           NEXT_PUBLIC_APPLE_ENABLED: ${{ vars.NEXT_PUBLIC_APPLE_ENABLED }}
           NEXT_PUBLIC_MASTODON_ENABLED: ${{ vars.NEXT_PUBLIC_MASTODON_ENABLED }}
           NEXT_PUBLIC_WIKIMEDIA_ENABLED: ${{ vars.NEXT_PUBLIC_WIKIMEDIA_ENABLED }}
-          NEXT_PUBLIC_PUSHER_KEY: ${{ vars.NEXT_PUBLIC_PUSHER_KEY }}
-          NEXT_PUBLIC_PUSHER_CLUSTER: ${{ vars.NEXT_PUBLIC_PUSHER_CLUSTER }}
-          PUSHER_APP_ID: ${{ vars.PUSHER_APP_ID }}
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}

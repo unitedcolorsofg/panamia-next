@@ -3650,7 +3650,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitejs/plugin-rsc@npm:^0.5.19, @vitejs/plugin-rsc@npm:^0.5.21":
+"@vitejs/plugin-rsc@npm:^0.5.21":
   version: 0.5.21
   resolution: "@vitejs/plugin-rsc@npm:0.5.21"
   dependencies:
@@ -7254,7 +7254,7 @@ __metadata:
     postgres: "npm:^3.4.8"
     prettier: "npm:^3.8.1"
     prettier-plugin-tailwindcss: "npm:^0.7.2"
-    react: "npm:^19.2.4"
+    react: "patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch"
     react-day-picker: "npm:^9.14.0"
     react-dom: "npm:^19.2.4"
     react-google-recaptcha-v3: "npm:^1.11.0"
@@ -7262,14 +7262,14 @@ __metadata:
     react-intersection-observer: "npm:^10.0.3"
     react-is: "npm:^19.2.4"
     react-markdown: "npm:^10.1.0"
-    react-server-dom-webpack: "npm:^19.2.4"
+    react-server-dom-webpack: "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch"
     react-spinners: "npm:^0.17.0"
     recharts: "npm:^3.8.0"
     stripe: "npm:^20.4.1"
     tailwind-merge: "npm:^3.5.0"
     tailwindcss: "npm:^4.2.1"
     typescript: "npm:^5.9.3"
-    vinext: "npm:^0.0.25"
+    vinext: "npm:0.0.29"
     vite: "npm:^7.3.1"
     wrangler: "npm:^4.71.0"
     zod: "npm:^4.3.6"
@@ -7749,7 +7749,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-server-dom-webpack@npm:^19.2.4":
+"react-server-dom-webpack@npm:19.2.4":
   version: 19.2.4
   resolution: "react-server-dom-webpack@npm:19.2.4"
   dependencies:
@@ -7761,6 +7761,21 @@ __metadata:
     react-dom: ^19.2.4
     webpack: ^5.59.0
   checksum: 10c0/5f359bec49d3a0325616287bb8044253097b2d6e1260e8751f72fe0de01ea69de75053cdd4a64b6820ae1c194d504d3c57bc7877932332c25aec1e4107735fb6
+  languageName: node
+  linkType: hard
+
+"react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch":
+  version: 19.2.4
+  resolution: "react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch::version=19.2.4&hash=123a38"
+  dependencies:
+    acorn-loose: "npm:^8.3.0"
+    neo-async: "npm:^2.6.1"
+    webpack-sources: "npm:^3.2.0"
+  peerDependencies:
+    react: ^19.2.4
+    react-dom: ^19.2.4
+    webpack: ^5.59.0
+  checksum: 10c0/170ff6a434d77a767afef1771bbab148e3a63a73189ccb5d9218cb79eedb1a46ddc3a1fc9f3c169cb60f83101534c04b8d3d46d0d3d42d959ae28b147323c24b
   languageName: node
   linkType: hard
 
@@ -7790,10 +7805,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:^19.2.4":
+"react@npm:19.2.4":
   version: 19.2.4
   resolution: "react@npm:19.2.4"
   checksum: 10c0/cd2c9ff67a720799cc3b38a516009986f7fc4cb8d3e15716c6211cf098d1357ee3e348ab05ad0600042bbb0fd888530ba92e329198c92eafa0994f5213396596
+  languageName: node
+  linkType: hard
+
+"react@patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch":
+  version: 19.2.4
+  resolution: "react@patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch::version=19.2.4&hash=a549c0"
+  checksum: 10c0/13bb60cd31a56210ba33771c8816584bdb4393e6d1731b258a48c26005d79e14b754aec19a1d12f11df1ecaa059ad08e535fcebe7a4cde2bf1ddc9cea1c5f97c
   languageName: node
   linkType: hard
 
@@ -8866,26 +8888,34 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vinext@npm:^0.0.25":
-  version: 0.0.25
-  resolution: "vinext@npm:0.0.25"
+"vinext@npm:0.0.29":
+  version: 0.0.29
+  resolution: "vinext@npm:0.0.29"
   dependencies:
     "@unpic/react": "npm:^1.0.2"
     "@vercel/og": "npm:^0.8.6"
     "@vitejs/plugin-react": "npm:^5.1.4"
-    "@vitejs/plugin-rsc": "npm:^0.5.19"
     magic-string: "npm:^0.30.21"
-    react-server-dom-webpack: "npm:^19.2.4"
     rsc-html-stream: "npm:^0.0.7"
     vite-plugin-commonjs: "npm:^0.10.4"
     vite-tsconfig-paths: "npm:^6.1.1"
   peerDependencies:
+    "@mdx-js/rollup": ^3.0.0
+    "@vitejs/plugin-rsc": ^0.5.19
     react: ">=19.2.0"
     react-dom: ">=19.2.0"
-    vite: ^7.0.0
+    react-server-dom-webpack: ^19.2.4
+    vite: ^7.0.0 || ^8.0.0-beta.0
+  peerDependenciesMeta:
+    "@mdx-js/rollup":
+      optional: true
+    "@vitejs/plugin-rsc":
+      optional: true
+    react-server-dom-webpack:
+      optional: true
   bin:
     vinext: dist/cli.js
-  checksum: 10c0/3fbe83fc93dc0c9db15941974f7098f5a0c45524092b5d0a6d8a79d3153cfe8b52f560412f35d981df7222cd0490fbcc900d82c67e51b4eda8648f3acfd7d8ba
+  checksum: 10c0/a2cecb52b55438346573f4b65564b1072867a8b47ea1286221e22667f46339558d7d9e4be81c12dbdfc7c3b4cbbfa691c7cfeae109b5aea063f161c2009ca805
   languageName: node
   linkType: hard
 

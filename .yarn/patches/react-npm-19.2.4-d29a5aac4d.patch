@@ -1,0 +1,144 @@
+diff --git a/cjs/react-jsx-dev-runtime.development.js b/cjs/react-jsx-dev-runtime.development.js
+index 95f9877479619f679efc598f53d53b2327fe59f1..f8152fb29175f9d966c83e7747bd6585023bf45b 100644
+--- a/cjs/react-jsx-dev-runtime.development.js
++++ b/cjs/react-jsx-dev-runtime.development.js
+@@ -302,11 +302,11 @@
+         React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
+       hasOwnProperty = Object.prototype.hasOwnProperty,
+       isArrayImpl = Array.isArray,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          };
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })();
+     React = {
+       react_stack_bottom_frame: function (callStackForError) {
+         return callStackForError();
+diff --git a/cjs/react-jsx-dev-runtime.react-server.development.js b/cjs/react-jsx-dev-runtime.react-server.development.js
+index b79b7589bf06d6c27eef27c9aca282e01804746d..2816a597e18896c0c50eac779983028d9d37ebec 100644
+--- a/cjs/react-jsx-dev-runtime.react-server.development.js
++++ b/cjs/react-jsx-dev-runtime.react-server.development.js
+@@ -306,11 +306,11 @@
+       );
+     var hasOwnProperty = Object.prototype.hasOwnProperty,
+       isArrayImpl = Array.isArray,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          };
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })();
+     React = {
+       react_stack_bottom_frame: function (callStackForError) {
+         return callStackForError();
+diff --git a/cjs/react-jsx-runtime.development.js b/cjs/react-jsx-runtime.development.js
+index 35331a3c5c9aba0cf631c68fe8f3ca8d58f52d54..1d0d6a9ea29f2f8177815bb89c17471fc02b0d06 100644
+--- a/cjs/react-jsx-runtime.development.js
++++ b/cjs/react-jsx-runtime.development.js
+@@ -302,11 +302,11 @@
+         React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
+       hasOwnProperty = Object.prototype.hasOwnProperty,
+       isArrayImpl = Array.isArray,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          };
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })();
+     React = {
+       react_stack_bottom_frame: function (callStackForError) {
+         return callStackForError();
+diff --git a/cjs/react-jsx-runtime.react-server.development.js b/cjs/react-jsx-runtime.react-server.development.js
+index 59ee4be6d69e5911a68694780de9f4be2024784c..3bc18cfe8bbdbffdd81b2b3ee34776d3a855bbad 100644
+--- a/cjs/react-jsx-runtime.react-server.development.js
++++ b/cjs/react-jsx-runtime.react-server.development.js
+@@ -306,11 +306,11 @@
+       );
+     var hasOwnProperty = Object.prototype.hasOwnProperty,
+       isArrayImpl = Array.isArray,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          };
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })();
+     React = {
+       react_stack_bottom_frame: function (callStackForError) {
+         return callStackForError();
+diff --git a/cjs/react.development.js b/cjs/react.development.js
+index 8c026f9215409de5d1a6935a3d0fa56638d69677..997cc8552d24f7ae1c93c5e703de9a13ce834c40 100644
+--- a/cjs/react.development.js
++++ b/cjs/react.development.js
+@@ -692,11 +692,11 @@
+         recentlyCreatedOwnerStacks: 0
+       },
+       hasOwnProperty = Object.prototype.hasOwnProperty,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          };
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })();
+     deprecatedAPIs = {
+       react_stack_bottom_frame: function (callStackForError) {
+         return callStackForError();
+@@ -1115,7 +1115,7 @@
+           value: null,
+           owner: null,
+           debugStack: Error("react-stack-top-frame"),
+-          debugTask: console.createTask ? console.createTask("lazy()") : null
++          debugTask: (function () { if (typeof console.createTask !== 'function') return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
+         };
+       ctor._ioInfo = ioInfo;
+       lazyType._debugInfo = [{ awaited: ioInfo }];
+diff --git a/cjs/react.react-server.development.js b/cjs/react.react-server.development.js
+index 43625fb3f710c240b80eb1032612669b3cd4c8cd..2bb0a25d034ef05e6f923c3dd7584af15b0d5da1 100644
+--- a/cjs/react.react-server.development.js
++++ b/cjs/react.react-server.development.js
+@@ -512,11 +512,11 @@
+       REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"),
+       hasOwnProperty = Object.prototype.hasOwnProperty,
+       assign = Object.assign,
+-      createTask = console.createTask
+-        ? console.createTask
+-        : function () {
+-            return null;
+-          },
++      createTask = (function () {
++          var noop = function () { return null; };
++          if (typeof console.createTask !== 'function') return noop;
++          try { console.createTask(''); return console.createTask; } catch (e) { return noop; }
++        })(),
+       createFakeCallStack = {
+         react_stack_bottom_frame: function (callStackForError) {
+           return callStackForError();
+@@ -795,7 +795,7 @@
+           value: null,
+           owner: null,
+           debugStack: Error("react-stack-top-frame"),
+-          debugTask: console.createTask ? console.createTask("lazy()") : null
++          debugTask: (function () { if (typeof console.createTask !== 'function') return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
+         };
+       ctor._ioInfo = ioInfo;
+       lazyType._debugInfo = [{ awaited: ioInfo }];

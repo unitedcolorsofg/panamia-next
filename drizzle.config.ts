@@ -1,4 +1,9 @@
+import { existsSync } from 'fs';
+import { config as loadDotenv } from 'dotenv';
 import { defineConfig } from 'drizzle-kit';
+
+// drizzle-kit only loads .env, not .env.local — load it explicitly for local dev
+if (existsSync('.env.local')) loadDotenv({ path: '.env.local' });
 
 export default defineConfig({
   schema: './lib/schema/index.ts',

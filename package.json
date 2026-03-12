@@ -25,6 +25,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "dev:vinext": "vinext dev --port 3001",
+    "dev:http": "vinext dev --hostname 0.0.0.0",
     "build:vinext": "drizzle-kit migrate && vinext build",
     "deploy:vinext": "vinext deploy"
   },
@@ -72,7 +73,7 @@
     "peggy": "^5.1.0",
     "pigeon-maps": "^0.22.1",
     "postgres": "^3.4.8",
-    "react": "^19.2.4",
+    "react": "patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.4",
     "react-google-recaptcha-v3": "^1.11.0",
@@ -105,9 +106,9 @@
     "lint-staged": "^16.3.2",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "react-server-dom-webpack": "^19.2.4",
+    "react-server-dom-webpack": "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch",
     "typescript": "^5.9.3",
-    "vinext": "^0.0.25",
+    "vinext": "0.0.29",
     "vite": "^7.3.1",
     "wrangler": "^4.71.0"
   }
