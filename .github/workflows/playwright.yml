@@ -32,16 +32,16 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Run migrations against dedicated Supabase test project
+      # Run migrations — point POSTGRES_DIRECT_URL secret at a test Supabase project to avoid touching production
       - name: Run database migrations
         run: npx drizzle-kit migrate
         env:
-          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL_TEST }}
+          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
       - name: Validate environment variables
         run: npm run env:check
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -63,7 +63,7 @@ jobs:
       # into the Worker. This is how POSTGRES_URL and auth secrets reach the workerd runtime.
       - name: Create .dev.vars for wrangler dev
         run: |
-          echo "POSTGRES_URL=${{ secrets.POSTGRES_URL_TEST }}" >> .dev.vars
+          echo "POSTGRES_URL=${{ secrets.POSTGRES_URL }}" >> .dev.vars
           echo "BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}" >> .dev.vars
           echo "BETTER_AUTH_URL=${{ vars.BETTER_AUTH_URL }}" >> .dev.vars
           echo "ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" >> .dev.vars
@@ -73,8 +73,8 @@ jobs:
       - name: Build app
         run: yarn build
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
-          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL_TEST }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -87,7 +87,7 @@ jobs:
       - name: Run Playwright tests
         run: yarn test
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL_TEST }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
