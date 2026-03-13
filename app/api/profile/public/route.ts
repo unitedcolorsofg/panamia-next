@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { profiles, users } from '@/lib/schema';
-import { eq, sql } from 'drizzle-orm';
+import { users } from '@/lib/schema';
+import { sql } from 'drizzle-orm';
 import { unguardProfile } from '@/lib/profile';
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+  const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
   const handle = searchParams.get('handle');
 
   if (handle) {

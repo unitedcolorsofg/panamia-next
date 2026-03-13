@@ -15,9 +15,13 @@ export async function GET(request: NextRequest) {
   }
 
   let page_number = 1;
-  if (request.nextUrl.searchParams.get('page_number')) {
+  if (
+    (request.nextUrl ?? new URL(request.url)).searchParams.get('page_number')
+  ) {
     page_number = parseInt(
-      request.nextUrl.searchParams.get('page_number')!.toString()
+      (request.nextUrl ?? new URL(request.url)).searchParams
+        .get('page_number')!
+        .toString()
     );
     if (page_number < 1) {
       page_number = 1;

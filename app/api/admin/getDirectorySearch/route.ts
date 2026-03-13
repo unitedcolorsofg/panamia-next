@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const rq = request.nextUrl.searchParams;
+  const rq = (request.nextUrl ?? new URL(request.url)).searchParams;
   const pageNum = forceInt(forceString(rq?.get('page') || undefined, '1'), 1);
   const pageLimit = forceInt(
     forceString(rq?.get('limit') || undefined, '20'),

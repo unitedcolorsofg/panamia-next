@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse query params
-    const searchParams = request.nextUrl.searchParams;
+    const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
@@ -30,16 +30,14 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       unreadOnly,
-      context: context as any,
+      context: context as string,
     });
 
     // Add human-readable message to each notification
-    const notificationsWithMessages = result.notifications.map(
-      (notif: any) => ({
-        ...notif,
-        displayMessage: getNotificationMessage(notif),
-      })
-    );
+    const notificationsWithMessages = result.notifications.map((notif) => ({
+      ...notif,
+      displayMessage: getNotificationMessage(notif),
+    }));
 
     return NextResponse.json({
       success: true,

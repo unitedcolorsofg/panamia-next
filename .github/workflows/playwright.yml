@@ -59,6 +59,17 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
+      # wrangler dev reads .dev.vars and injects ALL entries as env bindings (env.KEY)
+      # into the Worker. This is how POSTGRES_URL and auth secrets reach the workerd runtime.
+      - name: Create .dev.vars for wrangler dev
+        run: |
+          echo "POSTGRES_URL=${{ secrets.POSTGRES_URL_TEST }}" >> .dev.vars
+          echo "BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}" >> .dev.vars
+          echo "BETTER_AUTH_URL=${{ vars.BETTER_AUTH_URL }}" >> .dev.vars
+          echo "ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" >> .dev.vars
+          echo "RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}" >> .dev.vars
+          echo "BLOB_READ_WRITE_TOKEN=${{ secrets.BLOB_READ_WRITE_TOKEN }}" >> .dev.vars
+
       - name: Build app
         run: yarn build
         env:

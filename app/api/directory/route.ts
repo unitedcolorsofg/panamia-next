@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 /**
@@ -19,7 +19,7 @@ import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
  * - random: If "true", return random profiles (for homepage)
  */
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+  const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
 
   // Parse query parameters
   const email = searchParams.get('email')?.toLowerCase().trim();
@@ -182,7 +182,9 @@ export async function GET(request: NextRequest) {
 /**
  * Transform Drizzle profile to API response format
  */
-function transformProfile(p: any) {
+function transformProfile(
+  p: Record<string, unknown> & { user?: { screenname: string | null } | null }
+) {
   const descriptions = p.descriptions as ProfileDescriptions | null;
   const mentoring = p.mentoring as ProfileMentoring | null;
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateScreenname, isScreennameAvailable } from '@/lib/screenname';
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+  const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
   const name = searchParams.get('name');
 
   if (!name) {

@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { db } from '@/lib/db';
 import { socialStatuses } from '@/lib/schema';
-import { and, desc, eq, gt, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { socialConfig } from '@/lib/federation';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -31,7 +31,9 @@ export async function GET(
   }
 
   const outboxUrl = actor.outboxUrl;
-  const pageParam = request.nextUrl.searchParams.get('page');
+  const pageParam = (request.nextUrl ?? new URL(request.url)).searchParams.get(
+    'page'
+  );
 
   // Without ?page → return OrderedCollection summary
   if (!pageParam) {

@@ -8,8 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { articles, users } from '@/lib/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { articles } from '@/lib/schema';
+import { eq, and, sql, SQL } from 'drizzle-orm';
 import {
   generateUniqueSlug,
   calculateReadingTime,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
     const articleType = searchParams.get('type') as
       | 'business_update'
       | 'community_commentary'
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const conditions: any[] = [eq(articles.status, 'published')];
+    const conditions: SQL<unknown>[] = [eq(articles.status, 'published')];
 
     if (articleType) {
       conditions.push(eq(articles.articleType, articleType));

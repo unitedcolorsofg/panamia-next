@@ -16,6 +16,7 @@ import { getDb } from '../lib/db';
 interface Env {
   ASSETS: Fetcher;
   HYPERDRIVE: { connectionString: string };
+  POSTGRES_URL?: string; // local dev only: wrangler secret binding from .env.local
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

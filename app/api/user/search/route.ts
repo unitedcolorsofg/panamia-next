@@ -10,7 +10,6 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { users, profiles } from '@/lib/schema';
 import { eq, and, ne, ilike, inArray } from 'drizzle-orm';
-import { ProfileMentoring } from '@/lib/interfaces';
 
 /**
  * GET /api/user/search?q=screenname
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const searchParams = request.nextUrl.searchParams;
+    const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
     const query = searchParams.get('q')?.trim();
     const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 20);
 
