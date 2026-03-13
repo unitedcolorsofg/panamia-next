@@ -1685,13 +1685,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:^1.1.5":
-  version: 1.8.0
-  resolution: "@noble/hashes@npm:1.8.0"
-  checksum: 10c0/06a0b52c81a6fa7f04d67762e08b2c476a00285858150caeaaff4037356dd5e119f45b2a530f638b77a5eeca013168ec1b655db41bae3236cb2e9d511484fc77
-  languageName: node
-  linkType: hard
-
 "@noble/hashes@npm:^2.0.1":
   version: 2.0.1
   resolution: "@noble/hashes@npm:2.0.1"
@@ -1748,12 +1741,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@paralleldrive/cuid2@npm:^2.2.2":
-  version: 2.3.1
-  resolution: "@paralleldrive/cuid2@npm:2.3.1"
+"@paralleldrive/cuid2@npm:^3.3.0":
+  version: 3.3.0
+  resolution: "@paralleldrive/cuid2@npm:3.3.0"
   dependencies:
-    "@noble/hashes": "npm:^1.1.5"
-  checksum: 10c0/6576b73de49d826b0f33cbab88424dec1f6fa454a9e59a7b621f78c2cfdd2e59d7f48175826d698940a717f45eeb5e87a508583a7316e608f6a05a861a40c129
+    "@noble/hashes": "npm:^2.0.1"
+    bignumber.js: "npm:^9.3.1"
+    error-causes: "npm:^3.0.2"
+  bin:
+    cuid2: bin/cuid2.js
+  checksum: 10c0/a1c71f73f3c7cec1233c1fc3325a9ae19c4ca37c05f89dabaff650064cb84d048856b38c2fcfb5cc3a11d0711896d26cb8ba85b402cb33ea725e45d0aee276ca
   languageName: node
   linkType: hard
 
@@ -3987,6 +3984,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bignumber.js@npm:^9.3.1":
+  version: 9.3.1
+  resolution: "bignumber.js@npm:9.3.1"
+  checksum: 10c0/61342ba5fe1c10887f0ecf5be02ff6709271481aff48631f86b4d37d55a99b87ce441cfd54df3d16d10ee07ceab7e272fc0be430c657ffafbbbf7b7d631efb75
+  languageName: node
+  linkType: hard
+
 "blake3-wasm@npm:2.1.5":
   version: 2.1.5
   resolution: "blake3-wasm@npm:2.1.5"
@@ -4778,6 +4782,13 @@ __metadata:
   version: 2.0.3
   resolution: "err-code@npm:2.0.3"
   checksum: 10c0/b642f7b4dd4a376e954947550a3065a9ece6733ab8e51ad80db727aaae0817c2e99b02a97a3d6cecc648a97848305e728289cf312d09af395403a90c9d4d8a66
+  languageName: node
+  linkType: hard
+
+"error-causes@npm:^3.0.2":
+  version: 3.0.2
+  resolution: "error-causes@npm:3.0.2"
+  checksum: 10c0/9cb37797bbf57983ef8b9a762b5ba40442b1fc5487c9bdaed7f54eb9d3f13015cade9dc45f80b01cc3781332772fda43a72e537d36be961ebe50c6da083fb06d
   languageName: node
   linkType: hard
 
@@ -7200,7 +7211,7 @@ __metadata:
     "@ffmpeg/ffmpeg": "npm:^0.12.15"
     "@ffmpeg/util": "npm:^0.12.2"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@paralleldrive/cuid2": "npm:^2.2.2"
+    "@paralleldrive/cuid2": "npm:^3.3.0"
     "@playwright/test": "npm:^1.58.2"
     "@radix-ui/react-accordion": "npm:^1.2.12"
     "@radix-ui/react-alert-dialog": "npm:^1.1.15"
