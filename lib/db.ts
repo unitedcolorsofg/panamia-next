@@ -7,7 +7,15 @@
  * local socket to Hyperdrive is cheap and avoids stale-connection failures.
  *
  * - Production (CF Workers): env.HYPERDRIVE.connectionString via Hyperdrive, max: 1
- * - Local dev (Node.js / vinext dev): process.env.POSTGRES_URL, cached per URL
+ * - Local dev (vinext dev): env.POSTGRES_URL secret binding (from .dev.vars), cached
+ * - Local dev (plain Node.js): process.env.POSTGRES_URL, cached
+ *
+ * Priority: env.POSTGRES_URL > HYPERDRIVE > process.env.POSTGRES_URL
+ *
+ * We check env.POSTGRES_URL BEFORE HYPERDRIVE because in local dev miniflare rewrites
+ * env.HYPERDRIVE.connectionString to use 127.0.0.1:<proxy_port> (not 'localhost'), so
+ * a simple 'includes localhost' guard can't reliably detect the placeholder Hyperdrive.
+ * In production env.POSTGRES_URL is never set, so Hyperdrive is always used there.
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -16,23 +24,36 @@ import * as schema from './schema';
 
 export interface CloudflareEnv {
   HYPERDRIVE?: { connectionString: string };
+  // Available in local dev (vinext dev / wrangler dev) as a wrangler secret text binding,
+  // populated from .dev.vars via wrangler's automatic secret loading.
+  POSTGRES_URL?: string;
 }
 
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 
-// Cache for local-dev connections only (keyed by connection string).
-// NOT used for Hyperdrive — a fresh client is created per request to avoid stale sockets.
-const localInstances = new Map<string, DbInstance>();
+// Cache for plain Node.js dev server (server.js) only — process.env.POSTGRES_URL connections
+// don't have the workerd cross-request I/O restriction so sharing is safe there.
+const nodeDevInstance: { instance: DbInstance | null } = { instance: null };
 
-// Holds the per-request Hyperdrive-backed instance primed by the Worker entry.
-// A fresh instance is set on every request so app code (getDb() without args) always
+// Holds the DB instance primed by the Worker entry point for the current request.
+// Set on every request so app code (getDb() without args) via the `db` proxy always
 // uses the current request's client rather than a stale one from a previous request.
-let hyperdriveInstance: DbInstance | null = null;
+let cachedInstance: DbInstance | null = null;
 
 export function getDb(env?: CloudflareEnv): DbInstance {
-  const hyperdrive = env?.HYPERDRIVE;
+  // Local dev (vinext dev): env.POSTGRES_URL is set from .dev.vars.
+  // Always create a fresh client per request — workerd prevents cross-request socket reuse.
+  // (Sharing a postgres.js pool across requests causes "Cannot perform I/O on behalf of a
+  // different request" because the pool's TCP sockets are bound to the creating request.)
+  if (env?.POSTGRES_URL) {
+    const client = postgres(env.POSTGRES_URL, { max: 1 });
+    const instance = drizzle(client, { schema });
+    cachedInstance = instance;
+    return instance;
+  }
 
-  if (hyperdrive) {
+  // Production: use Hyperdrive for the Supabase connection pool.
+  if (env?.HYPERDRIVE) {
     // Always create a fresh postgres.js client for each Worker request.
     // Hyperdrive manages the actual connection pool to Supabase; a new client here is just
     // a new local socket to Hyperdrive — cheap. Reusing a cached client across requests
@@ -43,7 +64,7 @@ export function getDb(env?: CloudflareEnv): DbInstance {
     //   not the extended protocol (prepared statements) that postgres.js uses by default.
     //   https://developers.cloudflare.com/hyperdrive/examples/postgres-js/
     // debug — log every query so failures are visible in wrangler tail.
-    const client = postgres(hyperdrive.connectionString, {
+    const client = postgres(env.HYPERDRIVE.connectionString, {
       max: 1,
       prepare: false,
       debug: (connection, query, params) => {
@@ -55,15 +76,15 @@ export function getDb(env?: CloudflareEnv): DbInstance {
       },
     });
     const instance = drizzle(client, { schema });
-    hyperdriveInstance = instance;
+    cachedInstance = instance;
     return instance;
   }
 
-  // No env provided (app code, auth module, API routes, etc.).
-  // Prefer the Hyperdrive instance primed by the Worker entry for this request.
-  if (hyperdriveInstance) return hyperdriveInstance;
+  // No env provided: called via `db` proxy after worker entry primed the cache.
+  if (cachedInstance) return cachedInstance;
 
-  // Fallback: local dev (Node.js / vinext dev) where HYPERDRIVE binding is absent.
+  // Plain Node.js dev server (server.js) — process.env.POSTGRES_URL is available and
+  // sharing a connection pool across requests is safe outside workerd.
   const connectionString = process.env.POSTGRES_URL;
   if (!connectionString) {
     throw new Error(
@@ -71,11 +92,10 @@ export function getDb(env?: CloudflareEnv): DbInstance {
         'Provide the HYPERDRIVE binding (production) or set POSTGRES_URL (local dev).'
     );
   }
-  const cached = localInstances.get(connectionString);
-  if (cached) return cached;
+  if (nodeDevInstance.instance) return nodeDevInstance.instance;
   const client = postgres(connectionString);
   const instance = drizzle(client, { schema });
-  localInstances.set(connectionString, instance);
+  nodeDevInstance.instance = instance;
   return instance;
 }
 
