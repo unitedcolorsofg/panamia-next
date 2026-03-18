@@ -34,7 +34,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^5.2.2",
-    "@paralleldrive/cuid2": "^2.2.2",
+    "@paralleldrive/cuid2": "^3.3.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -98,6 +98,7 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "@vitejs/plugin-rsc": "^0.5.21",
     "baseline-browser-mapping": "^2.10.8",
     "dotenv": "^17.3.1",
@@ -110,7 +111,7 @@
     "react-server-dom-webpack": "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch",
     "typescript": "^5.9.3",
     "vinext": "0.0.31",
-    "vite": "^7.3.1",
+    "vite": "^8.0.0",
     "wrangler": "^4.75.0"
   }
 }
