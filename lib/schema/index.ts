@@ -56,6 +56,7 @@ export const notificationContext = pgEnum('notification_context', [
   'follow',
   'message',
   'system',
+  'event',
 ]);
 
 export const notificationObjectType = pgEnum('notification_object_type', [
@@ -63,6 +64,8 @@ export const notificationObjectType = pgEnum('notification_object_type', [
   'profile',
   'session',
   'comment',
+  'event',
+  'venue',
 ]);
 
 export const articleType = pgEnum('article_type', [
@@ -117,6 +120,73 @@ export const socialFollowStatus = pgEnum('social_follow_status', [
   'rejected',
 ]);
 
+// New Events enums
+export const eventStatus = pgEnum('event_status', [
+  'draft',
+  'published',
+  'cancelled',
+  'completed',
+]);
+
+export const eventVisibility = pgEnum('event_visibility', [
+  'public',
+  'followers',
+  'invite',
+  'private',
+]);
+
+export const venueStatus = pgEnum('venue_status', [
+  'pending_review',
+  'active',
+  'suspended',
+]);
+
+export const organizerRole = pgEnum('organizer_role', [
+  'host',
+  'co_organizer',
+  'volunteer',
+]);
+
+export const attendeeStatus = pgEnum('attendee_status', [
+  'invited',
+  'going',
+  'maybe',
+  'not_going',
+]);
+
+export const ageRestriction = pgEnum('age_restriction', [
+  'all_ages',
+  '18_plus',
+  '21_plus',
+]);
+
+export const photoPolicy = pgEnum('photo_policy', [
+  'allowed',
+  'restricted',
+  'prohibited',
+]);
+
+export const dresscode = pgEnum('dresscode', [
+  'none',
+  'smart_casual',
+  'formal',
+]);
+
+export const parkingOptions = pgEnum('parking_options', [
+  'none',
+  'street',
+  'lot',
+  'garage',
+  'valet',
+]);
+
+export const streamStatus = pgEnum('stream_status', [
+  'offline',
+  'connecting',
+  'live',
+  'ended',
+]);
+
 // =============================================================================
 // Convenience type aliases for enum values
 // =============================================================================
@@ -135,6 +205,16 @@ export type SessionType = (typeof sessionType.enumValues)[number];
 export type SessionStatus = (typeof sessionStatus.enumValues)[number];
 export type IntakeFormType = (typeof intakeFormType.enumValues)[number];
 export type SocialFollowStatus = (typeof socialFollowStatus.enumValues)[number];
+export type EventStatus = (typeof eventStatus.enumValues)[number];
+export type EventVisibility = (typeof eventVisibility.enumValues)[number];
+export type VenueStatus = (typeof venueStatus.enumValues)[number];
+export type OrganizerRole = (typeof organizerRole.enumValues)[number];
+export type AttendeeStatus = (typeof attendeeStatus.enumValues)[number];
+export type AgeRestriction = (typeof ageRestriction.enumValues)[number];
+export type PhotoPolicy = (typeof photoPolicy.enumValues)[number];
+export type Dresscode = (typeof dresscode.enumValues)[number];
+export type ParkingOptions = (typeof parkingOptions.enumValues)[number];
+export type StreamStatus = (typeof streamStatus.enumValues)[number];
 
 // =============================================================================
 // Auth Tables (better-auth)
@@ -736,6 +816,7 @@ export const socialStatuses = pgTable(
     repliesCount: integer('replies_count').notNull().default(0),
     likesCount: integer('likes_count').notNull().default(0),
     announcesCount: integer('announces_count').notNull().default(0),
+    eventId: text('event_id'),
   },
   (table) => ({
     actorPublishedIdx: index('social_statuses_actor_published_idx').on(
@@ -749,6 +830,7 @@ export const socialStatuses = pgTable(
     inReplyToIdIdx: index('social_statuses_in_reply_to_id_idx').on(
       table.inReplyToId
     ),
+    eventIdIdx: index('social_statuses_event_id_idx').on(table.eventId),
   })
 );
 
@@ -887,6 +969,248 @@ export const socialTags = pgTable(
 );
 
 // =============================================================================
+// Events
+// =============================================================================
+
+export const venues = pgTable(
+  'venues',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    city: text('city').notNull(),
+    state: text('state').notNull(),
+    country: text('country').notNull().default('US'),
+    postalCode: text('postal_code'),
+    lat: numeric('lat', { precision: 10, scale: 7 }),
+    lng: numeric('lng', { precision: 10, scale: 7 }),
+    capacity: integer('capacity'),
+    parkingOptions: parkingOptions('parking_options').notNull().default('none'),
+    operatorProfileId: text('operator_profile_id').notNull(),
+    status: venueStatus('status').notNull().default('pending_review'),
+    safetyContact: jsonb('safety_contact'),
+    accessibilityNotes: text('accessibility_notes'),
+    photos: jsonb('photos')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    website: text('website'),
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+    suspendedBy: text('suspended_by'),
+    suspensionReason: text('suspension_reason'),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    approvedBy: text('approved_by'),
+  },
+  (table) => ({
+    slugIdx: index('venues_slug_idx').on(table.slug),
+    operatorProfileIdIdx: index('venues_operator_profile_id_idx').on(
+      table.operatorProfileId
+    ),
+    statusIdx: index('venues_status_idx').on(table.status),
+    cityStateIdx: index('venues_city_state_idx').on(table.city, table.state),
+  })
+);
+
+export const events = pgTable(
+  'events',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    slug: text('slug').notNull().unique(),
+    title: text('title').notNull(),
+    description: text('description'),
+    coverImage: text('cover_image'),
+    hostProfileId: text('host_profile_id').notNull(),
+    venueId: text('venue_id').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    timezone: text('timezone').notNull().default('America/New_York'),
+    status: eventStatus('status').notNull().default('draft'),
+    visibility: eventVisibility('visibility').notNull().default('public'),
+    attendeeCap: integer('attendee_cap'),
+    attendeeCount: integer('attendee_count').notNull().default(0),
+    ageRestriction: ageRestriction('age_restriction')
+      .notNull()
+      .default('all_ages'),
+    photoPolicy: photoPolicy('photo_policy').notNull().default('allowed'),
+    dresscode: dresscode('dresscode').notNull().default('none'),
+    iCalUid: text('ical_uid').notNull().unique(),
+    panamiaCoOrganizer: boolean('panamia_co_organizer').notNull().default(true),
+    tosAcceptedAt: timestamp('tos_accepted_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    cancelledBy: text('cancelled_by'),
+    cancellationReason: text('cancellation_reason'),
+    streamEligible: boolean('stream_eligible').notNull().default(false),
+    streamStatus: streamStatus('stream_status').notNull().default('offline'),
+    cfStreamId: text('cf_stream_id'),
+    cfStreamPlaybackId: text('cf_stream_playback_id'),
+    cfStreamSrtUrl: text('cf_stream_srt_url'),
+    cfStreamSrtKey: text('cf_stream_srt_key'),
+    cfStreamRecordingUrl: text('cf_stream_recording_url'),
+    streamLiveAt: timestamp('stream_live_at', { withTimezone: true }),
+    streamEndedAt: timestamp('stream_ended_at', { withTimezone: true }),
+  },
+  (table) => ({
+    slugIdx: index('events_slug_idx').on(table.slug),
+    hostProfileIdIdx: index('events_host_profile_id_idx').on(
+      table.hostProfileId
+    ),
+    venueIdIdx: index('events_venue_id_idx').on(table.venueId),
+    statusVisibilityIdx: index('events_status_visibility_idx').on(
+      table.status,
+      table.visibility
+    ),
+    startsAtIdx: index('events_starts_at_idx').on(table.startsAt),
+    iCalUidIdx: index('events_ical_uid_idx').on(table.iCalUid),
+  })
+);
+
+export const eventOrganizers = pgTable(
+  'event_organizers',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    eventId: text('event_id').notNull(),
+    profileId: text('profile_id').notNull(),
+    role: organizerRole('role').notNull(),
+    canSeeRsvpList: boolean('can_see_rsvp_list').notNull().default(false),
+    invitedBy: text('invited_by'),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).$defaultFn(
+      () => new Date()
+    ),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    declinedAt: timestamp('declined_at', { withTimezone: true }),
+    message: text('message'),
+  },
+  (table) => ({
+    eventProfileUnique: uniqueIndex('event_organizers_event_profile_unique').on(
+      table.eventId,
+      table.profileId
+    ),
+    eventIdIdx: index('event_organizers_event_id_idx').on(table.eventId),
+    profileIdIdx: index('event_organizers_profile_id_idx').on(table.profileId),
+  })
+);
+
+export const eventAttendees = pgTable(
+  'event_attendees',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    eventId: text('event_id').notNull(),
+    profileId: text('profile_id').notNull(),
+    status: attendeeStatus('status').notNull(),
+    invitedBy: text('invited_by'),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+  },
+  (table) => ({
+    eventProfileUnique: uniqueIndex('event_attendees_event_profile_unique').on(
+      table.eventId,
+      table.profileId
+    ),
+    eventStatusIdx: index('event_attendees_event_status_idx').on(
+      table.eventId,
+      table.status
+    ),
+    profileIdIdx: index('event_attendees_profile_id_idx').on(table.profileId),
+  })
+);
+
+export const eventNotes = pgTable(
+  'event_notes',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    eventId: text('event_id').notNull(),
+    authorProfileId: text('author_profile_id').notNull(),
+    content: text('content').notNull(),
+    audience: text('audience').notNull().default('all'),
+  },
+  (table) => ({
+    eventCreatedIdx: index('event_notes_event_created_idx').on(
+      table.eventId,
+      table.createdAt
+    ),
+    authorProfileIdIdx: index('event_notes_author_profile_id_idx').on(
+      table.authorProfileId
+    ),
+  })
+);
+
+export const eventPhotos = pgTable(
+  'event_photos',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    eventId: text('event_id').notNull(),
+    uploaderProfileId: text('uploader_profile_id').notNull(),
+    url: text('url').notNull(),
+    caption: text('caption'),
+    approved: boolean('approved').notNull().default(false),
+    approvedBy: text('approved_by'),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+  },
+  (table) => ({
+    eventApprovedIdx: index('event_photos_event_approved_idx').on(
+      table.eventId,
+      table.approved
+    ),
+    uploaderProfileIdIdx: index('event_photos_uploader_profile_id_idx').on(
+      table.uploaderProfileId
+    ),
+  })
+);
+
+// =============================================================================
 // Screenname History
 // =============================================================================
 
@@ -954,12 +1278,16 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-export const profilesRelations = relations(profiles, ({ one }) => ({
+export const profilesRelations = relations(profiles, ({ one, many }) => ({
   user: one(users, { fields: [profiles.userId], references: [users.id] }),
   socialActor: one(socialActors, {
     fields: [profiles.id],
     references: [socialActors.profileId],
   }),
+  venuesOperated: many(venues),
+  eventsHosted: many(events),
+  eventOrganizerRows: many(eventOrganizers),
+  eventAttendeeRows: many(eventAttendees),
 }));
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
@@ -1035,6 +1363,10 @@ export const socialStatusesRelations = relations(
       fields: [socialStatuses.id],
       references: [articleAnnouncements.statusId],
     }),
+    event: one(events, {
+      fields: [socialStatuses.eventId],
+      references: [events.id],
+    }),
   })
 );
 
@@ -1101,6 +1433,77 @@ export const socialTagsRelations = relations(socialTags, ({ one }) => ({
   }),
 }));
 
+export const venuesRelations = relations(venues, ({ one, many }) => ({
+  operator: one(profiles, {
+    fields: [venues.operatorProfileId],
+    references: [profiles.id],
+  }),
+  events: many(events),
+}));
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  venue: one(venues, {
+    fields: [events.venueId],
+    references: [venues.id],
+  }),
+  hostProfile: one(profiles, {
+    fields: [events.hostProfileId],
+    references: [profiles.id],
+  }),
+  organizers: many(eventOrganizers),
+  attendees: many(eventAttendees),
+  notes: many(eventNotes),
+  photos: many(eventPhotos),
+  socialStatuses: many(socialStatuses),
+}));
+
+export const eventOrganizersRelations = relations(
+  eventOrganizers,
+  ({ one }) => ({
+    event: one(events, {
+      fields: [eventOrganizers.eventId],
+      references: [events.id],
+    }),
+    profile: one(profiles, {
+      fields: [eventOrganizers.profileId],
+      references: [profiles.id],
+    }),
+  })
+);
+
+export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
+  event: one(events, {
+    fields: [eventAttendees.eventId],
+    references: [events.id],
+  }),
+  profile: one(profiles, {
+    fields: [eventAttendees.profileId],
+    references: [profiles.id],
+  }),
+}));
+
+export const eventNotesRelations = relations(eventNotes, ({ one }) => ({
+  event: one(events, {
+    fields: [eventNotes.eventId],
+    references: [events.id],
+  }),
+  author: one(profiles, {
+    fields: [eventNotes.authorProfileId],
+    references: [profiles.id],
+  }),
+}));
+
+export const eventPhotosRelations = relations(eventPhotos, ({ one }) => ({
+  event: one(events, {
+    fields: [eventPhotos.eventId],
+    references: [events.id],
+  }),
+  uploader: one(profiles, {
+    fields: [eventPhotos.uploaderProfileId],
+    references: [profiles.id],
+  }),
+}));
+
 export const screennameHistoryRelations = relations(
   screennameHistory,
   ({ one }) => ({
@@ -1138,3 +1541,9 @@ export type SocialLike = typeof socialLikes.$inferSelect;
 export type SocialAttachment = typeof socialAttachments.$inferSelect;
 export type SocialTag = typeof socialTags.$inferSelect;
 export type ScreennameHistory = typeof screennameHistory.$inferSelect;
+export type Venue = typeof venues.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type EventOrganizer = typeof eventOrganizers.$inferSelect;
+export type EventAttendee = typeof eventAttendees.$inferSelect;
+export type EventNote = typeof eventNotes.$inferSelect;
+export type EventPhoto = typeof eventPhotos.$inferSelect;

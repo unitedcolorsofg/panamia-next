@@ -15,6 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Bell,
+  CalendarDays,
+  CalendarPlus,
   ChevronDown,
   Home,
   Search,
@@ -222,6 +224,24 @@ export default function MainHeader({
                 >
                   <PenLine className="mr-2 h-4 w-4" />
                   Write Article
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Events</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link href="/e" className="flex cursor-pointer items-center">
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  Browse Events
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/e/new"
+                  className="flex cursor-pointer items-center"
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Host an Event
                 </Link>
               </DropdownMenuItem>
 

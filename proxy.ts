@@ -19,6 +19,19 @@ export default function proxy(request: NextRequest) {
     }
   }
 
+  // ActivityPub content negotiation for /e/:slug (events)
+  const eventMatch = pathname.match(/^\/e\/([^/]+)\/?$/);
+  if (eventMatch) {
+    const accept = request.headers.get('accept') || '';
+    const wantsAP = AP_TYPES.some((t) => accept.includes(t));
+    if (wantsAP) {
+      const eventSlug = eventMatch[1];
+      return NextResponse.rewrite(
+        new URL(`/api/federation/events/${eventSlug}`, request.url)
+      );
+    }
+  }
+
   // Set security headers
   const response = NextResponse.next();
 

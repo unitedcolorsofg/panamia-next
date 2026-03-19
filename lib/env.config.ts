@@ -273,6 +273,40 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // CLOUDFLARE STREAM (Events livestreaming setup)
+  // https://dash.cloudflare.com → Stream → Live Inputs
+  // =============================================================================
+  CF_ACCOUNT_ID: {
+    description:
+      'Cloudflare account ID — required to call the Stream API for live input creation',
+    location: 'SECRET',
+    required: false,
+    docsUrl: 'https://dash.cloudflare.com',
+  },
+  CF_STREAM_API_TOKEN: {
+    description:
+      'Cloudflare Stream API token with Live Inputs write permission',
+    location: 'SECRET',
+    required: false,
+    docsUrl: 'https://dash.cloudflare.com/profile/api-tokens',
+  },
+  CF_STREAM_WEBHOOK_SECRET: {
+    description:
+      'Secret used to verify Cloudflare Stream webhook requests. ' +
+      'Configure in CF dashboard → Stream → Webhooks → Signing Secret.',
+    location: 'SECRET',
+    required: false,
+  },
+  CF_STREAM_CUSTOMER_CODE: {
+    description:
+      'Customer subdomain code for Stream embed URLs ' +
+      '(the XXXX in customer-XXXX.cloudflarestream.com). ' +
+      'Found in CF dashboard → Stream → Overview.',
+    location: 'VAR',
+    required: false,
+  },
+
+  // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
   DEV_RECEIVER_EMAIL: {

@@ -1,29 +1,18 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import {
   IconFileDescription,
   IconDashboard,
   IconEdit,
   IconUsers,
   IconArticle,
+  IconCalendar,
 } from '@tabler/icons-react';
 
 import styles from './AdminHeader.module.css';
 import AdminButton from './AdminButton';
 
 export default function AdminMenu() {
-  const pathname = usePathname();
-
-  function checkActive(href: String) {
-    if (pathname === href) {
-      return true;
-    }
-    return false;
-  }
-
   return (
     <header className={styles.adminMenu}>
       <div className={styles.menuBlock}>
@@ -51,6 +40,18 @@ export default function AdminMenu() {
             <AdminButton href="/account/admin/mentoring">
               <IconUsers height="16" />
               Mentoring
+            </AdminButton>
+          </li>
+          <li>
+            <AdminButton href="/account/admin/events">
+              <IconCalendar height="16" />
+              Events
+            </AdminButton>
+          </li>
+          <li>
+            <AdminButton href="/venues">
+              <IconCalendar height="16" />
+              Venues
             </AdminButton>
           </li>
           <li>

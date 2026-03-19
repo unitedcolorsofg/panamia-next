@@ -11,7 +11,7 @@ export interface ProfileStatusInterface {
   submitted?: Date;
   approved?: Date;
   published?: Date;
-  notes?: String;
+  notes?: string;
 }
 
 export interface ProfileGenteDePanaInterface {
@@ -43,9 +43,9 @@ export interface AddressInterface {
 }
 
 export interface CountyInterface {
-  palm_beach: Boolean;
-  broward: Boolean;
-  miami_dade: Boolean;
+  palm_beach: boolean;
+  broward: boolean;
+  miami_dade: boolean;
 }
 
 export interface ProfileImagesInterface {
@@ -60,20 +60,20 @@ export interface ProfileImagesInterface {
 }
 
 export interface CategoryInterface {
-  products: Boolean;
-  services: Boolean;
-  events: Boolean;
-  music: Boolean;
-  food: Boolean;
-  clothing: Boolean;
-  accessories: Boolean;
-  art: Boolean;
-  digital_art: Boolean;
-  tech: Boolean;
-  health_beauty: Boolean;
-  wellness: Boolean;
-  non_profit: Boolean;
-  homemade: Boolean;
+  products: boolean;
+  services: boolean;
+  events: boolean;
+  music: boolean;
+  food: boolean;
+  clothing: boolean;
+  accessories: boolean;
+  art: boolean;
+  digital_art: boolean;
+  tech: boolean;
+  health_beauty: boolean;
+  wellness: boolean;
+  non_profit: boolean;
+  homemade: boolean;
 }
 
 export interface MentoringInterface {
@@ -126,7 +126,7 @@ export interface ProfileInterface {
   email: string;
   name: string;
   screenname?: string; // From User.screenname
-  active?: Boolean;
+  active?: boolean;
   status?: ProfileStatusInterface;
   locally_based: string;
   details: string;
@@ -135,7 +135,7 @@ export interface ProfileInterface {
   affiliate?: string;
   socials: ProfileSocialsInterface;
   phone_number: string;
-  whatsapp_community?: Boolean;
+  whatsapp_community?: boolean;
   pronouns?: PronounsInterface;
   five_words: string;
   tags?: string;
@@ -143,7 +143,7 @@ export interface ProfileInterface {
   categories: CategoryInterface;
   primary_address: AddressInterface;
   gentedepana: ProfileGenteDePanaInterface;
-  geo: {};
+  geo: object;
   locations: [];
   images?: ProfileImagesInterface;
   linked_profiles: [];
@@ -153,40 +153,40 @@ export interface ProfileInterface {
 }
 
 export interface ContactUsInterface {
-  _id: String;
-  name: String;
-  email: String;
-  message: String;
-  acknowledged: Boolean;
+  _id: string;
+  name: string;
+  email: string;
+  message: string;
+  acknowledged: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface SignupInterface {
-  _id: String;
-  email: String;
-  name: String;
-  signupType: String;
-  acknowledged: Boolean;
+  _id: string;
+  email: string;
+  name: string;
+  signupType: string;
+  acknowledged: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface UserStatusInterface {
-  role?: String;
-  locked?: Boolean;
+  role?: string;
+  locked?: boolean;
 }
 
 export type AccountType = 'small_business' | 'personal' | 'hybrid' | 'other';
 
 export interface UserInterface {
-  _id: String;
-  email: String;
-  screenname?: String;
-  name?: String;
+  _id: string;
+  email: string;
+  screenname?: string;
+  name?: string;
   accountType?: AccountType;
   status?: UserStatusInterface;
-  zip_code?: String;
+  zip_code?: string;
   affiliate: {
     activated: boolean;
     code: string;
@@ -232,7 +232,8 @@ export type NotificationContext =
   | 'mention'
   | 'follow'
   | 'message'
-  | 'system';
+  | 'system'
+  | 'event';
 
 export interface NotificationInterface {
   _id: string;
@@ -243,7 +244,13 @@ export interface NotificationInterface {
   context: NotificationContext;
   actorScreenname?: string;
   actorName?: string;
-  objectType?: 'article' | 'profile' | 'session' | 'comment';
+  objectType?:
+    | 'article'
+    | 'profile'
+    | 'session'
+    | 'comment'
+    | 'event'
+    | 'venue';
   objectTitle?: string;
   objectUrl?: string;
   message?: string;

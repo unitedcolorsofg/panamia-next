@@ -17,7 +17,7 @@ import type {
   NotificationActivityType,
   NotificationContext,
 } from './interfaces';
-import { and, eq, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, eq, lt, sql } from 'drizzle-orm';
 
 // Retention periods in milliseconds
 const RETENTION = {
@@ -32,7 +32,13 @@ export interface CreateNotificationParams {
   targetId: string; // PostgreSQL User.id who receives this
   context: NotificationContext;
   objectId?: string; // MongoDB ObjectId as string (article, session, etc.)
-  objectType?: 'article' | 'profile' | 'session' | 'comment';
+  objectType?:
+    | 'article'
+    | 'profile'
+    | 'session'
+    | 'comment'
+    | 'event'
+    | 'venue';
   objectTitle?: string;
   objectUrl?: string;
   message?: string; // Personal message (invitation text)
@@ -319,6 +325,27 @@ export function getNotificationMessage(notif: {
 
     case 'system':
       return notif.message || 'System notification';
+
+    case 'event':
+      if (notif.type === 'Invite') {
+        return `${actor} invited you to co-organize "${object}"`;
+      }
+      if (notif.type === 'Accept') {
+        return `${actor} accepted your organizer invitation for "${object}"`;
+      }
+      if (notif.type === 'Reject') {
+        return `${actor} declined your organizer invitation for "${object}"`;
+      }
+      if (notif.type === 'Create') {
+        return `${actor} is hosting a new event: "${object}"`;
+      }
+      if (notif.type === 'Delete') {
+        return notif.message || `"${object}" has been cancelled`;
+      }
+      if (notif.type === 'Update') {
+        return `"${object}" has been updated`;
+      }
+      break;
   }
 
   // Fallback

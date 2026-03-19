@@ -25,6 +25,11 @@
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 
+	// NOTE: env vars are NOT defined here.
+	// Add them to .env.local for local dev and to the CF dashboard
+	// (Workers & Pages -> Settings -> Variables and secrets) for production.
+	// See .env.local.example for the full list.
+
 	// Capture Worker exceptions in Cloudflare dashboard → Workers & Pages → Observability
 	"observability": {
 		"enabled": true,
