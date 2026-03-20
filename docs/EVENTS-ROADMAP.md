@@ -49,7 +49,7 @@ RSVP statuses: `invited | going | maybe | not_going`
 
 - Only `going` RSVPs count toward `attendeeCount` (denormalized on the event)
 - `attendeeCount` is updated transactionally on every RSVP change
-- If `attendeeCap` is set and `attendeeCount >= attendeeCap`, new `going` RSVPs are rejected with 409 `SOLD_OUT`
+- If `attendeeCap` is set and `attendeeCount >= attendeeCap`, new `going` RSVPs are rejected with 409 `MAX_CAPACITY`
 - RSVP requires `panaVerified` (same gate as articles/mentoring)
 - Withdrawing RSVP: `DELETE /api/events/[slug]/rsvp`
 

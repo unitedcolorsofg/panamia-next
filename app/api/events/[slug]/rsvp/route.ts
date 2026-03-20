@@ -79,7 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           currentEvent.attendeeCap !== null &&
           currentEvent.attendeeCount >= currentEvent.attendeeCap
         ) {
-          throw new Error('SOLD_OUT');
+          throw new Error('MAX_CAPACITY');
         }
       }
 
@@ -114,12 +114,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true, data: { status: newStatus } });
   } catch (error: unknown) {
-    if (error instanceof Error && error.message === 'SOLD_OUT') {
+    if (error instanceof Error && error.message === 'MAX_CAPACITY') {
       return NextResponse.json(
         {
           success: false,
           error: 'This event is at capacity',
-          code: 'SOLD_OUT',
+          code: 'MAX_CAPACITY',
         },
         { status: 409 }
       );

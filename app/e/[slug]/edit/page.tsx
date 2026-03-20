@@ -1,55 +1,162 @@
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
-import { auth } from '@/auth';
-import { db } from '@/lib/db';
-import { events, eventOrganizers, profiles } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
+'use client';
 
-interface PageProps {
-  params: Promise<{ slug: string }>;
+import { useSession } from '@/lib/auth-client';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import EventEditor from '@/components/EventEditor';
+import Link from 'next/link';
+
+interface EventData {
+  slug: string;
+  title: string;
+  description?: string;
+  venueId: string;
+  startsAt: string;
+  endsAt?: string;
+  timezone: string;
+  visibility: string;
+  attendeeCap?: number | null;
+  ageRestriction: string;
+  photoPolicy: string;
+  dresscode: string;
+  streamEligible: boolean;
+  status: string;
 }
 
-export default async function EditEventPage({ params }: PageProps) {
-  const { slug } = await params;
-  const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+export default function EditEventPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
+  const params = useParams();
+  const slug = params?.slug as string;
 
-  const event = await db.query.events.findFirst({
-    where: eq(events.slug, slug),
-  });
-  if (!event) notFound();
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
-  const hostOrg = profile
-    ? await db.query.eventOrganizers.findFirst({
-        where: and(
-          eq(eventOrganizers.eventId, event.id),
-          eq(eventOrganizers.profileId, profile.id),
-          eq(eventOrganizers.role, 'host')
-        ),
-      })
-    : null;
+  useEffect(() => {
+    if (sessionStatus === 'unauthenticated') {
+      router.push(`/signin?callbackUrl=/e/${slug}/edit`);
+    }
+  }, [sessionStatus, router, slug]);
 
-  if (!hostOrg && !session.user.isAdmin) redirect(`/e/${slug}`);
+  useEffect(() => {
+    async function fetchEvent() {
+      try {
+        const res = await fetch(`/api/events/${slug}`);
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.error || 'Event not found');
+          return;
+        }
+
+        setEvent(data.data);
+      } catch {
+        setError('Failed to load event');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (session && slug) {
+      fetchEvent();
+    }
+  }, [session, slug]);
+
+  if (sessionStatus === 'loading' || loading) {
+    return (
+      <main className="container mx-auto max-w-2xl px-4 py-8">
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!session) {
+    return (
+      <main className="container mx-auto max-w-2xl px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign In Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              You must be signed in to edit an event.
+            </p>
+            <Button asChild>
+              <Link href={`/signin?callbackUrl=/e/${slug}/edit`}>Sign In</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container mx-auto max-w-2xl px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
+            <Button asChild variant="outline">
+              <Link href={`/e/${slug}`}>Back to Event</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!event) {
+    return (
+      <main className="container mx-auto max-w-2xl px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Event Not Found</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              The event you&apos;re looking for doesn&apos;t exist or you
+              don&apos;t have access to it.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/e">Back to Events</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <Link
-        href={`/e/${slug}/manage`}
-        className="text-muted-foreground hover:text-foreground text-sm"
-      >
-        ← Back to Manage
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">Edit Event</h1>
-      <p className="text-muted-foreground mt-1">
-        Event editing form coming soon. Use{' '}
-        <code className="bg-muted rounded px-1 text-sm">
-          PATCH /api/events/{slug}
-        </code>{' '}
-        directly.
-      </p>
-    </div>
+    <main className="container mx-auto max-w-2xl px-4 py-8">
+      <EventEditor
+        mode="edit"
+        initialData={{
+          slug: event.slug,
+          title: event.title,
+          description: event.description,
+          venueId: event.venueId,
+          startsAt: event.startsAt,
+          endsAt: event.endsAt,
+          timezone: event.timezone,
+          visibility: event.visibility,
+          attendeeCap: event.attendeeCap,
+          ageRestriction: event.ageRestriction,
+          photoPolicy: event.photoPolicy,
+          dresscode: event.dresscode,
+          streamEligible: event.streamEligible,
+          status: event.status,
+        }}
+      />
+    </main>
   );
 }
