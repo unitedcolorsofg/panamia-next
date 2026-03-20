@@ -22,6 +22,27 @@
       "when": 1772582400000,
       "tag": "0002_emailverified_boolean",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772668800000,
+      "tag": "0003_events_enums",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772755200000,
+      "tag": "0004_events_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774137600000,
+      "tag": "0005_seed_pana_mia_main_office",
+      "breakpoints": true
     }
   ]
 }

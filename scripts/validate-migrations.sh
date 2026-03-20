@@ -156,6 +156,54 @@ PYEOF
   fi
 fi
 
+# =============================================================================
+# Journal completeness check: every .sql file must have a journal entry
+# =============================================================================
+# drizzle-kit migrate reads _journal.json to determine which migrations exist.
+# A .sql file without a journal entry is silently ignored by drizzle-kit.
+
+echo "Checking _journal.json completeness..."
+
+if [ "$STAGED_ONLY" = true ]; then
+  # In staged mode: check that every staged .sql migration also has a
+  # corresponding entry in the staged (or working-tree) _journal.json.
+  JOURNAL_TAGS=$(git show ":$JOURNAL_FILE" 2>/dev/null \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e['tag']) for e in d.get('entries',[])]" 2>/dev/null || true)
+
+  for filename in $MIGRATIONS_TO_CHECK; do
+    tag="${filename%.sql}"
+    if ! echo "$JOURNAL_TAGS" | grep -qx "$tag"; then
+      echo "  ERROR: '$filename' has no entry in _journal.json (tag '$tag' missing)"
+      echo "         drizzle-kit migrate will silently skip this migration."
+      echo "         Add an entry to drizzle/meta/_journal.json."
+      ERRORS=$((ERRORS + 1))
+    fi
+  done
+else
+  # In full mode: every .sql file in drizzle/ must appear in the journal.
+  ALL_SQL=$(ls -1 "$MIGRATIONS_DIR" 2>/dev/null \
+    | grep -E "^[0-9]{4}_[a-z][a-z0-9_]*\.sql$" || true)
+  JOURNAL_TAGS=$(python3 -c "
+import json, sys
+with open('$JOURNAL_FILE') as f:
+    d = json.load(f)
+for e in d.get('entries', []):
+    print(e['tag'])
+" 2>/dev/null || true)
+
+  for filename in $ALL_SQL; do
+    tag="${filename%.sql}"
+    if ! echo "$JOURNAL_TAGS" | grep -qx "$tag"; then
+      echo "  ERROR: '$filename' has no entry in _journal.json (tag '$tag' missing)"
+      echo "         drizzle-kit migrate will silently skip this migration."
+      echo "         Add an entry to drizzle/meta/_journal.json."
+      ERRORS=$((ERRORS + 1))
+    fi
+  done
+fi
+
+echo "  Journal completeness check done"
+
 echo ""
 
 if [ $ERRORS -gt 0 ]; then
