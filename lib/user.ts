@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const getUserSession = async (host?: String) => {
+export const getUserSession = async (host?: string) => {
   const path = '/api/getSessionUser';
   if (process.env.NEXT_PUBLIC_HOST_URL?.includes('localhost')) {
     host = process.env.NEXT_PUBLIC_HOST_URL;
@@ -23,7 +23,10 @@ export const getUserSession = async (host?: String) => {
   return null;
 };
 
-export const saveUserSession = async (data: {}, host?: String) => {
+export const saveUserSession = async (
+  data: Record<string, unknown>,
+  host?: string
+) => {
   const path = '/api/saveSessionUser';
   const url = host ? `${host}${path}` : path;
   const userSession = await axios
@@ -43,7 +46,7 @@ export const saveUserSession = async (data: {}, host?: String) => {
   return null;
 };
 
-export const unguardUser = (user: any) => {
+export const unguardUser = (user: Record<string, unknown>) => {
   // only send safe for public fields
   return {
     email: user.email,

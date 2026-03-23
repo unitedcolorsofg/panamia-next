@@ -10,7 +10,7 @@ Before you begin, ensure you have:
 
 - **Node.js**: Version 20.x or higher ([Download](https://nodejs.org/))
 - **Yarn**: Package manager (see setup below)
-- **PostgreSQL**: Database (via Neon, Vercel Postgres, or local)
+- **PostgreSQL**: Database (Supabase recommended — see below)
 - **Git**: For version control
 
 ### Yarn Setup
@@ -21,23 +21,17 @@ This project uses Yarn. Enable it via Node.js corepack:
 corepack enable
 ```
 
-Or install globally:
-
-```bash
-npm install -g yarn
-```
-
 > **Note**: The CI pipeline uses `yarn install --frozen-lockfile`, so always use Yarn to install dependencies to keep `yarn.lock` in sync.
 
 ### Optional Services
 
 These are required for specific features:
 
-| Service                       | Purpose             | Required For          |
-| ----------------------------- | ------------------- | --------------------- |
-| [Pusher](https://pusher.com/) | Real-time WebSocket | Mentoring video calls |
-| [Stripe](https://stripe.com/) | Payment processing  | Donations             |
-| SMTP Server                   | Email delivery      | Authentication        |
+| Service                                                                | Purpose               | Required For          |
+| ---------------------------------------------------------------------- | --------------------- | --------------------- |
+| [Stripe](https://stripe.com/)                                          | Payment processing    | Donations             |
+| [Brevo](https://brevo.com/)                                            | Transactional email   | Authentication emails |
+| [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) | DB connection pooling | Production only       |
 
 ---
 
@@ -69,34 +63,31 @@ yarn subtree:pull
 ### 3. Set Up Environment Variables
 
 ```bash
-cp example.env .env.local
+cp .env.local.example .env.local
 ```
 
 Edit `.env.local` with your credentials. Key configurations:
 
-| Variable          | Description                              |
-| ----------------- | ---------------------------------------- |
-| `POSTGRES_URL`    | PostgreSQL connection string (required)  |
-| `NEXTAUTH_SECRET` | Generate with `openssl rand -base64 32`  |
-| `NEXTAUTH_URL`    | `https://localhost:3000` for development |
-| `PUSHER_*`        | Required for mentoring video features    |
-| `EMAIL_SERVER_*`  | Required for authentication emails       |
+| Variable               | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `POSTGRES_URL`         | Supabase session pooler connection string                          |
+| `POSTGRES_DIRECT_URL`  | Supabase direct (unpooled) connection string — for migrations only |
+| `BETTER_AUTH_SECRET`   | Generate with `openssl rand -base64 32`                            |
+| `BETTER_AUTH_URL`      | `http://localhost:3000` for development                            |
+| `NEXT_PUBLIC_HOST_URL` | `http://localhost:3000` for development                            |
+| `EMAIL_SERVER_*`       | Required for authentication emails (Brevo)                         |
 
 See `.env.local.example` for all available options with detailed comments.
 
-### 4. Set Up PostgreSQL
+### 4. Set Up PostgreSQL (Supabase)
 
-**Option A: Neon (Recommended for development)**
-
-1. Create free account at [Neon](https://neon.tech)
+1. Create a free account at [Supabase](https://supabase.com)
 2. Create a new project
-3. Get connection string and add to `.env.local` as `POSTGRES_URL`
+3. Go to **Project Settings → Database → Connection string**
+4. Copy the **Session Pooler** string (port 5432) → `POSTGRES_URL`
+5. Copy the **Direct** string (port 5432, unpooled) → `POSTGRES_DIRECT_URL`
 
-**Option B: Local PostgreSQL**
-
-1. Install PostgreSQL locally
-2. Create a database: `createdb panamia_dev`
-3. Set `POSTGRES_URL=postgres://localhost:5432/panamia_dev`
+> **Important**: Do NOT use the Transaction Pooler (port 6543) — postgres.js uses prepared statements which are incompatible with transaction mode.
 
 **Run migrations:**
 
@@ -111,10 +102,10 @@ npx drizzle-kit migrate
 ### Start Development Server
 
 ```bash
-yarn dev
+yarn dev:vinext
 ```
 
-Open **https://localhost:3000** in your browser.
+Open **http://localhost:3001** in your browser.
 
 The dev server includes:
 
@@ -131,9 +122,6 @@ yarn lint
 
 # Auto-fix linting issues
 yarn lint --fix
-
-# Format code with Prettier
-yarn prettier --write .
 ```
 
 ### Git Hooks
@@ -142,7 +130,7 @@ Pre-commit hooks automatically run:
 
 - Prettier formatting
 - ESLint checks
-- TypeScript compilation check
+- Emoji character check (unicode escapes in JS/TS template literals are allowed)
 - Playwright test coverage warnings
 
 Commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/) format:
@@ -160,7 +148,22 @@ See [FEATURES.md](./FEATURES.md) for available scopes.
 
 ### End-to-End Tests (Playwright)
 
-Tests run automatically on every `git push` via GitHub Actions.
+Tests run automatically on every `git push` via GitHub Actions CI (`.github/workflows/playwright.yml`).
+
+#### Local Prerequisites
+
+Before running tests locally, ensure `.dev.vars` exists with your DB and auth secrets:
+
+```
+POSTGRES_URL=postgresql://...
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_HOST_URL=http://localhost:3000
+```
+
+The playwright config starts the dev server automatically via `yarn dev` (legacy Node.js server on port 3000).
+
+#### Run Tests
 
 ```bash
 # Run all tests
@@ -169,10 +172,7 @@ yarn test
 # Run tests in UI mode (interactive)
 yarn test:ui
 
-# Run tests in headed mode (see browser)
-yarn test:headed
-
-# View test report
+# View test report after a run
 yarn test:report
 ```
 
@@ -185,6 +185,8 @@ Current test coverage includes:
 - Directory search
 - Screenname validation
 - Navigation and routing
+- Events
+- Mentoring/notifications
 
 See [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) for manual testing procedures.
 
@@ -192,27 +194,42 @@ See [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) for manual testing procedures
 
 ## Deployment
 
-### Vercel (Recommended)
+### Cloudflare Workers
 
-**Automatic deployment:**
+This project deploys to [Cloudflare Workers](https://workers.cloudflare.com/) via the Vinext build pipeline.
 
-1. Push to `main` branch
-2. Vercel builds and deploys automatically
-3. Preview deployments for all branches
+**Deploy:**
 
-**Environment variables** - Set in Vercel dashboard (Settings → Environment Variables):
+```bash
+yarn deploy:vinext
+```
 
-- All variables from `.env.local`
-- Set `NODE_ENV=production`
-- Ensure `NEXTAUTH_URL` points to production domain
+This runs `drizzle-kit migrate` then `vinext deploy` (Vite build + wrangler publish).
+
+**Environment variables** — set in the Cloudflare dashboard:
+
+- Workers & Pages → `<app>` → Settings → **Variables and secrets** (CF-RUNTIME)
+- Workers & Pages → `<app>` → Settings → **Build → Variables and secrets** (CF-BUILD, for `NEXT_PUBLIC_*` vars baked at build time)
+
+**Cloudflare dashboard build command:**
+
+```
+yarn deploy:vinext
+```
+
+**Database connection pooling** — configure a [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) binding in `wrangler.jsonc`:
+
+```jsonc
+"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<your-hyperdrive-id>" }]
+```
 
 ### Build Locally
 
 ```bash
-# Create production build
+# Create production build only (no deploy)
 yarn build
 
-# Start production server
+# Start production server locally
 yarn start
 ```
 
@@ -222,24 +239,24 @@ yarn start
 
 ### Core
 
-| Technology                                         | Version | Purpose                              |
-| -------------------------------------------------- | ------- | ------------------------------------ |
-| [Next.js](https://nextjs.org/)                     | 16.x    | React framework with App Router      |
-| [Vinext](https://github.com/nicholasgasior/vinext) | 0.0.x   | Vite-based dev/build CLI for Next.js |
-| [React](https://react.dev/)                        | 19.x    | UI library                           |
-| [TypeScript](https://www.typescriptlang.org/)      | 5.x     | Type-safe JavaScript                 |
-| [PostgreSQL](https://www.postgresql.org/)          | 16.x    | Relational database                  |
-| [Drizzle ORM](https://orm.drizzle.team/)           | 0.44    | Database ORM + migrations            |
+| Technology                                     | Version | Purpose                                    |
+| ---------------------------------------------- | ------- | ------------------------------------------ |
+| [Vinext](https://github.com/cloudflare/vinext) | 0.0.x   | Vite-based build/deploy CLI for CF Workers |
+| [React](https://react.dev/)                    | 19.x    | UI library                                 |
+| [TypeScript](https://www.typescriptlang.org/)  | 5.x     | Type-safe JavaScript                       |
+| [PostgreSQL](https://www.postgresql.org/)      | 16.x    | Relational database (Supabase)             |
+| [Drizzle ORM](https://orm.drizzle.team/)       | 0.44    | Database ORM + migrations                  |
 
 ### UI & Styling
 
-| Technology                                      | Purpose               |
-| ----------------------------------------------- | --------------------- |
-| [Tailwind CSS](https://tailwindcss.com/)        | Utility-first CSS     |
-| [shadcn/ui](https://ui.shadcn.com/)             | Component library     |
-| [Radix UI](https://www.radix-ui.com/)           | Accessible primitives |
-| [Lucide Icons](https://lucide.dev/)             | Icon library          |
-| [Framer Motion](https://www.framer.com/motion/) | Animations            |
+| Technology                                      | Purpose                    |
+| ----------------------------------------------- | -------------------------- |
+| [Tailwind CSS](https://tailwindcss.com/)        | Utility-first CSS          |
+| [shadcn/ui](https://ui.shadcn.com/)             | Component library          |
+| [Radix UI](https://www.radix-ui.com/)           | Accessible primitives      |
+| [Lucide Icons](https://lucide.dev/)             | Icon library               |
+| [Framer Motion](https://www.framer.com/motion/) | Animations                 |
+| [i18next](https://www.i18next.com/)             | EN/ES internationalization |
 
 ### Authentication & State
 
@@ -250,12 +267,12 @@ yarn start
 | [React Hook Form](https://react-hook-form.com/) | Form handling     |
 | [Zod](https://zod.dev/)                         | Schema validation |
 
-### Real-time & Payments
+### Payments & Email
 
 | Technology                    | Purpose             |
 | ----------------------------- | ------------------- |
-| [Pusher](https://pusher.com/) | WebSocket/real-time |
 | [Stripe](https://stripe.com/) | Payment processing  |
+| [Brevo](https://brevo.com/)   | Transactional email |
 
 ### Testing & Quality
 
@@ -275,40 +292,42 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for technology choices and 
 
 ```
 panamia.club/
-├── app/                      # Next.js App Router
+├── app/                      # App Router (API routes + pages)
 │   ├── about-us/            # About page
 │   ├── account/             # User account settings
 │   ├── admin/               # Admin dashboard
 │   ├── api/                 # API routes (40+ endpoints)
 │   ├── directory/           # Profile directory & search
 │   ├── donate/              # Donation pages
-│   ├── event/               # Event listings
+│   ├── e/                   # Events module
 │   ├── form/                # Business intake forms
 │   ├── list/                # User-curated lists
-│   ├── mentoring/           # Peer mentoring feature
+│   ├── m/                   # Mentoring module
 │   │   ├── discover/        # Find mentors
 │   │   ├── profile/         # Mentor profiles
 │   │   ├── schedule/        # Booking system
 │   │   └── session/         # Video call interface
-│   ├── profile/             # Public profile pages
+│   ├── p/                   # Public profile pages
 │   ├── signin/              # Authentication
 │   ├── layout.tsx           # Root layout
 │   └── page.tsx             # Homepage
 ├── components/              # React components
 │   ├── ui/                  # shadcn/ui components
-│   ├── flower-power/        # Flower Power theme
+│   ├── social/              # Social feed components
 │   ├── Admin/               # Admin components
 │   ├── Form/                # Form components
-│   ├── Page/                # Page layout components
 │   └── *.tsx                # Shared components
 ├── lib/                     # Utilities & business logic
+│   ├── schema/              # Drizzle schema (TypeScript)
 │   ├── validations/         # Zod validation schemas
-│   ├── blob/                # Vercel Blob integration
-│   ├── query/               # Database queries
-│   ├── server/              # Server-side utilities
-│   └── *.ts                 # Auth, email, utils
+│   ├── query/               # TanStack Query hooks
+│   ├── federation/          # ActivityPub federation
+│   └── *.ts                 # Auth, db, i18n, utils
+├── locales/                 # i18next translation files
+│   ├── en/                  # English (common.json, toast.json, …)
+│   └── es/                  # Spanish
 ├── drizzle/                 # Drizzle migration files
-├── lib/schema/              # Drizzle schema (TypeScript)
+├── worker/                  # CF Workers entry (auto-generated by vinext)
 ├── hooks/                   # Custom React hooks
 ├── types/                   # TypeScript type definitions
 ├── styles/                  # Global CSS & theme files
@@ -316,12 +335,14 @@ panamia.club/
 ├── scripts/                 # Utility scripts
 ├── tests/                   # Playwright E2E tests
 │   └── e2e/                 # Test specs
-├── external/                 # Vendored upstream code
+├── external/                # Vendored upstream code
 │   └── activities.next/     # Federation (git subtree)
 ├── docs/                    # Documentation
 ├── .husky/                  # Git hooks (pre-commit, commit-msg)
 ├── auth.ts                  # better-auth configuration
 ├── proxy.ts                 # Request proxy (HTTPS headers, ActivityPub routing)
+├── vite.config.ts           # Vite build config (vinext + cloudflare plugins)
+├── wrangler.jsonc           # Cloudflare Workers config
 └── package.json             # Dependencies & scripts
 ```
 

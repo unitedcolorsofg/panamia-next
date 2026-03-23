@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 interface SearchInterface {
   pageNum: number;
@@ -17,23 +17,23 @@ interface SearchInterface {
 }
 
 export interface SearchResultsInterface {
-  _id: String;
+  _id: string;
   score: number;
-  score_details: {};
-  name: String;
-  screenname: String | null;
-  details: String;
-  five_words: String;
+  score_details: Record<string, unknown>;
+  name: string;
+  screenname: string | null;
+  details: string;
+  five_words: string;
   geo: {
     coordinates?: Array<2>;
   };
   images: {
     primaryCDN: string;
   };
-  primary_address?: { city?: String };
-  socials: {};
-  meta: any;
-  paginationToken: any;
+  primary_address?: { city?: string };
+  socials: Record<string, unknown>;
+  meta: unknown;
+  paginationToken: unknown;
 }
 
 export const searchParamsToString = (params: SearchInterface) => {

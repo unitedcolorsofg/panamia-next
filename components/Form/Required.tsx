@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import styles from './Required.module.css';
 
 interface RequiredProps {
-  notice?: Boolean;
+  notice?: boolean;
 }
 
 export default function Required(props: RequiredProps) {
