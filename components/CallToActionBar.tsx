@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import styles from './CallToActionBar.module.css';
 import { Button } from '@/components/ui/button';
 
@@ -13,19 +14,23 @@ export default function CallToActionBar({
   variant = 'newsletter',
   isProductionSite,
 }: CallToActionBarProps) {
+  const { t } = useTranslation('common');
+
   // Authenticated user without profile - prompt to complete profile
   if (variant === 'complete-profile') {
     return (
       <div className={styles.callToAction}>
         <div className="flex flex-col items-center gap-2 sm:flex-row">
-          <span className="hidden-sm">Tell us more about you! &nbsp;</span>
+          <span className="hidden-sm">{t('cta.tellUsMore')} &nbsp;</span>
           <Button
             variant="default"
             size="default"
             className="bg-gradient-to-r from-pink-500 to-purple-600 font-semibold text-white shadow-lg hover:from-pink-600 hover:to-purple-700"
             asChild
           >
-            <Link href="/form/become-a-pana">Complete Your Profile</Link>
+            <Link href="/form/become-a-pana">
+              {t('cta.completeYourProfile')}
+            </Link>
           </Button>
         </div>
       </div>
@@ -37,28 +42,26 @@ export default function CallToActionBar({
     <div className={styles.callToAction}>
       {isProductionSite ? (
         <div className="flex flex-col items-center gap-2 sm:flex-row">
-          <span className="hidden-sm">Stay updated on PanaMia! &nbsp;</span>
+          <span className="hidden-sm">{t('cta.stayUpdated')} &nbsp;</span>
           <Button
             variant="default"
             size="default"
             className="bg-gradient-to-r from-pink-500 to-purple-600 font-semibold text-white shadow-lg hover:from-pink-600 hover:to-purple-700"
             asChild
           >
-            <a href="#newsletter-signup">Sign Up for our Newsletter</a>
+            <a href="#newsletter-signup">{t('cta.signUpNewsletter')}</a>
           </Button>
         </div>
       ) : (
         <div className="-ml-40 flex flex-col items-start gap-2 sm:ml-0 sm:flex-row sm:items-center">
-          <span className="text-lg font-bold">
-            You are visiting a test site!
-          </span>
+          <span className="text-lg font-bold">{t('cta.visitingTestSite')}</span>
           <Button
             variant="default"
             size="default"
             className="bg-gradient-to-r from-pink-500 to-purple-600 font-semibold text-white shadow-lg hover:from-pink-600 hover:to-purple-700"
             asChild
           >
-            <a href="https://www.panamia.club">Visit Panamia Club</a>
+            <a href="https://www.panamia.club">{t('cta.visitPanamiaClub')}</a>
           </Button>
         </div>
       )}

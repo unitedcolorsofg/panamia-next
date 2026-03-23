@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSession, signOut } from '@/lib/auth-client';
 import Link from 'next/link';
 import axios from 'axios';
@@ -45,6 +46,7 @@ export default function MainHeader({
 }: {
   isProductionSite: boolean;
 }) {
+  const { t } = useTranslation('common');
   const { data: session, status } = useSession();
   const handleSignOut = () => signOut({ redirect: true, callbackUrl: '/' });
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
@@ -98,8 +100,8 @@ export default function MainHeader({
               className="h-10 px-4"
             >
               <Link href="/form/become-a-pana">
-                <span className="hidden md:inline">Become a Pana</span>
-                <span className="md:hidden">Sign Up</span>
+                <span className="hidden md:inline">{t('nav.becomeAPana')}</span>
+                <span className="md:hidden">{t('nav.signUp')}</span>
               </Link>
             </Button>
             <Button
@@ -108,7 +110,7 @@ export default function MainHeader({
               asChild
               className="h-10 px-4"
             >
-              <Link href="/signin">Sign In</Link>
+              <Link href="/signin">{t('nav.signIn')}</Link>
             </Button>
           </>
         )}
@@ -118,16 +120,16 @@ export default function MainHeader({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="default" variant="outline" data-no-wobble="true">
-                Jump To
+                {t('nav.jumpTo')}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Navigation</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.navigation')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href="/" className="flex cursor-pointer items-center">
                   <Home className="mr-2 h-4 w-4" />
-                  Home
+                  {t('nav.home')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -136,7 +138,7 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <Bell className="mr-2 h-4 w-4" />
-                  Updates
+                  {t('nav.updates')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -145,19 +147,19 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <Search className="mr-2 h-4 w-4" />
-                  Directory Search
+                  {t('nav.directorySearch')}
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.myAccount')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link
                   href="/account/profile/edit"
                   className="flex cursor-pointer items-center"
                 >
                   <UserCircle className="mr-2 h-4 w-4" />
-                  My Profile
+                  {t('nav.myProfile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -166,7 +168,7 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <User className="mr-2 h-4 w-4" />
-                  Account Settings
+                  {t('nav.accountSettings')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -175,19 +177,19 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  Timeline Posts
+                  {t('nav.timelinePosts')}
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Mentoring</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.mentoring')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link
                   href="/m/discover"
                   className="flex cursor-pointer items-center"
                 >
                   <Users className="mr-2 h-4 w-4" />
-                  Discover Mentors
+                  {t('nav.discoverMentors')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -196,7 +198,7 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <Compass className="mr-2 h-4 w-4" />
-                  Mentor Profile
+                  {t('nav.mentorProfile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -205,16 +207,16 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <Video className="mr-2 h-4 w-4" />
-                  My Sessions
+                  {t('nav.mySessions')}
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Articles</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.articles')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href="/a" className="flex cursor-pointer items-center">
                   <FileText className="mr-2 h-4 w-4" />
-                  Browse Articles
+                  {t('nav.browseArticles')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -223,16 +225,16 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <PenLine className="mr-2 h-4 w-4" />
-                  Write Article
+                  {t('nav.writeArticle')}
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Events</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.events')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href="/e" className="flex cursor-pointer items-center">
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  Browse Events
+                  {t('nav.browseEvents')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -241,19 +243,19 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <CalendarPlus className="mr-2 h-4 w-4" />
-                  Host an Event
+                  {t('nav.hostEvent')}
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Community</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.community')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link
                   href="/about-us"
                   className="flex cursor-pointer items-center"
                 >
                   <Info className="mr-2 h-4 w-4" />
-                  About Pana Mia
+                  {t('nav.aboutPanaMia')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -262,7 +264,7 @@ export default function MainHeader({
                   className="flex cursor-pointer items-center"
                 >
                   <Gift className="mr-2 h-4 w-4" />
-                  Support Us
+                  {t('nav.supportUs')}
                 </Link>
               </DropdownMenuItem>
 
@@ -275,7 +277,7 @@ export default function MainHeader({
                       className="flex cursor-pointer items-center"
                     >
                       <Shield className="mr-2 h-4 w-4" />
-                      Admin Panel
+                      {t('nav.adminPanel')}
                     </Link>
                   </DropdownMenuItem>
                 </>
@@ -287,7 +289,7 @@ export default function MainHeader({
                 className="flex cursor-pointer items-center"
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+                {t('nav.signOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

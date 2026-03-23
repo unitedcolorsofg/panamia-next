@@ -3,16 +3,20 @@
 import * as React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
+  const { i18n } = useTranslation();
+  const isEs = i18n.language === 'es';
 
   return (
     <DropdownMenu>
@@ -34,7 +38,13 @@ export function ThemeToggle() {
           Adaptive
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('flower-power')}>
-          🌸 Flower Power
+          Flower Power
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => i18n.changeLanguage(isEs ? 'en' : 'es')}
+        >
+          {isEs ? 'in English' : 'en Español'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
