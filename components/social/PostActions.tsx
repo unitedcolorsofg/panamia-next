@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useLikePost, useUnlikePost } from '@/lib/query/social';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 interface PostActionsProps {
   statusId: string;
@@ -26,6 +27,7 @@ export function PostActions({
 }: PostActionsProps) {
   const likePost = useLikePost();
   const unlikePost = useUnlikePost();
+  const { t } = useTranslation('toast');
 
   const handleLike = async () => {
     try {
@@ -34,10 +36,10 @@ export function PostActions({
       } else {
         await likePost.mutateAsync(statusId);
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Error',
-        description: 'Failed to update like. Please try again.',
+        title: t('error'),
+        description: t('likeFailed'),
         variant: 'destructive',
       });
     }
@@ -48,13 +50,13 @@ export function PostActions({
     try {
       await navigator.clipboard.writeText(url);
       toast({
-        title: 'Link copied',
-        description: 'Post link copied to clipboard',
+        title: t('linkCopied'),
+        description: t('linkCopiedDesc'),
       });
     } catch {
       toast({
-        title: 'Error',
-        description: 'Failed to copy link',
+        title: t('error'),
+        description: t('linkCopyFailed'),
         variant: 'destructive',
       });
     }

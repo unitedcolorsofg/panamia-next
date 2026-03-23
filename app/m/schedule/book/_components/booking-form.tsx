@@ -5,9 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   createSessionSchema,
@@ -21,6 +21,7 @@ export function BookingForm() {
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState('');
+  const { t } = useTranslation('toast');
 
   const {
     register,
@@ -41,8 +42,8 @@ export function BookingForm() {
   ) => {
     if (!mentorEmail) {
       toast({
-        title: 'Error',
-        description: 'Mentor email is required',
+        title: t('error'),
+        description: t('mentorEmailRequired'),
         variant: 'destructive',
       });
       return;
@@ -50,8 +51,8 @@ export function BookingForm() {
 
     if (!selectedDate || !selectedTime) {
       toast({
-        title: 'Missing Selection',
-        description: 'Please select a date and time',
+        title: t('missingSelection'),
+        description: t('missingSelectionDesc'),
         variant: 'destructive',
       });
       return;
@@ -79,15 +80,15 @@ export function BookingForm() {
         throw new Error(error.error || 'Failed to create session');
       }
 
-      const result = await response.json();
+      await response.json();
       router.push('/m/schedule');
       router.refresh();
     } catch (error) {
       console.error('Error booking session:', error);
       toast({
-        title: 'Error',
+        title: t('error'),
         description:
-          error instanceof Error ? error.message : 'Failed to book session',
+          error instanceof Error ? error.message : t('bookSessionFailed'),
         variant: 'destructive',
       });
     }

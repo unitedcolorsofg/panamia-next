@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 function SignInPageContent() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ function SignInPageContent() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
 
   // Show different ad copy based on callback URL
   const isBecomeAPana = callbackUrl.includes('form/become-a-pana');
@@ -45,8 +47,8 @@ function SignInPageContent() {
       if (!executeRecaptcha) {
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: 'reCAPTCHA not loaded. Please refresh and try again.',
+          title: t('error'),
+          description: t('recaptchaNotLoaded'),
         });
         setIsSubmitting(false);
         return;
@@ -64,8 +66,8 @@ function SignInPageContent() {
       if (!verifyResponse.ok) {
         toast({
           variant: 'destructive',
-          title: 'Verification Failed',
-          description: 'Please try again or contact support.',
+          title: t('verificationFailed'),
+          description: t('verificationFailedDesc'),
         });
         setIsSubmitting(false);
         return;
@@ -73,14 +75,14 @@ function SignInPageContent() {
 
       await signIn('email', { email, callbackUrl });
       toast({
-        title: 'Check Your Email',
-        description: 'We sent you a sign-in link.',
+        title: t('checkEmail'),
+        description: t('checkEmailDesc'),
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to send sign-in link. Please try again.',
+        title: t('error'),
+        description: t('signInFailed'),
       });
     } finally {
       setIsSubmitting(false);

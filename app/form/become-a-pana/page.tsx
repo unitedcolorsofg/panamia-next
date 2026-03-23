@@ -15,11 +15,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
   const [activePage, setActivePage] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -141,8 +143,8 @@ function BecomeAPanaForm() {
     if (!name || name.trim().length < 2) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Name',
-        description: 'Please enter a business/project name.',
+        title: t('invalidName'),
+        description: t('invalidNameDesc'),
       });
       return false;
     }
@@ -150,8 +152,8 @@ function BecomeAPanaForm() {
     if (!validateEmail(email)) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Email',
-        description: 'Please enter a valid email address.',
+        title: t('invalidEmail'),
+        description: t('invalidEmailDesc'),
       });
       return false;
     }
@@ -159,8 +161,8 @@ function BecomeAPanaForm() {
     if (!socialsWebsite || socialsWebsite.trim().length < 5) {
       toast({
         variant: 'destructive',
-        title: 'Website Required',
-        description: 'Please provide your website URL.',
+        title: t('websiteRequired'),
+        description: t('websiteRequiredDesc'),
       });
       return false;
     }
@@ -168,8 +170,8 @@ function BecomeAPanaForm() {
     if (!agreeTos) {
       toast({
         variant: 'destructive',
-        title: 'Terms Required',
-        description: 'You must agree to the Terms & Conditions.',
+        title: t('termsRequired'),
+        description: t('termsRequiredDesc'),
       });
       return false;
     }
@@ -209,7 +211,7 @@ function BecomeAPanaForm() {
       if (response?.data?.error) {
         toast({
           variant: 'destructive',
-          title: 'Submission Failed',
+          title: t('submissionFailed'),
           description: response.data.error,
         });
       } else {
@@ -231,18 +233,16 @@ function BecomeAPanaForm() {
           .catch((err) => console.error('Email send error:', err));
 
         toast({
-          title: 'Success!',
-          description:
-            'Your profile has been submitted for review. Check your email for next steps.',
+          title: t('profileSubmittedTitle'),
+          description: t('profileSubmitted'),
         });
       }
     } catch (error) {
       console.error('Submission error caught:', error);
       toast({
         variant: 'destructive',
-        title: 'Submission Error',
-        description:
-          'There was a problem submitting the form. Please contact us at hola@panamia.club',
+        title: t('submissionError'),
+        description: t('submissionErrorBecomePana'),
       });
     } finally {
       console.log('Finally block - setting isSubmitting to false');

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ interface SessionsListProps {
 export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
   const router = useRouter();
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const { t } = useTranslation('toast');
 
   const handleCancel = async (sessionId: string) => {
     const reason = prompt('Please provide a reason for cancellation:');
@@ -56,8 +58,8 @@ export function SessionsList({ sessions, userEmail, type }: SessionsListProps) {
     } catch (error) {
       console.error('Error cancelling session:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to cancel session',
+        title: t('error'),
+        description: t('cancelSessionFailed'),
         variant: 'destructive',
       });
     } finally {

@@ -39,6 +39,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 interface PostComposerProps {
   inReplyTo?: string;
@@ -112,6 +113,7 @@ export function PostComposer({
 
   const createPost = useCreatePost();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -192,7 +194,7 @@ export function PostComposer({
             ? error.response.data.error
             : 'Upload failed. Please try again.';
         toast({
-          title: 'Upload failed',
+          title: t('uploadFailed'),
           description: message,
           variant: 'destructive',
         });
@@ -352,8 +354,7 @@ export function PostComposer({
       {/* Safari media notice */}
       {safariMediaNotice && (
         <p className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
-          Audio/video playback requires Chrome or Firefox 💛 — your upload will
-          succeed but won&apos;t play on this device.
+          {`Audio/video playback requires Chrome or Firefox \u{1F49B} \u2014 your upload will succeed but won't play on this device.`}
         </p>
       )}
 

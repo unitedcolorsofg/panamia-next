@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useCreatePost } from '@/lib/query/social';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import {
   Mic,
   Square,
@@ -84,6 +85,7 @@ export function VoiceMemoComposer({
 
   const createPost = useCreatePost();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
   const debouncedQuery = useDebounce(searchQuery, 300);
 
   // Cleanup audio URL on unmount
@@ -144,9 +146,8 @@ export function VoiceMemoComposer({
   const startRecording = async () => {
     if (isSafari()) {
       toast({
-        title: 'Browser not supported',
-        description:
-          'Voice memos require Chrome or Firefox. Please use Chrome or Firefox 💛',
+        title: t('browserNotSupported'),
+        description: t('browserNotSupportedDesc'),
         variant: 'destructive',
       });
       return;
@@ -214,8 +215,8 @@ export function VoiceMemoComposer({
       }, 1000);
     } catch {
       toast({
-        title: 'Microphone access denied',
-        description: 'Please allow microphone access to record voice memos.',
+        title: t('microphoneDenied'),
+        description: t('microphoneDeniedDesc'),
         variant: 'destructive',
       });
     }
@@ -255,8 +256,8 @@ export function VoiceMemoComposer({
   const handleSubmit = async () => {
     if (recipients.length === 0) {
       toast({
-        title: 'No recipients',
-        description: 'Please add at least one recipient.',
+        title: t('noRecipients'),
+        description: t('noRecipientsDesc'),
         variant: 'destructive',
       });
       return;
@@ -268,8 +269,8 @@ export function VoiceMemoComposer({
 
     if (!hasContent && !hasVoiceMemo) {
       toast({
-        title: 'Empty message',
-        description: 'Please record a voice memo or write a message.',
+        title: t('emptyMessage'),
+        description: t('emptyMessageDesc'),
         variant: 'destructive',
       });
       return;
@@ -301,7 +302,7 @@ export function VoiceMemoComposer({
 
       // Create the direct message
       await createPost.mutateAsync({
-        content: hasContent ? content.trim() : '🎙️',
+        content: hasContent ? content.trim() : '\u{1F399}\ufe0f',
         visibility: 'direct',
         recipientActorIds: recipients.map((r) => r.id),
         attachments: attachment ? [attachment] : undefined,
@@ -318,8 +319,10 @@ export function VoiceMemoComposer({
       onSuccess?.();
 
       toast({
-        title: 'Message sent',
-        description: `Your ${hasVoiceMemo ? 'voice memo' : 'message'} has been sent.`,
+        title: t('voiceMessageSent'),
+        description: hasVoiceMemo
+          ? t('voiceMemoSentDesc')
+          : t('textMessageSentDesc'),
       });
     } catch (error) {
       const message =
@@ -327,7 +330,7 @@ export function VoiceMemoComposer({
           ? error.response.data.error
           : 'Failed to send message. Please try again.';
       toast({
-        title: 'Error',
+        title: t('error'),
         description: message,
         variant: 'destructive',
       });

@@ -1,7 +1,8 @@
-import { FormEvent, useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import axios from 'axios';
 import classNames from 'classnames';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 import styles from './SignupModal.module.css';
 import PanaButton from './PanaButton';
@@ -10,6 +11,7 @@ export default function SignupModal() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [signup_type, setSignupType] = useState('');
+  const { t } = useTranslation('toast');
 
   // Detect if this is the production site
   const isProductionSite =
@@ -39,7 +41,7 @@ export default function SignupModal() {
         .then(async (response) => {
           if (response.data.error) {
             toast({
-              title: 'Error',
+              title: t('error'),
               description: response.data.error,
               variant: 'destructive',
             });
@@ -49,8 +51,8 @@ export default function SignupModal() {
             setEmail('');
             setSignupType('');
             toast({
-              title: 'Success',
-              description: 'Thank you for signing up!',
+              title: t('success'),
+              description: t('signupSuccess'),
             });
             toggleModal();
           }
@@ -58,9 +60,10 @@ export default function SignupModal() {
         .catch((error) => {
           console.log(error);
           toast({
-            title: 'Error',
-            description:
-              'There was a problem submitting the form: ' + error.message,
+            title: t('error'),
+            description: t('submissionErrorFormGeneric', {
+              error: error.message,
+            }),
             variant: 'destructive',
           });
           toggleModal();
@@ -110,7 +113,7 @@ export default function SignupModal() {
         <div className={styles.modal__title}>
           {isProductionSite
             ? "You're Invited To Our Club!"
-            : '⚠️ Test Site Only'}
+            : '[!] Test Site Only'}
         </div>
         <div className={styles.modal__subtitle}>
           {isProductionSite
@@ -133,7 +136,9 @@ export default function SignupModal() {
                 maxLength={75}
                 placeholder="Your Name"
                 value={name}
-                onChange={(e: any) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
               />
             </p>
             <p>
@@ -147,7 +152,9 @@ export default function SignupModal() {
                 placeholder="you@example.com"
                 value={email}
                 required
-                onChange={(e: any) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEmail(e.target.value)
+                }
               />
             </p>
             <ul>

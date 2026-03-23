@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MapPin, MapPinned, Circle, Pencil, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export interface LocationData {
   type: 'Place';
@@ -66,12 +67,13 @@ export function LocationPickerModal({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [customName, setCustomName] = useState('');
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
 
   const requestGeolocation = (precision: 'precise' | 'general') => {
     if (!navigator.geolocation) {
       toast({
-        title: 'Geolocation not supported',
-        description: 'Your browser does not support geolocation.',
+        title: t('geolocationNotSupported'),
+        description: t('geolocationNotSupportedDesc'),
         variant: 'destructive',
         duration: 4000,
       });
@@ -103,27 +105,27 @@ export function LocationPickerModal({
         onOpenChange(false);
 
         toast({
-          title: 'Location added',
+          title: t('locationAdded'),
           description:
             precision === 'precise'
-              ? 'Your exact location has been attached.'
-              : 'Your general area has been attached.',
+              ? t('locationExactDesc')
+              : t('locationGeneralDesc'),
           duration: 3000,
         });
       },
       (error) => {
         setIsGettingLocation(false);
-        let message = 'Unable to get your location.';
+        let descKey = 'locationUnknown';
         if (error.code === error.PERMISSION_DENIED) {
-          message = 'Location access was denied.';
+          descKey = 'locationDenied';
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          message = 'Location unavailable.';
+          descKey = 'locationUnavailable';
         } else if (error.code === error.TIMEOUT) {
-          message = 'Location request timed out.';
+          descKey = 'locationTimeout';
         }
         toast({
-          title: 'Location error',
-          description: message,
+          title: t('locationError'),
+          description: t(descKey),
           variant: 'destructive',
           duration: 4000,
         });
@@ -135,8 +137,8 @@ export function LocationPickerModal({
   const handleCustomLocation = () => {
     if (!customName.trim()) {
       toast({
-        title: 'Enter a location',
-        description: 'Please enter a place name.',
+        title: t('enterLocation'),
+        description: t('enterLocationDesc'),
         variant: 'destructive',
         duration: 3000,
       });
@@ -152,8 +154,8 @@ export function LocationPickerModal({
     onOpenChange(false);
 
     toast({
-      title: 'Location added',
-      description: `"${customName.trim()}" has been attached.`,
+      title: t('locationAdded'),
+      description: t('locationCustomDesc', { name: customName.trim() }),
       duration: 3000,
     });
   };

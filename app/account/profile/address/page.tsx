@@ -6,18 +6,13 @@ import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 import PageMeta from '@/components/PageMeta';
 import { ProfileInterface } from '@/lib/interfaces';
 import Status401_Unauthorized from '@/components/Page/Status401_Unauthorized';
 import { useProfile, useMutateProfileAddress } from '@/lib/query/profile';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,9 +22,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function AccountProfileAddress() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileAddress();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
   const [gettingCoords, setGettingCoords] = useState(false);
+  const { t } = useTranslation('toast');
 
   const clickSetCoordsFromAddress = async () => {
     setGettingCoords(true);
@@ -48,8 +44,8 @@ export default function AccountProfileAddress() {
       !(address.street1 && address.city && address.state && address.zipcode)
     ) {
       toast({
-        title: 'Missing Fields',
-        description: 'Please fill out a Street, City, State and Zipcode',
+        title: t('missingFields'),
+        description: t('missingFieldsDesc'),
         variant: 'destructive',
       });
       setGettingCoords(false);
@@ -74,13 +70,13 @@ export default function AccountProfileAddress() {
       const lngInput = document.getElementById('geo_lng') as HTMLInputElement;
       lngInput.value = coords?.lng;
       toast({
-        title: 'Coordinates Set',
-        description: 'Your Latitude and Longitude have been set, please save',
+        title: t('coordinatesSet'),
+        description: t('coordinatesSetDesc'),
       });
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Error',
-        description: 'Failed to get coordinates. Please try again.',
+        title: t('error'),
+        description: t('coordinatesFailed'),
         variant: 'destructive',
       });
     } finally {

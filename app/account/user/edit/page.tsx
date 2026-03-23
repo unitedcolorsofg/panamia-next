@@ -24,6 +24,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { getUserSession, saveUserSession } from '@/lib/user';
 import { UserInterface } from '@/lib/interfaces';
 import { Mail, AlertCircle, Check, X, Loader2 } from 'lucide-react';
@@ -31,6 +32,7 @@ import { Mail, AlertCircle, Check, X, Loader2 } from 'lucide-react';
 export default function UserEditPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
   const [sessionEmail, setSessionEmail] = useState('');
   const [sessionZipCode, setSessionZipCode] = useState('');
   const [sessionName, setSessionName] = useState('');
@@ -110,7 +112,6 @@ export default function UserEditPage() {
 
   const [showScreennameConfirmDialog, setShowScreennameConfirmDialog] =
     useState(false);
-  const [pendingScreennameChange, setPendingScreennameChange] = useState(false);
 
   // Check if screenname is actually changing
   const isScreennameChanging =
@@ -137,7 +138,6 @@ export default function UserEditPage() {
 
     setIsLoading(true);
     setMessage('');
-    setPendingScreennameChange(false);
     try {
       const response = await saveUserSession({
         name: sessionName,
@@ -178,8 +178,8 @@ export default function UserEditPage() {
   const handleEmailMigration = async () => {
     if (!newEmail || newEmail === sessionEmail) {
       toast({
-        title: 'Invalid Email',
-        description: 'Please enter a different email address.',
+        title: t('invalidEmail'),
+        description: t('invalidEmailDiffDesc'),
         variant: 'destructive',
       });
       return;
@@ -199,21 +199,21 @@ export default function UserEditPage() {
 
       if (response.ok) {
         toast({
-          title: 'Verification Email Sent',
-          description: `Check your inbox at ${newEmail}. The link expires in 5 minutes.`,
+          title: t('verificationEmailSent'),
+          description: t('verificationEmailSentDesc', { email: newEmail }),
         });
         setNewEmail('');
       } else {
         toast({
-          title: 'Migration Failed',
-          description: data.error || 'Failed to initiate email migration.',
+          title: t('migrationFailed'),
+          description: data.error || t('migrationFailedDefault'),
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
+        title: t('error'),
+        description: t('unexpectedError'),
         variant: 'destructive',
       });
       console.error('Email migration error:', error);

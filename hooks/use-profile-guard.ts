@@ -1,6 +1,7 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Hook for guarding features that require a completed profile.
@@ -8,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
  */
 export function useProfileGuard() {
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
 
   /**
    * Check if user has a profile and show toast if not.
@@ -21,8 +23,8 @@ export function useProfileGuard() {
   ): boolean => {
     if (hasProfile === false) {
       toast({
-        title: 'Complete Your Profile',
-        description: `Please complete your profile to ${featureName}.`,
+        title: t('completeYourProfile'),
+        description: t('completeProfileDesc', { feature: featureName }),
         variant: 'default',
       });
       return false;

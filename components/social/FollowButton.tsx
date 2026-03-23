@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { useFollowActor, useUnfollowActor } from '@/lib/query/social';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { UserPlus, UserMinus, Loader2 } from 'lucide-react';
 
 interface FollowButtonProps {
@@ -24,27 +25,28 @@ export function FollowButton({
   const unfollowActor = useUnfollowActor();
 
   const isPending = followActor.isPending || unfollowActor.isPending;
+  const { t } = useTranslation('toast');
 
   const handleClick = async () => {
     try {
       if (isFollowing) {
         await unfollowActor.mutateAsync(username);
         toast({
-          title: 'Unfollowed',
-          description: `You unfollowed @${username}`,
+          title: t('unfollowed'),
+          description: t('unfollowedDesc', { username }),
         });
       } else {
         await followActor.mutateAsync(username);
         toast({
-          title: 'Following',
-          description: `You are now following @${username}`,
+          title: t('following'),
+          description: t('followingDesc', { username }),
         });
       }
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Please try again.';
       toast({
-        title: 'Error',
+        title: t('error'),
         description: message,
         variant: 'destructive',
       });

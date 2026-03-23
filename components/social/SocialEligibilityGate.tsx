@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useMyActor, useEnableSocial } from '@/lib/query/social';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Users, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,6 +17,7 @@ export function SocialEligibilityGate({
 }: SocialEligibilityGateProps) {
   const { data, isLoading } = useMyActor();
   const enableSocial = useEnableSocial();
+  const { t } = useTranslation('toast');
 
   // Loading state
   if (isLoading) {
@@ -37,13 +39,13 @@ export function SocialEligibilityGate({
       try {
         await enableSocial.mutateAsync();
         toast({
-          title: 'Social features enabled',
-          description: 'You can now post and follow others!',
+          title: t('socialEnabled'),
+          description: t('socialEnabledDesc'),
         });
-      } catch (error) {
+      } catch {
         toast({
-          title: 'Error',
-          description: 'Failed to enable social features. Please try again.',
+          title: t('error'),
+          description: t('socialEnableFailed'),
           variant: 'destructive',
         });
       }

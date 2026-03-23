@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import i18n from '@/lib/i18n';
 
 import { ProfileInterface } from '@/lib/interfaces';
 
@@ -58,11 +59,14 @@ export const useProfile = () => {
 export const useMutateProfileContact = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveContact', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -70,8 +74,8 @@ export const useMutateProfileContact = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },
@@ -81,11 +85,14 @@ export const useMutateProfileContact = () => {
 export const useMutateProfileGenteDePana = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveGenteDePana', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -93,8 +100,8 @@ export const useMutateProfileGenteDePana = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },
@@ -104,11 +111,14 @@ export const useMutateProfileGenteDePana = () => {
 export const useMutateProfileDesc = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveDesc', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -116,8 +126,8 @@ export const useMutateProfileDesc = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },
@@ -127,11 +137,14 @@ export const useMutateProfileDesc = () => {
 export const useMutateProfileSocial = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveSocial', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -139,8 +152,8 @@ export const useMutateProfileSocial = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },
@@ -150,11 +163,14 @@ export const useMutateProfileSocial = () => {
 export const useMutateProfileAddress = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveAddress', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -162,8 +178,8 @@ export const useMutateProfileAddress = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },
@@ -173,11 +189,14 @@ export const useMutateProfileAddress = () => {
 export const useMutateProfileCategories = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (updates: any) => {
+    mutationFn: (updates: unknown) => {
       return axios.post('/api/profile/saveCategories', updates);
     },
-    onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Profile updated successfully' });
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
       return queryClient.invalidateQueries({
         queryKey: profileQueryKey,
         exact: true,
@@ -185,8 +204,8 @@ export const useMutateProfileCategories = () => {
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please contact us.',
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
         variant: 'destructive',
       });
     },

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth-client';
 import axios from 'axios';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -24,6 +25,7 @@ export default function BecomeAnAffiliatePage() {
   const { status } = useSession();
   const [acceptTOS, setAcceptTOS] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation('toast');
 
   const acceptAffiliateTOS = async () => {
     const response = await axios
@@ -42,9 +44,8 @@ export default function BecomeAnAffiliatePage() {
       .catch((error) => {
         console.log(error);
         toast({
-          title: 'Error',
-          description:
-            'There was a problem submitting the form. Please refresh the page and try again.',
+          title: t('error'),
+          description: t('submissionErrorGeneral'),
           variant: 'destructive',
         });
       });
@@ -56,8 +57,8 @@ export default function BecomeAnAffiliatePage() {
 
     if (!acceptTOS) {
       toast({
-        title: 'Required',
-        description: 'Please accept the Terms and Conditions to continue.',
+        title: t('termsRequired'),
+        description: t('termsRequiredAffiliateDesc'),
         variant: 'destructive',
       });
       return;
@@ -70,14 +71,14 @@ export default function BecomeAnAffiliatePage() {
     if (response) {
       if (response.data.error) {
         toast({
-          title: 'Error',
+          title: t('error'),
           description: response.data.error,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Success',
-          description: 'Your affiliate code has been activated!',
+          title: t('success'),
+          description: t('affiliateActivated'),
         });
         router.push('/');
       }

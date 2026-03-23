@@ -22,6 +22,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Send, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 function ContactForm() {
   const [name, setName] = useState('');
@@ -31,6 +32,7 @@ function ContactForm() {
   const { data: session } = useSession();
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
+  const { t } = useTranslation('toast');
 
   const isAuthenticated = !!session?.user?.email;
 
@@ -67,8 +69,8 @@ function ContactForm() {
     if (!name || name.trim().length < 2) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Name',
-        description: 'Please enter your name (at least 2 characters).',
+        title: t('invalidName'),
+        description: t('invalidNameContactDesc'),
       });
       return false;
     }
@@ -76,8 +78,8 @@ function ContactForm() {
     if (!validateEmail(email)) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Email',
-        description: 'Please enter a valid email address.',
+        title: t('invalidEmail'),
+        description: t('invalidEmailDesc'),
       });
       return false;
     }
@@ -85,8 +87,8 @@ function ContactForm() {
     if (!message || message.trim().length < 10) {
       toast({
         variant: 'destructive',
-        title: 'Message Too Short',
-        description: 'Please enter a message (at least 10 characters).',
+        title: t('messageTooShort'),
+        description: t('messageTooShortDesc'),
       });
       return false;
     }
@@ -111,8 +113,8 @@ function ContactForm() {
         if (!executeRecaptcha) {
           toast({
             variant: 'destructive',
-            title: 'Security Error',
-            description: 'reCAPTCHA not ready. Please try again.',
+            title: t('securityError'),
+            description: t('recaptchaNotReady'),
           });
           setIsSubmitting(false);
           return;
@@ -126,7 +128,7 @@ function ContactForm() {
       if (response?.data?.error) {
         toast({
           variant: 'destructive',
-          title: 'Submission Failed',
+          title: t('submissionFailed'),
           description: response.data.error,
         });
       } else {
@@ -136,17 +138,15 @@ function ContactForm() {
         setMessage('');
 
         toast({
-          title: 'Message Sent Successfully!',
-          description:
-            "We've received your message and will get back to you soon.",
+          title: t('messageSentTitle'),
+          description: t('messageSentDesc'),
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: 'destructive',
-        title: 'Submission Error',
-        description:
-          'There was a problem submitting your message. Please try again.',
+        title: t('submissionError'),
+        description: t('submissionErrorContact'),
       });
     } finally {
       setIsSubmitting(false);
