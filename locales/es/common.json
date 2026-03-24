@@ -51,5 +51,11 @@
     "signUpNewsletter": "Suscríbete a nuestro Boletín",
     "visitingTestSite": "¡Estás visitando un sitio de prueba!",
     "visitPanamiaClub": "Visita Panamia Club"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "adaptive": "Adaptable",
+    "flowerPower": "Poder Floral"
   }
 }

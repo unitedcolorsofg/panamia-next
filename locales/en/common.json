@@ -51,5 +51,11 @@
     "signUpNewsletter": "Sign Up for our Newsletter",
     "visitingTestSite": "You are visiting a test site!",
     "visitPanamiaClub": "Visit Panamia Club"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "adaptive": "Adaptive",
+    "flowerPower": "Flower Power"
   }
 }

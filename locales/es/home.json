@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "headline": "El Futuro es Local",
+    "subheadline": "Busca en el Primer Directorio Local del Sur de la Florida",
+    "searchPlaceholder": "Busca por nombre, categoría, productos",
+    "searchLabel": "Buscar directorio",
+    "searchAriaLabel": "Buscar en el directorio",
+    "searchButton": "Buscar"
+  },
+  "events": {
+    "badge": "Próximos Eventos",
+    "title": "Eventos Comunitarios",
+    "description": "Pana MIA organiza eventos intencionados centrados en la conexión significativa y la celebración de la cultura y el arte local.",
+    "viewEvents": "Ver Eventos"
+  },
+  "articles": {
+    "title": "Artículos Recientes",
+    "subtitle": "Historias de la comunidad Pana MIA",
+    "viewAll": "Ver Todos",
+    "noArticles": "¡Aún no hay artículos!",
+    "noArticlesDesc": "Sé el primero en compartir una historia con la comunidad.",
+    "writeArticle": "Escribe un Artículo"
+  },
+  "about": {
+    "title": "¿Que Tal, Pana?",
+    "tagline": "Ser dueño de un pequeño negocio puede ser abrumador y solitario, pero no estás solo.",
+    "body": "Miami está llena de pequeños vendedores, todos con diferentes fortalezas y habilidades. Creamos Pana Mia para unir a todos—compartiendo recursos, ideas y estrategias. A medida que los consumidores reconocen los beneficios de comprar local, estamos creando un espacio centralizado para explorar y enamorarse de las marcas locales."
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "q1": "¿Qué significa Pana?",
+    "a1": "Pana es un término latinoamericano para amigo o compañero.",
+    "q2": "¿Es gratuita esta plataforma? Si es así, ¿siempre lo será?",
+    "a2": "¡Disfruta de la libertad de nuestra plataforma—para siempre, completamente gratis! Únete a nosotros para derribar barreras y empoderar a los negocios locales y creativos como nunca antes.",
+    "q3": "¿Cuándo puedo esperar que el directorio en su sitio web esté activo?",
+    "a3": "Actualmente tenemos un equipo de desarrolladores dedicado a trabajar en el directorio, con proyección de lanzamiento para el otoño de 2023. Para acelerar el proceso de desarrollo, estamos recaudando fondos activamente.",
+    "q4": "¿Cómo funciona Pana MIA?",
+    "a4": "El directorio completo del Sur de la Florida permite a las personas descubrir la esencia de apoyar lo local como estilo de vida. Busca servicios o creativos cerca de ti en nuestro directorio con búsqueda por palabras clave. Los propietarios de negocios y creativos locales son bienvenidos a unirse a nuestra comunidad y crear perfiles para mostrar sus ofertas.",
+    "q5": "¿Cómo me registro?",
+    "a5": "¡Simple! Completa nuestro formulario de Google.",
+    "a5Link": "¡Conviértete en Pana!",
+    "q6": "¿Cuáles son los beneficios de ser Pana?",
+    "a6_1": "Formar parte de nuestra lista de acceso abierto de creativos y emprendedores locales disponibles para quienes quieren apoyar lo local",
+    "a6_2": "Etiquétanos en tu contenido y podemos promoverte en nuestra plataforma",
+    "a6_3": "Potencialmente ser destacado en nuestras redes sociales, boletines y podcast",
+    "a6_4": "Más oportunidades de colaboración",
+    "q7": "¿Quién puede convertirse en Pana?",
+    "a7": "Cualquier creativo, organización o pequeño negocio con base local puede convertirse en miembro de nuestro colectivo. La elegibilidad requiere residencia en los condados de Broward, Miami-Dade o Palm Beach, ya sea tuya o del propietario/director del negocio/organización.",
+    "q8": "¿Dónde puedo acceder al directorio?",
+    "a8": "Hemos creado un archivo de Google Sheets con capacidad de búsqueda por palabras clave y etiquetas, al que puedes acceder a través del enlace en nuestra bio. Nuestro objetivo final es incorporar todos los negocios de propiedad local, transformando el directorio en una herramienta de estilo de vida indispensable, fomentando colaboraciones al conectar negocios y creativos.",
+    "q9": "¿Cuáles son los Términos y Condiciones?",
+    "a9_1": "Mantenemos la autoridad para eliminar individuos del directorio si incurren en comportamientos dañinos y odiosos hacia otros o hacia la comunidad en general.",
+    "a9_2": "Convertirse en miembro es sencillo. Debes ser un negocio de propiedad y operación local en el Sur de la Florida y completar nuestro formulario."
+  }
+}

@@ -5,14 +5,16 @@ import en from '@/locales/en/common.json';
 import es from '@/locales/es/common.json';
 import enToast from '@/locales/en/toast.json';
 import esToast from '@/locales/es/toast.json';
+import enHome from '@/locales/en/home.json';
+import esHome from '@/locales/es/home.json';
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: en, toast: enToast },
-      es: { common: es, toast: esToast },
+      en: { common: en, toast: enToast, home: enHome },
+      es: { common: es, toast: esToast, home: esHome },
     },
     fallbackLng: 'en',
     supportedLngs: ['en', 'es'],

@@ -15,7 +15,7 @@ import {
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isEs = i18n.language === 'es';
 
   return (
@@ -29,16 +29,16 @@ export function ThemeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme('light')}>
-          Light
+          {t('theme.light')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')}>
-          Dark
+          {t('theme.dark')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('system')}>
-          Adaptive
+          {t('theme.adaptive')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('flower-power')}>
-          Flower Power
+          {t('theme.flowerPower')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

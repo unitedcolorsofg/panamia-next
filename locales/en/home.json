@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "headline": "The Future is Local",
+    "subheadline": "Search South Florida's First Local Directory",
+    "searchPlaceholder": "Search by name, category, products",
+    "searchLabel": "Search directory",
+    "searchAriaLabel": "Search the directory",
+    "searchButton": "Search"
+  },
+  "events": {
+    "badge": "Upcoming Events",
+    "title": "Community Events",
+    "description": "Pana MIA curates intentional events centered around meaningful connection and the celebration of local culture and art.",
+    "viewEvents": "View Events"
+  },
+  "articles": {
+    "title": "Recent Articles",
+    "subtitle": "Stories from the Pana MIA community",
+    "viewAll": "View All",
+    "noArticles": "No articles yet!",
+    "noArticlesDesc": "Be the first to share a story with the community.",
+    "writeArticle": "Write an Article"
+  },
+  "about": {
+    "title": "¿Que Tal, Pana?",
+    "tagline": "Being a small business owner can be overwhelming and isolating, but you're not alone.",
+    "body": "Miami is filled with small vendors, all with different strengths and skillsets. We started Pana Mia to bring everyone together—pooling resources, insights, and strategies. As consumers recognize the benefits of shopping local, we're creating a centralized space to explore and fall in love with local brands."
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "q1": "What does Pana mean?",
+    "a1": "Pana is a Latine term for friend or homie.",
+    "q2": "Is this platform free? If so, will it always be free?",
+    "a2": "Experience the freedom of our platform - forever, completely free! Join us in breaking down barriers and empowering local businesses and creatives like never before.",
+    "q3": "When can I expect the directory on your website to be up and running?",
+    "a3": "We currently have a team of developers dedicated to working on the directory, projected to release this Fall 2023. In order to accelerate the development process, we are actively fundraising.",
+    "q4": "How does Pana MIA work?",
+    "a4": "South Florida's comprehensive directory allows people to discover the essence of supporting local as lifestyle. Search for services or creatives near you in our keyword-searchable directory. Locally based business owners and creatives are welcome to join our community and create profiles to showcase their offerings.",
+    "q5": "How do I sign up?",
+    "a5": "Simple! Fill out our Google form.",
+    "a5Link": "Become a Pana!",
+    "q6": "What are the perks to being a Pana?",
+    "a6_1": "Be a part of our open access list of all locally-based creatives and entrepreneurs available to patrons looking to support local",
+    "a6_2": "Tag us in your content and we can promote on our platform",
+    "a6_3": "Potentially be featured in our social media, newsletters, and podcast",
+    "a6_4": "More opportunities for collaboration",
+    "q7": "Who can become a Pana?",
+    "a7": "Any locally-based creatives, organization, or small business can become a member of our collective. Eligibility requires residence in Broward, Miami-Dade, or Palm Beach County for either yourself or the owner/director of the business/organization.",
+    "q8": "Where can I access the directory?",
+    "a8": "We've crafted a Google Sheets file complete with keyword search capability and tags, which you can access through the link in our bio. Our ultimate goal is to onboard all locally-owned businesses, transforming the directory into an indispensable lifestyle tool - fostering collaborations by connecting businesses and creatives.",
+    "q9": "What are the Terms & Conditions?",
+    "a9_1": "We maintain the authority to remove individuals from the directory if they engage in harmful and hateful behavior towards others or the community as a whole.",
+    "a9_2": "Becoming a member is straightforward. You need to be a locally owned and operated business in South Florida and complete our form."
+  }
+}

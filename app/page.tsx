@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ interface Article {
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useTranslation('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
@@ -74,17 +76,6 @@ export default function HomePage() {
       router.push(`/directory/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
-
-  const categories = [
-    'Music',
-    'Artist',
-    'Food',
-    'Organizations',
-    'Venue',
-    'Jewelry',
-    'Art',
-    'Cafe',
-  ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -117,7 +108,7 @@ export default function HomePage() {
                     '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
                 }}
               >
-                The Future is Local
+                {t('hero.headline')}
               </h1>
               <p
                 className="mb-6 text-2xl md:text-3xl"
@@ -127,12 +118,12 @@ export default function HomePage() {
                     '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
                 }}
               >
-                Search South Florida&apos;s First Local Directory
+                {t('hero.subheadline')}
               </p>
 
               <form onSubmit={handleSearch} className="mx-auto max-w-2xl">
                 <label htmlFor="search" className="sr-only">
-                  Search directory
+                  {t('hero.searchLabel')}
                 </label>
                 <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
                   <Input
@@ -140,13 +131,13 @@ export default function HomePage() {
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by name, category, products"
+                    placeholder={t('hero.searchPlaceholder')}
                     className="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
-                    aria-label="Search the directory"
+                    aria-label={t('hero.searchAriaLabel')}
                   />
                   <Button type="submit" size="lg" className="px-8">
                     <Search className="mr-2 h-5 w-5" aria-hidden="true" />
-                    Search
+                    {t('hero.searchButton')}
                   </Button>
                 </div>
               </form>
@@ -173,16 +164,16 @@ export default function HomePage() {
                 <div className="space-y-4">
                   <div className="text-pana-blue flex items-center gap-2">
                     <Calendar className="h-6 w-6" aria-hidden="true" />
-                    <Badge variant="secondary">Upcoming Events</Badge>
+                    <Badge variant="secondary">{t('events.badge')}</Badge>
                   </div>
-                  <CardTitle className="text-3xl">Community Events</CardTitle>
+                  <CardTitle className="text-3xl">
+                    {t('events.title')}
+                  </CardTitle>
                   <CardDescription className="text-lg break-words whitespace-normal">
-                    Pana MIA curates intentional events centered around
-                    meaningful connection and the celebration of local culture
-                    and art.
+                    {t('events.description')}
                   </CardDescription>
                   <Link href="https://shotgun.live/venues/pana-mia-club">
-                    <Button size="lg">View Events</Button>
+                    <Button size="lg">{t('events.viewEvents')}</Button>
                   </Link>
                 </div>
               </CardContent>
@@ -203,14 +194,14 @@ export default function HomePage() {
                 />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Recent Articles</h2>
+                <h2 className="text-2xl font-bold">{t('articles.title')}</h2>
                 <p className="text-muted-foreground text-sm">
-                  Stories from the Pana MIA community
+                  {t('articles.subtitle')}
                 </p>
               </div>
             </div>
             <Button variant="outline" asChild>
-              <Link href="/a">View All</Link>
+              <Link href="/a">{t('articles.viewAll')}</Link>
             </Button>
           </div>
           {articlesLoading ? (
@@ -220,12 +211,14 @@ export default function HomePage() {
           ) : articles.length === 0 ? (
             <div className="rounded-lg border border-dashed py-12 text-center">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium">No articles yet!</h3>
+              <h3 className="mt-4 text-lg font-medium">
+                {t('articles.noArticles')}
+              </h3>
               <p className="mt-1 text-gray-500">
-                Be the first to share a story with the community.
+                {t('articles.noArticlesDesc')}
               </p>
               <Button asChild className="mt-4">
-                <Link href="/a/new">Write an Article</Link>
+                <Link href="/a/new">{t('articles.writeArticle')}</Link>
               </Button>
             </div>
           ) : (
@@ -260,18 +253,11 @@ export default function HomePage() {
                 aria-hidden="true"
               />
             </div>
-            <h2 className="text-3xl font-bold">¿Que Tal, Pana?</h2>
+            <h2 className="text-3xl font-bold">{t('about.title')}</h2>
             <p className="text-muted-foreground text-xl">
-              Being a small business owner can be overwhelming and isolating,
-              but you&apos;re not alone.
+              {t('about.tagline')}
             </p>
-            <p className="text-lg">
-              Miami is filled with small vendors, all with different strengths
-              and skillsets. We started Pana Mia to bring everyone
-              together—pooling resources, insights, and strategies. As consumers
-              recognize the benefits of shopping local, we&apos;re creating a
-              centralized space to explore and fall in love with local brands.
-            </p>
+            <p className="text-lg">{t('about.body')}</p>
           </div>
         </div>
       </section>
@@ -281,129 +267,70 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-8 text-center text-3xl font-bold">
-              Frequently Asked Questions
+              {t('faq.title')}
             </h2>
 
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger>What does Pana mean?</AccordionTrigger>
-                <AccordionContent>
-                  Pana is a Latine term for friend or homie.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q1')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a1')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-2">
-                <AccordionTrigger>
-                  Is this platform free? If so, will it always be free?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Experience the freedom of our platform - forever, completely
-                  free! Join us in breaking down barriers and empowering local
-                  businesses and creatives like never before.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q2')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a2')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-3">
-                <AccordionTrigger>
-                  When can I expect the directory on your website to be up and
-                  running?
-                </AccordionTrigger>
-                <AccordionContent>
-                  We currently have a team of developers dedicated to working on
-                  the directory, projected to release this Fall 2023. In order
-                  to accelerate the development process, we are actively
-                  fundraising.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q3')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a3')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4">
-                <AccordionTrigger>How does Pana MIA work?</AccordionTrigger>
-                <AccordionContent>
-                  South Florida&apos;s comprehensive directory allows people to
-                  discover the essence of supporting local as lifestyle. Search
-                  for services or creatives near you in our keyword-searchable
-                  directory. Locally based business owners and creatives are
-                  welcome to join our community and create profiles to showcase
-                  their offerings.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q4')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a4')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-5">
-                <AccordionTrigger>How do I sign up?</AccordionTrigger>
+                <AccordionTrigger>{t('faq.q5')}</AccordionTrigger>
                 <AccordionContent>
-                  Simple! Fill out our Google form.{' '}
+                  {t('faq.a5')}{' '}
                   <Link
                     href="/form/become-a-pana"
                     className="text-primary underline"
                   >
-                    Become a Pana!
+                    {t('faq.a5Link')}
                   </Link>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-6">
-                <AccordionTrigger>
-                  What are the perks to being a Pana?
-                </AccordionTrigger>
+                <AccordionTrigger>{t('faq.q6')}</AccordionTrigger>
                 <AccordionContent>
                   <ul className="list-disc space-y-2 pl-6">
-                    <li>
-                      Be a part of our open access list of all locally-based
-                      creatives and entrepreneurs available to patrons looking
-                      to support local
-                    </li>
-                    <li>
-                      Tag us in your content and we can promote on our platform
-                    </li>
-                    <li>
-                      Potentially be featured in our social media, newsletters,
-                      and podcast
-                    </li>
-                    <li>More opportunities for collaboration</li>
+                    <li>{t('faq.a6_1')}</li>
+                    <li>{t('faq.a6_2')}</li>
+                    <li>{t('faq.a6_3')}</li>
+                    <li>{t('faq.a6_4')}</li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-7">
-                <AccordionTrigger>Who can become a Pana?</AccordionTrigger>
-                <AccordionContent>
-                  Any locally-based creatives, organization, or small business
-                  can become a member of our collective. Eligibility requires
-                  residence in Broward, Miami-Dade, or Palm Beach County for
-                  either yourself or the owner/director of the
-                  business/organization.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q7')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a7')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-8">
-                <AccordionTrigger>
-                  Where can I access the directory?
-                </AccordionTrigger>
-                <AccordionContent>
-                  We&apos;ve crafted a Google Sheets file complete with keyword
-                  search capability and tags, which you can access through the
-                  link in our bio. Our ultimate goal is to onboard all
-                  locally-owned businesses, transforming the directory into an
-                  indispensable lifestyle tool - fostering collaborations by
-                  connecting businesses and creatives.
-                </AccordionContent>
+                <AccordionTrigger>{t('faq.q8')}</AccordionTrigger>
+                <AccordionContent>{t('faq.a8')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-9">
-                <AccordionTrigger>
-                  What are the Terms & Conditions?
-                </AccordionTrigger>
+                <AccordionTrigger>{t('faq.q9')}</AccordionTrigger>
                 <AccordionContent>
-                  <p className="mb-2">
-                    We maintain the authority to remove individuals from the
-                    directory if they engage in harmful and hateful behavior
-                    towards others or the community as a whole.
-                  </p>
-                  <p>
-                    Becoming a member is straightforward. You need to be a
-                    locally owned and operated business in South Florida and
-                    complete our form.
-                  </p>
+                  <p className="mb-2">{t('faq.a9_1')}</p>
+                  <p>{t('faq.a9_2')}</p>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
