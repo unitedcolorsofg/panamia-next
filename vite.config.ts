@@ -72,15 +72,16 @@ const fixNoonDateLibPlugin: Plugin = {
 
 export default defineConfig({
   build: {
-    rollupOptions: {
-      // @opentelemetry/api is an optional instrumentation dep inside better-auth;
-      // Rolldown (vite 8 / CF plugin 1.30+) treats unresolved optional imports as
-      // hard errors, so mark it external to skip bundling.
-      external: ['@opentelemetry/api'],
-    },
+    rollupOptions: {},
   },
   resolve: {
     alias: {
+      // @opentelemetry/api is an optional instrumentation dep (e.g. in better-auth)
+      // not available in CF Workers. Alias to an empty shim so the side-effect-only
+      // import is satisfied without leaving an unresolvable external in the bundle
+      // (which causes CF error 10021). rollupOptions.external doesn't work here —
+      // it leaves the bare import in the output and CF Workers can't provide it.
+      '@opentelemetry/api': path.resolve('./lib/shims/opentelemetry-api.js'),
       // Shim for external/activities.next which imports Next.js internals.
       'next/dist/shared/lib/constants': path.resolve(
         './lib/shims/next-constants.js'
