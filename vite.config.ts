@@ -4,6 +4,14 @@ import vinext from 'vinext';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      // @opentelemetry/api is an optional instrumentation dep inside better-auth;
+      // Rolldown (vite 8 / CF plugin 1.30+) treats unresolved optional imports as
+      // hard errors, so mark it external to skip bundling.
+      external: ['@opentelemetry/api'],
+    },
+  },
   resolve: {
     alias: {
       // Shim for external/activities.next which imports Next.js internals.
