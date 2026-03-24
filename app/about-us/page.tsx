@@ -2,11 +2,13 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AboutUsPage() {
+  const { t } = useTranslation('about');
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
@@ -15,11 +17,13 @@ export default function AboutUsPage() {
         style={{ backgroundImage: 'url(/img/about/florida.jpg)' }}
       >
         <div className="absolute inset-0 bg-black/30" />
-        <div className="container relative mx-auto px-4">
+        <div className="relative container mx-auto px-4">
           <h1 className="mb-4 text-5xl font-bold text-white md:text-6xl">
-            About Us
+            {t('hero.title')}
           </h1>
-          <p className="text-2xl text-white md:text-3xl">The Future is Local</p>
+          <p className="text-2xl text-white md:text-3xl">
+            {t('hero.subheadline')}
+          </p>
         </div>
       </section>
 
@@ -28,23 +32,15 @@ export default function AboutUsPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-8">
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold">Our Mission</h2>
-              <p className="text-lg leading-relaxed">
-                ...is to unite the diverse working class of South Florida,
-                igniting the creation of regenerative and vibrant economies. By
-                connecting locals and the quality resources, paired with
-                education on the advantages of reinvesting within our own
-                community, we aim to cultivate financial stability, personal
-                engagement, and emphasize the transformative strength of a
-                unified community.
-              </p>
+              <h2 className="text-3xl font-bold">{t('mission.title')}</h2>
+              <p className="text-lg leading-relaxed">{t('mission.body')}</p>
             </div>
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold">Our Vision</h2>
-              <h3 className="text-2xl font-semibold">The Future is Local</h3>
-              <p className="text-lg">
-                Pana MIA Club is a 501(c)(3) non-profit based in South Florida.
-              </p>
+              <h2 className="text-3xl font-bold">{t('vision.title')}</h2>
+              <h3 className="text-2xl font-semibold">
+                {t('vision.subheadline')}
+              </h3>
+              <p className="text-lg">{t('vision.body')}</p>
             </div>
           </div>
         </div>
@@ -65,22 +61,9 @@ export default function AboutUsPage() {
                 />
               </div>
               <div className="w-full space-y-4 md:w-2/3">
-                <h2 className="text-3xl font-bold">Our Story</h2>
-                <p className="text-lg leading-relaxed">
-                  In the spring of 2022, Anette and Clari, two emerging
-                  entrepreneurs, formed a fated bond at a Miami market. Despite
-                  their differences, their friendship deepened over time,
-                  evolving into an opportunity for something greater than
-                  themselves.
-                </p>
-                <p className="text-lg leading-relaxed">
-                  Their shared dreams and mutual support became the catalyst for
-                  the creation of Pana MIA Club, proving that entrepreneurship
-                  doesn't have to be a solo journey. Together, they discovered
-                  the power of unity among local entrepreneurs and creatives.
-                  Pana MIA's story began in that unexpected meeting that
-                  transformed into the foundation of it all.
-                </p>
+                <h2 className="text-3xl font-bold">{t('story.title')}</h2>
+                <p className="text-lg leading-relaxed">{t('story.p1')}</p>
+                <p className="text-lg leading-relaxed">{t('story.p2')}</p>
               </div>
             </div>
           </div>
@@ -95,78 +78,52 @@ export default function AboutUsPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-8 text-center text-3xl font-bold text-white">
-              Our Projects
+              {t('projects.title')}
             </h2>
             <Tabs defaultValue="directorio" className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 gap-0 bg-transparent p-0">
                 <TabsTrigger
                   value="directorio"
-                  className="rounded-b-none rounded-t-lg border-4 border-pana-blue py-3 transition-colors hover:bg-pana-blue hover:text-white data-[state=active]:bg-pana-blue data-[state=inactive]:bg-white data-[state=active]:text-white data-[state=inactive]:text-pana-blue"
+                  className="border-pana-blue hover:bg-pana-blue data-[state=active]:bg-pana-blue data-[state=inactive]:text-pana-blue rounded-t-lg rounded-b-none border-4 py-3 transition-colors hover:text-white data-[state=active]:text-white data-[state=inactive]:bg-white"
                 >
-                  El Directorio
+                  {t('projects.tab1')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="leolero"
-                  className="rounded-b-none rounded-t-lg border-4 border-pana-yellow py-3 transition-colors hover:bg-pana-yellow hover:text-white data-[state=active]:bg-pana-yellow data-[state=inactive]:bg-white data-[state=active]:text-white data-[state=inactive]:text-pana-yellow"
+                  className="border-pana-yellow hover:bg-pana-yellow data-[state=active]:bg-pana-yellow data-[state=inactive]:text-pana-yellow rounded-t-lg rounded-b-none border-4 py-3 transition-colors hover:text-white data-[state=active]:text-white data-[state=inactive]:bg-white"
                 >
-                  LeoLero
+                  {t('projects.tab2')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="panavizion"
-                  className="rounded-b-none rounded-t-lg border-4 border-pana-pink py-3 transition-colors hover:bg-pana-pink hover:text-white data-[state=active]:bg-pana-pink data-[state=inactive]:bg-white data-[state=active]:text-white data-[state=inactive]:text-pana-pink"
+                  className="border-pana-pink hover:bg-pana-pink data-[state=active]:bg-pana-pink data-[state=inactive]:text-pana-pink rounded-t-lg rounded-b-none border-4 py-3 transition-colors hover:text-white data-[state=active]:text-white data-[state=inactive]:bg-white"
                 >
-                  PanaVizion
+                  {t('projects.tab3')}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="directorio" className="mt-0">
-                <Card className="rounded-t-none border-4 border-pana-blue">
+                <Card className="border-pana-blue rounded-t-none border-4">
                   <CardContent className="p-8">
                     <p className="text-lg leading-relaxed">
-                      El Directorio is your access guide to everything locally
-                      made and occurring in SoFlo! Our online Local Directory,
-                      with easy keyword search functionality, allows patrons to
-                      find locally sourced solutions for any need or desire.
-                      This enhances convenience for consumers when shopping
-                      locally and provides increased visibility for local
-                      brands, service providers, and organizations. Our
-                      objective is to create a tool that will stimulate the
-                      local SoFlo economy and advocate for a lifestyle centered
-                      around supporting local businesses.
+                      {t('projects.directorio')}
                     </p>
                   </CardContent>
                 </Card>
               </TabsContent>
               <TabsContent value="leolero" className="mt-0">
-                <Card className="rounded-t-none border-4 border-pana-yellow">
+                <Card className="border-pana-yellow rounded-t-none border-4">
                   <CardContent className="p-8">
                     <p className="text-lg leading-relaxed">
-                      Discover the vibrant world of LeoLero, our monthly
-                      newsletter that brings you a curated selection of
-                      exclusive insights. Dive into excerpts from our talented
-                      Panas, catch recaps from our podcast, and join engaging
-                      conversations led by seasoned experts. Explore topics that
-                      resonate with the SoFlo community and stay in the loop
-                      with a thoughtfully crafted playlist and a local events
-                      calendar for South Florida. LeoLero is your key to the
-                      latest happenings, diverse voices, and the heartbeat of
-                      our creative community.
+                      {t('projects.leolero')}
                     </p>
                   </CardContent>
                 </Card>
               </TabsContent>
               <TabsContent value="panavizion" className="mt-0">
-                <Card className="rounded-t-none border-4 border-pana-pink">
+                <Card className="border-pana-pink rounded-t-none border-4">
                   <CardContent className="p-8">
                     <p className="text-lg leading-relaxed">
-                      PanaVizión serves as a broadcast channel and podcast
-                      dedicated to highlighting impactful community leaders in
-                      South Florida through curated media content that shares
-                      their stories. Our goal is to uncover the rich
-                      experiences, talents, and creations that the people of
-                      South Florida have to offer. By providing a platform for
-                      these stories, we strive to expand the public's
-                      perspective and appreciation for the diverse narratives
-                      within the community.
+                      {t('projects.panavizion')}
                     </p>
                   </CardContent>
                 </Card>
@@ -180,7 +137,9 @@ export default function AboutUsPage() {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-12">
-            <h2 className="text-center text-3xl font-bold">Our Board</h2>
+            <h2 className="text-center text-3xl font-bold">
+              {t('board.title')}
+            </h2>
 
             {/* Anette Mago */}
             <div className="flex flex-col items-start gap-6 md:flex-row">
@@ -195,20 +154,10 @@ export default function AboutUsPage() {
               </div>
               <div className="w-full space-y-4 md:w-2/3">
                 <h3 className="text-2xl font-semibold">
-                  Anette Mago, Co-Founder
+                  {t('board.anette.name')}
                 </h3>
                 <p className="text-lg leading-relaxed">
-                  Anette Mago, a Venezuelan-American conceptual artist raised in
-                  South Florida, has long been fascinated by the multicultural
-                  landscape and vibrant community of her home state. Having
-                  graduated from the University of Florida in Visual Art Studies
-                  in 2021, she delved into the Miami art scene while
-                  establishing her artwear brand, Alobebi. Two years into her
-                  entrepreneurial journey, Anette formed a close bond with
-                  Claribel, another small business owner. Recognizing the
-                  importance of a supportive community, Anette's realization led
-                  to the creation of Pana MIA Club, her most ambitious art
-                  project to date.
+                  {t('board.anette.bio')}
                 </p>
               </div>
             </div>
@@ -226,20 +175,10 @@ export default function AboutUsPage() {
               </div>
               <div className="w-full space-y-4 md:w-2/3">
                 <h3 className="text-2xl font-semibold">
-                  Claribel Avila, Co-Founder
+                  {t('board.claribel.name')}
                 </h3>
                 <p className="text-lg leading-relaxed">
-                  Claribel Avila is a Puerto Rican entrepreneur and creative who
-                  began calling Miami home in 2021. They graduated from
-                  Northeastern University in 2018 with a Bachelors in Economic
-                  Policy. Having been raised by an entrepreneurial migrant
-                  family, they explored diverse industries and started their
-                  first business in 2019, selling herbal-infused honey. Despite
-                  their many passions and personal pursuits, their central focus
-                  has always been social, economic and racial justice. Moving to
-                  Miami brought purpose, and as a problem solver, their work
-                  with Pana MIA Club soon became a way to leverage strengths in
-                  order to bring about a more equitable and humane world.
+                  {t('board.claribel.bio')}
                 </p>
               </div>
             </div>
@@ -255,7 +194,7 @@ export default function AboutUsPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-8 text-center text-3xl font-bold text-white">
-              Our Team
+              {t('team.title')}
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Card className="text-center">
@@ -268,7 +207,9 @@ export default function AboutUsPage() {
                     className="mb-3 w-full rounded-lg"
                   />
                   <h3 className="text-lg font-semibold">Bee Maria</h3>
-                  <p className="text-sm text-muted-foreground">Copywriter</p>
+                  <p className="text-muted-foreground text-sm">
+                    {t('team.copywriter')}
+                  </p>
                 </CardContent>
               </Card>
               <Card className="text-center">
@@ -281,8 +222,8 @@ export default function AboutUsPage() {
                     className="mb-3 w-full rounded-lg"
                   />
                   <h3 className="text-lg font-semibold">Jeremy Downs</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Technical Advisor
+                  <p className="text-muted-foreground text-sm">
+                    {t('team.technicalAdvisor')}
                   </p>
                 </CardContent>
               </Card>
@@ -296,7 +237,9 @@ export default function AboutUsPage() {
                     className="mb-3 w-full rounded-lg"
                   />
                   <h3 className="text-lg font-semibold">Genesis Barrios</h3>
-                  <p className="text-sm text-muted-foreground">Web Developer</p>
+                  <p className="text-muted-foreground text-sm">
+                    {t('team.webDeveloper')}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -319,31 +262,16 @@ export default function AboutUsPage() {
                 />
               </div>
               <div className="w-full space-y-6 md:w-2/3">
-                <h2 className="text-3xl font-bold">Support Our Club</h2>
-                <p className="text-lg leading-relaxed">
-                  Pana MIA Club works hard towards our vision for a unified
-                  local SoFlo community everyday. We know we can do it with your
-                  help! You can support us by funding our mission with a
-                  one-time donation or by joining our community of supporters
-                  called Gente dePana!
-                </p>
+                <h2 className="text-3xl font-bold">{t('support.title')}</h2>
+                <p className="text-lg leading-relaxed">{t('support.p1')}</p>
                 <Button
                   size="lg"
                   className="bg-pana-pink hover:bg-pana-pink/90"
                   asChild
                 >
-                  <Link href="/donate">
-                    Help Fund Our Open-Access Local's Directory
-                  </Link>
+                  <Link href="/donate">{t('support.cta')}</Link>
                 </Button>
-                <p className="text-lg leading-relaxed">
-                  Our Gente dePana subscribers are the foundation of Pana MIA's
-                  sustainability, monthly contributions allow us to make bigger
-                  strides in our projects to support the local community. In
-                  return, our Gente are rewarded with so many benefits,
-                  discounts and perks that give you special access to all things
-                  Pana!
-                </p>
+                <p className="text-lg leading-relaxed">{t('support.p2')}</p>
               </div>
             </div>
           </div>

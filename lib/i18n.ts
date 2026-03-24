@@ -7,14 +7,42 @@ import enToast from '@/locales/en/toast.json';
 import esToast from '@/locales/es/toast.json';
 import enHome from '@/locales/en/home.json';
 import esHome from '@/locales/es/home.json';
+import enAbout from '@/locales/en/about.json';
+import esAbout from '@/locales/es/about.json';
+import enLinks from '@/locales/en/links.json';
+import esLinks from '@/locales/es/links.json';
+import enPodcasts from '@/locales/en/podcasts.json';
+import esPodcasts from '@/locales/es/podcasts.json';
+import enContact from '@/locales/en/contact.json';
+import esContact from '@/locales/es/contact.json';
+import enJointeam from '@/locales/en/jointeam.json';
+import esJointeam from '@/locales/es/jointeam.json';
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: en, toast: enToast, home: enHome },
-      es: { common: es, toast: esToast, home: esHome },
+      en: {
+        common: en,
+        toast: enToast,
+        home: enHome,
+        about: enAbout,
+        links: enLinks,
+        podcasts: enPodcasts,
+        contact: enContact,
+        jointeam: enJointeam,
+      },
+      es: {
+        common: es,
+        toast: esToast,
+        home: esHome,
+        about: esAbout,
+        links: esLinks,
+        podcasts: esPodcasts,
+        contact: esContact,
+        jointeam: esJointeam,
+      },
     },
     fallbackLng: 'en',
     supportedLngs: ['en', 'es'],

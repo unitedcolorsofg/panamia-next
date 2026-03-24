@@ -1,0 +1,49 @@
+{
+  "title": "Join The Team",
+  "subtitle": "Passionate about community and local growth? We're looking for enthusiastic contributors to help us transform South Florida!",
+  "role1": {
+    "title": "Developer/UX Developer",
+    "p1": "Pana MIA is, at its core, a technological solution, a digital tool to connect and unite local communities. Join the Pana MIA developer community and bring to life digital tools that will transform living and loving locally. Looking for front end developers, UI/UX designers, JS/React developers. Check out our GitHub in our bio.",
+    "p2": "Project Examples: Accessible/CoOp Housing Forum, jobs board, optimizing connectivity and accessibility within the platform, community /activism page, site retheme-ing"
+  },
+  "role2": {
+    "title": "Social Media Manager",
+    "p1": "Do you love connecting on social media and want to help local brands, businesses and creatives?",
+    "p2": "Use your storytelling skills to bring awareness to locals making a meaningful impact in their communities. Tap into our growing network and curate the narrative of what it means to live and love South Florida. We're looking for someone creative and consistent.",
+    "p3": "Content Pillar: Highlights from our podcast interviews, promoting the adoption of the local directory as a fun tool, educating on the importance of living a more locally minded lifestyle, offering tools and advice to new entrepreneurs and creatives, engaging on social media."
+  },
+  "role3": {
+    "title": "Event Coordinator",
+    "p1": "Pana MIA loves putting on events that promote local arts and culture. If you are interested in creating intentional events that help connect and foster community, consider joining our team as Pana MIA's event coordinator. You will have access to Pana MIA's growing network of performers, vendors and venues.",
+    "p2": "Event Examples: Art Print Fair, vendor markets, Local Music Festivals, Industry Specific Networking events, Workshops, Education Panels, etc.",
+    "p3": "This position is compensated as a percentage of event revenue"
+  },
+  "role4": {
+    "title": "Content Producer/Editor",
+    "p1": "Are you an aspiring filmmaker or content creator? Use your storytelling skills to bring awareness to locals making a meaningful impact in their communities. Tap into our growing network and curate the narrative of what it means to live and love South Florida.",
+    "p2": "Content Pillars: Highlights from our podcast interviews, promoting the adoption of the local directory as a fun tool, educating on the importance of living a more locally minded lifestyle, offering tools and advice to new entrepreneurs and creatives."
+  },
+  "role5": {
+    "title": "Grant Writer",
+    "p1": "Help us build a sustainable organization! In order for Pana MIA to grow sustainably - we need funds!",
+    "p2": "If you're looking to build your portfolio as a grant writer or copywriter - Pana MIA is looking for compelling writers to join our team for this purpose. We're looking for excellent storytellers with a passion for community advocacy.",
+    "p3": "Project Examples: Researching and Applying for grants, Assist in Newsletter creation, creating website and email copy for fundraising purposes.",
+    "p4": "This position is compensated as a percentage of awarded grant funds"
+  },
+  "role6": {
+    "title": "Community Engagement Affiliate",
+    "p1": "If you're someone looking to gain experience in Public Relations, Communications and/or Community Engagement and are interested in becoming more connected with South Florida community, this is a great role for you. We're looking for someone communicative and organized.",
+    "p2": "What You Can Expect: Community outreach, assembly of press kits and sponsorship decks, Pana Relations managing, engaging on social media, affiliate program management, creative campaign ideation"
+  },
+  "role7": {
+    "title": "Outreach Partners",
+    "p1": "Are you looking to engage in local South Florida scene more intentionally? Are you out-going or looking to practice public speaking?",
+    "p2": "Pana MIA is looking for friendly, community-minded people that want to represent us at events, online and in community. Partners will help us raise awareness of our mission and educate on the importance of supporting local in South Florida, what we do to help and how to support Pana MIA.",
+    "p3": "What You Can Expect: Tabling at Events, Content Creation, Community Outreach, Event Volunteering, Content Distribution"
+  },
+  "cta": {
+    "question": "Interested in joining the team?",
+    "desc": "Send us a message through our Contact Us form and let us know which role interests you.",
+    "button": "Contact Us"
+  }
+}

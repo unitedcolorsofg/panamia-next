@@ -1,14 +1,10 @@
-import type { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { Youtube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-export const metadata: Metadata = {
-  title: 'PanaVizión - Pana MIA Podcast',
-  description:
-    'Youtube links to our most recent PanaVizión podcast videos, where we meet with SoFlo locals and discuss art, business and community.',
-};
 
 interface VideoEmbedProps {
   videoId: string;
@@ -38,6 +34,8 @@ function VideoEmbed({ videoId, title }: VideoEmbedProps) {
 }
 
 export default function PodcastsPage() {
+  const { t } = useTranslation('podcasts');
+
   const videos = [
     {
       id: 'IX2z1-_KEJw',
@@ -73,12 +71,10 @@ export default function PodcastsPage() {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-4 text-center">
-            <h1 className="text-4xl font-bold text-pana-pink md:text-5xl">
-              Pana MIA Club Podcasts
+            <h1 className="text-pana-pink text-4xl font-bold md:text-5xl">
+              {t('title')}
             </h1>
-            <p className="text-xl text-muted-foreground">
-              Meet with SoFlo locals and discuss art, business, and community
-            </p>
+            <p className="text-muted-foreground text-xl">{t('subtitle')}</p>
           </div>
         </div>
       </section>
@@ -88,7 +84,7 @@ export default function PodcastsPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-8">
             <h2 className="text-center text-2xl font-bold md:text-3xl">
-              Most Recent Videos
+              {t('recentVideos')}
             </h2>
 
             <div className="space-y-8">
@@ -114,7 +110,7 @@ export default function PodcastsPage() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
-                  Our Full Youtube Channel
+                  {t('youtubeChannel')}
                   <Youtube className="h-6 w-6" aria-hidden="true" />
                 </Link>
               </Button>

@@ -1,6 +1,8 @@
-import type { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -12,17 +14,12 @@ import {
   UserPlus,
   Calendar,
   Heart,
-  Youtube,
   Users,
 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Links - Pana MIA Club',
-  description:
-    'Connect with Pana MIA Club on social media and explore our directory of local South Florida businesses.',
-};
-
 export default function LinksPage() {
+  const { t } = useTranslation('links');
+
   return (
     <div className="from-background to-muted/20 flex min-h-screen flex-col bg-gradient-to-b">
       <div className="container mx-auto max-w-2xl px-4 py-12">
@@ -39,7 +36,7 @@ export default function LinksPage() {
             />
           </div>
           <h1 className="mb-2 text-3xl font-bold">Pana MIA Club</h1>
-          <p className="text-muted-foreground text-lg">The Future is Local</p>
+          <p className="text-muted-foreground text-lg">{t('tagline')}</p>
         </div>
 
         {/* Social Media Icons */}
@@ -54,7 +51,7 @@ export default function LinksPage() {
               href="https://twitter.com/panamiaclub"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Follow us on Twitter"
+              aria-label={t('ariaTwitter')}
             >
               <Twitter className="h-5 w-5" aria-hidden="true" />
             </Link>
@@ -69,7 +66,7 @@ export default function LinksPage() {
               href="https://www.instagram.com/panamiaclub/"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Follow us on Instagram"
+              aria-label={t('ariaInstagram')}
             >
               <Instagram className="h-5 w-5" aria-hidden="true" />
             </Link>
@@ -84,7 +81,7 @@ export default function LinksPage() {
               href="https://www.tiktok.com/@panamiaclub"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Follow us on TikTok"
+              aria-label={t('ariaTikTok')}
             >
               <Music className="h-5 w-5" aria-hidden="true" />
             </Link>
@@ -95,7 +92,7 @@ export default function LinksPage() {
             className="h-12 w-12 rounded-full"
             asChild
           >
-            <Link href="mailto:info@panamia.club" aria-label="Email us">
+            <Link href="mailto:info@panamia.club" aria-label={t('ariaEmail')}>
               <Mail className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
@@ -109,7 +106,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <Search className="h-5 w-5" aria-hidden="true" />
-              Explore Our Directory
+              {t('explore')}
             </Link>
           </Button>
 
@@ -124,7 +121,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <UserPlus className="h-5 w-5" aria-hidden="true" />
-              Become A Pana
+              {t('becomeAPana')}
             </Link>
           </Button>
 
@@ -141,7 +138,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <Calendar className="h-5 w-5" aria-hidden="true" />
-              Our Events
+              {t('ourEvents')}
             </Link>
           </Button>
 
@@ -156,7 +153,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <Heart className="h-5 w-5" aria-hidden="true" />
-              Support Our Mission
+              {t('supportMission')}
             </Link>
           </Button>
 
@@ -173,7 +170,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <Users className="h-5 w-5" aria-hidden="true" />
-              Volunteer With Us
+              {t('volunteer')}
             </Link>
           </Button>
         </div>
@@ -192,7 +189,7 @@ export default function LinksPage() {
               />
             </div>
             <div className="p-4 text-center">
-              <h2 className="text-lg font-semibold">Watch Our Latest Videos</h2>
+              <h2 className="text-lg font-semibold">{t('watchVideos')}</h2>
             </div>
           </CardContent>
         </Card>
@@ -211,7 +208,7 @@ export default function LinksPage() {
               className="flex items-center justify-center gap-2"
             >
               <Music className="h-5 w-5" aria-hidden="true" />
-              Listen on Spotify
+              {t('listenSpotify')}
             </Link>
           </Button>
         </div>
@@ -219,7 +216,7 @@ export default function LinksPage() {
         {/* Footer */}
         <div className="text-muted-foreground mt-12 text-center text-sm">
           <p>&copy; {new Date().getFullYear()} Pana MIA Club</p>
-          <p className="mt-1">South Florida&apos;s Local Community Network</p>
+          <p className="mt-1">{t('localNetwork')}</p>
         </div>
       </div>
     </div>

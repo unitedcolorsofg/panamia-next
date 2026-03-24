@@ -1,0 +1,52 @@
+{
+  "hero": {
+    "title": "Sobre Nosotros",
+    "subheadline": "El Futuro es Local"
+  },
+  "mission": {
+    "title": "Nuestra Misión",
+    "body": "...es unir a la diversa clase trabajadora del Sur de la Florida, impulsando la creación de economías regenerativas y vibrantes. Al conectar a los residentes locales con recursos de calidad, junto con la educación sobre las ventajas de reinvertir dentro de nuestra propia comunidad, buscamos cultivar la estabilidad financiera, el compromiso personal y enfatizar la fuerza transformadora de una comunidad unida."
+  },
+  "vision": {
+    "title": "Nuestra Visión",
+    "subheadline": "El Futuro es Local",
+    "body": "Pana MIA Club es una organización sin fines de lucro 501(c)(3) con sede en el Sur de la Florida."
+  },
+  "story": {
+    "title": "Nuestra Historia",
+    "p1": "En la primavera de 2022, Anette y Clari, dos emprendedoras emergentes, formaron un vínculo especial en un mercado de Miami. A pesar de sus diferencias, su amistad se profundizó con el tiempo, evolucionando en una oportunidad para algo más grande que ellas mismas.",
+    "p2": "Sus sueños compartidos y apoyo mutuo se convirtieron en el catalizador para la creación de Pana MIA Club, demostrando que el emprendimiento no tiene que ser un camino solitario. Juntas, descubrieron el poder de la unidad entre emprendedores locales y creativos. La historia de Pana MIA comenzó en ese encuentro inesperado que se transformó en el fundamento de todo."
+  },
+  "projects": {
+    "title": "Nuestros Proyectos",
+    "tab1": "El Directorio",
+    "tab2": "LeoLero",
+    "tab3": "PanaVizion",
+    "directorio": "El Directorio es tu guía de acceso a todo lo que se hace y ocurre localmente en SoFlo. Nuestro directorio local en línea, con fácil funcionalidad de búsqueda por palabras clave, permite a los clientes encontrar soluciones de origen local para cualquier necesidad o deseo. Esto mejora la comodidad de los consumidores al comprar localmente y proporciona mayor visibilidad a las marcas locales, proveedores de servicios y organizaciones. Nuestro objetivo es crear una herramienta que estimule la economía local de SoFlo y abogue por un estilo de vida centrado en apoyar los negocios locales.",
+    "leolero": "Descubre el vibrante mundo de LeoLero, nuestro boletín mensual que te trae una selección curada de perspectivas exclusivas. Sumérgete en extractos de nuestros talentosos Panas, lee resúmenes de nuestro podcast y únete a conversaciones fascinantes lideradas por expertos experimentados. Explora temas que resuenan con la comunidad de SoFlo y mantente al día con una lista de reproducción cuidadosamente elaborada y un calendario de eventos locales del Sur de la Florida. LeoLero es tu clave para los últimos sucesos, voces diversas y el pulso de nuestra comunidad creativa.",
+    "panavizion": "PanaVizión sirve como canal de difusión y podcast dedicado a destacar a líderes comunitarios impactantes en el Sur de la Florida a través de contenido mediático curado que comparte sus historias. Nuestro objetivo es descubrir las ricas experiencias, talentos y creaciones que las personas del Sur de la Florida tienen para ofrecer. Al brindar una plataforma para estas historias, nos esforzamos por ampliar la perspectiva y el aprecio del público por las diversas narrativas dentro de la comunidad."
+  },
+  "board": {
+    "title": "Nuestra Junta",
+    "anette": {
+      "name": "Anette Mago, Co-Fundadora",
+      "bio": "Anette Mago, artista conceptual venezolano-americana criada en el Sur de la Florida, siempre ha sido fascinada por el paisaje multicultural y la vibrante comunidad de su estado natal. Tras graduarse de la Universidad de Florida en Estudios de Arte Visual en 2021, se sumergió en la escena artística de Miami mientras establecía su marca de moda artística, Alobebi. Dos años después de su camino emprendedor, Anette formó un estrecho vínculo con Claribel, otra dueña de pequeño negocio. Al reconocer la importancia de una comunidad de apoyo, la comprensión de Anette llevó a la creación de Pana MIA Club, su proyecto artístico más ambicioso hasta la fecha."
+    },
+    "claribel": {
+      "name": "Claribel Avila, Co-Fundadora",
+      "bio": "Claribel Avila es una emprendedora y creativa puertorriqueña que comenzó a llamar a Miami su hogar en 2021. Se graduó de la Universidad Northeastern en 2018 con una Licenciatura en Política Económica. Habiendo sido criada por una familia de migrantes emprendedores, exploró diversas industrias y comenzó su primer negocio en 2019, vendiendo miel infusionada con hierbas. A pesar de sus muchas pasiones y proyectos personales, su enfoque central siempre ha sido la justicia social, económica y racial. Mudarse a Miami le dio un propósito, y como solucionadora de problemas, su trabajo con Pana MIA Club pronto se convirtió en una manera de aprovechar fortalezas para lograr un mundo más equitativo y humano."
+    }
+  },
+  "team": {
+    "title": "Nuestro Equipo",
+    "copywriter": "Redactora",
+    "technicalAdvisor": "Asesor Técnico",
+    "webDeveloper": "Desarrolladora Web"
+  },
+  "support": {
+    "title": "Apoya Nuestro Club",
+    "p1": "Pana MIA Club trabaja arduamente hacia nuestra visión de una comunidad local unida en SoFlo todos los días. ¡Sabemos que podemos lograrlo con tu ayuda! Puedes apoyarnos financiando nuestra misión con una donación única o uniéndote a nuestra comunidad de seguidores llamada Gente dePana.",
+    "cta": "Ayuda a Financiar Nuestro Directorio Local de Acceso Abierto",
+    "p2": "Nuestros suscriptores de Gente dePana son la base de la sostenibilidad de Pana MIA; las contribuciones mensuales nos permiten dar pasos más grandes en nuestros proyectos para apoyar a la comunidad local. A cambio, nuestra Gente es recompensada con muchos beneficios, descuentos y privilegios que te dan acceso especial a todo lo Pana."
+  }
+}

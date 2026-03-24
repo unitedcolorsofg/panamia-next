@@ -32,7 +32,8 @@ function ContactForm() {
   const { data: session } = useSession();
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
-  const { t } = useTranslation('toast');
+  const { t: tToast } = useTranslation('toast');
+  const { t } = useTranslation('contact');
 
   const isAuthenticated = !!session?.user?.email;
 
@@ -69,8 +70,8 @@ function ContactForm() {
     if (!name || name.trim().length < 2) {
       toast({
         variant: 'destructive',
-        title: t('invalidName'),
-        description: t('invalidNameContactDesc'),
+        title: tToast('invalidName'),
+        description: tToast('invalidNameContactDesc'),
       });
       return false;
     }
@@ -78,8 +79,8 @@ function ContactForm() {
     if (!validateEmail(email)) {
       toast({
         variant: 'destructive',
-        title: t('invalidEmail'),
-        description: t('invalidEmailDesc'),
+        title: tToast('invalidEmail'),
+        description: tToast('invalidEmailDesc'),
       });
       return false;
     }
@@ -87,8 +88,8 @@ function ContactForm() {
     if (!message || message.trim().length < 10) {
       toast({
         variant: 'destructive',
-        title: t('messageTooShort'),
-        description: t('messageTooShortDesc'),
+        title: tToast('messageTooShort'),
+        description: tToast('messageTooShortDesc'),
       });
       return false;
     }
@@ -113,8 +114,8 @@ function ContactForm() {
         if (!executeRecaptcha) {
           toast({
             variant: 'destructive',
-            title: t('securityError'),
-            description: t('recaptchaNotReady'),
+            title: tToast('securityError'),
+            description: tToast('recaptchaNotReady'),
           });
           setIsSubmitting(false);
           return;
@@ -128,7 +129,7 @@ function ContactForm() {
       if (response?.data?.error) {
         toast({
           variant: 'destructive',
-          title: t('submissionFailed'),
+          title: tToast('submissionFailed'),
           description: response.data.error,
         });
       } else {
@@ -138,15 +139,15 @@ function ContactForm() {
         setMessage('');
 
         toast({
-          title: t('messageSentTitle'),
-          description: t('messageSentDesc'),
+          title: tToast('messageSentTitle'),
+          description: tToast('messageSentDesc'),
         });
       }
     } catch {
       toast({
         variant: 'destructive',
-        title: t('submissionError'),
-        description: t('submissionErrorContact'),
+        title: tToast('submissionError'),
+        description: tToast('submissionErrorContact'),
       });
     } finally {
       setIsSubmitting(false);
@@ -172,51 +173,45 @@ function ContactForm() {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="mb-4 text-4xl font-bold">Contact Us</h1>
+          <h1 className="mb-4 text-4xl font-bold">{t('title')}</h1>
           <div className="text-muted-foreground space-y-2 text-lg">
             <p>
-              Looking for answers? Check out our{' '}
+              {t('intro1')}{' '}
               <Link
                 href="/#home-faq"
                 className="text-pana-blue hover:underline"
               >
-                Frequently Asked Questions
+                {t('faqLink')}
               </Link>{' '}
-              or learn more about who we are on our{' '}
+              {t('intro1b')}{' '}
               <Link href="/about-us" className="text-pana-blue hover:underline">
-                About Us
-              </Link>{' '}
-              page.
+                {t('aboutLink')}
+              </Link>
+              {t('intro1c')}
             </p>
-            <p>
-              Please let us know if you have any questions for us. We&apos;ll
-              reach out to you as soon as we can provide an answer.
-            </p>
+            <p>{t('intro2')}</p>
           </div>
         </div>
 
         {/* Contact Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Send us a message</CardTitle>
-            <CardDescription>
-              Fill out the form below and we&apos;ll get back to you as soon as
-              possible
-            </CardDescription>
+            <CardTitle>{t('formTitle')}</CardTitle>
+            <CardDescription>{t('formDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submitContactUs} className="space-y-6">
               {/* Name Field */}
               <div className="space-y-2">
                 <Label htmlFor="name">
-                  Your Name <span className="text-destructive">*</span>
+                  {t('nameLabel')} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="name"
                   type="text"
                   name="name"
                   maxLength={75}
-                  placeholder="Name"
+                  placeholder={t('namePlaceholder')}
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -227,7 +222,7 @@ function ContactForm() {
               {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email">
-                  Email Address <span className="text-destructive">*</span>
+                  {t('emailLabel')} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="email"
@@ -245,7 +240,7 @@ function ContactForm() {
               {/* Message Field */}
               <div className="space-y-2">
                 <Label htmlFor="message">
-                  Message or Questions{' '}
+                  {t('messageLabel')}{' '}
                   <span className="text-destructive">*</span>
                 </Label>
                 <Textarea
@@ -253,7 +248,7 @@ function ContactForm() {
                   name="message"
                   maxLength={1000}
                   required
-                  placeholder="Your message or questions you have for us"
+                  placeholder={t('messagePlaceholder')}
                   rows={6}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -265,9 +260,7 @@ function ContactForm() {
               {!isAuthenticated && (
                 <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-md p-3 text-sm">
                   <Shield className="h-4 w-4" />
-                  <span>
-                    This form is protected by reCAPTCHA to prevent spam.
-                  </span>
+                  <span>{t('recaptchaNote')}</span>
                 </div>
               )}
 
@@ -280,11 +273,11 @@ function ContactForm() {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    'Sending...'
+                    t('sending')
                   ) : (
                     <>
                       <Send className="mr-2 h-5 w-5" aria-hidden="true" />
-                      Submit Form
+                      {t('submitButton')}
                     </>
                   )}
                 </Button>

@@ -1,0 +1,19 @@
+{
+  "title": "Contáctanos",
+  "intro1": "¿Buscas respuestas? Consulta nuestras",
+  "faqLink": "Preguntas Frecuentes",
+  "intro1b": "o aprende más sobre quiénes somos en nuestra página de",
+  "aboutLink": "Sobre Nosotros",
+  "intro1c": ".",
+  "intro2": "Por favor, haznos saber si tienes alguna pregunta. Nos pondremos en contacto contigo tan pronto como podamos darte una respuesta.",
+  "formTitle": "Envíanos un mensaje",
+  "formDesc": "Completa el formulario a continuación y te responderemos lo antes posible",
+  "nameLabel": "Tu Nombre",
+  "emailLabel": "Correo Electrónico",
+  "messageLabel": "Mensaje o Preguntas",
+  "namePlaceholder": "Nombre",
+  "messagePlaceholder": "Tu mensaje o preguntas que tengas para nosotros",
+  "recaptchaNote": "Este formulario está protegido por reCAPTCHA para prevenir spam.",
+  "sending": "Enviando...",
+  "submitButton": "Enviar Formulario"
+}

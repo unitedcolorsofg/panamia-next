@@ -1,0 +1,49 @@
+{
+  "title": "Únete al Equipo",
+  "subtitle": "¿Te apasiona la comunidad y el crecimiento local? ¡Buscamos colaboradores entusiastas para ayudarnos a transformar el Sur de la Florida!",
+  "role1": {
+    "title": "Desarrollador/Desarrollador UX",
+    "p1": "Pana MIA es, en esencia, una solución tecnológica, una herramienta digital para conectar y unir comunidades locales. Únete a la comunidad de desarrolladores de Pana MIA y da vida a herramientas digitales que transformarán la vida y el amor por lo local. Buscamos desarrolladores front-end, diseñadores UI/UX, desarrolladores JS/React. Consulta nuestro GitHub en nuestra bio.",
+    "p2": "Ejemplos de Proyectos: Foro de Vivienda Accesible/Cooperativa, bolsa de trabajo, optimización de la conectividad y accesibilidad dentro de la plataforma, página de comunidad/activismo, rediseño del sitio"
+  },
+  "role2": {
+    "title": "Gerente de Redes Sociales",
+    "p1": "¿Te encanta conectar en redes sociales y quieres ayudar a marcas, negocios y creativos locales?",
+    "p2": "Usa tus habilidades narrativas para dar a conocer a los locales que están generando un impacto significativo en sus comunidades. Aprovecha nuestra creciente red y define la narrativa de lo que significa vivir y amar el Sur de la Florida. Buscamos a alguien creativo y constante.",
+    "p3": "Pilar de Contenido: Destacados de nuestras entrevistas de podcast, promoviendo la adopción del directorio local como herramienta divertida, educando sobre la importancia de llevar un estilo de vida más local, ofreciendo herramientas y consejos a nuevos emprendedores y creativos, participando en redes sociales."
+  },
+  "role3": {
+    "title": "Coordinador de Eventos",
+    "p1": "A Pana MIA le encanta organizar eventos que promuevan las artes y la cultura local. Si te interesa crear eventos intencionados que ayuden a conectar y fomentar la comunidad, considera unirte a nuestro equipo como coordinador de eventos de Pana MIA. Tendrás acceso a la creciente red de artistas, vendedores y venues de Pana MIA.",
+    "p2": "Ejemplos de Eventos: Feria de Arte Impreso, mercados de vendedores, Festivales de Música Local, Eventos de Networking por Industria, Talleres, Paneles Educativos, etc.",
+    "p3": "Este puesto es remunerado como un porcentaje de los ingresos del evento"
+  },
+  "role4": {
+    "title": "Productor/Editor de Contenido",
+    "p1": "¿Eres un aspirante a cineasta o creador de contenido? Usa tus habilidades narrativas para dar a conocer a los locales que están generando un impacto significativo en sus comunidades. Aprovecha nuestra creciente red y define la narrativa de lo que significa vivir y amar el Sur de la Florida.",
+    "p2": "Pilares de Contenido: Destacados de nuestras entrevistas de podcast, promoviendo la adopción del directorio local como herramienta divertida, educando sobre la importancia de llevar un estilo de vida más local, ofreciendo herramientas y consejos a nuevos emprendedores y creativos."
+  },
+  "role5": {
+    "title": "Redactor de Subvenciones",
+    "p1": "¡Ayúdanos a construir una organización sostenible! Para que Pana MIA crezca de manera sostenible, ¡necesitamos fondos!",
+    "p2": "Si buscas desarrollar tu portafolio como redactor de subvenciones o copywriter, Pana MIA busca escritores convincentes para unirse a nuestro equipo con este propósito. Buscamos excelentes narradores con pasión por la defensa de la comunidad.",
+    "p3": "Ejemplos de Proyectos: Investigar y solicitar subvenciones, asistir en la creación del boletín, crear contenido para el sitio web y correos electrónicos con fines de recaudación de fondos.",
+    "p4": "Este puesto es remunerado como un porcentaje de los fondos de subvenciones obtenidos"
+  },
+  "role6": {
+    "title": "Afiliado de Participación Comunitaria",
+    "p1": "Si eres alguien que busca ganar experiencia en Relaciones Públicas, Comunicaciones y/o Participación Comunitaria y estás interesado en conectarte más con la comunidad del Sur de la Florida, este es un excelente rol para ti. Buscamos a alguien comunicativo y organizado.",
+    "p2": "Lo que puedes esperar: Alcance comunitario, elaboración de kits de prensa y propuestas de patrocinio, gestión de Pana Relations, participación en redes sociales, gestión del programa de afiliados, ideación de campañas creativas"
+  },
+  "role7": {
+    "title": "Socios de Alcance",
+    "p1": "¿Buscas participar más intencionalmente en la escena local del Sur de la Florida? ¿Eres extrovertido o quieres practicar la comunicación pública?",
+    "p2": "Pana MIA busca personas amigables y comprometidas con la comunidad que quieran representarnos en eventos, en línea y en la comunidad. Los socios nos ayudarán a crear conciencia sobre nuestra misión y a educar sobre la importancia de apoyar lo local en el Sur de la Florida, lo que hacemos para ayudar y cómo apoyar a Pana MIA.",
+    "p3": "Lo que puedes esperar: Mesas en Eventos, Creación de Contenido, Alcance Comunitario, Voluntariado en Eventos, Distribución de Contenido"
+  },
+  "cta": {
+    "question": "¿Interesado en unirte al equipo?",
+    "desc": "Envíanos un mensaje a través de nuestro formulario de Contáctanos e indícanos qué rol te interesa.",
+    "button": "Contáctanos"
+  }
+}

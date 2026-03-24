@@ -1,0 +1,19 @@
+{
+  "title": "Contact Us",
+  "intro1": "Looking for answers? Check out our",
+  "faqLink": "Frequently Asked Questions",
+  "intro1b": "or learn more about who we are on our",
+  "aboutLink": "About Us",
+  "intro1c": "page.",
+  "intro2": "Please let us know if you have any questions for us. We'll reach out to you as soon as we can provide an answer.",
+  "formTitle": "Send us a message",
+  "formDesc": "Fill out the form below and we'll get back to you as soon as possible",
+  "nameLabel": "Your Name",
+  "emailLabel": "Email Address",
+  "messageLabel": "Message or Questions",
+  "namePlaceholder": "Name",
+  "messagePlaceholder": "Your message or questions you have for us",
+  "recaptchaNote": "This form is protected by reCAPTCHA to prevent spam.",
+  "sending": "Sending...",
+  "submitButton": "Submit Form"
+}
