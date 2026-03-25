@@ -17,6 +17,8 @@ import enContact from '@/locales/en/contact.json';
 import esContact from '@/locales/es/contact.json';
 import enJointeam from '@/locales/en/jointeam.json';
 import esJointeam from '@/locales/es/jointeam.json';
+import enSignin from '@/locales/en/signin.json';
+import esSignin from '@/locales/es/signin.json';
 
 i18n
   .use(LanguageDetector)
@@ -32,6 +34,7 @@ i18n
         podcasts: enPodcasts,
         contact: enContact,
         jointeam: enJointeam,
+        signin: enSignin,
       },
       es: {
         common: es,
@@ -42,6 +45,7 @@ i18n
         podcasts: esPodcasts,
         contact: esContact,
         jointeam: esJointeam,
+        signin: esSignin,
       },
     },
     fallbackLng: 'en',

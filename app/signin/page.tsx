@@ -23,7 +23,8 @@ function SignInPageContent() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { toast } = useToast();
-  const { t } = useTranslation('toast');
+  const { t: tToast } = useTranslation('toast');
+  const { t } = useTranslation('signin');
 
   // Show different ad copy based on callback URL
   const isBecomeAPana = callbackUrl.includes('form/become-a-pana');
@@ -47,8 +48,8 @@ function SignInPageContent() {
       if (!executeRecaptcha) {
         toast({
           variant: 'destructive',
-          title: t('error'),
-          description: t('recaptchaNotLoaded'),
+          title: tToast('error'),
+          description: tToast('recaptchaNotLoaded'),
         });
         setIsSubmitting(false);
         return;
@@ -66,8 +67,8 @@ function SignInPageContent() {
       if (!verifyResponse.ok) {
         toast({
           variant: 'destructive',
-          title: t('verificationFailed'),
-          description: t('verificationFailedDesc'),
+          title: tToast('verificationFailed'),
+          description: tToast('verificationFailedDesc'),
         });
         setIsSubmitting(false);
         return;
@@ -75,14 +76,14 @@ function SignInPageContent() {
 
       await signIn('email', { email, callbackUrl });
       toast({
-        title: t('checkEmail'),
-        description: t('checkEmailDesc'),
+        title: tToast('checkEmail'),
+        description: tToast('checkEmailDesc'),
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: t('error'),
-        description: t('signInFailed'),
+        title: tToast('error'),
+        description: tToast('signInFailed'),
       });
     } finally {
       setIsSubmitting(false);
@@ -102,10 +103,10 @@ function SignInPageContent() {
             className="h-auto max-w-full"
             priority
           />
+          {/* TODO: replace placeholder ad copy with real content in locales/en/signin.json
+              keys: adCopyBecomeAPana, adCopyDefault */}
           <p className="max-w-md text-center text-gray-600">
-            {isBecomeAPana
-              ? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.'
-              : 'El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón detrás del palenque de paja. Jovencillo emponzoñado de whisky, qué figurota exhibe.'}
+            {isBecomeAPana ? t('adCopyBecomeAPana') : t('adCopyDefault')}
           </p>
         </div>
 
@@ -114,12 +115,9 @@ function SignInPageContent() {
             {/* Welcome Message / Ad Copy Space */}
             <div className="space-y-3 text-center">
               <h1 className="text-2xl font-bold text-gray-900">
-                Welcome to Pana MIA
+                {t('welcomeTitle')}
               </h1>
-              <p className="text-gray-600">
-                Join South Florida's creative community directory. Connect with
-                local artists, creators, and cultural leaders.
-              </p>
+              <p className="text-gray-600">{t('welcomeDesc')}</p>
 
               {/* Optional: Uncomment to add welcome video */}
               {/*
@@ -141,7 +139,7 @@ function SignInPageContent() {
                 className="w-full border border-gray-300 bg-white text-gray-900 shadow-sm hover:bg-gray-50"
                 size="lg"
                 disabled={!hasGoogle}
-                title={!hasGoogle ? 'Google sign-in not configured' : ''}
+                title={!hasGoogle ? t('googleNotConfigured') : ''}
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -161,7 +159,7 @@ function SignInPageContent() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Continue with Google
+                {t('continueGoogle')}
               </Button>
 
               <Button
@@ -169,7 +167,7 @@ function SignInPageContent() {
                 className="w-full bg-black text-white hover:bg-gray-900"
                 size="lg"
                 disabled={!hasApple}
-                title={!hasApple ? 'Apple sign-in not configured' : ''}
+                title={!hasApple ? t('appleNotConfigured') : ''}
               >
                 <svg
                   className="mr-2 h-5 w-5"
@@ -178,7 +176,7 @@ function SignInPageContent() {
                 >
                   <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                 </svg>
-                Continue with Apple
+                {t('continueApple')}
               </Button>
 
               <Button
@@ -186,7 +184,7 @@ function SignInPageContent() {
                 className="w-full border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
                 size="lg"
                 disabled={!hasWikimedia}
-                title={!hasWikimedia ? 'Wikimedia sign-in not configured' : ''}
+                title={!hasWikimedia ? t('wikimediaNotConfigured') : ''}
               >
                 <Image
                   src="https://authjs.dev/img/providers/wikimedia.svg"
@@ -195,7 +193,7 @@ function SignInPageContent() {
                   height={20}
                   className="mr-2"
                 />
-                Continue with Wikimedia
+                {t('continueWikimedia')}
               </Button>
 
               <Button
@@ -203,7 +201,7 @@ function SignInPageContent() {
                 className="w-full bg-[#6364FF] text-white hover:bg-[#563ACC]"
                 size="lg"
                 disabled={!hasMastodon}
-                title={!hasMastodon ? 'Mastodon sign-in not configured' : ''}
+                title={!hasMastodon ? t('mastodonNotConfigured') : ''}
               >
                 <svg
                   className="mr-2 h-5 w-5"
@@ -212,7 +210,7 @@ function SignInPageContent() {
                 >
                   <path d="M23.193 7.879c0-5.206-3.411-6.732-3.411-6.732C18.062.357 15.108.025 12.041 0h-.076c-3.068.025-6.02.357-7.74 1.147 0 0-3.411 1.526-3.411 6.732 0 1.192-.023 2.618.015 4.129.124 5.092.934 10.109 5.641 11.355 2.17.574 4.034.695 5.535.612 2.722-.15 4.25-.972 4.25-.972l-.09-1.975s-1.945.613-4.129.539c-2.165-.074-4.449-.233-4.799-2.891a5.499 5.499 0 0 1-.048-.745s2.125.52 4.817.643c1.646.075 3.19-.097 4.758-.283 3.007-.359 5.625-2.212 5.954-3.905.517-2.665.475-6.507.475-6.507zm-4.024 6.709h-2.497V8.469c0-1.29-.543-1.944-1.628-1.944-1.2 0-1.802.776-1.802 2.312v3.349h-2.483v-3.349c0-1.536-.602-2.312-1.802-2.312-1.085 0-1.628.655-1.628 1.944v6.119H4.832V8.284c0-1.289.328-2.313.987-3.07.68-.758 1.569-1.146 2.674-1.146 1.278 0 2.246.491 2.886 1.474L12 6.585l.622-1.043c.64-.983 1.608-1.474 2.886-1.474 1.104 0 1.994.388 2.674 1.146.658.757.986 1.781.986 3.07v6.304z" />
                 </svg>
-                Continue with Mastodon
+                {t('continueMastodon')}
               </Button>
             </div>
 
@@ -222,7 +220,7 @@ function SignInPageContent() {
                 <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">or</span>
+                <span className="bg-white px-2 text-gray-500">{t('or')}</span>
               </div>
             </div>
 
@@ -231,48 +229,46 @@ function SignInPageContent() {
                 onClick={() => setShowEmailForm(true)}
                 className="text-pana-blue w-full text-center text-sm hover:underline"
               >
-                Sign in with email
+                {t('signInWithEmail')}
               </button>
             ) : (
               <form onSubmit={handleEmailSignIn} className="space-y-3">
                 <Input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder={t('emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isSubmitting}
                 />
                 <p className="text-center text-xs text-gray-500">
-                  Protected by reCAPTCHA
+                  {t('recaptchaProtected')}
                 </p>
                 <Button
                   type="submit"
                   className="bg-pana-pink hover:bg-pana-pink/90 w-full"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting
-                    ? 'Sending sign-in link...'
-                    : 'Send sign-in link'}
+                  {isSubmitting ? t('sendingLink') : t('sendLink')}
                 </Button>
                 <button
                   type="button"
                   onClick={() => setShowEmailForm(false)}
                   className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
                 >
-                  Back to other options
+                  {t('backToOptions')}
                 </button>
               </form>
             )}
 
             {/* Footer */}
             <p className="pt-4 text-center text-xs text-gray-500">
-              By continuing, you agree to our{' '}
+              {t('termsAgreement')}{' '}
               <Link
                 href="/doc/terms-and-conditions"
                 className="text-pana-blue hover:underline"
               >
-                Terms & Conditions
+                {t('termsLink')}
               </Link>
             </p>
           </CardContent>
@@ -280,12 +276,12 @@ function SignInPageContent() {
 
         {/* Additional Info */}
         <p className="text-center text-sm text-gray-600">
-          Need help?{' '}
+          {t('needHelp')}{' '}
           <Link
             href="/form/contact-us"
             className="text-pana-blue hover:underline"
           >
-            Contact us
+            {t('contactUs')}
           </Link>
         </p>
       </div>
@@ -303,6 +299,8 @@ export default function SignInPage() {
     console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not configured');
     return (
       <div className="flex min-h-screen items-center justify-center">
+        {/* Note: this error state is pre-auth so useTranslation is unavailable here.
+            If this needs translation, wrap in an I18nProvider or pass the string as a prop. */}
         <p className="text-red-600">
           reCAPTCHA is not configured. Please contact support.
         </p>
@@ -315,6 +313,7 @@ export default function SignInPage() {
       <Suspense
         fallback={
           <div className="flex min-h-screen items-center justify-center">
+            {/* Suspense fallback renders before i18n is ready — keep this hardcoded or use a spinner */}
             Loading...
           </div>
         }

@@ -17,6 +17,11 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 
+// i18n: When rebuilding this form, add useTranslation('becomePana') alongside
+// the existing useTranslation('toast'). Create locales/en/becomePana.json and
+// locales/es/becomePana.json, then register them in lib/i18n.ts.
+// All t() calls below reference suggested keys for the 'becomePana' namespace.
+
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -74,7 +79,7 @@ function BecomeAPanaForm() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-lg">Loading...</p>
+          <p className="text-lg">Loading...</p> {/* i18n: t('loading') */}
         </div>
       </div>
     );
@@ -308,7 +313,7 @@ function BecomeAPanaForm() {
           </div>
 
           <h1 className="text-center text-3xl font-bold md:text-4xl">
-            Directory Express Sign Up Form
+            Directory Express Sign Up Form {/* i18n: t('title') */}
           </h1>
 
           <Card>
@@ -324,10 +329,13 @@ function BecomeAPanaForm() {
               {activePage === 1 && (
                 <div ref={page1Ref} className="space-y-6">
                   <h2 className="text-2xl font-bold">
-                    Why are you filling out this form?
+                    Why are you filling out this form?{' '}
+                    {/* i18n: t('page1.heading') */}
                   </h2>
                   <div className="space-y-4 text-lg">
                     <p>
+                      {/* i18n: t('page1.intro') — contains link, use Trans component:
+                          <Trans i18nKey="page1.intro" components={{ link: <Link href="/directory/search" className="text-pana-blue underline" /> }} /> */}
                       We want to better understand your project and get a better
                       sense of your needs. Your answers are used to create your
                       user profile on our Local Directory. Once your user
@@ -337,16 +345,18 @@ function BecomeAPanaForm() {
                         href="/directory/search"
                         className="text-pana-blue underline"
                       >
-                        here
+                        here {/* i18n: t('page1.introLinkText') */}
                       </Link>
                       .
                     </p>
                     <p className="font-bold">
+                      {/* i18n: t('page1.disclaimer') */}
                       Please answer to the best of your ability. You are welcome
                       to create more than one profile if you have separate
                       projects - just make sure to use a different email.
                     </p>
                     <p className="italic">
+                      {/* i18n: t('page1.contactNote') */}
                       If you have questions please reach out to us at
                       hola@panamia.club
                     </p>
@@ -360,7 +370,7 @@ function BecomeAPanaForm() {
                         scrollToPage(2);
                       }}
                     >
-                      Start
+                      Start {/* i18n: t('start') */}
                     </Button>
                   </div>
                 </div>
@@ -372,10 +382,12 @@ function BecomeAPanaForm() {
                   <form onSubmit={submitPage2} className="space-y-6">
                     <div className="space-y-4">
                       <Label className="text-lg font-bold">
+                        {/* i18n: t('page2.question') */}
                         Are you (the creator, director, owner, CEO)
                         locally-based or a native of South Florida? *
                       </Label>
                       <p className="text-muted-foreground text-sm">
+                        {/* i18n: t('page2.sofloNote') */}
                         South Florida is Miami-Dade, Broward and Palm Beach
                         County
                       </p>
@@ -386,11 +398,14 @@ function BecomeAPanaForm() {
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="yes" id="yes" />
-                          <Label htmlFor="yes">I am</Label>
+                          <Label htmlFor="yes">
+                            I am {/* i18n: t('page2.optionYes') */}
+                          </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="no" id="no" />
                           <Label htmlFor="no">
+                            {/* i18n: t('page2.optionNo') */}
                             I'm not (and therefore do not qualify to be a member
                             of this club)
                           </Label>
@@ -398,12 +413,14 @@ function BecomeAPanaForm() {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="other" id="other" />
                           <Label htmlFor="other">
+                            {/* i18n: use Trans component for page2.optionOther which contains a link */}
                             Other (please{' '}
                             <Link
                               href="/form/contact-us"
                               className="text-pana-blue underline"
                             >
-                              contact us
+                              contact us{' '}
+                              {/* i18n: t('page2.optionOtherLink') */}
                             </Link>{' '}
                             with details)
                           </Label>
@@ -419,13 +436,13 @@ function BecomeAPanaForm() {
                           scrollToPage(1);
                         }}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         type="submit"
                         className="bg-pana-pink hover:bg-pana-pink/90"
                       >
-                        Next
+                        Next {/* i18n: t('next') */}
                       </Button>
                     </div>
                   </form>
@@ -441,25 +458,29 @@ function BecomeAPanaForm() {
                   <form onSubmit={submitPage3} className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="name">
-                        Name of your Business, Project, or Organization *
+                        Name of your Business, Project, or Organization *{' '}
+                        {/* i18n: t('page3.nameLabel') */}
                       </Label>
                       <Input
                         id="name"
                         type="text"
                         maxLength={75}
-                        placeholder="Name"
+                        placeholder="Name" /* i18n: placeholder={t('page3.namePlaceholder')} */
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         disabled={isSubmitting}
                       />
                       <p className="text-muted-foreground text-sm">
-                        This name will display as the Title of your profile
+                        This name will display as the Title of your profile{' '}
+                        {/* i18n: t('page3.nameHint') */}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address *</Label>
+                      <Label htmlFor="email">
+                        Email Address * {/* i18n: t('page3.emailLabel') */}
+                      </Label>
                       <Input
                         id="email"
                         type="email"
@@ -472,13 +493,16 @@ function BecomeAPanaForm() {
                         className="cursor-not-allowed bg-gray-50"
                       />
                       <p className="text-muted-foreground text-sm">
+                        {/* i18n: t('page3.emailHint') */}
                         This email is from your sign-in and cannot be changed
                         here. Not displayed on your profile.
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone">
+                        Phone Number {/* i18n: t('page3.phoneLabel') */}
+                      </Label>
                       <Input
                         id="phone"
                         type="text"
@@ -489,7 +513,8 @@ function BecomeAPanaForm() {
                         disabled={isSubmitting}
                       />
                       <p className="text-muted-foreground text-sm">
-                        Used for contacting you, not displayed on profile
+                        Used for contacting you, not displayed on profile{' '}
+                        {/* i18n: t('page3.phoneHint') */}
                       </p>
                       <div className="flex items-center space-x-2 pt-2">
                         <Checkbox
@@ -501,6 +526,7 @@ function BecomeAPanaForm() {
                           disabled={isSubmitting}
                         />
                         <Label htmlFor="whatsapp">
+                          {/* i18n: t('page3.whatsappLabel') */}
                           I'm interested in joining the WhatsApp community
                           chat/forum for directory members
                         </Label>
@@ -517,14 +543,14 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         type="submit"
                         className="bg-pana-pink hover:bg-pana-pink/90"
                         disabled={isSubmitting}
                       >
-                        Next
+                        Next {/* i18n: t('next') */}
                       </Button>
                     </div>
                   </form>
@@ -537,11 +563,12 @@ function BecomeAPanaForm() {
                   <div className="space-y-6">
                     <div className="space-y-4">
                       <Label className="text-lg font-bold">
-                        What are your preferred pronouns?
+                        What are your preferred pronouns?{' '}
+                        {/* i18n: t('page4.question') */}
                       </Label>
                       <p className="text-muted-foreground text-sm">
                         If you are an Individual (not representing a group or
-                        org)
+                        org) {/* i18n: t('page4.note') */}
                       </p>
                       <RadioGroup
                         value={pronouns}
@@ -554,6 +581,8 @@ function BecomeAPanaForm() {
                         disabled={isSubmitting}
                         className="space-y-3"
                       >
+                        {/* i18n: pronoun options — t('page4.sheher'), t('page4.hehim'),
+                            t('page4.theythem'), t('page4.noPreference'), t('page4.other') */}
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="sheher" id="sheher" />
                           <Label htmlFor="sheher">She/Her</Label>
@@ -578,7 +607,7 @@ function BecomeAPanaForm() {
                           {pronouns === 'other' && (
                             <Input
                               type="text"
-                              placeholder="Please specify"
+                              placeholder="Please specify" /* i18n: placeholder={t('page4.specifyPlaceholder')} */
                               value={pronounsOtherdesc}
                               onChange={(e) =>
                                 setPronounsOtherdesc(e.target.value)
@@ -600,7 +629,7 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         className="bg-pana-pink hover:bg-pana-pink/90"
@@ -610,7 +639,7 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Next/Skip
+                        Next/Skip {/* i18n: t('nextSkip') */}
                       </Button>
                     </div>
                   </div>
@@ -623,12 +652,13 @@ function BecomeAPanaForm() {
                   <form onSubmit={submitPage5} className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="details">
-                        Explain your project in detail: *
+                        Explain your project in detail: *{' '}
+                        {/* i18n: t('page5.detailsLabel') */}
                       </Label>
                       <Textarea
                         id="details"
                         maxLength={500}
-                        placeholder="Project Details"
+                        placeholder="Project Details" /* i18n: placeholder={t('page5.detailsPlaceholder')} */
                         required
                         rows={4}
                         value={details}
@@ -636,6 +666,7 @@ function BecomeAPanaForm() {
                         disabled={isSubmitting}
                       />
                       <p className="text-muted-foreground text-sm">
+                        {/* i18n: t('page5.detailsHint') */}
                         This will be your intro to our users! A trimmed snippet
                         of this will show on the Directory Search. Please
                         include where you are based in SoFlo :)
@@ -644,6 +675,7 @@ function BecomeAPanaForm() {
 
                     <div className="space-y-2">
                       <Label htmlFor="five-words">
+                        {/* i18n: t('page5.fiveWordsLabel') */}
                         Give us five words that describes your
                         business/services: *
                       </Label>
@@ -660,6 +692,7 @@ function BecomeAPanaForm() {
 
                     <div className="space-y-2">
                       <Label htmlFor="tags">
+                        {/* i18n: t('page5.tagsLabel') */}
                         Please provide a list of tags people can find you with
                         in our directory
                       </Label>
@@ -672,6 +705,7 @@ function BecomeAPanaForm() {
                         disabled={isSubmitting}
                       />
                       <p className="text-muted-foreground text-sm">
+                        {/* i18n: t('page5.tagsExample') */}
                         Example (The Dancing Elephant): Spiritual/Metaphysical,
                         Books, Bookstore, Retail Shop
                       </p>
@@ -687,14 +721,14 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         type="submit"
                         className="bg-pana-pink hover:bg-pana-pink/90"
                         disabled={isSubmitting}
                       >
-                        Next
+                        Next {/* i18n: t('next') */}
                       </Button>
                     </div>
                   </form>
@@ -707,9 +741,11 @@ function BecomeAPanaForm() {
                   <div className="space-y-6">
                     <div>
                       <Label className="text-lg font-bold">
-                        Website and Social Media
+                        Website and Social Media{' '}
+                        {/* i18n: t('page6.heading') */}
                       </Label>
                       <p className="text-muted-foreground mt-1 text-sm">
+                        {/* i18n: t('page6.hint') */}
                         These will be displayed on your profile, please use the
                         full URL for each
                       </p>
@@ -717,7 +753,9 @@ function BecomeAPanaForm() {
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="website">Website: *</Label>
+                        <Label htmlFor="website">
+                          Website: * {/* i18n: t('page6.websiteLabel') */}
+                        </Label>
                         <Input
                           id="website"
                           type="text"
@@ -800,7 +838,7 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         className="bg-pana-pink hover:bg-pana-pink/90"
@@ -810,7 +848,7 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Next
+                        Next {/* i18n: t('next') */}
                       </Button>
                     </div>
                   </div>
@@ -823,7 +861,8 @@ function BecomeAPanaForm() {
                   <form onSubmit={submitPage7} className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="hear-about">
-                        How did you hear about us? (optional)
+                        How did you hear about us? (optional){' '}
+                        {/* i18n: t('page7.hearAboutLabel') */}
                       </Label>
                       <Textarea
                         id="hear-about"
@@ -837,6 +876,8 @@ function BecomeAPanaForm() {
 
                     <div className="space-y-4">
                       <p>
+                        {/* i18n: use Trans for page7.tosText — contains a link:
+                            <Trans i18nKey="page7.tosText" components={{ link: <Link href="/doc/terms-and-conditions" ... /> }} /> */}
                         Please read our{' '}
                         <Link
                           href="/doc/terms-and-conditions"
@@ -844,7 +885,7 @@ function BecomeAPanaForm() {
                           rel="noopener noreferrer"
                           className="text-pana-blue underline"
                         >
-                          Terms and Conditions
+                          Terms and Conditions {/* i18n: t('page7.tosLink') */}
                         </Link>{' '}
                         which includes our general terms, our privacy policy,
                         and permission to accept email and SMS marketing.
@@ -860,7 +901,8 @@ function BecomeAPanaForm() {
                           disabled={isSubmitting}
                         />
                         <Label htmlFor="tos">
-                          I agree to the Terms & Conditions *
+                          I agree to the Terms & Conditions *{' '}
+                          {/* i18n: t('page7.tosCheckbox') */}
                         </Label>
                       </div>
                     </div>
@@ -875,14 +917,15 @@ function BecomeAPanaForm() {
                         }}
                         disabled={isSubmitting}
                       >
-                        Previous
+                        Previous {/* i18n: t('previous') */}
                       </Button>
                       <Button
                         type="submit"
                         className="bg-pana-pink hover:bg-pana-pink/90"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? 'Submitting...' : 'Submit Form'}
+                        {isSubmitting ? 'Submitting...' : 'Submit Form'}{' '}
+                        {/* i18n: isSubmitting ? t('submitting') : t('submit') */}
                       </Button>
                     </div>
                   </form>
@@ -893,17 +936,20 @@ function BecomeAPanaForm() {
               {activePage === 8 && (
                 <div ref={confirmationRef} className="space-y-6 text-center">
                   <h2 className="text-pana-pink text-3xl font-bold">
-                    Thank you for signing up!
+                    Thank you for signing up!{' '}
+                    {/* i18n: t('confirmation.title') */}
                   </h2>
                   <div className="space-y-4 text-lg">
                     <p className="font-semibold">
+                      {/* i18n: t('confirmation.p1') */}
                       We're confirming your profile details and will email you
                       when it's published.
                     </p>
                     <p>
+                      {/* i18n: use Trans for confirmation.p2 — contains two links (signin, about-us) */}
                       You can{' '}
                       <Link href="/signin" className="text-pana-blue underline">
-                        Sign In
+                        Sign In {/* i18n: t('confirmation.signInLink') */}
                       </Link>{' '}
                       using your profile email to see other features and
                       continue updating your profile! The Pana MIA Club
@@ -912,7 +958,7 @@ function BecomeAPanaForm() {
                         href="/about-us"
                         className="text-pana-blue underline"
                       >
-                        About Us
+                        About Us {/* i18n: t('confirmation.aboutLink') */}
                       </Link>{' '}
                       to learn more about how we support locals.
                     </p>
@@ -924,12 +970,14 @@ function BecomeAPanaForm() {
 
           {activePage < 8 && (
             <p className="text-muted-foreground text-center text-sm">
+              {/* i18n: use Trans for troubleNote — contains a link:
+                  <Trans i18nKey="troubleNote" components={{ link: <Link href="/form/contact-us" className="text-pana-blue underline" /> }} /> */}
               If you're having any trouble with our form, please{' '}
               <Link
                 href="/form/contact-us"
                 className="text-pana-blue underline"
               >
-                Contact Us
+                Contact Us {/* i18n: t('troubleLink') */}
               </Link>
             </p>
           )}
