@@ -420,6 +420,9 @@ export const profiles = pgTable(
     socialEligible: boolean('social_eligible').notNull().default(true),
     socialEligibleAt: timestamp('social_eligible_at', { withTimezone: true }),
     socialIneligibleReason: text('social_ineligible_reason'),
+    // GHL (GoHighLevel CRM)
+    ghlContactId: text('ghl_contact_id'),
+    ghlOptedOut: boolean('ghl_opted_out').notNull().default(false),
   },
   (table) => ({
     emailIdx: index('profiles_email_idx').on(table.email),

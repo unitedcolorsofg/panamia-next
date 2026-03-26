@@ -43,6 +43,13 @@
       "when": 1774137600000,
       "tag": "0005_seed_pana_mia_main_office",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774742400000,
+      "tag": "0006_ghl_profiles",
+      "breakpoints": true
     }
   ]
 }

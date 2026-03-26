@@ -207,26 +207,28 @@ Key findings from ToS review relevant to this integration:
 
 ## Phased Rollout
 
-### Phase 1 — Schema additions (planned)
+### Phase 1 — Schema additions (complete)
 
-- Add `ghlContactId: text` (nullable) to `profiles` table
-- Add `ghlOptedOut: boolean` (default `false`) to `profiles` table
-- Generate and run Drizzle migration
-- Update `lib/schema/index.ts` and `profilesRelations`
+- Added `ghlContactId: text('ghl_contact_id')` (nullable) to `profiles` table
+- Added `ghlOptedOut: boolean('ghl_opted_out')` (default `false`) to `profiles` table
+- Migration: `drizzle/0006_ghl_profiles.sql`
 
-### Phase 2 — Privacy portal API routes (planned)
+### Phase 2 — Privacy portal API routes (complete)
 
 - `GET /api/crm/contact` — fetch authenticated user's GHL contact record
 - `POST /api/crm/contact/unsubscribe` — set DND on all channels
-- `DELETE /api/crm/contact` — delete GHL contact; set `ghlOptedOut = true`
-- `POST /api/crm/contact/copy-field` — copy a single GHL field to Panamia profile
-- Settings page section: renders portal UI, handles graceful GHL unavailability
+- `DELETE /api/crm/contact` — delete GHL contact; set `ghlOptedOut = true`, clear `ghlContactId`
+- `POST /api/crm/contact/copy-field` — copy `name` or `phone` field to Panamia profile
+- GHL client: `lib/ghl.ts` (reads `GHL_API_KEY` / `GHL_LOCATION_ID` from env)
+- All routes degrade gracefully (503) if GHL is unconfigured or unreachable
+- Settings page section: not yet built (UI is out of scope for this phase)
 
-### Phase 3 — Signup claim (planned)
+### Phase 3 — Signup claim (complete)
 
-- On registration, search GHL for matching email → link `ghlContactId` if found
-- CRM worker sets GHL pipeline stage to "Active Member" after claim
-- If no GHL contact exists, worker creates one on next sync cycle (if `ghlOptedOut = false`)
+- `auth.ts` `account.create.after` hook: after profile claim, searches GHL by email
+- If a matching GHL contact is found and `ghlOptedOut = false`, links `ghlContactId` on profile
+- Best-effort: GHL errors are caught and logged; account creation never blocked
+- CRM worker sets GHL pipeline stage to "Active Member" after claim (Phase 4)
 
 ### Phase 4 — Dedicated CRM worker (planned)
 

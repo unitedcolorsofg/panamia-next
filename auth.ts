@@ -12,6 +12,7 @@ import {
 } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
+import { GhlClient } from '@/lib/ghl';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -733,6 +734,48 @@ function getBetterAuth(): BetterAuthInstance {
                   .set({ userId: account.userId })
                   .where(eq(profiles.id, unclaimedProfile.id));
                 console.log('Profile claimed successfully');
+              }
+
+              // GHL signup claim — link GHL contact ID at registration (Phase 3)
+              // Best-effort: never blocks account creation.
+              try {
+                // Resolve which profile to link (the just-claimed one, or an
+                // already-claimed profile for users signing in via a new provider).
+                const profileToLink =
+                  unclaimedProfile ??
+                  (await db.query.profiles.findFirst({
+                    where: eq(profiles.userId, account.userId),
+                    columns: {
+                      id: true,
+                      ghlContactId: true,
+                      ghlOptedOut: true,
+                    },
+                  }));
+
+                if (
+                  profileToLink &&
+                  !profileToLink.ghlContactId &&
+                  !profileToLink.ghlOptedOut
+                ) {
+                  const ghl = GhlClient.create();
+                  if (ghl) {
+                    const contact = await ghl.findByEmail(
+                      user.email.toLowerCase()
+                    );
+                    if (contact?.id) {
+                      await db
+                        .update(profiles)
+                        .set({ ghlContactId: contact.id })
+                        .where(eq(profiles.id, profileToLink.id));
+                      console.log('GHL contact linked:', contact.id);
+                    }
+                  }
+                }
+              } catch (ghlError) {
+                console.error(
+                  'Error linking GHL contact (non-fatal):',
+                  ghlError
+                );
               }
             } catch (error) {
               console.error('Error auto-claiming profile:', error);
