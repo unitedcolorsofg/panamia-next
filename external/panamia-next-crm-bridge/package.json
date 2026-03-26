@@ -1,0 +1,23 @@
+{
+  "name": "panamia-crm-bridge",
+  "version": "0.1.0",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=worker.js --platform=neutral --target=es2022 --format=esm --external:node:*",
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
+    "drizzle-orm": "^0.40.1",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.0.0"
+  }
+}

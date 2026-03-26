@@ -307,6 +307,27 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // GHL (GoHighLevel CRM)
+  // =============================================================================
+  GHL_API_KEY: {
+    description:
+      'GHL private integration API key. ' +
+      'Used by the privacy portal (Settings page) for direct GHL API calls on behalf of the authenticated user. ' +
+      'Create in GHL → Settings → Integrations → Private Integrations.',
+    location: 'SECRET',
+    required: false,
+    docsUrl: 'https://app.gohighlevel.com',
+  },
+  GHL_LOCATION_ID: {
+    description:
+      'GHL sub-account/location ID. ' +
+      'Shown in the GHL dashboard URL and in Settings.',
+    location: 'VAR',
+    required: false,
+    docsUrl: 'https://app.gohighlevel.com',
+  },
+
+  // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
   DEV_RECEIVER_EMAIL: {

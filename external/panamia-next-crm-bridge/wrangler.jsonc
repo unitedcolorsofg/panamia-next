@@ -1,0 +1,27 @@
+{
+  "name": "panamia-crm-bridge",
+  "main": "worker.js",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Hyperdrive binding — same Supabase DB as main app.
+  // Create a NEW binding in CF dashboard (separate from the main app's binding).
+  // Replace "YOUR_HYPERDRIVE_ID" with the actual ID after dashboard setup.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "YOUR_HYPERDRIVE_ID"
+    }
+  ],
+
+  // Cron triggers:
+  //   hourly  — contact-sync: sweep recently updated profiles → push field changes to GHL
+  //   daily   — inactive-sweep: flag users with lastLoginAt > 30d → add inactive-30d tag
+  "triggers": {
+    "crons": ["0 * * * *", "0 3 * * *"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}
