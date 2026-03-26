@@ -230,24 +230,28 @@ Key findings from ToS review relevant to this integration:
 - Best-effort: GHL errors are caught and logged; account creation never blocked
 - CRM worker sets GHL pipeline stage to "Active Member" after claim (Phase 4)
 
-### Phase 4 — Dedicated CRM worker (planned)
+### Phase 4 — Dedicated CRM worker (complete)
 
-- Scaffold at `external/panamia-next-crm-bridge/` (stub exists — see below)
-- Implement outbound contact sync (`jobs/contact-sync.ts`)
-- Implement inactive sweep (`jobs/inactive-sweep.ts`)
-- Deploy to Cloudflare Workers, configure HYPERDRIVE binding and cron triggers
+- `jobs/contact-sync.ts` — hourly sweep of recently updated profiles → push name + `panamia_verified` custom field to GHL
+- `jobs/inactive-sweep.ts` — daily sweep via raw SQL against sessions table; adds `inactive-30d` tag on GHL contacts with no session activity in 30 days
+- `src/lib/schema.ts` — corrected: `panaVerified` is accessed from `verification` JSONB (not a separate column); `lastLoginAt` removed (use sessions table instead)
+- TODO (ops): deploy worker, configure HYPERDRIVE binding ID in `wrangler.jsonc`, set cron triggers in CF dashboard
 
-### Phase 5 — GHL inbound webhook handler (planned)
+### Phase 5 — GHL inbound webhook handler (complete)
 
-- Implement `handlers/webhook-ghl.ts`
-- Register worker URL in GHL as webhook endpoint
-- Handle DND changes and contact deletion events
+- `handlers/webhook-ghl.ts` — HMAC-SHA256 signature verification + DB update via HYPERDRIVE
+- `contact.delete` → sets `ghlOptedOut=true`, clears `ghlContactId` on profile
+- `contact.dnd_update` (dnd=true) → sets `ghlOptedOut=true` on profile
+- TODO (ops): register worker's `/webhooks/ghl` URL in GHL → Settings → Webhooks; note actual signature header name in GHL docs (may be `x-wm-hmac-sha256`)
 
-### Phase 6 — Cron-based contact sync (planned)
+### Phase 6 — Stripe relay (complete)
 
-- Wire up Stripe webhooks → CRM worker relay
-- Add pipeline stage transitions for subscription lifecycle events
-- Tune cron frequency based on observed sync lag
+- `handlers/webhook-stripe.ts` — Stripe signature verification (timestamp + HMAC-SHA256) with 5-minute replay window
+- `customer.subscription.created/updated` (active/trialing) → adds `panamia-subscriber` + `panamia-plan-{planId}` tags, removes `panamia-churned`
+- `customer.subscription.deleted` or lapsed status → adds `panamia-churned`, removes `panamia-subscriber`
+- GHL contact found via `users.email` → `profiles.ghlContactId` join; silently skips if no contact linked
+- `STRIPE_WEBHOOK_SECRET` added to `.env.example` and `Env` interface
+- TODO (ops): register worker's `/webhooks/stripe` URL in Stripe dashboard → Webhooks; subscribe to `customer.subscription.*` events
 
 ---
 

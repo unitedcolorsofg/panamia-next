@@ -1,9 +1,19 @@
 /**
  * Drizzle schema subset for the CRM worker.
  *
- * Contains only the three tables the worker needs: users, profiles, subscriptions.
+ * Contains only the tables the worker needs: users, profiles, subscriptions.
  * Keep in sync with the main app's lib/schema/index.ts manually.
  * If you change column names in the main schema, update this file too.
+ *
+ * Columns NOT mirrored here (not needed by the worker):
+ *   - All address / location fields
+ *   - socials, galleryImages, categories, counties, locations, geo, gentedepana,
+ *     status, administrative, linkedProfiles, affiliate, whatsappCommunity
+ *   - socialEligible / socialEligibleAt / socialIneligibleReason
+ *
+ * NOTE: panaVerified is stored inside the `verification` JSONB column, not as
+ * a separate boolean. Access via (profile.verification as {panaVerified?: boolean}).
+ * NOTE: lastLoginAt does NOT exist in the DB — use sessions table for activity.
  */
 
 import { boolean, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
@@ -37,12 +47,10 @@ export const profiles = pgTable('profiles', {
   // GHL integration
   ghlContactId: text('ghl_contact_id'),
   ghlOptedOut: boolean('ghl_opted_out').notNull().default(false),
-  // Member status
-  panaVerified: boolean('pana_verified').notNull().default(false),
-  // Profile content (jsonb — match main schema)
+  // Member status — panaVerified lives inside this JSONB
+  verification: jsonb('verification'),
+  // Profile content
   descriptions: jsonb('descriptions'),
-  // Activity tracking
-  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

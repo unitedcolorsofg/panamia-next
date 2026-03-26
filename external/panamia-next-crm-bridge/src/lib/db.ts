@@ -16,6 +16,7 @@ export interface Env {
   GHL_API_KEY: string;
   GHL_LOCATION_ID: string;
   GHL_WEBHOOK_SECRET: string;
+  STRIPE_WEBHOOK_SECRET: string;
   POSTGRES_URL?: string;
 }
 

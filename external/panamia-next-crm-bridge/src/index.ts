@@ -1,7 +1,7 @@
 /**
  * panamia-crm-bridge — Cloudflare Worker entry point
  *
- * fetch() handler: routes HTTP requests (health check, GHL webhooks)
+ * fetch() handler: routes HTTP requests (health check, GHL webhooks, Stripe webhooks)
  * scheduled() handler: dispatches cron jobs (contact sync, inactive sweep)
  *
  * See docs/CRM-ROADMAP.md for full architecture and phased rollout.
@@ -10,6 +10,7 @@
 import { Env } from './lib/db';
 import { handleHealth } from './handlers/health';
 import { handleGhlWebhook } from './handlers/webhook-ghl';
+import { handleStripeWebhook } from './handlers/webhook-stripe';
 import { runContactSync } from './jobs/contact-sync';
 import { runInactiveSweep } from './jobs/inactive-sweep';
 
@@ -23,6 +24,10 @@ export default {
 
     if (request.method === 'POST' && url.pathname === '/webhooks/ghl') {
       return handleGhlWebhook(request, env);
+    }
+
+    if (request.method === 'POST' && url.pathname === '/webhooks/stripe') {
+      return handleStripeWebhook(request, env);
     }
 
     return new Response('Not found', { status: 404 });
