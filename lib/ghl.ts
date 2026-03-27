@@ -104,6 +104,14 @@ export class GhlClient {
     await this.request<void>('DELETE', `/contacts/${id}`);
   }
 
+  /** Enroll a contact in a workflow by ID. */
+  async enrollInWorkflow(contactId: string, workflowId: string): Promise<void> {
+    await this.request<void>(
+      'POST',
+      `/contacts/${contactId}/workflow/${workflowId}`
+    );
+  }
+
   /** Set DND on all channels — effectively unsubscribes the contact from all marketing. */
   async setDndAll(id: string): Promise<void> {
     const dnd: Record<string, { status: GhlDndStatus }> = {

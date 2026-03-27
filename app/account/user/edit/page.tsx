@@ -1,6 +1,17 @@
 'use client';
 
 import { useEffect, useState, FormEvent, useCallback } from 'react';
+
+interface GhlContactData {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  tags?: string[];
+  dnd?: boolean;
+}
 import { useSession } from '@/lib/auth-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -113,6 +124,13 @@ export default function UserEditPage() {
   const [showScreennameConfirmDialog, setShowScreennameConfirmDialog] =
     useState(false);
 
+  const [ghlContact, setGhlContact] = useState<GhlContactData | null | 'empty'>(
+    null
+  );
+  const [ghlLoading, setGhlLoading] = useState(false);
+  const [ghlActionLoading, setGhlActionLoading] = useState<string | null>(null);
+  const [showDeleteContactDialog, setShowDeleteContactDialog] = useState(false);
+
   // Check if screenname is actually changing
   const isScreennameChanging =
     sessionScreenname &&
@@ -173,6 +191,156 @@ export default function UserEditPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     updateUserSession();
+  };
+
+  const fetchGhlContact = async () => {
+    if (ghlContact !== null) return;
+    setGhlLoading(true);
+    try {
+      const res = await fetch('/api/crm/contact');
+      const data = await res.json();
+      setGhlContact(res.ok ? (data.data ?? 'empty') : 'empty');
+      if (!res.ok) {
+        toast({
+          title: 'Error',
+          description: 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      setGhlContact('empty');
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlLoading(false);
+    }
+  };
+
+  const handleGhlUnsubscribe = async () => {
+    setGhlActionLoading('unsubscribe');
+    try {
+      const res = await fetch('/api/crm/contact/unsubscribe', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setGhlContact((prev) =>
+          prev && prev !== 'empty' ? { ...prev, dnd: true } : prev
+        );
+        toast({
+          title: 'Unsubscribed',
+          description:
+            'You have been removed from all HighLevel communications.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
+  };
+
+  const handleGhlDeleteContact = async () => {
+    setShowDeleteContactDialog(false);
+    setGhlActionLoading('delete');
+    try {
+      const res = await fetch('/api/crm/contact', { method: 'DELETE' });
+      if (res.ok) {
+        setGhlContact('empty');
+        toast({
+          title: 'Marketing data deleted',
+          description: 'Your marketing record has been removed.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
+  };
+
+  const handleGhlTriggerTestWorkflow = async () => {
+    setGhlActionLoading('test-workflow');
+    try {
+      const res = await fetch('/api/crm/contact/enroll', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: 'Workflow triggered',
+          description: `Enrolled in workflow ${data.workflowId}.`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description:
+            data.error || 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
+  };
+
+  const handleGhlCopyField = async (field: 'name' | 'phone') => {
+    setGhlActionLoading(`copy-${field}`);
+    try {
+      const res = await fetch('/api/crm/contact/copy-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: 'Copied',
+          description: `${field === 'name' ? 'Name' : 'Phone'} copied to your profile.`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description:
+            data.error || 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
   };
 
   const handleEmailMigration = async () => {
@@ -451,7 +619,13 @@ export default function UserEditPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Accordion type="single" collapsible>
+            <Accordion
+              type="single"
+              collapsible
+              onValueChange={(v) => {
+                if (v === 'marketing-data') fetchGhlContact();
+              }}
+            >
               <AccordionItem value="change-email">
                 <AccordionTrigger>Change Email Address</AccordionTrigger>
                 <AccordionContent>
@@ -550,7 +724,165 @@ export default function UserEditPage() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem value="marketing-data">
+                <AccordionTrigger>Marketing Data (HighLevel)</AccordionTrigger>
+                <AccordionContent>
+                  {ghlLoading || ghlContact === null ? (
+                    <div className="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : ghlContact === 'empty' ? (
+                    <p className="text-muted-foreground py-4 text-sm">
+                      No marketing data on file.
+                    </p>
+                  ) : (
+                    <div className="space-y-4 pt-2">
+                      <dl className="space-y-2 text-sm">
+                        {(ghlContact.firstName || ghlContact.lastName) && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">Name</dt>
+                            <dd>
+                              {[ghlContact.firstName, ghlContact.lastName]
+                                .filter(Boolean)
+                                .join(' ')}
+                            </dd>
+                          </div>
+                        )}
+                        {ghlContact.email && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">Email</dt>
+                            <dd>{ghlContact.email}</dd>
+                          </div>
+                        )}
+                        {ghlContact.phone && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">Phone</dt>
+                            <dd>{ghlContact.phone}</dd>
+                          </div>
+                        )}
+                        {ghlContact.source && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">
+                              Lead source
+                            </dt>
+                            <dd>{ghlContact.source}</dd>
+                          </div>
+                        )}
+                        {ghlContact.tags && ghlContact.tags.length > 0 && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-muted-foreground">Tags</dt>
+                            <dd className="text-right">
+                              {ghlContact.tags.join(', ')}
+                            </dd>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-muted-foreground">
+                            Marketing emails
+                          </dt>
+                          <dd>
+                            {ghlContact.dnd ? 'Unsubscribed' : 'Subscribed'}
+                          </dd>
+                        </div>
+                      </dl>
+                      <p className="text-muted-foreground text-xs">
+                        Changes may take up to 24 hours to become effective.
+                      </p>
+                      <div className="flex flex-wrap gap-2 border-t pt-4">
+                        {(ghlContact.firstName || ghlContact.lastName) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!ghlActionLoading}
+                            onClick={() => handleGhlCopyField('name')}
+                          >
+                            {ghlActionLoading === 'copy-name' && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Copy name to profile
+                          </Button>
+                        )}
+                        {ghlContact.phone && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!ghlActionLoading}
+                            onClick={() => handleGhlCopyField('phone')}
+                          >
+                            {ghlActionLoading === 'copy-phone' && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Copy phone to profile
+                          </Button>
+                        )}
+                        {!ghlContact.dnd && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!ghlActionLoading}
+                            onClick={handleGhlUnsubscribe}
+                          >
+                            {ghlActionLoading === 'unsubscribe' && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Unsubscribe
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!!ghlActionLoading}
+                          onClick={handleGhlTriggerTestWorkflow}
+                        >
+                          {ghlActionLoading === 'test-workflow' && (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          )}
+                          Trigger test workflow
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={!!ghlActionLoading}
+                          onClick={() => setShowDeleteContactDialog(true)}
+                        >
+                          {ghlActionLoading === 'delete' && (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          )}
+                          Delete marketing data
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
+
+            <AlertDialog
+              open={showDeleteContactDialog}
+              onOpenChange={setShowDeleteContactDialog}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Marketing Data</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes your contact record from HighLevel.
+                    You will no longer receive marketing emails from Panamia.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleGhlDeleteContact}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>

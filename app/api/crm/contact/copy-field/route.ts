@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Could not reach marketing service — try again later',
+        error: 'Could not reach HighLevel, please try again later.',
       },
       { status: 503 }
     );
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Could not load marketing data — try again later',
+        error: 'Could not reach HighLevel, please try again later.',
       },
       { status: 503 }
     );

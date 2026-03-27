@@ -43,7 +43,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: 'Could not load marketing data — try again later',
+        error: 'Could not reach HighLevel, please try again later.',
       },
       { status: 503 }
     );
@@ -56,7 +56,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: 'Could not load marketing data — try again later',
+        error: 'Could not reach HighLevel, please try again later.',
       },
       { status: 503 }
     );

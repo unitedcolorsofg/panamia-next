@@ -1,11 +1,9 @@
 /**
- * POST /api/crm/contact/unsubscribe
+ * POST /api/crm/contact/enroll
  *
- * Sets DND (Do Not Disturb) on all GHL channels for the authenticated user's
- * contact record — effectively unsubscribing them from all marketing communications.
- *
- * The contact record is NOT deleted. Use DELETE /api/crm/contact to delete it.
- * Degrades gracefully if GHL is unavailable.
+ * Enrolls the authenticated user's GHL contact into the workflow specified
+ * by GHL_WORKFLOW_TEST_ID. Intended for development/staging use — leave
+ * GHL_WORKFLOW_TEST_ID unset in production to disable.
  */
 
 import { NextResponse } from 'next/server';
@@ -24,20 +22,24 @@ export async function POST() {
     );
   }
 
+  const workflowId = process.env.GHL_WORKFLOW_TEST_ID;
+  if (!workflowId) {
+    return NextResponse.json(
+      { success: false, error: 'GHL_WORKFLOW_TEST_ID is not configured.' },
+      { status: 503 }
+    );
+  }
+
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, session.user.id),
     columns: { ghlContactId: true },
   });
 
-  if (!profile) {
+  if (!profile?.ghlContactId) {
     return NextResponse.json(
-      { success: false, error: 'Profile not found' },
+      { success: false, error: 'No GHL contact linked to this profile.' },
       { status: 404 }
     );
-  }
-
-  if (!profile.ghlContactId) {
-    return NextResponse.json({ success: true });
   }
 
   const ghl = GhlClient.create();
@@ -52,8 +54,8 @@ export async function POST() {
   }
 
   try {
-    await ghl.setDndAll(profile.ghlContactId);
-    return NextResponse.json({ success: true });
+    await ghl.enrollInWorkflow(profile.ghlContactId, workflowId);
+    return NextResponse.json({ success: true, workflowId });
   } catch {
     return NextResponse.json(
       {
