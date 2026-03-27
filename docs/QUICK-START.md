@@ -31,6 +31,7 @@ These are required for specific features:
 | ---------------------------------------------------------------------- | --------------------- | --------------------- |
 | [Stripe](https://stripe.com/)                                          | Payment processing    | Donations             |
 | [Brevo](https://brevo.com/)                                            | Transactional email   | Authentication emails |
+| [Cloudflare R2](https://developers.cloudflare.com/r2/)                 | Object storage        | File uploads          |
 | [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) | DB connection pooling | Production only       |
 
 ---
@@ -76,6 +77,11 @@ Edit `.env.local` with your credentials. Key configurations:
 | `BETTER_AUTH_URL`      | `http://localhost:3000` for development                            |
 | `NEXT_PUBLIC_HOST_URL` | `http://localhost:3000` for development                            |
 | `EMAIL_SERVER_*`       | Required for authentication emails (Brevo)                         |
+| `R2_ACCOUNT_ID`        | Cloudflare account ID                                              |
+| `R2_ACCESS_KEY_ID`     | R2 API token key ID (R2 → Manage R2 API Tokens)                    |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret                                                |
+| `R2_BUCKET_NAME`       | R2 bucket name (`panamia-media`)                                   |
+| `R2_PUBLIC_URL`        | Public bucket URL (enable Public Development URL in R2 dashboard)  |
 
 See `.env.local.example` for all available options with detailed comments.
 
@@ -222,6 +228,15 @@ yarn deploy:vinext
 ```jsonc
 "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<your-hyperdrive-id>" }]
 ```
+
+**Object storage** — create the R2 bucket and configure CORS:
+
+```bash
+npx wrangler r2 bucket create panamia-media
+npx wrangler r2 bucket create panamia-media-preview
+```
+
+Enable **Public Development URL** on `panamia-media` in the Cloudflare dashboard to get `R2_PUBLIC_URL`. Create an R2 API token (R2 → Manage R2 API Tokens, Object Read & Write) for `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`. The `R2_BUCKET` binding in `wrangler.jsonc` is used automatically in Workers — credentials are only needed for presigned URL generation and local Node.js dev.
 
 ### Build Locally
 

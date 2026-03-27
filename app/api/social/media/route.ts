@@ -2,7 +2,7 @@
  * POST /api/social/media - Upload media for social posts
  *
  * Accepts multipart form data with a single file.
- * Uploads to Vercel Blob and returns attachment metadata.
+ * Uploads to Cloudflare R2 and returns attachment metadata.
  *
  * Supported types:
  *   - Images: image/jpeg, image/png, image/webp, image/gif

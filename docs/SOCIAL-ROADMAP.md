@@ -25,12 +25,12 @@ This document outlines the plan to add native social features to panamia.club. B
 │  │  "My New Post"  │     │  ┌─────────────────────────────┐    │   │
 │  │                 │     │  │ @author: Check out my new   │    │   │
 │  │  [content...]   │     │  │ article about...            │    │   │
-│  │                 │     │  │ 🔗 panamia.club/a/...│    │   │
+│  │                 │     │  │ [link] panamia.club/a/...│    │   │
 │  │  ─────────────  │     │  └─────────────────────────────┘    │   │
 │  │  Comments:      │     │  ┌─────────────────────────────┐    │   │
 │  │  ┌───────────┐  │     │  │ @coauthor: Excited to share │    │   │
 │  │  │ @user@mast│◄─┼─────┼──│ this new article...         │    │   │
-│  │  │ Great!    │  │     │  │ 🔗 panamia.club/a/...│    │   │
+│  │  │ Great!    │  │     │  │ [link] panamia.club/a/...│    │   │
 │  │  └───────────┘  │     │  └─────────────────────────────┘    │   │
 │  │  ┌───────────┐  │     │  ┌─────────────────────────────┐    │   │
 │  │  │ @local    │◄─┼─────┼──│ @someone@mastodon.social    │    │   │
@@ -226,7 +226,7 @@ export const articleAnnouncements = pgTable(
 
 ## Implementation Phases
 
-### Phase 1: Infrastructure Setup ✓
+### Phase 1: Infrastructure Setup (done)
 
 **Status**: Complete
 
@@ -237,7 +237,7 @@ export const articleAnnouncements = pgTable(
 - [x] Create `lib/federation/` directory structure
 - [x] Add TypeScript path alias for external imports
 
-### Phase 2: Database Schema ✓
+### Phase 2: Database Schema (done)
 
 **Status**: Complete
 
@@ -253,7 +253,7 @@ export const articleAnnouncements = pgTable(
 - [x] Create migration
 - [x] Deprecate `mastodonPostUrl` field on Article
 
-### Phase 3: Actor Management ✓
+### Phase 3: Actor Management (done)
 
 **Status**: Complete
 
@@ -272,7 +272,7 @@ username. The `syncActorFromProfile()` function updates `name`, `summary`, and
 `iconUrl` but not `username`. If a user needs a different social username, they
 would need to delete and recreate their actor (losing followers).
 
-### Phase 3.5: Legacy Feature Removal ✓
+### Phase 3.5: Legacy Feature Removal (done)
 
 **Status**: Complete
 
@@ -296,7 +296,7 @@ feature sets. SocialFollow is now the sole follow mechanism.
 - Navigation item "Timeline Posts" → `/timeline`
 - Migration to drop `user_follows`, `user_lists`, `user_list_members` tables
 
-### Phase 4: Social Timeline (Local) ✓
+### Phase 4: Social Timeline (Local) (done)
 
 **Status**: Complete
 
@@ -338,7 +338,7 @@ instead of separate pages. Timeline page has Home/Public tabs.
 
 **Media Attachments**:
 
-- [x] Upload endpoint (`POST /api/social/media`) using Vercel Blob storage
+- [x] Upload endpoint (`POST /api/social/media`) using Cloudflare R2 storage
 - [x] Accepted types: images (jpeg, png, webp, gif) and audio (webm for voice memos)
 - [x] Max file size: 10 MB, max 4 attachments per post
 - [x] `SocialAttachment` records created alongside status
@@ -350,7 +350,7 @@ instead of separate pages. Timeline page has Home/Public tabs.
 
 - `components/social/PostComposer.tsx` — Write/Preview tabs, media upload button, attachment previews
 - `components/social/AttachmentGrid.tsx` — Responsive display grid for images and audio
-- `app/api/social/media/route.ts` — Vercel Blob upload endpoint
+- `app/api/social/media/route.ts` — R2 upload endpoint
 - `lib/federation/wrappers/status.ts` — MD-to-HTML via `marked`, `SocialAttachment` creation
 - `lib/federation/wrappers/timeline.ts` — `include: { attachments: true }` on all queries
 - `lib/interfaces.ts` — `attachments` field on `SocialStatusDisplay`
@@ -381,9 +381,9 @@ The current media implementation has two gaps to address:
 
 | Browser       | audio/ogg (Opus) | video/webm (VP9) |
 | ------------- | ---------------- | ---------------- |
-| Chrome / Edge | ✓                | ✓                |
-| Firefox       | ✓                | ✓                |
-| Safari / iOS  | ✗                | ✗                |
+| Chrome / Edge | (yes)            | (yes)            |
+| Firefox       | (yes)            | (yes)            |
+| Safari / iOS  | (no)             | (no)             |
 
 **Client-side transcoding with ffmpeg.wasm**:
 
@@ -441,7 +441,7 @@ The existing `audio/webm` MIME type accepted by `VoiceMemoComposer` will be remo
 - [x] Update `VoiceMemoComposer.tsx` — replace raw `audio/webm` upload with Opus transcode, Safari guard
 - [x] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/webm`, remove `audio/webm`
 - [x] Update `AttachmentGrid.tsx` — Vidstack player for `video/webm`, Safari fallback for audio and video
-- [x] Add Safari/iOS "Please use Chrome or Firefox 💛" notice for audio/video playback
+- [x] Add Safari/iOS "Please use Chrome or Firefox" notice for audio/video playback
 
 ### Phase 4C: Voice Memo Direct Messages
 

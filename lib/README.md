@@ -97,7 +97,7 @@ Zod schemas for input validation:
 
 ## Blob Storage (`blob/`)
 
-Vercel Blob integration for file uploads:
+Cloudflare R2 integration for file uploads:
 
 | File     | Description                                 |
 | -------- | ------------------------------------------- |

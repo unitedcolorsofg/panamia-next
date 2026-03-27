@@ -4,7 +4,7 @@
  * One-Time Migration: MongoDB to PostgreSQL
  *
  * Copies all auth and profile data from MongoDB to a fresh PostgreSQL database,
- * including migration of images from external CDNs to Vercel Blob.
+ * including migration of images from external CDNs to Cloudflare R2.
  *
  * To run the migration, install mongodb first:
  * npm install mongodb

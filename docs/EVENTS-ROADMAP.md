@@ -100,7 +100,7 @@ These are displayed on the event detail page and enforced in the photo upload ro
 ## Photo Upload & Approval Workflow
 
 1. Attendee (`going`/`maybe`) or organizer uploads photo via `POST /api/events/[slug]/photos` with `{ url, caption }`
-   - The URL is a Vercel Blob URL (client-side upload, same pattern as social/media/upload)
+   - The URL is an R2 URL (client-side upload via presigned URL, same pattern as social/media/upload)
    - Photos are immediately stored with `approved: false`
 2. Organizer with `canSeeRsvpList=true` or admin approves via `PATCH /api/events/[slug]/photos/[photoId]` with `{ approved: true }`
 3. Only approved photos appear in `GET /api/events/[slug]/photos` and `/e/[slug]/photos` for the public

@@ -19,14 +19,18 @@ Configure in GitHub → Repository Settings → Secrets and variables → Action
 
 **Secrets** (sensitive):
 
-| Secret                  | Value                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------- |
-| `POSTGRES_URL`          | Test Supabase project connection string (session-mode pooler, port 5432)          |
-| `POSTGRES_DIRECT_URL`   | Test Supabase project direct connection string — used for migrations and DB reset |
-| `BETTER_AUTH_SECRET`    | Any random 32-byte secret (can differ from production)                            |
-| `ADMIN_EMAILS`          | Test admin email(s)                                                               |
-| `RECAPTCHA_SECRET_KEY`  | reCAPTCHA secret key                                                              |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (can be the same as production for read-only test scenarios)    |
+| Secret                 | Value                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `POSTGRES_URL`         | Test Supabase project connection string (session-mode pooler, port 5432)          |
+| `POSTGRES_DIRECT_URL`  | Test Supabase project direct connection string — used for migrations and DB reset |
+| `BETTER_AUTH_SECRET`   | Any random 32-byte secret (can differ from production)                            |
+| `ADMIN_EMAILS`         | Test admin email(s)                                                               |
+| `RECAPTCHA_SECRET_KEY` | reCAPTCHA secret key                                                              |
+| `R2_PUBLIC_URL`        | R2 public bucket URL                                                              |
+| `R2_ACCOUNT_ID`        | Cloudflare account ID                                                             |
+| `R2_ACCESS_KEY_ID`     | R2 API token key ID                                                               |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret                                                               |
+| `R2_BUCKET_NAME`       | R2 bucket name                                                                    |
 
 **Variables** (non-sensitive):
 

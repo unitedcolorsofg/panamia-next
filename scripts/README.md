@@ -45,7 +45,7 @@ npx tsx scripts/delete-user.ts user@example.com
 ### `migrate-from-mongodb.ts`
 
 One-time migration script for copying data from MongoDB to PostgreSQL,
-including migration of images from external CDNs to Vercel Blob:
+including migration of images from external CDNs to Cloudflare R2:
 
 ```bash
 # Full migration (data + images)
@@ -71,12 +71,12 @@ npx tsx scripts/migrate-from-mongodb.ts \
 - accounts (nextauth_accounts → accounts)
 - sessions (nextauth_sessions → sessions)
 - profiles (profiles → profiles)
-- images (BunnyCDN/external → Vercel Blob)
+- images (BunnyCDN/external → Cloudflare R2)
 
 **Requirements:**
 
 - `mongodb` npm package (install with `npm install mongodb`)
-- `BLOB_READ_WRITE_TOKEN` env var (for image migration)
+- R2 credentials env vars (for image migration): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
 
 ### `reset-test-db.ts`
 
@@ -119,7 +119,7 @@ chmod +x scripts/script-name.sh
 Scripts typically need access to:
 
 - `POSTGRES_URL` or `DATABASE_URL` - PostgreSQL connection
-- `BLOB_READ_WRITE_TOKEN` - Vercel Blob access
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` - Cloudflare R2 access
 - Other service-specific credentials
 
 Load from `.env.local` or set in shell environment.
