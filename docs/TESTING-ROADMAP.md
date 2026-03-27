@@ -2,27 +2,45 @@
 
 ## GitHub Automated Testing Infrastructure
 
-When code is pushed to GitHub or a pull request is opened, automated tests run using a temporary database that is completely separate from production.
+When code is pushed to GitHub or a pull request is opened, automated tests run using a dedicated Supabase test project that is completely separate from production.
 
 ### How It Works
 
-1. **Create test database** — GitHub creates a new, empty database branch in Neon (e.g., `test-12345678`)
-2. **Apply migrations** — All database migrations run against the empty database, verifying they work correctly
-3. **Run tests** — Playwright tests run against this isolated database
-4. **Delete test database** — The temporary branch is automatically deleted, even if tests fail
+1. **Reset test database** — The CI job drops and recreates the `public` schema on the test Supabase project, giving every run a clean slate
+2. **Apply migrations** — All Drizzle migrations run against the empty database, verifying they work correctly
+3. **Run tests** — Playwright tests run against this freshly migrated database
+4. **No cleanup needed** — The next run resets the schema again automatically
 
 Your production database is never touched during testing.
 
-### Required GitHub Secrets
+### Required GitHub Secrets and Variables
 
-These must be configured in GitHub → Repository Settings → Secrets and variables → Actions:
+Configure in GitHub → Repository Settings → Secrets and variables → Actions:
 
-| Secret            | Where to Find It                                       |
-| ----------------- | ------------------------------------------------------ |
-| `NEON_PROJECT_ID` | Neon Console → Your Project → Settings → Project ID    |
-| `NEON_API_KEY`    | Neon Console → Account (top right) → API Keys → Create |
+**Secrets** (sensitive):
 
-See `.env.local.example` for detailed setup instructions.
+| Secret                  | Value                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `POSTGRES_URL`          | Test Supabase project connection string (session-mode pooler, port 5432)          |
+| `POSTGRES_DIRECT_URL`   | Test Supabase project direct connection string — used for migrations and DB reset |
+| `BETTER_AUTH_SECRET`    | Any random 32-byte secret (can differ from production)                            |
+| `ADMIN_EMAILS`          | Test admin email(s)                                                               |
+| `RECAPTCHA_SECRET_KEY`  | reCAPTCHA secret key                                                              |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (can be the same as production for read-only test scenarios)    |
+
+**Variables** (non-sensitive):
+
+| Variable                         | Value                   |
+| -------------------------------- | ----------------------- |
+| `BETTER_AUTH_URL`                | `http://localhost:3000` |
+| `NEXT_PUBLIC_HOST_URL`           | `http://localhost:3000` |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA site key      |
+| `NEXT_PUBLIC_GOOGLE_ENABLED`     | `false`                 |
+| `NEXT_PUBLIC_APPLE_ENABLED`      | `false`                 |
+| `NEXT_PUBLIC_MASTODON_ENABLED`   | `false`                 |
+| `NEXT_PUBLIC_WIKIMEDIA_ENABLED`  | `false`                 |
+
+> **Important**: `POSTGRES_URL` and `POSTGRES_DIRECT_URL` must point to a **dedicated Supabase test project**, not the production project. Create a separate free-tier Supabase project for CI use.
 
 ### Workflow File
 

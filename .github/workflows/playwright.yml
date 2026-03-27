@@ -32,7 +32,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Run migrations — point POSTGRES_DIRECT_URL secret at a test Supabase project to avoid touching production
+      # Reset the test DB to a clean slate before each run so tests never
+      # inherit state from a previous run. POSTGRES_DIRECT_URL must point to a
+      # dedicated Supabase test project — never the production project.
+      - name: Reset test database
+        run: |
+          psql "${{ secrets.POSTGRES_DIRECT_URL }}" \
+            -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
       - name: Run database migrations
         run: npx drizzle-kit migrate
         env:

@@ -241,7 +241,7 @@ This is intentionally synchronous (not async/queued) because admin-initiated ven
 
 - Auto-create `socialStatus` row when event is published
 - Deliver to host's followers via AP outbox
-- Replace CI playwright.yml Neon → Supabase test DB
+- [x] Replace CI playwright.yml Neon → Supabase test DB
 
 ### Phase 5 — Livestreaming UI
 
