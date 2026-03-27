@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { upload } from '@vercel/blob/client';
 import { useCreatePost } from '@/lib/query/social';
 import { transcodeToOpus, transcodeToWebMVideo } from '@/lib/media/transcode';
 
@@ -137,44 +136,82 @@ export function PostComposer({
     for (const file of filesToUpload) {
       try {
         if (file.type.startsWith('audio/')) {
-          // Transcode → direct Vercel Blob upload (bypasses function payload limit)
+          // Transcode → direct R2 upload via presigned URL (bypasses Worker body limit)
           const oggBlob = await transcodeToOpus(file);
           const uuid = crypto.randomUUID();
-          const blobResult = await upload(`social/media/${uuid}.ogg`, oggBlob, {
-            access: 'public',
-            handleUploadUrl: '/api/social/media/upload',
+          const filename = `social/media/${uuid}.ogg`;
+          const { presignedUrl, publicUrl } = await fetch(
+            '/api/social/media/upload',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename,
+                contentType: 'audio/ogg',
+                size: oggBlob.size,
+              }),
+            }
+          ).then(async (r) => {
+            if (!r.ok)
+              throw new Error((await r.json()).error ?? 'Upload token failed');
+            return r.json() as Promise<{
+              presignedUrl: string;
+              publicUrl: string;
+            }>;
+          });
+          await fetch(presignedUrl, {
+            method: 'PUT',
+            body: oggBlob,
+            headers: { 'Content-Type': 'audio/ogg' },
           });
           setAttachments((prev) => [
             ...prev,
             {
               type: 'audio',
               mediaType: 'audio/ogg',
-              url: blobResult.url,
+              url: publicUrl,
               name: file.name,
             },
           ]);
         } else if (file.type.startsWith('video/')) {
-          // Transcode → direct Vercel Blob upload (bypasses function payload limit)
+          // Transcode → direct R2 upload via presigned URL (bypasses Worker body limit)
           setVideoProgress(0);
           const webmBlob = await transcodeToWebMVideo(file, (ratio) => {
             setVideoProgress(Math.round(ratio * 100));
           });
           setVideoProgress(null);
           const uuid = crypto.randomUUID();
-          const blobResult = await upload(
-            `social/media/${uuid}.webm`,
-            webmBlob,
+          const filename = `social/media/${uuid}.webm`;
+          const { presignedUrl, publicUrl } = await fetch(
+            '/api/social/media/upload',
             {
-              access: 'public',
-              handleUploadUrl: '/api/social/media/upload',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename,
+                contentType: 'video/webm',
+                size: webmBlob.size,
+              }),
             }
-          );
+          ).then(async (r) => {
+            if (!r.ok)
+              throw new Error((await r.json()).error ?? 'Upload token failed');
+            return r.json() as Promise<{
+              presignedUrl: string;
+              publicUrl: string;
+            }>;
+          });
+          await fetch(presignedUrl, {
+            method: 'PUT',
+            body: webmBlob,
+            headers: { 'Content-Type': 'video/webm' },
+          });
           setAttachments((prev) => [
             ...prev,
             {
               type: 'video',
               mediaType: 'video/webm',
-              url: blobResult.url,
+              url: publicUrl,
               name: file.name,
             },
           ]);

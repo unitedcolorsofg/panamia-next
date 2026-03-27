@@ -18,7 +18,7 @@
  *   --mongodb       MongoDB connection string (required for data migration)
  *   --postgres      PostgreSQL connection string (required)
  *   --dry-run       Preview what would be migrated without writing
- *   --skip-images   Skip image migration to Vercel Blob
+ *   --skip-images   Skip image migration to R2
  *   --images-only   Only migrate images (skip data migration, requires existing PostgreSQL data)
  *
  * What gets migrated:
@@ -26,7 +26,7 @@
  *   - accounts (nextauth_accounts -> accounts)
  *   - sessions (nextauth_sessions -> sessions)
  *   - profiles (profiles -> profiles)
- *   - images (BunnyCDN/external -> Vercel Blob)
+ *   - images (BunnyCDN/external -> Cloudflare R2)
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -36,6 +36,7 @@ import * as schema from '../lib/schema';
 import { eq, like, or } from 'drizzle-orm';
 import * as https from 'https';
 import * as http from 'http';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 type DB = PostgresJsDatabase<typeof schema>;
 
@@ -86,7 +87,7 @@ Options:
   --mongodb       MongoDB connection string (required for data migration)
   --postgres      PostgreSQL connection string (required)
   --dry-run       Preview what would be migrated without writing
-  --skip-images   Skip image migration to Vercel Blob
+  --skip-images   Skip image migration to R2
   --images-only   Only migrate images (skip data migration)
 `);
     process.exit(1);
@@ -111,7 +112,11 @@ function generateCuid(): string {
 // Image Migration Utilities
 // =============================================================================
 
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
 const CDN_PATTERNS = ['b-cdn.net', 'bunnycdn', 'cdn.'];
 
 interface GalleryImages {
@@ -153,16 +158,36 @@ async function downloadFile(url: string): Promise<Buffer> {
   });
 }
 
-async function uploadToBlob(filename: string, buffer: Buffer): Promise<string> {
-  const { put } = await import('@vercel/blob');
-
-  const blob = await put(filename, buffer, {
-    access: 'public',
-    addRandomSuffix: false,
-    token: BLOB_TOKEN,
+function getS3Client(): S3Client {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID ?? '',
+      secretAccessKey: R2_SECRET_ACCESS_KEY ?? '',
+    },
   });
+}
 
-  return blob.url;
+async function uploadToR2(filename: string, buffer: Buffer): Promise<string> {
+  const s3 = getS3Client();
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  const contentTypeMap: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    gif: 'image/gif',
+  };
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: filename,
+      Body: buffer,
+      ContentType: contentTypeMap[ext] ?? 'application/octet-stream',
+    })
+  );
+  return `${R2_PUBLIC_URL}/${filename}`;
 }
 
 function isExternalCdnUrl(url: string | null | undefined): boolean {
@@ -185,14 +210,25 @@ async function migrateImages(
   dryRun: boolean
 ): Promise<{ success: number; errors: number }> {
   console.log('\n' + '='.repeat(60));
-  console.log('PHASE: Image Migration (External CDN -> Vercel Blob)');
+  console.log('PHASE: Image Migration (External CDN -> Cloudflare R2)');
   console.log('='.repeat(60));
 
-  if (!BLOB_TOKEN && !dryRun) {
+  if (
+    (!R2_ACCOUNT_ID ||
+      !R2_ACCESS_KEY_ID ||
+      !R2_BUCKET_NAME ||
+      !R2_PUBLIC_URL) &&
+    !dryRun
+  ) {
     console.log(
-      '\n[warning]  BLOB_READ_WRITE_TOKEN not set - skipping image migration'
+      '\n[warning]  R2 credentials not set - skipping image migration'
     );
-    console.log('   Set this environment variable to enable image migration');
+    console.log(
+      '   Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,'
+    );
+    console.log(
+      '   R2_BUCKET_NAME, and R2_PUBLIC_URL to enable image migration'
+    );
     return { success: 0, errors: 0 };
   }
 
@@ -228,7 +264,7 @@ async function migrateImages(
       console.log(`  primary: ${profile.primaryImageCdn}`);
 
       if (dryRun) {
-        console.log(`    -> Would migrate to Vercel Blob`);
+        console.log(`    -> Would migrate to Cloudflare R2`);
         hasUpdates = true;
       } else {
         try {
@@ -240,7 +276,7 @@ async function migrateImages(
             extractFilename(profile.primaryImageId) ||
             `profile/${profile.slug}/primary.jpg`;
           console.log(`    -> Uploading as ${blobFilename}...`);
-          const newUrl = await uploadToBlob(blobFilename, buffer);
+          const newUrl = await uploadToR2(blobFilename, buffer);
           console.log(`    -> Uploaded: ${newUrl}`);
 
           updates.primaryImageCdn = newUrl;
@@ -269,7 +305,7 @@ async function migrateImages(
         console.log(`  ${field}: ${cdnUrl}`);
 
         if (dryRun) {
-          console.log(`    -> Would migrate to Vercel Blob`);
+          console.log(`    -> Would migrate to Cloudflare R2`);
           hasUpdates = true;
           galleryHasUpdates = true;
           continue;
@@ -284,7 +320,7 @@ async function migrateImages(
             extractFilename(gallery[field]) ||
             `profile/${profile.slug}/${field}.jpg`;
           console.log(`    -> Uploading as ${blobFilename}...`);
-          const newUrl = await uploadToBlob(blobFilename, buffer);
+          const newUrl = await uploadToR2(blobFilename, buffer);
           console.log(`    -> Uploaded: ${newUrl}`);
 
           galleryUpdates[cdnField] = newUrl;

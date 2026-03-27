@@ -22,6 +22,17 @@
 			"localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 		}
 	],
+	// R2 object storage for media uploads (profile images, social audio/video)
+	// Create bucket: wrangler r2 bucket create panamia-media
+	// Enable public access in the Cloudflare dashboard to get R2_PUBLIC_URL.
+	"r2_buckets": [
+		{
+			"binding": "R2_BUCKET",
+			"bucket_name": "panamia-media",
+			"preview_bucket_name": "panamia-media-preview"
+		}
+	],
+
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 

@@ -12,11 +12,26 @@ import {
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
 import { getDb } from '../lib/db';
+import { getStorage } from '../lib/r2';
 
 interface Env {
   ASSETS: Fetcher;
   HYPERDRIVE: { connectionString: string };
   POSTGRES_URL?: string; // local dev only: wrangler secret binding from .env.local
+  R2_BUCKET?: {
+    put(
+      key: string,
+      value:
+        | ArrayBuffer
+        | ArrayBufferView
+        | ReadableStream
+        | string
+        | null
+        | Blob,
+      options?: { httpMetadata?: { contentType?: string } }
+    ): Promise<unknown>;
+    delete(keys: string | string[]): Promise<void>;
+  };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -31,10 +46,10 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // Prime the db cache with HYPERDRIVE before any application code runs.
-    // All subsequent getDb() calls (from server components, API routes, auth hooks)
-    // return this cached instance without needing env passed explicitly.
+    // Prime the db and R2 caches with CF bindings before any application code runs.
+    // All subsequent getDb() / getStorage() calls return the cached instances.
     getDb(env);
+    getStorage(env);
     const url = new URL(request.url);
 
     // Image optimization via Cloudflare Images binding.

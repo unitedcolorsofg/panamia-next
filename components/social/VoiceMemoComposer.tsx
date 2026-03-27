@@ -20,7 +20,6 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
-import { upload } from '@vercel/blob/client';
 import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
 import { LocationPickerModal, LocationData } from './LocationPickerModal';
 import { transcodeToOpus } from '@/lib/media/transcode';
@@ -281,20 +280,40 @@ export function VoiceMemoComposer({
     try {
       let attachment = null;
 
-      // Upload voice memo if present — direct to Vercel Blob (no function payload limit)
+      // Upload voice memo if present — direct to R2 via presigned URL (no Worker body limit)
       if (audioBlob) {
         const isOgg = audioBlob.type === 'audio/ogg';
         const ext = isOgg ? 'ogg' : 'webm';
         const uuid = crypto.randomUUID();
-        const blobResult = await upload(
-          `social/media/${uuid}.${ext}`,
-          audioBlob,
-          { access: 'public', handleUploadUrl: '/api/social/media/upload' }
-        );
+        const filename = `social/media/${uuid}.${ext}`;
+        const { presignedUrl, publicUrl } = await fetch(
+          '/api/social/media/upload',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename,
+              contentType: audioBlob.type,
+              size: audioBlob.size,
+            }),
+          }
+        ).then(async (r) => {
+          if (!r.ok)
+            throw new Error((await r.json()).error ?? 'Upload token failed');
+          return r.json() as Promise<{
+            presignedUrl: string;
+            publicUrl: string;
+          }>;
+        });
+        await fetch(presignedUrl, {
+          method: 'PUT',
+          body: audioBlob,
+          headers: { 'Content-Type': audioBlob.type },
+        });
         attachment = {
           type: 'audio',
           mediaType: audioBlob.type,
-          url: blobResult.url,
+          url: publicUrl,
           name: `voice-memo.${ext}`,
           ...(audioPeaks ? { peaks: audioPeaks } : {}),
         };

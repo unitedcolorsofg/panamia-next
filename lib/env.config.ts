@@ -248,13 +248,38 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // BLOB STORAGE (Vercel Blob)
+  // OBJECT STORAGE (Cloudflare R2)
   // =============================================================================
-  BLOB_READ_WRITE_TOKEN: {
-    description: 'Vercel Blob storage token',
+  R2_ACCOUNT_ID: {
+    description: 'Cloudflare account ID (used for R2 S3-compatible endpoint)',
     location: 'SECRET',
     required: true,
-    docsUrl: 'https://vercel.com/dashboard/stores',
+    docsUrl: 'https://dash.cloudflare.com/?to=/:account/r2',
+  },
+  R2_ACCESS_KEY_ID: {
+    description: 'R2 API token key ID (create under R2 → Manage R2 API Tokens)',
+    location: 'SECRET',
+    required: true,
+    docsUrl: 'https://dash.cloudflare.com/?to=/:account/r2/api-tokens',
+  },
+  R2_SECRET_ACCESS_KEY: {
+    description: 'R2 API token secret',
+    location: 'SECRET',
+    required: true,
+    docsUrl: 'https://dash.cloudflare.com/?to=/:account/r2/api-tokens',
+  },
+  R2_BUCKET_NAME: {
+    description: 'R2 bucket name (e.g. panamia-media)',
+    location: 'VAR',
+    required: true,
+    docsUrl: 'https://dash.cloudflare.com/?to=/:account/r2',
+  },
+  R2_PUBLIC_URL: {
+    description:
+      'Public base URL for the R2 bucket (r2.dev subdomain or custom domain)',
+    location: 'VAR',
+    required: true,
+    docsUrl: 'https://developers.cloudflare.com/r2/buckets/public-buckets/',
   },
 
   // =============================================================================
