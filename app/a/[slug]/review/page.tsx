@@ -21,7 +21,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle,
   AlertTriangle,
-  FileText,
   Loader2,
   MessageSquare,
   Send,
@@ -103,7 +102,7 @@ export default function ReviewPage() {
         if (data.data.reviewedBy?.checklist) {
           setChecklist(data.data.reviewedBy.checklist);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load article');
       } finally {
         setLoading(false);
@@ -167,8 +166,11 @@ export default function ReviewPage() {
       }
 
       router.push('/updates');
-    } catch (err: any) {
-      setError(err.message || 'Failed to approve article');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to approve article'
+      );
       setSubmitting(false);
     }
   };
@@ -194,8 +196,11 @@ export default function ReviewPage() {
       }
 
       router.push('/updates');
-    } catch (err: any) {
-      setError(err.message || 'Failed to request revision');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to request revision'
+      );
       setSubmitting(false);
     }
   };

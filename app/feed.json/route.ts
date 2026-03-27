@@ -8,7 +8,7 @@
 import { Feed } from 'feed';
 import { db } from '@/lib/db';
 import { articles, users } from '@/lib/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 

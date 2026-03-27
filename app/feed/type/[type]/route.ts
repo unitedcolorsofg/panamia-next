@@ -10,6 +10,7 @@ import { Feed } from 'feed';
 import { db } from '@/lib/db';
 import { articles, users } from '@/lib/schema';
 import { and, eq, inArray } from 'drizzle-orm';
+import type { ArticleType } from '@/lib/schema';
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL || 'https://panamia.club';
 
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const articleList = await db.query.articles.findMany({
       where: and(
         eq(articles.status, 'published'),
-        eq(articles.articleType, type as any)
+        eq(articles.articleType, type as ArticleType)
       ),
       orderBy: (t, { desc }) => [desc(t.publishedAt)],
       limit: 50,

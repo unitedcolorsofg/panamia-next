@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Build update data
-  const updateData: any = {
+  const updateData: Partial<typeof profiles.$inferInsert> = {
     counties: counties || null,
   };
 

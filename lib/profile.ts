@@ -7,7 +7,6 @@ import {
 
 export const listSelectedCategories = (categories: CategoryInterface) => {
   let listText = '';
-  type keyType = keyof CategoryInterface; //  "name" | "age"
   Object.keys(categories).forEach((key) => {
     const listObj = profileCategoryList.find((obj) => {
       return obj.value == key;
@@ -23,7 +22,7 @@ export const listSelectedCategories = (categories: CategoryInterface) => {
 /**
  * Extract safe-for-public fields from a profile.
  */
-export const unguardProfile = (profile: any) => {
+export const unguardProfile = (profile: Record<string, unknown>) => {
   // Get descriptions from JSONB or legacy fields
   const descriptions = profile.descriptions as ProfileDescriptions | null;
 
@@ -51,7 +50,7 @@ export const unguardProfile = (profile: any) => {
   };
 
   // only send safe for public fields
-  const publicProfile: any = {
+  const publicProfile: Record<string, unknown> = {
     _id: profile._id || profile.id,
     id: profile.id || profile._id,
     name: profile.name,

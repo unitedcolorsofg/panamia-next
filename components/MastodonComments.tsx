@@ -50,7 +50,7 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
       } else {
         setError(data.error);
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load comments');
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export default function MastodonComments({ slug }: MastodonCommentsProps) {
     fetchComments();
   }
 
-  function formatDate(dateString: string) {
+  function _formatDate(dateString: string) {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

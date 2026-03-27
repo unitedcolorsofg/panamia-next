@@ -7,11 +7,6 @@ import { eq } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 import { splitName } from '@/lib/standardized';
 
-interface ResponseData {
-  error?: string;
-  msg?: string;
-}
-
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   return regEx.test(email);
@@ -65,10 +60,7 @@ const callBrevo_sendAdminNoticeEmail = async (
       email: email,
       signup_type: signup_type,
     };
-    const response = await brevo.sendTemplateEmail(
-      parseInt(template_id),
-      params
-    );
+    await brevo.sendTemplateEmail(parseInt(template_id), params);
     // TODO: Confirm 201 response from Brevo
   }
 };

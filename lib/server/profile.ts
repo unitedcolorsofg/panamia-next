@@ -16,7 +16,12 @@ export const getProfile = async (email: string) => {
  * Transform Drizzle profile to legacy format for page components
  * This provides backward compatibility during migration
  */
-function transformToLegacyFormat(profile: any) {
+function transformToLegacyFormat(
+  profile: Record<string, unknown> & {
+    descriptions?: unknown;
+    mentoring?: unknown;
+  }
+) {
   const descriptions = profile.descriptions as ProfileDescriptions | null;
   const mentoring = profile.mentoring as ProfileMentoring | null;
 

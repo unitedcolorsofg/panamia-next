@@ -1,4 +1,4 @@
-export const getGeoPosition = (): Promise<any> => {
+export const getGeoPosition = (): Promise<GeolocationPosition> => {
   const options = {
     enableHighAccuracy: true,
     maximumAge: 30000,

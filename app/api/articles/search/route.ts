@@ -7,8 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { articles, users } from '@/lib/schema';
-import { eq, and, ne, ilike } from 'drizzle-orm';
 
 /**
  * GET /api/articles/search
@@ -28,23 +26,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build search conditions
-    const conditions: any[] = [
-      eq(articles.status, 'published'),
-      ilike(articles.title, `%${query}%`),
-    ];
-
-    if (excludeSlug) {
-      conditions.push(ne(articles.slug, excludeSlug));
-    }
-
     // Search articles
     const articleRows = await db.query.articles.findMany({
       where: (t, { eq, and, ne, ilike }) => {
-        const conds: any[] = [
-          eq(t.status, 'published'),
-          ilike(t.title, `%${query}%`),
-        ];
+        const conds = [eq(t.status, 'published'), ilike(t.title, `%${query}%`)];
         if (excludeSlug) {
           conds.push(ne(t.slug, excludeSlug));
         }

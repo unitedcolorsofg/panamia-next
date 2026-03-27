@@ -5,14 +5,7 @@ import { db } from '@/lib/db';
 import { users, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[] | any;
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session) {

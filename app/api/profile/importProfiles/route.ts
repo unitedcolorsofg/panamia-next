@@ -5,13 +5,6 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { ProfileDescriptions } from '@/lib/interfaces';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
-}
-
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const session = await auth();
@@ -33,7 +26,6 @@ export async function POST(request: NextRequest) {
   const {
     email,
     name,
-    slug,
     details,
     background,
     five_words,
@@ -58,7 +50,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         active: true,
-        descriptions: descriptions as any,
+        descriptions: descriptions as unknown as Record<string, unknown>,
         socials: socials || null,
         phoneNumber: phone_number || null,
       })
@@ -68,9 +60,13 @@ export async function POST(request: NextRequest) {
       { msg: 'Successfully created new Profile: ' + newProfile.id },
       { status: 200 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: "Error on '/api/importProfile': " + err.message },
+      {
+        error:
+          "Error on '/api/importProfile': " +
+          (err instanceof Error ? err.message : String(err)),
+      },
       { status: 400 }
     );
   }

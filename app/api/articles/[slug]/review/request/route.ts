@@ -31,7 +31,7 @@ interface ReviewedBy {
     sourcesChecked: boolean;
     communityStandards: boolean;
   };
-  comments: any[];
+  comments: { id: string; text: string }[];
 }
 
 /**
@@ -157,7 +157,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await db
       .update(articles)
-      .set({ reviewedBy: newReviewedBy as any, status: 'pending_review' })
+      .set({
+        reviewedBy: newReviewedBy as unknown as Record<string, unknown>,
+        status: 'pending_review',
+      })
       .where(eq(articles.id, articleDoc.id));
 
     // Create notification for reviewer

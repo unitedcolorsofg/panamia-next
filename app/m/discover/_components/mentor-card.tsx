@@ -6,21 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 
-interface MentorCardProps {
-  mentor: {
-    name: string;
-    email: string;
-    slug?: string;
-    mentoring: {
-      expertise: string[];
-      languages: string[];
-      bio: string;
-      hourlyRate?: number;
-    };
-    images?: {
-      avatar?: string;
-    };
+export interface MentorData {
+  name: string;
+  email: string;
+  slug?: string;
+  mentoring: {
+    expertise: string[];
+    languages: string[];
+    bio: string;
+    hourlyRate?: number;
   };
+  images?: {
+    avatar?: string;
+  };
+}
+
+interface MentorCardProps {
+  mentor: MentorData;
 }
 
 export function MentorCard({ mentor }: MentorCardProps) {

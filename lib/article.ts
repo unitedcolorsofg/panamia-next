@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { ArticleStatus } from './interfaces';
+import type { ArticleType } from './schema';
 
 /**
  * Generate a URL-safe slug from a title
@@ -225,7 +226,9 @@ export async function getPublishedArticles(
 
   const conditions = [
     eq(articles.status, 'published' as ArticleStatus),
-    ...(articleType ? [eq(articles.articleType, articleType as any)] : []),
+    ...(articleType
+      ? [eq(articles.articleType, articleType as ArticleType)]
+      : []),
     ...(tag ? [sql`${articles.tags} @> ARRAY[${tag}]::text[]`] : []),
   ];
   const whereClause = and(...conditions);

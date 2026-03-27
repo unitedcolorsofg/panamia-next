@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import styles from './PanaProfileCard.module.css';
-import classNames from 'classnames';
 
 interface ProfileCardProps {
   name: string;
@@ -16,9 +15,7 @@ export default function PanaProfileCard({
   return (
     <div className={styles.profileCardBlock}>
       <Link href={url} className={styles.imageLink}>
-
         <img className={styles.image} src={image} alt={name} />
-
       </Link>
       <Link href={url} className={styles.name}>
         {name}

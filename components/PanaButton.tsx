@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import styles from './PanaButton.module.css';
 import classnames from 'classnames';
@@ -21,7 +22,7 @@ interface CustomCSSProperties extends React.CSSProperties {
 }
 
 export default function PanaButton(props: PanaButtonProps) {
-  function handleClick(e: any) {
+  function handleClick(e: React.MouseEvent) {
     if (props.onClick) {
       props.onClick(e);
     }
@@ -60,7 +61,7 @@ export default function PanaButton(props: PanaButtonProps) {
         href={props.href}
         className={button_class}
         style={buttonColors}
-        onClick={(e: any) => handleClick(e)}
+        onClick={(e: React.MouseEvent) => handleClick(e)}
       >
         {props.text}
         {props.children}

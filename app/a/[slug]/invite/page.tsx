@@ -78,7 +78,11 @@ export default function InvitePage() {
 
         if (userData.success) {
           const invite = articleData.data.coAuthors?.find(
-            (ca: any) => ca.userId === userData.data._id
+            (ca: {
+              userId: string;
+              invitationMessage?: string;
+              status?: string;
+            }) => ca.userId === userData.data._id
           );
           if (invite) {
             setInvitation({
@@ -98,7 +102,7 @@ export default function InvitePage() {
         if (!authorData.deleted) {
           setAuthor(authorData);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load invitation');
       } finally {
         setLoading(false);
@@ -130,8 +134,11 @@ export default function InvitePage() {
       } else {
         router.push('/account/articles');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to respond to invitation');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to respond to invitation'
+      );
       setResponding(false);
     }
   };

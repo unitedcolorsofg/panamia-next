@@ -28,8 +28,8 @@ interface CoAuthor {
 interface ReviewedBy {
   userId: string;
   status: string;
-  checklist?: any;
-  comments?: any[];
+  checklist?: Record<string, boolean>;
+  comments?: { id: string; text: string }[];
   requestedAt?: string;
   approvedAt?: string;
 }
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Prepare response
-    const responseData: any = {
+    const responseData: Record<string, unknown> = {
       ...articleDoc,
       id: articleDoc.id,
     };
@@ -276,7 +276,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Apply updates
     const [updatedArticle] = await db
       .update(articles)
-      .set(updates as any)
+      .set(updates as Partial<typeof articles.$inferInsert>)
       .where(eq(articles.id, articleDoc.id))
       .returning();
 

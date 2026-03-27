@@ -9,7 +9,6 @@ interface ChatPanelProps {
   userEmail: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ChatPanel(_props: ChatPanelProps) {
   const [input, setInput] = useState('');
 

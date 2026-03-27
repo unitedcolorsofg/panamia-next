@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function AccountProfileContact() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileContact();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
   const [showOtherDesc, setShowOtherDesc] = useState(
     profile?.pronouns?.other || false

@@ -6,18 +6,11 @@ import { eq, sql } from 'drizzle-orm';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
-}
-
 interface ProfileStatus {
   access?: string;
   approved?: string;
   declined?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export async function POST(request: NextRequest) {
@@ -31,8 +24,8 @@ export async function POST(request: NextRequest) {
       .from(profiles)
       .where(eq(profiles.active, true));
     totalProfiles = Number(countResult?.count ?? 0);
-  } catch (e: any) {
-    console.log('profile.count failed', e);
+  } catch {
+    console.log('profile.count failed');
   }
 
   if (email) {

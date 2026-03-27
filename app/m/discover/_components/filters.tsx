@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MentorCard } from './mentor-card';
+import type { MentorData } from './mentor-card';
 
 export function MentorFilters() {
   const [expertise, setExpertise] = useState('');
   const [language, setLanguage] = useState('');
   const [freeOnly, setFreeOnly] = useState(false);
-  const [mentors, setMentors] = useState([]);
+  const [mentors, setMentors] = useState<MentorData[]>([]);
   const [loading, setLoading] = useState(false);
 
   const searchMentors = async () => {
@@ -59,7 +60,7 @@ export function MentorFilters() {
       {loading && <p className="text-center">Loading...</p>}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mentors.map((mentor: any) => (
+        {mentors.map((mentor) => (
           <MentorCard key={mentor.email} mentor={mentor} />
         ))}
       </div>

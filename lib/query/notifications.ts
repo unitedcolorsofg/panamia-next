@@ -17,10 +17,6 @@ interface NotificationsResponse {
   hasMore: boolean;
 }
 
-interface UnreadCountResponse {
-  count: number;
-}
-
 export async function fetchNotifications(options?: {
   limit?: number;
   offset?: number;

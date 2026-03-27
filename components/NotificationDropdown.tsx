@@ -17,6 +17,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCheck, Bell } from 'lucide-react';
 import NotificationItem from './NotificationItem';
+import type { NotificationInterface } from '@/lib/interfaces';
 import {
   useNotifications,
   useMarkAsRead,
@@ -72,7 +73,7 @@ export default function NotificationDropdown() {
       ) : (
         <ScrollArea className="h-[300px]">
           <div className="space-y-1 p-1">
-            {notifications.map((notification: any) => (
+            {notifications.map((notification: NotificationInterface) => (
               <NotificationItem
                 key={notification._id}
                 notification={notification}

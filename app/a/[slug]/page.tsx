@@ -216,16 +216,21 @@ export default async function ArticlePage({ params }: PageProps) {
               ) : (
                 <span>Former Member</span>
               )}
-              {articleData.coAuthors.map((coAuthor: any, index: number) => (
-                <span key={index}>
-                  <span>&amp;</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {coAuthor.screenname
-                      ? ` @${coAuthor.screenname}`
-                      : ' Anonymous'}
+              {articleData.coAuthors.map(
+                (
+                  coAuthor: { screenname?: string; name?: string },
+                  index: number
+                ) => (
+                  <span key={index}>
+                    <span>&amp;</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {coAuthor.screenname
+                        ? ` @${coAuthor.screenname}`
+                        : ' Anonymous'}
+                    </span>
                   </span>
-                </span>
-              ))}
+                )
+              )}
             </div>
 
             {articleData.reviewer && (
@@ -278,27 +283,29 @@ export default async function ArticlePage({ params }: PageProps) {
           <section className="mt-12 border-t pt-8">
             <h2 className="mb-4 text-xl font-semibold">Follow-up Articles</h2>
             <div className="space-y-3">
-              {articleData.replies.map((reply: any) => (
-                <Link
-                  key={reply.slug}
-                  href={`/a/${reply.slug}`}
-                  className="block rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
-                >
-                  <div className="font-medium">{reply.title}</div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    by{' '}
-                    {reply.author?.screenname
-                      ? `@${reply.author.screenname}`
-                      : 'Anonymous'}
-                    {' · '}
-                    {new Date(reply.publishedAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </div>
-                </Link>
-              ))}
+              {articleData.replies.map(
+                (reply: { slug: string; title: string; createdAt: string }) => (
+                  <Link
+                    key={reply.slug}
+                    href={`/a/${reply.slug}`}
+                    className="block rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
+                  >
+                    <div className="font-medium">{reply.title}</div>
+                    <div className="mt-1 text-sm text-gray-500">
+                      by{' '}
+                      {reply.author?.screenname
+                        ? `@${reply.author.screenname}`
+                        : 'Anonymous'}
+                      {' · '}
+                      {new Date(reply.publishedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </div>
+                  </Link>
+                )
+              )}
             </div>
           </section>
         )}

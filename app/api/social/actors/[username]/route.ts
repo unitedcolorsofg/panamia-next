@@ -7,11 +7,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import {
-  getActorByScreenname,
-  getFollowRelationship,
-  socialConfig,
-} from '@/lib/federation';
+import { getActorByScreenname, getFollowRelationship } from '@/lib/federation';
 
 export async function GET(
   request: NextRequest,

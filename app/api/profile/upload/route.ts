@@ -6,13 +6,6 @@ import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { deleteFile, uploadFile } from '@/lib/blob/api';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
-}
-
 const cacheRand = () => {
   return Math.floor((Math.random() + 1) * 10000)
     .toString()
@@ -54,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     // Use Web API formData() instead of busboy
     const formData = await request.formData();
-    const uploadedFiles: any = [];
+    const uploadedFiles: { fieldname: string; url: string }[] = [];
 
     const acceptedFields = ['primary', 'gallery1', 'gallery2', 'gallery3'];
 
@@ -142,7 +135,7 @@ export async function POST(request: NextRequest) {
         ...primaryImageUpdate,
         galleryImages:
           Object.keys(galleryImagesUpdate).length > 0
-            ? (galleryImagesUpdate as any)
+            ? (galleryImagesUpdate as unknown as Record<string, string>)
             : undefined,
       })
       .where(eq(profiles.id, existingProfile.id))
@@ -154,10 +147,15 @@ export async function POST(request: NextRequest) {
       { success: true, data: updatedProfile },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { success: false, error: 'Upload failed: ' + error.message },
+      {
+        success: false,
+        error:
+          'Upload failed: ' +
+          (error instanceof Error ? error.message : String(error)),
+      },
       { status: 500 }
     );
   }

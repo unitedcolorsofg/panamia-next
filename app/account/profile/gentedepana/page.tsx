@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function AccountProfileGenteDePana() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileGenteDePana();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
 
   const submitForm = (e: FormEvent) => {

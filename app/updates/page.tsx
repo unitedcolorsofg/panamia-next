@@ -36,7 +36,11 @@ import {
   useSentMessages,
   useDeletePost,
 } from '@/lib/query/social';
-import { SocialStatusDisplay } from '@/lib/interfaces';
+import type {
+  SocialStatusDisplay,
+  NotificationActivityType,
+  NotificationContext,
+} from '@/lib/interfaces';
 
 type ActiveTab = 'at-me' | 'sent' | 'pana-updates';
 
@@ -275,7 +279,19 @@ function NotificationsSection({
   onMarkAsRead,
   onLoadMore,
 }: {
-  notifications: any[];
+  notifications: {
+    _id: string;
+    type: NotificationActivityType;
+    context: NotificationContext;
+    actorScreenname?: string;
+    actorName?: string;
+    objectTitle?: string;
+    objectUrl?: string;
+    message?: string;
+    displayMessage?: string;
+    read: boolean;
+    createdAt: Date | string;
+  }[];
   isLoading: boolean;
   hasMore: boolean;
   isFetching: boolean;
@@ -306,7 +322,7 @@ function NotificationsSection({
 
   return (
     <div className="space-y-2">
-      {notifications.map((notification: any) => (
+      {notifications.map((notification) => (
         <NotificationItem
           key={notification._id}
           notification={notification}

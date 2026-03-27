@@ -92,7 +92,7 @@ export default function EditArticlePage() {
         }
 
         setArticle(data.data);
-      } catch (err) {
+      } catch {
         setError('Failed to load article');
       } finally {
         setLoading(false);

@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { mentorSessions } from '@/lib/schema';
-import { and, asc, desc, eq, gte, lt, or, inArray } from 'drizzle-orm';
+import { and, eq, gte, lt, or, inArray } from 'drizzle-orm';
 import { SessionsList } from './_components/sessions-list';
 
 export default async function SchedulePage() {

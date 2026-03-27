@@ -94,7 +94,6 @@ function ArticlesContent() {
   useEffect(() => {
     setOffset(0);
     fetchArticles(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeFilter, tagFilter]);
 
   const handleTypeChange = (value: string) => {

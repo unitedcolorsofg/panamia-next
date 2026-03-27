@@ -32,9 +32,9 @@ export const getSearch = async ({
   filterLocations,
   filterCategories,
   random,
-  geolat,
-  geolng,
-  resultsView,
+  geolat: _geolat,
+  geolng: _geolng,
+  resultsView: _resultsView,
   mentorsOnly,
   expertise,
   languages,
@@ -142,7 +142,13 @@ export const getSearch = async ({
 /**
  * Transform Drizzle profile to expected output format
  */
-function transformProfile(p: any) {
+function transformProfile(
+  p: Record<string, unknown> & {
+    user?: { screenname?: string | null };
+    descriptions?: unknown;
+    mentoring?: unknown;
+  }
+) {
   const descriptions = p.descriptions as ProfileDescriptions | null;
   const mentoring = p.mentoring as ProfileMentoring | null;
 

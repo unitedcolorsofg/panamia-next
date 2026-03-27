@@ -7,8 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { articles, users } from '@/lib/schema';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { articles } from '@/lib/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import type { ArticleType } from '@/lib/schema';
 
 interface CoAuthor {
   userId: string;
@@ -28,10 +29,10 @@ export async function GET(request: NextRequest) {
     const tag = searchParams.get('tag');
 
     // Build query conditions
-    const conditions: any[] = [eq(articles.status, 'published')];
+    const conditions = [eq(articles.status, 'published')];
 
     if (type && ['business_update', 'community_commentary'].includes(type)) {
-      conditions.push(eq(articles.articleType, type as any));
+      conditions.push(eq(articles.articleType, type as ArticleType));
     }
 
     if (tag) {

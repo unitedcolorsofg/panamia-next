@@ -18,14 +18,14 @@ import { profileCategoryList } from '@/lib/lists';
 export default function AccountProfileCategories() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileCategories();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
 
   const submitForm = (e: FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
 
-    let categories: { [k: string]: any } = {};
+    let categories: { [k: string]: boolean } = {};
     profileCategoryList.forEach((item) => {
       categories[item.value] = formData.get(item.value) ? true : false;
     });

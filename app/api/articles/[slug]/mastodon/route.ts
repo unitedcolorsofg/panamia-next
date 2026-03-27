@@ -102,11 +102,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Allow clearing the URL
     if (mastodonPostUrl === null || mastodonPostUrl === '') {
-      const [updated] = await db
+      await db
         .update(articles)
         .set({ mastodonPostUrl: null })
-        .where(eq(articles.id, articleDoc.id))
-        .returning();
+        .where(eq(articles.id, articleDoc.id));
 
       return NextResponse.json({
         success: true,

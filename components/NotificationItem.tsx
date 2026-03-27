@@ -82,7 +82,7 @@ function getNotificationIcon(
 
 function getIconColor(
   type: NotificationActivityType,
-  context: NotificationContext
+  _context: NotificationContext
 ): string {
   switch (type) {
     case 'Accept':

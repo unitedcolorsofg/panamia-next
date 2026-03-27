@@ -1,6 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -13,11 +12,13 @@ function DonationConfirmationContent() {
   const tier = searchParams?.get('tier')
     ? parseInt(searchParams.get('tier')!)
     : 0;
-  const amt = searchParams?.get('amt') ? parseInt(searchParams.get('amt')!) : 0;
+  const _amt = searchParams?.get('amt')
+    ? parseInt(searchParams.get('amt')!)
+    : 0;
   const isRecurring = tier > 0;
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/20">
+    <div className="from-background to-muted/20 flex min-h-screen flex-col bg-gradient-to-b">
       <div className="container mx-auto max-w-3xl px-4 py-12">
         {/* Success Icon */}
         <div className="mb-8 flex justify-center">
@@ -29,7 +30,7 @@ function DonationConfirmationContent() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="mb-4 text-4xl font-bold">Muchísimas Gracias!</h1>
-          <h2 className="text-2xl text-muted-foreground">
+          <h2 className="text-muted-foreground text-2xl">
             {isRecurring
               ? 'Thank you so much for becoming a Gente dePana!'
               : 'Thank you so much for your contribution!'}
@@ -40,13 +41,13 @@ function DonationConfirmationContent() {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Heart className="h-6 w-6 text-pana-pink" aria-hidden="true" />
+              <Heart className="text-pana-pink h-6 w-6" aria-hidden="true" />
               Your Support Makes a Difference
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {isRecurring && (
-              <div className="rounded-lg bg-pana-blue/10 p-4">
+              <div className="bg-pana-blue/10 rounded-lg p-4">
                 <p className="text-sm">
                   You will be receiving a confirmation email from us soon with
                   your monthly donation amount and the perks associated with
@@ -94,7 +95,7 @@ export default function DonationConfirmationPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center">
-          <p className="text-lg text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground text-lg">Loading...</p>
         </div>
       }
     >

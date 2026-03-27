@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 
 export default function AccountProfileImages() {
   const { data: session, status } = useSession();
-  const { data, isLoading, isError, refetch } = useProfile();
+  const { data, isLoading, refetch } = useProfile();
   const profile = data as ProfileInterface;
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');

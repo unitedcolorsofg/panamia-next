@@ -13,7 +13,6 @@ import {
   UserCircle,
   Tag,
   BadgePercent,
-  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,7 +34,6 @@ const SpanUnselected = () => {
 
 export default function AccountProfileEdit() {
   const { data: session, status } = useSession();
-  const [hasProfile, setHasProfile] = useState(false);
   const [profileData, setProfileData] = useState({} as ProfileInterface);
   const [profileStatus, setProfileStatus] = useState('');
   const [profileStatusDate, setProfileStatusDate] = useState('');
@@ -61,7 +59,6 @@ export default function AccountProfileEdit() {
       loadProfile().then((resp) => {
         const profile = resp?.data?.data as ProfileInterface;
         if (profile) {
-          setHasProfile(true);
           setProfileData(profile);
           setProfileStatus('Submitted');
           setProfileStatusDate(standardizeDateTime(profile?.status?.submitted));

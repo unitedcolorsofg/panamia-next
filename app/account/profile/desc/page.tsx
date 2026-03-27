@@ -9,7 +9,7 @@ import PageMeta from '@/components/PageMeta';
 import { ProfileInterface } from '@/lib/interfaces';
 import Status401_Unauthorized from '@/components/Page/Status401_Unauthorized';
 import { useProfile, useMutateProfileDesc } from '@/lib/query/profile';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function AccountProfileDesc() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileDesc();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
 
   const submitForm = (e: FormEvent) => {

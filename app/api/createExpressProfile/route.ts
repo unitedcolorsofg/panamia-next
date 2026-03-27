@@ -4,7 +4,7 @@ import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import BrevoApi from '@/lib/brevo_api';
-import { createUniqueString, slugify, splitName } from '@/lib/standardized';
+import { createUniqueString, splitName } from '@/lib/standardized';
 import { auth } from '@/auth';
 
 const validateEmail = (email: string): boolean => {
@@ -70,11 +70,7 @@ const callBrevo_createContact = async (email: string, name: string) => {
     if (brevo.config.lists.webformProfile) {
       list_ids.push(parseInt(brevo.config.lists.webformProfile));
     }
-    const new_contact = await brevo.createOrUpdateContact(
-      email,
-      attributes,
-      list_ids
-    );
+    await brevo.createOrUpdateContact(email, attributes, list_ids);
   }
 };
 
@@ -189,9 +185,9 @@ export async function POST(request: NextRequest) {
       name: name,
       email: email.toString().toLowerCase(),
       active: true, // Self-created profiles are active immediately
-      status: status as any,
+      status: status as Record<string, unknown>,
       locallyBased: locally_based || null,
-      descriptions: descriptions as any,
+      descriptions: descriptions as unknown as ProfileDescriptions,
       socials: socials || null,
       phoneNumber: phone_number || null,
       whatsappCommunity: whatsapp_community || false,

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { uniqueAffiliateCode } from '@/lib/server/user';
+import type { User } from '@/lib/schema';
 
 interface AffiliateData {
   activated: boolean;
@@ -13,7 +14,7 @@ interface AffiliateData {
   points: number;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const session = await auth();
 
   if (!session) {
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-function formatUserResponse(user: any) {
+function formatUserResponse(user: User) {
   return {
     _id: user.id,
     email: user.email,

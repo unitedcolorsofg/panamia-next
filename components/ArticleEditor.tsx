@@ -36,7 +36,6 @@ import {
   Clock,
   Check,
   XCircle,
-  Send,
   Upload,
   Reply,
 } from 'lucide-react';
@@ -75,7 +74,7 @@ interface ArticleEditorProps {
     status?: string;
     inReplyTo?: ReplyToArticle;
   };
-  onSave?: (data: any) => Promise<void>;
+  onSave?: (data: Record<string, unknown>) => Promise<void>;
 }
 
 export default function ArticleEditor({
@@ -200,8 +199,10 @@ export default function ArticleEditor({
           router.push(`/a/${result.data.slug}/edit`);
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to save article');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) || 'Failed to save article'
+      );
     } finally {
       setSaving(false);
     }
@@ -240,8 +241,11 @@ export default function ArticleEditor({
         { userId: user._id, screenname: user.screenname, status: 'pending' },
       ]);
       setInvitationMessage('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to invite co-author');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to invite co-author'
+      );
     } finally {
       setInviting(false);
     }
@@ -277,8 +281,11 @@ export default function ArticleEditor({
         screenname: user.screenname,
         status: 'pending',
       });
-    } catch (err: any) {
-      setError(err.message || 'Failed to request review');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to request review'
+      );
     } finally {
       setRequestingReview(false);
     }
@@ -303,8 +310,11 @@ export default function ArticleEditor({
 
       setArticleStatus('published');
       router.push(`/a/${initialData.slug}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to publish article');
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to publish article'
+      );
     } finally {
       setPublishing(false);
     }

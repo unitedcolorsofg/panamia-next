@@ -31,7 +31,7 @@ interface ReviewComment {
 interface ReviewedBy {
   userId: string;
   status: string;
-  checklist: any;
+  checklist: Record<string, boolean> | null;
   comments: ReviewComment[];
 }
 
@@ -97,7 +97,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await db
       .update(articles)
-      .set({ reviewedBy: updatedReviewedBy as any })
+      .set({
+        reviewedBy: updatedReviewedBy as unknown as Record<string, unknown>,
+      })
       .where(eq(articles.id, articleDoc.id));
 
     return NextResponse.json({

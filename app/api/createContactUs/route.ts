@@ -6,11 +6,6 @@ import { contactSubmissions } from '@/lib/schema';
 import BrevoApi from '@/lib/brevo_api';
 import { splitName } from '@/lib/standardized';
 
-interface ResponseData {
-  error?: string;
-  msg?: string;
-}
-
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   return regEx.test(email);
@@ -76,11 +71,7 @@ const callBrevo_createContact = async (email: string, name: string) => {
     if (brevo.config.lists.webformContactUs) {
       list_ids.push(parseInt(brevo.config.lists.webformContactUs));
     }
-    const new_contact = await brevo.createOrUpdateContact(
-      email,
-      attributes,
-      list_ids
-    );
+    await brevo.createOrUpdateContact(email, attributes, list_ids);
   }
 };
 

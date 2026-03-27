@@ -7,16 +7,9 @@ import { ProfileDescriptions } from '@/lib/interfaces';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
-}
-
 interface ProfileStatus {
   access?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export async function POST(request: NextRequest) {

@@ -1,11 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 
-interface ResponseData {
-  error?: string;
-  success?: boolean;
-  msg?: string;
-  data?: any[];
+interface GeoEntry {
+  latitude?: number;
+  longitude?: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -32,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
 
   const georesponse = await psResponse.json();
-  const geodata = georesponse.data as Array<any>;
+  const geodata = georesponse.data as GeoEntry[];
   // console.log(geodata);
   if (geodata.length == 0) {
     return NextResponse.json(

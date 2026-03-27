@@ -58,7 +58,7 @@ export async function PATCH(request: Request) {
 
     const [profile] = await db
       .update(profiles)
-      .set({ mentoring: mentoringData as any })
+      .set({ mentoring: mentoringData as unknown as Record<string, unknown> })
       .where(eq(profiles.email, session.user.email))
       .returning({ mentoring: profiles.mentoring });
 

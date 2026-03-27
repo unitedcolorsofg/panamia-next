@@ -15,7 +15,9 @@ export function AudioPlayer({ isMuted }: AudioPlayerProps) {
 
     // Create audio context
     const AudioContextClass =
-      window.AudioContext || (window as any).webkitAudioContext;
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     const audioContext = new AudioContextClass();
     audioContextRef.current = audioContext;
 

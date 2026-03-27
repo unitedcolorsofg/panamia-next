@@ -12,6 +12,14 @@ export default [
     rules: {
       ...tsPlugin.configs['recommended'].rules,
       'react/no-unescaped-entities': 0,
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ];

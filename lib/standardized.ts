@@ -9,7 +9,7 @@ export const standardizedFields = {
   },
 };
 
-export const serialize = (object: any) => {
+export const serialize = (object: unknown) => {
   return JSON.parse(JSON.stringify(object));
 };
 
@@ -25,9 +25,8 @@ export const dateXdays = (days: number) => {
 };
 
 export const createUniqueString = () => {
-  const crypto = require('crypto');
   const base = new Uint32Array(5);
-  crypto.getRandomValues(base);
+  globalThis.crypto.getRandomValues(base);
   let r = '';
   base.forEach((value) => {
     r = r + value.toString(36);
@@ -58,7 +57,7 @@ export const forceString = (
   return value.toString();
 };
 
-export const randomFromItem = (item: any) => {
+export const randomFromItem = (item: unknown[]) => {
   return item[Math.floor(Math.random() * item.length)];
 };
 
@@ -79,7 +78,7 @@ export const standardizeDateTime = function (value: Date | undefined) {
     value = new Date(value);
   }
   if (value) {
-    const options: any = {
+    const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
       month: 'numeric',
       day: 'numeric',
@@ -127,15 +126,13 @@ export const displayPronouns = (pronouns: PronounsInterface | undefined) => {
   return pronounArray.join(',');
 };
 
-export const buildSearchData = function (...args: any[]) {
-  return args.reduce((accu, current) => {
-    `${accu} | ${current}`;
-  });
+export const buildSearchData = function (...args: unknown[]) {
+  return args.reduce((accu: string, current) => `${accu} | ${current}`);
 };
 
-export const debounce = (func: Function, wait = 500) => {
+export const debounce = (func: (...args: unknown[]) => unknown, wait = 500) => {
   let timeoutId: ReturnType<typeof setTimeout>;
-  return function (this: any, ...args: any[]) {
+  return function (this: unknown, ...args: unknown[]) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func.apply(this, args), wait);
   };
@@ -156,4 +153,4 @@ export const slugify = (value: string) => {
     .replaceAll(/\s+/g, '-');
 };
 
-export const truncateWithEllipsis = (value: string) => {};
+export const truncateWithEllipsis = (_value: string) => {};

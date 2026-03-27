@@ -12,6 +12,7 @@ import { articles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
+import type { ArticleStatus } from '@/lib/schema';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       content: articleDoc.content,
       coAuthors: coAuthors || [],
       reviewedBy: reviewedBy || undefined,
-      status: articleDoc.status as any,
+      status: articleDoc.status as ArticleStatus,
     });
     if (!publishCheck.publishable) {
       return NextResponse.json(

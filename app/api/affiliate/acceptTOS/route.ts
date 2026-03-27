@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { unguardUser } from '@/lib/user';
+import type { User } from '@/lib/schema';
 import BrevoApi from '@/lib/brevo_api';
 import { getBrevoConfig } from '@/config/brevo';
 
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function formatUserForUnguard(user: any) {
+function formatUserForUnguard(user: User) {
   return {
     email: user.email,
     name: user.name,

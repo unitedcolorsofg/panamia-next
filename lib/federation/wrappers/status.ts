@@ -52,7 +52,7 @@ const DM_EXPIRY_DAYS = 7;
 /**
  * Returns a Drizzle WHERE condition to exclude expired statuses.
  */
-function notExpiredCondition() {
+function _notExpiredCondition() {
   return sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`;
 }
 

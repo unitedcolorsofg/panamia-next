@@ -93,8 +93,8 @@ export default function ArticleMastodonSettings({
       setSavedUrl(data.data.mastodonPostUrl);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'Failed to save');
     } finally {
       setSaving(false);
     }

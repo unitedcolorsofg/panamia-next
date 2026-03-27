@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { slugify } from '@/lib/standardized';
+// slugify removed - unused
 import { ProfileDescriptions } from '@/lib/interfaces';
 
 export async function POST(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Build update data
-  const updateData: any = {};
+  const updateData: Partial<typeof profiles.$inferInsert> = {};
 
   if (name) {
     updateData.name = name;

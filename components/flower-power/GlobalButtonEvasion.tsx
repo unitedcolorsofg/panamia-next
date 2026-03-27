@@ -3,6 +3,10 @@
 import { useEffect } from 'react';
 import { useFlowerPower } from './FlowerPowerProvider';
 
+interface EvasionElement extends HTMLElement {
+  __evasionCleanup?: () => void;
+}
+
 interface ButtonState {
   currentX: number;
   currentY: number;
@@ -23,7 +27,8 @@ export function GlobalButtonEvasion() {
     const isTouchDevice =
       'ontouchstart' in window ||
       navigator.maxTouchPoints > 0 ||
-      (navigator as any).msMaxTouchPoints > 0;
+      (navigator as Navigator & { msMaxTouchPoints?: number })
+        .msMaxTouchPoints! > 0;
 
     if (isTouchDevice) {
       console.log(
@@ -161,7 +166,7 @@ export function GlobalButtonEvasion() {
       button.addEventListener('click', handleClick);
 
       // Store cleanup function
-      (button as any).__evasionCleanup = () => {
+      (button as EvasionElement).__evasionCleanup = () => {
         if (state.animationFrame) {
           cancelAnimationFrame(state.animationFrame);
         }
@@ -173,9 +178,9 @@ export function GlobalButtonEvasion() {
     };
 
     const removeEvasionFromButton = (button: HTMLElement) => {
-      if ((button as any).__evasionCleanup) {
-        (button as any).__evasionCleanup();
-        delete (button as any).__evasionCleanup;
+      if ((button as EvasionElement).__evasionCleanup) {
+        (button as EvasionElement).__evasionCleanup!();
+        delete (button as EvasionElement).__evasionCleanup;
       }
     };
 

@@ -16,7 +16,7 @@ import {
   socialLikes,
 } from '@/lib/schema';
 import type { SocialStatus, SocialActor } from '@/lib/schema';
-import { and, eq, ne, sql, desc, isNotNull, not, or } from 'drizzle-orm';
+import { and, eq, sql, or, type SQL } from 'drizzle-orm';
 import { socialConfig } from '../index';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -32,8 +32,8 @@ function notExpired() {
  * Check if a JSONB array column contains a specific string value.
  * PostgreSQL: column @> to_jsonb(value::text)
  */
- 
-function jsonbArrayContains(column: any, value: string) {
+
+function jsonbArrayContains(column: SQL<unknown>, value: string) {
   return sql`${column} @> to_jsonb(${value}::text)`;
 }
 

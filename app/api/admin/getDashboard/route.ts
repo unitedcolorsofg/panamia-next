@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 import { getAdminDashboard } from '@/lib/server/admin';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const adminUser = await checkAdminAuth();
 
   if (!adminUser) {

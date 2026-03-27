@@ -27,7 +27,6 @@ import { eq } from 'drizzle-orm';
  */
 export async function getApiSession(
   req: NextApiRequest,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _res: NextApiResponse
 ): Promise<AppSession | null> {
   try {

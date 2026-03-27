@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 export default function AccountProfileSocial() {
   const { data: session, status } = useSession();
   const mutation = useMutateProfileSocial();
-  const { data, isLoading, isError } = useProfile();
+  const { data, isLoading } = useProfile();
   const profile = data as ProfileInterface;
 
   const submitForm = (e: FormEvent) => {

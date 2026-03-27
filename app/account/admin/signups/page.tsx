@@ -17,7 +17,7 @@ export default function AdminSignupsPage() {
   const [signups_list, setSignupsList] = useState([]);
   const [pagination, setPagination] = useState({} as Pagination);
 
-  function signupType(value: any) {
+  function signupType(value: string) {
     if (value == 'creative_biz_org') {
       return 'I am a locally-based creative/business/organization';
     }

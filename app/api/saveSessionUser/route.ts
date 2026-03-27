@@ -9,6 +9,7 @@ import {
 } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
+import type { User } from '@/lib/schema';
 
 // Rate limit: once per 90 days (~3 months)
 const SCREENNAME_COOLDOWN_DAYS = 90;
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
   });
 }
 
-function formatUserResponse(user: any) {
+function formatUserResponse(user: User) {
   return {
     _id: user.id,
     email: user.email,

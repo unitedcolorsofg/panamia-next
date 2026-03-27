@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
+import type { ArticleStatus } from '@/lib/schema';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -156,7 +157,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     await db
       .update(articles)
-      .set({ reviewedBy: updatedReviewedBy as any, status: newStatus as any })
+      .set({
+        reviewedBy: updatedReviewedBy as unknown as Record<string, unknown>,
+        status: newStatus as ArticleStatus,
+      })
       .where(eq(articles.id, articleDoc.id));
 
     // Notify the author

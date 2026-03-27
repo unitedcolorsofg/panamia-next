@@ -1,7 +1,7 @@
 // Admin search and dashboard utilities
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
-import { and, asc, gte, ilike, or, sql } from 'drizzle-orm';
+import { gte, ilike, or, sql } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import { AdminSearchInterface } from '../query/admin';
 import { dateXdays } from '../standardized';

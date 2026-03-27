@@ -1,7 +1,6 @@
 'use client';
 
-import type { Metadata } from 'next';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Medal, Trophy, Crown, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,7 +85,7 @@ export default function DonatePage() {
   };
 
   // Derived state - compute during render instead of using useEffect
-  const isOther =
+  const _isOther =
     !preAmounts.includes(amount) && !monthPreAmounts.includes(amount);
   const allReqFields = validateEmail(email) && amount > 0;
 

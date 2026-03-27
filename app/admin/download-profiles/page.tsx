@@ -15,7 +15,7 @@ export default function AdminDownloadProfilesPage() {
   const { data: session } = useSession();
   const { data, isLoading, isError } = useAdminActiveProfiles();
 
-  const downloadCSV = (data: any) => {
+  const downloadCSV = (data: AdminProfileInterface[]) => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
       'Name,Email,Phone,Handle\n' +
