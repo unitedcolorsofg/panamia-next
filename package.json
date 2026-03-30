@@ -119,6 +119,7 @@
     "wrangler": "^4.76.0"
   },
   "resolutions": {
-    "miniflare": "4.20260312.1"
+    "miniflare": "4.20260317.3",
+    "picomatch": "4.0.4"
   }
 }
