@@ -14,6 +14,9 @@ import handler from 'vinext/server/app-router-entry';
 import { getDb } from '../lib/db';
 import { getStorage } from '../lib/r2';
 
+// Re-export Durable Object classes so wrangler can discover them
+export { SignalingRoom } from './signaling-room';
+
 interface Env {
   ASSETS: Fetcher;
   HYPERDRIVE: { connectionString: string };
@@ -42,6 +45,7 @@ interface Env {
       };
     };
   };
+  SIGNALING_ROOM: DurableObjectNamespace;
 }
 
 export default {
@@ -51,6 +55,17 @@ export default {
     getDb(env);
     getStorage(env);
     const url = new URL(request.url);
+
+    // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
+    if (url.pathname.startsWith('/ws/signaling/')) {
+      const roomId = url.pathname.split('/')[3];
+      if (!roomId) {
+        return new Response('Room ID required', { status: 400 });
+      }
+      const id = env.SIGNALING_ROOM.idFromName(roomId);
+      const stub = env.SIGNALING_ROOM.get(id);
+      return stub.fetch(request);
+    }
 
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization

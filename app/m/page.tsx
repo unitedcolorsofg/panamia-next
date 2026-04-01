@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar, User } from 'lucide-react';
+import { Search, Calendar, User, Video } from 'lucide-react';
 
 export default function MentoringPage() {
   return (
@@ -20,7 +20,7 @@ export default function MentoringPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <Search className="text-muted-foreground h-6 w-6" />
@@ -62,6 +62,21 @@ export default function MentoringPage() {
           <CardContent>
             <Button asChild variant="outline" className="w-full">
               <Link href="/m/profile">Mentoring Profile</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-dashed">
+          <CardHeader className="pb-2">
+            <Video className="text-muted-foreground h-6 w-6" />
+            <CardTitle className="text-base">Video Test</CardTitle>
+            <CardDescription>
+              WebRTC peer-to-peer video via Durable Objects
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/m/webrtc-test">Try It</Link>
             </Button>
           </CardContent>
         </Card>
