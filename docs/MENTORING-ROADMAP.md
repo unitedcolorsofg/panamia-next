@@ -1,4 +1,56 @@
-# Peer Mentoring Roadmap
+# Peer Mentoring — Guide & Roadmap
+
+> **PROTOTYPE STATUS**: Peer-to-peer video mentoring using WebRTC is in **prototype/experimental stage**. While functional for testing, it may not work in all network configurations (especially behind strict firewalls or symmetric NATs). TURN server configuration is planned for improved connectivity.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Philosophy & Best Practices](#philosophy--best-practices)
+- [Getting Started](#getting-started)
+- [User Guide](#user-guide)
+- [Video Test (PoC)](#video-test-poc)
+- [Session Types](#session-types)
+- [Notification System](#notification-system)
+- [Developer Guide](#developer-guide)
+- [API Reference](#api-reference)
+- [Roadmap](#roadmap)
+
+---
+
+## Overview
+
+The Pana Mia Club mentoring feature enables **peer-to-peer video mentoring** within the community. Every user can act as both a **mentor** and a **mentee**, facilitating knowledge sharing and professional growth.
+
+### Key Features
+
+- **Profile Management**: Create and customize your mentoring profile
+- **Mentor Discovery**: Search and filter mentors by expertise and language
+- **Session Types**: Four session types (artistic, knowledge transfer, pana planning, pana support)
+- **Session Booking**: Schedule sessions with a calendar interface
+- **Mentor Confirmation**: Sessions require mentor approval before scheduling
+- **Notifications**: Notifications for session requests, confirmations, and cancellations
+- **WebRTC Video**: Peer-to-peer video calls via Durable Object signaling
+- **Real-time Chat**: Text messaging during sessions (persisted in DO SQLite)
+- **Peer-to-Peer File Transfer**: Send files directly between participants via WebRTC data channels
+- **Network Resilience**: Automatic reconnection on wifi/cellular network switches
+- **Session History**: Track past and upcoming sessions
+
+### Technology Stack
+
+- **WebRTC**: Direct peer-to-peer connections for video/audio/data
+- **Durable Objects + WebSocket**: Signaling server and chat persistence (replaces Pusher)
+- **better-auth**: Secure authentication
+- **PostgreSQL (Supabase)**: Relational database with Drizzle ORM
+- **Cloudflare Workers + Hyperdrive**: Edge deployment with DB pooling
+- **shadcn/ui**: Modern, accessible UI components
+
+### Current Limitations
+
+- **Network restrictions**: May not work behind strict firewalls or symmetric NATs
+- **No TURN servers**: Relies on STUN only, limiting connectivity success rate
+- **Browser compatibility**: Requires modern browsers with WebRTC support
+
+---
 
 ## Philosophy & Best Practices
 
@@ -14,7 +66,7 @@ Pana MIA's peer mentoring feature is informed by MENTOR's _E-Mentoring Supplemen
 
 ### Elements of Effective Practice
 
-The _Elements of Effective Practice for Mentoring™_ outlines six core standards that Pana MIA's implementation considers:
+The _Elements of Effective Practice for Mentoring™_ outlines six core standards:
 
 1. **Recruitment** — How mentors and mentees are attracted to the program
 2. **Screening** — Ensuring safety and appropriate matching
@@ -24,8 +76,6 @@ The _Elements of Effective Practice for Mentoring™_ outlines six core standard
 6. **Closure** — Ending relationships appropriately when needed
 
 ### Pana MIA's Approach
-
-Pana MIA takes a **community-centered peer mentoring** approach that differs from traditional hierarchical mentoring:
 
 **Peer-to-Peer Model**
 
@@ -51,53 +101,190 @@ Pana MIA takes a **community-centered peer mentoring** approach that differs fro
 - Notification system keeps all parties informed
 - Cancellation tracking for accountability
 
+---
+
+## Getting Started
+
+### Prerequisites
+
+1. **Account**: Sign in to Pana Mia Club
+2. **Browser**: Modern browser with WebRTC support (Chrome, Firefox, Safari, Edge)
+3. **Permissions**: Camera and microphone access for video sessions
+4. **Connection**: Stable internet connection (recommended: 5 Mbps+)
+
+### Quick Start
+
+1. Navigate to **Mentoring** → **Profile**
+2. Enable your mentoring profile
+3. Add your expertise and languages
+4. Browse **Discover** to find mentors
+5. Book your first session!
+
+---
+
+## User Guide
+
+### Setting Up Your Mentoring Profile
+
+Navigate to: **Mentoring** → **Mentoring Profile** → **Edit Profile**
+
+1. Check "Enable mentoring profile" to become discoverable
+2. Fill out your **Mentoring Bio** (10–500 characters)
+3. Add **Areas of Expertise** (1–10 tags, e.g. "JavaScript", "Career Advice")
+4. Add **Languages** (1+, e.g. "English", "Spanish")
+5. Optionally set a **Video Introduction URL**, **Mentoring Goals**, and **Hourly Rate**
+6. Click **Save Profile**
+
+### Finding Mentors
+
+Go to: **Mentoring** → **Discover**
+
+Filter mentors by:
+
+- **Expertise**: Search for specific skills
+- **Language**: Filter by language
+- **Free Only**: Show only free mentors
+
+Each mentor card shows name, bio, expertise tags, languages, and rate. Click **Book Session** to proceed.
+
+### Booking a Session
+
+1. **Choose Session Type** (artistic, knowledge transfer, pana planning, or pana support)
+2. **Select a Date** from the calendar (future dates only)
+3. **Choose a Time Slot** (9 AM–5 PM, 30-minute intervals)
+4. **Set Duration** (15, 30, 60, 90, or 120 minutes)
+5. **Describe the Topic** (5–200 characters)
+6. Click **Request Session**
+
+The mentor receives a notification. Your session shows as "Pending" until they accept.
+
+### Joining a Video Session
+
+1. Go to **Mentoring** → **My Sessions** and click **Join Session**
+2. Grant camera and microphone permissions
+3. Wait for the other participant (connection takes 3–10 seconds)
+4. Use controls: **Mute/Unmute**, **Camera On/Off**, **End Call**
+5. Use the **Chat** panel for text messaging
+6. Take **Session Notes** (auto-saved, persist after session)
+
+### Managing Sessions
+
+Go to: **Mentoring** → **My Sessions**
+
+- **Upcoming Sessions**: Join, or cancel with a reason
+- **Past Sessions**: View details, notes, and cancellation reasons
+
+---
+
+## Video Test (PoC)
+
+A proof-of-concept page at `/m/webrtc-test` demonstrates the WebRTC + Durable Object signaling infrastructure independently of the mentoring session scaffolding.
+
+### Architecture
+
+```
+Browser A ──WebSocket──► Durable Object (SignalingRoom) ◄──WebSocket── Browser B
+    │                        │                                    │
+    │    SDP offer/answer    │    SDP offer/answer                │
+    │    ICE candidates      │    ICE candidates                  │
+    │    chat messages       │    chat messages (persisted)        │
+    │                        │                                    │
+    └────── WebRTC P2P ──────┼────── video / audio / files ───────┘
+                             │
+                        SQLite storage
+                     (participants, chat)
+                     deleted on last leave
+```
+
+**Signaling Server**: `worker/signaling-room.ts` — a Durable Object class that:
+
+- Accepts WebSocket connections from up to 3 participants
+- Relays SDP offers/answers and ICE candidates between peers
+- Persists participants and chat history in SQLite
+- Supports reconnection (wifi → cellular) without losing room state
+- Deletes all data when the last participant sends `leave`
+
+**Worker routing**: `worker/index.ts` routes `/ws/signaling/:roomId` to the DO. The DO class is exported for wrangler discovery and bound as `SIGNALING_ROOM` in `wrangler.jsonc` (using `new_sqlite_classes` for CF free plan compatibility).
+
+### How to Test
+
+1. Deploy or run locally (`yarn dev:vinext`)
+2. Log in and navigate to `/m/webrtc-test`
+3. Click **Join Room** (grants camera/mic)
+4. Have a second logged-in user open the same page and click **Join Room**
+5. Video should connect within a few seconds
+
+All users on the page share a single hardcoded room (`pana-test-room`, max 3 participants).
+
+### Features Demonstrated
+
+| Feature                       | How it works                                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Video/audio**               | `getUserMedia` → tracks added to `RTCPeerConnection` → peer-to-peer                                                                                           |
+| **Signaling**                 | WebSocket to Durable Object relays SDP + ICE between peers                                                                                                    |
+| **Chat**                      | Messages sent via WebSocket → persisted in DO SQLite → broadcast to all                                                                                       |
+| **Chat history**              | On join/reconnect, server sends full chat history from SQLite                                                                                                 |
+| **Reconnection**              | On WebSocket drop, client retries with exponential backoff (up to 5 attempts). Server keeps participant in SQLite so peers know they're expected back         |
+| **File transfer (immediate)** | "Send Now" reads file → chunks at 16 KB → sends via `RTCDataChannel` with back-pressure handling. Receiver reassembles and offers download                    |
+| **File transfer (deferred)**  | "Send After Call" queues files locally. "End Call & Send Files" stops media tracks (frees bandwidth), then drains the queue over data channels before leaving |
+| **Cleanup**                   | Explicit `leave` message removes participant from SQLite. Last participant's leave deletes all chat and participant data                                      |
+
+### Signaling Protocol
+
+Client → Server:
+
+```
+{ type: "join", userId, userName }
+{ type: "offer", sdp, target }
+{ type: "answer", sdp, target }
+{ type: "ice-candidate", candidate, target }
+{ type: "chat", text }
+{ type: "leave" }
+```
+
+Server → Client:
+
+```
+{ type: "room-state", participants: [{userId,userName}], chatHistory: [{from,fromName,text,ts}] }
+{ type: "peer-joined", userId, userName, peers }
+{ type: "peer-left", userId }
+{ type: "offer"|"answer"|"ice-candidate", from, sdp|candidate }
+{ type: "chat", from, fromName, text, ts }
+{ type: "error", message }
+```
+
+### File Transfer Limits
+
+Files are sent peer-to-peer via `RTCDataChannel` — no server-side limit. Practical constraints:
+
+- **Per-message**: 16 KB chunks (safe cross-browser max)
+- **Memory**: Both sides buffer in memory; ~100–200 MB is comfortable
+- **Back-pressure**: Sender pauses when `bufferedAmount` exceeds 256 KB
+- **Deferred mode**: Stops video first, giving file transfer full bandwidth
+
+---
+
 ## Session Types
 
-Pana MIA differentiates four types of mentoring sessions to serve diverse community needs:
+| Type                 | Description                                                       | Pricing          |
+| -------------------- | ----------------------------------------------------------------- | ---------------- |
+| `artistic`           | Creative consultation — poem critique, art feedback, music review | Mentor sets rate |
+| `knowledge_transfer` | Business advice, career guidance, technical skills                | Mentor sets rate |
+| `panamia_planning`   | Community planning and coordination                               | Always free      |
+| `pana_support`       | Peer support — personal guidance and solidarity                   | Mentor sets rate |
 
-| Type                 | Description                                                             | Pricing          |
-| -------------------- | ----------------------------------------------------------------------- | ---------------- |
-| `artistic`           | Creative consultation — draft poem critique, art feedback, music review | Mentor sets rate |
-| `knowledge_transfer` | Business advice, career guidance, technical skills sharing              | Mentor sets rate |
-| `panamia_planning`   | Pana MIA community planning and coordination                            | Always free      |
-| `pana_support`       | True peer mentoring — personal support and comradery                    | Mentor sets rate |
-
-### Session Type Philosophy
-
-**Artistic Consultation**
-Supports the creative community by connecting artists with peers who can provide constructive feedback on works in progress. This celebrates Pana MIA's roots in creative expression.
-
-**Knowledge Transfer**
-Traditional mentoring focused on skill development, career advancement, and professional growth. Mentors share expertise in their fields.
-
-**Pana MIA Planning**
-Community organizing sessions are always free to encourage participation in building Pana MIA. Anyone can request time with community leaders to discuss initiatives.
-
-**Pana Support**
-The heart of peer mentoring — human connection, emotional support, and solidarity. Not therapy, but the kind of support friends provide each other.
+---
 
 ## Notification System
 
 ### Session Request Flow
 
 ```
-Mentee requests session → Session status: 'pending'
-                        → Mentor receives notification (Invite)
-
-Mentor accepts         → Session status: 'scheduled'
-                        → Mentee receives notification (Accept)
-                        → Session URL provided
-
-Mentor declines        → Session status: 'declined'
-                        → Mentee receives notification (Reject)
-                        → Decline reason included
-
-Either party cancels   → Session status: 'cancelled'
-                        → Other party receives notification (Delete)
-                        → Cancel reason included
+Mentee requests session → status: 'pending'   → Mentor notified (Invite)
+Mentor accepts          → status: 'scheduled'  → Mentee notified (Accept)
+Mentor declines         → status: 'declined'   → Mentee notified (Reject) + reason
+Either party cancels    → status: 'cancelled'  → Other party notified (Delete) + reason
 ```
-
-### Notification Types
 
 | Event             | ActivityPub Type | Context     |
 | ----------------- | ---------------- | ----------- |
@@ -106,50 +293,132 @@ Either party cancels   → Session status: 'cancelled'
 | Session declined  | `Reject`         | `mentoring` |
 | Session cancelled | `Delete`         | `mentoring` |
 
-## Future Enhancements
+---
 
-### Near-Term
+## Developer Guide
 
-- **Google Calendar Integration** — Sync scheduled sessions with external calendars
-- **Session Reminders** — Email/notification reminders before scheduled sessions
-- **Availability Calendar** — Mentors set available time slots
+### File Structure
 
-### Medium-Term
+```
+app/m/
+├── layout.tsx                          # Auth-gated layout with nav
+├── page.tsx                            # Landing hub (4 cards)
+├── discover/
+│   ├── page.tsx                        # Mentor discovery
+│   └── _components/
+│       ├── filters.tsx                 # Search filters (client)
+│       └── mentor-card.tsx             # Mentor display card
+├── profile/
+│   ├── page.tsx                        # Profile view
+│   └── edit/
+│       └── _components/
+│           └── profile-form.tsx        # Profile edit form
+├── schedule/
+│   ├── page.tsx                        # Sessions dashboard (SSR)
+│   ├── _components/
+│   │   └── sessions-list.tsx           # Session cards (client)
+│   └── book/
+│       └── _components/
+│           └── booking-form.tsx        # Booking form
+├── session/
+│   └── [sessionId]/
+│       ├── page.tsx                    # Session page (SSR, auth check)
+│       └── _components/
+│           ├── video-room.tsx          # WebRTC video (placeholder)
+│           ├── chat-panel.tsx          # Chat (placeholder)
+│           └── notes-panel.tsx         # Session notes
+└── webrtc-test/
+    ├── page.tsx                        # Video test page (SSR)
+    └── _components/
+        └── video-call.tsx              # Full WebRTC PoC (client)
 
-- **TURN Server Configuration** — Improved WebRTC connectivity behind firewalls
-- **Session Recording** — Optional recording with consent
-- **Screen Sharing** — For technical/visual demonstrations
-- **Mentor Badges** — Recognition for active community mentors
+worker/
+├── index.ts                            # CF Worker entry — routes /ws/signaling/:room to DO
+└── signaling-room.ts                   # Durable Object: WebSocket signaling + SQLite state
 
-### Long-Term
+app/api/mentoring/
+├── discover/route.ts                   # GET: search mentors
+├── profile/route.ts                    # GET/PUT: mentoring profile
+└── sessions/
+    ├── route.ts                        # GET/POST: list/create sessions
+    └── [sessionId]/route.ts            # GET/PATCH: get/update session
+```
 
-- **Payment Integration** — Stripe checkout for paid sessions
-- **Group Sessions** — One-to-many mentoring for workshops
-- **Mentor Matching Algorithm** — AI-assisted mentor recommendations
-- **Federation** — ActivityPub integration for cross-community mentoring
+### Key Infrastructure
 
-## API Endpoints
+- `wrangler.jsonc` — Durable Objects binding (`SIGNALING_ROOM` → `SignalingRoom`), migration tag `v1` with `new_sqlite_classes`
+- `worker/index.ts` — Re-exports `SignalingRoom` class, routes `/ws/signaling/:roomId` to DO stub
+- `worker/signaling-room.ts` — DO with SQLite tables (`participants`, `chat`), restores state on wake, cleans up on last leave
+
+### Database Schema
+
+The mentoring feature uses two Drizzle models (see `lib/schema/index.ts`):
+
+- **profiles** — Extended with `mentoring` JSONB field (`MentoringInterface` in `lib/interfaces.ts`)
+- **mentor_sessions** — Tracks sessions (status, scheduling, notes, cancellation)
+
+Indexes on mentor/mentee email, userId, status, and scheduledAt for query performance.
+
+### Troubleshooting
+
+**Camera/mic not working**: Check browser permissions (chrome://settings/content/camera or about:preferences#privacy).
+
+**"Connecting..." never completes**: Likely a firewall/NAT issue. TURN servers are planned. Workaround: try a different network.
+
+**Poor video quality**: Low bandwidth. Turn off camera for audio-only. Need 5+ Mbps for comfortable video.
+
+**WebSocket connection failed**: Ensure the worker is deployed with the `SIGNALING_ROOM` Durable Object binding. Check `wrangler.jsonc` has the `durable_objects` and `migrations` sections.
+
+---
+
+## API Reference
 
 ### Sessions
 
-| Endpoint                               | Method | Description            |
-| -------------------------------------- | ------ | ---------------------- |
-| `/api/mentoring/sessions`              | GET    | List user's sessions   |
-| `/api/mentoring/sessions`              | POST   | Request new session    |
-| `/api/mentoring/sessions/[id]`         | GET    | Get session details    |
-| `/api/mentoring/sessions/[id]`         | PATCH  | Update/cancel session  |
-| `/api/mentoring/sessions/[id]/respond` | POST   | Accept/decline request |
+| Endpoint                               | Method | Description                                                             |
+| -------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| `/api/mentoring/sessions`              | GET    | List user's sessions (`role`, `status` query params)                    |
+| `/api/mentoring/sessions`              | POST   | Request new session (`mentorEmail`, `scheduledAt`, `duration`, `topic`) |
+| `/api/mentoring/sessions/[id]`         | GET    | Get session details                                                     |
+| `/api/mentoring/sessions/[id]`         | PATCH  | Update notes (`action: 'update_notes'`) or cancel (`action: 'cancel'`)  |
+| `/api/mentoring/sessions/[id]/respond` | POST   | Accept/decline request                                                  |
 
 ### Profiles
 
-| Endpoint                  | Method | Description              |
-| ------------------------- | ------ | ------------------------ |
-| `/api/mentoring/profile`  | GET    | Get mentoring profile    |
-| `/api/mentoring/profile`  | POST   | Update mentoring profile |
-| `/api/mentoring/discover` | GET    | Search available mentors |
+| Endpoint                  | Method | Description                                                    |
+| ------------------------- | ------ | -------------------------------------------------------------- |
+| `/api/mentoring/profile`  | GET    | Get mentoring profile                                          |
+| `/api/mentoring/profile`  | POST   | Update mentoring profile                                       |
+| `/api/mentoring/discover` | GET    | Search available mentors (`expertise`, `language`, `freeOnly`) |
 
-## References
+---
+
+## Roadmap
+
+### Near-Term
+
+- Google Calendar integration — sync sessions with external calendars
+- Session reminders — email/notification before scheduled sessions
+- Availability calendar — mentors set available time slots
+
+### Medium-Term
+
+- TURN server configuration — improved connectivity behind firewalls
+- Session recording — optional, with consent
+- Screen sharing — for technical/visual demonstrations
+- Mentor badges — recognition for active community mentors
+- Integrate Video Test PoC into actual session pages (`/m/session/[id]`)
+
+### Long-Term
+
+- Payment integration — Stripe checkout for paid sessions
+- Group sessions — one-to-many mentoring for workshops
+- Mentor matching algorithm — AI-assisted recommendations
+- Federation — ActivityPub integration for cross-community mentoring
+
+---
+
+### References
 
 - [MENTOR: E-Mentoring Supplement](https://www.mentoring.org/resource/e-mentoring-supplement-to-the-elements-of-effective-practice-for-mentoring/)
 - [Elements of Effective Practice for Mentoring™](https://www.mentoring.org/resource/elements-of-effective-practice-for-mentoring/)
-- [docs/MENTORING.md](./MENTORING.md) — User guide and developer documentation

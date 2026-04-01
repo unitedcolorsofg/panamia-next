@@ -1,22 +1,26 @@
 /**
- * Durable Object: WebRTC Signaling Room
+ * Durable Object: WebRTC Signaling Room (SQLite-backed)
  *
  * Coordinates WebRTC peer connections for 2–3 participants via WebSocket.
- * Each room is identified by a unique name (mapped to a DO instance).
+ * Persists participants and chat history in SQLite so that a user who
+ * drops (e.g. wifi → cellular) can reconnect and rejoin seamlessly.
+ * All data is deleted once the last participant leaves.
  *
  * Protocol (JSON messages over WebSocket):
  *   Client → Server:
- *     { type: "join", userId: string }
+ *     { type: "join", userId: string, userName: string }
  *     { type: "offer", sdp: string, target: string }
  *     { type: "answer", sdp: string, target: string }
  *     { type: "ice-candidate", candidate: RTCIceCandidateInit, target: string }
+ *     { type: "chat", text: string }
+ *     { type: "leave" }
  *
  *   Server → Client:
- *     { type: "peer-joined", userId: string, peers: string[] }
+ *     { type: "room-state", participants: {userId,userName}[], chatHistory: ChatMsg[] }
+ *     { type: "peer-joined", userId: string, userName: string, peers: {userId,userName}[] }
  *     { type: "peer-left", userId: string }
- *     { type: "offer", sdp: string, from: string }
- *     { type: "answer", sdp: string, from: string }
- *     { type: "ice-candidate", candidate: RTCIceCandidateInit, from: string }
+ *     { type: "offer"|"answer"|"ice-candidate", from: string, ... }
+ *     { type: "chat", from: string, fromName: string, text: string, ts: number }
  *     { type: "error", message: string }
  */
 
@@ -24,25 +28,53 @@ const MAX_PARTICIPANTS = 3;
 
 interface Participant {
   userId: string;
-  ws: WebSocket;
+  userName: string;
+  ws: WebSocket | null; // null = disconnected but still in room
 }
 
 export class SignalingRoom {
-  private participants: Map<WebSocket, Participant> = new Map();
+  private participants: Map<string, Participant> = new Map(); // keyed by userId
+  private sql: SqlStorage;
 
-  // Durable Object requires a constructor with state + env, even if unused
-  constructor(
-    private state: DurableObjectState,
-    private env: unknown
-  ) {}
+  constructor(state: DurableObjectState, _env: unknown) {
+    this.sql = state.storage.sql;
+    this.initDb();
+    this.restoreParticipants();
+  }
+
+  private initDb() {
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS participants (
+        user_id TEXT PRIMARY KEY,
+        user_name TEXT NOT NULL,
+        joined_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS chat (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_id TEXT NOT NULL,
+        from_name TEXT NOT NULL,
+        text TEXT NOT NULL,
+        ts INTEGER NOT NULL
+      );
+    `);
+  }
+
+  /** Restore in-memory participant map from SQLite (ws=null until they reconnect) */
+  private restoreParticipants() {
+    const rows = this.sql.exec('SELECT user_id, user_name FROM participants');
+    for (const row of rows) {
+      const userId = row.user_id as string;
+      this.participants.set(userId, {
+        userId,
+        userName: row.user_name as string,
+        ws: null,
+      });
+    }
+  }
 
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Expected WebSocket upgrade', { status: 426 });
-    }
-
-    if (this.participants.size >= MAX_PARTICIPANTS) {
-      return new Response('Room is full', { status: 403 });
     }
 
     const pair = new WebSocketPair();
@@ -65,16 +97,24 @@ export class SignalingRoom {
     });
 
     ws.addEventListener('close', () => {
-      const participant = this.participants.get(ws);
-      if (participant) {
-        this.participants.delete(ws);
-        this.broadcast(ws, { type: 'peer-left', userId: participant.userId });
-      }
+      this.handleDisconnect(ws);
     });
 
     ws.addEventListener('error', () => {
-      this.participants.delete(ws);
+      this.handleDisconnect(ws);
     });
+  }
+
+  private handleDisconnect(ws: WebSocket) {
+    // Find the participant by WebSocket reference
+    for (const [userId, p] of this.participants) {
+      if (p.ws === ws) {
+        // Mark as disconnected but keep in room — they may reconnect
+        p.ws = null;
+        this.broadcast(null, { type: 'peer-left', userId });
+        break;
+      }
+    }
   }
 
   private handleMessage(
@@ -82,47 +122,135 @@ export class SignalingRoom {
     data: {
       type: string;
       userId?: string;
+      userName?: string;
       sdp?: string;
       candidate?: unknown;
       target?: string;
+      text?: string;
     }
   ) {
     switch (data.type) {
       case 'join': {
-        if (!data.userId) {
-          this.send(ws, { type: 'error', message: 'userId required' });
+        if (!data.userId || !data.userName) {
+          this.send(ws, {
+            type: 'error',
+            message: 'userId and userName required',
+          });
           return;
         }
-        // Check if userId already taken by another connection
-        for (const [, p] of this.participants) {
-          if (p.userId === data.userId && p.ws !== ws) {
-            this.send(ws, { type: 'error', message: 'userId already in room' });
+
+        const existing = this.participants.get(data.userId);
+        if (existing) {
+          // Reconnect: close old WS if still lingering, attach new one
+          if (existing.ws && existing.ws !== ws) {
+            try {
+              existing.ws.close();
+            } catch {
+              /* already closed */
+            }
+          }
+          existing.ws = ws;
+          existing.userName = data.userName;
+        } else {
+          // New participant
+          if (this.participants.size >= MAX_PARTICIPANTS) {
+            this.send(ws, { type: 'error', message: 'Room is full (max 3)' });
             return;
           }
+          this.participants.set(data.userId, {
+            userId: data.userId,
+            userName: data.userName,
+            ws,
+          });
+          this.sql.exec(
+            'INSERT OR REPLACE INTO participants (user_id, user_name, joined_at) VALUES (?, ?, ?)',
+            data.userId,
+            data.userName,
+            Date.now()
+          );
         }
-        this.participants.set(ws, { userId: data.userId, ws });
-        // Tell existing peers about the new participant
-        const existingPeers = [...this.participants.values()]
-          .filter((p) => p.ws !== ws)
-          .map((p) => p.userId);
+
+        // Send room state to the joining/reconnecting user
+        const chatHistory = [
+          ...this.sql.exec(
+            'SELECT from_id, from_name, text, ts FROM chat ORDER BY id'
+          ),
+        ].map((r) => ({
+          from: r.from_id as string,
+          fromName: r.from_name as string,
+          text: r.text as string,
+          ts: r.ts as number,
+        }));
+        const participantList = [...this.participants.values()].map((p) => ({
+          userId: p.userId,
+          userName: p.userName,
+        }));
         this.send(ws, {
-          type: 'peer-joined',
-          userId: data.userId,
-          peers: existingPeers,
+          type: 'room-state',
+          participants: participantList,
+          chatHistory,
         });
-        // Notify others
+
+        // Notify connected peers
         this.broadcast(ws, {
           type: 'peer-joined',
           userId: data.userId,
-          peers: [...this.participants.values()].map((p) => p.userId),
+          userName: data.userName,
+          peers: participantList,
         });
+        break;
+      }
+
+      case 'chat': {
+        const sender = this.findByWs(ws);
+        if (!sender) {
+          this.send(ws, { type: 'error', message: 'Must join first' });
+          return;
+        }
+        if (!data.text?.trim()) return;
+
+        const ts = Date.now();
+        this.sql.exec(
+          'INSERT INTO chat (from_id, from_name, text, ts) VALUES (?, ?, ?, ?)',
+          sender.userId,
+          sender.userName,
+          data.text.trim(),
+          ts
+        );
+
+        // Broadcast to everyone including sender (confirmation)
+        const chatMsg = {
+          type: 'chat',
+          from: sender.userId,
+          fromName: sender.userName,
+          text: data.text.trim(),
+          ts,
+        };
+        for (const [, p] of this.participants) {
+          if (p.ws) this.send(p.ws, chatMsg);
+        }
+        break;
+      }
+
+      case 'leave': {
+        const leaver = this.findByWs(ws);
+        if (leaver) {
+          this.removeParticipant(leaver.userId);
+          this.broadcast(null, { type: 'peer-left', userId: leaver.userId });
+          this.cleanupIfEmpty();
+        }
+        try {
+          ws.close();
+        } catch {
+          /* already closed */
+        }
         break;
       }
 
       case 'offer':
       case 'answer':
       case 'ice-candidate': {
-        const sender = this.participants.get(ws);
+        const sender = this.findByWs(ws);
         if (!sender) {
           this.send(ws, { type: 'error', message: 'Must join first' });
           return;
@@ -131,8 +259,8 @@ export class SignalingRoom {
           this.send(ws, { type: 'error', message: 'target required' });
           return;
         }
-        const target = this.findByUserId(data.target);
-        if (!target) return; // target not connected, silently ignore
+        const target = this.participants.get(data.target);
+        if (!target?.ws) return; // not connected
 
         const forwarded: Record<string, unknown> = {
           type: data.type,
@@ -149,9 +277,22 @@ export class SignalingRoom {
     }
   }
 
-  private findByUserId(userId: string): Participant | undefined {
+  private findByWs(ws: WebSocket): Participant | undefined {
     for (const [, p] of this.participants) {
-      if (p.userId === userId) return p;
+      if (p.ws === ws) return p;
+    }
+  }
+
+  private removeParticipant(userId: string) {
+    this.participants.delete(userId);
+    this.sql.exec('DELETE FROM participants WHERE user_id = ?', userId);
+  }
+
+  /** Delete all data once no participants remain */
+  private cleanupIfEmpty() {
+    if (this.participants.size === 0) {
+      this.sql.exec('DELETE FROM chat');
+      this.sql.exec('DELETE FROM participants');
     }
   }
 
@@ -163,14 +304,14 @@ export class SignalingRoom {
     }
   }
 
-  private broadcast(exclude: WebSocket, msg: unknown) {
+  private broadcast(exclude: WebSocket | null, msg: unknown) {
     const payload = JSON.stringify(msg);
-    for (const [socket] of this.participants) {
-      if (socket !== exclude) {
+    for (const [, p] of this.participants) {
+      if (p.ws && p.ws !== exclude) {
         try {
-          socket.send(payload);
+          p.ws.send(payload);
         } catch {
-          // Connection closed, will be cleaned up on close event
+          // Will be cleaned up on close event
         }
       }
     }
