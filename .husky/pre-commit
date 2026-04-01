@@ -297,5 +297,81 @@ fi
 
 echo "Env config files are in sync"
 
+# =============================================================================
+# Env CI Sync Check (playwright.yml ↔ lib/env.config.ts)
+# =============================================================================
+
+echo ""
+echo "Checking CI workflow env sync..."
+
+WORKFLOW=".github/workflows/playwright.yml"
+
+# Extract required non-LOCAL var names from env.config.ts.
+# Reads each key block and emits the name only when required: true and location is SECRET|VAR.
+CI_CONFIG_VARS=$(awk '
+  /^  [A-Z0-9_]+:/ {
+    key = $0; sub(/:.*/, "", key); gsub(/^ +/, "", key)
+    is_required = 0; is_ci = 0
+  }
+  key && /required: true/ { is_required = 1 }
+  key && /location:/ && ($0 ~ /SECRET/ || $0 ~ /VAR/) { is_ci = 1 }
+  key && /\},/ {
+    if (is_required && is_ci) print key
+    key = ""
+  }
+' lib/env.config.ts | sort)
+
+# Extract all non-LOCAL var names from env.config.ts (for reverse check)
+CI_ALL_CONFIG_VARS=$(awk '
+  /^  [A-Z0-9_]+:/ {
+    key = $0; sub(/:.*/, "", key); gsub(/^ +/, "", key)
+  }
+  key && /location:/ {
+    if ($0 ~ /SECRET/ || $0 ~ /VAR/) print key
+    key = ""
+  }
+' lib/env.config.ts | sort)
+
+# Extract var names referenced in the workflow as secrets.NAME or vars.NAME
+CI_WORKFLOW_VARS=$(grep -oE '(secrets|vars)\.[A-Z0-9_]+' "$WORKFLOW" | sed 's/^[^.]*\.//' | sort -u)
+
+# Forward check: every required var must be in the workflow
+CI_TMP1=$(mktemp)
+CI_TMP2=$(mktemp)
+echo "$CI_CONFIG_VARS" > "$CI_TMP1"
+echo "$CI_WORKFLOW_VARS" > "$CI_TMP2"
+CI_ONLY_IN_CONFIG=$(comm -23 "$CI_TMP1" "$CI_TMP2")
+
+# Reverse check: every workflow var must exist in env.config.ts (any location)
+CI_TMP3=$(mktemp)
+echo "$CI_ALL_CONFIG_VARS" > "$CI_TMP3"
+CI_ONLY_IN_WORKFLOW=$(comm -13 "$CI_TMP3" "$CI_TMP2")
+rm -f "$CI_TMP1" "$CI_TMP2" "$CI_TMP3"
+
+CI_SYNC_ERROR=""
+
+if [ -n "$CI_ONLY_IN_CONFIG" ]; then
+  CI_SYNC_ERROR="1"
+  echo ""
+  echo "ERROR: Variables in lib/env.config.ts but missing from $WORKFLOW:"
+  echo "$CI_ONLY_IN_CONFIG" | sed 's/^/  /'
+fi
+
+if [ -n "$CI_ONLY_IN_WORKFLOW" ]; then
+  CI_SYNC_ERROR="1"
+  echo ""
+  echo "ERROR: Variables in $WORKFLOW but missing from lib/env.config.ts:"
+  echo "$CI_ONLY_IN_WORKFLOW" | sed 's/^/  /'
+fi
+
+if [ -n "$CI_SYNC_ERROR" ]; then
+  echo ""
+  echo "Keep $WORKFLOW and lib/env.config.ts in sync."
+  echo "See lib/env.config.ts for the canonical source of truth."
+  exit 1
+fi
+
+echo "CI workflow env vars are in sync"
+
 # Run linting
 npx lint-staged
