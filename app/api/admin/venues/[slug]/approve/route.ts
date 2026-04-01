@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { venues } from '@/lib/schema';
@@ -8,7 +8,7 @@ interface RouteParams {
   params: Promise<{ slug: string }>;
 }
 
-export async function POST(_request: NextRequest, { params }: RouteParams) {
+export async function POST(_: unknown, { params }: RouteParams) {
   try {
     const { slug } = await params;
     const session = await auth();

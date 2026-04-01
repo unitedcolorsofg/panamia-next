@@ -70,6 +70,10 @@ const fixNoonDateLibPlugin: Plugin = {
   },
 };
 
+// Vite 8 + @vitejs/plugin-react v6 upgrade blocked:
+//   - vinext dev server crashes with SyntaxError in worker runner (cloudflare/vinext#540, #585)
+//   - Vite 8's Rolldown bundler breaks CJS deps in SSR dev (module is not defined)
+//   - Revisit once vinext ships stable vite 8 dev support
 export default defineConfig({
   build: {
     rollupOptions: {},

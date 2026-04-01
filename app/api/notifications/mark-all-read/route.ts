@@ -5,11 +5,11 @@
  * ActivityPub-shaped notification system
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { markAllAsRead } from '@/lib/notifications';
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {

@@ -5,12 +5,12 @@
  * ActivityPub-shaped notification system
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { markAsRead } from '@/lib/notifications';
 
 export async function POST(
-  request: NextRequest,
+  _: unknown,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
