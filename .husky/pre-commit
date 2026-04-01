@@ -250,5 +250,52 @@ if [ -n "$STALE_READMES" ]; then
   echo ""
 fi
 
+# =============================================================================
+# Env Config Sync Check (.env.local.example ↔ lib/env.config.ts)
+# =============================================================================
+
+echo ""
+echo "Checking env config sync..."
+
+# Extract var names from env.config.ts (keys of the envConfig object)
+ENV_CONFIG_VARS=$(grep -E '^  [A-Z0-9_]+:' lib/env.config.ts | sed 's/:.*//' | tr -d ' ' | sort)
+
+# Extract var names from .env.local.example (both uncommented and commented-out assignments)
+ENV_EXAMPLE_VARS=$(grep -E '^#? *[A-Z0-9_]+=' .env.local.example | sed 's/^# *//' | sed 's/=.*//' | sort)
+
+# Compare (POSIX-compatible — no process substitution)
+CONFIG_TMP=$(mktemp)
+EXAMPLE_TMP=$(mktemp)
+echo "$ENV_CONFIG_VARS" > "$CONFIG_TMP"
+echo "$ENV_EXAMPLE_VARS" > "$EXAMPLE_TMP"
+ONLY_IN_CONFIG=$(comm -23 "$CONFIG_TMP" "$EXAMPLE_TMP")
+ONLY_IN_EXAMPLE=$(comm -13 "$CONFIG_TMP" "$EXAMPLE_TMP")
+rm -f "$CONFIG_TMP" "$EXAMPLE_TMP"
+
+ENV_SYNC_ERROR=""
+
+if [ -n "$ONLY_IN_CONFIG" ]; then
+  ENV_SYNC_ERROR="1"
+  echo ""
+  echo "ERROR: Variables in lib/env.config.ts but missing from .env.local.example:"
+  echo "$ONLY_IN_CONFIG" | sed 's/^/  /'
+fi
+
+if [ -n "$ONLY_IN_EXAMPLE" ]; then
+  ENV_SYNC_ERROR="1"
+  echo ""
+  echo "ERROR: Variables in .env.local.example but missing from lib/env.config.ts:"
+  echo "$ONLY_IN_EXAMPLE" | sed 's/^/  /'
+fi
+
+if [ -n "$ENV_SYNC_ERROR" ]; then
+  echo ""
+  echo "Keep .env.local.example and lib/env.config.ts in sync."
+  echo "See lib/env.config.ts for the canonical source of truth."
+  exit 1
+fi
+
+echo "Env config files are in sync"
+
 # Run linting
 npx lint-staged
