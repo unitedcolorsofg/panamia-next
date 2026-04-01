@@ -182,7 +182,9 @@ export default function MainHeader({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('nav.mentoring')}</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                <Link href="/m">{t('nav.mentoring')}</Link>
+              </DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link
                   href="/m/discover"

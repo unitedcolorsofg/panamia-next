@@ -10,7 +10,7 @@ export default async function MentoringLayout({
   const session = await auth();
 
   if (!session?.user) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   return (

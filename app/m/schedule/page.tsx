@@ -8,7 +8,7 @@ import { SessionsList } from './_components/sessions-list';
 export default async function SchedulePage() {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   const userEmailFilter = or(

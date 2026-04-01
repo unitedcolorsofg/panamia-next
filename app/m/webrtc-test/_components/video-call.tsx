@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   userId: string;
@@ -68,7 +69,6 @@ const ICE_SERVERS: RTCConfiguration = {
 
 export function VideoCall({ userId, userName }: Props) {
   const [state, setState] = useState<ConnectionState>('idle');
-  const [error, setError] = useState('');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -273,7 +273,12 @@ export function VideoCall({ userId, userName }: Props) {
     // Send to all connected peers
     const peerIds = [...dataChannelsRef.current.keys()];
     if (peerIds.length === 0) {
-      setError('No peers connected for file transfer');
+      toast({
+        title: 'No peers connected',
+        description:
+          'Wait for another participant to join before sending files.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -546,7 +551,11 @@ export function VideoCall({ userId, userName }: Props) {
       }
 
       case 'error':
-        setError(data.message as string);
+        toast({
+          title: 'Signaling error',
+          description: data.message as string,
+          variant: 'destructive',
+        });
         break;
     }
   }
@@ -648,7 +657,11 @@ export function VideoCall({ userId, userName }: Props) {
   function attemptReconnect() {
     if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
       setState('error');
-      setError('Lost connection. Could not reconnect.');
+      toast({
+        title: 'Connection lost',
+        description: 'Could not reconnect after multiple attempts.',
+        variant: 'destructive',
+      });
       return;
     }
     setState('reconnecting');
@@ -662,27 +675,52 @@ export function VideoCall({ userId, userName }: Props) {
   }
 
   async function joinRoom() {
-    setError('');
     setState('connecting');
     intentionalLeaveRef.current = false;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // Try video + audio first, fall back to audio-only, then no media
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+      } catch {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+          });
+          toast({
+            title: 'No camera detected',
+            description: 'Joining with audio only.',
+          });
+          setVideoEnabled(false);
+        } catch {
+          // No media devices at all — still allow joining for chat/files
+          toast({
+            title: 'No camera or microphone',
+            description:
+              'Joining without media. You can still chat and transfer files.',
+          });
+          setVideoEnabled(false);
+          setAudioEnabled(false);
+        }
+      }
       localStreamRef.current = stream;
-      if (localVideoRef.current) {
+      if (localVideoRef.current && stream) {
         localVideoRef.current.srcObject = stream;
       }
       connectWebSocket();
     } catch (err) {
       setState('error');
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to access camera/microphone'
-      );
+      toast({
+        title: 'Failed to join',
+        description:
+          err instanceof Error ? err.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -791,33 +829,6 @@ export function VideoCall({ userId, userName }: Props) {
                   {videoEnabled ? 'Cam Off' : 'Cam On'}
                 </Button>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={dataChannelsRef.current.size === 0}
-                >
-                  Send Now
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => deferredFileInputRef.current?.click()}
-                >
-                  Send After Call
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
-                <input
-                  ref={deferredFileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleDeferredFileSelect}
-                />
-                <Button
                   variant="destructive"
                   size="sm"
                   onClick={deferredFiles.length > 0 ? endCallAndDrain : cleanup}
@@ -851,7 +862,6 @@ export function VideoCall({ userId, userName }: Props) {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
           {state === 'reconnecting' && (
             <p className="text-sm text-yellow-600">
               Connection lost. Reconnecting (attempt{' '}
@@ -973,6 +983,42 @@ export function VideoCall({ userId, userName }: Props) {
                   <Button size="sm" className="h-8" onClick={sendChat}>
                     Send
                   </Button>
+                </div>
+                <div className="mt-2 border-t pt-2">
+                  <p className="text-muted-foreground mb-1 text-xs">
+                    Files (peer-to-peer)
+                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 flex-1 text-xs"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={dataChannelsRef.current.size === 0}
+                    >
+                      Send Now
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 flex-1 text-xs"
+                      onClick={() => deferredFileInputRef.current?.click()}
+                    >
+                      Send After Call
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <input
+                      ref={deferredFileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleDeferredFileSelect}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

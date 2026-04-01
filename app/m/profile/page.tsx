@@ -10,7 +10,7 @@ import Link from 'next/link';
 export default async function MentoringProfilePage() {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   const profile = await db.query.profiles.findFirst({

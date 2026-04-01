@@ -15,7 +15,7 @@ export default async function SessionPage({
 
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   const mentorSession = await db.query.mentorSessions.findFirst({

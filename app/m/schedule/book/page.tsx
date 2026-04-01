@@ -5,7 +5,7 @@ import { BookingForm } from './_components/booking-form';
 export default async function BookSessionPage() {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   return (
