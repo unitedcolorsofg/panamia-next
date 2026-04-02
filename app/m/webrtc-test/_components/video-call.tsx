@@ -63,9 +63,14 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
+function generateGuestId() {
+  return `guest-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export function VideoCall() {
   const { data: session, status } = useSession();
-  const userId = session?.user?.id ?? '';
+  const [guestId] = useState(generateGuestId);
+  const userId = session?.user?.id || guestId;
   const [screenname, setScreenname] = useState('');
 
   useEffect(() => {
@@ -78,7 +83,8 @@ export function VideoCall() {
       .catch(() => {});
   }, [status]);
 
-  const userName = screenname || `user-${userId.slice(-6)}`;
+  const userName =
+    screenname || (session?.user?.id ? `user-${userId.slice(-6)}` : guestId);
   const [state, setState] = useState<ConnectionState>('idle');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -477,6 +483,42 @@ export function VideoCall() {
     return video!;
   }
 
+  async function logVideoStats(peerId: string, pc: RTCPeerConnection) {
+    try {
+      const stats = await pc.getStats();
+      const codecs = new Map<
+        string,
+        { mimeType: string; sdpFmtpLine?: string }
+      >();
+      stats.forEach((r) => {
+        if (r.type === 'codec')
+          codecs.set(r.id, {
+            mimeType: r.mimeType,
+            sdpFmtpLine: r.sdpFmtpLine,
+          });
+      });
+      stats.forEach((r) => {
+        if (r.kind !== 'video') return;
+        const codec = r.codecId ? codecs.get(r.codecId) : null;
+        const codecStr = codec?.mimeType?.replace('video/', '') ?? '?';
+        const fmtp = codec?.sdpFmtpLine ?? '';
+        const profile = fmtp.match(/profile-level-id=([^;]+)/)?.[1] ?? '';
+        const dir =
+          r.type === 'inbound-rtp'
+            ? 'recv'
+            : r.type === 'outbound-rtp'
+              ? 'send'
+              : null;
+        if (!dir) return;
+        log(
+          `Video ${dir} (${peerId.slice(-6)}): ${codecStr}${profile ? ` profile=${profile}` : ''} ${r.frameWidth ?? '?'}x${r.frameHeight ?? '?'} @${r.framesPerSecond ?? '?'}fps`
+        );
+      });
+    } catch {
+      // peer connection may have closed
+    }
+  }
+
   function createPeerConnection(
     peerId: string,
     peerName?: string,
@@ -557,6 +599,8 @@ export function VideoCall() {
       if (pc.connectionState === 'connected') {
         setState('connected');
         reconnectAttemptRef.current = 0;
+        // Log video stats once after connection stabilizes
+        setTimeout(() => logVideoStats(peerId, pc), 2000);
       }
     };
 
@@ -973,7 +1017,7 @@ export function VideoCall() {
 
           {state === 'idle' && (
             <div className="flex gap-2">
-              <Button onClick={joinRoom} disabled={status !== 'authenticated'}>
+              <Button onClick={joinRoom} disabled={status === 'loading'}>
                 {status === 'loading' ? 'Loading…' : 'Join Room'}
               </Button>
               <Button
@@ -1028,199 +1072,211 @@ export function VideoCall() {
         </CardContent>
       </Card>
 
-      {/* Video grid + chat/files side-by-side when in call */}
+      {/* Videos — full width */}
       {state !== 'idle' && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* Videos: 2 cols */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-            <div className="group relative">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="aspect-video w-full rounded-lg bg-black object-cover"
-              />
-              <p className="text-muted-foreground mt-1 text-sm">
-                You ({userName})
-              </p>
-              {state !== 'idle' && state !== 'draining' && (
-                <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
-                    onClick={toggleAudio}
-                  >
-                    {audioEnabled ? 'Mute' : 'Unmute'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
-                    onClick={toggleVideo}
-                  >
-                    {videoEnabled ? 'Cam Off' : 'Cam On'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-7 bg-red-600/80 text-xs text-white backdrop-blur hover:bg-red-700"
-                    onClick={
-                      deferredFiles.length > 0 ? endCallAndDrain : cleanup
-                    }
-                  >
-                    {deferredFiles.length > 0 ? 'End & Send Files' : 'Leave'}
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div ref={remoteContainerRef} className="contents" />
-            {peers.length === 0 && (
-              <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed">
-                <p className="text-muted-foreground animate-pulse text-sm">
-                  Waiting for peer…
-                </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="group relative">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="aspect-video w-full rounded-lg bg-black object-cover"
+            />
+            <p className="text-muted-foreground mt-1 text-sm">
+              You ({userName})
+            </p>
+            {state !== 'idle' && state !== 'draining' && (
+              <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
+                  onClick={toggleAudio}
+                >
+                  {audioEnabled ? 'Mute' : 'Unmute'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
+                  onClick={toggleVideo}
+                >
+                  {videoEnabled ? 'Cam Off' : 'Cam On'}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 bg-red-600/80 text-xs text-white backdrop-blur hover:bg-red-700"
+                  onClick={deferredFiles.length > 0 ? endCallAndDrain : cleanup}
+                >
+                  {deferredFiles.length > 0 ? 'End & Send Files' : 'Leave'}
+                </Button>
               </div>
             )}
           </div>
+          <div ref={remoteContainerRef} className="contents" />
+          {peers.length === 0 && (
+            <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed">
+              <p className="text-muted-foreground animate-pulse text-sm">
+                Waiting for peer…
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-          {/* Chat + files: 1 col */}
-          <div className="flex flex-col gap-4">
-            {/* File transfers */}
-            {(sendingFiles.length > 0 || incomingFiles.length > 0) && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">File Transfers</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {sendingFiles.map((s, i) => (
-                    <div key={`send-${i}`} className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="truncate">{s.name}</span>
-                        <span className="text-muted-foreground ml-2 shrink-0">
-                          {formatSize(s.sent)}/{formatSize(s.size)}
+      {/* Chat + files — below videos */}
+      {state !== 'idle' && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* File transfers */}
+          {(sendingFiles.length > 0 || incomingFiles.length > 0) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">File Transfers</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {sendingFiles.map((s, i) => (
+                  <div key={`send-${i}`} className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="truncate">{s.name}</span>
+                      <span className="text-muted-foreground ml-2 shrink-0">
+                        {formatSize(s.sent)}/{formatSize(s.size)}
+                      </span>
+                    </div>
+                    <div className="bg-muted h-1.5 rounded-full">
+                      <div
+                        className="h-1.5 rounded-full bg-blue-500 transition-all"
+                        style={{
+                          width: `${s.size > 0 ? (s.sent / s.size) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {incomingFiles.map((f) => (
+                  <div key={f.id} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="truncate">{f.name}</span>
+                      {f.done ? (
+                        <span className="ml-2 shrink-0 text-green-600">
+                          Saved
                         </span>
-                      </div>
+                      ) : (
+                        <span className="text-muted-foreground ml-2 shrink-0">
+                          {formatSize(f.received)}/{formatSize(f.size)}
+                        </span>
+                      )}
+                    </div>
+                    {!f.done && (
                       <div className="bg-muted h-1.5 rounded-full">
                         <div
-                          className="h-1.5 rounded-full bg-blue-500 transition-all"
+                          className="h-1.5 rounded-full bg-green-500 transition-all"
                           style={{
-                            width: `${s.size > 0 ? (s.sent / s.size) * 100 : 0}%`,
+                            width: `${f.size > 0 ? (f.received / f.size) * 100 : 0}%`,
                           }}
                         />
                       </div>
-                    </div>
-                  ))}
-                  {incomingFiles.map((f) => (
-                    <div key={f.id} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="truncate">{f.name}</span>
-                        {f.done ? (
-                          <span className="ml-2 shrink-0 text-green-600">
-                            Saved
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground ml-2 shrink-0">
-                            {formatSize(f.received)}/{formatSize(f.size)}
-                          </span>
-                        )}
-                      </div>
-                      {!f.done && (
-                        <div className="bg-muted h-1.5 rounded-full">
-                          <div
-                            className="h-1.5 rounded-full bg-green-500 transition-all"
-                            style={{
-                              width: `${f.size > 0 ? (f.received / f.size) * 100 : 0}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Chat */}
-            <Card className="flex max-h-96 flex-col">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Chat</CardTitle>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col">
-                <div className="flex-1 space-y-1 overflow-y-auto text-sm">
-                  {chatMessages.length === 0 && (
-                    <p className="text-muted-foreground text-xs">
-                      No messages yet
-                    </p>
-                  )}
-                  {chatMessages.map((msg, i) => (
-                    <div key={i}>
-                      <span className="font-medium">
-                        {msg.from === userId ? 'You' : msg.fromName}:
-                      </span>{' '}
-                      {msg.text}
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-                <div className="mt-2 flex gap-1">
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && sendChat()}
-                    placeholder="Type a message…"
-                    className="h-8 text-sm"
-                  />
-                  <Button size="sm" className="h-8" onClick={sendChat}>
-                    Send
-                  </Button>
-                </div>
-                <div className="mt-2 border-t pt-2">
-                  <div className="flex gap-1">
-                    <Button
-                      variant={stagedFile ? 'default' : 'outline'}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => attachFileInputRef.current?.click()}
-                    >
-                      {stagedFile ? 'File Attached!' : 'Attach File'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 flex-1 text-xs"
-                      onClick={sendStagedFileNow}
-                      disabled={
-                        !stagedFile || dataChannelsRef.current.size === 0
-                      }
-                    >
-                      Send Now
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 flex-1 text-xs"
-                      onClick={sendStagedFileAfterCall}
-                      disabled={!stagedFile}
-                    >
-                      Send After Call
-                    </Button>
-                    <input
-                      ref={attachFileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={handleAttachFile}
-                    />
+                    )}
                   </div>
-                  {stagedFile && (
-                    <p className="text-muted-foreground mt-1 truncate text-xs">
-                      {stagedFile.name} ({formatSize(stagedFile.size)})
-                    </p>
-                  )}
-                </div>
+                ))}
               </CardContent>
             </Card>
-          </div>
+          )}
+
+          {/* Chat */}
+          <Card className="flex max-h-96 flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Chat</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 space-y-1 overflow-y-auto text-sm">
+                {chatMessages.length === 0 && (
+                  <p className="text-muted-foreground text-xs">
+                    No messages yet
+                  </p>
+                )}
+                {chatMessages.map((msg, i) => (
+                  <div key={i}>
+                    <span className="font-medium">
+                      {msg.from === userId ? 'You' : msg.fromName}:
+                    </span>{' '}
+                    {msg.text}
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+              <div className="mt-2 flex gap-1">
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendChat()}
+                  placeholder="Type a message…"
+                  className="h-8 text-sm"
+                />
+                <Button size="sm" className="h-8" onClick={sendChat}>
+                  Send
+                </Button>
+              </div>
+              <div className="mt-2 border-t pt-2">
+                <div className="flex gap-1">
+                  <Button
+                    variant={stagedFile ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => attachFileInputRef.current?.click()}
+                  >
+                    {stagedFile ? 'File Attached!' : 'Attach File'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 flex-1 text-xs"
+                    onClick={sendStagedFileNow}
+                    disabled={!stagedFile || dataChannelsRef.current.size === 0}
+                  >
+                    Send Now
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 flex-1 text-xs"
+                    onClick={sendStagedFileAfterCall}
+                    disabled={!stagedFile}
+                  >
+                    Send After Call
+                  </Button>
+                  <input
+                    ref={attachFileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleAttachFile}
+                  />
+                </div>
+                {stagedFile && (
+                  <p className="text-muted-foreground mt-1 truncate text-xs">
+                    {stagedFile.name} ({formatSize(stagedFile.size)})
+                  </p>
+                )}
+              </div>
+              <div className="mt-2 border-t pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-full text-xs"
+                  onClick={() => {
+                    const room = encodeURIComponent(ROOM_ID);
+                    window.open(
+                      `/m/webrtc-test/whiteboard?room=${room}`,
+                      'pana-whiteboard',
+                      'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
+                    );
+                  }}
+                >
+                  Start a whiteboard!
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
