@@ -158,10 +158,12 @@ export function VideoCall() {
       fractionalSecondDigits: 3,
     });
     setDebugLog((prev) => [...prev.slice(-200), `[${ts}] ${msg}`]);
-    setTimeout(
-      () => debugEndRef.current?.scrollIntoView({ behavior: 'smooth' }),
-      0
-    );
+    setTimeout(() => {
+      const el = debugEndRef.current;
+      if (el?.parentElement) {
+        el.parentElement.scrollTop = el.parentElement.scrollHeight;
+      }
+    }, 0);
   }
 
   // --- Data channel handling ---
@@ -230,6 +232,11 @@ export function VideoCall() {
       const blob = new Blob(buf.chunks, { type: buf.type });
       const url = URL.createObjectURL(blob);
       incomingBuffersRef.current.delete(msg.transferId);
+      // Auto-download the file
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = buf.name;
+      a.click();
       setIncomingFiles((prev) =>
         prev.map((f) =>
           f.id === msg.transferId
@@ -1038,7 +1045,7 @@ export function VideoCall() {
                 You ({userName})
               </p>
               {state !== 'idle' && state !== 'draining' && (
-                <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1108,14 +1115,10 @@ export function VideoCall() {
                     <div key={f.id} className="space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="truncate">{f.name}</span>
-                        {f.done && f.url ? (
-                          <a
-                            href={f.url}
-                            download={f.name}
-                            className="ml-2 shrink-0 text-blue-600 underline"
-                          >
-                            Download
-                          </a>
+                        {f.done ? (
+                          <span className="ml-2 shrink-0 text-green-600">
+                            Saved
+                          </span>
                         ) : (
                           <span className="text-muted-foreground ml-2 shrink-0">
                             {formatSize(f.received)}/{formatSize(f.size)}
