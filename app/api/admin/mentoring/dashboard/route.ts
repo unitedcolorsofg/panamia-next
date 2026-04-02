@@ -5,6 +5,16 @@ import { mentorSessions, profiles } from '@/lib/schema';
 import { ProfileMentoring } from '@/lib/interfaces';
 import { and, asc, eq, gte, isNotNull, lte, sql } from 'drizzle-orm';
 
+// ── Future: Video Session Metrics ─────────────────────────────────────
+// When the SignalingRoom DO (worker/signaling-room.ts) writes session
+// summaries to a `video_sessions` Supabase table on room teardown,
+// extend this endpoint to query that table and return:
+//   - videoSessions.total, avgDuration
+//   - videoReliability.reconnectRate, avgReconnectsPerSession
+// This endpoint queries Supabase only — DO SQLite is ephemeral and
+// cleared after metrics are flushed.
+// See worker/signaling-room.ts and account/admin/mentoring/page.tsx.
+// ─────────────────────────────────────────────────────────────────────
 interface DashboardMetrics {
   totalMentors: number;
   activeMentors: number;

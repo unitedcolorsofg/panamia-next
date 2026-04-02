@@ -26,6 +26,30 @@
  */
 
 const MAX_PARTICIPANTS = 3;
+const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+
+// ── Future: Session Metrics for /account/admin/mentoring ─────────────
+// When video sessions move beyond PoC, copy session metrics into the
+// Supabase mentoring tables before deleting SQLite data. The admin
+// dashboard should only query Supabase — never SQLite directly.
+//
+// Suggested approach:
+//   1. Add a `video_sessions` table in Supabase (session_id, room_id,
+//      started_at, ended_at, participant_count, total_chat_messages,
+//      files_transferred, reconnect_count).
+//   2. On cleanupIfEmpty() (room teardown), POST a summary to
+//      /api/admin/mentoring/video-session BEFORE deleting SQLite rows.
+//      The DO has all the data at that point — aggregate and flush.
+//   3. Extend DashboardMetrics in account/admin/mentoring/page.tsx with:
+//      - videoSessions: { total, avgDuration }
+//      - videoReliability: { reconnectRate, avgReconnectsPerSession }
+//   4. Extend /api/admin/mentoring/dashboard to query video_sessions
+//      from Supabase and return the new fields.
+//
+// The DO already tracks: participants (join/leave/reconnect), chat
+// message count, and file transfers. Call duration can be derived from
+// the first join to the last leave timestamp.
+// ─────────────────────────────────────────────────────────────────────
 
 interface Participant {
   userId: string;
@@ -40,6 +64,7 @@ export class SignalingRoom {
   constructor(state: DurableObjectState, _env: unknown) {
     this.sql = state.storage.sql;
     this.initDb();
+    this.purgeStale();
     this.restoreParticipants();
   }
 
@@ -58,6 +83,31 @@ export class SignalingRoom {
         ts INTEGER NOT NULL
       );
     `);
+  }
+
+  /** Purge participants older than STALE_THRESHOLD_MS and clean up if none remain */
+  private purgeStale() {
+    const cutoff = Date.now() - STALE_THRESHOLD_MS;
+    const stale = [
+      ...this.sql.exec(
+        'SELECT user_id FROM participants WHERE joined_at < ?',
+        cutoff
+      ),
+    ];
+    if (stale.length > 0) {
+      this.sql.exec('DELETE FROM participants WHERE joined_at < ?', cutoff);
+      console.log(
+        `[DO] Purged ${stale.length} stale participant(s): ${stale.map((r) => r.user_id).join(', ')}`
+      );
+      // If no participants remain, clear chat too
+      const remaining = [
+        ...this.sql.exec('SELECT COUNT(*) as n FROM participants'),
+      ];
+      if (Number(remaining[0]?.n) === 0) {
+        this.sql.exec('DELETE FROM chat');
+        console.log('[DO] All participants stale — chat table cleared');
+      }
+    }
   }
 
   /** Restore in-memory participant map from SQLite (ws=null until they reconnect) */
@@ -163,9 +213,15 @@ export class SignalingRoom {
           }
           existing.ws = ws;
           existing.userName = data.userName;
+          // Refresh joined_at so reconnecting users don't get purged
+          this.sql.exec(
+            'UPDATE participants SET joined_at = ? WHERE user_id = ?',
+            Date.now(),
+            data.userId
+          );
           this.debug(
             ws,
-            `DO: reconnect — ${data.userName} (${data.userId}) reattached to existing SQLite row`
+            `DO: reconnect — ${data.userName} (${data.userId}) reattached, joined_at refreshed`
           );
         } else {
           // New participant

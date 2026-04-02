@@ -23,6 +23,24 @@ const MentoringCharts = dynamic(() => import('./MentoringCharts'), {
   ),
 });
 
+// ── Future: WebRTC Video Session Metrics ─────────────────────────────
+// When the WebRTC PoC (app/m/webrtc-test) graduates to production,
+// extend this interface to include video session data:
+//
+//   videoSessions: {
+//     total: number;           // total completed video sessions
+//     avgDuration: number;     // average session length in minutes
+//   };
+//   videoReliability: {
+//     reconnectRate: number;   // % of sessions with at least one reconnect
+//     avgReconnectsPerSession: number;
+//   };
+//
+// Data source: `video_sessions` table in Supabase, populated by the
+// SignalingRoom DO on room teardown (POST before SQLite cleanup).
+// The admin dashboard queries Supabase only — never DO SQLite directly.
+// See worker/signaling-room.ts and api/admin/mentoring/dashboard/route.ts.
+// ─────────────────────────────────────────────────────────────────────
 interface DashboardMetrics {
   totalMentors: number;
   activeMentors: number;
