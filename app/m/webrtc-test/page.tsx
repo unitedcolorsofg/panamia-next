@@ -4,7 +4,7 @@ import { VideoCall } from './_components/video-call';
 
 export default async function WebRtcTestPage() {
   const session = await auth();
-  if (!session?.user?.id || !session.user.email) {
+  if (!session?.user) {
     redirect('/signin');
   }
 
@@ -17,10 +17,7 @@ export default async function WebRtcTestPage() {
           participants).
         </p>
       </div>
-      <VideoCall
-        userId={session.user.id}
-        userName={session.user.name ?? session.user.email}
-      />
+      <VideoCall />
     </div>
   );
 }

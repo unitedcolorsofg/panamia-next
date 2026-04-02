@@ -12,11 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-
-interface Props {
-  userId: string;
-  userName: string;
-}
+import { useSession } from '@/lib/auth-client';
 
 interface ChatMessage {
   from: string;
@@ -67,7 +63,22 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function VideoCall({ userId, userName }: Props) {
+export function VideoCall() {
+  const { data: session, status } = useSession();
+  const userId = session?.user?.id ?? '';
+  const [screenname, setScreenname] = useState('');
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/user/me')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setScreenname(d.data.screenname || d.data.name || '');
+      })
+      .catch(() => {});
+  }, [status]);
+
+  const userName = screenname || `user-${userId.slice(-6)}`;
   const [state, setState] = useState<ConnectionState>('idle');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -79,6 +90,11 @@ export function VideoCall({ userId, userName }: Props) {
   );
   const [sendingFiles, setSendingFiles] = useState<SendProgress[]>([]);
   const [deferredFiles, setDeferredFiles] = useState<File[]>([]);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [elapsed, setElapsed] = useState(0);
+  const callStartRef = useRef<number | null>(null);
+  const debugEndRef = useRef<HTMLDivElement>(null);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -91,8 +107,7 @@ export function VideoCall({ userId, userName }: Props) {
     new Map()
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const deferredFileInputRef = useRef<HTMLInputElement>(null);
+  const attachFileInputRef = useRef<HTMLInputElement>(null);
   const reconnectAttemptRef = useRef(0);
   const intentionalLeaveRef = useRef(false);
   const hasJoinedRef = useRef(false);
@@ -115,6 +130,39 @@ export function VideoCall({ userId, userName }: Props) {
   }, []);
 
   useEffect(scrollChat, [chatMessages, scrollChat]);
+
+  // Call timer
+  useEffect(() => {
+    if (state === 'connected' || state === 'reconnecting') {
+      if (!callStartRef.current) callStartRef.current = Date.now();
+      const id = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - callStartRef.current!) / 1000));
+      }, 1000);
+      return () => clearInterval(id);
+    }
+    if (state === 'idle') {
+      callStartRef.current = null;
+      setElapsed(0);
+    }
+  }, [state]);
+
+  function formatElapsed(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function log(msg: string) {
+    const ts = new Date().toLocaleTimeString('en-US', {
+      hour12: false,
+      fractionalSecondDigits: 3,
+    });
+    setDebugLog((prev) => [...prev.slice(-200), `[${ts}] ${msg}`]);
+    setTimeout(
+      () => debugEndRef.current?.scrollIntoView({ behavior: 'smooth' }),
+      0
+    );
+  }
 
   // --- Data channel handling ---
 
@@ -263,10 +311,17 @@ export function VideoCall({ userId, userName }: Props) {
     );
   }
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ''; // reset so same file can be re-selected
+    e.target.value = '';
+    setStagedFile(file);
+  }
+
+  async function sendStagedFileNow() {
+    if (!stagedFile) return;
+    const file = stagedFile;
+    setStagedFile(null);
 
     const transferId = `${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -299,11 +354,10 @@ export function VideoCall({ userId, userName }: Props) {
     );
   }
 
-  function handleDeferredFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    setDeferredFiles((prev) => [...prev, file]);
+  function sendStagedFileAfterCall() {
+    if (!stagedFile) return;
+    setDeferredFiles((prev) => [...prev, stagedFile]);
+    setStagedFile(null);
   }
 
   function removeDeferredFile(index: number) {
@@ -426,23 +480,35 @@ export function VideoCall({ userId, userName }: Props) {
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionsRef.current.set(peerId, pc);
+    log(
+      `RTCPeerConnection created for ${peerId} (role: ${isOfferer ? 'offerer' : 'answerer'})`
+    );
 
     if (localStreamRef.current) {
-      for (const track of localStreamRef.current.getTracks()) {
+      const tracks = localStreamRef.current.getTracks();
+      for (const track of tracks) {
         pc.addTrack(track, localStreamRef.current);
       }
+      log(
+        `Added ${tracks.length} local track(s): ${tracks.map((t) => `${t.kind}[${t.label}]`).join(', ')}`
+      );
+    } else {
+      log('No local media stream — joining without tracks');
     }
 
     // Data channel: offerer creates, answerer listens
     if (isOfferer) {
       const dc = pc.createDataChannel('file-transfer', { ordered: true });
       setupDataChannel(peerId, dc);
+      log(`DataChannel "file-transfer" created (offerer → ${peerId})`);
     }
     pc.ondatachannel = (event) => {
+      log(`DataChannel "${event.channel.label}" received from ${peerId}`);
       setupDataChannel(peerId, event.channel);
     };
 
     pc.ontrack = (event) => {
+      log(`Remote track received: ${event.track.kind} from ${peerId}`);
       const video = getOrCreateRemoteVideo(peerId, peerName);
       if (video.srcObject !== event.streams[0]) {
         video.srcObject = event.streams[0];
@@ -451,6 +517,10 @@ export function VideoCall({ userId, userName }: Props) {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        const c = event.candidate;
+        log(
+          `ICE candidate (local → ${peerId}): ${c.type ?? 'unknown'} ${c.protocol ?? ''} ${c.address ?? ''}:${c.port ?? ''}`
+        );
         wsRef.current?.send(
           JSON.stringify({
             type: 'ice-candidate',
@@ -458,10 +528,25 @@ export function VideoCall({ userId, userName }: Props) {
             target: peerId,
           })
         );
+      } else {
+        log(`ICE gathering complete for ${peerId}`);
       }
     };
 
+    pc.onicegatheringstatechange = () => {
+      log(`ICE gathering state → ${pc.iceGatheringState} (${peerId})`);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      log(`ICE connection state → ${pc.iceConnectionState} (${peerId})`);
+    };
+
+    pc.onsignalingstatechange = () => {
+      log(`Signaling state → ${pc.signalingState} (${peerId})`);
+    };
+
     pc.onconnectionstatechange = () => {
+      log(`Connection state → ${pc.connectionState} (${peerId})`);
       if (pc.connectionState === 'connected') {
         setState('connected');
         reconnectAttemptRef.current = 0;
@@ -488,10 +573,14 @@ export function VideoCall({ userId, userName }: Props) {
       case 'room-state': {
         const participants = data.participants as PeerInfo[];
         const chatHistory = data.chatHistory as ChatMessage[];
+        log(
+          `WS ← room-state: ${participants.length} participant(s), ${chatHistory.length} chat msg(s)`
+        );
         setPeers(participants.filter((p) => p.userId !== userId));
         setChatMessages(chatHistory);
         for (const peer of participants) {
           if (peer.userId !== userId) {
+            log(`Initiating SDP offer → ${peer.userName} (${peer.userId})`);
             initiateOffer(peer.userId, peer.userName);
           }
         }
@@ -502,6 +591,9 @@ export function VideoCall({ userId, userName }: Props) {
         const joinedUserId = data.userId as string;
         const joinedUserName = data.userName as string;
         const peerList = data.peers as PeerInfo[];
+        log(
+          `WS ← peer-joined: ${joinedUserName} (${joinedUserId}), ${peerList.length} total`
+        );
         setPeers(peerList.filter((p) => p.userId !== userId));
         if (joinedUserId !== userId) {
           getOrCreateRemoteVideo(joinedUserId, joinedUserName);
@@ -511,6 +603,7 @@ export function VideoCall({ userId, userName }: Props) {
 
       case 'peer-left': {
         const leftUserId = data.userId as string;
+        log(`WS ← peer-left: ${leftUserId}`);
         setPeers((prev) => prev.filter((p) => p.userId !== leftUserId));
         const pc = peerConnectionsRef.current.get(leftUserId);
         if (pc) {
@@ -525,19 +618,23 @@ export function VideoCall({ userId, userName }: Props) {
       }
 
       case 'offer':
+        log(`WS ← SDP offer from ${data.from}`);
         handleOffer(data.from as string, data.sdp as string);
         break;
 
       case 'answer':
+        log(`WS ← SDP answer from ${data.from}`);
         handleAnswer(data.from as string, data.sdp as string);
         break;
 
-      case 'ice-candidate':
-        handleIceCandidate(
-          data.from as string,
-          data.candidate as RTCIceCandidateInit
+      case 'ice-candidate': {
+        const c = data.candidate as RTCIceCandidateInit;
+        log(
+          `WS ← ICE candidate from ${data.from}: ${c.candidate?.split(' ').slice(0, 5).join(' ')}…`
         );
+        handleIceCandidate(data.from as string, c);
         break;
+      }
 
       case 'chat': {
         const msg: ChatMessage = {
@@ -549,6 +646,10 @@ export function VideoCall({ userId, userName }: Props) {
         setChatMessages((prev) => [...prev, msg]);
         break;
       }
+
+      case 'do-debug':
+        log(data.message as string);
+        break;
 
       case 'error':
         toast({
@@ -577,6 +678,7 @@ export function VideoCall({ userId, userName }: Props) {
   }
 
   async function handleOffer(from: string, sdp: string) {
+    log(`handleOffer from ${from} — SDP ${sdp.length} bytes`);
     const old = peerConnectionsRef.current.get(from);
     if (old) {
       old.close();
@@ -588,20 +690,24 @@ export function VideoCall({ userId, userName }: Props) {
     await pc.setRemoteDescription(
       new RTCSessionDescription({ type: 'offer', sdp })
     );
+    log(`setRemoteDescription(offer) OK for ${from}`);
     await flushPendingCandidates(from, pc);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
+    log(`SDP answer created (${answer.sdp?.length} bytes) → ${from}`);
     wsRef.current?.send(
       JSON.stringify({ type: 'answer', sdp: answer.sdp, target: from })
     );
   }
 
   async function handleAnswer(from: string, sdp: string) {
+    log(`handleAnswer from ${from} — SDP ${sdp.length} bytes`);
     const pc = peerConnectionsRef.current.get(from);
     if (pc) {
       await pc.setRemoteDescription(
         new RTCSessionDescription({ type: 'answer', sdp })
       );
+      log(`setRemoteDescription(answer) OK for ${from}`);
       await flushPendingCandidates(from, pc);
     }
   }
@@ -613,10 +719,14 @@ export function VideoCall({ userId, userName }: Props) {
     const pc = peerConnectionsRef.current.get(from);
     if (pc && pc.remoteDescription) {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      log(`ICE candidate added for ${from}`);
     } else {
       const pending = pendingCandidatesRef.current.get(from) ?? [];
       pending.push(candidate);
       pendingCandidatesRef.current.set(from, pending);
+      log(
+        `ICE candidate queued for ${from} (no remote description yet, ${pending.length} pending)`
+      );
     }
   }
 
@@ -625,11 +735,15 @@ export function VideoCall({ userId, userName }: Props) {
   function connectWebSocket() {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${proto}//${window.location.host}/ws/signaling/${ROOM_ID}`;
+    log(`WebSocket connecting → ${wsUrl}`);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
       reconnectAttemptRef.current = 0;
+      log(
+        `WebSocket open — sending join(userId=${userId}, userName=${userName})`
+      );
       ws.send(JSON.stringify({ type: 'join', userId, userName }));
       hasJoinedRef.current = true;
     };
@@ -642,7 +756,10 @@ export function VideoCall({ userId, userName }: Props) {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      log(
+        `WebSocket closed (code=${event.code}, reason=${event.reason || 'none'})`
+      );
       if (intentionalLeaveRef.current) return;
       if (!hasJoinedRef.current) return;
       cleanupPeerConnections();
@@ -650,12 +767,14 @@ export function VideoCall({ userId, userName }: Props) {
     };
 
     ws.onerror = () => {
+      log('WebSocket error');
       // onclose will fire after this
     };
   }
 
   function attemptReconnect() {
     if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      log(`Reconnect failed after ${MAX_RECONNECT_ATTEMPTS} attempts`);
       setState('error');
       toast({
         title: 'Connection lost',
@@ -668,6 +787,9 @@ export function VideoCall({ userId, userName }: Props) {
     const delay =
       RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttemptRef.current);
     reconnectAttemptRef.current++;
+    log(
+      `Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`
+    );
     setTimeout(() => {
       if (intentionalLeaveRef.current) return;
       connectWebSocket();
@@ -675,6 +797,7 @@ export function VideoCall({ userId, userName }: Props) {
   }
 
   async function joinRoom() {
+    log('joinRoom() called');
     setState('connecting');
     intentionalLeaveRef.current = false;
 
@@ -686,18 +809,36 @@ export function VideoCall({ userId, userName }: Props) {
           video: true,
           audio: true,
         });
-      } catch {
+        log(
+          `getUserMedia OK — tracks: ${stream
+            .getTracks()
+            .map((t) => `${t.kind}[${t.label}]`)
+            .join(', ')}`
+        );
+      } catch (mediaErr) {
+        log(
+          `getUserMedia(video+audio) failed: ${mediaErr instanceof Error ? mediaErr.message : mediaErr}`
+        );
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: false,
             audio: true,
           });
+          log(
+            `getUserMedia(audio-only) OK — tracks: ${stream
+              .getTracks()
+              .map((t) => `${t.kind}[${t.label}]`)
+              .join(', ')}`
+          );
           toast({
             title: 'No camera detected',
             description: 'Joining with audio only.',
           });
           setVideoEnabled(false);
-        } catch {
+        } catch (audioErr) {
+          log(
+            `getUserMedia(audio-only) failed: ${audioErr instanceof Error ? audioErr.message : audioErr}`
+          );
           // No media devices at all — still allow joining for chat/files
           toast({
             title: 'No camera or microphone',
@@ -779,9 +920,19 @@ export function VideoCall({ userId, userName }: Props) {
                       ? 'outline'
                       : 'default'
               }
+              className={
+                state === 'connecting' || state === 'reconnecting'
+                  ? 'animate-pulse'
+                  : ''
+              }
             >
               {stateLabel[state]}
             </Badge>
+            {elapsed > 0 && (
+              <span className="text-muted-foreground font-mono text-sm">
+                {formatElapsed(elapsed)}
+              </span>
+            )}
             {peers.length > 0 && (
               <Badge variant="outline">{peers.length} peer(s)</Badge>
             )}
@@ -813,31 +964,30 @@ export function VideoCall({ userId, userName }: Props) {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {state === 'idle' ? (
-              <Button onClick={joinRoom}>Join Room</Button>
-            ) : state === 'draining' ? (
-              <p className="text-sm text-yellow-600">
-                Sending deferred files… please wait.
-              </p>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={toggleAudio}>
-                  {audioEnabled ? 'Mute' : 'Unmute'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={toggleVideo}>
-                  {videoEnabled ? 'Cam Off' : 'Cam On'}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={deferredFiles.length > 0 ? endCallAndDrain : cleanup}
-                >
-                  {deferredFiles.length > 0 ? 'End Call & Send Files' : 'Leave'}
-                </Button>
-              </>
-            )}
-          </div>
+          {state === 'idle' && (
+            <div className="flex gap-2">
+              <Button onClick={joinRoom} disabled={status !== 'authenticated'}>
+                {status === 'loading' ? 'Loading…' : 'Join Room'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({
+                    title: 'Link copied',
+                    description: 'Share this URL with your test partner.',
+                  });
+                }}
+              >
+                Copy Link
+              </Button>
+            </div>
+          )}
+          {state === 'draining' && (
+            <p className="text-sm text-yellow-600">
+              Sending deferred files… please wait.
+            </p>
+          )}
 
           {/* Deferred file queue */}
           {deferredFiles.length > 0 && state !== 'draining' && (
@@ -876,7 +1026,7 @@ export function VideoCall({ userId, userName }: Props) {
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Videos: 2 cols */}
           <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-            <div className="space-y-1">
+            <div className="group relative">
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -884,9 +1034,47 @@ export function VideoCall({ userId, userName }: Props) {
                 muted
                 className="aspect-video w-full rounded-lg bg-black object-cover"
               />
-              <p className="text-muted-foreground text-sm">You ({userName})</p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                You ({userName})
+              </p>
+              {state !== 'idle' && state !== 'draining' && (
+                <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
+                    onClick={toggleAudio}
+                  >
+                    {audioEnabled ? 'Mute' : 'Unmute'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-7 bg-black/60 text-xs text-white backdrop-blur hover:bg-black/80"
+                    onClick={toggleVideo}
+                  >
+                    {videoEnabled ? 'Cam Off' : 'Cam On'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 bg-red-600/80 text-xs text-white backdrop-blur hover:bg-red-700"
+                    onClick={
+                      deferredFiles.length > 0 ? endCallAndDrain : cleanup
+                    }
+                  >
+                    {deferredFiles.length > 0 ? 'End & Send Files' : 'Leave'}
+                  </Button>
+                </div>
+              )}
             </div>
             <div ref={remoteContainerRef} className="contents" />
+            {peers.length === 0 && (
+              <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed">
+                <p className="text-muted-foreground animate-pulse text-sm">
+                  Waiting for peer…
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Chat + files: 1 col */}
@@ -985,16 +1173,23 @@ export function VideoCall({ userId, userName }: Props) {
                   </Button>
                 </div>
                 <div className="mt-2 border-t pt-2">
-                  <p className="text-muted-foreground mb-1 text-xs">
-                    Files (peer-to-peer)
-                  </p>
                   <div className="flex gap-1">
+                    <Button
+                      variant={stagedFile ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => attachFileInputRef.current?.click()}
+                    >
+                      {stagedFile ? 'File Attached!' : 'Attach File'}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="h-7 flex-1 text-xs"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={dataChannelsRef.current.size === 0}
+                      onClick={sendStagedFileNow}
+                      disabled={
+                        !stagedFile || dataChannelsRef.current.size === 0
+                      }
                     >
                       Send Now
                     </Button>
@@ -1002,28 +1197,82 @@ export function VideoCall({ userId, userName }: Props) {
                       variant="outline"
                       size="sm"
                       className="h-7 flex-1 text-xs"
-                      onClick={() => deferredFileInputRef.current?.click()}
+                      onClick={sendStagedFileAfterCall}
+                      disabled={!stagedFile}
                     >
                       Send After Call
                     </Button>
                     <input
-                      ref={fileInputRef}
+                      ref={attachFileInputRef}
                       type="file"
                       className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                    <input
-                      ref={deferredFileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={handleDeferredFileSelect}
+                      onChange={handleAttachFile}
                     />
                   </div>
+                  {stagedFile && (
+                    <p className="text-muted-foreground mt-1 truncate text-xs">
+                      {stagedFile.name} ({formatSize(stagedFile.size)})
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
+      )}
+
+      {/* Debug log — collapsed by default */}
+      {debugLog.length > 0 && (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border px-4 py-3">
+            <span className="font-mono text-sm font-medium">
+              WebRTC Session Log
+            </span>
+            <Badge variant="outline" className="font-mono text-xs">
+              {debugLog.length}
+            </Badge>
+            <span className="text-muted-foreground ml-auto text-xs">
+              click to expand
+            </span>
+          </summary>
+          <Card className="mt-2">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => setDebugLog([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted max-h-64 overflow-y-auto rounded-lg p-3 font-mono text-xs leading-relaxed">
+                {debugLog.map((line, i) => (
+                  <div
+                    key={i}
+                    className={
+                      line.includes('error') || line.includes('failed')
+                        ? 'text-red-500'
+                        : line.includes('DO:')
+                          ? 'text-cyan-600'
+                          : line.includes('connected') || line.includes('OK')
+                            ? 'text-green-600'
+                            : line.includes('ICE candidate')
+                              ? 'text-muted-foreground'
+                              : ''
+                    }
+                  >
+                    {line}
+                  </div>
+                ))}
+                <div ref={debugEndRef} />
+              </div>
+            </CardContent>
+          </Card>
+        </details>
       )}
     </div>
   );

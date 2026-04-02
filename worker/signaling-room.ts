@@ -21,6 +21,7 @@
  *     { type: "peer-left", userId: string }
  *     { type: "offer"|"answer"|"ice-candidate", from: string, ... }
  *     { type: "chat", from: string, fromName: string, text: string, ts: number }
+ *     { type: "do-debug", message: string }
  *     { type: "error", message: string }
  */
 
@@ -62,6 +63,7 @@ export class SignalingRoom {
   /** Restore in-memory participant map from SQLite (ws=null until they reconnect) */
   private restoreParticipants() {
     const rows = this.sql.exec('SELECT user_id, user_name FROM participants');
+    const restored: string[] = [];
     for (const row of rows) {
       const userId = row.user_id as string;
       this.participants.set(userId, {
@@ -69,6 +71,13 @@ export class SignalingRoom {
         userName: row.user_name as string,
         ws: null,
       });
+      restored.push(userId);
+    }
+    if (restored.length > 0) {
+      // Can't send debug here (no ws yet), but logged for constructor awareness
+      console.log(
+        `[DO] Restored ${restored.length} participant(s) from SQLite: ${restored.join(', ')}`
+      );
     }
   }
 
@@ -111,6 +120,9 @@ export class SignalingRoom {
       if (p.ws === ws) {
         // Mark as disconnected but keep in room — they may reconnect
         p.ws = null;
+        this.debugAll(
+          `DO: participant ${userId} disconnected (kept in SQLite for reconnect)`
+        );
         this.broadcast(null, { type: 'peer-left', userId });
         break;
       }
@@ -151,6 +163,10 @@ export class SignalingRoom {
           }
           existing.ws = ws;
           existing.userName = data.userName;
+          this.debug(
+            ws,
+            `DO: reconnect — ${data.userName} (${data.userId}) reattached to existing SQLite row`
+          );
         } else {
           // New participant
           if (this.participants.size >= MAX_PARTICIPANTS) {
@@ -168,14 +184,18 @@ export class SignalingRoom {
             data.userName,
             Date.now()
           );
+          this.debugAll(
+            `DO: SQLite INSERT participants — ${data.userName} (${data.userId}), ${this.participants.size} total`
+          );
         }
 
         // Send room state to the joining/reconnecting user
-        const chatHistory = [
+        const chatRows = [
           ...this.sql.exec(
             'SELECT from_id, from_name, text, ts FROM chat ORDER BY id'
           ),
-        ].map((r) => ({
+        ];
+        const chatHistory = chatRows.map((r) => ({
           from: r.from_id as string,
           fromName: r.from_name as string,
           text: r.text as string,
@@ -185,6 +205,10 @@ export class SignalingRoom {
           userId: p.userId,
           userName: p.userName,
         }));
+        this.debug(
+          ws,
+          `DO: SQLite SELECT — ${participantList.length} participant(s), ${chatRows.length} chat row(s) sent as room-state`
+        );
         this.send(ws, {
           type: 'room-state',
           participants: participantList,
@@ -217,6 +241,10 @@ export class SignalingRoom {
           data.text.trim(),
           ts
         );
+        this.debug(
+          ws,
+          `DO: SQLite INSERT chat — from ${sender.userName}, ${data.text.trim().length} chars`
+        );
 
         // Broadcast to everyone including sender (confirmation)
         const chatMsg = {
@@ -235,6 +263,9 @@ export class SignalingRoom {
       case 'leave': {
         const leaver = this.findByWs(ws);
         if (leaver) {
+          this.debugAll(
+            `DO: SQLite DELETE participants — ${leaver.userName} (${leaver.userId}) left`
+          );
           this.removeParticipant(leaver.userId);
           this.broadcast(null, { type: 'peer-left', userId: leaver.userId });
           this.cleanupIfEmpty();
@@ -293,6 +324,21 @@ export class SignalingRoom {
     if (this.participants.size === 0) {
       this.sql.exec('DELETE FROM chat');
       this.sql.exec('DELETE FROM participants');
+      this.debugAll(
+        'DO: SQLite CLEANUP — all participants gone, chat and participants tables cleared'
+      );
+    }
+  }
+
+  /** Send a debug message to a specific client */
+  private debug(ws: WebSocket, message: string) {
+    this.send(ws, { type: 'do-debug', message });
+  }
+
+  /** Send a debug message to all connected clients */
+  private debugAll(message: string) {
+    for (const [, p] of this.participants) {
+      if (p.ws) this.send(p.ws, { type: 'do-debug', message });
     }
   }
 
