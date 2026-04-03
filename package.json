@@ -117,7 +117,7 @@
     "react-server-dom-webpack": "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch",
     "typescript": "^5.9.3",
     "vinext": "0.0.38",
-    "vite": "^7.3.1",
+    "vite": "^8.0.3",
     "wrangler": "^4.78.0"
   },
   "resolutions": {
