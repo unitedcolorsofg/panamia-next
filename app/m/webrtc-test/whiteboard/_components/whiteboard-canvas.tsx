@@ -20,7 +20,21 @@ const BRUSH_SIZES = [2, 4, 8, 16];
 
 type Tool = 'draw' | 'select' | 'rect' | 'circle' | 'line' | 'eraser';
 
-export function WhiteboardCanvas() {
+interface WhiteboardCanvasProps {
+  /** When true, renders as a compact card instead of full-screen */
+  inline?: boolean;
+  /** Room ID — required for inline mode, otherwise read from URL */
+  room?: string;
+  /** Called when the user closes the inline whiteboard */
+  onClose?: () => void;
+}
+
+export function WhiteboardCanvas({
+  inline,
+  room,
+  onClose,
+}: WhiteboardCanvasProps = {}) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -30,14 +44,15 @@ export function WhiteboardCanvas() {
   const [tool, setTool] = useState<Tool>('draw');
   const [color, setColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(4);
-  const [roomId, setRoomId] = useState('');
+  const [roomId, setRoomId] = useState(room || '');
   const [peerCount, setPeerCount] = useState(0);
 
-  // Read room ID from URL params
+  // Read room ID from URL params (standalone mode only)
   useEffect(() => {
+    if (room) return; // already provided via prop
     const params = new URLSearchParams(window.location.search);
     setRoomId(params.get('room') || 'pana-test-room');
-  }, []);
+  }, [room]);
 
   // Sync canvas state to Yjs
   const syncToYjs = useCallback(() => {
@@ -52,10 +67,15 @@ export function WhiteboardCanvas() {
   useEffect(() => {
     if (!canvasRef.current || !roomId) return;
 
+    const container = containerRef.current;
+    const canvasWidth =
+      inline && container ? container.clientWidth : window.innerWidth;
+    const canvasHeight = inline ? 400 : window.innerHeight - 56; // toolbar height
+
     const fc = new Canvas(canvasRef.current, {
       isDrawingMode: true,
-      width: window.innerWidth,
-      height: window.innerHeight - 56, // toolbar height
+      width: canvasWidth,
+      height: canvasHeight,
       backgroundColor: '#ffffff',
     });
 
@@ -75,8 +95,9 @@ export function WhiteboardCanvas() {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
 
-    // Detect popup vs navigated (mobile): popup has window.opener
-    const isPopup = !!window.opener;
+    // Use BroadcastChannel when a video call tab has the DO WebSocket
+    // (popup or inline mode); direct WS only when navigated standalone on mobile
+    const useBroadcastChannel = inline || !!window.opener;
 
     // Encode/decode helpers for Yjs binary updates
     const encodeUpdate = (update: Uint8Array) =>
@@ -87,8 +108,8 @@ export function WhiteboardCanvas() {
     let bc: BroadcastChannel | null = null;
     let ws: WebSocket | null = null;
 
-    if (isPopup) {
-      // Desktop popup: relay through BroadcastChannel ↔ video call tab ↔ DO
+    if (useBroadcastChannel) {
+      // Popup or inline: relay through BroadcastChannel ↔ video call tab ↔ DO
       bc = new BroadcastChannel(`pana-wb-${roomId}`);
       bcRef.current = bc;
 
@@ -161,10 +182,9 @@ export function WhiteboardCanvas() {
 
     // Handle resize
     const handleResize = () => {
-      fc.setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight - 56,
-      });
+      const w = inline && container ? container.clientWidth : window.innerWidth;
+      const h = inline ? 400 : window.innerHeight - 56;
+      fc.setDimensions({ width: w, height: h });
       fc.renderAll();
     };
     window.addEventListener('resize', handleResize);
@@ -203,8 +223,14 @@ export function WhiteboardCanvas() {
     if (tool === 'select') {
       fc.selection = true;
       fc.defaultCursor = 'default';
+    } else if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+      fc.selection = false;
+      fc.defaultCursor = 'crosshair';
+      fc.hoverCursor = 'crosshair';
     } else {
       fc.selection = false;
+      fc.defaultCursor = 'default';
+      fc.hoverCursor = 'move';
     }
   }, [tool, color, brushSize]);
 
@@ -214,11 +240,17 @@ export function WhiteboardCanvas() {
     if (!fc || (tool !== 'rect' && tool !== 'circle' && tool !== 'line'))
       return;
 
+    // Prevent Fabric from selecting objects during shape drawing
+    fc.skipTargetFind = true;
+    fc.isDrawingMode = false;
+
+    let isDrawing = false;
     let startX = 0;
     let startY = 0;
     let shape: Rect | Circle | Line | null = null;
 
     const onMouseDown = (opt: { e: MouseEvent }) => {
+      isDrawing = true;
       const pointer = fc.getScenePoint(opt.e);
       startX = pointer.x;
       startY = pointer.y;
@@ -252,7 +284,7 @@ export function WhiteboardCanvas() {
     };
 
     const onMouseMove = (opt: { e: MouseEvent }) => {
-      if (!shape) return;
+      if (!shape || !isDrawing) return;
       const pointer = fc.getScenePoint(opt.e);
       if (tool === 'rect' && shape instanceof Rect) {
         const w = pointer.x - startX;
@@ -276,6 +308,7 @@ export function WhiteboardCanvas() {
     };
 
     const onMouseUp = () => {
+      isDrawing = false;
       shape = null;
       syncToYjs();
     };
@@ -288,22 +321,36 @@ export function WhiteboardCanvas() {
       fc.off('mouse:down', onMouseDown);
       fc.off('mouse:move', onMouseMove);
       fc.off('mouse:up', onMouseUp);
+      fc.skipTargetFind = false;
     };
   }, [tool, color, brushSize, syncToYjs]);
 
   function clearCanvas() {
     const fc = fabricRef.current;
     if (!fc) return;
+    // Suppress per-object sync during bulk clear
+    isRemoteUpdate.current = true;
     fc.clear();
     fc.backgroundColor = '#ffffff';
     fc.renderAll();
+    isRemoteUpdate.current = false;
+    // Single sync with the empty canvas state
     syncToYjs();
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div
+      ref={containerRef}
+      className={
+        inline
+          ? 'flex flex-col overflow-hidden rounded-lg border'
+          : 'flex h-screen flex-col'
+      }
+    >
       {/* Toolbar */}
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b bg-white px-3">
+      <div
+        className={`flex shrink-0 items-center gap-2 border-b bg-white px-3 ${inline ? 'h-10 flex-wrap' : 'h-14'}`}
+      >
         {/* Tools */}
         <div className="flex gap-1">
           {(
@@ -372,6 +419,17 @@ export function WhiteboardCanvas() {
           Clear
         </Button>
 
+        {inline && onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={onClose}
+          >
+            Close
+          </Button>
+        )}
+
         <span className="text-muted-foreground ml-auto flex items-center gap-2 text-xs">
           <span
             className={`inline-block h-2 w-2 rounded-full ${peerCount > 0 ? 'bg-green-500' : 'bg-yellow-500'}`}
@@ -385,7 +443,7 @@ export function WhiteboardCanvas() {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 overflow-hidden">
+      <div className={inline ? 'overflow-hidden' : 'flex-1 overflow-hidden'}>
         <canvas ref={canvasRef} />
       </div>
     </div>

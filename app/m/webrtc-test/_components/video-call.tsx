@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { useSession } from '@/lib/auth-client';
+import { WhiteboardCanvas } from '../whiteboard/_components/whiteboard-canvas';
 
 interface ChatMessage {
   from: string;
@@ -99,6 +100,7 @@ export function VideoCall() {
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const callStartRef = useRef<number | null>(null);
   const debugEndRef = useRef<HTMLDivElement>(null);
 
@@ -1329,27 +1331,35 @@ export function VideoCall() {
                   size="sm"
                   className="h-7 w-full text-xs"
                   onClick={() => {
-                    const room = encodeURIComponent(ROOM_ID);
-                    const url = `/m/webrtc-test/whiteboard?room=${room}`;
-                    // On mobile, navigate directly; on desktop, open popup
+                    // On mobile, show inline whiteboard; on desktop, open popup
                     const isMobile = window.innerWidth < 768;
                     if (isMobile) {
-                      window.location.href = url;
+                      setShowWhiteboard((prev) => !prev);
                     } else {
+                      const room = encodeURIComponent(ROOM_ID);
                       window.open(
-                        url,
+                        `/m/webrtc-test/whiteboard?room=${room}`,
                         'pana-whiteboard',
                         'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
                       );
                     }
                   }}
                 >
-                  Start a whiteboard!
+                  {showWhiteboard ? 'Hide whiteboard' : 'Start a whiteboard!'}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Inline whiteboard (mobile) */}
+      {showWhiteboard && (
+        <WhiteboardCanvas
+          inline
+          room={ROOM_ID}
+          onClose={() => setShowWhiteboard(false)}
+        />
       )}
 
       {/* Debug log — collapsed by default */}
