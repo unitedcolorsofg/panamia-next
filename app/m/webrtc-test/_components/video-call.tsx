@@ -117,6 +117,7 @@ export function VideoCall() {
   const reconnectAttemptRef = useRef(0);
   const intentionalLeaveRef = useRef(false);
   const hasJoinedRef = useRef(false);
+  const wbChannelRef = useRef<BroadcastChannel | null>(null);
   // In-progress incoming file buffers: transferId → { chunks, meta }
   const incomingBuffersRef = useRef<
     Map<
@@ -440,6 +441,8 @@ export function VideoCall() {
     }
     wsRef.current?.close();
     wsRef.current = null;
+    wbChannelRef.current?.close();
+    wbChannelRef.current = null;
     cleanupPeerConnections();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
@@ -543,6 +546,43 @@ export function VideoCall() {
       );
     } else {
       log('No local media stream — joining without tracks');
+    }
+
+    // Prefer VP9 > H.264 > VP8 for better quality at lower bitrates
+    const transceivers = pc.getTransceivers();
+    for (const t of transceivers) {
+      if (t.sender.track?.kind === 'video') {
+        const codecs = RTCRtpSender.getCapabilities('video')?.codecs;
+        if (codecs) {
+          const sorted = [
+            ...codecs.filter((c) => c.mimeType === 'video/VP9'),
+            ...codecs.filter((c) => c.mimeType === 'video/H264'),
+            ...codecs.filter((c) => c.mimeType === 'video/VP8'),
+            ...codecs.filter(
+              (c) =>
+                !['video/VP9', 'video/H264', 'video/VP8'].includes(c.mimeType)
+            ),
+          ];
+          t.setCodecPreferences(sorted);
+          log('Video codec preference set: VP9 > H.264 > VP8');
+        }
+      } else if (t.sender.track?.kind === 'audio') {
+        const codecs = RTCRtpSender.getCapabilities('audio')?.codecs;
+        if (codecs) {
+          // Prefer stereo-capable Opus (channels=2) over mono
+          const sorted = [
+            ...codecs.filter(
+              (c) => c.mimeType === 'audio/opus' && c.channels === 2
+            ),
+            ...codecs.filter(
+              (c) => c.mimeType === 'audio/opus' && c.channels !== 2
+            ),
+            ...codecs.filter((c) => c.mimeType !== 'audio/opus'),
+          ];
+          t.setCodecPreferences(sorted);
+          log('Audio codec preference set: Opus stereo > mono');
+        }
+      }
     }
 
     // Data channel: offerer creates, answerer listens
@@ -698,6 +738,14 @@ export function VideoCall() {
         break;
       }
 
+      case 'wb-sync':
+        // Relay incoming Yjs update to whiteboard via BroadcastChannel
+        wbChannelRef.current?.postMessage({
+          type: 'wb-remote-update',
+          update: data.update,
+        });
+        break;
+
       case 'do-debug':
         log(data.message as string);
         break;
@@ -797,6 +845,19 @@ export function VideoCall() {
       );
       ws.send(JSON.stringify({ type: 'join', userId, userName }));
       hasJoinedRef.current = true;
+
+      // BroadcastChannel for whiteboard ↔ video call Yjs relay
+      wbChannelRef.current?.close();
+      const bc = new BroadcastChannel(`pana-wb-${ROOM_ID}`);
+      bc.onmessage = (evt) => {
+        if (
+          evt.data?.type === 'wb-local-update' &&
+          ws.readyState === WebSocket.OPEN
+        ) {
+          ws.send(JSON.stringify({ type: 'wb-sync', update: evt.data.update }));
+        }
+      };
+      wbChannelRef.current = bc;
     };
 
     ws.onmessage = (event) => {
@@ -857,8 +918,12 @@ export function VideoCall() {
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 24 },
+          },
+          audio: { channelCount: { ideal: 2 } },
         });
         log(
           `getUserMedia OK — tracks: ${stream
@@ -1265,11 +1330,18 @@ export function VideoCall() {
                   className="h-7 w-full text-xs"
                   onClick={() => {
                     const room = encodeURIComponent(ROOM_ID);
-                    window.open(
-                      `/m/webrtc-test/whiteboard?room=${room}`,
-                      'pana-whiteboard',
-                      'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
-                    );
+                    const url = `/m/webrtc-test/whiteboard?room=${room}`;
+                    // On mobile, navigate directly; on desktop, open popup
+                    const isMobile = window.innerWidth < 768;
+                    if (isMobile) {
+                      window.location.href = url;
+                    } else {
+                      window.open(
+                        url,
+                        'pana-whiteboard',
+                        'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
+                      );
+                    }
                   }}
                 >
                   Start a whiteboard!

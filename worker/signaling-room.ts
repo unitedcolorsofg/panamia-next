@@ -13,6 +13,7 @@
  *     { type: "answer", sdp: string, target: string }
  *     { type: "ice-candidate", candidate: RTCIceCandidateInit, target: string }
  *     { type: "chat", text: string }
+ *     { type: "wb-sync", update: string }  // base64 Yjs update for whiteboard
  *     { type: "leave" }
  *
  *   Server → Client:
@@ -21,6 +22,7 @@
  *     { type: "peer-left", userId: string }
  *     { type: "offer"|"answer"|"ice-candidate", from: string, ... }
  *     { type: "chat", from: string, fromName: string, text: string, ts: number }
+ *     { type: "wb-sync", from: string, update: string }  // whiteboard update broadcast
  *     { type: "do-debug", message: string }
  *     { type: "error", message: string }
  */
@@ -189,6 +191,7 @@ export class SignalingRoom {
       candidate?: unknown;
       target?: string;
       text?: string;
+      update?: string; // base64 Yjs update for wb-sync
     }
   ) {
     switch (data.type) {
@@ -224,10 +227,16 @@ export class SignalingRoom {
             `DO: reconnect — ${data.userName} (${data.userId}) reattached, joined_at refreshed`
           );
         } else {
-          // New participant
-          if (this.participants.size >= MAX_PARTICIPANTS) {
-            this.send(ws, { type: 'error', message: 'Room is full (max 3)' });
-            return;
+          // New participant — whiteboard-only connections (wb-*) don't count toward limit
+          const isWhiteboardOnly = data.userId.startsWith('wb-');
+          if (!isWhiteboardOnly) {
+            const videoParticipants = [...this.participants.keys()].filter(
+              (id) => !id.startsWith('wb-')
+            ).length;
+            if (videoParticipants >= MAX_PARTICIPANTS) {
+              this.send(ws, { type: 'error', message: 'Room is full (max 3)' });
+              return;
+            }
           }
           this.participants.set(data.userId, {
             userId: data.userId,
@@ -331,6 +340,21 @@ export class SignalingRoom {
         } catch {
           /* already closed */
         }
+        break;
+      }
+
+      case 'wb-sync': {
+        // Whiteboard Yjs update — broadcast binary (base64) to all other participants
+        const wbSender = this.findByWs(ws);
+        if (!wbSender) {
+          this.send(ws, { type: 'error', message: 'Must join first' });
+          return;
+        }
+        this.broadcast(ws, {
+          type: 'wb-sync',
+          from: wbSender.userId,
+          update: data.update, // base64-encoded Yjs update
+        });
         break;
       }
 

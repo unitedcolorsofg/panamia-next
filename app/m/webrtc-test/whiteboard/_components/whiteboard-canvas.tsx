@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Canvas, PencilBrush, Rect, Circle, Line } from 'fabric';
 import * as Y from 'yjs';
-import { WebrtcProvider } from 'y-webrtc';
 
 const COLORS = [
   '#000000',
@@ -25,13 +24,14 @@ export function WhiteboardCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<WebrtcProvider | null>(null);
+  const bcRef = useRef<BroadcastChannel | null>(null);
   const isRemoteUpdate = useRef(false);
 
   const [tool, setTool] = useState<Tool>('draw');
   const [color, setColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(4);
   const [roomId, setRoomId] = useState('');
+  const [peerCount, setPeerCount] = useState(0);
 
   // Read room ID from URL params
   useEffect(() => {
@@ -48,7 +48,7 @@ export function WhiteboardCanvas() {
     ymap.set('canvas', JSON.stringify(json));
   }, []);
 
-  // Initialize fabric canvas
+  // Initialize fabric canvas + Yjs (only on roomId change)
   useEffect(() => {
     if (!canvasRef.current || !roomId) return;
 
@@ -60,8 +60,8 @@ export function WhiteboardCanvas() {
     });
 
     const brush = new PencilBrush(fc);
-    brush.color = color;
-    brush.width = brushSize;
+    brush.color = '#000000';
+    brush.width = 4;
     fc.freeDrawingBrush = brush;
     fabricRef.current = fc;
 
@@ -71,14 +71,83 @@ export function WhiteboardCanvas() {
     fc.on('object:removed', syncToYjs);
     fc.on('path:created', syncToYjs);
 
-    // --- Yjs setup ---
+    // --- Yjs setup (synced via DO WebSocket through BroadcastChannel) ---
     const ydoc = new Y.Doc();
-    const provider = new WebrtcProvider(`pana-wb-${roomId}`, ydoc, {
-      signaling: ['wss://signaling.yjs.dev'],
-    });
     ydocRef.current = ydoc;
-    providerRef.current = provider;
 
+    // Detect popup vs navigated (mobile): popup has window.opener
+    const isPopup = !!window.opener;
+
+    // Encode/decode helpers for Yjs binary updates
+    const encodeUpdate = (update: Uint8Array) =>
+      btoa(String.fromCharCode(...update));
+    const decodeUpdate = (b64: string) =>
+      Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+    let bc: BroadcastChannel | null = null;
+    let ws: WebSocket | null = null;
+
+    if (isPopup) {
+      // Desktop popup: relay through BroadcastChannel ↔ video call tab ↔ DO
+      bc = new BroadcastChannel(`pana-wb-${roomId}`);
+      bcRef.current = bc;
+
+      ydoc.on('update', (update: Uint8Array, origin: unknown) => {
+        if (origin === 'remote') return;
+        bc!.postMessage({
+          type: 'wb-local-update',
+          update: encodeUpdate(update),
+        });
+      });
+
+      bc.onmessage = (evt) => {
+        if (evt.data?.type === 'wb-remote-update' && evt.data.update) {
+          Y.applyUpdate(ydoc, decodeUpdate(evt.data.update), 'remote');
+        } else if (evt.data?.type === 'wb-peer-count') {
+          setPeerCount(evt.data.count);
+        }
+      };
+    } else {
+      // Mobile (navigated): connect directly to the DO WebSocket
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/ws/signaling/${roomId}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        // Join as a whiteboard-only participant
+        const wbUserId = `wb-${Math.random().toString(36).slice(2, 8)}`;
+        ws!.send(
+          JSON.stringify({
+            type: 'join',
+            userId: wbUserId,
+            userName: 'Whiteboard',
+          })
+        );
+        setPeerCount(1); // at least connected
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'wb-sync' && data.update) {
+            Y.applyUpdate(ydoc, decodeUpdate(data.update), 'remote');
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      ydoc.on('update', (update: Uint8Array, origin: unknown) => {
+        if (origin === 'remote') return;
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({ type: 'wb-sync', update: encodeUpdate(update) })
+          );
+        }
+      });
+    }
+
+    // Observe Yjs map changes to update canvas
     const ymap = ydoc.getMap('whiteboard');
     ymap.observe(() => {
       const data = ymap.get('canvas') as string | undefined;
@@ -102,14 +171,19 @@ export function WhiteboardCanvas() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      provider.destroy();
+      bc?.close();
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'leave' }));
+        ws.close();
+      }
       ydoc.destroy();
       fc.dispose();
       fabricRef.current = null;
       ydocRef.current = null;
-      providerRef.current = null;
+      bcRef.current = null;
+      setPeerCount(0);
     };
-  }, [roomId, syncToYjs, color, brushSize]);
+  }, [roomId, syncToYjs]);
 
   // Update brush when tool/color/size changes
   useEffect(() => {
@@ -298,8 +372,15 @@ export function WhiteboardCanvas() {
           Clear
         </Button>
 
-        <span className="text-muted-foreground ml-auto text-xs">
-          Room: {roomId}
+        <span className="text-muted-foreground ml-auto flex items-center gap-2 text-xs">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${peerCount > 0 ? 'bg-green-500' : 'bg-yellow-500'}`}
+          />
+          {peerCount > 0
+            ? `${peerCount} peer${peerCount > 1 ? 's' : ''}`
+            : 'waiting…'}
+          <span className="text-muted-foreground/60">|</span>
+          {roomId}
         </span>
       </div>
 
