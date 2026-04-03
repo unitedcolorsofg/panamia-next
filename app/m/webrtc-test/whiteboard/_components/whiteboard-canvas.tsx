@@ -235,6 +235,12 @@ export function WhiteboardCanvas({
   }, [tool, color, brushSize]);
 
   // Shape drawing for rect/circle/line
+  // TODO: rect/circle/line tools show correct crosshair cursor but do not
+  // draw on click-drag. Likely a Fabric.js v6 event handling issue —
+  // mouse:down fires but getScenePoint or fc.add may not work as expected
+  // when isDrawingMode is false. Investigate whether Fabric v6 requires a
+  // different approach (e.g. using canvas.on('mouse:down:before') or
+  // overriding _onMouseDown) for custom shape drawing.
   useEffect(() => {
     const fc = fabricRef.current;
     if (!fc || (tool !== 'rect' && tool !== 'circle' && tool !== 'line'))

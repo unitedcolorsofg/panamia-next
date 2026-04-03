@@ -120,6 +120,7 @@ export function VideoCall() {
   const intentionalLeaveRef = useRef(false);
   const hasJoinedRef = useRef(false);
   const wbChannelRef = useRef<BroadcastChannel | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   // In-progress incoming file buffers: transferId → { chunks, meta }
   const incomingBuffersRef = useRef<
     Map<
@@ -445,6 +446,8 @@ export function VideoCall() {
     wsRef.current = null;
     wbChannelRef.current?.close();
     wbChannelRef.current = null;
+    audioCtxRef.current?.close();
+    audioCtxRef.current = null;
     cleanupPeerConnections();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
@@ -603,6 +606,20 @@ export function VideoCall() {
       const video = getOrCreateRemoteVideo(peerId, peerName);
       if (video.srcObject !== event.streams[0]) {
         video.srcObject = event.streams[0];
+        // Route audio through Web Audio API so Android Firefox maps
+        // hardware volume buttons to the media stream (not ringer)
+        try {
+          if (!audioCtxRef.current) {
+            audioCtxRef.current = new AudioContext();
+          }
+          const ctx = audioCtxRef.current;
+          const source = ctx.createMediaStreamSource(event.streams[0]);
+          source.connect(ctx.destination);
+          // Mute the video element's own audio to avoid double playback
+          video.muted = true;
+        } catch (err) {
+          log(`Web Audio routing failed for ${peerId}: ${err}`);
+        }
       }
     };
 
