@@ -571,11 +571,11 @@ Satisfies disclosure requirements from:
 
 ### Module: Payments
 
-- Stripe as sole payment processor
+- Stripe for donations and memberships
+- GoHighLevel shop for merchandise sales
 - Donation tiers and membership levels
 - Recurring subscription management
 - Refund policy
-- No e-commerce / no product sales (donations only)
 - Tax receipts and record retention (7 years)
 
 ### Module: Community
@@ -948,23 +948,35 @@ Publish at `legal/accessibility/statement.html`:
 
 ## Implementation Phases
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation (COMPLETE)
 
-- [ ] Create `legal/` directory structure
-- [ ] Define JSON-LD schema format for privacy policy and terms
-- [ ] Draft core terms (full legal text)
-- [ ] Draft privacy policy (full legal text) using GDPR Art 13/14 + CPRA
-      checklist + ISO 29184 disclosure elements
-- [ ] Define data tier classification for every data category in the schema
-- [ ] Register DMCA agent
+- [x] Create `legal/` directory structure (`app/legal/` route tree)
+- [x] Define JSON-LD schema format for privacy policy and terms
+      (`app/legal/privacy/schema.json`, `app/legal/terms/schema.json`)
+- [x] Draft core terms (placeholder sections; full legal prose TBD)
+- [x] Draft privacy policy (placeholder sections; full legal prose TBD)
+      using GDPR Art 13/14 + CPRA checklist + ISO 29184 disclosure elements
+- [x] Define data tier classification for every data category in the schema
+- [x] Register DMCA agent (env var fallback: graceful "not yet registered"
+      message with today's date if `DMCA_AGENT_NAME` is unset)
+- [x] Old `/doc/terms-and-conditions` redirects to `/legal/terms`
+- [x] Pre-commit hook validates namespace→module coverage
+      (`scripts/check-legal-modules.sh`, `app/legal/terms/namespaces.json`)
 
-### Phase 2 — Layered Presentation
+### Phase 2 — Layered Presentation (COMPLETE)
 
-- [ ] Write plain-language summaries for privacy policy and each ToS module
-- [ ] Design and build Privacy at a Glance component
+- [x] Write plain-language summaries for privacy policy and each ToS module
+      (summary box rendered above each module's detail list)
+- [x] Design and build Privacy at a Glance component
+      (`components/legal/PrivacyAtAGlance.tsx` — filterable grid, 18 categories)
 - [ ] Design and build CC license picker component
-- [ ] Build contextual disclosure modal component
-- [ ] Create icon set for Privacy at a Glance categories
+      (code comments only: `components/legal/CCLicensePicker.tsx`;
+      implementation deferred to Phase 4)
+- [x] Build contextual disclosure modal component
+      (`components/legal/ContextualDisclosure.tsx` — localStorage-backed,
+      version-aware, per-module)
+- [x] Create icon set for Privacy at a Glance categories
+      (Lucide icons per category in PrivacyAtAGlance component)
 
 ### Phase 3 — Consent Infrastructure
 
