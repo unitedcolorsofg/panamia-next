@@ -4530,10 +4530,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stripe/stripe-js@npm:^8.11.0":
-  version: 8.11.0
-  resolution: "@stripe/stripe-js@npm:8.11.0"
-  checksum: 10c0/7bada2f8a1c71867b2a0cc31f02e1347ba50b30c6c564635ed5f63d480e093f83902c98311fabc6744bd14dc4cf0fc9122769a4f021a691b70d6fbaf4581c824
+"@stripe/stripe-js@npm:^9.0.1":
+  version: 9.0.1
+  resolution: "@stripe/stripe-js@npm:9.0.1"
+  checksum: 10c0/3218471ca76d838a3369335a70726291a59cb407c74b228254098cb0cecf9c474e4465689e575b28d248ec9f09ab5c722d770503fd0b6f81aa421be93c01b7b3
   languageName: node
   linkType: hard
 
@@ -9099,7 +9099,7 @@ __metadata:
     "@radix-ui/react-tabs": "npm:^1.1.13"
     "@radix-ui/react-toast": "npm:^1.2.15"
     "@stripe/react-stripe-js": "npm:^5.6.1"
-    "@stripe/stripe-js": "npm:^8.11.0"
+    "@stripe/stripe-js": "npm:^9.0.1"
     "@tabler/icons-react": "npm:^3.41.1"
     "@tailwindcss/postcss": "npm:^4.2.2"
     "@tanstack/react-query": "npm:^5.95.2"
