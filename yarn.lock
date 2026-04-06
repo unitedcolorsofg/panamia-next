@@ -4517,16 +4517,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stripe/react-stripe-js@npm:^5.6.1":
-  version: 5.6.1
-  resolution: "@stripe/react-stripe-js@npm:5.6.1"
+"@stripe/react-stripe-js@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "@stripe/react-stripe-js@npm:6.1.0"
   dependencies:
     prop-types: "npm:^15.7.2"
   peerDependencies:
-    "@stripe/stripe-js": ">=8.0.0 <9.0.0"
+    "@stripe/stripe-js": ">=9.0.0 <10.0.0"
     react: ">=16.8.0 <20.0.0"
     react-dom: ">=16.8.0 <20.0.0"
-  checksum: 10c0/fad382094873e860f25c91f91b7d04e18852c1442da2845f7d61974862041cb7852324165fd08abfa8b1f2549dc4343bc4140bcea73d8b7416f699d6cecc9c36
+  checksum: 10c0/863a6561a925d1906e50ae0dcea4f8195b189efc3279664d3d536c2187947053a039ed4fa463f811c880df8af9b2ac5d93ef60746c46a1195e186714a88f36a2
   languageName: node
   linkType: hard
 
@@ -9098,7 +9098,7 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.2.4"
     "@radix-ui/react-tabs": "npm:^1.1.13"
     "@radix-ui/react-toast": "npm:^1.2.15"
-    "@stripe/react-stripe-js": "npm:^5.6.1"
+    "@stripe/react-stripe-js": "npm:^6.1.0"
     "@stripe/stripe-js": "npm:^8.11.0"
     "@tabler/icons-react": "npm:^3.41.1"
     "@tailwindcss/postcss": "npm:^4.2.2"
