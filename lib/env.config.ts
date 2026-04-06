@@ -363,6 +363,50 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // DMCA AGENT (Legal)
+  // https://dmca.copyright.gov — Register/renew designated agent ($6, every 3 years)
+  // These values are rendered into legal pages dynamically.
+  // =============================================================================
+  DMCA_AGENT_NAME: {
+    description: 'DMCA agent full name (rendered into legal/dmca/policy.html)',
+    location: 'VAR',
+    required: false,
+    docsUrl: 'https://dmca.copyright.gov',
+  },
+  DMCA_AGENT_EMAIL: {
+    description: 'DMCA agent email for takedown notices',
+    location: 'VAR',
+    required: false,
+    example: 'dmca@panamia.club',
+  },
+  DMCA_AGENT_ADDRESS: {
+    description:
+      'DMCA agent physical address (use a registered agent service, not personal address)',
+    location: 'VAR',
+    required: false,
+  },
+  DMCA_AGENT_PHONE: {
+    description: 'DMCA agent phone number',
+    location: 'VAR',
+    required: false,
+    example: '+1-000-000-0000',
+  },
+  DMCA_REGISTRATION_DATE: {
+    description:
+      'Date of DMCA agent registration with the Copyright Office (YYYY-MM-DD)',
+    location: 'VAR',
+    required: false,
+    example: '2026-01-01',
+  },
+  DMCA_RENEWAL_DATE: {
+    description:
+      'Next DMCA agent renewal date — 3 years from registration (YYYY-MM-DD)',
+    location: 'VAR',
+    required: false,
+    example: '2029-01-01',
+  },
+
+  // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
   DEV_RECEIVER_EMAIL: {
