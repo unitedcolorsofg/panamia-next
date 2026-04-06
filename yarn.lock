@@ -7545,17 +7545,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:^25.10.5":
-  version: 25.10.5
-  resolution: "i18next@npm:25.10.5"
+"i18next@npm:^26.0.3":
+  version: 26.0.3
+  resolution: "i18next@npm:26.0.3"
   dependencies:
     "@babel/runtime": "npm:^7.29.2"
   peerDependencies:
-    typescript: ^5
+    typescript: ^5 || ^6
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/780659f6b66ec2010c5753e15849caf847ca9e373b28d26ca2de6927fde8766b9de130b55728c2c593d5bcb359b9bd7b709dc501c348b5ea0407028509770934
+  checksum: 10c0/ba0b8ba8b1294abccd892ac897902f121f5f127d77e6fd605c0c368ec505a505ccaa24ee7ddbe04928783cfbd7abbc162d4c043027aef06858b427e4e4737eb5
   languageName: node
   linkType: hard
 
@@ -9127,7 +9127,7 @@ __metadata:
     feed: "npm:^5.2.0"
     framer-motion: "npm:^12.38.0"
     husky: "npm:^9.1.7"
-    i18next: "npm:^25.10.5"
+    i18next: "npm:^26.0.3"
     i18next-browser-languagedetector: "npm:^8.2.1"
     lint-staged: "npm:^16.4.0"
     lucide-react: "npm:^0.577.0"
