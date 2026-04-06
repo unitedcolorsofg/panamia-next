@@ -23,6 +23,52 @@ export default function TermsPage() {
         <p className="text-muted-foreground mt-2">Version 2.0.0 — Draft</p>
       </header>
 
+      {/* Plain-language summary */}
+      <section id="summary" className="mb-12">
+        <h2 className="mb-4 text-2xl font-bold">Plain-Language Summary</h2>
+        <div className="bg-muted/30 space-y-4 rounded-lg border p-6 text-sm">
+          <p>
+            <strong>Who can use Pana MIA Club:</strong> You must be 18 or older.
+            One account per person.
+          </p>
+          <p>
+            <strong>Your content is CC-licensed:</strong> Everything you publish
+            (articles, posts, photos) must be licensed under Creative Commons
+            (CC BY 4.0 or CC BY-SA 4.0). This license is irrevocable — once you
+            publish, others retain the right to share and adapt your work even
+            if you later remove it.
+          </p>
+          <p>
+            <strong>No AI-generated content:</strong> Wholly AI-generated
+            content is prohibited. AI-assisted tools (grammar, translation, code
+            completion) are allowed with disclosure.
+          </p>
+          <p>
+            <strong>Your data, three tiers:</strong> Your data is classified as
+            Persistent, Temporary, or Peer Networking. See our{' '}
+            <Link href="/legal/privacy">Privacy Policy</Link> for details.
+          </p>
+          <p>
+            <strong>No surveillance:</strong> We do not consent to law
+            enforcement data mining without valid legal process.
+          </p>
+          <p>
+            <strong>Recording consent:</strong> Florida requires all-party
+            consent for electronic recordings. Recording sessions or events
+            without consent is prohibited.
+          </p>
+          <p>
+            <strong>Disputes:</strong> Florida law, Broward County courts. No
+            mandatory arbitration. No class-action waiver.
+          </p>
+          <p>
+            <strong>Community-drafted:</strong> These terms were mutually
+            prepared with the community. You may propose changes by emailing{' '}
+            <a href="mailto:hola@panamia.club">hola@panamia.club</a>.
+          </p>
+        </div>
+      </section>
+
       <article className="prose prose-gray dark:prose-invert max-w-none leading-relaxed">
         {/* 1. Mutual Preparation */}
         <section id="mutual-preparation">

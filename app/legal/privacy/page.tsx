@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PrivacyAtAGlance } from '@/components/legal/PrivacyAtAGlance';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Pana MIA Club',
@@ -100,6 +101,59 @@ export default function PrivacyPolicyPage() {
         <h1 className="text-4xl font-bold">Privacy Policy</h1>
         <p className="text-muted-foreground mt-2">Version 1.0.0 — Draft</p>
       </header>
+
+      {/* Privacy at a Glance — scannable grid (Layer 1) */}
+      <section id="at-a-glance" className="mb-12">
+        <h2 className="mb-4 text-2xl font-bold">Privacy at a Glance</h2>
+        <p className="text-muted-foreground mb-6 text-sm">
+          Every piece of data we handle falls into one of three tiers. Filter by
+          tier to see what we collect, why, how long we keep it, and who it is
+          shared with.
+        </p>
+        <PrivacyAtAGlance />
+      </section>
+
+      {/* Plain-language summary (Layer 2) */}
+      <section id="summary" className="mb-12">
+        <h2 className="mb-4 text-2xl font-bold">Plain-Language Summary</h2>
+        <div className="bg-muted/30 space-y-4 rounded-lg border p-6 text-sm">
+          <p>
+            <strong>What we collect:</strong> Account info you provide (email,
+            name, profile details), content you create (articles, posts,
+            photos), and minimal automatic data (IP address, browser info) for
+            90 days.
+          </p>
+          <p>
+            <strong>Three data tiers:</strong> Your data is either{' '}
+            <em>Persistent</em> (stored while your account is active),{' '}
+            <em>Temporary</em> (auto-deleted after use), or{' '}
+            <em>Peer Networking</em> (exchanged directly between users, outside
+            our control after transmission).
+          </p>
+          <p>
+            <strong>Deletion:</strong> Most of your data is deleted immediately
+            on request. Content that becomes community record (articles after 3
+            months, completed events) can be anonymized but not fully removed,
+            because the CC license you chose is irrevocable. Social posts are
+            always fully deletable.
+          </p>
+          <p>
+            <strong>Third parties:</strong> We share data with Stripe
+            (payments), Brevo (email), GoHighLevel (CRM), Cloudflare (hosting),
+            and OAuth providers (Google, Apple). Each provider may retain data
+            per their own policies after we request deletion.
+          </p>
+          <p>
+            <strong>Your rights:</strong> You can access, correct, delete, or
+            export your data. We honor Global Privacy Control (GPC) signals. No
+            data is sold.
+          </p>
+          <p>
+            <strong>No minors:</strong> You must be 18 or older. Accounts
+            belonging to minors are terminated and data deleted.
+          </p>
+        </div>
+      </section>
 
       <article className="prose prose-gray dark:prose-invert max-w-none leading-relaxed">
         {/* 1. What We Collect and Why */}
