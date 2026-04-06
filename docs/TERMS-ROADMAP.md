@@ -12,7 +12,7 @@ guidance. Every legal document ships in four representations:
 | **Privacy at a Glance**     | Casual users         | Scannable grid / icons ("Privacy at a Glance" diagrams) |
 | **Plain-Language Summary**  | Engaged users        | Short paragraphs per topic                              |
 | **Full Legal Text**         | Lawyers / regulators | Complete, section-anchored prose                        |
-| **Machine-Readable Schema** | Automated tools      | JSON-LD (`schema.json`)                                 |
+| **Machine-Readable Schema** | Automated tools      | JSON-LD (`policy.json`)                                 |
 
 All layers are derived from a single **source-of-truth schema** so they cannot
 drift out of sync. Each module is independently versioned with a public
@@ -223,7 +223,7 @@ legal/
 │   ├── at-a-glance.html          # Scannable grid
 │   ├── summary.html                  # Plain-language summary
 │   ├── full.html                     # Complete legal text
-│   ├── schema.json                   # JSON-LD machine-readable
+│   ├── policy.json                   # JSON-LD machine-readable
 │   └── changelog.md                  # Version history
 │
 ├── terms/
@@ -238,7 +238,7 @@ legal/
 │   │   ├── uploads.html              # Images, media, CC licensing requirement
 │   │   ├── payments.html             # Donations, memberships, Stripe
 │   │   └── community.html            # Conduct, enforcement, appeals
-│   ├── schema.json
+│   ├── policy.json
 │   └── changelog.md
 │
 ├── dmca/
@@ -770,7 +770,7 @@ Deletion is processed immediately upon confirmation. No cooling-off period.
   - Treat as valid CPRA opt-out of sale/sharing
   - Disable any non-essential analytics sharing
   - Record GPC detection in consent receipt
-- Expose GPC support in `privacy/schema.json`
+- Expose GPC support in `privacy/policy.json`
 - Display GPC status on user's privacy settings page
 
 ---
@@ -952,7 +952,7 @@ Publish at `legal/accessibility/statement.html`:
 
 - [x] Create `legal/` directory structure (`app/legal/` route tree)
 - [x] Define JSON-LD schema format for privacy policy and terms
-      (`app/legal/privacy/schema.json`, `app/legal/terms/schema.json`)
+      (`app/legal/privacy/policy.json`, `app/legal/terms/policy.json`)
 - [x] Draft core terms (placeholder sections; full legal prose TBD)
 - [x] Draft privacy policy (placeholder sections; full legal prose TBD)
       using GDPR Art 13/14 + CPRA checklist + ISO 29184 disclosure elements
@@ -1029,8 +1029,8 @@ Publish at `legal/accessibility/statement.html`:
 
 ### Phase 6 — Machine-Readable Layer
 
-- [ ] Generate `privacy/schema.json` from source schema
-- [ ] Generate `terms/schema.json` from source schema
+- [ ] Generate `privacy/policy.json` from source schema
+- [ ] Generate `terms/policy.json` from source schema
 - [ ] Add JSON-LD structured data to legal pages
 - [ ] Add OpenGraph metadata to legal pages
 - [ ] Expose `.well-known/privacy-policy` endpoint (if standardized)
