@@ -1,0 +1,275 @@
+{
+  "@context": "https://schema.org",
+  "@type": "PrivacyPolicy",
+  "name": "Pana MIA Club Privacy Policy",
+  "version": "1.0.0",
+  "status": "draft",
+  "effectiveDate": null,
+  "url": "https://panamia.club/legal/privacy",
+  "gpcSupported": true,
+  "dataTiers": ["persistent", "temporary", "peer_networking"],
+  "persistentRetentionClasses": {
+    "deletable": {
+      "description": "Deleted immediately upon confirmed request",
+      "categories": [
+        {
+          "name": "account",
+          "label": "Account",
+          "data": ["email", "password_hash", "screenname", "name"],
+          "source": "user_provided",
+          "purpose": "authentication_and_identity",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "profile",
+          "label": "Profile",
+          "data": [
+            "contact",
+            "address",
+            "descriptions",
+            "images",
+            "social_links"
+          ],
+          "source": "user_provided",
+          "purpose": "directory_listing_and_community",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "mentoring_profile",
+          "label": "Mentoring Profile",
+          "data": ["expertise", "languages", "bio", "hourly_rate"],
+          "source": "user_provided",
+          "purpose": "mentor_directory",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "session_notes",
+          "label": "Session Notes",
+          "data": ["mentor_notes", "mentee_notes", "session_metadata"],
+          "source": "user_provided",
+          "purpose": "mentoring_record",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "social_graph",
+          "label": "Social Graph",
+          "data": ["follows", "followers", "likes"],
+          "source": "user_action",
+          "purpose": "social_features",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "rsvps",
+          "label": "RSVPs",
+          "data": ["event_attendance", "rsvp_status"],
+          "source": "user_action",
+          "purpose": "event_management",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "notifications",
+          "label": "Notification Preferences",
+          "data": ["notification_settings"],
+          "source": "user_provided",
+          "purpose": "communication_preferences",
+          "retention": "active_account_lifetime"
+        },
+        {
+          "name": "intake",
+          "label": "Intake Form Submissions",
+          "data": ["form_responses"],
+          "source": "user_provided",
+          "purpose": "membership_onboarding",
+          "retention": "active_account_lifetime"
+        }
+      ]
+    },
+    "community_record": {
+      "description": "Anonymizable but not deletable after archive threshold",
+      "archiveThresholds": {
+        "articles": "3_months_after_publication",
+        "social_posts": "no_threshold_always_deletable",
+        "events": "after_completion",
+        "event_photos": "3_months_after_event",
+        "article_reviews": "follows_article"
+      },
+      "anonymization": "author_replaced_with_Former_Member",
+      "categories": [
+        {
+          "name": "articles",
+          "label": "Articles",
+          "data": ["content", "metadata", "review_history"],
+          "source": "user_provided",
+          "purpose": "community_knowledge",
+          "retention": "community_record_3_months",
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
+        },
+        {
+          "name": "article_reviews",
+          "label": "Article Reviews",
+          "data": ["peer_review_comments"],
+          "source": "user_provided",
+          "purpose": "editorial_quality",
+          "retention": "follows_article"
+        },
+        {
+          "name": "social_posts",
+          "label": "Social Posts",
+          "data": ["posts", "replies", "tags", "mentions"],
+          "source": "user_provided",
+          "purpose": "social_expression",
+          "retention": "always_deletable",
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "note": "Social timeline posts are always fully deleted on request regardless of age"
+        },
+        {
+          "name": "events",
+          "label": "Events",
+          "data": ["event_records", "organizer_data"],
+          "source": "user_provided",
+          "purpose": "community_events",
+          "retention": "community_record_after_completion",
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
+        },
+        {
+          "name": "event_photos",
+          "label": "Event Photos",
+          "data": ["approved_uploads"],
+          "source": "user_provided",
+          "purpose": "event_documentation",
+          "retention": "community_record_3_months_post_event",
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
+        }
+      ]
+    },
+    "third_party_synced": {
+      "description": "Deletion initiated but subject to provider retention policies",
+      "providers": [
+        {
+          "name": "Stripe",
+          "purpose": "payment_processing",
+          "data": ["email", "payment_method", "transaction_history"],
+          "deletionMechanism": "stripe_customer_deletion_api",
+          "providerRetention": "7_years_tax_legal"
+        },
+        {
+          "name": "Brevo",
+          "purpose": "email_communications",
+          "data": ["email", "name", "list_membership"],
+          "deletionMechanism": "brevo_contact_deletion_api",
+          "providerRetention": "anonymized_analytics_retained"
+        },
+        {
+          "name": "GoHighLevel",
+          "purpose": "crm",
+          "data": ["email", "name", "contact_id"],
+          "deletionMechanism": "ghl_api_or_manual",
+          "providerRetention": "subject_to_ghl_terms"
+        },
+        {
+          "name": "Cloudflare",
+          "purpose": "hosting_cdn_storage",
+          "data": ["uploaded_media", "ip_address"],
+          "deletionMechanism": "r2_object_deletion",
+          "providerRetention": "cdn_edge_cache_brief_delay"
+        },
+        {
+          "name": "Google",
+          "purpose": "oauth_authentication",
+          "data": ["email", "name", "profile_image"],
+          "deletionMechanism": "revoke_grant_delete_tokens",
+          "providerRetention": "google_auth_logs_per_google_policy"
+        },
+        {
+          "name": "Apple",
+          "purpose": "oauth_authentication",
+          "data": ["email", "name"],
+          "deletionMechanism": "revoke_grant_delete_tokens",
+          "providerRetention": "apple_auth_logs_per_apple_policy"
+        },
+        {
+          "name": "ActivityPub peers",
+          "purpose": "social_federation",
+          "data": ["posts", "actor_profiles", "follows"],
+          "deletionMechanism": "activitypub_delete_activity",
+          "providerRetention": "remote_servers_may_ignore_delete"
+        }
+      ]
+    }
+  },
+  "temporaryData": {
+    "description": "Retained only as long as necessary, then automatically purged",
+    "categories": [
+      {
+        "name": "signaling",
+        "label": "Session Signaling",
+        "retention": "session_duration"
+      },
+      {
+        "name": "whiteboard",
+        "label": "Whiteboard State",
+        "retention": "30_minutes_after_session"
+      },
+      {
+        "name": "session_chat",
+        "label": "Session Chat",
+        "retention": "session_duration"
+      },
+      {
+        "name": "session_streams",
+        "label": "Session Video/Audio",
+        "retention": "session_duration",
+        "note": "Never recorded server-side unless explicitly enabled"
+      },
+      {
+        "name": "oauth_tokens",
+        "label": "OAuth Tokens",
+        "retention": "token_lifetime"
+      },
+      {
+        "name": "analytics",
+        "label": "Analytics (IP, User-Agent)",
+        "retention": "90_days"
+      },
+      {
+        "name": "verification_tokens",
+        "label": "Verification Tokens",
+        "retention": "per_config"
+      },
+      {
+        "name": "srt_keys",
+        "label": "Livestream SRT Keys",
+        "retention": "stream_duration"
+      }
+    ]
+  },
+  "peerNetworkingData": {
+    "description": "Exchanged directly between participants; not controlled by Pana MIA Club after transmission",
+    "categories": [
+      "webrtc_streams",
+      "whiteboard_content",
+      "seen_chat_messages",
+      "co_author_content",
+      "visible_profile_info",
+      "event_attendance_info",
+      "activitypub_federated_content",
+      "in_person_exchanges"
+    ]
+  },
+  "userRights": {
+    "access": true,
+    "deletion": "deletable_class_only_or_anonymization",
+    "correction": true,
+    "portability": true,
+    "anonymization": "community_record_class",
+    "optOutOfSale": true,
+    "gpcHonored": true
+  },
+  "contentLicense": {
+    "options": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+    "default": "CC-BY-SA-4.0",
+    "spdxIdentifiers": true,
+    "irrevocable": true,
+    "deletionImplication": "cc_license_survives_content_removal"
+  }
+}

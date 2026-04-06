@@ -373,5 +373,19 @@ fi
 
 echo "CI workflow env vars are in sync"
 
+# =============================================================================
+# Legal Module Coverage Check
+# =============================================================================
+
+echo ""
+echo "Checking legal terms module coverage..."
+
+if [ -x "scripts/check-legal-modules.sh" ]; then
+  ./scripts/check-legal-modules.sh --staged || exit 1
+  echo "Legal terms modules are in sync"
+else
+  echo "Warning: scripts/check-legal-modules.sh not found or not executable"
+fi
+
 # Run linting
 npx lint-staged

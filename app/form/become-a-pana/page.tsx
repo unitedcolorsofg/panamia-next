@@ -877,10 +877,10 @@ function BecomeAPanaForm() {
                     <div className="space-y-4">
                       <p>
                         {/* i18n: use Trans for page7.tosText — contains a link:
-                            <Trans i18nKey="page7.tosText" components={{ link: <Link href="/doc/terms-and-conditions" ... /> }} /> */}
+                            <Trans i18nKey="page7.tosText" components={{ link: <Link href="/legal/terms" ... /> }} /> */}
                         Please read our{' '}
                         <Link
-                          href="/doc/terms-and-conditions"
+                          href="/legal/terms"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-pana-blue underline"

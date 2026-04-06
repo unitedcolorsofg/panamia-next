@@ -16,7 +16,9 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: `${SITE_URL}/form/become-a-pana`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/contact-us`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/join-the-team`, changeFrequency: 'monthly' },
-  { url: `${SITE_URL}/doc/terms-and-conditions`, changeFrequency: 'monthly' },
+  { url: `${SITE_URL}/legal/terms`, changeFrequency: 'monthly' },
+  { url: `${SITE_URL}/legal/privacy`, changeFrequency: 'monthly' },
+  { url: `${SITE_URL}/legal/dmca`, changeFrequency: 'monthly' },
   {
     url: `${SITE_URL}/doc/affiliate-terms-and-conditions`,
     changeFrequency: 'monthly',

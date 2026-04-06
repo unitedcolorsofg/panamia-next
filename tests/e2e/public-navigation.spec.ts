@@ -55,9 +55,26 @@ test.describe('Public Navigation', () => {
     await expect(page).not.toHaveTitle(/404/);
   });
 
-  test('terms and conditions loads', async ({ page }) => {
+  test('terms of service loads', async ({ page }) => {
+    await page.goto('/legal/terms');
+    await expect(page).toHaveURL(/legal\/terms/);
+    await expect(page).not.toHaveTitle(/404/);
+  });
+
+  test('old terms URL redirects to new location', async ({ page }) => {
     await page.goto('/doc/terms-and-conditions');
-    await expect(page).toHaveURL(/doc\/terms-and-conditions/);
+    await expect(page).toHaveURL(/legal\/terms/);
+  });
+
+  test('privacy policy loads', async ({ page }) => {
+    await page.goto('/legal/privacy');
+    await expect(page).toHaveURL(/legal\/privacy/);
+    await expect(page).not.toHaveTitle(/404/);
+  });
+
+  test('DMCA policy loads', async ({ page }) => {
+    await page.goto('/legal/dmca');
+    await expect(page).toHaveURL(/legal\/dmca/);
     await expect(page).not.toHaveTitle(/404/);
   });
 
@@ -146,9 +163,7 @@ test.describe('Custom Sign-In Page', () => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
     // Find terms link (may have trailing slash) - wait for hydration
-    const termsLink = page
-      .locator('a[href^="/doc/terms-and-conditions"]')
-      .first();
+    const termsLink = page.locator('a[href^="/legal/terms"]').first();
     await expect(termsLink).toBeVisible({ timeout: 15000 });
   });
 

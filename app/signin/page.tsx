@@ -265,7 +265,7 @@ function SignInPageContent() {
             <p className="pt-4 text-center text-xs text-gray-500">
               {t('termsAgreement')}{' '}
               <Link
-                href="/doc/terms-and-conditions"
+                href="/legal/terms"
                 className="text-pana-blue hover:underline"
               >
                 {t('termsLink')}

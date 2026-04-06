@@ -82,9 +82,9 @@ export default function GlobalFooter() {
         </div>
       </div>
       <div className={styles.termsLink}>
-        <Link href="/doc/terms-and-conditions">
-          {t('footer.termsAndConditions')}
-        </Link>
+        <Link href="/legal/terms">{t('footer.termsAndConditions')}</Link>
+        {' · '}
+        <Link href="/legal/privacy">Privacy Policy</Link>
       </div>
     </footer>
   );
