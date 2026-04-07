@@ -50,6 +50,20 @@
       "when": 1774742400000,
       "tag": "0006_ghl_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775606400000,
+      "tag": "0007_drop_accounts_password",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775692800000,
+      "tag": "0008_add_profile_neighborhood_zip",
+      "breakpoints": true
     }
   ]
 }

@@ -270,7 +270,6 @@ export const accounts = pgTable(
       withTimezone: true,
     }),
     scope: text('scope'),
-    password: text('password'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   },
@@ -420,6 +419,14 @@ export const profiles = pgTable(
     socialEligible: boolean('social_eligible').notNull().default(true),
     socialEligibleAt: timestamp('social_eligible_at', { withTimezone: true }),
     socialIneligibleReason: text('social_ineligible_reason'),
+    // Residence — platform eligibility & volunteer coordination
+    // neighborhoods: jsonb array of predefined South Florida neighborhood keys
+    // (e.g. ["wynwood", "brickell", "las-olas"]). Users may belong to multiple.
+    // Future enhancement: point-and-click map picker.
+    neighborhoods: jsonb('neighborhoods'),
+    // verifiedZipCode: billing zip from GoHighLevel — NOT user-provided.
+    // Used to verify South Florida residency for platform eligibility.
+    verifiedZipCode: text('verified_zip_code'),
     // GHL (GoHighLevel CRM)
     ghlContactId: text('ghl_contact_id'),
     ghlOptedOut: boolean('ghl_opted_out').notNull().default(false),

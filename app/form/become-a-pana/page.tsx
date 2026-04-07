@@ -21,6 +21,44 @@ import { useTranslation } from 'react-i18next';
 // the existing useTranslation('toast'). Create locales/en/becomePana.json and
 // locales/es/becomePana.json, then register them in lib/i18n.ts.
 // All t() calls below reference suggested keys for the 'becomePana' namespace.
+//
+// REBUILD NOTES (become-a-pana form):
+//
+// 1. PROFILE TYPE BRANCHING
+//    The form must branch based on users.accountType ('personal' | 'small_business'
+//    | 'hybrid' | 'other'). Add an early step asking the user what type of listing
+//    they are creating. This drives which fields are shown:
+//    - personal: neighborhoods (dropdown/multi-select), NO street address fields.
+//    - small_business: full address fields (addressLine1, addressLocality, etc.)
+//      + locations (service areas) + neighborhoods (where the owner resides).
+//    - hybrid: both personal + business fields.
+//
+// 2. NEIGHBORHOOD SELECTION (all profile types)
+//    Add a multi-select dropdown of predefined South Florida neighborhoods.
+//    Stored as profiles.neighborhoods (jsonb array of neighborhood keys,
+//    e.g. ["wynwood", "brickell", "las-olas"]). Source the list from a shared
+//    constant (e.g. lib/constants/neighborhoods.ts) so the form, directory
+//    filters, and admin tools all reference the same set.
+//    Future enhancement: replace dropdown with a point-and-click map picker.
+//
+// 3. ZIP CODE — DO NOT COLLECT FROM USER
+//    profiles.verifiedZipCode is sourced from GoHighLevel billing data, not
+//    user input. It is used to verify South Florida residency for platform
+//    eligibility. The form should NOT include a zip code input. The verification
+//    happens asynchronously after GHL contact enrollment (see api/crm/contact/).
+//
+// 4. ADDRESS FIELDS — BUSINESS LISTINGS ONLY
+//    Street address (addressLine1, addressLine2, addressLocality, addressRegion,
+//    addressPostalCode, addressCountry, lat/lng, Google Place ID) should only
+//    be collected for small_business and hybrid profile types. Personal profiles
+//    must NOT collect or store street addresses — this reduces FIPA breach
+//    exposure (name + address is a notifiable PII combination).
+//
+// 5. CONSENT INTEGRATION (Phase 3)
+//    The ToS checkbox on page 7 should be wired to consent_receipts when that
+//    table exists. Record: user_id, document='terms', module='profiles',
+//    version (from legal/terms/policy.json), timestamp, ip.
+//    See docs/TERMS-ROADMAP.md Phase 3 for full spec.
 
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();
