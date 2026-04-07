@@ -162,7 +162,9 @@ export function LocationPickerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background sm:max-w-md">
+      {/* Explicit bg-white / dark:bg-zinc-900 — bg-background can appear
+          transparent due to CSS layer specificity (see ConsentModal.tsx) */}
+      <DialogContent className="bg-white sm:max-w-md dark:bg-zinc-900">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />

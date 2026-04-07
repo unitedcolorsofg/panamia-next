@@ -30,6 +30,7 @@
     "app/api/admin",
     "app/api/affiliate",
     "app/api/auth",
+    "app/api/consent",
     "app/api/crm",
     "app/api/debug",
     "app/api/geo",

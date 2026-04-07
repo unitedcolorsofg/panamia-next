@@ -57,6 +57,23 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 }
 
+// Phase 3 consent — archive threshold gate for event photos
+// Event photos enter the community record 3 months after the event. The
+// consent check should happen client-side (useModuleConsent + ConsentModal)
+// before the upload is initiated. Server-side validation can additionally
+// call hasConsent() from lib/consent.ts as a backstop:
+//
+// import { hasConsent } from '@/lib/consent';
+//
+// Inside POST handler, after auth check:
+//   const consented = await hasConsent(session.user.id, 'terms', 'events', 0);
+//   if (!consented) {
+//     return NextResponse.json(
+//       { success: false, error: 'Event terms consent required' },
+//       { status: 403 }
+//     );
+//   }
+
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;

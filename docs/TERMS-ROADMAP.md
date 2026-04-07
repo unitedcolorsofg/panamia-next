@@ -980,12 +980,16 @@ Publish at `legal/accessibility/statement.html`:
 
 ### Phase 3 — Consent Infrastructure
 
-- [ ] Add consent receipt storage (table: `consent_receipts` — user_id,
-      document, module, version, timestamp, ip, gpc_detected)
-- [ ] Implement signup consent flow
-- [ ] Implement contextual module consent modals
-- [ ] Add archive threshold notice to article, event, and photo publish flows
-- [ ] Add social timeline deletion notice to social post composer
+- [x] Add consent receipt storage (table: `consent_receipts` — user_id,
+      document, module, version, major_version, timestamp, ip, gpc_detected)
+- [x] Implement consent helpers (`lib/consent.ts` — `hasConsent`, `recordConsent`)
+- [ ] Wire signup consent into become-a-pana form (deferred to form rebuild)
+- [x] Implement contextual module consent modal (`components/legal/ConsentModal.tsx`)
+- [x] Add archive threshold consent hooks to article, event, and photo flows
+      (code comments + `useModuleConsent` wiring in ArticleEditor, EventEditor,
+      event photos API; activate when `/api/consent/*` routes are implemented)
+- [x] Add social timeline deletion notice to social post composer
+      (code comments + `useModuleConsent` wiring in PostComposer; type="notice")
 - [ ] Implement GPC detection middleware
 - [ ] Add privacy settings page (view/withdraw consent, exercise rights)
 

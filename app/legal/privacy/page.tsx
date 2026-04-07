@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 function Placeholder({ label }: { label: string }) {
   return (
-    <p className="rounded border border-dashed border-yellow-500/50 bg-yellow-50/50 p-4 text-sm text-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-200">
+    <p className="rounded border border-dashed border-blue-400/50 bg-blue-50/50 p-4 text-sm text-blue-800 dark:bg-blue-950/20 dark:text-blue-200">
       {label} — full legal text to be drafted.
     </p>
   );
@@ -97,9 +97,13 @@ const dataTiers = [
 export default function PrivacyPolicyPage() {
   return (
     <>
-      <header className="mb-8 border-b pb-6">
+      <header className="mb-10 border-b pb-6">
         <h1 className="text-4xl font-bold">Privacy Policy</h1>
-        <p className="text-muted-foreground mt-2">Version 1.0.0 — Draft</p>
+        <p className="text-muted-foreground mt-2">Version 0.1 — Draft</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          The English-language version of this policy shall take precedence over
+          any translations.
+        </p>
       </header>
 
       {/* Privacy at a Glance — scannable grid (Layer 1) */}

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 function Placeholder({ label }: { label: string }) {
   return (
-    <p className="rounded border border-dashed border-yellow-500/50 bg-yellow-50/50 p-4 text-sm text-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-200">
+    <p className="rounded border border-dashed border-blue-400/50 bg-blue-50/50 p-4 text-sm text-blue-800 dark:bg-blue-950/20 dark:text-blue-200">
       {label} — full legal text to be drafted.
     </p>
   );

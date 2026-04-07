@@ -81,10 +81,13 @@ export default function GlobalFooter() {
           </ul>
         </div>
       </div>
+      {/* "Our Commitments" links to the terms preamble which enumerates
+          what Panamia commits to its members. The terms themselves are the
+          mechanism to uphold those commitments. */}
       <div className={styles.termsLink}>
-        <Link href="/legal/terms">{t('footer.termsAndConditions')}</Link>
+        <Link href="/legal/terms">{t('footer.ourCommitments')}</Link>
         {' · '}
-        <Link href="/legal/privacy">Privacy Policy</Link>
+        <Link href="/legal/privacy">{t('footer.privacyPolicy')}</Link>
       </div>
     </footer>
   );

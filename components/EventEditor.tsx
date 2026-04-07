@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// Phase 3 consent infrastructure — gate event creation behind module consent
+// import { useModuleConsent } from '@/hooks/use-module-consent';
+// import { ConsentModal } from '@/components/legal/ConsentModal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -145,6 +148,29 @@ export default function EventEditor({
       setError('You must agree to the Terms of Service');
       return;
     }
+    // Phase 3 consent — archive threshold gate for events
+    // Events become part of the community record after completion. The
+    // existing tosAccepted checkbox above should be replaced by / wired
+    // into the consent receipt system so acceptance is recorded with version,
+    // IP, and GPC status.
+    //
+    // TODO: Uncomment when API routes are implemented:
+    //
+    // const { needsConsent, recordConsent: onEventConsent } =
+    //   useModuleConsent({ document: 'terms', module: 'events', majorVersion: 0 });
+    //
+    // Render in JSX:
+    // <ConsentModal
+    //   open={needsConsent}
+    //   type="gate"
+    //   module="events"
+    //   title="Events Terms"
+    //   description="Event records become part of the community record after
+    //     the event completes. Event photos enter the record 3 months after
+    //     the event."
+    //   policyUrl="/legal/terms/modules/events"
+    //   onConsent={onEventConsent}
+    // />
 
     setSaving(true);
 

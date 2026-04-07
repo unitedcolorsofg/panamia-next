@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useRef } from 'react';
+// Phase 3 consent infrastructure — notice for social timeline deletion policy
+import { useModuleConsent } from '@/hooks/use-module-consent';
+import { ConsentModal } from '@/components/legal/ConsentModal';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import axios from 'axios';
@@ -260,6 +263,12 @@ export function PostComposer({
     VISIBILITY_OPTIONS.find((o) => o.value === effectiveVisibility) ??
     VISIBILITY_OPTIONS[0];
 
+  // Phase 3 consent — social timeline deletion notice (soft notice, not a gate)
+  // Social posts are always fully deletable regardless of age. This notice
+  // informs the user of that policy on first use — it does NOT block posting.
+  const { needsConsent: showSocialNotice, recordConsent: onSocialNotice } =
+    useModuleConsent({ document: 'terms', module: 'social', majorVersion: 0 });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEmpty || isOverLimit || createPost.isPending) return;
@@ -498,6 +507,17 @@ export function PostComposer({
           </div>
         )}
       </div>
+
+      {/* Phase 3: social timeline deletion notice (type="notice") */}
+      <ConsentModal
+        open={showSocialNotice}
+        type="notice"
+        module="social"
+        title="Social Timeline"
+        description="Your social posts (including replies and attachments) are always fully deletable, including on account deletion. An ActivityPub Delete activity is sent to federation peers (best-effort)."
+        policyUrl="/legal/terms/modules/social"
+        onConsent={onSocialNotice}
+      />
     </form>
   );
 }

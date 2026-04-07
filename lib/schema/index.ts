@@ -311,6 +311,52 @@ export const verification = pgTable('verification_tokens', {
 });
 
 // =============================================================================
+// Consent Receipts
+// =============================================================================
+// Phase 3 consent infrastructure. Each receipt records a user's consent to a
+// specific document ('terms' | 'privacy') and optionally a module ('articles',
+// 'social', etc.). module=null represents top-level terms acceptance (signup).
+//
+// Lookup pattern: find receipt by (user_id, document, module, major_version).
+// If found, consent is current — skip prompt. If not, show gate or notice
+// (determined by policy.json consent.type, NOT stored on the receipt).
+//
+// Receipts are auto-purged annually (cron job, not yet implemented). This
+// serves dual purpose: expunging stored IP addresses and triggering annual
+// re-consent.
+
+export const consentReceipts = pgTable(
+  'consent_receipts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text('user_id').notNull(),
+    // 'terms' | 'privacy'
+    document: text('document').notNull(),
+    // Module ID (e.g. 'articles', 'social') or null for top-level acceptance
+    module: text('module'),
+    // Full semver string as recorded at time of consent (e.g. '0.1')
+    version: text('version').notNull(),
+    // Extracted major version for efficient lookup — only major bumps
+    // re-trigger consent
+    majorVersion: integer('major_version').notNull(),
+    ip: text('ip'),
+    gpcDetected: boolean('gpc_detected').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('consent_receipts_user_id_idx').on(table.userId),
+    lookupIdx: index('consent_receipts_lookup_idx').on(
+      table.userId,
+      table.document,
+      table.module,
+      table.majorVersion
+    ),
+  })
+);
+
+// =============================================================================
 // Notifications
 // =============================================================================
 
@@ -1263,6 +1309,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   menteeSessions: many(mentorSessions, { relationName: 'menteeSessions' }),
   articleAnnouncements: many(articleAnnouncements),
   screennameHistory: many(screennameHistory),
+  consentReceipts: many(consentReceipts),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -1272,6 +1319,16 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
+
+export const consentReceiptsRelations = relations(
+  consentReceipts,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [consentReceipts.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const verificationRelations = relations(verification, () => ({}));
 
@@ -1532,6 +1589,7 @@ export type User = typeof users.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Verification = typeof verification.$inferSelect;
+export type ConsentReceipt = typeof consentReceipts.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Article = typeof articles.$inferSelect;

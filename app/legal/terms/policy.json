@@ -2,7 +2,7 @@
   "@context": "https://schema.org",
   "@type": "TermsOfService",
   "name": "Pana MIA Club Terms of Service",
-  "version": "2.0.0",
+  "version": "0.1",
   "status": "draft",
   "effectiveDate": null,
   "url": "https://panamia.club/legal/terms",
@@ -43,49 +43,49 @@
     {
       "name": "profiles",
       "url": "https://panamia.club/legal/terms/modules/profiles",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "articles",
       "url": "https://panamia.club/legal/terms/modules/articles",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "social",
       "url": "https://panamia.club/legal/terms/modules/social",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "mentoring",
       "url": "https://panamia.club/legal/terms/modules/mentoring",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "events",
       "url": "https://panamia.club/legal/terms/modules/events",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "uploads",
       "url": "https://panamia.club/legal/terms/modules/uploads",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "payments",
       "url": "https://panamia.club/legal/terms/modules/payments",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     },
     {
       "name": "community",
       "url": "https://panamia.club/legal/terms/modules/community",
-      "version": "1.0.0",
+      "version": "0.1",
       "status": "draft"
     }
   ]

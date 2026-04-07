@@ -8,6 +8,9 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+// Phase 3 consent infrastructure — gate article publishing behind module consent
+import { useModuleConsent } from '@/hooks/use-module-consent';
+import { ConsentModal } from '@/components/legal/ConsentModal';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -290,6 +293,17 @@ export default function ArticleEditor({
       setRequestingReview(false);
     }
   };
+
+  // Phase 3 consent — archive threshold gate for articles
+  // Articles become part of the community record after 3 months. Users must
+  // consent to this before their first publish. The consent modal is a hard
+  // gate (type="gate") — publishing is blocked until accepted.
+  const { needsConsent: needsArticleConsent, recordConsent: onArticleConsent } =
+    useModuleConsent({
+      document: 'terms',
+      module: 'articles',
+      majorVersion: 0,
+    });
 
   const handlePublish = async () => {
     if (!initialData.slug) return;
@@ -764,6 +778,17 @@ export default function ArticleEditor({
           </CardContent>
         </Card>
       )}
+
+      {/* Phase 3: archive threshold consent gate for articles */}
+      <ConsentModal
+        open={needsArticleConsent}
+        type="gate"
+        module="articles"
+        title="Articles Terms"
+        description="Articles are published under a CC license and become part of the community record 3 months after publication. After that threshold, deletion requests are not honored — you may choose to keep attribution or anonymize."
+        policyUrl="/legal/terms/modules/articles"
+        onConsent={onArticleConsent}
+      />
     </div>
   );
 }
