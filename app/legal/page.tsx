@@ -1,9 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'Legal - Pana MIA Club',
   description: 'Legal documents, policies, and disclosures for Pana MIA Club',
+  openGraph: {
+    title: 'Legal - Pana MIA Club',
+    description: 'Legal documents, policies, and disclosures for Pana MIA Club',
+    url: `${SITE}/legal`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 const documents = [
@@ -41,6 +51,12 @@ const documents = [
 export default function LegalIndexPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club — Legal"
+        description="Legal documents, policies, and disclosures for Pana MIA Club"
+        url={`${SITE}/legal`}
+        version="0.1"
+      />
       <header className="mb-8 border-b pb-6">
         <h1 className="text-4xl font-bold">Legal</h1>
         <p className="text-muted-foreground mt-2">

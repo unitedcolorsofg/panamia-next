@@ -1,9 +1,20 @@
 import type { Metadata } from 'next';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'Data Breach Disclosure Policy - Pana MIA Club',
   description:
-    'Data breach notification and incident response policy for Pana MIA Club',
+    'Data breach notification and incident response policy for Pana MIA Club under the Florida Information Protection Act',
+  openGraph: {
+    title: 'Data Breach Disclosure Policy - Pana MIA Club',
+    description:
+      'Data breach notification and incident response policy for Pana MIA Club under the Florida Information Protection Act',
+    url: `${SITE}/legal/breach`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 function Placeholder({ label }: { label: string }) {
@@ -17,6 +28,12 @@ function Placeholder({ label }: { label: string }) {
 export default function BreachPolicyPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club Data Breach Disclosure Policy"
+        description="Data breach notification and incident response policy under the Florida Information Protection Act"
+        url={`${SITE}/legal/breach`}
+        version="0.1"
+      />
       <header className="mb-8 border-b pb-6">
         <h1 className="text-4xl font-bold">Data Breach Disclosure Policy</h1>
         <p className="text-muted-foreground mt-2">

@@ -1,9 +1,20 @@
 import type { Metadata } from 'next';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'Accessibility Statement - Pana MIA Club',
   description:
     'WCAG 2.2 AA accessibility conformance statement for Pana MIA Club',
+  openGraph: {
+    title: 'Accessibility Statement - Pana MIA Club',
+    description:
+      'WCAG 2.2 AA accessibility conformance statement for Pana MIA Club',
+    url: `${SITE}/legal/accessibility`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 function Placeholder({ label }: { label: string }) {
@@ -17,6 +28,12 @@ function Placeholder({ label }: { label: string }) {
 export default function AccessibilityStatementPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club Accessibility Statement"
+        description="WCAG 2.2 AA accessibility conformance statement for Pana MIA Club"
+        url={`${SITE}/legal/accessibility`}
+        version="0.1"
+      />
       <header className="mb-8 border-b pb-6">
         <h1 className="text-4xl font-bold">Accessibility Statement</h1>
       </header>

@@ -1,10 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { moduleDefinitions, ModuleContent } from './module-content';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'Terms of Service - Pana MIA Club',
-  description: 'Terms of Service for Pana MIA Club',
+  description:
+    'Terms of Service for Pana MIA Club. CC-licensed content, community-drafted terms, Florida jurisdiction, no mandatory arbitration.',
+  openGraph: {
+    title: 'Terms of Service - Pana MIA Club',
+    description:
+      'Terms of Service for Pana MIA Club. CC-licensed content, community-drafted terms, Florida jurisdiction, no mandatory arbitration.',
+    url: `${SITE}/legal/terms`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 function Placeholder({ label }: { label: string }) {
@@ -18,6 +30,13 @@ function Placeholder({ label }: { label: string }) {
 export default function TermsPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club Terms of Service"
+        description="Terms of Service for Pana MIA Club. CC-licensed content, community-drafted terms, Florida jurisdiction, no mandatory arbitration."
+        url={`${SITE}/legal/terms`}
+        version="0.1"
+        policyJsonUrl={`${SITE}/legal/terms/policy.json`}
+      />
       <header className="mb-10 border-b pb-6">
         <h1 className="text-4xl font-bold">Terms of Service</h1>
         <p className="text-muted-foreground mt-2">Version 0.1 — Draft</p>

@@ -1015,38 +1015,93 @@ Publish at `legal/accessibility/statement.html`:
 
 ### Phase 5 — Account Deletion Flow
 
-- [ ] Build deletion initiation page (Settings → Delete Account)
-- [ ] Build data summary view (enumerate user's content by retention class)
-- [ ] Implement archive threshold calculation per content type
-- [ ] Build attribution choice step (keep name / anonymize)
-- [ ] Build confirmation step with screenname verification
-- [ ] Implement immediate deletion executor:
-  - [ ] Purge Deletable data (account, profile, preferences, session notes)
-  - [ ] Delete all social timeline posts regardless of age
-  - [ ] Send ActivityPub `Delete` activities for social posts and actor
-  - [ ] Delete pre-archive content (articles, events, photos, reviews)
-  - [ ] Anonymize or tombstone post-archive content per user's choice
-  - [ ] Cancel active Stripe subscriptions
-  - [ ] Initiate Stripe customer deletion
-  - [ ] Delete Brevo contact
-  - [ ] Delete GoHighLevel contact (or respect ghlOptOut)
-  - [ ] Revoke OAuth grants and delete stored tokens
-  - [ ] Delete uploaded media from R2 for deleted content
-  - [ ] Retain consent receipt and deletion audit log (1 year)
-- [ ] Handle edge cases:
-  - [ ] Block deletion if user is organizer for future events (prompt transfer)
-  - [ ] Cancel pending/scheduled mentoring sessions with notification
-  - [ ] Handle co-authored articles (only departing user's attribution affected)
-- [ ] Add deletion audit log table (`deletion_logs` — user_id, action,
-      content_type, content_id, attribution_choice, timestamp)
+- [x] Build deletion wizard page (`app/form/delete-account/page.tsx` — 6-page
+      multi-step wizard following become-a-pana pattern: warning + data summary,
+      attribution choice, third-party info, email confirmation, final
+      confirmation, done page)
+- [x] Build data summary view via preflight API
+      (`app/api/account/delete-preflight/route.ts` — GET, returns `canDelete`,
+      `blockers[]`, and `summary` with counts per content type and third-party
+      service inventory)
+- [x] Implement archive threshold calculation per content type
+      (articles: `publishedAt < now - 3 months`; events: `status = completed`;
+      event photos: `event.startsAt < now - 3 months`; social posts: always
+      deleted regardless of age)
+- [x] Build attribution choice step (keep name / anonymize)
+      (radio group on page 2, skipped if no archived content; `'keep'`
+      tombstones profile with sensitive fields cleared, `'anonymize'` sets
+      `authorId`/`hostProfileId`/`uploaderProfileId` to null)
+- [x] Build confirmation step with email verification
+      (page 4: user types email to match `session.user.email`;
+      page 5: checkbox + destructive button with spinner)
+- [x] Implement immediate deletion executor
+      (`lib/server/delete-account.ts` — `deleteAccount(userId, options)`,
+      16-step orchestrated cleanup):
+  - [x] Purge Deletable data (account, profile, sessions, notifications,
+        consent receipts, intake forms, email migrations, interactions)
+  - [x] Delete all social timeline posts regardless of age
+        (attachments → tags → likes → follows → statuses → actor)
+  - [x] Send ActivityPub `Delete` activities for actor to follower inboxes
+        (signed with `signedHeaders` from `lib/federation/crypto/sign.ts`,
+        deduplicated by shared inbox)
+  - [x] Delete pre-archive content (articles with linked social statuses,
+        events with cascade to photos/notes/attendees/organizers)
+  - [x] Anonymize or tombstone post-archive content per user's choice
+        (migration `0011_account_deletion.sql` drops NOT NULL on
+        `articles.author_id`, `events.host_profile_id`,
+        `event_photos.uploader_profile_id`)
+  - [x] Cancel active Stripe subscriptions + delete customer
+        (dynamic import of `stripe`, uses `profiles.stripe_customer_id`)
+  - [x] Delete Brevo contact (`lib/brevo_api.ts` — new `deleteContact(email)`
+        method, DELETE `/v3/contacts/{email}`, returns true on 200 or 404)
+  - [x] Delete GoHighLevel contact via `GhlClient.deleteContact()`
+  - [x] Revoke OAuth grants (`lib/oauth-revoke.ts` — `revokeAllOAuthTokens()`,
+        Google token revocation endpoint + Apple revocation endpoint)
+  - [x] Delete uploaded media from R2 (`deleteFile()` from `lib/blob/api.ts`
+        for profile images, gallery, article covers, event covers, event
+        photos, social attachments)
+  - [x] Retain deletion audit log (`deletion_logs` table with userId, email,
+        screenname, attributionChoice, archivedContentIds, deletedTables,
+        thirdPartyResults, ip, completedAt, error)
+- [x] Handle edge cases:
+  - [x] Block deletion if user hosts future published events
+        (preflight + executor both check; blocker message shown on page 1)
+  - [x] Block deletion if user operates venues with upcoming events
+  - [x] Block deletion if user has pending/scheduled mentoring sessions
+  - [x] Handle co-authored articles (replace user entry in `coAuthors` jsonb
+        with `{ userId: null, screenname: 'Previous Member', status: 'removed' }`)
+  - [x] Preserve `screennameHistory` rows (federation 410 Gone continues)
+- [x] Add deletion audit log table
+      (migration: `drizzle/0011_account_deletion.sql` — `deletion_logs` table + `stripe_customer_id` on profiles + nullable FK columns for anonymization)
+- [x] Add delete API route (`app/api/account/delete/route.ts` — POST,
+      validates email confirmation, extracts IP, calls `deleteAccount()`,
+      returns `{ success, warnings }` or `{ error, warnings }` with 409)
+- [x] Refactor CLI delete script (`scripts/delete-user.ts` — now calls
+      shared `deleteAccount()` with `attributionChoice: 'anonymize'`)
+- [x] Wellness note on warning page (988 Suicide & Crisis Lifeline,
+      soft muted card, non-intrusive)
+- [ ] Wire Settings page "Delete Account" link to `/form/delete-account`
+- [ ] TODO(GHL): Trigger GoHighLevel flow email "Your account has been deleted"
 
 ### Phase 6 — Machine-Readable Layer
 
-- [ ] Generate `privacy/policy.json` from source schema
-- [ ] Generate `terms/policy.json` from source schema
-- [ ] Add JSON-LD structured data to legal pages
-- [ ] Add OpenGraph metadata to legal pages
-- [ ] Expose `.well-known/privacy-policy` endpoint (if standardized)
+- [x] `privacy/policy.json` and `terms/policy.json` already exist as source
+      schemas (JSON-LD with `@context: "https://schema.org"`); no generation
+      step needed — they are the source of truth
+- [x] Add JSON-LD structured data to legal pages
+      (`components/legal/JsonLd.tsx` — `LegalJsonLd` component embeds a slim
+      schema.org `DigitalDocument` snippet via `<script type="application/ld+json">`
+      with name, version, url, publisher, and optional `encoding` link to
+      the full policy.json; added to all 6 legal pages)
+- [x] Add OpenGraph metadata to legal pages
+      (all 6 legal pages: index, privacy, terms, DMCA, breach, accessibility
+      — `openGraph` fields: title, description, url, siteName, type)
+- [x] Expose `.well-known/privacy-policy` endpoint
+      (`app/.well-known/privacy-policy/route.ts` — 302 redirect to
+      `/legal/privacy`)
+- [x] Expose `.well-known/gpc.json` endpoint
+      (`app/.well-known/gpc.json/route.ts` — `{ gpc: true, lastUpdate }` per
+      GPC spec, 24h cache)
 
 ### Phase 7 — DMCA and Compliance
 

@@ -1,10 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PrivacyAtAGlance } from '@/components/legal/PrivacyAtAGlance';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Pana MIA Club',
-  description: 'Privacy Policy for Pana MIA Club',
+  description:
+    'How Pana MIA Club collects, uses, and protects your data. Three-tier data classification, your rights, and third-party sharing.',
+  openGraph: {
+    title: 'Privacy Policy - Pana MIA Club',
+    description:
+      'How Pana MIA Club collects, uses, and protects your data. Three-tier data classification, your rights, and third-party sharing.',
+    url: `${SITE}/legal/privacy`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 function Placeholder({ label }: { label: string }) {
@@ -97,6 +109,13 @@ const dataTiers = [
 export default function PrivacyPolicyPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club Privacy Policy"
+        description="How Pana MIA Club collects, uses, and protects your data. Three-tier data classification, your rights, and third-party sharing."
+        url={`${SITE}/legal/privacy`}
+        version="0.1"
+        policyJsonUrl={`${SITE}/legal/privacy/policy.json`}
+      />
       <header className="mb-10 border-b pb-6">
         <h1 className="text-4xl font-bold">Privacy Policy</h1>
         <p className="text-muted-foreground mt-2">Version 0.1 — Draft</p>

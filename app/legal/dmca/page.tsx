@@ -1,10 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LegalJsonLd } from '@/components/legal/JsonLd';
+
+const SITE = 'https://panamia.club';
 
 export const metadata: Metadata = {
   title: 'DMCA Policy - Pana MIA Club',
   description:
     'DMCA designated agent information and takedown policy for Pana MIA Club',
+  openGraph: {
+    title: 'DMCA Policy - Pana MIA Club',
+    description:
+      'DMCA designated agent information and takedown policy for Pana MIA Club',
+    url: `${SITE}/legal/dmca`,
+    siteName: 'Pana MIA Club',
+    type: 'website',
+  },
 };
 
 function Placeholder({ label }: { label: string }) {
@@ -94,6 +105,12 @@ function DmcaAgentInfo() {
 export default function DmcaPolicyPage() {
   return (
     <>
+      <LegalJsonLd
+        name="Pana MIA Club DMCA Policy"
+        description="DMCA designated agent information and takedown policy for Pana MIA Club"
+        url={`${SITE}/legal/dmca`}
+        version="0.1"
+      />
       <header className="mb-8 border-b pb-6">
         <h1 className="text-4xl font-bold">DMCA Policy</h1>
         <p className="text-muted-foreground mt-2">
