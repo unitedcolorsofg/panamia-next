@@ -42,6 +42,11 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import {
+  CCLicenseBadge,
+  CCLicensePickerModal,
+  type CCLicenseValue,
+} from '@/components/legal/CCLicensePicker';
 
 interface PostComposerProps {
   inReplyTo?: string;
@@ -111,6 +116,8 @@ export function PostComposer({
   const [uploading, setUploading] = useState(false);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [safariMediaNotice, setSafariMediaNotice] = useState(false);
+  const [ccLicense, setCcLicense] = useState<CCLicenseValue>('cc-by-sa-4');
+  const [showLicensePicker, setShowLicensePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createPost = useCreatePost();
@@ -274,6 +281,8 @@ export function PostComposer({
     if (isEmpty || isOverLimit || createPost.isPending) return;
 
     try {
+      const isPublicPost =
+        effectiveVisibility === 'public' || effectiveVisibility === 'unlisted';
       await createPost.mutateAsync({
         content: content.trim(),
         contentWarning:
@@ -281,6 +290,7 @@ export function PostComposer({
         inReplyTo,
         visibility: effectiveVisibility,
         attachments: attachments.length > 0 ? attachments : undefined,
+        ...(isPublicPost ? { ccLicense } : {}),
       });
       setContent('');
       setContentWarning('');
@@ -329,6 +339,13 @@ export function PostComposer({
             </TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-1">
+            {(effectiveVisibility === 'public' ||
+              effectiveVisibility === 'unlisted') && (
+              <CCLicenseBadge
+                value={ccLicense}
+                onClick={() => setShowLicensePicker(true)}
+              />
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -507,6 +524,14 @@ export function PostComposer({
           </div>
         )}
       </div>
+
+      {/* CC License Picker Modal */}
+      <CCLicensePickerModal
+        open={showLicensePicker}
+        onOpenChange={setShowLicensePicker}
+        value={ccLicense}
+        onChange={setCcLicense}
+      />
 
       {/* Phase 3: social timeline deletion notice (type="notice") */}
       <ConsentModal

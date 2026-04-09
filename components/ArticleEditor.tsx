@@ -44,6 +44,10 @@ import {
 } from 'lucide-react';
 import UserSearch from '@/components/UserSearch';
 import ArticleSearch from '@/components/ArticleSearch';
+import {
+  CCLicensePicker,
+  type CCLicenseValue,
+} from '@/components/legal/CCLicensePicker';
 
 interface CoAuthorInfo {
   userId: string;
@@ -76,6 +80,7 @@ interface ArticleEditorProps {
     reviewedBy?: ReviewerInfo;
     status?: string;
     inReplyTo?: ReplyToArticle;
+    ccLicense?: CCLicenseValue;
   };
   onSave?: (data: Record<string, unknown>) => Promise<void>;
 }
@@ -115,6 +120,9 @@ export default function ArticleEditor({
   );
   const [inReplyTo, setInReplyTo] = useState<ReplyToArticle | null>(
     initialData.inReplyTo || null
+  );
+  const [ccLicense, setCcLicense] = useState<CCLicenseValue>(
+    initialData.ccLicense || 'cc-by-sa-4'
   );
 
   // Fetch current user ID for excluding from search
@@ -175,6 +183,7 @@ export default function ArticleEditor({
         tags,
         coverImage: coverImage || undefined,
         inReplyTo: inReplyTo?._id || undefined,
+        ccLicense,
       };
 
       if (onSave) {
@@ -552,6 +561,12 @@ export default function ArticleEditor({
               If this article is a response to another article, select the
               original here.
             </p>
+          </div>
+
+          {/* CC License */}
+          <div className="space-y-2">
+            <Label>License</Label>
+            <CCLicensePicker value={ccLicense} onChange={setCcLicense} />
           </div>
 
           {/* Content Editor with Preview */}

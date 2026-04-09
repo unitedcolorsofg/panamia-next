@@ -408,6 +408,8 @@ export const useCreatePost = () => {
         name?: string;
         precision?: 'precise' | 'general';
       };
+      /** CC license selection (default: cc-by-sa-4) */
+      ccLicense?: 'cc-by-4' | 'cc-by-sa-4';
     }) => {
       return axios.post('/api/social/statuses', data);
     },

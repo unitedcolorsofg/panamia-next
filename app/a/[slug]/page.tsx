@@ -18,6 +18,10 @@ import ArticleTypeBadge from '@/components/ArticleTypeBadge';
 import MastodonComments from '@/components/MastodonComments';
 import ArticleMastodonSettings from '@/components/ArticleMastodonSettings';
 import { ArrowLeft, Clock, Reply } from 'lucide-react';
+import {
+  CCBadge,
+  type CCLicenseValue,
+} from '@/components/legal/CCLicensePicker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -136,6 +140,7 @@ async function getArticle(slug: string) {
     tags: articleDoc.tags || [],
     coverImage: articleDoc.coverImage,
     readingTime: articleDoc.readingTime,
+    ccLicense: articleDoc.ccLicense as CCLicenseValue,
     publishedAt: articleDoc.publishedAt?.toISOString(),
     authorId: articleDoc.authorId,
     author: authorInfo,
@@ -252,6 +257,9 @@ export default async function ArticlePage({ params }: PageProps) {
                   {articleData.readingTime} min read
                 </span>
               )}
+              {articleData.ccLicense && (
+                <CCBadge license={articleData.ccLicense} />
+              )}
             </div>
           </div>
         </header>
@@ -333,6 +341,11 @@ export async function generateMetadata({ params }: PageProps) {
     };
   }
 
+  const licenseUrl =
+    articleData.ccLicense === 'cc-by-4'
+      ? 'https://creativecommons.org/licenses/by/4.0/'
+      : 'https://creativecommons.org/licenses/by-sa/4.0/';
+
   return {
     title: articleData.title,
     description: articleData.excerpt,
@@ -342,6 +355,9 @@ export async function generateMetadata({ params }: PageProps) {
       type: 'article',
       publishedTime: articleData.publishedAt,
       images: articleData.coverImage ? [articleData.coverImage] : [],
+    },
+    other: {
+      'dcterms.license': licenseUrl,
     },
   };
 }

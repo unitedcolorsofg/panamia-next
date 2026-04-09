@@ -76,7 +76,13 @@ export async function POST(request: NextRequest) {
     attachments,
     recipientActorIds,
     location,
+    ccLicense,
   } = body;
+
+  // Validate ccLicense if provided
+  const validLicenses = ['cc-by-4', 'cc-by-sa-4'] as const;
+  const resolvedLicense =
+    ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
 
   if (!content || typeof content !== 'string') {
     return NextResponse.json(
@@ -147,7 +153,8 @@ export async function POST(request: NextRequest) {
     resolvedVisibility,
     Array.isArray(attachments) ? attachments : undefined,
     resolvedVisibility === 'direct' ? recipientActorIds : undefined,
-    validatedLocation
+    validatedLocation,
+    resolvedLicense
   );
 
   if (!result.success) {

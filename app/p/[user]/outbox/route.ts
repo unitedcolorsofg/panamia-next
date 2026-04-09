@@ -71,6 +71,11 @@ export async function GET(
     limit: 20,
   });
 
+  const LICENSE_DEED: Record<string, string> = {
+    'cc-by-4': 'https://creativecommons.org/licenses/by/4.0/',
+    'cc-by-sa-4': 'https://creativecommons.org/licenses/by-sa/4.0/',
+  };
+
   const orderedItems = statuses.map((status) => ({
     id: `${status.uri}/activity`,
     type: 'Create',
@@ -98,6 +103,8 @@ export async function GET(
       })),
       tag: [],
       summary: status.contentWarning || null,
+      'cc:license':
+        LICENSE_DEED[status.ccLicense] || LICENSE_DEED['cc-by-sa-4'],
     },
   }));
 

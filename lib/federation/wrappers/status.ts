@@ -82,7 +82,8 @@ export async function createStatus(
     peaks?: number[];
   }>,
   recipientActorIds?: string[],
-  location?: StatusLocation
+  location?: StatusLocation,
+  ccLicense: 'cc-by-4' | 'cc-by-sa-4' = 'cc-by-sa-4'
 ): Promise<CreateStatusResult> {
   // Fetch the actor with profile
   const actor = await db.query.socialActors.findFirst({
@@ -146,6 +147,7 @@ export async function createStatus(
       inReplyToUri: inReplyToUri || null,
       uri: '',
       url: '',
+      ccLicense,
     })
     .returning();
 

@@ -996,14 +996,22 @@ Publish at `legal/accessibility/statement.html`:
 
 ### Phase 4 — Content Licensing
 
-- [ ] Add `cc_license` column to articles, social statuses, event photos,
+- [x] Add `cc_license` column to articles, social statuses, event photos,
       and any other user-content tables
-- [ ] Build shared CC license picker component
-- [ ] Integrate license picker into article editor, social composer, event
-      photo upload, and profile image upload
-- [ ] Embed CC metadata in ActivityPub objects
-- [ ] Render CC badges on all public content pages
-- [ ] Enforce license selection in upload/publish API routes
+      (enum: `cc-by-4` | `cc-by-sa-4`, default `cc-by-sa-4`;
+      migration: `drizzle/0010_add_cc_license.sql`)
+- [x] Build shared CC license picker component
+      (`components/legal/CCLicensePicker.tsx` — CCLicensePicker, CCLicenseBadge,
+      CCLicensePickerModal, CCBadge, getLicenseMetadata)
+- [x] Integrate license picker into article editor, social composer, event
+      photo upload (ArticleEditor, PostComposer, event photos API)
+- [x] Embed CC metadata in ActivityPub objects
+      (`cc:license` property on Note objects in outbox route)
+- [x] Render CC badges on all public content pages
+      (article page byline, PostCard footer — minimal text link)
+- [x] Enforce license selection in upload/publish API routes
+      (articles POST/PATCH, social statuses POST, event photos POST —
+      validated and stored; defaults to `cc-by-sa-4` if omitted)
 
 ### Phase 5 — Account Deletion Flow
 

@@ -229,6 +229,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       'tags',
       'coverImage',
       'inReplyTo',
+      'ccLicense',
     ];
     const updates: Record<string, unknown> = {};
 
@@ -256,6 +257,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     ) {
       return NextResponse.json(
         { success: false, error: 'Invalid article type' },
+        { status: 400 }
+      );
+    }
+
+    // Validate ccLicense
+    if (
+      updates.ccLicense &&
+      !['cc-by-4', 'cc-by-sa-4'].includes(updates.ccLicense as string)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid CC license' },
         { status: 400 }
       );
     }

@@ -68,6 +68,8 @@ export const notificationObjectType = pgEnum('notification_object_type', [
   'venue',
 ]);
 
+export const ccLicense = pgEnum('cc_license', ['cc-by-4', 'cc-by-sa-4']);
+
 export const articleType = pgEnum('article_type', [
   'business_update',
   'community_commentary',
@@ -524,6 +526,7 @@ export const articles = pgTable(
     removalReason: text('removal_reason'),
     readingTime: integer('reading_time').notNull().default(1),
     mastodonPostUrl: text('mastodon_post_url'),
+    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
   },
   (table) => ({
     statusPublishedIdx: index('articles_status_published_idx').on(
@@ -873,6 +876,7 @@ export const socialStatuses = pgTable(
     likesCount: integer('likes_count').notNull().default(0),
     announcesCount: integer('announces_count').notNull().default(0),
     eventId: text('event_id'),
+    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
   },
   (table) => ({
     actorPublishedIdx: index('social_statuses_actor_published_idx').on(
@@ -1254,6 +1258,7 @@ export const eventPhotos = pgTable(
     approved: boolean('approved').notNull().default(false),
     approvedBy: text('approved_by'),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
+    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
   },
   (table) => ({
     eventApprovedIdx: index('event_photos_event_approved_idx').on(

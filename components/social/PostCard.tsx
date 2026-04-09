@@ -17,6 +17,10 @@ import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangle, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import {
+  CCBadge,
+  type CCLicenseValue,
+} from '@/components/legal/CCLicensePicker';
 
 interface PostCardProps {
   status: SocialStatusDisplay;
@@ -154,8 +158,8 @@ export function PostCard({
               </a>
             )}
 
-            {/* Actions */}
-            <div className="mt-3">
+            {/* CC License + Actions */}
+            <div className="mt-3 flex items-center justify-between">
               <PostActions
                 statusId={status.id}
                 actorUsername={status.actor.username}
@@ -165,6 +169,13 @@ export function PostCard({
                 onReply={() => setShowReplyBox(!showReplyBox)}
                 showReplyButton={!isDetail}
               />
+              {status.ccLicense &&
+                getVisibilityFromRecipients(
+                  status.recipientTo,
+                  status.recipientCc
+                ) !== 'private' && (
+                  <CCBadge license={status.ccLicense as CCLicenseValue} />
+                )}
             </div>
 
             {/* Reply composer */}

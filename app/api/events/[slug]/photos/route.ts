@@ -135,12 +135,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { url, caption } = body;
+    const { url, caption, ccLicense } = body;
     if (!url)
       return NextResponse.json(
         { success: false, error: 'url is required' },
         { status: 400 }
       );
+
+    // Validate ccLicense
+    const validLicenses = ['cc-by-4', 'cc-by-sa-4'] as const;
+    const resolvedLicense =
+      ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
 
     const now = new Date();
     const [newPhoto] = await db
@@ -154,6 +159,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         url,
         caption: caption || null,
         approved: false,
+        ccLicense: resolvedLicense,
       })
       .returning();
 

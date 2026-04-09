@@ -52,7 +52,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, articleType, tags, coverImage, inReplyTo } = body;
+    const {
+      title,
+      content,
+      articleType,
+      tags,
+      coverImage,
+      inReplyTo,
+      ccLicense,
+    } = body;
+
+    // Validate ccLicense
+    const validLicenses = ['cc-by-4', 'cc-by-sa-4'] as const;
+    const resolvedLicense =
+      ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
 
     // Validate required fields
     if (!title?.trim()) {
@@ -106,6 +119,7 @@ export async function POST(request: NextRequest) {
         status: 'draft',
         readingTime,
         inReplyTo: inReplyTo || null,
+        ccLicense: resolvedLicense,
       })
       .returning();
 

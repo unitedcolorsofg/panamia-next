@@ -387,6 +387,7 @@ export interface SocialStatusDisplay {
     name?: string;
     precision?: 'precise' | 'general';
   } | null;
+  ccLicense?: 'cc-by-4' | 'cc-by-sa-4' | null;
 }
 
 export interface SocialActorDisplay {
