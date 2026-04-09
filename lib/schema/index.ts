@@ -478,6 +478,8 @@ export const profiles = pgTable(
     // GHL (GoHighLevel CRM)
     ghlContactId: text('ghl_contact_id'),
     ghlOptedOut: boolean('ghl_opted_out').notNull().default(false),
+    // Stripe
+    stripeCustomerId: text('stripe_customer_id'),
   },
   (table) => ({
     emailIdx: index('profiles_email_idx').on(table.email),
@@ -513,7 +515,7 @@ export const articles = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
-    authorId: text('author_id').notNull(),
+    authorId: text('author_id'),
     coAuthors: jsonb('co_authors')
       .notNull()
       .default(sql`'[]'::jsonb`),
@@ -1097,7 +1099,7 @@ export const events = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     coverImage: text('cover_image'),
-    hostProfileId: text('host_profile_id').notNull(),
+    hostProfileId: text('host_profile_id'),
     venueId: text('venue_id').notNull(),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
@@ -1252,7 +1254,7 @@ export const eventPhotos = pgTable(
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
     eventId: text('event_id').notNull(),
-    uploaderProfileId: text('uploader_profile_id').notNull(),
+    uploaderProfileId: text('uploader_profile_id'),
     url: text('url').notNull(),
     caption: text('caption'),
     approved: boolean('approved').notNull().default(false),
@@ -1292,6 +1294,29 @@ export const screennameHistory = pgTable(
     userIdIdx: index('screenname_history_user_id_idx').on(table.userId),
   })
 );
+
+// =============================================================================
+// Deletion Logs
+// =============================================================================
+
+export const deletionLogs = pgTable('deletion_logs', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  userId: text('user_id').notNull(),
+  email: text('email').notNull(),
+  screenname: text('screenname'),
+  attributionChoice: text('attribution_choice').notNull(), // 'keep' | 'anonymize'
+  archivedContentIds: jsonb('archived_content_ids'), // IDs of content preserved post-archive
+  deletedTables: jsonb('deleted_tables'), // map of table name → count of deleted rows
+  thirdPartyResults: jsonb('third_party_results'), // map of service → success boolean
+  ip: text('ip'),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  error: text('error'),
+});
 
 // =============================================================================
 // Relations
@@ -1586,6 +1611,8 @@ export const screennameHistoryRelations = relations(
   })
 );
 
+export const deletionLogsRelations = relations(deletionLogs, () => ({}));
+
 // =============================================================================
 // Inferred Types
 // =============================================================================
@@ -1620,3 +1647,4 @@ export type EventOrganizer = typeof eventOrganizers.$inferSelect;
 export type EventAttendee = typeof eventAttendees.$inferSelect;
 export type EventNote = typeof eventNotes.$inferSelect;
 export type EventPhoto = typeof eventPhotos.$inferSelect;
+export type DeletionLog = typeof deletionLogs.$inferSelect;

@@ -2,14 +2,8 @@
 /**
  * Delete User Script
  *
- * Completely removes a user and their profile from PostgreSQL.
- * This is a destructive operation and cannot be undone.
- *
- * What gets deleted:
- * - User record (cascades to accounts, sessions, follows, list memberships)
- * - Profile record
- * - Verification tokens
- * - Notifications (sent and received)
+ * Completely removes a user and all associated data using the shared
+ * deleteAccount() executor. Admin-initiated deletions default to anonymize.
  *
  * Usage: npx tsx scripts/delete-user.ts <email>
  */
@@ -19,11 +13,12 @@ import postgres from 'postgres';
 import * as schema from '../lib/schema';
 import { eq } from 'drizzle-orm';
 import { config } from 'dotenv';
+import { deleteAccount } from '../lib/server/delete-account';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
-const { users, profiles, notifications, verification } = schema;
+const { users } = schema;
 const USER_EMAIL = process.argv[2];
 
 async function deleteUser() {
@@ -47,79 +42,41 @@ async function deleteUser() {
     // Find user first
     const user = await db.query.users.findFirst({
       where: eq(users.email, USER_EMAIL),
-      with: {
-        accounts: true,
-        sessions: true,
-        profile: true,
-      },
+      columns: { id: true, email: true },
     });
 
     if (!user) {
       console.log('[warning] User not found');
-
-      // Check if there's a profile without a user
-      const orphanProfile = await db.query.profiles.findFirst({
-        where: eq(profiles.email, USER_EMAIL),
-      });
-
-      if (orphanProfile) {
-        await db.delete(profiles).where(eq(profiles.id, orphanProfile.id));
-        console.log(
-          `[ok] profiles: deleted orphan profile (id: ${orphanProfile.id})`
-        );
-      }
-
-      // Delete verification tokens
-      const deletedTokens = await db
-        .delete(verification)
-        .where(eq(verification.identifier, USER_EMAIL))
-        .returning();
-      if (deletedTokens.length > 0) {
-        console.log(
-          `[ok] verification_tokens: deleted ${deletedTokens.length} token(s)`
-        );
-      }
-
-      console.log('\n[ok] Cleanup complete!\n');
+      console.log('\n[ok] No user to delete.\n');
       return;
     }
 
-    // Delete profile first (if exists)
-    if (user.profile) {
-      await db.delete(profiles).where(eq(profiles.id, user.profile.id));
-      console.log(`[ok] profiles: deleted profile (id: ${user.profile.id})`);
+    const result = await deleteAccount(user.id, {
+      attributionChoice: 'anonymize',
+      ip: 'cli-script',
+    });
+
+    if (result.success) {
+      console.log(
+        `\n[ok] User deletion complete! (log: ${result.deletionLogId})`
+      );
+      if (result.warnings.length > 0) {
+        console.log('\nWarnings:');
+        for (const w of result.warnings) {
+          console.log(`  - ${w}`);
+        }
+      }
+      console.log(`\nAll data for ${USER_EMAIL} has been removed.\n`);
+    } else {
+      console.error(`\n[error] Deletion failed: ${result.error}`);
+      if (result.warnings.length > 0) {
+        console.log('\nWarnings:');
+        for (const w of result.warnings) {
+          console.log(`  - ${w}`);
+        }
+      }
+      process.exit(1);
     }
-
-    // Delete notifications (both sent and received)
-    const notificationsSent = await db
-      .delete(notifications)
-      .where(eq(notifications.actor, user.id))
-      .returning();
-    const notificationsReceived = await db
-      .delete(notifications)
-      .where(eq(notifications.target, user.id))
-      .returning();
-    console.log(
-      `[ok] notifications: deleted ${notificationsSent.length + notificationsReceived.length} notification(s)`
-    );
-
-    // Delete user (cascades to accounts, sessions, follows, list memberships)
-    await db.delete(users).where(eq(users.email, USER_EMAIL));
-    console.log(`[ok] users: deleted user (id: ${user.id})`);
-    console.log(`[ok] accounts: deleted ${user.accounts.length} account(s)`);
-    console.log(`[ok] sessions: deleted ${user.sessions.length} session(s)`);
-
-    // Delete verification tokens
-    const deletedTokens = await db
-      .delete(verification)
-      .where(eq(verification.identifier, USER_EMAIL))
-      .returning();
-    console.log(
-      `[ok] verification_tokens: deleted ${deletedTokens.length} token(s)`
-    );
-
-    console.log('\n[ok] User deletion complete!');
-    console.log(`All data for ${USER_EMAIL} has been removed.\n`);
   } catch (error) {
     console.error('Error:', error);
     process.exit(1);

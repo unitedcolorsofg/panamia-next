@@ -78,6 +78,13 @@
       "when": 1775865600000,
       "tag": "0010_add_cc_license",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775952000000,
+      "tag": "0011_account_deletion",
+      "breakpoints": true
     }
   ]
 }

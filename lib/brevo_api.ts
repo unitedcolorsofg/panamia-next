@@ -167,6 +167,33 @@ export default class BrevoApi {
     });
   }
 
+  async deleteContact(email: string): Promise<boolean> {
+    if (!this.ready) return false;
+    const endpoint = `${this.config.base_url}/contacts/${encodeURIComponent(email)}`;
+    try {
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          'api-key': this.config.apiKey,
+        },
+      });
+      if (response.ok || response.status === 404) {
+        console.log(`brevo:deleteContact:${email}:${response.status}`);
+        return true;
+      }
+      console.log(
+        `brevo:deleteContact:${email}:responseNotOk`,
+        response.status,
+        response.statusText
+      );
+      return false;
+    } catch (error) {
+      console.error(`brevo:deleteContact:${email}:error`, error);
+      return false;
+    }
+  }
+
   addContactToList(list_id: string, email: string) {
     const call = this.config.api_schema.ContactLists.add;
     const full_endpoint = `${this.config.base_url}${call.endpoint}`;
