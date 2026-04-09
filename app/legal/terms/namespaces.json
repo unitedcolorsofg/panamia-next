@@ -31,6 +31,7 @@
     "app/api/affiliate",
     "app/api/auth",
     "app/api/consent",
+    "app/account/privacy",
     "app/api/crm",
     "app/api/debug",
     "app/api/geo",

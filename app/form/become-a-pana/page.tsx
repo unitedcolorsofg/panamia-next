@@ -59,6 +59,15 @@ import { useTranslation } from 'react-i18next';
 //    table exists. Record: user_id, document='terms', module='profiles',
 //    version (from legal/terms/policy.json), timestamp, ip.
 //    See docs/TERMS-ROADMAP.md Phase 3 for full spec.
+//
+// 6. DIRECTORY LISTING VISIBILITY
+//    Allow users to opt out of being listed in the public directory. This is
+//    NOT a private profile — the profile still exists and is accessible by
+//    direct URL. "Unlisted" means the profile is excluded from directory
+//    search results and browse pages. Add a toggle/checkbox:
+//      "List my profile in the public directory" (default: checked)
+//    Store as profiles.directoryListed (boolean, default true). The directory
+//    search query (lib/server/directory.ts) should filter on this column.
 
 function BecomeAPanaForm() {
   const { data: session, status } = useSession();

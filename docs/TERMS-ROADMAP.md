@@ -990,8 +990,9 @@ Publish at `legal/accessibility/statement.html`:
       event photos API; activate when `/api/consent/*` routes are implemented)
 - [x] Add social timeline deletion notice to social post composer
       (code comments + `useModuleConsent` wiring in PostComposer; type="notice")
-- [ ] Implement GPC detection middleware
-- [ ] Add privacy settings page (view/withdraw consent, exercise rights)
+- [x] Implement GPC detection in proxy middleware (`proxy.ts`)
+- [x] Add privacy settings page (`/account/privacy` — view consents, GPC
+      status, withdraw module consent, data rights links)
 
 ### Phase 4 — Content Licensing
 

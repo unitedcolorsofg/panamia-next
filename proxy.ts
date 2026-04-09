@@ -32,8 +32,19 @@ export default function proxy(request: NextRequest) {
     }
   }
 
+  // GPC (Global Privacy Control) detection — Phase 3 consent infrastructure
+  // Reads Sec-GPC header and forwards it as x-gpc-detected for downstream
+  // consumption (e.g., /api/consent/record reads this to store on receipts).
+  // See docs/TERMS-ROADMAP.md § Global Privacy Control for behavioral spec.
+  const gpcDetected = request.headers.get('sec-gpc') === '1';
+
   // Set security headers
   const response = NextResponse.next();
+
+  // Forward GPC detection status to server components and API routes
+  if (gpcDetected) {
+    response.headers.set('x-gpc-detected', '1');
+  }
 
   // Prevent clickjacking
   response.headers.set('X-Frame-Options', 'DENY');
