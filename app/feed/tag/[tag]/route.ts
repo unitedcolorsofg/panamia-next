@@ -45,7 +45,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     // Get author info
-    const authorIds = [...new Set(articleList.map((a) => a.authorId))];
+    const authorIds = [...new Set(articleList.map((a) => a.authorId))].filter(
+      (id): id is string => id !== null
+    );
     const authorList =
       authorIds.length > 0
         ? await db
@@ -58,7 +60,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
 
     for (const article of articleList) {
-      const author = authorMap.get(article.authorId);
+      const author =
+        article.authorId !== null ? authorMap.get(article.authorId) : undefined;
       const authorName = author?.screenname
         ? `@${author.screenname}`
         : 'Anonymous';

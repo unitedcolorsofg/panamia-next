@@ -1,11 +1,24 @@
-import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
 import { articles, profiles, users } from '@/lib/schema';
 import { and, eq, isNotNull } from 'drizzle-orm';
 
+type SitemapEntry = {
+  url: string;
+  lastModified?: Date | string;
+  changeFrequency?:
+    | 'always'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'monthly'
+    | 'yearly'
+    | 'never';
+  priority?: number;
+};
+
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL ?? 'https://panamia.club';
 
-const STATIC_ROUTES: MetadataRoute.Sitemap = [
+const STATIC_ROUTES: SitemapEntry[] = [
   { url: SITE_URL, priority: 1.0, changeFrequency: 'weekly' },
   { url: `${SITE_URL}/about-us`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/a`, changeFrequency: 'daily' },
@@ -29,7 +42,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   },
 ];
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default async function sitemap(): Promise<SitemapEntry[]> {
   const [publishedArticles, publicProfiles] = await Promise.all([
     db.query.articles.findMany({
       where: eq(articles.status, 'published'),
@@ -42,14 +55,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .where(and(isNotNull(users.screenname), eq(profiles.active, true))),
   ]);
 
-  const articleRoutes: MetadataRoute.Sitemap = publishedArticles.map((a) => ({
+  const articleRoutes: SitemapEntry[] = publishedArticles.map((a) => ({
     url: `${SITE_URL}/a/${a.slug}`,
     lastModified: a.updatedAt ?? undefined,
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
 
-  const profileRoutes: MetadataRoute.Sitemap = publicProfiles.map((p) => ({
+  const profileRoutes: SitemapEntry[] = publicProfiles.map((p) => ({
     url: `${SITE_URL}/p/${p.screenname}`,
     lastModified: p.updatedAt ?? undefined,
     changeFrequency: 'monthly',

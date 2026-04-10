@@ -82,16 +82,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .returning();
 
     // Notify the author
-    await createNotification({
-      actorId: session.user.id,
-      targetId: articleDoc.authorId,
-      type: 'Undo',
-      objectType: 'article',
-      objectId: articleDoc.id,
-      objectTitle: articleDoc.title,
-      objectUrl: `/a/${articleDoc.slug}`,
-      context: 'article',
-    });
+    if (articleDoc.authorId) {
+      await createNotification({
+        actorId: session.user.id,
+        targetId: articleDoc.authorId,
+        type: 'Undo',
+        objectType: 'article',
+        objectId: articleDoc.id,
+        objectTitle: articleDoc.title,
+        objectUrl: `/a/${articleDoc.slug}`,
+        context: 'article',
+      });
+    }
 
     // Notify co-authors
     const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];

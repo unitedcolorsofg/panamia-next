@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import type { ArticleStatus } from '@/lib/schema';
 
 interface CoAuthor {
   userId: string;
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
         statusValues
           ? and(
               eq(t.authorId, currentUserId),
-              inArray(t.status, statusValues as string[])
+              inArray(t.status, statusValues as ArticleStatus[])
             )
           : eq(t.authorId, currentUserId),
       orderBy: (t, { desc }) => [desc(t.updatedAt)],
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
     // Query all articles to check coAuthors (JSONB filtering)
     const allArticles = await db.query.articles.findMany({
       where: statusValues
-        ? (t, { inArray }) => inArray(t.status, statusValues as string[])
+        ? (t, { inArray }) => inArray(t.status, statusValues as ArticleStatus[])
         : undefined,
       orderBy: (t, { desc }) => [desc(t.updatedAt)],
       columns: {

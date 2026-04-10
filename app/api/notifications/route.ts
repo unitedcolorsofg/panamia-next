@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       unreadOnly,
-      context: context as string,
+      context: (context || undefined) as
+        | import('@/lib/schema').NotificationContext
+        | undefined,
     });
 
     // Add human-readable message to each notification

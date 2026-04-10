@@ -48,12 +48,14 @@ export const saveUserSession = async (
 
 export const unguardUser = (user: Record<string, unknown>) => {
   // only send safe for public fields
+  const profile = user.profile as Record<string, unknown> | undefined;
+  const status = user.status as Record<string, unknown> | undefined;
   return {
     email: user.email,
     screenname: user.screenname,
-    name: user.profile?.name || user.name,
+    name: profile?.name || user.name,
     status: {
-      role: user?.status?.role || user?.role,
+      role: status?.role || user?.role,
     },
     accountType: user.accountType,
   };

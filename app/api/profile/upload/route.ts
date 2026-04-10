@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
   try {
     // Use Web API formData() instead of busboy
     const formData = await request.formData();
-    const uploadedFiles: { fieldname: string; url: string }[] = [];
+    const uploadedFiles: {
+      fieldname: string;
+      filename: string;
+      data: Buffer;
+      ext: string;
+    }[] = [];
 
     const acceptedFields = ['primary', 'gallery1', 'gallery2', 'gallery3'];
 

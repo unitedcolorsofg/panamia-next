@@ -46,10 +46,12 @@ async function getArticle(slug: string) {
   }
 
   // Get author info
-  const authorDoc = await db.query.users.findFirst({
-    where: eq(users.id, articleDoc.authorId),
-    columns: { id: true, screenname: true },
-  });
+  const authorDoc = articleDoc.authorId
+    ? await db.query.users.findFirst({
+        where: eq(users.id, articleDoc.authorId),
+        columns: { id: true, screenname: true },
+      })
+    : null;
   const authorInfo = authorDoc
     ? {
         screenname: authorDoc.screenname,
@@ -112,7 +114,9 @@ async function getArticle(slug: string) {
     limit: 10,
   });
 
-  const replyAuthorIds = replies.map((r) => r.authorId);
+  const replyAuthorIds = replies
+    .map((r) => r.authorId)
+    .filter((id): id is string => id !== null);
   const replyAuthors =
     replyAuthorIds.length > 0
       ? await db
@@ -128,7 +132,7 @@ async function getArticle(slug: string) {
     slug: r.slug,
     title: r.title,
     publishedAt: r.publishedAt,
-    author: replyAuthorMap.get(r.authorId) || null,
+    author: (r.authorId ? replyAuthorMap.get(r.authorId) : null) || null,
   }));
 
   return {
@@ -221,21 +225,16 @@ export default async function ArticlePage({ params }: PageProps) {
               ) : (
                 <span>Former Member</span>
               )}
-              {articleData.coAuthors.map(
-                (
-                  coAuthor: { screenname?: string; name?: string },
-                  index: number
-                ) => (
-                  <span key={index}>
-                    <span>&amp;</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {coAuthor.screenname
-                        ? ` @${coAuthor.screenname}`
-                        : ' Anonymous'}
-                    </span>
+              {articleData.coAuthors.map((coAuthor, index) => (
+                <span key={index}>
+                  <span>&amp;</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {coAuthor.screenname
+                      ? ` @${coAuthor.screenname}`
+                      : ' Anonymous'}
                   </span>
-                )
-              )}
+                </span>
+              ))}
             </div>
 
             {articleData.reviewer && (
@@ -291,29 +290,34 @@ export default async function ArticlePage({ params }: PageProps) {
           <section className="mt-12 border-t pt-8">
             <h2 className="mb-4 text-xl font-semibold">Follow-up Articles</h2>
             <div className="space-y-3">
-              {articleData.replies.map(
-                (reply: { slug: string; title: string; createdAt: string }) => (
-                  <Link
-                    key={reply.slug}
-                    href={`/a/${reply.slug}`}
-                    className="block rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
-                  >
-                    <div className="font-medium">{reply.title}</div>
-                    <div className="mt-1 text-sm text-gray-500">
-                      by{' '}
-                      {reply.author?.screenname
-                        ? `@${reply.author.screenname}`
-                        : 'Anonymous'}
-                      {' · '}
-                      {new Date(reply.publishedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </div>
-                  </Link>
-                )
-              )}
+              {articleData.replies.map((reply) => (
+                <Link
+                  key={reply.slug}
+                  href={`/a/${reply.slug}`}
+                  className="block rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
+                >
+                  <div className="font-medium">{reply.title}</div>
+                  <div className="mt-1 text-sm text-gray-500">
+                    by{' '}
+                    {reply.author?.screenname
+                      ? `@${reply.author.screenname}`
+                      : 'Anonymous'}
+                    {reply.publishedAt && (
+                      <>
+                        {' · '}
+                        {new Date(reply.publishedAt).toLocaleDateString(
+                          'en-US',
+                          {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          }
+                        )}
+                      </>
+                    )}
+                  </div>
+                </Link>
+              ))}
             </div>
           </section>
         )}
@@ -322,10 +326,12 @@ export default async function ArticlePage({ params }: PageProps) {
         <MastodonComments slug={articleData.slug} />
 
         {/* Author Settings (only visible to author) */}
-        <ArticleMastodonSettings
-          slug={articleData.slug}
-          authorId={articleData.authorId}
-        />
+        {articleData.authorId && (
+          <ArticleMastodonSettings
+            slug={articleData.slug}
+            authorId={articleData.authorId}
+          />
+        )}
       </article>
     </main>
   );

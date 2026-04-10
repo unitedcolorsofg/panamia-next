@@ -94,7 +94,9 @@ export function DirectorySearchContent() {
     return 0;
   };
 
-  const totalResults = searchData?.[0]?.meta?.count?.total || 0;
+  const totalResults =
+    (searchData?.[0]?.meta as { count?: { total?: number } } | undefined)?.count
+      ?.total || 0;
   const totalPages = totalResults
     ? Math.ceil(totalResults / params.pageLimit)
     : 1;

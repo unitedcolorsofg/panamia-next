@@ -1,7 +1,39 @@
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
+import {
+  ProfileDescriptions,
+  ProfileMentoring,
+  ProfileSocialsInterface,
+} from '@/lib/interfaces';
+
+export interface LegacyProfile {
+  name: string;
+  details: string | undefined;
+  five_words: string | undefined;
+  background: string | undefined;
+  tags: string | undefined;
+  phone_number: unknown;
+  primary_address: {
+    name: string | undefined;
+    street1: string | undefined;
+    street2: string | undefined;
+    city: string | undefined;
+    state: string | undefined;
+    zipcode: string | undefined;
+    country: string | undefined;
+  };
+  images: {
+    primaryCDN: string | undefined;
+    gallery1CDN: string | undefined;
+    gallery2CDN: string | undefined;
+    gallery3CDN: string | undefined;
+  };
+  geo: { type: string; coordinates: number[] } | null;
+  mentoring: ProfileMentoring | null;
+  socials: ProfileSocialsInterface | null;
+  [key: string]: unknown;
+}
 
 /**
  * Get profile by email address
@@ -21,12 +53,14 @@ function transformToLegacyFormat(
     descriptions?: unknown;
     mentoring?: unknown;
   }
-) {
+): LegacyProfile {
   const descriptions = profile.descriptions as ProfileDescriptions | null;
   const mentoring = profile.mentoring as ProfileMentoring | null;
 
   return {
     ...profile,
+    // Explicit typed fields (cast from Record<string, unknown>)
+    name: profile.name as string,
     // Legacy field mappings
     details: descriptions?.details,
     five_words: descriptions?.fiveWords,
@@ -35,20 +69,20 @@ function transformToLegacyFormat(
     phone_number: profile.phoneNumber,
     // Legacy address format
     primary_address: {
-      name: profile.addressName,
-      street1: profile.addressLine1,
-      street2: profile.addressLine2,
-      city: profile.addressLocality,
-      state: profile.addressRegion,
-      zipcode: profile.addressPostalCode,
-      country: profile.addressCountry,
+      name: profile.addressName as string | undefined,
+      street1: profile.addressLine1 as string | undefined,
+      street2: profile.addressLine2 as string | undefined,
+      city: profile.addressLocality as string | undefined,
+      state: profile.addressRegion as string | undefined,
+      zipcode: profile.addressPostalCode as string | undefined,
+      country: profile.addressCountry as string | undefined,
     },
     // Legacy image format
     images: {
-      primaryCDN: profile.primaryImageCdn,
-      gallery1CDN: profile.gallery1Cdn,
-      gallery2CDN: profile.gallery2Cdn,
-      gallery3CDN: profile.gallery3Cdn,
+      primaryCDN: profile.primaryImageCdn as string | undefined,
+      gallery1CDN: profile.gallery1Cdn as string | undefined,
+      gallery2CDN: profile.gallery2Cdn as string | undefined,
+      gallery3CDN: profile.gallery3Cdn as string | undefined,
     },
     // Legacy geo format (combine lat/lng into GeoJSON-like structure)
     geo:
@@ -61,7 +95,7 @@ function transformToLegacyFormat(
     // Mentoring stays as-is (JSONB)
     mentoring: mentoring,
     // Socials stays as-is (JSONB)
-    socials: profile.socials,
+    socials: profile.socials as ProfileSocialsInterface | null,
   };
 }
 

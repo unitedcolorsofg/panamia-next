@@ -61,7 +61,13 @@ export async function GET(request: NextRequest) {
     const total = Number(countResult[0].count);
 
     // Enrich with author info
-    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorIds = [
+      ...new Set(
+        articleRows
+          .map((a) => a.authorId)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
     const authorRows =
       authorIds.length > 0
         ? await db.query.users.findMany({
@@ -85,7 +91,9 @@ export async function GET(request: NextRequest) {
         coverImage: a.coverImage,
         readingTime: a.readingTime,
         publishedAt: a.publishedAt,
-        author: authorMap.get(a.authorId) || { screenname: null },
+        author: (a.authorId ? authorMap.get(a.authorId) : undefined) || {
+          screenname: null,
+        },
         coAuthorCount:
           coAuthors?.filter((ca) => ca.status === 'accepted').length || 0,
       };

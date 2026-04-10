@@ -83,7 +83,13 @@ export async function GET(request: NextRequest) {
     const total = Number(countResult[0]?.count ?? 0);
 
     // Get author info for all articles
-    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorIds = [
+      ...new Set(
+        articleRows
+          .map((a) => a.authorId)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
     const authorRows =
       authorIds.length > 0
         ? await db
@@ -123,7 +129,9 @@ export async function GET(request: NextRequest) {
         title: a.title,
         status: a.status,
         articleType: a.articleType,
-        author: authorMap.get(a.authorId) || { screenname: null },
+        author: (a.authorId ? authorMap.get(a.authorId) : undefined) || {
+          screenname: null,
+        },
         coAuthorsCount: coAuthors.filter((ca) => ca.status === 'accepted')
           .length,
         publishedAt: a.publishedAt,

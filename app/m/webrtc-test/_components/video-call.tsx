@@ -1170,7 +1170,7 @@ export function VideoCall() {
             <p className="text-muted-foreground mt-1 text-sm">
               You ({userName})
             </p>
-            {state !== 'idle' && state !== 'draining' && (
+            {state !== 'draining' && (
               <div className="absolute inset-x-0 bottom-8 flex justify-center gap-1.5 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                 <Button
                   variant="secondary"

@@ -164,20 +164,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .where(eq(articles.id, articleDoc.id));
 
     // Notify the author
-    await createNotification({
-      type: action === 'approve' ? 'Accept' : 'Update',
-      actorId: session.user.id,
-      targetId: articleDoc.authorId,
-      context: 'review',
-      objectId: articleDoc.id,
-      objectType: 'article',
-      objectTitle: articleDoc.title,
-      objectUrl: `/a/${articleDoc.slug}/edit`,
-      message:
-        action === 'approve'
-          ? 'Your article has been approved and is ready to publish!'
-          : comment || 'Revisions have been requested',
-    });
+    if (articleDoc.authorId) {
+      await createNotification({
+        type: action === 'approve' ? 'Accept' : 'Update',
+        actorId: session.user.id,
+        targetId: articleDoc.authorId,
+        context: 'review',
+        objectId: articleDoc.id,
+        objectType: 'article',
+        objectTitle: articleDoc.title,
+        objectUrl: `/a/${articleDoc.slug}/edit`,
+        message:
+          action === 'approve'
+            ? 'Your article has been approved and is ready to publish!'
+            : comment || 'Revisions have been requested',
+      });
+    }
 
     // Also notify co-authors
     const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];

@@ -57,8 +57,8 @@ export const forceString = (
   return value.toString();
 };
 
-export const randomFromItem = (item: unknown[]) => {
-  return item[Math.floor(Math.random() * item.length)];
+export const randomFromItem = (item: unknown[] | string) => {
+  return (item as unknown[])[Math.floor(Math.random() * item.length)];
 };
 
 export const generateAffiliateCode = () => {
@@ -127,7 +127,9 @@ export const displayPronouns = (pronouns: PronounsInterface | undefined) => {
 };
 
 export const buildSearchData = function (...args: unknown[]) {
-  return args.reduce((accu: string, current) => `${accu} | ${current}`);
+  return args.reduce(
+    (accu, current) => `${accu as string} | ${current as string}`
+  );
 };
 
 export const debounce = (func: (...args: unknown[]) => unknown, wait = 500) => {

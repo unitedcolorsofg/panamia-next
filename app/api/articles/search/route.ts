@@ -48,7 +48,13 @@ export async function GET(request: NextRequest) {
     });
 
     // Get author info
-    const authorIds = [...new Set(articleRows.map((a) => a.authorId))];
+    const authorIds = [
+      ...new Set(
+        articleRows
+          .map((a) => a.authorId)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
     const authorRows =
       authorIds.length > 0
         ? await db.query.users.findMany({
@@ -66,7 +72,9 @@ export async function GET(request: NextRequest) {
       title: a.title,
       excerpt: a.excerpt,
       publishedAt: a.publishedAt,
-      author: authorMap.get(a.authorId) || { screenname: null },
+      author: (a.authorId ? authorMap.get(a.authorId) : undefined) || {
+        screenname: null,
+      },
     }));
 
     return NextResponse.json({

@@ -30,7 +30,9 @@ export async function generateMetadata({
     openGraph: {
       title: profile.name,
       description: profile.details || profile.five_words,
-      images: profile.images?.primaryCDN ? [profile.images.primaryCDN] : [],
+      images: profile.images?.primaryCDN
+        ? [profile.images.primaryCDN]
+        : undefined,
     },
   };
 }
@@ -72,7 +74,14 @@ export default async function ProfilePage({ params }: PageProps) {
     <main className="container mx-auto max-w-3xl px-4 py-8">
       <div className="space-y-4">
         {/* Profile Header */}
-        <ProfileHeader profile={profile} />
+        <ProfileHeader
+          profile={{
+            ...profile,
+            name: profile.name ?? '',
+            five_words: profile.five_words ?? '',
+            details: profile.details ?? '',
+          }}
+        />
 
         {/* Mentoring Section - Show before other content for mentors */}
         {isMentor && profile.mentoring && (
@@ -80,13 +89,17 @@ export default async function ProfilePage({ params }: PageProps) {
         )}
 
         {/* Socials and Links */}
-        {hasSocials && <ProfileSocials socials={profile.socials} />}
+        {hasSocials && <ProfileSocials socials={profile.socials!} />}
 
         {/* Location */}
         {hasAddress && (
           <ProfileLocation
             address={profile.primary_address}
-            geo={profile.geo}
+            geo={
+              profile.geo
+                ? { coordinates: profile.geo.coordinates as [number, number] }
+                : undefined
+            }
           />
         )}
 
@@ -94,7 +107,7 @@ export default async function ProfilePage({ params }: PageProps) {
         {hasGallery && <ProfileGallery images={profile.images!} />}
 
         {/* Tags */}
-        {profile.tags && <ProfileTags tags={profile.tags} />}
+        {profile.tags && <ProfileTags tags={profile.tags!} />}
 
         {/* Social Activity */}
         <SocialSection handle={user} />

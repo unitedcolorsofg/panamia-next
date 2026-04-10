@@ -1,4 +1,4 @@
-import { betterAuth } from 'better-auth';
+import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink, genericOAuth } from 'better-auth/plugins';
 import { headers } from 'next/headers';
@@ -556,7 +556,7 @@ let _betterAuthInstance: BetterAuthInstance | null = null;
 function getBetterAuth(): BetterAuthInstance {
   if (_betterAuthInstance) return _betterAuthInstance;
 
-  _betterAuthInstance = betterAuth({
+  _betterAuthInstance = betterAuth<BetterAuthOptions>({
     database: drizzleAdapter(db, {
       provider: 'pg',
       // Singular keys required: usePlural:false means the adapter looks up models by singular

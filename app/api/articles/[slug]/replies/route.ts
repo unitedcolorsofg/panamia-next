@@ -51,11 +51,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     // Enrich with author info
-    const authorIds = [...new Set(replies.map((a) => a.authorId))];
-    const authors = await db
-      .select({ id: users.id, screenname: users.screenname })
-      .from(users)
-      .where(inArray(users.id, authorIds));
+    const authorIds = [
+      ...new Set(
+        replies.map((a) => a.authorId).filter((id): id is string => id !== null)
+      ),
+    ];
+    const authors =
+      authorIds.length > 0
+        ? await db
+            .select({ id: users.id, screenname: users.screenname })
+            .from(users)
+            .where(inArray(users.id, authorIds))
+        : [];
     const authorMap = new Map(
       authors.map((a) => [a.id, { screenname: a.screenname }])
     );
@@ -66,7 +73,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       title: a.title,
       excerpt: a.excerpt,
       publishedAt: a.publishedAt,
-      author: authorMap.get(a.authorId) || { screenname: null },
+      author: (a.authorId ? authorMap.get(a.authorId) : undefined) || {
+        screenname: null,
+      },
     }));
 
     return NextResponse.json({

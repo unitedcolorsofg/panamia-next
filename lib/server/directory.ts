@@ -144,7 +144,7 @@ export const getSearch = async ({
  */
 function transformProfile(
   p: Record<string, unknown> & {
-    user?: { screenname?: string | null };
+    user?: { screenname?: string | null } | null;
     descriptions?: unknown;
     mentoring?: unknown;
   }

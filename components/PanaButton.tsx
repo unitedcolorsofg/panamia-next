@@ -22,9 +22,11 @@ interface CustomCSSProperties extends React.CSSProperties {
 }
 
 export default function PanaButton(props: PanaButtonProps) {
-  function handleClick(e: React.MouseEvent) {
+  function handleClick(
+    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
+  ) {
     if (props.onClick) {
-      props.onClick(e);
+      props.onClick(e as React.MouseEvent<HTMLButtonElement>);
     }
   }
 
@@ -61,7 +63,7 @@ export default function PanaButton(props: PanaButtonProps) {
         href={props.href}
         className={button_class}
         style={buttonColors}
-        onClick={(e: React.MouseEvent) => handleClick(e)}
+        onClick={(e: React.MouseEvent<HTMLAnchorElement>) => handleClick(e)}
       >
         {props.text}
         {props.children}

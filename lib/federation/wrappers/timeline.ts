@@ -33,7 +33,10 @@ function notExpired() {
  * PostgreSQL: column @> to_jsonb(value::text)
  */
 
-function jsonbArrayContains(column: SQL<unknown>, value: string) {
+function jsonbArrayContains(
+  column: SQL<unknown> | { getSQL(): SQL<unknown> },
+  value: string
+) {
   return sql`${column} @> to_jsonb(${value}::text)`;
 }
 

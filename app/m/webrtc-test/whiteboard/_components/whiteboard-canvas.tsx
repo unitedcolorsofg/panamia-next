@@ -255,9 +255,9 @@ export function WhiteboardCanvas({
     let startY = 0;
     let shape: Rect | Circle | Line | null = null;
 
-    const onMouseDown = (opt: { e: MouseEvent }) => {
+    const onMouseDown = (opt: { e: MouseEvent | TouchEvent }) => {
       isDrawing = true;
-      const pointer = fc.getScenePoint(opt.e);
+      const pointer = fc.getScenePoint(opt.e as MouseEvent);
       startX = pointer.x;
       startY = pointer.y;
 
@@ -289,9 +289,9 @@ export function WhiteboardCanvas({
       if (shape) fc.add(shape);
     };
 
-    const onMouseMove = (opt: { e: MouseEvent }) => {
+    const onMouseMove = (opt: { e: MouseEvent | TouchEvent }) => {
       if (!shape || !isDrawing) return;
-      const pointer = fc.getScenePoint(opt.e);
+      const pointer = fc.getScenePoint(opt.e as MouseEvent);
       if (tool === 'rect' && shape instanceof Rect) {
         const w = pointer.x - startX;
         const h = pointer.y - startY;
