@@ -115,7 +115,7 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "react-server-dom-webpack": "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vinext": "0.0.39",
     "vite": "^7.3.2",
     "wrangler": "^4.80.0"
