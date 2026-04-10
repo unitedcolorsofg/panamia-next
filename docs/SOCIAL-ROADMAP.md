@@ -478,7 +478,7 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - `lib/federation/wrappers/timeline.ts` — `notExpiredFilter` on all timeline queries
 - `app/updates/page.tsx` — Relocated from `/account/notifications/`
 
-**TODO**: Implement hard delete via Vercel Pro cron to clean up blob storage for expired messages.
+**TODO**: Hard delete of expired DMs and their R2 attachments — tracked in Phase 11 (moved there when the project migrated off Vercel onto Cloudflare Workers).
 
 ### Phase 5: Article Announcements
 
@@ -513,6 +513,26 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - [ ] Deliver Like activities
 - [ ] Deliver Undo activities (unfollow, unlike)
 
+**Delivery Architecture — `FederationDelivery` Durable Object** (deferred)
+
+The unchecked items above are blocked on having a viable delivery mechanism. Inline delivery from the request handler isn't viable: a popular post can hit 100+ followers across many hosts, which blows the CF Workers request budget, and there's no retry story if a remote server is flaky or slow. `createStatus()` in `lib/federation/wrappers/status.ts` already persists `recipientTo` / `recipientCc` correctly — only the fan-out step is missing.
+
+**Plan**: Introduce a `FederationDelivery` Durable Object keyed by remote host (e.g. `mastodon.social`). After the status row commits, enqueue one job per unique destination host containing the activity and the target inbox URLs. The DO owns:
+
+- Persistent queue in DO storage (survives request termination)
+- Alarm-based exponential backoff retries
+- Per-host request coalescing and rate limiting
+- Dead-letter handling for persistently failing destinations
+
+**Why DO over CF Queues**: Queues is the simpler answer for plain at-least-once delivery, but loses per-host state. For ActivityPub specifically, per-host state matters — it gives us per-destination ordering (helps with Create→Delete races), request coalescing (batching multiple activities going to the same host), connection reuse, and being a good citizen to remote instances. DOs edge out Queues on this axis.
+
+**Knock-on cleanups once the DO exists**:
+
+- `handleFollow()` in `lib/federation/inbox-handler.ts` currently fires Accept activities with `.catch(console.error)` and no retry. Replace with an enqueue call to the delivery DO.
+- The `pending` follow status in `lib/federation/wrappers/follow.ts` becomes meaningful — a Follow sent via the DO stays `pending` until the remote Accept arrives at our inbox and transitions it to `accepted`.
+
+Search the codebase for `DEFERRED (Phase 7)` for the concrete hook points.
+
 **Visibility & Federation**:
 
 - **Public**: Federated via outbox and delivered to followers' inboxes
@@ -536,6 +556,12 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - [ ] Process Create activities (remote posts/replies)
 - [ ] Process Like activities
 - [ ] Process Delete activities
+- [ ] Activity deduplication (`processed_activities` table keyed by `activity.id`)
+- [ ] HTTP Signature replay protection (Date window + seen-digest cache)
+
+**Deduplication**: Follow/Undo Follow today are implicitly deduped by the `social_follows` UNIQUE constraint. Once Create/Like/Delete processing lands, that implicit protection goes away — the same Create activity replayed twice would insert two status rows. Add an explicit `processed_activities` table keyed by `activity.id` with a short TTL sweep, and check it before dispatching in `handleInboxPost()`.
+
+**Replay protection**: `handleInboxPost()` verifies HTTP Signatures but does not check the `Date` header window or track seen `(keyId, digest)` tuples, so a captured signed request can be replayed. A small cache — either a Postgres table with TTL sweep or a single Durable Object keyed by day-bucket — would close this. Reject requests with a Date outside ±5 minutes, and reject digests already seen inside the window. Low priority; see the `DEFERRED` note in `lib/federation/inbox-handler.ts`.
 
 ### Phase 9: Remote Follows & Discovery
 
@@ -557,6 +583,35 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - [ ] Content warnings support
 - [ ] Rate limiting on federation endpoints
 - [ ] Admin dashboard for moderation
+
+### Phase 11: Realtime Timeline & Infrastructure Polish
+
+**Goal**: Restore live-updating timelines and tighten background infrastructure
+
+This phase captures work that was deferred when Pusher was removed and when the app migrated to Cloudflare Workers. None of it blocks user-facing features, but all of it improves the responsiveness and robustness of the social layer.
+
+**Realtime timeline updates** (Pusher replacement)
+
+When Pusher was removed, the "new post appears live in followers' feeds" UX regressed — `/s` currently relies on manual refresh. The plan is to reuse the WebSocket + Durable Object hibernation pattern already implemented in `worker/signaling-room.ts` for WebRTC signaling.
+
+- [ ] Introduce a `TimelineFeed` Durable Object that holds the set of connected WebSocket clients for a given channel
+- [ ] Shard the public timeline across a small fixed set of DOs; use one DO per user for the home timeline
+- [ ] After `createStatus()` commits, publish the new status to the relevant DO(s)
+- [ ] Client: subscribe via WebSocket on `/s` page mount, merge incoming statuses into the React Query cache
+
+**Important**: This is a push channel layered on top of the existing read path. It is **not** a move to fan-out-on-write. `getHomeTimeline()` in `lib/federation/wrappers/timeline.ts` stays as a Postgres query — a per-user timeline DO would still cold-start from storage and hit the DB on hibernation wake, so materializing reads buys nothing while adding a stateful component. See the `DESIGN NOTE` on `getHomeTimeline()` for the reasoning.
+
+**Proactive remote actor refresh** (minor)
+
+- [ ] Background refresh of known remote actors via a DO with alarms
+
+Today `ensureRemoteActor()` in `lib/federation/wrappers/remote-actor.ts` refreshes lazily on a 3-day TTL — an actor is only re-fetched when someone happens to reference them. A DO with alarms could proactively refresh actors we've delivered to in the last week, keeping public keys and inbox URLs fresher and avoiding latency spikes on the first interaction after TTL expiry. Low priority; the lazy path is correct, just not ideal.
+
+**Expired DM hard delete** (holdover from Phase 4C)
+
+- [ ] Hard delete for `expiresAt`-past statuses and their R2 attachments
+
+Phase 4C originally planned a Vercel Pro cron for this, but the project is now on Cloudflare Workers. Options: a Cloudflare Cron Trigger on a dedicated worker, or an alarm on a housekeeping DO that sweeps expired rows and deletes the R2 objects. Query-side filtering already hides expired DMs (`notExpired()` in `timeline.ts`), so this is purely storage hygiene.
 
 ## Directory Structure
 

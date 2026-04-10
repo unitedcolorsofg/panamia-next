@@ -222,6 +222,48 @@ export async function createStatus(
     .where(eq(socialStatuses.id, status.id))
     .returning();
 
+  // DEFERRED (Phase 7): Outbound federation delivery.
+  //
+  // recipientTo / recipientCc are persisted above but never fan-ed out to
+  // remote inboxes. We don't do it inline because a single popular post can
+  // hit 100+ followers across many hosts, which blows the CF Workers request
+  // budget and has no retry story if a remote server is flaky.
+  //
+  // Plan: introduce a `FederationDelivery` Durable Object keyed by remote
+  // host (e.g. `mastodon.social`). After this update commits, enqueue one
+  // job per unique destination host containing the activity + target inbox
+  // URLs. The DO owns:
+  //   - persistent queue in DO storage (survives request termination)
+  //   - alarm-based exponential backoff retries
+  //   - per-host request coalescing + rate limiting
+  //   - dead-letter handling
+  //
+  // CF Queues is a simpler alternative but loses per-host state
+  // (ordering, coalescing, connection reuse), which matters for ActivityPub
+  // Create→Delete races and for being a good citizen to remote instances.
+  //
+  // The same DO should also be used from inbox-handler.ts for sending
+  // Accept activities (currently fire-and-forget with only console.error
+  // on failure — see inbox-handler.ts:~154).
+
+  // DEFERRED: Realtime timeline broadcast.
+  //
+  // When Pusher was removed, the "new post appears live in followers' feeds"
+  // UX regressed. There is no replacement yet; /s relies on manual refresh.
+  //
+  // Plan: reuse the WebSocket + Durable Object hibernation pattern already
+  // implemented in worker/signaling-room.ts for WebRTC signaling. A
+  // `TimelineFeed` DO per public-timeline-shard (and optionally per-user for
+  // the home timeline) holds the set of connected WebSocket clients; after
+  // this DB commit, publish the new status to the relevant DO(s) and they
+  // push it down to subscribers. React Query on the client merges it into
+  // the existing timeline cache.
+  //
+  // Note: fan-out on READ (see getHomeTimeline in ./timeline.ts) is the
+  // correct design and should be kept — a DO-backed materialized timeline
+  // is NOT the goal here. This is purely a live push channel on top of the
+  // existing read path.
+
   // Create attachment records if provided
   if (attachments && attachments.length > 0) {
     await db.insert(socialAttachments).values(

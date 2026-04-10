@@ -85,6 +85,19 @@ export async function handleInboxPost(
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
+  // DEFERRED: HTTP Signature replay protection.
+  //
+  // We verify the signature but do not check the Date header window or
+  // track seen (keyId, date, digest) tuples, so an attacker who captures a
+  // signed request can replay it. Today the database UNIQUE constraints
+  // (e.g. on social_follows) prevent most observable harm, but that's
+  // implicit, not defensive.
+  //
+  // Plan: a small replay-cache — either a Postgres table with a TTL sweep
+  // or a single Durable Object keyed by day-bucket holding recently seen
+  // digests. Reject requests with a Date outside ±5 minutes, and reject
+  // digests already seen inside the window. Low priority.
+
   // Dispatch by activity type
   switch (activity.type) {
     case 'Follow':
@@ -151,6 +164,15 @@ async function handleFollow(
   }
 
   // Send Accept back (fire-and-forget)
+  //
+  // DEFERRED (Phase 7): This should go through the `FederationDelivery`
+  // Durable Object described in lib/federation/wrappers/status.ts (search
+  // for "DEFERRED (Phase 7): Outbound federation delivery"). Today a
+  // transient fetch failure is silently swallowed to the console, which
+  // leaves the remote server thinking the follow is still pending. Once
+  // the delivery DO exists, replace this with an enqueue call so the
+  // Accept gets retried with backoff and dead-lettered on persistent
+  // failure.
   sendAccept(targetActor, remoteActor, activity).catch((err) => {
     console.error('[handleFollow] Failed to send Accept:', err);
   });

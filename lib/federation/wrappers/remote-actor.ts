@@ -107,6 +107,14 @@ export async function ensureRemoteActor(
   }
 
   // Update remote actor if stale (older than 3 days)
+  //
+  // DEFERRED (minor): This is a lazy refresh — an actor is only re-fetched
+  // when someone happens to reference them. A Durable Object with alarms
+  // could proactively refresh known actors in the background (e.g. re-fetch
+  // any actor that we've delivered to in the last week), which would keep
+  // public keys and inbox URLs fresher and avoid latency spikes on the
+  // first interaction after the TTL expires. Low priority — the lazy path
+  // is correct, just not ideal.
   const currentTime = Date.now();
   const updatedAt = existingActor.updatedAt.getTime();
   if (currentTime - updatedAt > 3 * 86_400_000) {

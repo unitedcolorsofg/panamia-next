@@ -52,6 +52,20 @@ export type TimelineResult = {
 
 /**
  * Get home timeline for an actor.
+ *
+ * DESIGN NOTE: This is a deliberate fan-out-on-READ implementation. We do
+ * NOT maintain per-user `timeline_entries` rows that get written on every
+ * post creation. That would mean 100+ INSERTs per post in a serverless
+ * request handler, synchronous deletes on every unpost, and a write
+ * amplification problem that PG + Hyperdrive is not the right tool for.
+ *
+ * If you're reading this and thinking "we should move to fan-out on write
+ * now that we have Durable Objects" — don't. A per-user timeline DO would
+ * still cold-start from storage and hit the DB on hibernation wake, so it
+ * buys nothing over the query below while adding a stateful component.
+ * Durable Objects are the right tool for outbound delivery fan-out and for
+ * realtime push (see the DEFERRED comments in ./status.ts), NOT for
+ * materializing the read path.
  */
 export async function getHomeTimeline(
   actorId: string,
