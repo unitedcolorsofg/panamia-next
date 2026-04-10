@@ -1,54 +1,53 @@
 .logoWrapDiv {
-    display: inline-flex;
+  display: inline-flex;
 }
 
-.logoContainer{
-    display: inline-flex;
-    height: 3rem;
-    width: 3rem;
-    transition: width 0.3s ease-in-out;
-    margin: auto;
-    border-radius: 50%;
-    text-align: center;
-    cursor: pointer;
+.logoContainer {
+  display: inline-flex;
+  height: 3rem;
+  width: 3rem;
+  transition: width 0.3s ease-in-out;
+  margin: auto;
+  border-radius: 50%;
+  text-align: center;
+  cursor: pointer;
 }
 
-.small{
-    height: calc(3rem * 0.70);
-    width: calc(3rem * 0.70);
-    margin: 0.5em 0;
+.small {
+  height: calc(3rem * 0.7);
+  width: calc(3rem * 0.7);
+  margin: 0.5em 0;
 }
 
-.medium{
-    height: calc(3rem * 1.25);
-    width: calc(3rem * 1.25);
+.medium {
+  height: calc(3rem * 1.25);
+  width: calc(3rem * 1.25);
 }
-.large{
-    height: calc(3rem * 3);
-    width: calc(3rem * 3);
-}
-
-.borderedPink{
-    background-color: #FC2070;
-    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-}
-.borderedPink .logo{
-    transform: scale(0.8);
-}
-.borderedBlue{
-    background-color: #228be6;
-    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-}
-.borderedBlue .logo{
-    transform: scale(0.8);
+.large {
+  height: calc(3rem * 3);
+  width: calc(3rem * 3);
 }
 
-
-.logo{
-    display: inline-block;
-    width:100%;
+.borderedPink {
+  background-color: #fc2070;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+.borderedPink .logo {
+  transform: scale(0.8);
+}
+.borderedBlue {
+  background-color: #228be6;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+.borderedBlue .logo {
+  transform: scale(0.8);
 }
 
-.logoLink{
-    cursor: pointer;
+.logo {
+  display: inline-block;
+  width: 100%;
+}
+
+.logoLink {
+  cursor: pointer;
 }

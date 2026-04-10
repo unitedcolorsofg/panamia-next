@@ -1,270 +1,278 @@
-.app{
-    min-height: 70vh;
+.app {
+  min-height: 70vh;
 }
 
-.main{
-    max-width: 45rem;
-    margin: auto;
-    padding: 1rem;
-    margin-bottom:10vh;
+.main {
+  max-width: 45rem;
+  margin: auto;
+  padding: 1rem;
+  margin-bottom: 10vh;
 }
 @media screen and (max-width: 600px) {
-    .main{
-        padding: 0.25rem;
-    }
-}
-
-.accountTitle{
-    text-align: center;
-    padding: 3rem 0 1rem;
-}
-@media screen and (max-width: 600px) {
-    .accountTitle{
-        padding: 1rem 0;
-    }
-}
-.accountProfileBar{
-    display: flex;
-    border: 1px solid var(--color-pana-pink);
-}
-.profileBarHighlight{
-    padding: 0.5rem 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: white;
-    background: linear-gradient(60deg, var(--color-pana-blue) 0%, var(--color-pana-pink) 45%, var(--color-pana-yellow) 100%);
-}
-.profileBarName{
-    padding: 0.5rem 1rem;
-}
-.profileBarEdit{
-    padding: 0.5rem 1rem;
-    margin-left: auto;
-}
-.profileBarStatus{
-    display: block;
-    text-align: right;
-    color: #777;
-    padding: 0.25rem 0;
-    margin-bottom: 1rem;
-}
-
-
-.affiliateBar{
-    display: flex;
-    border: 1px solid var(--color-pana-orange);
-}
-.affiliateBarHighlight{
-    padding: 0.5rem 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: white;
-    background: linear-gradient(60deg, var(--color-pana-yellow) 0%, var(--color-pana-orange) 45%, var(--color-pana-yellow) 100%);
-}
-.affiliateBarDetails{
-    display: flex;
-    width: 100%;
-    padding: 0.5rem 1rem;
-}
-.affiliateBarCode{
-}
-.affiliateBarLink{
-    margin-left: auto;
-}
-.affiliateBarPoints{
-    margin-left: auto;
-}
-.affiliateBarStatus{
-    display: block;
-    text-align: right;
-    color: #777;
-    padding: 0.25rem 0;
-    margin-bottom: 1rem;
-}
-
-.accountFormActions{
-    display: flex;
-    justify-content: space-between;
-    padding: 1rem 0;
-}
-.accountList li{
-    padding: 0.25rem 0.5rem;
-}
-.accountForm a{
-    color: var(--color-pana-pink);
-}
-.accountFields{
-    margin-bottom: 1rem;
-}
-.accountFields label{
-    display: inline-block;
-    font-weight:700;
-    padding: 0.5rem 0;
-}
-.accountFields input{
-    width:100%;
-    padding: 0.5rem;
-}
-.accountFields input[type='checkbox']{
-    width:auto;
-    padding: 0.5rem;
-    transform: scale(1.5);
-}
-.accountFields textarea{
-    width: 100%;
-    padding: 0.5rem;
-}
-.accountFields input[type="file"]{
-    background-color: #EEE;
-    
-}
-.accountFields input[type="file"]::file-selector-button{
-    background-color: #444;
-    color: white;
-    padding: 0.5rem;
-    border-radius: 1rem;
-    margin-right: 1rem;
-}
-@media screen and (max-width: 600px) {
-    .accountFields input[type="file"]{
-        font-size: .8rem;
-    }
-}
-
-.accountFields ul{
-    margin: 0;
-    padding-left: 0;
-    list-style: none;
-}
-
-.accountFields small{
-    color: #777;
-}
-.accountImageBox{
-    text-align: center;
-    padding: 0.5rem;
-}
-.profileFieldset{
-    padding: 1rem;
-    margin-bottom: 2rem;
-    overflow: hidden;
-}
-.profileFieldset a{
-    color: var(--color-pana-pink);
-}
-.profileFieldset legend{
-    font-weight: 700;
-    font-size: 1.25rem;
-    padding: 0 1rem;
-}
-@media screen and (max-width: 600px) {
-    .profileFieldset legend{
-        font-size: 1rem;
-        padding: 0 0.5rem;
-    }
-}
-.profileEditLink{
-    float: right;
-}
-.profileFields{
-    width: 100%;
-    padding: 0.25rem 0;
-}
-.profileFields label{
-    font-weight: 700;
-}
-.profileFields ul{
-    padding-left: 0.75rem;
-}
-.profileNote{
-    color: #777;
-    font-size: 0.7rem;
-}
-.profileFieldBlank{
-    display: inline-block;
-    background-color: #EEE;
-    color: #777;
-    padding: 0 0.25rem;
-    font-size: 0.7rem;
-}
-.profileImageContainer{
-    display: flex;
-}
-.profileImageBox{
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    text-align: center;
-    max-width: 25%;
-    padding:0 0.5rem;
-}
-.profileImageBox img{
-    width: 100%;
-    max-height: 150px;
-}
-.submissionList{
-    width: 100%;
-}
-.submissionListItem{
-    border: 1px solid #999;
-    margin-bottom: 1rem;
-}
-.submissionListField{
-    padding: 0.25rem 0.5rem;
-}
-.submissionListField label{
-    font-weight: 700;
-}
-
-.submissionFieldsInternal{
-    background-color: var(--color-pana-blue);
-    display: flex;
-    font-size: .75rem;
-    color: white;
+  .main {
     padding: 0.25rem;
-    line-height:1.25rem;
-    vertical-align: middle;
-}
-.submissionFieldsInternal div{
-    padding-right: 1rem;
+  }
 }
 
-.submissionFieldsAction{
-    margin-left: auto;
+.accountTitle {
+  text-align: center;
+  padding: 3rem 0 1rem;
+}
+@media screen and (max-width: 600px) {
+  .accountTitle {
+    padding: 1rem 0;
+  }
+}
+.accountProfileBar {
+  display: flex;
+  border: 1px solid var(--color-pana-pink);
+}
+.profileBarHighlight {
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: white;
+  background: linear-gradient(
+    60deg,
+    var(--color-pana-blue) 0%,
+    var(--color-pana-pink) 45%,
+    var(--color-pana-yellow) 100%
+  );
+}
+.profileBarName {
+  padding: 0.5rem 1rem;
+}
+.profileBarEdit {
+  padding: 0.5rem 1rem;
+  margin-left: auto;
+}
+.profileBarStatus {
+  display: block;
+  text-align: right;
+  color: #777;
+  padding: 0.25rem 0;
+  margin-bottom: 1rem;
 }
 
-.accountFAQs dt{
-    text-decoration: underline;
+.affiliateBar {
+  display: flex;
+  border: 1px solid var(--color-pana-orange);
 }
-.accountFAQs a{
-    color: var(--color-pana-pink);
+.affiliateBarHighlight {
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: white;
+  background: linear-gradient(
+    60deg,
+    var(--color-pana-yellow) 0%,
+    var(--color-pana-orange) 45%,
+    var(--color-pana-yellow) 100%
+  );
 }
-.profileFollowingCard{
-    display: grid;
-    grid-template-columns: 4rem auto max-content;
-    border: 3px solid #ccc;
-    padding: .5rem;
-    border-radius: 12px;
-    margin-bottom: 0.5rem;
+.affiliateBarDetails {
+  display: flex;
+  width: 100%;
+  padding: 0.5rem 1rem;
 }
-.profileListCard{
-    display: grid;
-    grid-template-columns: auto 100px max-content;
-    border: 3px solid #ccc;
-    padding: .5rem;
-    border-radius: 12px;
-    margin-bottom: 0.5rem;
+.affiliateBarCode {
 }
-.listCardImage img{
-    width: 100%;
+.affiliateBarLink {
+  margin-left: auto;
 }
-.listCardName{
-    padding: 0 1rem;
-    font-size: 1.25rem;
-    font-weight: 700;
+.affiliateBarPoints {
+  margin-left: auto;
 }
-.listCardAction{
+.affiliateBarStatus {
+  display: block;
+  text-align: right;
+  color: #777;
+  padding: 0.25rem 0;
+  margin-bottom: 1rem;
 }
-.profileListEmpty{
-    text-align: center;
+
+.accountFormActions {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+}
+.accountList li {
+  padding: 0.25rem 0.5rem;
+}
+.accountForm a {
+  color: var(--color-pana-pink);
+}
+.accountFields {
+  margin-bottom: 1rem;
+}
+.accountFields label {
+  display: inline-block;
+  font-weight: 700;
+  padding: 0.5rem 0;
+}
+.accountFields input {
+  width: 100%;
+  padding: 0.5rem;
+}
+.accountFields input[type='checkbox'] {
+  width: auto;
+  padding: 0.5rem;
+  transform: scale(1.5);
+}
+.accountFields textarea {
+  width: 100%;
+  padding: 0.5rem;
+}
+.accountFields input[type='file'] {
+  background-color: #eee;
+}
+.accountFields input[type='file']::file-selector-button {
+  background-color: #444;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  margin-right: 1rem;
+}
+@media screen and (max-width: 600px) {
+  .accountFields input[type='file'] {
+    font-size: 0.8rem;
+  }
+}
+
+.accountFields ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.accountFields small {
+  color: #777;
+}
+.accountImageBox {
+  text-align: center;
+  padding: 0.5rem;
+}
+.profileFieldset {
+  padding: 1rem;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+.profileFieldset a {
+  color: var(--color-pana-pink);
+}
+.profileFieldset legend {
+  font-weight: 700;
+  font-size: 1.25rem;
+  padding: 0 1rem;
+}
+@media screen and (max-width: 600px) {
+  .profileFieldset legend {
+    font-size: 1rem;
+    padding: 0 0.5rem;
+  }
+}
+.profileEditLink {
+  float: right;
+}
+.profileFields {
+  width: 100%;
+  padding: 0.25rem 0;
+}
+.profileFields label {
+  font-weight: 700;
+}
+.profileFields ul {
+  padding-left: 0.75rem;
+}
+.profileNote {
+  color: #777;
+  font-size: 0.7rem;
+}
+.profileFieldBlank {
+  display: inline-block;
+  background-color: #eee;
+  color: #777;
+  padding: 0 0.25rem;
+  font-size: 0.7rem;
+}
+.profileImageContainer {
+  display: flex;
+}
+.profileImageBox {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  max-width: 25%;
+  padding: 0 0.5rem;
+}
+.profileImageBox img {
+  width: 100%;
+  max-height: 150px;
+}
+.submissionList {
+  width: 100%;
+}
+.submissionListItem {
+  border: 1px solid #999;
+  margin-bottom: 1rem;
+}
+.submissionListField {
+  padding: 0.25rem 0.5rem;
+}
+.submissionListField label {
+  font-weight: 700;
+}
+
+.submissionFieldsInternal {
+  background-color: var(--color-pana-blue);
+  display: flex;
+  font-size: 0.75rem;
+  color: white;
+  padding: 0.25rem;
+  line-height: 1.25rem;
+  vertical-align: middle;
+}
+.submissionFieldsInternal div {
+  padding-right: 1rem;
+}
+
+.submissionFieldsAction {
+  margin-left: auto;
+}
+
+.accountFAQs dt {
+  text-decoration: underline;
+}
+.accountFAQs a {
+  color: var(--color-pana-pink);
+}
+.profileFollowingCard {
+  display: grid;
+  grid-template-columns: 4rem auto max-content;
+  border: 3px solid #ccc;
+  padding: 0.5rem;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+}
+.profileListCard {
+  display: grid;
+  grid-template-columns: auto 100px max-content;
+  border: 3px solid #ccc;
+  padding: 0.5rem;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+}
+.listCardImage img {
+  width: 100%;
+}
+.listCardName {
+  padding: 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.listCardAction {
+}
+.profileListEmpty {
+  text-align: center;
 }

@@ -11,7 +11,7 @@ export default function AffiliateTermsAndConditionsPage() {
       <div className="container mx-auto max-w-4xl px-4 py-12">
         <header className="mb-8 border-b pb-6">
           <h1 className="mb-2 text-4xl font-bold">Terms and Conditions</h1>
-          <h2 className="text-2xl text-muted-foreground">
+          <h2 className="text-muted-foreground text-2xl">
             ComPana Agreement Terms for Pana MIA Club
           </h2>
         </header>

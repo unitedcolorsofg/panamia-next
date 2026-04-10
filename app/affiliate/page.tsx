@@ -40,11 +40,11 @@ function AffiliateContent() {
   }, [router, searchParams]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
+    <div className="from-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-b">
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
           <Loader2
-            className="h-12 w-12 animate-spin text-pana-blue"
+            className="text-pana-blue h-12 w-12 animate-spin"
             aria-hidden="true"
           />
           <h1 className="text-2xl font-bold">Redirecting...</h1>
@@ -61,11 +61,11 @@ export default function AffiliatePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
+        <div className="from-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-b">
           <Card className="w-full max-w-md">
             <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
               <Loader2
-                className="h-12 w-12 animate-spin text-pana-blue"
+                className="text-pana-blue h-12 w-12 animate-spin"
                 aria-hidden="true"
               />
               <h1 className="text-2xl font-bold">Loading...</h1>
