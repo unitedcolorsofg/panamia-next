@@ -61,10 +61,12 @@ jobs:
       - name: Create or update GitHub Issue
         if: steps.check-updates.outputs.updates_available == 'true'
         uses: actions/github-script@v8
+        env:
+          CHANGED_PATHS: ${{ steps.check-updates.outputs.changed_paths }}
         with:
           script: |
             const title = 'Upstream activities.next has federation-relevant updates';
-            const changedPaths = `${{ steps.check-updates.outputs.changed_paths }}`;
+            const changedPaths = process.env.CHANGED_PATHS;
             const body = [
               '## Upstream Changes Detected',
               '',
