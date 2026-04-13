@@ -83,7 +83,7 @@ index 59ee4be6d69e5911a68694780de9f4be2024784c..3bc18cfe8bbdbffdd81b2b3ee34776d3
        react_stack_bottom_frame: function (callStackForError) {
          return callStackForError();
 diff --git a/cjs/react.development.js b/cjs/react.development.js
-index 8c026f9215409de5d1a6935a3d0fa56638d69677..997cc8552d24f7ae1c93c5e703de9a13ce834c40 100644
+index 4e0315958f6f81769d4beb88425d317b69369e7a..af6e27d63fbef9e24e9a34912dbbd9d8bddc8bde 100644
 --- a/cjs/react.development.js
 +++ b/cjs/react.development.js
 @@ -692,11 +692,11 @@
@@ -108,12 +108,12 @@ index 8c026f9215409de5d1a6935a3d0fa56638d69677..997cc8552d24f7ae1c93c5e703de9a13
            owner: null,
            debugStack: Error("react-stack-top-frame"),
 -          debugTask: console.createTask ? console.createTask("lazy()") : null
-+          debugTask: (function () { if (typeof console.createTask !== 'function') return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
++          debugTask: (function () { if (typeof console.createTask !== "function") return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
          };
        ctor._ioInfo = ioInfo;
        lazyType._debugInfo = [{ awaited: ioInfo }];
 diff --git a/cjs/react.react-server.development.js b/cjs/react.react-server.development.js
-index 43625fb3f710c240b80eb1032612669b3cd4c8cd..2bb0a25d034ef05e6f923c3dd7584af15b0d5da1 100644
+index 0bbfc09a2655b17d73abd9ce7e9f802856db3c27..82d9a86643057ccae6e7a83962dd1a68e1315c79 100644
 --- a/cjs/react.react-server.development.js
 +++ b/cjs/react.react-server.development.js
 @@ -512,11 +512,11 @@
@@ -138,7 +138,7 @@ index 43625fb3f710c240b80eb1032612669b3cd4c8cd..2bb0a25d034ef05e6f923c3dd7584af1
            owner: null,
            debugStack: Error("react-stack-top-frame"),
 -          debugTask: console.createTask ? console.createTask("lazy()") : null
-+          debugTask: (function () { if (typeof console.createTask !== 'function') return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
++          debugTask: (function () { if (typeof console.createTask !== "function") return null; try { return console.createTask("lazy()"); } catch (e) { return null; } })()
          };
        ctor._ioInfo = ioInfo;
        lazyType._debugInfo = [{ awaited: ioInfo }];

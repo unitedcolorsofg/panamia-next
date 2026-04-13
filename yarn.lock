@@ -8666,14 +8666,14 @@ __metadata:
     postgres: "npm:^3.4.9"
     prettier: "npm:^3.8.2"
     prettier-plugin-tailwindcss: "npm:^0.7.2"
-    react: "patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch"
+    react: "patch:react@npm%3A19.2.5#~/.yarn/patches/react-npm-19.2.5-1e4f979df2.patch"
     react-day-picker: "npm:^9.14.0"
     react-dom: "npm:^19.2.5"
     react-google-recaptcha-v3: "npm:^1.11.0"
     react-hook-form: "npm:^7.72.1"
     react-i18next: "npm:^17.0.2"
     react-markdown: "npm:^10.1.0"
-    react-server-dom-webpack: "patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch"
+    react-server-dom-webpack: "patch:react-server-dom-webpack@npm%3A19.2.5#~/.yarn/patches/react-server-dom-webpack-npm-19.2.5-f2ffea6067.patch"
     recharts: "npm:^3.8.1"
     stripe: "npm:^22.0.0"
     tailwind-merge: "npm:^3.5.0"
@@ -9206,33 +9206,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-server-dom-webpack@npm:19.2.4":
-  version: 19.2.4
-  resolution: "react-server-dom-webpack@npm:19.2.4"
+"react-server-dom-webpack@npm:19.2.5":
+  version: 19.2.5
+  resolution: "react-server-dom-webpack@npm:19.2.5"
   dependencies:
     acorn-loose: "npm:^8.3.0"
     neo-async: "npm:^2.6.1"
     webpack-sources: "npm:^3.2.0"
   peerDependencies:
-    react: ^19.2.4
-    react-dom: ^19.2.4
+    react: ^19.2.5
+    react-dom: ^19.2.5
     webpack: ^5.59.0
-  checksum: 10c0/5f359bec49d3a0325616287bb8044253097b2d6e1260e8751f72fe0de01ea69de75053cdd4a64b6820ae1c194d504d3c57bc7877932332c25aec1e4107735fb6
+  checksum: 10c0/202df802faaf4e40e42007a63295e1290d5c0c3c43e55225f207b0b197c6dc28eeefbf2fda4a21e89fa75ebf0002f22c7cb68f9b3469250362faa2c150370135
   languageName: node
   linkType: hard
 
-"react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch":
-  version: 19.2.4
-  resolution: "react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.4#~/.yarn/patches/react-server-dom-webpack-npm-19.2.4-97bb337178.patch::version=19.2.4&hash=123a38"
+"react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.5#~/.yarn/patches/react-server-dom-webpack-npm-19.2.5-f2ffea6067.patch":
+  version: 19.2.5
+  resolution: "react-server-dom-webpack@patch:react-server-dom-webpack@npm%3A19.2.5#~/.yarn/patches/react-server-dom-webpack-npm-19.2.5-f2ffea6067.patch::version=19.2.5&hash=0e5d9c"
   dependencies:
     acorn-loose: "npm:^8.3.0"
     neo-async: "npm:^2.6.1"
     webpack-sources: "npm:^3.2.0"
   peerDependencies:
-    react: ^19.2.4
-    react-dom: ^19.2.4
+    react: ^19.2.5
+    react-dom: ^19.2.5
     webpack: ^5.59.0
-  checksum: 10c0/170ff6a434d77a767afef1771bbab148e3a63a73189ccb5d9218cb79eedb1a46ddc3a1fc9f3c169cb60f83101534c04b8d3d46d0d3d42d959ae28b147323c24b
+  checksum: 10c0/d83c3fd8c50187621e1d28a25a4fabbb54ba5106ef87e5672070467a88aa56dba40c96e669daff64869812e037141f23f4d714115c8b0e6f247ddf1b2c5d3d55
   languageName: node
   linkType: hard
 
@@ -9252,17 +9252,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:19.2.4":
-  version: 19.2.4
-  resolution: "react@npm:19.2.4"
-  checksum: 10c0/cd2c9ff67a720799cc3b38a516009986f7fc4cb8d3e15716c6211cf098d1357ee3e348ab05ad0600042bbb0fd888530ba92e329198c92eafa0994f5213396596
+"react@npm:19.2.5":
+  version: 19.2.5
+  resolution: "react@npm:19.2.5"
+  checksum: 10c0/4b5f231dbef92886f602533c9ce3bde04d99f0e71dfb5d794c43e02726efaad0421c08688f75fc98a6d6e1dc017372e1af7abbfecdc86a79968f461675931a7a
   languageName: node
   linkType: hard
 
-"react@patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch":
-  version: 19.2.4
-  resolution: "react@patch:react@npm%3A19.2.4#~/.yarn/patches/react-npm-19.2.4-d29a5aac4d.patch::version=19.2.4&hash=a549c0"
-  checksum: 10c0/13bb60cd31a56210ba33771c8816584bdb4393e6d1731b258a48c26005d79e14b754aec19a1d12f11df1ecaa059ad08e535fcebe7a4cde2bf1ddc9cea1c5f97c
+"react@patch:react@npm%3A19.2.5#~/.yarn/patches/react-npm-19.2.5-1e4f979df2.patch":
+  version: 19.2.5
+  resolution: "react@patch:react@npm%3A19.2.5#~/.yarn/patches/react-npm-19.2.5-1e4f979df2.patch::version=19.2.5&hash=974fae"
+  checksum: 10c0/8d2f3b5f8a8ecad91782b5e330960253254b9a766ff186b7eb7c45173254b4aa04121472f368b13232fbf62e6168bf1cc92401c8f821ebd7cca2ba507c123039
   languageName: node
   linkType: hard
 
