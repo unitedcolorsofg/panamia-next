@@ -1,6 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import axios from 'axios';
-import classNames from 'classnames';
+import classNames from 'clsx';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 

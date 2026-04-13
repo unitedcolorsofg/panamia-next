@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const AP_TYPES = ['application/activity+json', 'application/ld+json'];
 
-export default function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // ActivityPub content negotiation for /p/:screenname
   // Runs before trailing-slash 308 redirects, fixing federation
   const { pathname } = request.nextUrl;

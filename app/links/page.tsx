@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Twitter,
-  Instagram,
+  ExternalLink,
   Music,
   Mail,
   Search,
@@ -53,7 +52,7 @@ export default function LinksPage() {
               rel="noopener noreferrer"
               aria-label={t('ariaTwitter')}
             >
-              <Twitter className="h-5 w-5" aria-hidden="true" />
+              <ExternalLink className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
           <Button
@@ -68,7 +67,7 @@ export default function LinksPage() {
               rel="noopener noreferrer"
               aria-label={t('ariaInstagram')}
             >
-              <Instagram className="h-5 w-5" aria-hidden="true" />
+              <ExternalLink className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
           <Button

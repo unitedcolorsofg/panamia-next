@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import styles from './PanaLogo.module.css';
-import classNames from 'classnames';
+import classNames from 'clsx';
 
 interface LogoProps {
   color: string | 'white';

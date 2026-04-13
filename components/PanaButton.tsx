@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import styles from './PanaButton.module.css';
-import classnames from 'classnames';
+import classnames from 'clsx';
 
 interface PanaButtonProps extends React.HTMLProps<HTMLButtonElement> {
   children?: React.ReactNode;

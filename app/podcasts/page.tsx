@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Youtube } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -111,7 +111,7 @@ export default function PodcastsPage() {
                   className="flex items-center gap-2"
                 >
                   {t('youtubeChannel')}
-                  <Youtube className="h-6 w-6" aria-hidden="true" />
+                  <ExternalLink className="h-6 w-6" aria-hidden="true" />
                 </Link>
               </Button>
             </div>

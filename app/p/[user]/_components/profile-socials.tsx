@@ -2,13 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  ExternalLink,
-  Instagram,
-  Facebook,
-  Music,
-  Twitter,
-} from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 interface ProfileSocialsProps {
   socials: {
@@ -64,7 +58,7 @@ export function ProfileSocials({ socials }: ProfileSocialsProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <Instagram className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Instagram
               </a>
             </Button>
@@ -78,7 +72,7 @@ export function ProfileSocials({ socials }: ProfileSocialsProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <Facebook className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Facebook
               </a>
             </Button>
@@ -106,7 +100,7 @@ export function ProfileSocials({ socials }: ProfileSocialsProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <Twitter className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Twitter
               </a>
             </Button>
