@@ -1,21 +1,35 @@
-import { AccountDatabase } from '@/lib/database/types/account'
-import { ActorDatabase } from '@/lib/database/types/actor'
-import { BaseDatabase } from '@/lib/database/types/base'
-import { FollowDatabase } from '@/lib/database/types/follow'
-import { LikeDatabase } from '@/lib/database/types/like'
-import { MediaDatabase } from '@/lib/database/types/media'
-import { NotificationDatabase } from '@/lib/database/types/notification'
-import { OAuthDatabase } from '@/lib/database/types/oauth'
-import { StatusDatabase } from '@/lib/database/types/status'
-import { TimelineDatabase } from '@/lib/database/types/timeline'
+import { FitnessFileDatabase } from '@/lib/database/sql/fitnessFile'
+import { FitnessHeatmapDatabase } from '@/lib/database/sql/fitnessHeatmap'
+import { FitnessSettingsDatabase } from '@/lib/database/sql/fitnessSettings'
+import { StravaArchiveImportDatabase } from '@/lib/database/sql/stravaArchiveImport'
+import {
+  AccountDatabase,
+  ActorDatabase,
+  AdminDatabase,
+  BaseDatabase,
+  FollowDatabase,
+  LikeDatabase,
+  MediaDatabase,
+  NotificationDatabase,
+  OAuthDatabase,
+  PushSubscriptionDatabase,
+  StatusDatabase,
+  TimelineDatabase
+} from '@/lib/types/database/operations'
 
 export type Database = AccountDatabase &
   ActorDatabase &
+  AdminDatabase &
+  FitnessFileDatabase &
+  FitnessHeatmapDatabase &
+  FitnessSettingsDatabase &
+  StravaArchiveImportDatabase &
   FollowDatabase &
   LikeDatabase &
   MediaDatabase &
   NotificationDatabase &
   OAuthDatabase &
+  PushSubscriptionDatabase &
   StatusDatabase &
   TimelineDatabase &
   BaseDatabase

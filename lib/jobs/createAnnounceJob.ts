@@ -1,5 +1,3 @@
-import { Announce } from '@llun/activities.schema'
-
 import { recordActorIfNeeded } from '@/lib/actions/utils'
 import { getNote } from '@/lib/activities'
 import { createJobHandle } from '@/lib/jobs/createJobHandle'
@@ -10,6 +8,7 @@ import {
 } from '@/lib/jobs/names'
 import { JobHandle } from '@/lib/services/queue/type'
 import { addStatusToTimelines } from '@/lib/services/timelines'
+import { Announce } from '@/lib/types/activitypub'
 import { normalizeActivityPubAnnounce } from '@/lib/utils/activitypub'
 
 export const createAnnounceJob: JobHandle = createJobHandle(

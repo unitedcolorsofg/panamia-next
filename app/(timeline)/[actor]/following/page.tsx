@@ -1,18 +1,16 @@
 import { ArrowLeft } from 'lucide-react'
 import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { FC } from 'react'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+import { FollowList } from '@/app/(timeline)/[actor]/FollowList'
+import { getProfileData } from '@/app/(timeline)/[actor]/getProfileData'
 import { Button } from '@/lib/components/ui/button'
 import { getDatabase } from '@/lib/database'
-import { Actor, ActorProfile } from '@/lib/models/actor'
-import { Follow } from '@/lib/models/follow'
-
-import { FollowList } from '../FollowList'
-import { getProfileData } from '../getProfileData'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
+import { Actor, ActorProfile } from '@/lib/types/domain/actor'
+import { Follow } from '@/lib/types/domain/follow'
 
 interface Props {
   params: Promise<{ actor: string }>
@@ -31,7 +29,7 @@ const Page: FC<Props> = async ({ params }) => {
   const database = getDatabase()
   if (!database) throw new Error('Database is not available')
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const isLoggedIn = Boolean(session?.user?.email)
   const { actor } = await params
   const decodedActorHandle = decodeURIComponent(actor)

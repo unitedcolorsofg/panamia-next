@@ -1,20 +1,31 @@
 import { formatDistanceToNow } from 'date-fns'
 import _ from 'lodash'
-import { ExternalLink, Repeat2 } from 'lucide-react'
+import { Activity, ExternalLink, LoaderCircle, Repeat2 } from 'lucide-react'
 import { FC } from 'react'
 
-import { ActorProfile } from '@/lib/models/actor'
-import { EditableStatus, Status, StatusType } from '@/lib/models/status'
+import { PostLineLimit } from '@/lib/types/database/rows'
+import { ActorProfile } from '@/lib/types/domain/actor'
+import { EditableStatus, Status, StatusType } from '@/lib/types/domain/status'
+import {
+  formatFitnessDistance,
+  formatFitnessDuration,
+  formatFitnessElevation,
+  getFitnessPaceOrSpeed
+} from '@/lib/utils/fitness'
+import { getDeviceDisplayLabel } from '@/lib/utils/fitnessDeviceBrands'
 import { cleanClassName } from '@/lib/utils/text/cleanClassName'
 import {
   getActualStatus,
   processStatusText
 } from '@/lib/utils/text/processStatusText'
 
+import { BrandedDeviceLink } from './BrandedDeviceLink'
 import { Actions } from './actions/actions'
 import { ActorAvatar, ActorInfo } from './actor'
 import { Attachments, OnMediaSelectedHandle } from './attachments'
+import { CollapsibleContent } from './collapsible-content'
 import { Poll } from './poll'
+import { RetryFitnessButton } from './retry-fitness-button'
 
 export interface PostProps {
   host: string
@@ -27,11 +38,14 @@ export interface PostProps {
   onEdit?: (status: EditableStatus) => void
   onPostDeleted?: (status: Status) => void
   onShowAttachment: OnMediaSelectedHandle
+  collapsible?: boolean
+  postLineLimit?: PostLineLimit
 }
 
 interface BoostStatusProps {
   status: Status
 }
+
 export const BoostStatus: FC<BoostStatusProps> = ({ status }) => {
   if (status.type !== StatusType.enum.Announce) return null
   return (
@@ -43,7 +57,7 @@ export const BoostStatus: FC<BoostStatusProps> = ({ status }) => {
 }
 
 export const Post: FC<PostProps> = (props) => {
-  const { host, status, onShowAttachment } = props
+  const { host, status, onShowAttachment, collapsible, postLineLimit } = props
   const actualStatus = getActualStatus(status)
   const externalStatusUrl = actualStatus.url || actualStatus.id
   const showExternalLink =
@@ -53,6 +67,31 @@ export const Post: FC<PostProps> = (props) => {
     .thru((s) => processStatusText(host, s))
     .thru(cleanClassName)
     .value()
+  const fitnessFile =
+    actualStatus.type === StatusType.enum.Note ? actualStatus.fitness : null
+  const fitnessProcessingStatus = fitnessFile?.processingStatus ?? 'completed'
+  const isFitnessProcessing =
+    fitnessProcessingStatus === 'pending' ||
+    fitnessProcessingStatus === 'processing'
+  const isFitnessFailed = fitnessProcessingStatus === 'failed'
+  const isFitnessCompleted = fitnessProcessingStatus === 'completed'
+  const fitnessDistance = formatFitnessDistance(
+    fitnessFile?.totalDistanceMeters
+  )
+  const fitnessDuration = formatFitnessDuration(
+    fitnessFile?.totalDurationSeconds
+  )
+  const fitnessElevation = formatFitnessElevation(
+    fitnessFile?.elevationGainMeters
+  )
+  const fitnessPaceOrSpeed = getFitnessPaceOrSpeed({
+    distanceMeters: fitnessFile?.totalDistanceMeters,
+    durationSeconds: fitnessFile?.totalDurationSeconds,
+    activityType: fitnessFile?.activityType
+  })
+  const isOwner =
+    Boolean(actualStatus.isLocalActor) &&
+    props.currentActor?.id === actualStatus.actorId
 
   return (
     <div className="flex flex-col gap-1">
@@ -89,9 +128,110 @@ export const Post: FC<PostProps> = (props) => {
             )}
           </div>
 
-          <div className="mt-1 text-sm leading-relaxed break-words [&_a]:text-sky-600 dark:[&_a]:text-sky-400 [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-sky-700 dark:[&_a:hover]:text-sky-300 [&_p]:mb-4 last:[&_p]:mb-0">
-            {processedAndCleanedText}
-          </div>
+          {collapsible && postLineLimit !== 0 ? (
+            <CollapsibleContent
+              className="mt-1 text-sm leading-relaxed break-words markdown-content"
+              maxLines={postLineLimit}
+            >
+              {processedAndCleanedText}
+            </CollapsibleContent>
+          ) : (
+            <div className="mt-1 text-sm leading-relaxed break-words markdown-content">
+              {processedAndCleanedText}
+            </div>
+          )}
+          {fitnessFile ? (
+            <div className="mt-2 max-w-full rounded-md border bg-muted/30 px-3 py-2 text-xs">
+              <div className="flex max-w-full items-center gap-2">
+                <Activity className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="shrink-0 font-medium text-muted-foreground">
+                  Fitness
+                </span>
+                <a
+                  href={fitnessFile.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  className="truncate text-foreground underline-offset-2 hover:underline"
+                  title={fitnessFile.fileName}
+                >
+                  {fitnessFile.fileName}
+                </a>
+                <span className="shrink-0 text-muted-foreground uppercase">
+                  {fitnessFile.fileType}
+                </span>
+              </div>
+
+              {isFitnessProcessing ? (
+                <div className="mt-2 inline-flex items-center gap-2 text-muted-foreground">
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                  <span>Processing fitness activity...</span>
+                </div>
+              ) : null}
+
+              {isFitnessFailed ? (
+                isOwner ? (
+                  <RetryFitnessButton statusId={actualStatus.id} />
+                ) : (
+                  <div className="mt-2 flex items-center gap-2 text-destructive">
+                    <span>
+                      Processing failed. The original activity file is still
+                      available.
+                    </span>
+                  </div>
+                )
+              ) : null}
+
+              {isFitnessCompleted ? (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+                  {fitnessDistance ? (
+                    <span>
+                      Distance:{' '}
+                      <strong className="text-foreground">
+                        {fitnessDistance}
+                      </strong>
+                    </span>
+                  ) : null}
+                  {fitnessDuration ? (
+                    <span>
+                      Duration:{' '}
+                      <strong className="text-foreground">
+                        {fitnessDuration}
+                      </strong>
+                    </span>
+                  ) : null}
+                  {fitnessPaceOrSpeed ? (
+                    <span>
+                      {fitnessPaceOrSpeed.label}:{' '}
+                      <strong className="text-foreground">
+                        {fitnessPaceOrSpeed.value}
+                      </strong>
+                    </span>
+                  ) : null}
+                  {fitnessElevation ? (
+                    <span>
+                      Elevation:{' '}
+                      <strong className="text-foreground">
+                        {fitnessElevation}
+                      </strong>
+                    </span>
+                  ) : null}
+                  {getDeviceDisplayLabel(
+                    fitnessFile.deviceName,
+                    fitnessFile.deviceManufacturer
+                  ) ? (
+                    <span className="text-muted-foreground">
+                      Via:{' '}
+                      <BrandedDeviceLink
+                        deviceName={fitnessFile.deviceName}
+                        deviceManufacturer={fitnessFile.deviceManufacturer}
+                      />
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <Poll
             status={actualStatus}

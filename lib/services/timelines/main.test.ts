@@ -2,8 +2,6 @@ import { randomBytes } from 'crypto'
 
 import { getTestSQLDatabase } from '@/lib/database/testUtils'
 import { Database } from '@/lib/database/types'
-import { Actor } from '@/lib/models/actor'
-import { Status } from '@/lib/models/status'
 import { mockRequests } from '@/lib/stub/activities'
 import { seedDatabase } from '@/lib/stub/database'
 import { ACTOR1_ID } from '@/lib/stub/seed/actor1'
@@ -11,6 +9,8 @@ import { ACTOR2_ID } from '@/lib/stub/seed/actor2'
 import { ACTOR3_ID } from '@/lib/stub/seed/actor3'
 import { ACTOR4_ID } from '@/lib/stub/seed/actor4'
 import { ACTOR5_ID } from '@/lib/stub/seed/actor5'
+import { Actor } from '@/lib/types/domain/actor'
+import { Status } from '@/lib/types/domain/status'
 import { ACTIVITY_STREAM_PUBLIC } from '@/lib/utils/activitystream'
 
 import { mainTimelineRule } from './main'
@@ -281,6 +281,50 @@ describe('#mainTimelineRule', () => {
     expect(
       await mainTimelineRule({ database, currentActor, status })
     ).toBeNull()
+  })
+
+  it('returns null when parent status does not exist (deleted parent)', async () => {
+    const currentActor = (await database.getActorFromId({
+      id: ACTOR3_ID
+    })) as Actor
+    const nonExistentParentId = `${ACTOR2_ID}/statuses/this-status-was-deleted`
+    const followingReply = await createStatus(
+      database,
+      ACTOR2_ID,
+      'Reply to a deleted parent status',
+      nonExistentParentId
+    )
+    expect(
+      await mainTimelineRule({
+        database,
+        currentActor,
+        status: followingReply
+      })
+    ).toBeNull()
+  })
+
+  it('returns main timeline for following reply to another following actor status', async () => {
+    const currentActor = (await database.getActorFromId({
+      id: ACTOR3_ID
+    })) as Actor
+    const followingStatus = await createStatus(
+      database,
+      ACTOR2_ID,
+      'Following actor root status'
+    )
+    const anotherFollowingReply = await createStatus(
+      database,
+      ACTOR4_ID,
+      'Another following actor reply to following root',
+      followingStatus.id
+    )
+    expect(
+      await mainTimelineRule({
+        database,
+        currentActor,
+        status: anotherFollowingReply
+      })
+    ).toEqual(Timeline.MAIN)
   })
 
   it('returns null for announce that already in timeline', async () => {

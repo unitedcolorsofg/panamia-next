@@ -1,20 +1,35 @@
-import { Mention } from '@llun/activities.schema'
 import crypto from 'crypto'
 
 import { Database } from '@/lib/database/types'
-import { NotificationType } from '@/lib/database/types/notification'
-import { SEND_NOTE_JOB_NAME } from '@/lib/jobs/names'
-import { Actor, getMention } from '@/lib/models/actor'
-import { PostBoxAttachment } from '@/lib/models/attachment'
-import { Status, StatusNote } from '@/lib/models/status'
+import {
+  PROCESS_FITNESS_FILE_JOB_NAME,
+  SEND_NOTE_JOB_NAME
+} from '@/lib/jobs/names'
+import {
+  getHTMLContent as getMentionHTMLContent,
+  getSubject as getMentionSubject,
+  getTextContent as getMentionTextContent
+} from '@/lib/services/email/templates/mention'
+import {
+  getHTMLContent as getReplyHTMLContent,
+  getSubject as getReplySubject,
+  getTextContent as getReplyTextContent
+} from '@/lib/services/email/templates/reply'
+import { sendNotificationAlerts } from '@/lib/services/notifications/sendNotificationAlerts'
 import { getQueue } from '@/lib/services/queue'
 import { addStatusToTimelines } from '@/lib/services/timelines'
+import { Mention } from '@/lib/types/activitypub'
+import { NotificationType } from '@/lib/types/database/operations'
+import { Actor, getMention } from '@/lib/types/domain/actor'
+import { PostBoxAttachment } from '@/lib/types/domain/attachment'
+import { Status, StatusNote } from '@/lib/types/domain/status'
 import {
   ACTIVITY_STREAM_PUBLIC,
   ACTIVITY_STREAM_PUBLIC_COMPACT
 } from '@/lib/utils/activitystream'
 import { getHashFromString } from '@/lib/utils/getHashFromString'
 import { MastodonVisibility } from '@/lib/utils/getVisibility'
+import { getHashtags } from '@/lib/utils/text/getHashtags'
 import { getMentions } from '@/lib/utils/text/getMentions'
 import { getSpan } from '@/lib/utils/trace'
 
@@ -141,6 +156,7 @@ interface CreateNoteFromUserInputParams {
   replyNoteId?: string
   currentActor: Actor
   attachments?: PostBoxAttachment[]
+  fitnessFileId?: string
   visibility?: MastodonVisibility
   database: Database
 }
@@ -149,10 +165,25 @@ export const createNoteFromUserInput = async ({
   replyNoteId,
   currentActor,
   attachments = [],
+  fitnessFileId,
   visibility,
   database
 }: CreateNoteFromUserInputParams) => {
   const span = getSpan('actions', 'createNoteFromUser', { text, replyNoteId })
+  const fitnessFile = fitnessFileId
+    ? await database.getFitnessFile({ id: fitnessFileId })
+    : null
+
+  if (
+    fitnessFileId &&
+    (!fitnessFile ||
+      fitnessFile.actorId !== currentActor.id ||
+      Boolean(fitnessFile.statusId))
+  ) {
+    span.end()
+    return null
+  }
+
   const replyStatus = replyNoteId
     ? await database.getStatus({ statusId: replyNoteId, withReplies: false })
     : null
@@ -196,6 +227,29 @@ export const createNoteFromUserInput = async ({
     reply: replyStatus?.id || ''
   })
 
+  // Tags must be persisted before timeline rules run so that
+  // mentionTimelineRule can verify mentions via tags rather than text content.
+  const hashtags = getHashtags(text, currentActor.domain)
+  await Promise.all([
+    ...mentions.map((mention) =>
+      database.createTag({
+        statusId,
+        name: mention.name || '',
+        value: mention.href,
+        type: 'mention'
+      })
+    ),
+    ...hashtags.map(async (hashtag) => {
+      await database.createTag({
+        statusId,
+        name: hashtag.name,
+        value: hashtag.value,
+        type: 'hashtag'
+      })
+      await database.increaseHashtagCounter({ hashtag: hashtag.name })
+    })
+  ])
+
   await Promise.all([
     addStatusToTimelines(database, createdStatus),
     ...attachments.map((attachment) =>
@@ -206,18 +260,15 @@ export const createNoteFromUserInput = async ({
         url: attachment.url,
         width: attachment.width,
         height: attachment.height,
-        name: attachment.name
-      })
-    ),
-    ...mentions.map((mention) =>
-      database.createTag({
-        statusId,
-        name: mention.name || '',
-        value: mention.href,
-        type: 'mention'
+        name: attachment.name,
+        mediaId: attachment.id
       })
     )
   ])
+
+  if (fitnessFile) {
+    await database.updateFitnessFileStatus(fitnessFile.id, statusId)
+  }
 
   // Create notifications for replies and mentions
   const notificationPromises = []
@@ -265,14 +316,94 @@ export const createNoteFromUserInput = async ({
     return null
   }
 
-  await getQueue().publish({
-    id: getHashFromString(status.id),
-    name: SEND_NOTE_JOB_NAME,
-    data: {
-      actorId: currentActor.id,
-      statusId: status.id
+  // Dispatch notification alerts (push + email) per target, fire-and-forget.
+  // Uses the fetched status (with actor info) to build email content.
+  const seenActorIds = new Set<string>()
+
+  if (replyStatus && replyStatus.actorId !== currentActor.id) {
+    seenActorIds.add(replyStatus.actorId)
+    database
+      .getActorFromId({ id: replyStatus.actorId })
+      .catch(() => null)
+      .then((targetActor) => {
+        sendNotificationAlerts({
+          database,
+          actorId: replyStatus.actorId,
+          sourceActorId: currentActor.id,
+          sourceActor: currentActor,
+          statusId,
+          events: [
+            {
+              type: NotificationType.enum.reply,
+              emailContent: targetActor?.account
+                ? {
+                    recipientEmail: targetActor.account.email,
+                    subject: getReplySubject(currentActor),
+                    text: getReplyTextContent(status),
+                    html: getReplyHTMLContent(status)
+                  }
+                : undefined
+            }
+          ]
+        })
+      })
+  }
+
+  for (const mention of mentions) {
+    const mentionedActorId = mention.href
+    if (
+      mentionedActorId !== currentActor.id &&
+      !seenActorIds.has(mentionedActorId)
+    ) {
+      seenActorIds.add(mentionedActorId)
+      database
+        .getActorFromId({ id: mentionedActorId })
+        .catch(() => null)
+        .then((targetActor) => {
+          sendNotificationAlerts({
+            database,
+            actorId: mentionedActorId,
+            sourceActorId: currentActor.id,
+            sourceActor: currentActor,
+            statusId,
+            events: [
+              {
+                type: NotificationType.enum.mention,
+                emailContent: targetActor?.account
+                  ? {
+                      recipientEmail: targetActor.account.email,
+                      subject: getMentionSubject(currentActor),
+                      text: getMentionTextContent(status),
+                      html: getMentionHTMLContent(status)
+                    }
+                  : undefined
+              }
+            ]
+          })
+        })
     }
-  })
+  }
+
+  if (fitnessFile) {
+    await getQueue().publish({
+      id: getHashFromString(status.id),
+      name: PROCESS_FITNESS_FILE_JOB_NAME,
+      data: {
+        actorId: currentActor.id,
+        statusId: status.id,
+        fitnessFileId: fitnessFile.id
+      }
+    })
+  } else {
+    await getQueue().publish({
+      id: getHashFromString(status.id),
+      name: SEND_NOTE_JOB_NAME,
+      data: {
+        actorId: currentActor.id,
+        statusId: status.id
+      }
+    })
+  }
 
   span.end()
   return status

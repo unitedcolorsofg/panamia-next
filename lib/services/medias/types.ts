@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 import { getConfig } from '@/lib/config'
+import { Actor } from '@/lib/types/domain/actor'
 
-import { Actor } from '../../models/actor'
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE } from './constants'
 
 const FILE_TYPE_ERROR_MESSAGE = `Only ${ACCEPTED_FILE_TYPES.join(',')} are accepted`
@@ -93,7 +93,6 @@ export type PresigedMediaInput = z.infer<typeof PresigedMediaInput>
 
 export const PresignedUrlOutput = z.object({
   url: z.string().url(),
-  fields: z.record(z.string(), z.string()),
   saveFileOutput: MediaStorageSaveFileOutput
 })
 export type PresignedUrlOutput = z.infer<typeof PresignedUrlOutput>

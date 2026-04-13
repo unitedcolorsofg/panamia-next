@@ -1,4 +1,3 @@
-import { Accept, Follow, Like, Reject, Undo } from '@llun/activities.schema'
 import { z } from 'zod'
 
 import { acceptFollowRequest } from '@/lib/actions/acceptFollowRequest'
@@ -6,14 +5,16 @@ import { createFollower } from '@/lib/actions/createFollower'
 import { likeRequest } from '@/lib/actions/like'
 import { rejectFollowRequest } from '@/lib/actions/rejectFollowRequest'
 import { undoFollowRequest } from '@/lib/actions/undoFollowRequest'
-import { FollowRequest } from '@/lib/activities/actions/follow'
-import { UndoFollow } from '@/lib/activities/actions/undoFollow'
-import { UndoLike } from '@/lib/activities/actions/undoLike'
+import { FollowRequest } from '@/lib/activities/followAction'
+import { UndoFollow } from '@/lib/activities/undoFollow'
+import { UndoLike } from '@/lib/activities/undoLike'
 import { OnlyLocalUserGuard } from '@/lib/services/guards/OnlyLocalUserGuard'
+import { Accept, Follow, Like, Reject, Undo } from '@/lib/types/activitypub'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
 import {
   DEFAULT_202,
-  apiErrorResponse,
+  ERROR_400,
+  ERROR_404,
   apiResponse,
   defaultOptions
 } from '@/lib/utils/response'
@@ -31,11 +32,14 @@ export const POST = traceApiRoute(
       const activity = Activity.parse(await req.json())
       switch (activity.type) {
         case 'Accept': {
-          const follow = await acceptFollowRequest({
-            activity,
-            database
-          })
-          if (!follow) return apiErrorResponse(404)
+          const follow = await acceptFollowRequest({ activity, database })
+          if (!follow)
+            return apiResponse({
+              req,
+              allowedMethods: CORS_HEADERS,
+              data: ERROR_404,
+              responseStatusCode: 404
+            })
           return apiResponse({
             req,
             allowedMethods: CORS_HEADERS,
@@ -44,11 +48,14 @@ export const POST = traceApiRoute(
           })
         }
         case 'Reject': {
-          const follow = await rejectFollowRequest({
-            activity,
-            database
-          })
-          if (!follow) return apiErrorResponse(404)
+          const follow = await rejectFollowRequest({ activity, database })
+          if (!follow)
+            return apiResponse({
+              req,
+              allowedMethods: CORS_HEADERS,
+              data: ERROR_404,
+              responseStatusCode: 404
+            })
           return apiResponse({
             req,
             allowedMethods: CORS_HEADERS,
@@ -61,7 +68,13 @@ export const POST = traceApiRoute(
             followRequest: activity as FollowRequest,
             database
           })
-          if (!follow) return apiErrorResponse(404)
+          if (!follow)
+            return apiResponse({
+              req,
+              allowedMethods: CORS_HEADERS,
+              data: ERROR_404,
+              responseStatusCode: 404
+            })
           return apiResponse({
             req,
             allowedMethods: CORS_HEADERS,
@@ -86,7 +99,13 @@ export const POST = traceApiRoute(
                 database,
                 request: undoRequest as UndoFollow
               })
-              if (result) return apiErrorResponse(404)
+              if (!result)
+                return apiResponse({
+                  req,
+                  allowedMethods: CORS_HEADERS,
+                  data: ERROR_404,
+                  responseStatusCode: 404
+                })
               return apiResponse({
                 req,
                 allowedMethods: CORS_HEADERS,
@@ -128,7 +147,12 @@ export const POST = traceApiRoute(
           })
       }
     } catch {
-      return apiErrorResponse(400)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_400,
+        responseStatusCode: 400
+      })
     }
   })
 )

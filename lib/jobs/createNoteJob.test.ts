@@ -3,13 +3,13 @@ import fetchMock, { enableFetchMocks } from 'jest-fetch-mock'
 import { getTestSQLDatabase } from '@/lib/database/testUtils'
 import { createNoteJob } from '@/lib/jobs/createNoteJob'
 import { CREATE_NOTE_JOB_NAME } from '@/lib/jobs/names'
-import { Actor } from '@/lib/models/actor'
-import { Status, StatusType } from '@/lib/models/status'
 import { mockRequests } from '@/lib/stub/activities'
 import { seedDatabase } from '@/lib/stub/database'
 import { MockImageDocument } from '@/lib/stub/imageDocument'
 import { MockLitepubNote, MockMastodonActivityPubNote } from '@/lib/stub/note'
 import { seedActor1 } from '@/lib/stub/seed/actor1'
+import { Actor } from '@/lib/types/domain/actor'
+import { Status, StatusType } from '@/lib/types/domain/status'
 
 enableFetchMocks()
 
@@ -234,7 +234,7 @@ describe('createNoteJob', () => {
     })
   })
 
-  // @llun/activities.schema doesn't accept url arrays, so we normalize to a string.
+  // @/lib/schema doesn't accept url arrays, so we normalize to a string.
   it('adds image activity with array URLs into database', async () => {
     const image = {
       type: 'Image',
@@ -389,5 +389,64 @@ describe('createNoteJob', () => {
       width: 1920,
       height: 1080
     })
+  })
+
+  it('stores hashtag tags with correct type', async () => {
+    const noteId = `https://${actor1!.domain}/notes/hashtag-test-${Date.now()}`
+    const note = MockMastodonActivityPubNote({
+      id: noteId,
+      content: '<p>Hello #testing</p>',
+      tags: [
+        {
+          type: 'Hashtag',
+          href: 'https://somewhere.test/tags/testing',
+          name: '#testing'
+        }
+      ]
+    })
+    await createNoteJob(database, {
+      id: 'id-hashtag',
+      name: CREATE_NOTE_JOB_NAME,
+      data: note
+    })
+
+    const tags = await database.getTags({ statusId: noteId })
+    const hashtagTags = tags.filter((t) => t.type === 'hashtag')
+    expect(hashtagTags).toHaveLength(1)
+    expect(hashtagTags[0].name).toEqual('#testing')
+    expect(hashtagTags[0].value).toEqual('https://somewhere.test/tags/testing')
+  })
+
+  it('stores mention tags separately from hashtag tags', async () => {
+    const noteId = `https://${actor1!.domain}/notes/mixed-tag-test-${Date.now()}`
+    const note = MockMastodonActivityPubNote({
+      id: noteId,
+      content: '<p>Hello @someone #topic</p>',
+      tags: [
+        {
+          type: 'Mention',
+          href: 'https://somewhere.test/users/someone',
+          name: '@someone'
+        },
+        {
+          type: 'Hashtag',
+          href: 'https://somewhere.test/tags/topic',
+          name: '#topic'
+        }
+      ]
+    })
+    await createNoteJob(database, {
+      id: 'id-mixed-tags',
+      name: CREATE_NOTE_JOB_NAME,
+      data: note
+    })
+
+    const tags = await database.getTags({ statusId: noteId })
+    const mentionTags = tags.filter((t) => t.type === 'mention')
+    const hashtagTags = tags.filter((t) => t.type === 'hashtag')
+    expect(mentionTags).toHaveLength(1)
+    expect(hashtagTags).toHaveLength(1)
+    expect(mentionTags[0].name).toEqual('@someone')
+    expect(hashtagTags[0].name).toEqual('#topic')
   })
 })

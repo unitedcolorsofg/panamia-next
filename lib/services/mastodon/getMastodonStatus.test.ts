@@ -1,10 +1,10 @@
 import { getTestSQLDatabase } from '@/lib/database/testUtils'
-import { getMentionFromActorID } from '@/lib/models/actor'
-import { Status, StatusType } from '@/lib/models/status'
 import { TEST_DOMAIN } from '@/lib/stub/const'
 import { seedDatabase } from '@/lib/stub/database'
 import { ACTOR1_ID } from '@/lib/stub/seed/actor1'
 import { ACTOR2_ID } from '@/lib/stub/seed/actor2'
+import { getMentionFromActorID } from '@/lib/types/domain/actor'
+import { Status, StatusType } from '@/lib/types/domain/status'
 import {
   ACTIVITY_STREAM_PUBLIC,
   ACTIVITY_STREAM_PUBLIC_COMPACT
@@ -13,8 +13,9 @@ import { urlToId } from '@/lib/utils/urlToId'
 
 import { getMastodonStatus } from './getMastodonStatus'
 
-jest.mock('../../config', () => ({
-  getConfig: jest.fn().mockReturnValue({ host: TEST_DOMAIN })
+// prettier-ignore
+jest.mock('@/lib/config', () => ({
+  getConfig: jest.fn().mockReturnValue({ host: 'test.llun.dev' })
 }))
 
 describe('#getMastodonStatus', () => {
@@ -117,6 +118,38 @@ describe('#getMastodonStatus', () => {
 
     expect(mastodonStatus?.content).toMatch(/<p>.*<\/p>/)
     expect(mastodonStatus?.content).toContain('This is Actor1 post')
+  })
+
+  it('keeps mastodon content as post text when fitness file is attached', async () => {
+    const note = await database.createNote({
+      id: `${ACTOR1_ID}/statuses/fitness-content-test`,
+      url: `${ACTOR1_ID}/statuses/fitness-content-test`,
+      actorId: ACTOR1_ID,
+      text: 'Only text should be federated',
+      to: [ACTIVITY_STREAM_PUBLIC],
+      cc: []
+    })
+
+    await database.createFitnessFile({
+      actorId: ACTOR1_ID,
+      statusId: note.id,
+      path: 'fitness/fitness-content-test.fit',
+      fileName: 'fitness-content-test.fit',
+      fileType: 'fit',
+      mimeType: 'application/vnd.ant.fit',
+      bytes: 1024
+    })
+
+    const status = (await database.getStatus({
+      statusId: note.id,
+      withReplies: false
+    })) as Status
+
+    const mastodonStatus = await getMastodonStatus(database, status)
+
+    expect(mastodonStatus?.content).toContain('Only text should be federated')
+    expect(mastodonStatus?.content).not.toContain('/api/v1/fitness-files/')
+    expect(mastodonStatus?.content).not.toContain('Fitness file')
   })
 
   it('returns mastodon status with attachments', async () => {
@@ -538,6 +571,37 @@ describe('#getMastodonStatus', () => {
 
       // This status has no announces so reblogs_count should be 0
       expect(mastodonStatus?.reblogs_count).toBe(0)
+    })
+  })
+
+  describe('replies_count', () => {
+    it('returns correct replies_count for status with replies', async () => {
+      const parentStatus = await database.createNote({
+        id: `${ACTOR1_ID}/statuses/replies-count-test-parent`,
+        url: `${ACTOR1_ID}/statuses/replies-count-test-parent`,
+        actorId: ACTOR1_ID,
+        text: 'Parent status for replies count',
+        to: [ACTIVITY_STREAM_PUBLIC],
+        cc: []
+      })
+
+      await database.createNote({
+        id: `${ACTOR2_ID}/statuses/replies-count-test-child`,
+        url: `${ACTOR2_ID}/statuses/replies-count-test-child`,
+        actorId: ACTOR2_ID,
+        text: 'Reply status',
+        reply: parentStatus.id,
+        to: [ACTIVITY_STREAM_PUBLIC],
+        cc: []
+      })
+
+      const status = (await database.getStatus({
+        statusId: parentStatus.id
+      })) as Status
+
+      const mastodonStatus = await getMastodonStatus(database, status)
+
+      expect(mastodonStatus?.replies_count).toBe(1)
     })
   })
 

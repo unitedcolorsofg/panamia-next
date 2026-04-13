@@ -8,11 +8,11 @@ import { seedDatabase } from '@/lib/stub/database'
 
 enableFetchMocks()
 
-jest.mock('../services/email', () => ({
+jest.mock('@/lib/services/email', () => ({
   sendMail: jest.fn().mockResolvedValue(undefined)
 }))
 
-jest.mock('../config', () => ({
+jest.mock('@/lib/config', () => ({
   getConfig: jest.fn().mockReturnValue({
     host: 'test.social',
     email: {
@@ -71,7 +71,7 @@ describe('deleteActorJob', () => {
 
     // Verify actor is deleted
     actor = await database.getActorFromId({ id: actorId })
-    expect(actor).toBeUndefined()
+    expect(actor).toBeNull()
   })
 
   it('handles non-existent actor gracefully', async () => {
@@ -117,7 +117,7 @@ describe('deleteActorJob', () => {
 
     // Actor should be deleted now
     const actor = await database.getActorFromId({ id: actorId })
-    expect(actor).toBeUndefined()
+    expect(actor).toBeNull()
   })
 
   it('does not delete actor if deletion was cancelled', async () => {

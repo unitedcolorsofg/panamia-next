@@ -1,0 +1,228 @@
+name: Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  version-bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Skip if the push is a version bump commit (from a merged version-bump PR)
+          HEAD_MSG=$(git log -1 --pretty=format:"%s")
+          if echo "$HEAD_MSG" | grep -qE '^Bump version to v'; then
+            echo "Skipping: version bump commit already on main."
+            echo "new_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Get the latest version tag, default to v1.0.0 base if none exists
+          LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No existing version tag found. Will create v1.0.0."
+            echo "bump=initial" >> "$GITHUB_OUTPUT"
+            echo "new_version=1.0.0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Latest tag: $LATEST_TAG"
+
+          # Get commit hashes since last tag (excluding merge commits and bot version bumps)
+          COMMIT_HASHES=$(git log "$LATEST_TAG"..HEAD --pretty=format:"%H" --no-merges)
+
+          if [ -z "$COMMIT_HASHES" ]; then
+            echo "No new commits since $LATEST_TAG"
+            echo "new_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Determine bump type from explicit commit prefixes.
+          # `none:` and `.github/`-only commits count as no-bump for that commit.
+          # Release precedence across commits is: major > minor > patch > none.
+          BUMP="none"
+
+          while IFS= read -r hash; do
+            SUBJECT=$(git log -1 --pretty=format:"%s" "$hash")
+            COMMIT_BUMP="patch"
+
+            # Skip version bump commits
+            if echo "$SUBJECT" | grep -qE '^Bump version to v'; then
+              continue
+            fi
+
+            # Explicit commit prefixes take precedence for this commit.
+            if echo "$SUBJECT" | grep -qE '^major:'; then
+              COMMIT_BUMP="major"
+            elif echo "$SUBJECT" | grep -qE '^minor:'; then
+              COMMIT_BUMP="minor"
+            elif echo "$SUBJECT" | grep -qE '^none:'; then
+              COMMIT_BUMP="none"
+            else
+              # For squash-merged PRs the individual commit messages live in the
+              # body (typically as "* prefix: ..." bullet points).  Scan the body
+              # for the highest-precedence prefix before falling back to the
+              # default patch/none logic.
+              BODY=$(git log -1 --pretty=format:"%b" "$hash")
+              BODY_BUMP=""
+              if [ -n "$BODY" ]; then
+                while IFS= read -r line; do
+                  # Strip optional leading "* " added by GitHub squash-merge
+                  clean_line="${line#\* }"
+                  if echo "$clean_line" | grep -qE '^major:'; then
+                    BODY_BUMP="major"
+                    break
+                  elif echo "$clean_line" | grep -qE '^minor:'; then
+                    BODY_BUMP="minor"
+                  fi
+                done <<< "$BODY"
+              fi
+
+              if [ -n "$BODY_BUMP" ]; then
+                COMMIT_BUMP="$BODY_BUMP"
+              else
+                CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r --root "$hash")
+                if [ -n "$CHANGED_FILES" ] && ! echo "$CHANGED_FILES" | grep -qvE '^(\.github/|$)'; then
+                  COMMIT_BUMP="none"
+                fi
+              fi
+            fi
+
+            case "$COMMIT_BUMP" in
+              major)
+                BUMP="major"
+                break
+                ;;
+              minor)
+                if [ "$BUMP" = "none" ] || [ "$BUMP" = "patch" ]; then
+                  BUMP="minor"
+                fi
+                ;;
+              patch)
+                if [ "$BUMP" = "none" ]; then
+                  BUMP="patch"
+                fi
+                ;;
+            esac
+          done <<< "$COMMIT_HASHES"
+
+          if [ "$BUMP" = "none" ]; then
+            echo "Skipping: no releasable commits found since $LATEST_TAG."
+            echo "bump=none" >> "$GITHUB_OUTPUT"
+            echo "new_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Bump type: $BUMP"
+
+          # Parse current version from tag
+          CURRENT="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "$BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Use Node.js 24
+        if: steps.bump.outputs.new_version != ''
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Update package.json version
+        if: steps.bump.outputs.new_version != ''
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+        run: |
+          npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Create branch, commit, and open PR with auto-merge
+        if: steps.bump.outputs.new_version != ''
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          BRANCH="version-bump/v${NEW_VERSION}"
+
+          # If an open PR already exists for this version, ensure auto-merge
+          # is enabled (covers reruns where PR was created but auto-merge failed).
+          EXISTING_PR=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists; ensuring auto-merge is enabled."
+            gh pr merge --auto --squash "#${EXISTING_PR}"
+            exit 0
+          fi
+
+          # Create branch and commit if it doesn't exist yet
+          if git ls-remote --heads origin "$BRANCH" | grep -q .; then
+            echo "Branch $BRANCH exists without an open PR; will attempt PR creation."
+          else
+            git checkout -b "$BRANCH"
+            git add package.json
+            if git diff --cached --quiet; then
+              # package.json already has this version (e.g. bootstrap case where
+              # the repo has no tags but package.json is already at 1.0.0).
+              # Tag the current HEAD directly so tag-version.yml isn't needed.
+              echo "No package.json changes; creating tag v${NEW_VERSION} directly."
+              if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
+                echo "Tag v${NEW_VERSION} already exists, skipping."
+                exit 0
+              fi
+              git tag -a "v${NEW_VERSION}" -m "Version ${NEW_VERSION}"
+              git push origin "v${NEW_VERSION}"
+              exit 0
+            fi
+            git commit -m "Bump version to v${NEW_VERSION}"
+            git push origin "$BRANCH"
+          fi
+
+          PR_URL=$(gh pr create \
+            --title "Bump version to v${NEW_VERSION}" \
+            --body "Automated version bump to v${NEW_VERSION}." \
+            --base main \
+            --head "$BRANCH")
+
+          echo "Created PR: $PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
+          echo "Enabled auto-merge for $PR_URL"

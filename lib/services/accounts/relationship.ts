@@ -1,8 +1,7 @@
-import { Mastodon } from '@llun/activities.schema'
-
 import { Database } from '@/lib/database/types'
-import { Actor } from '@/lib/models/actor'
-import { FollowStatus } from '@/lib/models/follow'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Actor } from '@/lib/types/domain/actor'
+import { FollowStatus } from '@/lib/types/domain/follow'
 import { urlToId } from '@/lib/utils/urlToId'
 
 interface GetRelationshipParams {

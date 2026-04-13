@@ -1,9 +1,10 @@
-import { getTestSQLDatabase } from '../../database/testUtils'
-import { Status } from '../../models/status'
-import { TEST_DOMAIN } from '../../stub/const'
-import { seedDatabase } from '../../stub/database'
-import { ACTOR1_ID } from '../../stub/seed/actor1'
-import { ACTOR2_ID } from '../../stub/seed/actor2'
+import { getTestSQLDatabase } from '@/lib/database/testUtils'
+import { TEST_DOMAIN } from '@/lib/stub/const'
+import { seedDatabase } from '@/lib/stub/database'
+import { ACTOR1_ID } from '@/lib/stub/seed/actor1'
+import { ACTOR2_ID } from '@/lib/stub/seed/actor2'
+import { Status } from '@/lib/types/domain/status'
+
 import { getActualStatus, processStatusText } from './processStatusText'
 
 describe('processStatusText', () => {

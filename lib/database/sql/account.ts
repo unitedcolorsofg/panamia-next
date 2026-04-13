@@ -1,13 +1,21 @@
 import { Knex } from 'knex'
 
+import {
+  CounterKey,
+  getCounterValues,
+  increaseCounterValue
+} from '@/lib/database/sql/utils/counter'
+import { incrementBucket } from '@/lib/database/sql/utils/counterBucket'
 import { getCompatibleJSON } from '@/lib/database/sql/utils/getCompatibleJSON'
 import { getCompatibleTime } from '@/lib/database/sql/utils/getCompatibleTime'
+import { toDomainAccount } from '@/lib/database/sql/utils/toDomainAccount'
 import {
   AccountDatabase,
   ChangePasswordParams,
   CreateAccountParams,
   CreateAccountSessionParams,
   CreateActorForAccountParams,
+  CreateCredentialProviderParams,
   DeleteAccountSessionParams,
   GetAccountAllSessionsParams,
   GetAccountFromEmailParams,
@@ -20,17 +28,22 @@ import {
   IsUsernameExistsParams,
   LinkAccountWithProviderParams,
   RequestEmailChangeParams,
+  RequestPasswordResetParams,
+  ResetPasswordWithCodeParams,
   SetDefaultActorParams,
   SetSessionActorParams,
   UnlinkAccountFromProviderParams,
+  UpdateAccountImageParams,
+  UpdateAccountNameParams,
   UpdateAccountSessionParams,
+  ValidatePasswordResetCodeParams,
   VerifyAccountParams,
   VerifyEmailChangeParams
-} from '@/lib/database/types/account'
-import { ActorSettings } from '@/lib/database/types/sql'
-import { Account } from '@/lib/models/account'
-import { Actor } from '@/lib/models/actor'
-import { Session } from '@/lib/models/session'
+} from '@/lib/types/database/operations'
+import { ActorSettings, SQLAccount } from '@/lib/types/database/rows'
+import { Account } from '@/lib/types/domain/account'
+import { Actor } from '@/lib/types/domain/actor'
+import { Session } from '@/lib/types/domain/session'
 
 export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
   async isAccountExists({ email }: IsAccountExistsParams) {
@@ -53,6 +66,7 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
   async createAccount({
     email,
     username,
+    name,
     passwordHash,
     verificationCode,
     domain,
@@ -73,10 +87,11 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
       await trx('accounts').insert({
         id: accountId,
         email,
+        name: name || null,
         passwordHash,
         ...(verificationCode
           ? { verificationCode }
-          : { verifiedAt: currentTime }),
+          : { verifiedAt: currentTime, emailVerified: true }),
         createdAt: currentTime,
         updatedAt: currentTime
       })
@@ -91,57 +106,75 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
         createdAt: currentTime,
         updatedAt: currentTime
       })
+      await trx('account_providers').insert({
+        id: `credential_${accountId}`,
+        accountId,
+        provider: 'credential',
+        providerId: accountId,
+        password: passwordHash,
+        createdAt: currentTime,
+        updatedAt: currentTime
+      })
+      await increaseCounterValue(
+        trx,
+        CounterKey.nodeinfoTotalUsers(),
+        1,
+        currentTime
+      )
+      await increaseCounterValue(
+        trx,
+        CounterKey.serviceTotalAccounts(),
+        1,
+        currentTime
+      )
+      await increaseCounterValue(
+        trx,
+        CounterKey.serviceTotalActors(),
+        1,
+        currentTime
+      )
+      await incrementBucket(trx, 'accounts', 1, currentTime)
+      await incrementBucket(trx, 'actors', 1, currentTime)
     })
 
     return accountId
   },
 
+  async createCredentialProvider({
+    accountId,
+    passwordHash
+  }: CreateCredentialProviderParams): Promise<void> {
+    const currentTime = new Date()
+    await database('account_providers')
+      .insert({
+        id: `credential_${accountId}`,
+        accountId,
+        provider: 'credential',
+        providerId: accountId,
+        password: passwordHash,
+        createdAt: currentTime,
+        updatedAt: currentTime
+      })
+      .onConflict('id')
+      .ignore()
+  },
+
   async getAccountFromId({ id }: GetAccountFromIdParams) {
-    const account = await database('accounts').where('id', id).first()
+    const account = await database<SQLAccount>('accounts')
+      .where('id', id)
+      .first()
     if (!account) return null
-    return {
-      ...account,
-      ...(account.verifiedAt
-        ? { verifiedAt: getCompatibleTime(account.verifiedAt) }
-        : null),
-      ...(account.emailVerifiedAt
-        ? { emailVerifiedAt: getCompatibleTime(account.emailVerifiedAt) }
-        : null),
-      ...(account.emailChangeCodeExpiresAt
-        ? {
-            emailChangeCodeExpiresAt: getCompatibleTime(
-              account.emailChangeCodeExpiresAt
-            )
-          }
-        : null),
-      createdAt: getCompatibleTime(account.createdAt),
-      updatedAt: getCompatibleTime(account.updatedAt)
-    }
+    return toDomainAccount(account)
   },
 
   async getAccountFromEmail({
     email
   }: GetAccountFromEmailParams): Promise<Account | null> {
-    const account = await database('accounts').where('email', email).first()
+    const account = await database<SQLAccount>('accounts')
+      .where('email', email)
+      .first()
     if (!account) return null
-    return {
-      ...account,
-      ...(account.verifiedAt
-        ? { verifiedAt: getCompatibleTime(account.verifiedAt) }
-        : null),
-      ...(account.emailVerifiedAt
-        ? { emailVerifiedAt: getCompatibleTime(account.emailVerifiedAt) }
-        : null),
-      ...(account.emailChangeCodeExpiresAt
-        ? {
-            emailChangeCodeExpiresAt: getCompatibleTime(
-              account.emailChangeCodeExpiresAt
-            )
-          }
-        : null),
-      createdAt: getCompatibleTime(account.createdAt),
-      updatedAt: getCompatibleTime(account.updatedAt)
-    }
+    return toDomainAccount(account)
   },
 
   async getAccountFromProviderId({
@@ -152,27 +185,10 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
       .where('provider', provider)
       .where('providerId', accountId)
       .join('accounts', 'account_providers.accountId', '=', 'accounts.id')
-      .select<Account>('accounts.*')
+      .select<SQLAccount>('accounts.*')
       .first()
     if (!account) return null
-    return {
-      ...account,
-      ...(account.verifiedAt
-        ? { verifiedAt: getCompatibleTime(account.verifiedAt) }
-        : null),
-      ...(account.emailVerifiedAt
-        ? { emailVerifiedAt: getCompatibleTime(account.emailVerifiedAt) }
-        : null),
-      ...(account.emailChangeCodeExpiresAt
-        ? {
-            emailChangeCodeExpiresAt: getCompatibleTime(
-              account.emailChangeCodeExpiresAt
-            )
-          }
-        : null),
-      createdAt: getCompatibleTime(account.createdAt),
-      updatedAt: getCompatibleTime(account.updatedAt)
-    }
+    return toDomainAccount(account)
   },
 
   async linkAccountWithProvider({
@@ -201,26 +217,20 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
       createdAt: currentTime,
       updatedAt: currentTime
     })
-    return {
-      ...account,
-      ...(account.verifiedAt
-        ? { verifiedAt: getCompatibleTime(account.verifiedAt) }
-        : null),
-      createdAt: getCompatibleTime(account.createdAt),
-      updatedAt: getCompatibleTime(account.updatedAt)
-    }
+    return toDomainAccount(account)
   },
 
   async verifyAccount({ verificationCode }: VerifyAccountParams) {
-    const account = await database('accounts')
+    const account = await database<SQLAccount>('accounts')
       .where('verificationCode', verificationCode)
-      .first<Account>()
+      .first()
     if (!account) return null
 
     const currentTime = new Date()
     await database('accounts').where('id', account.id).update({
       verificationCode: '',
       verifiedAt: currentTime,
+      emailVerified: true,
       updatedAt: currentTime
     })
     return this.getAccountFromId({ id: account.id })
@@ -376,6 +386,13 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
       createdAt: currentTime,
       updatedAt: currentTime
     })
+    await increaseCounterValue(
+      database,
+      CounterKey.serviceTotalActors(),
+      1,
+      currentTime
+    )
+    await incrementBucket(database, 'actors', 1, currentTime)
 
     return actorId
   },
@@ -386,7 +403,9 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
     const sqlActors = await database('actors').where('accountId', accountId)
     if (!sqlActors || sqlActors.length === 0) return []
 
-    const account = await database('accounts').where('id', accountId).first()
+    const account = await database<SQLAccount>('accounts')
+      .where('id', accountId)
+      .first()
     if (!account) return []
 
     const results: Actor[] = []
@@ -394,26 +413,19 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
     for (const sqlActor of sqlActors) {
       const settings = getCompatibleJSON<ActorSettings>(sqlActor.settings)
 
-      const [totalFollowers, totalFollowing, totalStatus, lastStatus] =
-        await database.transaction(async (trx) => {
-          return Promise.all([
-            trx('follows')
-              .where('targetActorId', sqlActor.id)
-              .andWhere('status', 'Accepted')
-              .count<{ count: string }>('* as count')
-              .first(),
-            trx('follows')
-              .where('actorId', sqlActor.id)
-              .andWhere('status', 'Accepted')
-              .count<{ count: string }>('* as count')
-              .first(),
-            trx('counters').where('id', `total-status:${sqlActor.id}`).first(),
-            trx('statuses')
-              .where('actorId', sqlActor.id)
-              .orderBy('createdAt', 'desc')
-              .first<{ createdAt: number | Date }>('createdAt')
-          ])
-        })
+      const [counters, lastStatus] = await database.transaction(async (trx) => {
+        return Promise.all([
+          getCounterValues(trx, [
+            CounterKey.totalFollowers(sqlActor.id),
+            CounterKey.totalFollowing(sqlActor.id),
+            CounterKey.totalStatus(sqlActor.id)
+          ]),
+          trx('statuses')
+            .where('actorId', sqlActor.id)
+            .orderBy('createdAt', 'desc')
+            .first<{ createdAt: number | Date }>('createdAt')
+        ])
+      })
 
       const actor = Actor.parse({
         id: sqlActor.id,
@@ -431,17 +443,10 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
         sharedInboxUrl: settings.sharedInboxUrl,
         publicKey: sqlActor.publicKey,
         ...(sqlActor.privateKey ? { privateKey: sqlActor.privateKey } : null),
-        account: Account.parse({
-          ...account,
-          createdAt: getCompatibleTime(account.createdAt),
-          updatedAt: getCompatibleTime(account.updatedAt),
-          ...(account.verifiedAt
-            ? { verifiedAt: getCompatibleTime(account.verifiedAt) }
-            : null)
-        }),
-        followingCount: parseInt(totalFollowing?.count ?? '0', 10),
-        followersCount: parseInt(totalFollowers?.count ?? '0', 10),
-        statusCount: totalStatus?.value ?? 0,
+        account: toDomainAccount(account),
+        followingCount: counters[CounterKey.totalFollowing(sqlActor.id)] ?? 0,
+        followersCount: counters[CounterKey.totalFollowers(sqlActor.id)] ?? 0,
+        statusCount: counters[CounterKey.totalStatus(sqlActor.id)] ?? 0,
         lastStatusAt: lastStatus?.createdAt
           ? getCompatibleTime(lastStatus.createdAt)
           : null,
@@ -543,14 +548,148 @@ export const AccountSQLDatabaseMixin = (database: Knex): AccountDatabase => ({
     return this.getAccountFromId({ id: account.id })
   },
 
+  // Multiple reset requests are allowed; the most recent code replaces prior ones.
+  async requestPasswordReset({
+    email,
+    passwordResetCode,
+    expiresAt
+  }: RequestPasswordResetParams): Promise<boolean> {
+    const account = await database<SQLAccount>('accounts')
+      .where('email', email)
+      .first()
+    if (!account) return false
+
+    const currentTime = new Date()
+    const expiresAtDate =
+      passwordResetCode === null
+        ? null
+        : expiresAt
+          ? new Date(expiresAt)
+          : new Date(currentTime.getTime() + 24 * 60 * 60 * 1000) // 24 hours
+
+    await database('accounts').where('id', account.id).update({
+      passwordResetCode,
+      passwordResetCodeExpiresAt: expiresAtDate,
+      updatedAt: currentTime
+    })
+
+    return true
+  },
+
+  async validatePasswordResetCode({
+    passwordResetCode
+  }: ValidatePasswordResetCodeParams): Promise<string | null> {
+    const now = new Date()
+    const account = await database<SQLAccount>('accounts')
+      .where('passwordResetCode', passwordResetCode)
+      .andWhere('passwordResetCodeExpiresAt', '>=', now)
+      .first('id')
+
+    return account?.id ?? null
+  },
+
+  async resetPasswordWithCode({
+    accountId,
+    passwordResetCode,
+    newPasswordHash
+  }: ResetPasswordWithCodeParams): Promise<Account | null> {
+    const now = new Date()
+    const targetAccountId = accountId
+      ? accountId
+      : (
+          await database<SQLAccount>('accounts')
+            .where('passwordResetCode', passwordResetCode)
+            .first('id')
+        )?.id
+    if (!targetAccountId) return null
+
+    const updatedAccountId = await database.transaction(async (trx) => {
+      const updatedCount = await trx('accounts')
+        .where('id', targetAccountId)
+        .andWhere('passwordResetCode', passwordResetCode)
+        .andWhere('passwordResetCodeExpiresAt', '>=', now)
+        .update({
+          passwordHash: newPasswordHash,
+          passwordResetCode: null,
+          passwordResetCodeExpiresAt: null,
+          updatedAt: now
+        })
+
+      if (updatedCount === 0) return null
+
+      await trx('account_providers')
+        .insert({
+          id: `credential_${targetAccountId}`,
+          accountId: targetAccountId,
+          provider: 'credential',
+          providerId: targetAccountId,
+          password: newPasswordHash,
+          createdAt: now,
+          updatedAt: now
+        })
+        .onConflict('id')
+        .merge({ password: newPasswordHash, updatedAt: now })
+
+      await trx('sessions').where('accountId', targetAccountId).delete()
+      return targetAccountId
+    })
+
+    if (!updatedAccountId) return null
+    return this.getAccountFromId({ id: updatedAccountId })
+  },
+
   async changePassword({
     accountId,
     newPasswordHash
   }: ChangePasswordParams): Promise<void> {
     const currentTime = new Date()
-    await database('accounts').where('id', accountId).update({
-      passwordHash: newPasswordHash,
-      updatedAt: currentTime
+    await database.transaction(async (trx) => {
+      await trx('accounts').where('id', accountId).update({
+        passwordHash: newPasswordHash,
+        passwordResetCode: null,
+        passwordResetCodeExpiresAt: null,
+        updatedAt: currentTime
+      })
+      await trx('account_providers')
+        .insert({
+          id: `credential_${accountId}`,
+          accountId,
+          provider: 'credential',
+          providerId: accountId,
+          password: newPasswordHash,
+          createdAt: currentTime,
+          updatedAt: currentTime
+        })
+        .onConflict('id')
+        .merge({ password: newPasswordHash, updatedAt: currentTime })
+      await trx('sessions').where('accountId', accountId).delete()
     })
+  },
+
+  async updateAccountName({
+    accountId,
+    name
+  }: UpdateAccountNameParams): Promise<void> {
+    const currentTime = new Date()
+    await database('accounts')
+      .where('id', accountId)
+      .update({
+        name: name || null,
+        updatedAt: currentTime
+      })
+  },
+
+  async updateAccountImage({
+    accountId,
+    iconUrl
+  }: UpdateAccountImageParams): Promise<void> {
+    const currentTime = new Date()
+    await database('accounts')
+      .where('id', accountId)
+      .update({
+        iconUrl: iconUrl || null,
+        image: iconUrl || null,
+        updatedAt: currentTime
+      })
   }
 })

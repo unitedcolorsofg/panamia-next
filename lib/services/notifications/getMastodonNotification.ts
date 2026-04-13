@@ -1,13 +1,8 @@
-import { Mastodon } from '@llun/activities.schema'
-
 import { Database } from '@/lib/database/types'
-import {
-  Notification,
-  NotificationType
-} from '@/lib/database/types/notification'
+import { getMastodonStatus } from '@/lib/services/mastodon/getMastodonStatus'
 import { GroupedNotification } from '@/lib/services/notifications/groupNotifications'
-
-import { getMastodonStatus } from '../mastodon/getMastodonStatus'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Notification, NotificationType } from '@/lib/types/database/operations'
 
 // Mastodon notification type mapping
 type MastodonNotificationType =
@@ -52,6 +47,8 @@ const mapNotificationType = (
       return 'follow_request'
     case 'mention':
       return 'mention'
+    case 'activity_import':
+      return 'status'
     default:
       return 'mention' // Default fallback
   }
@@ -118,7 +115,7 @@ export const getMastodonNotification = async (
           .map((actorId) => database.getMastodonActorFromId({ id: actorId }))
       )
       mastodonNotification.grouped_accounts = groupedAccounts.filter(
-        (acc): acc is Mastodon.Account => acc !== null
+        (acc: Mastodon.Account | null): acc is Mastodon.Account => acc !== null
       )
     }
   }

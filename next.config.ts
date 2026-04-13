@@ -22,7 +22,8 @@ const nextConfig: NextConfig = {
     'pino',
     'pino-pretty',
     'resend',
-    'thread-stream'
+    'thread-stream',
+    'web-push'
   ],
   generateBuildId() {
     return `activities-${Date.now()}`
@@ -65,4 +66,4 @@ const nextConfig: NextConfig = {
     ]
   }
 }
-module.exports = nextConfig
+export default nextConfig

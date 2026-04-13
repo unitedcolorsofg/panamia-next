@@ -1,17 +1,19 @@
 /**
+
  * @deprecated Use POST /api/v1/statuses for creating and DELETE /api/v1/statuses/:id for deleting
  * This custom endpoint is maintained for backward compatibility.
  */
 import { createNoteFromUserInput } from '@/lib/actions/createNote'
 import { createPollFromUserInput } from '@/lib/actions/createPoll'
 import { deleteStatusFromUserInput } from '@/lib/actions/deleteStatus'
-import { toActivityPubObject } from '@/lib/models/status'
 import { AuthenticatedGuard } from '@/lib/services/guards/AuthenticatedGuard'
+import { toActivityPubObject } from '@/lib/types/domain/status'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
 import { logger } from '@/lib/utils/logger'
 import {
   DEFAULT_202,
-  apiErrorResponse,
+  ERROR_400,
+  ERROR_404,
   apiResponse,
   defaultOptions
 } from '@/lib/utils/response'
@@ -36,16 +38,29 @@ export const POST = traceApiRoute(
       const request = PostRequest.parse(body)
       switch (request.type) {
         case 'note': {
-          const { message, replyStatus, attachments, visibility } = request
+          const {
+            message,
+            replyStatus,
+            attachments,
+            fitnessFileId,
+            visibility
+          } = request
           const status = await createNoteFromUserInput({
             currentActor,
             text: message,
             replyNoteId: replyStatus?.id,
             attachments,
+            fitnessFileId,
             visibility,
             database
           })
-          if (!status) return apiErrorResponse(404)
+          if (!status)
+            return apiResponse({
+              req,
+              allowedMethods: CORS_HEADERS,
+              data: ERROR_404,
+              responseStatusCode: 404
+            })
           return apiResponse({
             req,
             allowedMethods: CORS_HEADERS,
@@ -83,13 +98,23 @@ export const POST = traceApiRoute(
           })
         }
         default: {
-          return apiErrorResponse(404)
+          return apiResponse({
+            req,
+            allowedMethods: CORS_HEADERS,
+            data: ERROR_404,
+            responseStatusCode: 404
+          })
         }
       }
     } catch (error) {
       const nodeError = error as NodeJS.ErrnoException
       logger.error(nodeError)
-      return apiErrorResponse(400)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_400,
+        responseStatusCode: 400
+      })
     }
   })
 )
@@ -112,7 +137,12 @@ export const DELETE = traceApiRoute(
         data: DEFAULT_202
       })
     } catch {
-      return apiErrorResponse(400)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_400,
+        responseStatusCode: 400
+      })
     }
   })
 )

@@ -1,4 +1,12 @@
-import { parse, verify } from './signature'
+import { Actor } from '@/lib/types/domain/actor'
+
+import { generateKeyPair, parse, signedHeaders, verify } from './signature'
+
+jest.mock('@/lib/config', () => ({
+  getConfig: () => ({
+    secretPhase: 'secret'
+  })
+}))
 
 describe('#parse', () => {
   test('split signature into parts', async () => {
@@ -145,4 +153,65 @@ describe('#verify', () => {
       )
     ).toBeFalsy()
   })
+})
+
+describe('#signedHeaders', () => {
+  let keyPair: Awaited<ReturnType<typeof generateKeyPair>>
+
+  beforeAll(async () => {
+    keyPair = await generateKeyPair('secret')
+  }, 15000)
+
+  it('includes headers for POST request', async () => {
+    const actor = {
+      id: 'https://test.com/actor',
+      privateKey: keyPair.privateKey,
+      publicKey: keyPair.publicKey
+    } as Actor
+
+    const headers = signedHeaders(actor, 'post', 'https://target.com/inbox', {
+      type: 'Note',
+      content: 'test'
+    })
+
+    expect(headers.digest).toBeDefined()
+    expect(headers['content-type']).toBe('application/activity+json')
+    expect(headers.signature).toContain(
+      'headers="(request-target) host date digest content-type"'
+    )
+
+    const verifyResult = await verify(
+      'post /inbox',
+      {
+        ...headers,
+        signature: headers.signature as string
+      },
+      keyPair.publicKey
+    )
+    expect(verifyResult).toBeTruthy()
+  }, 15000)
+
+  it('includes headers for GET request', async () => {
+    const actor = {
+      id: 'https://test.com/actor',
+      privateKey: keyPair.privateKey,
+      publicKey: keyPair.publicKey
+    } as Actor
+
+    const headers = signedHeaders(actor, 'get', 'https://target.com/inbox')
+
+    expect(headers.digest).toBeUndefined()
+    expect(headers['content-type']).toBeUndefined()
+    expect(headers.signature).toContain('headers="(request-target) host date"')
+
+    const verifyResult = await verify(
+      'get /inbox',
+      {
+        ...headers,
+        signature: headers.signature as string
+      },
+      keyPair.publicKey
+    )
+    expect(verifyResult).toBeTruthy()
+  }, 15000)
 })

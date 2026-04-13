@@ -1,4 +1,5 @@
 /**
+
  * @deprecated Use POST /api/v1/statuses/:id/reblog and /unreblog instead
  * This custom endpoint is maintained for backward compatibility.
  */
@@ -8,11 +9,7 @@ import { userAnnounce } from '@/lib/actions/announce'
 import { userUndoAnnounce } from '@/lib/actions/undoAnnounce'
 import { AuthenticatedGuard } from '@/lib/services/guards/AuthenticatedGuard'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
-import {
-  apiErrorResponse,
-  apiResponse,
-  defaultOptions
-} from '@/lib/utils/response'
+import { ERROR_422, apiResponse, defaultOptions } from '@/lib/utils/response'
 import { traceApiRoute } from '@/lib/utils/traceApiRoute'
 
 const RepostRequest = z.object({ statusId: z.string() })
@@ -37,7 +34,12 @@ export const POST = traceApiRoute(
       database
     })
     if (!announceStatus) {
-      return apiErrorResponse(422)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_422,
+        responseStatusCode: 422
+      })
     }
     return apiResponse({
       req,
@@ -59,7 +61,12 @@ export const DELETE = traceApiRoute(
       database
     })
     if (!undoStatus) {
-      return apiErrorResponse(422)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_422,
+        responseStatusCode: 422
+      })
     }
     return apiResponse({
       req,

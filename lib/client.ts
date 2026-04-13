@@ -1,13 +1,14 @@
 import { Duration } from '@/lib/components/post-box/poll-choices'
+import { PresignedUrlOutput } from '@/lib/services/medias/types'
+import { TimelineFormat } from '@/lib/services/timelines/const'
+import { Timeline } from '@/lib/services/timelines/types'
 import {
   Attachment,
   PostBoxAttachment,
   UploadedAttachment
-} from '@/lib/models/attachment'
-import { Status } from '@/lib/models/status'
-import { PresignedUrlOutput } from '@/lib/services/medias/types'
-import { TimelineFormat } from '@/lib/services/timelines/const'
-import { Timeline } from '@/lib/services/timelines/types'
+} from '@/lib/types/domain/attachment'
+import { Status } from '@/lib/types/domain/status'
+import type { Account as MastodonAccount } from '@/lib/types/mastodon/account'
 import { getMediaWidthAndHeight } from '@/lib/utils/getMediaWidthAndHeight'
 import { MastodonVisibility } from '@/lib/utils/getVisibility'
 import { urlToId } from '@/lib/utils/urlToId'
@@ -16,15 +17,21 @@ export interface CreateNoteParams {
   message: string
   replyStatus?: Status
   attachments?: PostBoxAttachment[]
+  fitnessFileId?: string
   visibility?: MastodonVisibility
 }
 export const createNote = async ({
   message,
   replyStatus,
   attachments = [],
+  fitnessFileId,
   visibility
 }: CreateNoteParams) => {
-  if (message.trim().length === 0 && attachments.length === 0) {
+  if (
+    message.trim().length === 0 &&
+    attachments.length === 0 &&
+    !fitnessFileId
+  ) {
     throw new Error('Message or attachments must not be empty')
   }
 
@@ -38,6 +45,7 @@ export const createNote = async ({
       replyStatus,
       message,
       attachments,
+      fitnessFileId,
       visibility
     })
   })
@@ -86,6 +94,29 @@ export const updateNote = async ({ statusId, message }: UpdateNoteParams) => {
         : undefined,
       reply: mastodonStatus.in_reply_to_id || ''
     }
+  }
+}
+
+export interface UpdateStatusVisibilityParams {
+  statusId: string
+  visibility: MastodonVisibility
+}
+
+export const updateStatusVisibility = async ({
+  statusId,
+  visibility
+}: UpdateStatusVisibilityParams): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/v1/statuses/${urlToId(statusId)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ visibility })
+    })
+    return response.status === 200
+  } catch {
+    return false
   }
 }
 
@@ -204,17 +235,74 @@ export const likeStatus = async ({ statusId }: DefaultStatusParams) => {
   })
 }
 
+export interface GetStatusFavouritedByParams extends DefaultStatusParams {
+  limit?: number
+  offset?: number
+}
+
+export interface StatusFavouritedByResult {
+  accounts: MastodonAccount[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export const getStatusFavouritedBy = async ({
-  statusId
-}: DefaultStatusParams) => {
-  const response = await fetch(
-    `/api/v1/statuses/${urlToId(statusId)}/favourited_by`,
-    {
-      headers: { 'Content-Type': 'application/json' }
+  statusId,
+  limit,
+  offset = 0
+}: GetStatusFavouritedByParams): Promise<StatusFavouritedByResult> => {
+  const query = new URLSearchParams()
+  if (typeof limit === 'number') {
+    query.append('limit', `${limit}`)
+  }
+  if (offset > 0) {
+    query.append('offset', `${offset}`)
+  }
+  const path = `/api/v1/statuses/${urlToId(statusId)}/favourited_by${
+    query.toString().length > 0 ? `?${query.toString()}` : ''
+  }`
+
+  const response = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' }
+  })
+
+  if (response.status !== 200) {
+    return {
+      accounts: [],
+      total: 0,
+      limit: limit ?? 0,
+      offset
     }
+  }
+
+  const parseHeaderNumber = (value: string | null, fallback: number) => {
+    const parsed = parseInt(value ?? '', 10)
+    return Number.isNaN(parsed) ? fallback : parsed
+  }
+
+  const accounts = (
+    (await response.json()) as (MastodonAccount | null)[]
+  ).filter((account): account is MastodonAccount => Boolean(account))
+  const resolvedOffset = parseHeaderNumber(
+    response.headers.get('X-Offset'),
+    offset
   )
-  if (response.status !== 200) return []
-  return response.json()
+  const resolvedTotal = parseHeaderNumber(
+    response.headers.get('X-Total-Count'),
+    accounts.length
+  )
+  const resolvedLimit = parseHeaderNumber(
+    response.headers.get('X-Limit'),
+    limit ?? accounts.length
+  )
+
+  return {
+    accounts,
+    total: resolvedTotal,
+    limit: resolvedLimit,
+    offset: resolvedOffset
+  }
 }
 
 /**
@@ -253,11 +341,16 @@ interface FollowParams {
   targetActorId: string
 }
 
+export type FollowStatusType = 'not_following' | 'requested' | 'following'
+
 /**
- * Checks if current user is following the target actor using Mastodon-compatible API
+ * Gets the follow status of the current user to the target actor
+ * @returns 'following' if actively following, 'requested' if follow is pending approval, 'not_following' otherwise
  * @see https://docs.joinmastodon.org/methods/accounts/#relationships
  */
-export const isFollowing = async ({ targetActorId }: FollowParams) => {
+export const getFollowStatus = async ({
+  targetActorId
+}: FollowParams): Promise<FollowStatusType> => {
   const encodedId = urlToId(targetActorId)
   const response = await fetch(
     `/api/v1/accounts/relationships?id[]=${encodedId}`,
@@ -269,12 +362,30 @@ export const isFollowing = async ({ targetActorId }: FollowParams) => {
     }
   )
   if (response.status !== 200) {
-    return false
+    return 'not_following'
   }
 
   const relationships = await response.json()
-  if (!relationships.length) return false
-  return relationships[0].following === true
+  if (!relationships.length) return 'not_following'
+
+  const relationship = relationships[0]
+  if (relationship.following === true) {
+    return 'following'
+  }
+  if (relationship.requested === true) {
+    return 'requested'
+  }
+  return 'not_following'
+}
+
+/**
+ * Checks if current user is following the target actor using Mastodon-compatible API
+ * @deprecated Use getFollowStatus for more detailed status including pending requests
+ * @see https://docs.joinmastodon.org/methods/accounts/#relationships
+ */
+export const isFollowing = async ({ targetActorId }: FollowParams) => {
+  const status = await getFollowStatus({ targetActorId })
+  return status === 'following'
 }
 
 /**
@@ -331,6 +442,30 @@ export const getTimeline = async ({
   }
   if (limit) {
     url.searchParams.append('limit', `${limit}`)
+  }
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json'
+    }
+  })
+  if (response.status !== 200) return []
+  const data = await response.json()
+  return data.statuses as Status[]
+}
+
+interface GetHashtagTimelineParams {
+  tag: string
+  maxStatusId?: string
+}
+export const getHashtagTimeline = async ({
+  tag,
+  maxStatusId
+}: GetHashtagTimelineParams) => {
+  const path = `/api/v1/tags/${encodeURIComponent(tag)}?format=${TimelineFormat.enum.activities_next}`
+  const url = new URL(`${window.origin}${path}`)
+  if (maxStatusId) {
+    url.searchParams.append('max_id', urlToId(maxStatusId))
   }
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -419,27 +554,25 @@ export const createUploadPresignedUrl = async ({
 
 interface UploadFileToPresignedUrlParams {
   presignedUrl: string
-  fields: { [key: string]: string }
   media: File
 }
 
 export const uploadFileToPresignedUrl = async ({
   presignedUrl,
-  fields,
   media
 }: UploadFileToPresignedUrlParams) => {
-  const data = new FormData()
-  data.append('Content-Type', media.type)
-  Object.entries(fields).forEach(([key, value]) => {
-    data.append(key, value)
+  const response = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: media,
+    headers: { 'Content-Type': media.type }
   })
-  data.append('file', media)
-
-  return fetch(presignedUrl, {
-    method: 'POST',
-    body: data,
-    mode: 'no-cors'
-  })
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    throw new Error(
+      `Failed to upload to storage: ${response.status} ${response.statusText}${errorText ? `. ${errorText}` : ''}`
+    )
+  }
+  return response
 }
 
 export const uploadAttachment = async (
@@ -461,12 +594,8 @@ export const uploadAttachment = async (
     }
   }
 
-  const { url: presignedUrl, fields, saveFileOutput } = result.presigned
-  await uploadFileToPresignedUrl({
-    media: file,
-    presignedUrl,
-    fields
-  })
+  const { url: presignedUrl, saveFileOutput } = result.presigned
+  await uploadFileToPresignedUrl({ media: file, presignedUrl })
 
   return {
     type: 'upload',
@@ -505,5 +634,580 @@ export const getActorMedia = async ({
     }
   })
   if (response.status !== 200) return []
+  return response.json()
+}
+
+export interface UploadFitnessFileResult {
+  id: string
+  type: 'fitness'
+  file_type: 'fit' | 'gpx' | 'tcx' | 'zip'
+  mime_type: string
+  url: string
+  fileName: string
+  size: number
+  description?: string
+  hasMapData?: boolean
+  mapImageUrl?: string
+}
+
+export interface FitnessImportBatchFile {
+  id: string
+  actorId: string
+  fileName: string
+  fileType: 'fit' | 'gpx' | 'tcx' | 'zip'
+  statusId: string | null
+  isPrimary: boolean
+  importStatus: 'pending' | 'completed' | 'failed'
+  importError: string | null
+  activityStartTime: number | null
+  processingStatus: 'pending' | 'processing' | 'completed' | 'failed'
+}
+
+export interface FitnessImportBatchResult {
+  batchId: string
+  status: 'pending' | 'completed' | 'failed' | 'partially_failed'
+  summary: {
+    total: number
+    pending: number
+    completed: number
+    failed: number
+  }
+  files: FitnessImportBatchFile[]
+}
+
+export interface StartFitnessImportResult {
+  batchId: string
+  fileCount: number
+}
+
+export interface StartStravaArchiveImportResult {
+  archiveId: string
+  batchId: string
+  importId: string
+}
+
+export interface ActiveStravaArchiveImport {
+  id: string
+  archiveId: string
+  archiveFitnessFileId: string
+  batchId: string
+  visibility: MastodonVisibility
+  status: 'importing' | 'failed'
+  nextActivityIndex: number
+  mediaAttachmentRetry: number
+  totalActivitiesCount: number | null
+  completedActivitiesCount: number
+  failedActivitiesCount: number
+  firstFailureMessage: string | null
+  lastError: string | null
+  pendingMediaActivitiesCount: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ActiveStravaArchiveImportResponse {
+  activeImport: ActiveStravaArchiveImport | null
+}
+
+export class ApiRequestError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiRequestError'
+    this.status = status
+  }
+}
+
+const parseApiError = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<string> => {
+  const errorText = await response.text().catch(() => response.statusText)
+
+  if (!errorText) {
+    return response.statusText || fallbackMessage
+  }
+
+  try {
+    const parsedError = JSON.parse(errorText) as {
+      status?: string
+      message?: string
+      error?: string
+    }
+    return (
+      parsedError.status ||
+      parsedError.message ||
+      parsedError.error ||
+      errorText
+    )
+  } catch {
+    // Use raw text if error body is not JSON.
+    return errorText
+  }
+}
+
+export const uploadFitnessFile = async (
+  file: File,
+  description?: string
+): Promise<UploadFitnessFileResult> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (description) {
+    formData.append('description', description)
+  }
+
+  const response = await fetch('/api/v1/fitness-files', {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to upload fitness file.'
+    )
+
+    throw new Error(
+      `Failed to upload fitness file: ${response.status} ${errorDetails}`
+    )
+  }
+
+  return response.json()
+}
+
+export const startFitnessImport = async (
+  files: File[],
+  visibility: MastodonVisibility
+): Promise<StartFitnessImportResult> => {
+  const formData = new FormData()
+  files.forEach((file) => {
+    formData.append('files', file)
+  })
+  formData.append('visibility', visibility)
+
+  const response = await fetch('/api/v1/settings/fitness/import', {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to import fitness files.'
+    )
+    throw new Error(
+      `Failed to import fitness files: ${response.status} ${errorDetails}`
+    )
+  }
+
+  return response.json()
+}
+
+interface StravaArchivePresignedResult {
+  presigned: {
+    url: string
+    fitnessFileId: string
+    archiveId: string
+  }
+}
+
+export const createStravaArchivePresignedUrl = async (
+  archive: File
+): Promise<StravaArchivePresignedResult | null> => {
+  const response = await fetch(
+    '/api/v1/settings/fitness/strava/archive/presigned',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: archive.name,
+        contentType: archive.type || 'application/zip',
+        size: archive.size
+      })
+    }
+  )
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error('Failed to get presigned URL for archive')
+  return response.json()
+}
+
+export const startStravaArchiveImport = async (
+  archive: File,
+  visibility: MastodonVisibility
+): Promise<StartStravaArchiveImportResult> => {
+  // Try presigned upload first (ObjectStorage/S3 backends)
+  const presignedResult = await createStravaArchivePresignedUrl(archive).catch(
+    () => null
+  )
+
+  if (presignedResult) {
+    try {
+      const { url, fitnessFileId, archiveId } = presignedResult.presigned
+      // Upload archive directly to ObjectStorage via presigned PUT.
+      await uploadFileToPresignedUrl({ presignedUrl: url, media: archive })
+      // Notify server to create import record and queue the job
+      const response = await fetch('/api/v1/settings/fitness/strava/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fitnessFileId, archiveId, visibility })
+      })
+      if (!response.ok) {
+        throw new Error('Failed to start Strava archive import')
+      }
+      return response.json()
+    } catch {
+      // Presigned PUT failed (e.g. CORS not configured on the bucket).
+      // Fall through to the server-side upload path below.
+    }
+  }
+
+  // Fallback: upload archive through the Next.js server (LocalFile storage)
+  const formData = new FormData()
+  formData.append('archive', archive)
+  formData.append('visibility', visibility)
+
+  const response = await fetch('/api/v1/settings/fitness/strava/archive', {
+    method: 'POST',
+    body: formData
+  })
+  if (!response.ok) {
+    throw new Error('Failed to start Strava archive import')
+  }
+  return response.json()
+}
+
+export const getActiveStravaArchiveImport =
+  async (): Promise<ActiveStravaArchiveImportResponse> => {
+    const response = await fetch('/api/v1/settings/fitness/strava/archive', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      const errorDetails = await parseApiError(
+        response,
+        'Failed to load Strava archive import state.'
+      )
+      throw new Error(errorDetails)
+    }
+
+    return response.json()
+  }
+
+export const retryStravaArchiveImport = async (): Promise<{
+  success: boolean
+  activeImport: ActiveStravaArchiveImport | null
+}> => {
+  const response = await fetch('/api/v1/settings/fitness/strava/archive', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ action: 'retry' })
+  })
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to retry Strava archive import.'
+    )
+    throw new Error(errorDetails)
+  }
+
+  return response.json()
+}
+
+export const cancelStravaArchiveImport = async (): Promise<{
+  success: boolean
+  cancelled: boolean
+}> => {
+  const response = await fetch('/api/v1/settings/fitness/strava/archive', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ action: 'cancel' })
+  })
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to cancel Strava archive import.'
+    )
+    throw new Error(errorDetails)
+  }
+
+  return response.json()
+}
+
+export const getFitnessImportBatch = async (
+  batchId: string
+): Promise<FitnessImportBatchResult> => {
+  const response = await fetch(
+    `/api/v1/settings/fitness/import/${encodeURIComponent(batchId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      }
+    }
+  )
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to fetch fitness import batch.'
+    )
+    throw new ApiRequestError(errorDetails, response.status)
+  }
+
+  return response.json()
+}
+
+export const retryFitnessImportBatch = async (
+  batchId: string,
+  visibility: MastodonVisibility
+): Promise<{ batchId: string; retried: number }> => {
+  const response = await fetch(
+    `/api/v1/settings/fitness/import/${encodeURIComponent(batchId)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ visibility })
+    }
+  )
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to retry fitness import.'
+    )
+    throw new Error(errorDetails)
+  }
+
+  return response.json()
+}
+
+export const retryFitnessProcessing = async (
+  statusId: string
+): Promise<{ statusId: string; retried: number }> => {
+  const response = await fetch(
+    `/api/v1/statuses/${urlToId(statusId)}/retry-fitness`,
+    { method: 'POST' }
+  )
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to retry fitness processing.'
+    )
+    throw new Error(errorDetails)
+  }
+
+  return response.json()
+}
+
+export interface FitnessActivitySummary {
+  activityType: string
+  count: number
+  totalDistanceMeters: number
+  totalDurationSeconds: number
+  totalElevationGainMeters: number
+}
+
+interface GetFitnessSummaryParams {
+  actorId: string
+  startDate: number
+  endDate: number
+}
+
+export const getFitnessSummary = async ({
+  actorId,
+  startDate,
+  endDate
+}: GetFitnessSummaryParams): Promise<FitnessActivitySummary[]> => {
+  const encodedId = urlToId(actorId)
+  const url = new URL(
+    `${window.origin}/api/v1/accounts/${encodedId}/fitness-summary`
+  )
+  url.searchParams.append('start_date', `${startDate}`)
+  url.searchParams.append('end_date', `${endDate}`)
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json'
+    }
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch fitness summary: ${response.status}`)
+  }
+  return response.json()
+}
+
+export const deleteFitnessFile = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/v1/accounts/fitness-files/${id}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    const errorDetails = await parseApiError(
+      response,
+      'Failed to delete fitness file.'
+    )
+    throw new Error(errorDetails)
+  }
+}
+
+// --- Notification settings ---
+
+export const getVapidKey = async (): Promise<string | null> => {
+  const response = await fetch('/api/v1/push/vapid-key')
+  if (!response.ok) return null
+  const data = await response.json()
+  return data.vapidPublicKey as string
+}
+
+export const updateEmailNotifications = async (
+  actorId: string,
+  settings: Record<string, boolean>
+): Promise<boolean> => {
+  const response = await fetch('/api/v1/accounts/email-notifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actorId, ...settings })
+  })
+  return response.ok
+}
+
+export const subscribePushNotifications = async (
+  endpoint: string,
+  keys: { p256dh: string; auth: string }
+): Promise<boolean> => {
+  const response = await fetch('/api/v1/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint, keys })
+  })
+  return response.ok
+}
+
+export const unsubscribePushNotifications = async (
+  endpoint: string
+): Promise<boolean> => {
+  const response = await fetch('/api/v1/push/subscribe', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint })
+  })
+  return response.ok
+}
+
+export const updatePushNotifications = async (
+  actorId: string,
+  settings: Record<string, boolean>
+): Promise<boolean> => {
+  const response = await fetch('/api/v1/accounts/push-notifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actorId, ...settings })
+  })
+  return response.ok
+}
+
+// Fitness Heatmap
+
+export interface FitnessHeatmapData {
+  id: string
+  activityType?: string
+  periodType: string
+  periodKey: string
+  status: string
+  imagePath?: string
+  activityCount: number
+}
+
+export interface FitnessCalendarDay {
+  date: string
+  count: number
+  totalDistanceMeters: number
+  totalDurationSeconds: number
+}
+
+export const getFitnessHeatmap = async ({
+  actorId,
+  activityType,
+  periodType,
+  periodKey
+}: {
+  actorId: string
+  activityType?: string
+  periodType: string
+  periodKey: string
+}): Promise<FitnessHeatmapData | null> => {
+  const encodedId = urlToId(actorId)
+  const url = new URL(
+    `${window.origin}/api/v1/accounts/${encodedId}/fitness-heatmap`
+  )
+  url.searchParams.append('period_type', periodType)
+  url.searchParams.append('period_key', periodKey)
+  if (activityType) {
+    url.searchParams.append('activity_type', activityType)
+  }
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
+  })
+  if (response.status === 404) return null
+  if (!response.ok) return null
+  return response.json()
+}
+
+export const getFitnessCalendarData = async ({
+  actorId,
+  startDate,
+  endDate,
+  activityType
+}: {
+  actorId: string
+  startDate: number
+  endDate: number
+  activityType?: string
+}): Promise<FitnessCalendarDay[]> => {
+  const encodedId = urlToId(actorId)
+  const url = new URL(
+    `${window.origin}/api/v1/accounts/${encodedId}/fitness-calendar`
+  )
+  url.searchParams.append('start_date', `${startDate}`)
+  url.searchParams.append('end_date', `${endDate}`)
+  if (activityType) {
+    url.searchParams.append('activity_type', activityType)
+  }
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
+  })
+  if (!response.ok) return []
+  return response.json()
+}
+
+export const getDistinctFitnessActivityTypes = async ({
+  actorId
+}: {
+  actorId: string
+}): Promise<string[]> => {
+  const encodedId = urlToId(actorId)
+  const response = await fetch(
+    `/api/v1/accounts/${encodedId}/fitness-activity-types`,
+    {
+      method: 'GET',
+      headers: { Accept: 'application/json' }
+    }
+  )
+  if (!response.ok) return []
   return response.json()
 }

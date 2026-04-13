@@ -1,15 +1,16 @@
+import { z } from 'zod'
+
+import { BaseNote, getContent, getSummary } from '@/lib/activities/note'
 import {
   ArticleContent,
   ImageContent,
   Note,
   PageContent,
   VideoContent
-} from '@llun/activities.schema'
-import { z } from 'zod'
+} from '@/lib/types/activitypub'
+import { StatusType } from '@/lib/types/domain/status'
+import { normalizeActivityPubContent } from '@/lib/utils/activitypub'
 
-import { BaseNote, getContent, getSummary } from '../activities/entities/note'
-import { StatusType } from '../models/status'
-import { normalizeActivityPubContent } from '../utils/activitypub'
 import { createJobHandle } from './createJobHandle'
 import { UPDATE_NOTE_JOB_NAME } from './names'
 

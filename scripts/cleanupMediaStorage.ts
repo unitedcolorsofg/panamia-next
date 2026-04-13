@@ -1,3 +1,4 @@
+#!/usr/bin/env -S node -r @swc-node/register
 /**
  * Script to clean up media files that are not referenced in the database
  * Usage: scripts/cleanupMediaStorage [--dry-run] [--yes]
@@ -6,13 +7,17 @@
  *   --dry-run   Show what would be deleted without actually deleting
  *   --yes       Skip confirmation prompt and delete immediately
  */
-import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
+import {
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  S3Client
+} from '@aws-sdk/client-s3'
 import fs from 'fs/promises'
 import knex from 'knex'
 import path from 'path'
 
-import { getConfig } from '../lib/config'
-import { MediaStorageType } from '../lib/config/mediaStorage'
+import { getConfig } from '@/lib/config'
+import { MediaStorageType } from '@/lib/config/mediaStorage'
 
 async function getAllMediaPathsFromDatabase(
   basePath?: string

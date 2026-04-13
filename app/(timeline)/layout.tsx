@@ -1,12 +1,11 @@
-import { getServerSession } from 'next-auth'
 import { FC, ReactNode } from 'react'
 
 import { Modal } from '@/app/Modal'
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { MobileNav } from '@/lib/components/layout/mobile-nav'
 import { Sidebar } from '@/lib/components/layout/sidebar'
 import { getDatabase } from '@/lib/database'
-import { getActorProfile, getMention } from '@/lib/models/actor'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
+import { getActorProfile, getMention } from '@/lib/types/domain/actor'
 import { cn } from '@/lib/utils'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
 
@@ -17,10 +16,10 @@ interface LayoutProps {
 const Layout: FC<LayoutProps> = async ({ children }) => {
   const database = getDatabase()
   if (!database) {
-    throw new Error('Fail to load database')
+    throw new Error('Failed to load database')
   }
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const actor = await getActorFromSession(database, session)
 
   // Check if iconUrl is a real user-uploaded avatar (not auto-generated)
@@ -64,13 +63,20 @@ const Layout: FC<LayoutProps> = async ({ children }) => {
       }
     : undefined
 
-  // Get unread notifications count
-  const unreadCount = actor
-    ? await database.getNotificationsCount({
-        actorId: actor.id,
-        onlyUnread: true
-      })
-    : 0
+  // Get unread notifications count and fitness data status
+  const [unreadCount, hasFitnessData] = await Promise.all([
+    actor
+      ? database.getNotificationsCount({
+          actorId: actor.id,
+          onlyUnread: true
+        })
+      : 0,
+    actor ? database.getActorHasFitnessData({ actorId: actor.id }) : false
+  ])
+
+  const fitnessUrl =
+    hasFitnessData && user ? `/${user.handle}/fitness` : undefined
+  const isAdmin = actor?.account?.role === 'admin'
 
   return (
     <div className="min-h-screen">
@@ -88,9 +94,17 @@ const Layout: FC<LayoutProps> = async ({ children }) => {
             deletionScheduledAt: a.deletionScheduledAt ?? null
           }))}
           unreadCount={unreadCount}
+          fitnessUrl={fitnessUrl}
+          isAdmin={isAdmin}
         />
       )}
-      {showNavigation && <MobileNav unreadCount={unreadCount} />}
+      {showNavigation && (
+        <MobileNav
+          unreadCount={unreadCount}
+          fitnessUrl={fitnessUrl}
+          isAdmin={isAdmin}
+        />
+      )}
       <main
         className={cn(
           'pb-6',

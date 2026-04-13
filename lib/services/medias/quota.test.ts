@@ -9,7 +9,7 @@ import { DatabaseSeed } from '@/lib/stub/scenarios/database'
 import { DEFAULT_QUOTA_PER_ACCOUNT } from './constants'
 import { checkQuotaAvailable, getQuotaLimit } from './quota'
 
-jest.mock('../../config')
+jest.mock('@/lib/config')
 
 const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>
 
@@ -25,7 +25,7 @@ describe('Quota Service', () => {
     it('returns default quota when not configured', () => {
       mockGetConfig.mockReturnValue({
         mediaStorage: {}
-      } as any)
+      } as unknown as ReturnType<typeof getConfig>)
       expect(getQuotaLimit()).toBe(DEFAULT_QUOTA_PER_ACCOUNT)
     })
 
@@ -33,8 +33,16 @@ describe('Quota Service', () => {
       const customQuota = 500_000_000 // 500MB
       mockGetConfig.mockReturnValue({
         mediaStorage: { quotaPerAccount: customQuota }
-      } as any)
+      } as unknown as ReturnType<typeof getConfig>)
       expect(getQuotaLimit()).toBe(customQuota)
+    })
+
+    it('prefers fitness quota when both are configured', () => {
+      mockGetConfig.mockReturnValue({
+        fitnessStorage: { quotaPerAccount: 1234 },
+        mediaStorage: { quotaPerAccount: 5678 }
+      } as unknown as ReturnType<typeof getConfig>)
+      expect(getQuotaLimit()).toBe(1234)
     })
   })
 
@@ -51,7 +59,7 @@ describe('Quota Service', () => {
       it('returns available true when no media exists', async () => {
         mockGetConfig.mockReturnValue({
           mediaStorage: { quotaPerAccount: DEFAULT_QUOTA_PER_ACCOUNT }
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
 
         const actor = actors.primary
         const result = await checkQuotaAvailable(database, actor, 1000)
@@ -65,7 +73,7 @@ describe('Quota Service', () => {
         const smallQuota = 1000 // 1KB quota
         mockGetConfig.mockReturnValue({
           mediaStorage: { quotaPerAccount: smallQuota }
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
 
         // Create some media first
         await database.createMedia({
@@ -91,7 +99,7 @@ describe('Quota Service', () => {
         const mediumQuota = 10_000 // 10KB quota
         mockGetConfig.mockReturnValue({
           mediaStorage: { quotaPerAccount: mediumQuota }
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
 
         const actor = actors.pollAuthor
         // Try to add 1000 bytes (well within quota)
@@ -106,7 +114,7 @@ describe('Quota Service', () => {
         const mediumQuota = 10_000
         mockGetConfig.mockReturnValue({
           mediaStorage: { quotaPerAccount: mediumQuota }
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
 
         // Create media with thumbnail
         await database.createMedia({
@@ -129,6 +137,45 @@ describe('Quota Service', () => {
         const result = await checkQuotaAvailable(database, actor, 0)
 
         expect(result.used).toBe(1200) // 1000 + 200
+      })
+
+      it('includes fitness storage usage in shared quota checks', async () => {
+        const mediumQuota = 10_000
+        mockGetConfig.mockReturnValue({
+          mediaStorage: { quotaPerAccount: mediumQuota }
+        } as unknown as ReturnType<typeof getConfig>)
+
+        const actor = actors.primary
+        const actorData = await database.getActorFromId({ id: actor.id })
+        expect(actorData?.account?.id).toBeDefined()
+
+        const accountId = actorData!.account!.id
+        const [beforeMedia, beforeFitness] = await Promise.all([
+          database.getStorageUsageForAccount({ accountId }),
+          database.getFitnessStorageUsageForAccount({ accountId })
+        ])
+
+        await database.createMedia({
+          actorId: actor.id,
+          original: {
+            path: '/test/shared-quota-image.jpg',
+            bytes: 700,
+            mimeType: 'image/jpeg',
+            metaData: { width: 400, height: 300 }
+          }
+        })
+        await database.createFitnessFile({
+          actorId: actor.id,
+          path: 'fitness/shared-quota.fit',
+          fileName: 'shared-quota.fit',
+          fileType: 'fit',
+          mimeType: 'application/vnd.ant.fit',
+          bytes: 300
+        })
+
+        const result = await checkQuotaAvailable(database, actor, 0)
+
+        expect(result.used).toBe(beforeMedia + beforeFitness + 1000)
       })
     })
   })

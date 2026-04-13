@@ -1,13 +1,15 @@
 import { FC } from 'react'
 
-import { Status, StatusType } from '../../../models/status'
-import { PostProps } from '../post'
+import { PostProps } from '@/lib/components/posts/post'
+import { Status, StatusType } from '@/lib/types/domain/status'
+
 import { DeleteButton } from './delete-button'
 import { EditButton } from './edit-button'
 import { EditHistoryButton } from './edit-history-button'
 import { LikeButton } from './like-button'
 import { ReplyButton } from './reply-button'
 import { RepostButton } from './repost-button'
+import { VisibilityButton } from './visibility-button'
 
 interface Props extends PostProps {
   onShowEdits?: (status: Status) => void
@@ -30,6 +32,9 @@ export const Actions: FC<Props> = ({
   const actualStatus =
     status.type === StatusType.enum.Announce ? status.originalStatus : status
   const canEdit = editable && status.type !== StatusType.enum.Announce
+  const isOwner =
+    Boolean(actualStatus.isLocalActor) &&
+    currentActor.id === actualStatus.actorId
 
   return (
     <div className="mt-3 flex items-center gap-6 text-muted-foreground">
@@ -37,12 +42,13 @@ export const Actions: FC<Props> = ({
       <RepostButton currentActor={currentActor} status={actualStatus} />
       <LikeButton currentActor={currentActor} status={actualStatus} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-6">
         <EditHistoryButton
           status={actualStatus}
           host={host}
           onShowEdits={onShowEdits}
         />
+        {isOwner && <VisibilityButton status={actualStatus} />}
         {canEdit && (
           <>
             <EditButton status={actualStatus} onEdit={onEdit} />

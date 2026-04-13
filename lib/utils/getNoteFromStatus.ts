@@ -1,9 +1,11 @@
-import { Note } from '@llun/activities.schema'
-
 import { getConfig } from '@/lib/config'
-import { getDocumentFromAttachment } from '@/lib/models/attachment'
-import { Status, StatusType } from '@/lib/models/status'
-import { getMentionFromTag } from '@/lib/models/tag'
+import { Note } from '@/lib/types/activitypub'
+import {
+  getDocumentFromAttachment,
+  isFitnessAttachment
+} from '@/lib/types/domain/attachment'
+import { Status, StatusType } from '@/lib/types/domain/status'
+import { getMentionFromTag } from '@/lib/types/domain/tag'
 import { getISOTimeUTC } from '@/lib/utils/getISOTimeUTC'
 import { convertMarkdownText } from '@/lib/utils/text/convertMarkdownText'
 
@@ -24,10 +26,13 @@ export const getNoteFromStatus = (status: Status): Note | null => {
     cc: actualStatus.cc,
     inReplyTo: actualStatus.reply || null,
     content: convertMarkdownText(getConfig().host)(actualStatus.text),
-    attachment: actualStatus.attachments.map((attachment) =>
-      getDocumentFromAttachment(attachment)
-    ),
-    tag: actualStatus.tags.map((tag) => getMentionFromTag(tag)),
+    attachment: actualStatus.attachments
+      .filter((attachment) => !isFitnessAttachment(attachment))
+      .map((attachment) => getDocumentFromAttachment(attachment)),
+    tag: actualStatus.tags
+      .filter((tag) => tag.type !== 'emoji')
+      .map((tag) => getMentionFromTag(tag))
+      .filter((tag) => tag !== null),
     replies: {
       id: `${actualStatus.id}/replies`,
       type: 'Collection',

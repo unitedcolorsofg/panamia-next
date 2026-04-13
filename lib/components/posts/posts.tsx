@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { FC, useState } from 'react'
 
+import { MediasModal } from '@/lib/components/medias-modal/medias-modal'
+import { PostLineLimit } from '@/lib/types/database/rows'
+import { ActorProfile } from '@/lib/types/domain/actor'
+import { Attachment } from '@/lib/types/domain/attachment'
+import { EditableStatus, Status } from '@/lib/types/domain/status'
 import { cn } from '@/lib/utils'
-import { getStatusDetailPath } from '@/lib/utils/getStatusDetailPath'
+import { getStatusDetailPathClient } from '@/lib/utils/getStatusDetailPathClient'
 
-import { ActorProfile } from '../../models/actor'
-import { Attachment } from '../../models/attachment'
-import { EditableStatus, Status } from '../../models/status'
-import { MediasModal } from '../medias-modal/medias-modal'
 import { Post } from './post'
 import { StatusReplyBox } from './status-reply-box'
 
@@ -21,6 +22,7 @@ interface Props {
   currentTime: Date
   statuses: Status[]
   isMediaUploadEnabled?: boolean
+  postLineLimit?: PostLineLimit
   onReply?: (status: Status) => void
   onReplyCreated?: (status: Status, attachments: Attachment[]) => void
   onEdit?: (status: EditableStatus) => void
@@ -35,6 +37,7 @@ export const Posts: FC<Props> = ({
   currentTime,
   statuses,
   isMediaUploadEnabled,
+  postLineLimit,
   onReply,
   onReplyCreated,
   onEdit,
@@ -80,8 +83,10 @@ export const Posts: FC<Props> = ({
           <div
             className="cursor-pointer transition-colors hover:bg-muted/40 -m-4 p-4"
             onClick={() => {
-              const detailPath = getStatusDetailPath(status)
-              if (detailPath) router.push(detailPath)
+              void (async () => {
+                const detailPath = await getStatusDetailPathClient(status)
+                if (detailPath) router.push(detailPath)
+              })()
             }}
           >
             <Post
@@ -91,6 +96,8 @@ export const Posts: FC<Props> = ({
               status={status}
               showActions={showActions}
               editable={currentActor?.id === status.actorId}
+              collapsible
+              postLineLimit={postLineLimit}
               onReply={handleReply}
               onEdit={onEdit}
               onPostDeleted={onPostDeleted}

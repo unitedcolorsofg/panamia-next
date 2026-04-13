@@ -5,15 +5,19 @@ import { PHASE_PRODUCTION_BUILD } from 'next/dist/shared/lib/constants'
 import path from 'path'
 import { z } from 'zod'
 
-import { LambdaConfig } from '../services/email/lambda'
-import { ResendConfig } from '../services/email/resend'
-import { SMTPConfig } from '../services/email/smtp'
-import { logger } from '../utils/logger'
+import { LambdaConfig } from '@/lib/services/email/lambda'
+import { ResendConfig } from '@/lib/services/email/resend'
+import { SESConfig } from '@/lib/services/email/ses'
+import { SMTPConfig } from '@/lib/services/email/smtp'
+import { logger } from '@/lib/utils/logger'
+
 import { AuthConfig, getAuthConfig } from './auth'
 import { getDatabaseConfig } from './database'
-import { InternalApiConfig, getInternalApiConfig } from './internalApi'
+import { getEmailConfig } from './email'
+import { FitnessStorageConfig, getFitnessStorageConfig } from './fitnessStorage'
 import { MediaStorageConfig, getMediaStorageConfig } from './mediaStorage'
 import { OpenTelemetryConfig, getOtelConfig } from './opentelemetry'
+import { PushConfig, getPushConfig } from './push'
 import { QueueConfig, getQueueConfig } from './queue'
 import { RequestConfig, getRequestConfig } from './request'
 
@@ -24,15 +28,18 @@ const Config = z.object({
   languages: z.string().array().default(['en']),
   database: z.custom<Knex.Config>(),
   queue: QueueConfig.optional(),
+  push: PushConfig.optional(),
   allowEmails: z.string().array(),
   secretPhase: z.string(),
   allowMediaDomains: z.string().array().optional(),
   allowActorDomains: z.string().array().optional(),
   auth: AuthConfig.optional(),
-  email: z.union([SMTPConfig, LambdaConfig, ResendConfig]).optional(),
+  email: z
+    .union([SMTPConfig, LambdaConfig, ResendConfig, SESConfig])
+    .optional(),
   mediaStorage: MediaStorageConfig.optional(),
+  fitnessStorage: FitnessStorageConfig.optional(),
   openTelemetry: OpenTelemetryConfig.optional(),
-  internalApi: InternalApiConfig.optional(),
   request: RequestConfig.optional()
 })
 export type Config = z.infer<typeof Config>
@@ -72,16 +79,15 @@ const getConfigFromEnvironment = () => {
       allowActorDomains: JSON.parse(
         process.env.ACTIVITIES_ALLOW_ACTOR_DOMAINS || '[]'
       ),
-      ...(process.env.ACTIVITIES_EMAIL
-        ? { email: JSON.parse(process.env.ACTIVITIES_EMAIL) }
-        : null),
+      ...getEmailConfig(),
       ...getAuthConfig(),
       ...getDatabaseConfig(),
       ...getMediaStorageConfig(),
+      ...getFitnessStorageConfig(),
       ...getOtelConfig(),
-      ...getInternalApiConfig(),
       ...getRequestConfig(),
-      ...getQueueConfig()
+      ...getQueueConfig(),
+      ...getPushConfig()
     })
   } catch (error) {
     if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
@@ -104,3 +110,11 @@ export const getConfig = memoize((): Config => {
 
   throw new Error('Fail to read Activities.next config')
 })
+
+export const getBaseURL = (): string => {
+  const config = getConfig()
+  if (config.host.includes('://')) return config.host
+  const scheme =
+    process.env.ACTIVITIES_INSECURE_AUTH === 'true' ? 'http' : 'https'
+  return `${scheme}://${config.host}`
+}

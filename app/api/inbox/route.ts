@@ -1,10 +1,11 @@
-import { StatusActivity } from '@/lib/activities/actions/status'
+import { StatusActivity } from '@/lib/activities/statusAction'
 import { ActivityPubVerifySenderGuard } from '@/lib/services/guards/ActivityPubVerifyGuard'
 import { getQueue } from '@/lib/services/queue'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
 import {
   DEFAULT_202,
-  apiErrorResponse,
+  ERROR_400,
+  ERROR_404,
   apiResponse,
   defaultOptions
 } from '@/lib/utils/response'
@@ -28,12 +29,22 @@ export const POST = traceApiRoute(
       typeof body.id !== 'string' ||
       typeof body.type !== 'string'
     ) {
-      return apiErrorResponse(400)
+      return apiResponse({
+        req: request,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_400,
+        responseStatusCode: 400
+      })
     }
     const activity = body as unknown as StatusActivity
     const jobMessage = getJobMessage(activity)
     if (!jobMessage) {
-      return apiErrorResponse(404)
+      return apiResponse({
+        req: request,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_404,
+        responseStatusCode: 404
+      })
     }
 
     await getQueue().publish(jobMessage)

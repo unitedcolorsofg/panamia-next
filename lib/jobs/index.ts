@@ -1,10 +1,16 @@
-import { JobHandle } from '../services/queue/type'
+import { JobHandle } from '@/lib/services/queue/type'
+
 import { createAnnounceJob } from './createAnnounceJob'
 import { createNoteJob } from './createNoteJob'
 import { createPollJob } from './createPollJob'
 import { createPollVoteJob } from './createPollVoteJob'
 import { deleteActorJob } from './deleteActorJob'
 import { deleteObjectJob } from './deleteObjectJob'
+import { fetchRemoteStatusJob } from './fetchRemoteStatusJob'
+import { generateFitnessHeatmapJob } from './generateFitnessHeatmapJob'
+import { importFitnessFilesJob } from './importFitnessFilesJob'
+import { importStravaActivityJob } from './importStravaActivityJob'
+import { importStravaArchiveJob } from './importStravaArchiveJob'
 import {
   CREATE_ANNOUNCE_JOB_NAME,
   CREATE_NOTE_JOB_NAME,
@@ -12,6 +18,13 @@ import {
   CREATE_POLL_VOTE_JOB_NAME,
   DELETE_ACTOR_JOB_NAME,
   DELETE_OBJECT_JOB_NAME,
+  FETCH_REMOTE_STATUS_JOB_NAME,
+  GENERATE_FITNESS_HEATMAP_JOB_NAME,
+  IMPORT_FITNESS_FILES_JOB_NAME,
+  IMPORT_STRAVA_ACTIVITY_JOB_NAME,
+  IMPORT_STRAVA_ARCHIVE_JOB_NAME,
+  PROCESS_FITNESS_FILE_JOB_NAME,
+  REGENERATE_FITNESS_MAPS_JOB_NAME,
   SEND_ANNOUNCE_JOB_NAME,
   SEND_NOTE_JOB_NAME,
   SEND_UNDO_ANNOUNCE_JOB_NAME,
@@ -19,12 +32,17 @@ import {
   UPDATE_NOTE_JOB_NAME,
   UPDATE_POLL_JOB_NAME
 } from './names'
+import { processFitnessFileJob } from './processFitnessFileJob'
+import { regenerateFitnessMapsJob } from './regenerateFitnessMapsJob'
 import { sendAnnounceJob } from './sendAnnounceJob'
 import { sendNoteJob } from './sendNoteJob'
 import { sendUndoAnnounceJob } from './sendUndoAnnounceJob'
 import { sendUpdateNoteJob } from './sendUpdateNoteJob'
 import { updateNoteJob } from './updateNoteJob'
 import { updatePollJob } from './updatePollJob'
+
+// Re-export JobHandle for external use
+export type { JobHandle }
 
 export const JOBS: Record<string, JobHandle> = {
   [CREATE_NOTE_JOB_NAME]: createNoteJob,
@@ -36,7 +54,14 @@ export const JOBS: Record<string, JobHandle> = {
   [DELETE_OBJECT_JOB_NAME]: deleteObjectJob,
   [DELETE_ACTOR_JOB_NAME]: deleteActorJob,
   [SEND_ANNOUNCE_JOB_NAME]: sendAnnounceJob,
+  [GENERATE_FITNESS_HEATMAP_JOB_NAME]: generateFitnessHeatmapJob,
+  [PROCESS_FITNESS_FILE_JOB_NAME]: processFitnessFileJob,
+  [REGENERATE_FITNESS_MAPS_JOB_NAME]: regenerateFitnessMapsJob,
+  [IMPORT_FITNESS_FILES_JOB_NAME]: importFitnessFilesJob,
+  [IMPORT_STRAVA_ACTIVITY_JOB_NAME]: importStravaActivityJob,
+  [IMPORT_STRAVA_ARCHIVE_JOB_NAME]: importStravaArchiveJob,
   [SEND_NOTE_JOB_NAME]: sendNoteJob,
   [SEND_UPDATE_NOTE_JOB_NAME]: sendUpdateNoteJob,
-  [SEND_UNDO_ANNOUNCE_JOB_NAME]: sendUndoAnnounceJob
+  [SEND_UNDO_ANNOUNCE_JOB_NAME]: sendUndoAnnounceJob,
+  [FETCH_REMOTE_STATUS_JOB_NAME]: fetchRemoteStatusJob
 }

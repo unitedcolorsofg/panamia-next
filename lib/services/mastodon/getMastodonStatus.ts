@@ -1,10 +1,9 @@
-import { Mastodon } from '@llun/activities.schema'
-
 import { getConfig } from '@/lib/config'
 import { Database } from '@/lib/database/types'
-import { getMastodonAttachment } from '@/lib/models/attachment'
-import { Status, StatusType } from '@/lib/models/status'
-import { Tag, TagType } from '@/lib/models/tag'
+import { Mastodon } from '@/lib/types/activitypub'
+import { getMastodonAttachment } from '@/lib/types/domain/attachment'
+import { Status, StatusType } from '@/lib/types/domain/status'
+import { Tag, TagType } from '@/lib/types/domain/tag'
 import { getISOTimeUTC } from '@/lib/utils/getISOTimeUTC'
 import { getVisibility } from '@/lib/utils/getVisibility'
 import { processStatusText } from '@/lib/utils/text/processStatusText'
@@ -188,6 +187,9 @@ export const getMastodonStatus = async (
   const replyStatus = status.reply
     ? await database.getStatus({ statusId: status.reply })
     : null
+  const repliesCount = await database.getStatusRepliesCount({
+    statusId: status.id
+  })
 
   // Extract mentions, emojis, and hashtags from tags
   const mentions = getMentionsFromTags(status.tags)
@@ -196,7 +198,6 @@ export const getMastodonStatus = async (
 
   // Sensitive is true if there's a spoiler_text/summary
   const sensitive = Boolean(status.summary && status.summary.length > 0)
-
   const mastodonStatus = {
     ...baseData,
     spoiler_text: status.summary ?? '',
@@ -207,7 +208,7 @@ export const getMastodonStatus = async (
     in_reply_to_id: replyStatus ? urlToId(replyStatus.id) : null,
     in_reply_to_account_id: replyStatus ? urlToId(replyStatus.actorId) : null,
 
-    replies_count: status.replies.length,
+    replies_count: repliesCount,
 
     favourites_count: status.totalLikes || 0,
     favourited: status.isActorLiked ?? false,

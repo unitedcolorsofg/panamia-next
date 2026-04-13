@@ -2,7 +2,8 @@ import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { NextApiResponse } from 'next'
 import { NextRequest } from 'next/server'
 
-import { SERVICE_NAME } from '../constants'
+import { SERVICE_NAME } from '@/lib/constants'
+
 import { HttpMethod, getCORSHeaders } from './getCORSHeaders'
 
 export const ERROR_500 = { status: 'Internal Server Error' }
@@ -11,7 +12,9 @@ export const ERROR_400 = { status: 'Bad Request' }
 export const ERROR_401 = { status: 'Unauthorized' }
 export const ERROR_403 = { status: 'Forbidden' }
 export const ERROR_404 = { status: 'Not Found' }
+export const ERROR_409 = { status: 'Conflict' }
 export const ERROR_422 = { status: 'Unprocessable entity' }
+export const ERROR_413 = { status: 'Payload Too Large' }
 
 export const DEFAULT_200 = { status: 'OK' }
 export const DEFAULT_202 = { status: 'Accepted' }
@@ -23,6 +26,8 @@ export const HTTP_STATUS = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  CONFLICT: 409,
+  PAYLOAD_TOO_LARGE: 413,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500
 } as const
@@ -35,6 +40,8 @@ export const codeMap = {
   [HTTP_STATUS.UNAUTHORIZED]: ERROR_401,
   [HTTP_STATUS.FORBIDDEN]: ERROR_403,
   [HTTP_STATUS.NOT_FOUND]: ERROR_404,
+  [HTTP_STATUS.CONFLICT]: ERROR_409,
+  [HTTP_STATUS.PAYLOAD_TOO_LARGE]: ERROR_413,
   [HTTP_STATUS.UNPROCESSABLE_ENTITY]: ERROR_422,
 
   [HTTP_STATUS.INTERNAL_SERVER_ERROR]: ERROR_500

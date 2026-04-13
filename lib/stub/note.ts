@@ -1,13 +1,13 @@
-import { Note } from '@llun/activities.schema'
 import crypto from 'crypto'
 
+import { Note } from '@/lib/types/activitypub'
+import { Document } from '@/lib/types/activitypub/objects'
 import {
   ACTIVITY_STREAM_PUBLIC,
   ACTIVITY_STREAM_URL
 } from '@/lib/utils/activitystream'
 import { getISOTimeUTC } from '@/lib/utils/getISOTimeUTC'
 
-import { Document } from '../activities/entities/document'
 import { TEST_DOMAIN } from './const'
 import { ACTOR1_ID, seedActor1 } from './seed/actor1'
 

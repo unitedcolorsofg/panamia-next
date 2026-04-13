@@ -1,13 +1,13 @@
-import { Actor } from '@llun/activities.schema'
-
-import { getActorFollowers } from '@/lib/activities/requests/getActorFollowers'
-import { getActorFollowing } from '@/lib/activities/requests/getActorFollowing'
-import { getActorPerson } from '@/lib/activities/requests/getActorPerson'
-import { getActorPosts } from '@/lib/activities/requests/getActorPosts'
-import { getWebfingerSelf } from '@/lib/activities/requests/getWebfingerSelf'
+import { getActorFollowers } from '@/lib/activities/getActorFollowers'
+import { getActorFollowing } from '@/lib/activities/getActorFollowing'
+import { getActorPerson } from '@/lib/activities/getActorPerson'
+import { getActorPosts } from '@/lib/activities/getActorPosts'
+import { getWebfingerSelf } from '@/lib/activities/getWebfingerSelf'
 import { Database } from '@/lib/database/types'
-import { Attachment } from '@/lib/models/attachment'
-import { Status } from '@/lib/models/status'
+import { Actor } from '@/lib/types/activitypub'
+import { Actor as DomainActor } from '@/lib/types/domain/actor'
+import { Attachment } from '@/lib/types/domain/attachment'
+import { Status } from '@/lib/types/domain/status'
 import { getPersonFromActor } from '@/lib/utils/getPersonFromActor'
 
 type ProfileData = {
@@ -18,12 +18,14 @@ type ProfileData = {
   followingCount: number
   followersCount: number
   isInternalAccount: boolean
+  hasFitnessData: boolean
 }
 
 export const getProfileData = async (
   database: Database,
   actorHandle: string,
-  isLoggedIn: boolean = true
+  isLoggedIn: boolean = true,
+  signingActor?: DomainActor
 ): Promise<ProfileData | null> => {
   const [username, domain] = actorHandle.split('@').slice(1)
   const persistedActor = await database.getActorFromUsername({
@@ -37,13 +39,15 @@ export const getProfileData = async (
       statusesCount,
       attachments,
       followingCount,
-      followersCount
+      followersCount,
+      hasFitnessData
     ] = await Promise.all([
       database.getActorStatuses({ actorId: persistedActor.id }),
       database.getActorStatusesCount({ actorId: persistedActor.id }),
       database.getAttachmentsForActor({ actorId: persistedActor.id }),
       database.getActorFollowingCount({ actorId: persistedActor.id }),
-      database.getActorFollowersCount({ actorId: persistedActor.id })
+      database.getActorFollowersCount({ actorId: persistedActor.id }),
+      database.getActorHasFitnessData({ actorId: persistedActor.id })
     ])
     return {
       person: getPersonFromActor(persistedActor),
@@ -52,7 +56,8 @@ export const getProfileData = async (
       attachments,
       followingCount,
       followersCount,
-      isInternalAccount: true
+      isInternalAccount: true,
+      hasFitnessData
     }
   }
 
@@ -64,7 +69,8 @@ export const getProfileData = async (
   const actorId = await getWebfingerSelf({ account: actorHandle.slice(1) })
   if (!actorId) return null
 
-  const person = await getActorPerson({ actorId })
+  const signingParams = signingActor ? { signingActor } : {}
+  const person = await getActorPerson({ actorId, ...signingParams })
   if (!person) return null
 
   if (persistedActor) {
@@ -87,17 +93,19 @@ export const getProfileData = async (
     actorFollowingResponse,
     actorFollowersResponse
   ] = await Promise.all([
-    getActorPosts({ database, person }),
+    getActorPosts({ database, person, ...signingParams }),
     database.getAttachmentsForActor({ actorId: person.id }),
-    getActorFollowing({ person }),
-    getActorFollowers({ person })
+    getActorFollowing({ person, ...signingParams }),
+    getActorFollowers({ person, ...signingParams })
   ])
+
   return {
     ...actorPostsResponse,
     person,
     attachments,
     followingCount: actorFollowingResponse.followingCount,
     followersCount: actorFollowersResponse.followerCount,
-    isInternalAccount: false
+    isInternalAccount: false,
+    hasFitnessData: false
   }
 }

@@ -1,13 +1,6 @@
-import {
-  ArticleContent,
-  ImageContent,
-  Note,
-  PageContent,
-  VideoContent
-} from '@llun/activities.schema'
 import { z } from 'zod'
 
-import { recordActorIfNeeded } from '../actions/utils'
+import { recordActorIfNeeded } from '@/lib/actions/utils'
 import {
   BaseNote,
   getAttachments,
@@ -15,10 +8,18 @@ import {
   getReply,
   getSummary,
   getTags
-} from '../activities/entities/note'
-import { StatusType } from '../models/status'
-import { addStatusToTimelines } from '../services/timelines'
-import { normalizeActivityPubContent } from '../utils/activitypub'
+} from '@/lib/activities/note'
+import { addStatusToTimelines } from '@/lib/services/timelines'
+import {
+  ArticleContent,
+  ImageContent,
+  Note,
+  PageContent,
+  VideoContent
+} from '@/lib/types/activitypub'
+import { StatusType } from '@/lib/types/domain/status'
+import { normalizeActivityPubContent } from '@/lib/utils/activitypub'
+
 import { createJobHandle } from './createJobHandle'
 import { CREATE_NOTE_JOB_NAME } from './names'
 
@@ -58,6 +59,8 @@ export const createNoteJob = createJobHandle(
     const text = getContent(note)
     const summary = getSummary(note)
 
+    const publishedAt = new Date(note.published).getTime()
+
     const [, status] = await Promise.all([
       recordActorIfNeeded({ actorId: note.attributedTo, database }),
       database.createNote({
@@ -81,27 +84,17 @@ export const createNoteJob = createJobHandle(
             ),
 
         reply: getReply(note.inReplyTo) || '',
-        createdAt: new Date(note.published).getTime()
+        createdAt: publishedAt
       })
     ])
 
     const tags = getTags(note)
 
-    await Promise.all([
-      addStatusToTimelines(database, status),
-      ...attachments.map(async (attachment) => {
-        if (attachment.type !== 'Document') return
-        return database.createAttachment({
-          actorId: note.attributedTo,
-          statusId: note.id,
-          mediaType: attachment.mediaType,
-          height: attachment.height,
-          width: attachment.width,
-          name: attachment.name || '',
-          url: attachment.url
-        })
-      }),
-      ...tags.map((item) => {
+    // Tags must be persisted before timeline rules run so that
+    // mentionTimelineRule can verify mentions via tags rather than text content.
+    const seenHashtags = new Set<string>()
+    await Promise.all(
+      tags.map(async (item) => {
         if (item.type === 'Emoji') {
           return database.createTag({
             statusId: note.id,
@@ -110,11 +103,48 @@ export const createNoteJob = createJobHandle(
             type: 'emoji'
           })
         }
+        if (item.type === 'Hashtag') {
+          const hashtagName = (item.name || '').trim()
+          const hashtagHref = (item.href || '').trim()
+          if (!hashtagName || !hashtagHref) return
+          const normalizedKey = hashtagName.toLowerCase()
+          if (seenHashtags.has(normalizedKey)) return
+          seenHashtags.add(normalizedKey)
+
+          await database.createTag({
+            statusId: note.id,
+            name: hashtagName,
+            value: hashtagHref,
+            type: 'hashtag'
+          })
+          const tagName = hashtagName.startsWith('#')
+            ? hashtagName.slice(1)
+            : hashtagName
+          await database.increaseHashtagCounter({ hashtag: tagName })
+          return
+        }
         return database.createTag({
           statusId: note.id,
           name: item.name || '',
           value: item.href,
           type: 'mention'
+        })
+      })
+    )
+
+    await Promise.all([
+      addStatusToTimelines(database, status),
+      ...attachments.map(async (attachment, index) => {
+        if (attachment.type !== 'Document') return
+        return database.createAttachment({
+          actorId: note.attributedTo,
+          statusId: note.id,
+          mediaType: attachment.mediaType,
+          height: attachment.height,
+          width: attachment.width,
+          name: attachment.name || '',
+          url: attachment.url,
+          createdAt: publishedAt + index
         })
       })
     ])

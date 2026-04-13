@@ -1,13 +1,14 @@
-import { Mastodon } from '@llun/activities.schema'
 import { z } from 'zod'
 
-import { Scope } from '@/lib/database/types/oauth'
 import { OAuthGuard } from '@/lib/services/guards/OAuthGuard'
 import { headerHost } from '@/lib/services/guards/headerHost'
 import { getMastodonStatus } from '@/lib/services/mastodon/getMastodonStatus'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Scope } from '@/lib/types/database/operations'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
 import {
-  apiErrorResponse,
+  ERROR_400,
+  ERROR_404,
   apiResponse,
   defaultOptions
 } from '@/lib/utils/response'
@@ -52,15 +53,23 @@ export const GET = traceApiRoute(
     const { database, currentActor, params } = context
     const encodedAccountId = (await params).id
     if (!encodedAccountId) {
-      return apiErrorResponse(400)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_400,
+        responseStatusCode: 400
+      })
     }
     const id = idToUrl(encodedAccountId)
 
-    const actor = await database.getMastodonActorFromId({
-      id
-    })
+    const actor = await database.getMastodonActorFromId({ id })
     if (!actor) {
-      return apiErrorResponse(404)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_404,
+        responseStatusCode: 404
+      })
     }
 
     const url = new URL(req.url)
