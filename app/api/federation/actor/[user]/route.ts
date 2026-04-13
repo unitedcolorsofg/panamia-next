@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { formatPublicKeyForActor } from '@/lib/federation/crypto/keys';
 import { socialConfig } from '@/lib/federation';
+import { corsHeaders } from '@/lib/federation/cors';
 import { db } from '@/lib/db';
 import { screennameHistory } from '@/lib/schema';
 import { sql } from 'drizzle-orm';
@@ -34,10 +35,16 @@ export async function GET(
 
     if (historical) {
       // Return 410 Gone - actor moved/deleted (ActivityPub standard)
-      return new NextResponse(null, { status: 410 });
+      return new NextResponse(null, {
+        status: 410,
+        headers: corsHeaders('GET'),
+      });
     }
 
-    return NextResponse.json({ error: 'Actor not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Actor not found' },
+      { status: 404, headers: corsHeaders('GET') }
+    );
   }
 
   // Build ActivityPub actor object
@@ -82,6 +89,7 @@ export async function GET(
 
   return NextResponse.json(actorObject, {
     headers: {
+      ...corsHeaders('GET'),
       'Content-Type': 'application/activity+json; charset=utf-8',
       'Cache-Control': 'max-age=180',
     },

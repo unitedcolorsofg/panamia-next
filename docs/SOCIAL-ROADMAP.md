@@ -601,6 +601,26 @@ When Pusher was removed, the "new post appears live in followers' feeds" UX regr
 
 **Important**: This is a push channel layered on top of the existing read path. It is **not** a move to fan-out-on-write. `getHomeTimeline()` in `lib/federation/wrappers/timeline.ts` stays as a Postgres query — a per-user timeline DO would still cold-start from storage and hit the DB on hibernation wake, so materializing reads buys nothing while adding a stateful component. See the `DESIGN NOTE` on `getHomeTimeline()` for the reasoning.
 
+**Browser push notifications via Durable Object**
+
+UPSTREAM REFERENCE: external/activities.next `#528` / `#532` / `#536`
+
+The upstream activities.next project added Web Push notification support (VAPID-based, service worker, per-notification-type settings). Rather than porting their standalone `web-push` npm approach (which depends on Node.js `crypto`), push notifications should be built into the notification Durable Object alongside the WebSocket replacement above:
+
+- A DO per actor holds push subscriptions in durable storage alongside WebSocket connections — one notification event fans out to both channels.
+- VAPID signing and ECDH key agreement use the Web Crypto API natively in CF Workers — no `web-push` npm package needed.
+- The DO dispatches encrypted payloads directly via `fetch()` to the push endpoint, and auto-cleans stale subscriptions on 410/404 responses.
+- Settings UI: per-notification-type toggles (mention, reply, follow, like) stored in the actor's profile preferences.
+
+Schema needed: `push_subscriptions` table (actorId, endpoint, p256dh, auth) — see upstream migration `20260406120000_add_push_subscriptions.js` for reference.
+
+- [ ] Add `push_subscriptions` Drizzle model to schema
+- [ ] VAPID keypair generation and env var config (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`)
+- [ ] Push subscription API routes (subscribe/unsubscribe, serve VAPID public key)
+- [ ] Service worker (`sw.js`) with push event listener and notification click routing
+- [ ] Push notification dispatch from notification DO (Web Crypto VAPID signing)
+- [ ] Per-notification-type settings UI in account settings
+
 **Proactive remote actor refresh** (minor)
 
 - [ ] Background refresh of known remote actors via a DO with alarms

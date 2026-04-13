@@ -12,9 +12,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { socialConfig, getActorUrl } from '@/lib/federation';
+import { corsHeaders } from '@/lib/federation/cors';
 import { db } from '@/lib/db';
 import { screennameHistory } from '@/lib/schema';
 import { sql } from 'drizzle-orm';
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders('GET', 'OPTIONS'),
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -23,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (!resource) {
     return NextResponse.json(
       { error: 'Missing resource parameter' },
-      { status: 400 }
+      { status: 400, headers: corsHeaders('GET') }
     );
   }
 
@@ -32,7 +40,7 @@ export async function GET(request: NextRequest) {
   if (!acctMatch) {
     return NextResponse.json(
       { error: 'Invalid resource format. Expected acct:username@domain' },
-      { status: 400 }
+      { status: 400, headers: corsHeaders('GET') }
     );
   }
 
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
 
   // Only respond for our domain
   if (domain !== socialConfig.domain) {
-    return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Resource not found' },
+      { status: 404, headers: corsHeaders('GET') }
+    );
   }
 
   // Look up the actor
@@ -54,10 +65,16 @@ export async function GET(request: NextRequest) {
 
     if (historical) {
       // Return 410 Gone - actor moved/deleted
-      return new NextResponse(null, { status: 410 });
+      return new NextResponse(null, {
+        status: 410,
+        headers: corsHeaders('GET'),
+      });
     }
 
-    return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Resource not found' },
+      { status: 404, headers: corsHeaders('GET') }
+    );
   }
 
   const actorUrl = getActorUrl(username);
@@ -82,6 +99,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(webfingerResponse, {
     headers: {
+      ...corsHeaders('GET'),
       'Content-Type': 'application/jrd+json; charset=utf-8',
       'Cache-Control': 'max-age=3600',
     },

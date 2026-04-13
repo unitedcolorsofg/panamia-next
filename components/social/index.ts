@@ -1,3 +1,4 @@
+export { CollapsibleContent } from './CollapsibleContent';
 export { PostComposer } from './PostComposer';
 export { PostCard } from './PostCard';
 export { PostActions } from './PostActions';

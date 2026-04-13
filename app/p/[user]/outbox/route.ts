@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { socialStatuses } from '@/lib/schema';
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { socialConfig } from '@/lib/federation';
+import { corsHeaders } from '@/lib/federation/cors';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
@@ -27,7 +28,10 @@ export async function GET(
 
   const actor = await getActorByScreenname(user);
   if (!actor) {
-    return NextResponse.json({ error: 'Actor not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Actor not found' },
+      { status: 404, headers: corsHeaders('GET') }
+    );
   }
 
   const outboxUrl = actor.outboxUrl;
@@ -48,6 +52,7 @@ export async function GET(
       },
       {
         headers: {
+          ...corsHeaders('GET'),
           'Content-Type': 'application/activity+json; charset=utf-8',
         },
       }
@@ -118,6 +123,7 @@ export async function GET(
     },
     {
       headers: {
+        ...corsHeaders('GET'),
         'Content-Type': 'application/activity+json; charset=utf-8',
       },
     }

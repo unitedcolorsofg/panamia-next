@@ -13,6 +13,7 @@ const PostComposer = dynamic(
   { ssr: false }
 );
 import { AttachmentGrid } from './AttachmentGrid';
+import { CollapsibleContent } from './CollapsibleContent';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
@@ -124,13 +125,21 @@ export function PostCard({
               </div>
             )}
 
-            {/* Content */}
-            {(!hasCW || showCWContent) && (
-              <div
-                className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
-                dangerouslySetInnerHTML={{ __html: status.content }}
-              />
-            )}
+            {/* Content — collapse long posts in timeline, show full in detail */}
+            {(!hasCW || showCWContent) &&
+              (isDetail ? (
+                <div
+                  className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
+                  dangerouslySetInnerHTML={{ __html: status.content }}
+                />
+              ) : (
+                <CollapsibleContent
+                  className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
+                  maxLines={10}
+                >
+                  <div dangerouslySetInnerHTML={{ __html: status.content }} />
+                </CollapsibleContent>
+              ))}
 
             {/* Attachments */}
             {status.attachments && status.attachments.length > 0 && (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { events } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { corsHeaders } from '@/lib/federation/cors';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       event.status !== 'published' ||
       event.visibility !== 'public'
     ) {
-      return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Not Found' },
+        { status: 404, headers: corsHeaders('GET') }
+      );
     }
 
     const baseUrl = 'https://panamia.club';
@@ -64,6 +68,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return new NextResponse(JSON.stringify(as2Event), {
       status: 200,
       headers: {
+        ...corsHeaders('GET'),
         'Content-Type': 'application/activity+json',
         'Cache-Control': 'max-age=180',
       },
@@ -72,7 +77,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     console.error('Error serving AS2 event:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders('GET') }
     );
   }
 }
