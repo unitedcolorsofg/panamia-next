@@ -1,9 +1,6 @@
 import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
-import { getProviders } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { ActorsSection } from '@/lib/components/settings/ActorsSection'
 import { DeleteActorSection } from '@/lib/components/settings/DeleteActorSection'
 import { ImageUploadField } from '@/lib/components/settings/ImageUploadField'
@@ -11,12 +8,10 @@ import { Button } from '@/lib/components/ui/button'
 import { Input } from '@/lib/components/ui/input'
 import { Label } from '@/lib/components/ui/label'
 import { Textarea } from '@/lib/components/ui/textarea'
-import { getConfig } from '@/lib/config'
 import { getDatabase } from '@/lib/database'
-import { getActorProfile } from '@/lib/models/actor'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
+import { getActorProfile } from '@/lib/types/domain/actor'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
-
-import { AuthenticationProviders } from './AuthenticationProviders'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,30 +37,17 @@ const Page = async () => {
     throw new Error('Fail to load database')
   }
 
-  const [session, providers] = await Promise.all([
-    getServerSession(getAuthOptions()),
-    getProviders()
-  ])
-
+  const session = await getServerAuthSession()
   const actor = await getActorFromSession(database, session)
   if (!actor || !actor.account) {
     return redirect('/auth/signin')
   }
 
   const profile = getActorProfile(actor)
-  const { auth } = getConfig()
-  const [nonCredentialsProviders, connectedProviders, actors] =
-    await Promise.all([
-      (providers &&
-        Object.values(providers).filter((provider) => {
-          if (provider.id === 'credentials') return false
-          if (provider.id === 'github' && !auth?.github) return false
-          return true
-        })) ||
-        [],
-      database.getAccountProviders({ accountId: actor.account.id }),
-      database.getActorsForAccount({ accountId: actor.account.id })
-    ])
+  const settings = await database.getActorSettings({ actorId: actor.id })
+  const actors = await database.getActorsForAccount({
+    accountId: actor.account.id
+  })
   return (
     <div className="space-y-6">
       <div>
@@ -106,6 +88,34 @@ const Page = async () => {
       </section>
 
       <form action="/api/v1/accounts/profile" method="post">
+        <section className="mb-6 space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Appearance</h2>
+            <p className="text-sm text-muted-foreground">
+              Customize how posts appear on your timeline.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="postLineLimitInput">Post line limit</Label>
+            <select
+              id="postLineLimitInput"
+              name="postLineLimit"
+              defaultValue={String(settings?.postLineLimit ?? 5)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="5">5 lines</option>
+              <option value="10">10 lines</option>
+              <option value="0">No limit</option>
+            </select>
+            <p className="text-[0.8rem] text-muted-foreground">
+              Number of lines to show before a &quot;Show more&quot; button
+              appears. Set to &quot;No limit&quot; to always show full post
+              content.
+            </p>
+          </div>
+        </section>
+
         <section className="mb-6 space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
           <div>
             <h2 className="text-lg font-semibold">Profile</h2>
@@ -205,21 +215,6 @@ const Page = async () => {
           <Button type="submit">Update</Button>
         </div>
       </form>
-
-      {nonCredentialsProviders.length > 0 && (
-        <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold">Connected Accounts</h2>
-            <p className="text-sm text-muted-foreground">
-              Manage login methods.
-            </p>
-          </div>
-          <AuthenticationProviders
-            nonCredentialsProviders={nonCredentialsProviders}
-            connectedProviders={connectedProviders}
-          />
-        </section>
-      )}
 
       <section className="space-y-4 rounded-2xl border border-destructive/20 bg-background/80 p-6 shadow-sm">
         <div>

@@ -4,7 +4,9 @@
     "paths": {
       "@/app/*": ["app/*"],
       "@/lib/*": ["lib/*"],
-      "@/pages/*": ["pages/*"]
+      "@/pages/*": ["pages/*"],
+      "@/package.json": ["package.json"],
+      "knex": ["node_modules/knex"]
     },
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -32,7 +34,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".next/dev/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules", "plans"],
   "files": ["global.d.ts"]

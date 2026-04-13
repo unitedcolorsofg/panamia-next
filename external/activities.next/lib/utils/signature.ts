@@ -1,32 +1,26 @@
 import crypto from 'crypto'
 import { IncomingHttpHeaders } from 'http'
-import { generate } from 'peggy'
 import util from 'util'
 
 import { getConfig } from '@/lib/config'
-import { Actor } from '@/lib/models/actor'
+import { FORWARDED_HOST } from '@/lib/constants'
 import { getHeadersValue } from '@/lib/services/guards/getHeaderValue'
+import { Actor } from '@/lib/types/domain/actor'
 import { getSpan } from '@/lib/utils/trace'
-
-import { FORWARDED_HOST } from '../constants'
-
-export const SIGNATURE_GRAMMAR = `
-pairs = (","? pair:pair { return pair })+
-pair = key:token "=" '"' value:value '"' { return [key, value] }
-value = value:[0-9a-zA-Z:\\/\\.#\\-() \\+\\=]+ { return value.join('') }
-token = token:[0-9a-zA-Z]+ { return token.join('') }`.trim()
 
 interface StringMap {
   [key: string]: string
 }
 
 export async function parse(signature: string): Promise<StringMap> {
-  const parser = generate(SIGNATURE_GRAMMAR)
   try {
-    return (parser.parse(signature) as [string, string][]).reduce(
-      (out, item) => ({ ...out, [item[0]]: item[1] }),
-      {}
-    )
+    const result: StringMap = {}
+    const regex = /([a-zA-Z0-9]+)="([^"]*)"/g
+    let match
+    while ((match = regex.exec(signature)) !== null) {
+      result[match[1]] = match[2]
+    }
+    return result
   } catch {
     return {}
   }
@@ -72,58 +66,53 @@ export async function verify(
   }
 }
 
-export function sign(
-  request: string,
-  headers: IncomingHttpHeaders,
-  privateKey: string
-) {
-  const signedString = [
-    request,
-    `host: ${headers.host}`,
-    `date: ${headers.date}`,
-    `digest: ${headers.digest}`,
-    `content-type: ${headers['content-type']}`
-  ].join('\n')
-  const signer = crypto.createSign('rsa-sha256')
-  signer.write(signedString)
-  signer.end()
-  return signer.sign(
-    { key: privateKey, passphrase: getConfig().secretPhase },
-    'base64'
-  )
-}
-
 export function signedHeaders(
   currentActor: Actor,
   method: string,
   targetUrl: string,
-  content: unknown
+  content?: unknown
 ) {
   const url = new URL(targetUrl)
-  const digest = `SHA-256=${crypto
-    .createHash('sha-256')
-    .update(JSON.stringify(content))
-    .digest('base64')}`
   const host = url.host
-  const contentType = 'application/activity+json'
   const date = new Date().toUTCString()
-
-  const headers = {
+  const headers: Record<string, string> = {
     host,
-    date,
-    digest,
-    'content-type': contentType
+    date
   }
+  const headerKeys = ['(request-target)', 'host', 'date']
+
+  if (content) {
+    const digest = `SHA-256=${crypto
+      .createHash('sha-256')
+      .update(JSON.stringify(content))
+      .digest('base64')}`
+    const contentType = 'application/activity+json'
+    headers['digest'] = digest
+    headers['content-type'] = contentType
+    headerKeys.push('digest', 'content-type')
+  }
+
   if (!currentActor.privateKey) {
     return headers
   }
 
-  const signature = sign(
-    `(request-target): ${method} ${url.pathname}`,
-    headers,
-    currentActor.privateKey
+  const signedString = headerKeys
+    .map((key) => {
+      if (key === '(request-target)') {
+        return `(request-target): ${method} ${url.pathname}`
+      }
+      return `${key}: ${headers[key]}`
+    })
+    .join('\n')
+
+  const signer = crypto.createSign('rsa-sha256')
+  signer.write(signedString)
+  signer.end()
+  const signature = signer.sign(
+    { key: currentActor.privateKey, passphrase: getConfig().secretPhase },
+    'base64'
   )
-  const signatureHeader = `keyId="${currentActor.id}#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="${signature}"`
+  const signatureHeader = `keyId="${currentActor.id}#main-key",algorithm="rsa-sha256",headers="${headerKeys.join(' ')}",signature="${signature}"`
   return {
     ...headers,
     signature: signatureHeader

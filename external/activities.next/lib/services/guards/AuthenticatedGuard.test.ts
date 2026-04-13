@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { getTestSQLDatabase } from '../../database/testUtils'
-import { Actor } from '../../models/actor'
-import { seedDatabase } from '../../stub/database'
-import { seedActor1 } from '../../stub/seed/actor1'
+import { getTestSQLDatabase } from '@/lib/database/testUtils'
+import { seedDatabase } from '@/lib/stub/database'
+import { seedActor1 } from '@/lib/stub/seed/actor1'
+import { Actor } from '@/lib/types/domain/actor'
+
 import { AuthenticatedGuard } from './AuthenticatedGuard'
 
-// Mock next-auth session
+// Mock auth session
 const mockGetServerSession = jest.fn()
-jest.mock('next-auth', () => ({
-  getServerSession: (...args: unknown[]) => mockGetServerSession(...args)
+jest.mock('@/lib/services/auth/getSession', () => ({
+  getServerAuthSession: () => mockGetServerSession()
 }))
 
 // Mock database getter
 let mockDatabase: ReturnType<typeof getTestSQLDatabase> | null = null
-jest.mock('../../database', () => ({
+jest.mock('@/lib/database', () => ({
   getDatabase: () => mockDatabase
 }))
 
@@ -36,7 +37,7 @@ jest.mock('next/headers', () => ({
 }))
 
 // Mock config
-jest.mock('../../config', () => ({
+jest.mock('@/lib/config', () => ({
   getConfig: () => ({
     allowEmails: []
   })
@@ -95,7 +96,7 @@ describe('AuthenticatedGuard', () => {
       const response = await guard(req, { params: Promise.resolve({}) })
 
       expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toContain('/signin')
+      expect(response.headers.get('location')).toContain('/auth/signin')
     })
 
     it('redirects to signin when session has no email', async () => {
@@ -108,7 +109,7 @@ describe('AuthenticatedGuard', () => {
       const response = await guard(req, { params: Promise.resolve({}) })
 
       expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toContain('/signin')
+      expect(response.headers.get('location')).toContain('/auth/signin')
     })
 
     it('redirects to signin when email not found in database', async () => {
@@ -121,7 +122,7 @@ describe('AuthenticatedGuard', () => {
       const response = await guard(req, { params: Promise.resolve({}) })
 
       expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toContain('/signin')
+      expect(response.headers.get('location')).toContain('/auth/signin')
     })
   })
 
@@ -138,7 +139,7 @@ describe('AuthenticatedGuard', () => {
       const response = await guard(req, { params: Promise.resolve({}) })
 
       expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toContain('/signin')
+      expect(response.headers.get('location')).toContain('/auth/signin')
 
       mockDatabase = originalDb
     })

@@ -1,11 +1,10 @@
-import { getServerSession } from 'next-auth'
 import { notFound, redirect } from 'next/navigation'
 import { FC } from 'react'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
-import { getConfig } from '@/lib/config'
+import { getBaseURL } from '@/lib/config'
 import { getDatabase } from '@/lib/database'
-import { Actor } from '@/lib/models/actor'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
+import { Actor } from '@/lib/types/domain/actor'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
 
 import { AuthorizeCard } from './AuthorizeCard'
@@ -23,7 +22,7 @@ const Page: FC<Props> = async ({ searchParams }) => {
     throw new Error('Fail to load database')
   }
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const params = await searchParams
   const parsedResult = SearchParams.safeParse(params)
   if (!parsedResult.success) {
@@ -39,11 +38,19 @@ const Page: FC<Props> = async ({ searchParams }) => {
     return notFound()
   }
 
+  // Validate redirect_uri against registered URIs to prevent open redirect
+  if (
+    params.redirect_uri &&
+    !client.redirectUris.includes(params.redirect_uri)
+  ) {
+    return notFound()
+  }
+
   if (!actor || !actor.account) {
-    const url = new URL('/auth/signin', `https://${getConfig().host}`)
+    const url = new URL('/auth/signin', getBaseURL())
     url.searchParams.append(
       'redirectBack',
-      `/oauth/authorize?${new URLSearchParams(Object.entries(params))}`
+      `/oauth/authorize?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][])}`
     )
     return redirect(url.toString())
   }

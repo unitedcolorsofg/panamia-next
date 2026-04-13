@@ -1,12 +1,8 @@
 import { getDatabase } from '@/lib/database'
-import { Scope } from '@/lib/database/types/oauth'
 import { OAuthGuard } from '@/lib/services/guards/OAuthGuard'
+import { Scope } from '@/lib/types/database/operations'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
-import {
-  apiErrorResponse,
-  apiResponse,
-  defaultOptions
-} from '@/lib/utils/response'
+import { ERROR_500, apiResponse, defaultOptions } from '@/lib/utils/response'
 import { traceApiRoute } from '@/lib/utils/traceApiRoute'
 
 const CORS_HEADERS = [HttpMethod.enum.OPTIONS, HttpMethod.enum.POST]
@@ -18,21 +14,24 @@ export const POST = traceApiRoute(
   OAuthGuard([Scope.enum.write], async (req, { currentActor }) => {
     const database = getDatabase()
     if (!database) {
-      return apiErrorResponse(500)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_500,
+        responseStatusCode: 500
+      })
     }
 
     // Delete all notifications in batches
     const batchSize = 1000
-    let hasMore = true
 
-    while (hasMore) {
+    while (true) {
       const notifications = await database.getNotifications({
         actorId: currentActor.id,
         limit: batchSize
       })
 
       if (notifications.length === 0) {
-        hasMore = false
         break
       }
 
@@ -45,14 +44,10 @@ export const POST = traceApiRoute(
 
       // If we got fewer than batchSize, we're done
       if (notifications.length < batchSize) {
-        hasMore = false
+        break
       }
     }
 
-    return apiResponse({
-      req,
-      allowedMethods: CORS_HEADERS,
-      data: {}
-    })
+    return apiResponse({ req, allowedMethods: CORS_HEADERS, data: {} })
   })
 )

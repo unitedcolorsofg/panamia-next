@@ -5,12 +5,16 @@ import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 
-import { StatusAnnounce, StatusNote, StatusType } from '@/lib/models/status'
+import {
+  StatusAnnounce,
+  StatusNote,
+  StatusType
+} from '@/lib/types/domain/status'
 
 import { ReplyPreview } from './reply-preview'
 
 // Mock the processStatusText utility
-jest.mock('../../utils/text/processStatusText', () => ({
+jest.mock('@/lib/utils/text/processStatusText', () => ({
   processStatusText: jest.fn((host: string, status: StatusNote) => {
     if (status.type === 'Announce') {
       return (status as unknown as StatusAnnounce).originalStatus.text
@@ -21,12 +25,12 @@ jest.mock('../../utils/text/processStatusText', () => ({
 }))
 
 // Mock the cleanClassName utility
-jest.mock('../../utils/text/cleanClassName', () => ({
+jest.mock('@/lib/utils/text/cleanClassName', () => ({
   cleanClassName: jest.fn((text: string) => <span>{text}</span>)
 }))
 
 // Mock the ActorInfo component
-jest.mock('../posts/actor', () => ({
+jest.mock('@/lib/components/posts/actor', () => ({
   ActorInfo: ({ actor }: { actor: { name: string } }) => (
     <span data-testid="actor-info">{actor?.name || 'Unknown'}</span>
   )

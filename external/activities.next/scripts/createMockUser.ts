@@ -1,3 +1,4 @@
+#!/usr/bin/env -S node -r @swc-node/register
 /**
  * Script to create a test user for development/testing
  * Usage: scripts/createMockUser [username] [email] [password]
@@ -5,9 +6,9 @@
 import * as bcrypt from 'bcrypt'
 import crypto from 'crypto'
 
-import { getConfig } from '../lib/config'
-import { getDatabase } from '../lib/database'
-import { generateKeyPair } from '../lib/utils/signature'
+import { getConfig } from '@/lib/config'
+import { getDatabase } from '@/lib/database'
+import { generateKeyPair } from '@/lib/utils/signature'
 
 const BCRYPT_ROUND = 10
 const SESSION_MAX_AGE_DAYS = 30
@@ -102,8 +103,8 @@ async function createMockUser() {
     console.log(`    Token: ${session.token}`)
     console.log(`    Expires: ${new Date(session.expiresAt).toISOString()}`)
   })
-  console.log('  Cookie name (dev): next-auth.session-token')
-  console.log('  Cookie name (secure): __Secure-next-auth.session-token')
+  console.log('  Cookie name (dev): better-auth.session_token')
+  console.log('  Cookie name (secure): __Secure-better-auth.session_token')
   console.log(`\nYou can now sign in at: http://localhost:3000/auth/signin`)
 
   process.exit(0)

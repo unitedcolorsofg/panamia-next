@@ -4,7 +4,7 @@ import {
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3'
-import { createPresignedPost } from '@aws-sdk/s3-presigned-post'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
 import { format } from 'date-fns'
 import fs from 'fs/promises'
@@ -15,8 +15,6 @@ import sharp from 'sharp'
 
 import { MediaStorageS3Config } from '@/lib/config/mediaStorage'
 import { Database } from '@/lib/database/types'
-import { Media } from '@/lib/database/types/media'
-import { Actor } from '@/lib/models/actor'
 import { MAX_HEIGHT, MAX_WIDTH } from '@/lib/services/medias/constants'
 import { extractVideoImage } from '@/lib/services/medias/extractVideoImage'
 import { extractVideoMeta } from '@/lib/services/medias/extractVideoMeta'
@@ -31,6 +29,8 @@ import {
   PresigedMediaInput,
   PresignedUrlOutput
 } from '@/lib/services/medias/types'
+import { Media } from '@/lib/types/database/operations'
+import { Actor } from '@/lib/types/domain/actor'
 import { logger } from '@/lib/utils/logger'
 
 export class S3FileStorage implements MediaStorage {
@@ -144,17 +144,13 @@ export class S3FileStorage implements MediaStorage {
         : presignedMedia.contentType
 
     const key = `medias/${timeDirectory}/${randomPrefix}${ext}`
-    const { url, fields } = await createPresignedPost(this._client, {
+    const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Conditions: [
-        { bucket },
-        { key },
-        ['eq', '$Content-Type', presignedMedia.contentType],
-        ['content-length-range', 0, presignedMedia.size]
-      ],
-      Expires: 600
+      ContentType: presignedMedia.contentType,
+      ContentLength: presignedMedia.size
     })
+    const url = await getSignedUrl(this._client, command, { expiresIn: 600 })
     const storedMedia = await this._database.createMedia({
       actorId: actor.id,
       original: {
@@ -173,7 +169,6 @@ export class S3FileStorage implements MediaStorage {
     }
     return PresignedUrlOutput.parse({
       url,
-      fields,
       saveFileOutput: {
         id: `${storedMedia.id}`,
         type: presignedMedia.contentType.startsWith('video')
@@ -384,7 +379,7 @@ export class S3FileStorage implements MediaStorage {
       ? `https://${this._host}/api/v1/files/${media.thumbnail?.path}`
       : url
     return MediaStorageSaveFileOutput.parse({
-      id: media.id,
+      id: `${media.id}`,
       type,
       mime_type: mimeType,
       // TODO: Add config for base image domain?

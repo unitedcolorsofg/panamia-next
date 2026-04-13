@@ -1,11 +1,11 @@
 'use client'
 
-import { Mastodon } from '@llun/activities.schema'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { Status } from '@/lib/models/status'
 import { GroupedNotification } from '@/lib/services/notifications/groupNotifications'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Status } from '@/lib/types/domain/status'
 
 import { NotificationItem } from './NotificationItem'
 
@@ -18,9 +18,14 @@ interface NotificationWithData extends GroupedNotification {
 interface Props {
   notifications: NotificationWithData[]
   currentActorId: string
+  host: string
 }
 
-export const NotificationsList = ({ notifications, currentActorId }: Props) => {
+export const NotificationsList = ({
+  notifications,
+  currentActorId,
+  host
+}: Props) => {
   const router = useRouter()
   const [readNotifications, setReadNotifications] = useState<Set<string>>(
     new Set()
@@ -140,6 +145,7 @@ export const NotificationsList = ({ notifications, currentActorId }: Props) => {
           key={notification.id}
           notification={notification}
           currentActorId={currentActorId}
+          host={host}
           isRead={notification.isRead || readNotifications.has(notification.id)}
           observeElement={observeElement}
         />

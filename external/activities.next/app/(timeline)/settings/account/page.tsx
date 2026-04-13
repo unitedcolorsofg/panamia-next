@@ -1,16 +1,21 @@
 import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+import { AuthenticationProviders } from '@/app/(timeline)/settings/AuthenticationProviders'
+import { LogoutButton } from '@/app/(timeline)/settings/LogoutButton'
+import { ImageUploadField } from '@/lib/components/settings/ImageUploadField'
+import { Button } from '@/lib/components/ui/button'
 import { Input } from '@/lib/components/ui/input'
 import { Label } from '@/lib/components/ui/label'
+import { getConfig } from '@/lib/config'
 import { getDatabase } from '@/lib/database'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
 
-import { LogoutButton } from '../LogoutButton'
 import { ChangeEmailForm } from './ChangeEmailForm'
+import { ChangeNameForm } from './ChangeNameForm'
 import { ChangePasswordForm } from './ChangePasswordForm'
+import { PasskeyManager } from './PasskeyManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,28 +23,80 @@ export const metadata: Metadata = {
   title: 'Activities.next: Account Settings'
 }
 
-const Page = async () => {
+const Page = async ({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string }>
+}) => {
   const database = getDatabase()
   if (!database) {
-    throw new Error('Fail to load database')
+    throw new Error('Failed to load database')
   }
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const actor = await getActorFromSession(database, session)
   if (!actor || !actor.account) {
     return redirect('/auth/signin')
   }
 
   const account = actor.account
+  const { error } = await searchParams
+  const { auth } = getConfig()
+  const [nonCredentialsProviders, connectedProviders] = await Promise.all([
+    [
+      auth?.github && { id: 'github', name: 'GitHub' }
+      // To add more providers in the future, add them here. For example:
+      // auth?.google && { id: 'google', name: 'Google' }
+    ].filter(
+      (provider): provider is { id: string; name: string } => !!provider
+    ),
+    database.getAccountProviders({ accountId: account.id })
+  ])
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Account Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Manage your email and password.
+          Manage your account details, email and password.
         </p>
       </div>
+
+      <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold">Full Name</h2>
+          <p className="text-sm text-muted-foreground">
+            Your account display name used across services.
+          </p>
+        </div>
+        <ChangeNameForm currentName={account.name || ''} />
+      </section>
+
+      <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold">Profile Image</h2>
+          <p className="text-sm text-muted-foreground">
+            Your account avatar used in admin and account lists.
+          </p>
+        </div>
+        <form
+          action="/api/v1/accounts/image"
+          method="post"
+          className="space-y-4"
+        >
+          <ImageUploadField
+            fieldName="iconUrl"
+            currentUrl={account.iconUrl || null}
+            label="Profile image"
+            placeholder="https://example.com/avatar.jpg"
+            previewType="thumbnail"
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex justify-end">
+            <Button type="submit">Update</Button>
+          </div>
+        </form>
+      </section>
 
       <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
         <div>
@@ -74,6 +131,32 @@ const Page = async () => {
 
         <ChangePasswordForm />
       </section>
+
+      <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold">Passkeys</h2>
+          <p className="text-sm text-muted-foreground">
+            Use biometrics or a hardware key to sign in without a password.
+          </p>
+        </div>
+        <PasskeyManager />
+      </section>
+
+      {nonCredentialsProviders.length > 0 && (
+        <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Connected Accounts</h2>
+            <p className="text-sm text-muted-foreground">
+              Manage login methods.
+            </p>
+          </div>
+          <AuthenticationProviders
+            nonCredentialsProviders={nonCredentialsProviders}
+            connectedProviders={connectedProviders}
+            callbackURL="/settings/account"
+          />
+        </section>
+      )}
 
       <section className="space-y-4 rounded-2xl border bg-background/80 p-6 shadow-sm">
         <div>

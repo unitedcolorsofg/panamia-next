@@ -1,8 +1,7 @@
-import { Mastodon } from '@llun/activities.schema'
-
-import { Scope } from '@/lib/database/types/oauth'
-import { FollowStatus } from '@/lib/models/follow'
 import { OAuthGuard } from '@/lib/services/guards/OAuthGuard'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Scope } from '@/lib/types/database/operations'
+import { FollowStatus } from '@/lib/types/domain/follow'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
 import { logger } from '@/lib/utils/logger'
 import { apiResponse, defaultOptions } from '@/lib/utils/response'

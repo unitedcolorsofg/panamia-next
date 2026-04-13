@@ -1,24 +1,23 @@
-import { Actor } from '@llun/activities.schema'
-
-import { getActorFollowers } from '@/lib/activities/requests/getActorFollowers'
-import { getActorFollowing } from '@/lib/activities/requests/getActorFollowing'
-import { getActorPerson } from '@/lib/activities/requests/getActorPerson'
-import { getActorPosts } from '@/lib/activities/requests/getActorPosts'
-import { getWebfingerSelf } from '@/lib/activities/requests/getWebfingerSelf'
+import { getActorFollowers } from '@/lib/activities/getActorFollowers'
+import { getActorFollowing } from '@/lib/activities/getActorFollowing'
+import { getActorPerson } from '@/lib/activities/getActorPerson'
+import { getActorPosts } from '@/lib/activities/getActorPosts'
+import { getWebfingerSelf } from '@/lib/activities/getWebfingerSelf'
 import { Database } from '@/lib/database/types'
-import { Attachment } from '@/lib/models/attachment'
-import { Status } from '@/lib/models/status'
+import { Actor } from '@/lib/types/activitypub'
+import { Attachment } from '@/lib/types/domain/attachment'
+import { Status } from '@/lib/types/domain/status'
 import { getPersonFromActor } from '@/lib/utils/getPersonFromActor'
 
 import { getProfileData } from './getProfileData'
 
-// Mock dependencies - use relative paths for jest.mock()
-jest.mock('../../../lib/activities/requests/getActorFollowers')
-jest.mock('../../../lib/activities/requests/getActorFollowing')
-jest.mock('../../../lib/activities/requests/getActorPerson')
-jest.mock('../../../lib/activities/requests/getActorPosts')
-jest.mock('../../../lib/activities/requests/getWebfingerSelf')
-jest.mock('../../../lib/utils/getPersonFromActor')
+// Mock dependencies via Jest module name mapper aliases
+jest.mock('@/lib/activities/getActorFollowers')
+jest.mock('@/lib/activities/getActorFollowing')
+jest.mock('@/lib/activities/getActorPerson')
+jest.mock('@/lib/activities/getActorPosts')
+jest.mock('@/lib/activities/getWebfingerSelf')
+jest.mock('@/lib/utils/getPersonFromActor')
 
 describe('getProfileData', () => {
   const mockDatabase = {
@@ -28,6 +27,7 @@ describe('getProfileData', () => {
     getAttachmentsForActor: jest.fn(),
     getActorFollowingCount: jest.fn(),
     getActorFollowersCount: jest.fn(),
+    getActorHasFitnessData: jest.fn(),
     updateActor: jest.fn()
   } as unknown as Database
 
@@ -83,6 +83,7 @@ describe('getProfileData', () => {
     )
     ;(mockDatabase.getActorFollowingCount as jest.Mock).mockResolvedValue(10)
     ;(mockDatabase.getActorFollowersCount as jest.Mock).mockResolvedValue(20)
+    ;(mockDatabase.getActorHasFitnessData as jest.Mock).mockResolvedValue(false)
     ;(getPersonFromActor as jest.Mock).mockReturnValue(mockPerson)
   })
 
@@ -128,6 +129,34 @@ describe('getProfileData', () => {
       expect(getWebfingerSelf).not.toHaveBeenCalled()
       expect(getActorPerson).not.toHaveBeenCalled()
     })
+
+    it('should return hasFitnessData as false when actor has no fitness data', async () => {
+      ;(mockDatabase.getActorHasFitnessData as jest.Mock).mockResolvedValue(
+        false
+      )
+      const result = await getProfileData(
+        mockDatabase,
+        '@localuser@example.com',
+        true
+      )
+
+      expect(result).not.toBeNull()
+      expect(result?.hasFitnessData).toBe(false)
+    })
+
+    it('should return hasFitnessData as true when actor has fitness data', async () => {
+      ;(mockDatabase.getActorHasFitnessData as jest.Mock).mockResolvedValue(
+        true
+      )
+      const result = await getProfileData(
+        mockDatabase,
+        '@localuser@example.com',
+        true
+      )
+
+      expect(result).not.toBeNull()
+      expect(result?.hasFitnessData).toBe(true)
+    })
   })
 
   describe('when actor is remote (no account)', () => {
@@ -171,6 +200,17 @@ describe('getProfileData', () => {
       expect(getActorPerson).toHaveBeenCalledWith({
         actorId: 'https://remote.com/users/remoteuser'
       })
+    })
+
+    it('should return hasFitnessData as false for remote actors', async () => {
+      const result = await getProfileData(
+        mockDatabase,
+        '@remoteuser@remote.com',
+        true
+      )
+
+      expect(result).not.toBeNull()
+      expect(result?.hasFitnessData).toBe(false)
     })
 
     it('should return null for anonymous user without calling remote APIs', async () => {

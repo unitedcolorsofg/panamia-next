@@ -3,6 +3,7 @@ import { promises as fs } from 'fs'
 
 import { getConfig } from '@/lib/config'
 import { MediaStorageType } from '@/lib/config/mediaStorage'
+import { Database } from '@/lib/database/types'
 
 import * as S3FileStorage from './S3StorageFile'
 import { deleteMediaFile } from './index'
@@ -15,8 +16,8 @@ jest.mock('fs', () => ({
 }))
 
 jest.mock('@aws-sdk/client-s3')
-jest.mock('../../config')
-jest.mock('../../utils/logger', () => ({
+jest.mock('@/lib/config')
+jest.mock('@/lib/utils/logger', () => ({
   logger: {
     error: jest.fn(),
     warn: jest.fn(),
@@ -25,8 +26,8 @@ jest.mock('../../utils/logger', () => ({
   }
 }))
 
-jest.mock('./localFile')
-jest.mock('./S3StorageFile')
+jest.mock('@/lib/services/medias/localFile')
+jest.mock('@/lib/services/medias/S3StorageFile')
 
 const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>
 const mockUnlink = fs.unlink as jest.MockedFunction<typeof fs.unlink>
@@ -43,13 +44,21 @@ const mockS3Storage = {
 
 jest
   .spyOn(LocalFileStorage.LocalFileStorage, 'getStorage')
-  .mockReturnValue(mockLocalStorage as any)
+  .mockReturnValue(
+    mockLocalStorage as unknown as ReturnType<
+      typeof LocalFileStorage.LocalFileStorage.getStorage
+    >
+  )
 jest
   .spyOn(S3FileStorage.S3FileStorage, 'getStorage')
-  .mockReturnValue(mockS3Storage as any)
+  .mockReturnValue(
+    mockS3Storage as unknown as ReturnType<
+      typeof S3FileStorage.S3FileStorage.getStorage
+    >
+  )
 
 describe('Media Storage Service', () => {
-  const mockDatabase = {} as any
+  const mockDatabase = {} as unknown as Database
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -58,7 +67,7 @@ describe('Media Storage Service', () => {
       () =>
         ({
           send: mockS3Send
-        }) as any
+        }) as unknown as S3Client
     )
   })
 
@@ -71,7 +80,7 @@ describe('Media Storage Service', () => {
             path: '/tmp/media'
           },
           host: 'https://example.com'
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
       })
 
       it('deletes file from local filesystem', async () => {
@@ -123,7 +132,7 @@ describe('Media Storage Service', () => {
             secretAccessKey: 'test-secret'
           },
           host: 'https://example.com'
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
       })
 
       it('deletes file from S3', async () => {
@@ -176,7 +185,7 @@ describe('Media Storage Service', () => {
             secretAccessKey: 'test-secret'
           },
           host: 'https://example.com'
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
       })
 
       it('deletes file from object storage', async () => {
@@ -201,7 +210,7 @@ describe('Media Storage Service', () => {
       beforeEach(() => {
         mockGetConfig.mockReturnValue({
           host: 'https://example.com'
-        } as any)
+        } as unknown as ReturnType<typeof getConfig>)
       })
 
       it('returns false when no storage is configured', async () => {

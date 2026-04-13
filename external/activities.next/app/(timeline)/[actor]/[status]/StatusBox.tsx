@@ -5,32 +5,68 @@ import { FC, useState } from 'react'
 
 import { MediasModal } from '@/lib/components/medias-modal/medias-modal'
 import { Post } from '@/lib/components/posts/post'
-import { ActorProfile } from '@/lib/models/actor'
-import { Attachment } from '@/lib/models/attachment'
-import { Status } from '@/lib/models/status'
+import { StatusReplyBox } from '@/lib/components/posts/status-reply-box'
+import { ActorProfile } from '@/lib/types/domain/actor'
+import { Attachment } from '@/lib/types/domain/attachment'
+import { Status, StatusNote, StatusType } from '@/lib/types/domain/status'
 import { cn } from '@/lib/utils'
-import { getStatusDetailPath } from '@/lib/utils/getStatusDetailPath'
+import { getStatusDetailPathClient } from '@/lib/utils/getStatusDetailPathClient'
+
+import { FitnessStatusDetail } from './FitnessStatusDetail'
+import { StatusLikes } from './StatusLikes'
 
 interface Props {
   host: string
+  mapboxAccessToken?: string
   currentTime: Date
   currentActor?: ActorProfile | null
   status: Status
   variant?: 'detail' | 'comment'
+  isMediaUploadEnabled?: boolean
 }
 
 export const StatusBox: FC<Props> = ({
   host,
+  mapboxAccessToken,
   currentTime,
   currentActor,
   status,
-  variant = 'comment'
+  variant = 'comment',
+  isMediaUploadEnabled
 }) => {
   const router = useRouter()
   const [modalMedias, setModalMedias] = useState<{
     medias: Attachment[]
     initialSelection: number
   } | null>(null)
+  const [replyTarget, setReplyTarget] = useState<Status | null>(null)
+  const actualStatus =
+    status.type === StatusType.enum.Announce ? status.originalStatus : status
+  const shouldRenderFitnessDetail =
+    variant === 'detail' &&
+    actualStatus.type === StatusType.enum.Note &&
+    actualStatus.fitness?.processingStatus === 'completed'
+
+  if (shouldRenderFitnessDetail) {
+    return (
+      <>
+        <FitnessStatusDetail
+          host={host}
+          mapboxAccessToken={mapboxAccessToken}
+          currentActor={currentActor}
+          status={actualStatus as StatusNote}
+          onShowAttachment={(allMedias, index) => {
+            setModalMedias({ medias: allMedias, initialSelection: index })
+          }}
+        />
+        <MediasModal
+          medias={modalMedias?.medias ?? null}
+          initialSelection={modalMedias?.initialSelection ?? 0}
+          onClosed={() => setModalMedias(null)}
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -41,8 +77,10 @@ export const StatusBox: FC<Props> = ({
         )}
         onClick={() => {
           if (variant === 'detail') return
-          const detailPath = getStatusDetailPath(status)
-          if (detailPath) router.push(detailPath)
+          void (async () => {
+            const detailPath = await getStatusDetailPathClient(status)
+            if (detailPath) router.push(detailPath)
+          })()
         }}
       >
         <Post
@@ -50,10 +88,35 @@ export const StatusBox: FC<Props> = ({
           currentActor={currentActor ?? undefined}
           currentTime={currentTime}
           status={status}
+          showActions={variant === 'detail'}
+          collapsible={variant === 'comment'}
+          onReply={
+            variant === 'detail' && currentActor
+              ? (s) => setReplyTarget(s)
+              : undefined
+          }
           onShowAttachment={(allMedias, index) => {
             setModalMedias({ medias: allMedias, initialSelection: index })
           }}
         />
+        {variant === 'detail' && (
+          <StatusLikes
+            statusId={actualStatus.id}
+            totalLikes={actualStatus.totalLikes}
+          />
+        )}
+        {replyTarget !== null && currentActor && (
+          <StatusReplyBox
+            profile={currentActor}
+            replyStatus={replyTarget}
+            isMediaUploadEnabled={isMediaUploadEnabled}
+            onCancel={() => setReplyTarget(null)}
+            onPostCreated={() => {
+              setReplyTarget(null)
+              router.refresh()
+            }}
+          />
+        )}
       </article>
       <MediasModal
         medias={modalMedias?.medias ?? null}

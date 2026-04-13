@@ -1,0 +1,1049 @@
+// Database operation parameters and interfaces
+// Consolidated from lib/database/types/*.ts
+import { z } from 'zod'
+
+import { Timeline } from '@/lib/services/timelines/types'
+import { ActorSettings, PostLineLimit } from '@/lib/types/database/rows'
+import { Account } from '@/lib/types/domain/account'
+import { Actor } from '@/lib/types/domain/actor'
+import { Attachment } from '@/lib/types/domain/attachment'
+import { Follow, FollowStatus } from '@/lib/types/domain/follow'
+import { Session } from '@/lib/types/domain/session'
+import { Status } from '@/lib/types/domain/status'
+import { Tag, TagType } from '@/lib/types/domain/tag'
+import * as Mastodon from '@/lib/types/mastodon'
+import { Client } from '@/lib/types/oauth2/client'
+
+// ============================================================================
+// Base Database
+// ============================================================================
+
+export interface BaseDatabase {
+  migrate(): Promise<void>
+  destroy(): Promise<void>
+}
+
+// ============================================================================
+// Actor Database
+// ============================================================================
+
+export type CreateActorParams = {
+  actorId: string
+
+  username: string
+  domain: string
+  name?: string
+  summary?: string
+  iconUrl?: string
+  headerImageUrl?: string
+
+  inboxUrl: string
+  sharedInboxUrl: string
+  followersUrl: string
+
+  publicKey: string
+  privateKey?: string
+
+  createdAt: number
+}
+export type GetActorFromEmailParams = { email: string }
+export type GetActorFromUsernameParams = { username: string; domain: string }
+export type GetActorFromIdParams = { id: string }
+export type IsCurrentActorFollowingParams = {
+  currentActorId: string
+  followingActorId: string
+}
+export type UpdateActorParams = {
+  actorId: string
+
+  name?: string
+  summary?: string
+  iconUrl?: string
+  headerImageUrl?: string
+  manuallyApprovesFollowers?: boolean
+  postLineLimit?: PostLineLimit
+  emailNotifications?: {
+    follow_request?: boolean
+    follow?: boolean
+    like?: boolean
+    mention?: boolean
+    reply?: boolean
+    reblog?: boolean
+    activity_import?: boolean
+  }
+  pushNotifications?: {
+    follow_request?: boolean
+    follow?: boolean
+    like?: boolean
+    mention?: boolean
+    reply?: boolean
+    reblog?: boolean
+    activity_import?: boolean
+  }
+  fitness?: {
+    strava?: {
+      clientId: string
+      clientSecret: string
+    }
+  }
+
+  publicKey?: string
+
+  followersUrl?: string
+  inboxUrl?: string
+  sharedInboxUrl?: string
+}
+export type ScheduleActorDeletionParams = {
+  actorId: string
+  scheduledAt: Date | null // null means immediate deletion
+}
+export type DeleteActorParams = {
+  actorId: string
+}
+export type GetActorDeletionStatusParams = {
+  actorId: string
+}
+
+export type GetActorFollowingCountParams = { actorId: string }
+export type GetActorFollowersCountParams = { actorId: string }
+export type GetActorSettingsParams = { actorId: string }
+export type IsInternalActorParams = { actorId: string }
+export type CancelActorDeletionParams = { actorId: string }
+export type GetActorsScheduledForDeletionParams = { beforeDate: Date }
+export type StartActorDeletionParams = { actorId: string }
+export type DeleteActorDataParams = { actorId: string }
+
+export interface ActorDatabase {
+  createActor(params: CreateActorParams): Promise<Actor | null>
+  createMastodonActor(
+    params: CreateActorParams
+  ): Promise<Mastodon.Account | null>
+  getActorFromId(params: GetActorFromIdParams): Promise<Actor | null>
+  getActorFromEmail(params: GetActorFromEmailParams): Promise<Actor | null>
+  getActorFromUsername(
+    params: GetActorFromUsernameParams
+  ): Promise<Actor | null>
+  getMastodonActorFromEmail(
+    params: GetActorFromEmailParams
+  ): Promise<Mastodon.Account | null>
+  getMastodonActorFromUsername(
+    params: GetActorFromUsernameParams
+  ): Promise<Mastodon.Account | null>
+  getMastodonActorFromId(
+    params: GetActorFromIdParams
+  ): Promise<Mastodon.Account | null>
+  updateActor(params: UpdateActorParams): Promise<Actor | null>
+  deleteActor(params: DeleteActorParams): Promise<void>
+  updateActorFollowersCount(actorId: string): Promise<void>
+  updateActorFollowingCount(actorId: string): Promise<void>
+  increaseActorStatusCount(actorId: string, amount?: number): Promise<void>
+  decreaseActorStatusCount(actorId: string, amount?: number): Promise<void>
+  updateActorLastStatusAt(actorId: string, time: number): Promise<void>
+  isCurrentActorFollowing(
+    params: IsCurrentActorFollowingParams
+  ): Promise<boolean>
+  scheduleActorDeletion(params: ScheduleActorDeletionParams): Promise<void>
+  cancelActorDeletion(params: CancelActorDeletionParams): Promise<void>
+  startActorDeletion(params: StartActorDeletionParams): Promise<void>
+  getActorsScheduledForDeletion(
+    params: GetActorsScheduledForDeletionParams
+  ): Promise<Actor[]>
+  deleteActorData(params: DeleteActorDataParams): Promise<void>
+  getActorDeletionStatus(
+    params: GetActorFromIdParams
+  ): Promise<{ status: string | null; scheduledAt: number | null } | undefined>
+  getActorFollowingCount(params: GetActorFollowingCountParams): Promise<number>
+  getActorFollowersCount(params: GetActorFollowersCountParams): Promise<number>
+  isInternalActor(params: IsInternalActorParams): Promise<boolean>
+  getActorSettings(
+    params: GetActorSettingsParams
+  ): Promise<ActorSettings | undefined>
+  getNodeInfoStats(): Promise<{
+    totalUsers: number
+    activeMonth: number
+    activeHalfyear: number
+    localPosts: number
+  }>
+}
+
+// ============================================================================
+// Account Database
+// ============================================================================
+
+export type IsAccountExistsParams = { email: string }
+export type IsUsernameExistsParams = { username: string; domain: string }
+export type CreateAccountParams = {
+  email: string
+  username: string
+  name?: string | null
+  passwordHash: string
+  verificationCode?: string | null
+  domain: string
+  privateKey: string
+  publicKey: string
+}
+export type GetAccountFromIdParams = { id: string }
+export type GetAccountFromEmailParams = { email: string }
+export type GetAccountFromProviderIdParams = {
+  provider: string
+  accountId: string
+}
+export type LinkAccountWithProviderParams = {
+  accountId: string
+  provider: string
+  providerAccountId: string
+}
+export type VerifyAccountParams = {
+  verificationCode: string
+}
+export type CreateCredentialProviderParams = {
+  accountId: string
+  passwordHash: string
+}
+export type CreateAccountSessionParams = {
+  accountId: string
+  token: string
+  expireAt: number
+  actorId?: string | null
+}
+export type GetAccountSessionParams = {
+  token: string
+}
+export type GetAccountAllSessionsParams = {
+  accountId: string
+}
+export type DeleteAccountSessionParams = {
+  token: string
+}
+export type UpdateAccountSessionParams = {
+  token: string
+  expireAt?: number
+}
+
+export type GetAccountProvidersParams = {
+  accountId: string
+}
+
+export type UnlinkAccountFromProviderParams = {
+  accountId: string
+  provider: string
+}
+
+export type CreateActorForAccountParams = {
+  accountId: string
+  username: string
+  domain: string
+  privateKey: string
+  publicKey: string
+}
+export type GetActorsForAccountParams = { accountId: string }
+export type SetDefaultActorParams = { accountId: string; actorId: string }
+export type SetSessionActorParams = { token: string; actorId: string }
+
+export type RequestEmailChangeParams = {
+  accountId: string
+  newEmail: string
+  emailChangeCode: string
+}
+export type VerifyEmailChangeParams = {
+  accountId?: string
+  emailChangeCode: string
+}
+export type RequestPasswordResetParams = {
+  email: string
+  passwordResetCode: string | null
+  expiresAt?: number | null
+}
+export type ValidatePasswordResetCodeParams = {
+  passwordResetCode: string
+}
+export type ResetPasswordWithCodeParams = {
+  accountId?: string
+  passwordResetCode: string
+  newPasswordHash: string
+}
+export type ChangePasswordParams = {
+  accountId: string
+  newPasswordHash: string
+}
+export type UpdateAccountNameParams = {
+  accountId: string
+  name: string | null
+}
+export type UpdateAccountImageParams = {
+  accountId: string
+  iconUrl: string | null
+}
+
+export interface AccountDatabase {
+  isAccountExists(params: IsAccountExistsParams): Promise<boolean>
+  isUsernameExists(params: IsUsernameExistsParams): Promise<boolean>
+
+  createAccount(params: CreateAccountParams): Promise<string>
+  createCredentialProvider(
+    params: CreateCredentialProviderParams
+  ): Promise<void>
+  getAccountFromId(params: GetAccountFromIdParams): Promise<Account | null>
+  getAccountFromEmail(
+    params: GetAccountFromEmailParams
+  ): Promise<Account | null>
+  getAccountFromProviderId(
+    params: GetAccountFromProviderIdParams
+  ): Promise<Account | null>
+  linkAccountWithProvider(
+    params: LinkAccountWithProviderParams
+  ): Promise<Account | null>
+  verifyAccount(params: VerifyAccountParams): Promise<Account | null>
+
+  createAccountSession(params: CreateAccountSessionParams): Promise<void>
+  getAccountSession(
+    params: GetAccountSessionParams
+  ): Promise<{ account: Account; session: Session } | null>
+  getAccountAllSessions(params: GetAccountAllSessionsParams): Promise<Session[]>
+  updateAccountSession(params: UpdateAccountSessionParams): Promise<void>
+  deleteAccountSession(params: DeleteAccountSessionParams): Promise<void>
+
+  getAccountProviders(params: GetAccountProvidersParams): Promise<
+    {
+      provider: string
+      providerId: string
+      createdAt: number
+      updatedAt: number
+    }[]
+  >
+  unlinkAccountFromProvider(
+    params: UnlinkAccountFromProviderParams
+  ): Promise<void>
+
+  createActorForAccount(params: CreateActorForAccountParams): Promise<string>
+  getActorsForAccount(params: GetActorsForAccountParams): Promise<Actor[]>
+  setDefaultActor(params: SetDefaultActorParams): Promise<void>
+  setSessionActor(params: SetSessionActorParams): Promise<void>
+
+  requestEmailChange(params: RequestEmailChangeParams): Promise<void>
+  verifyEmailChange(params: VerifyEmailChangeParams): Promise<Account | null>
+  requestPasswordReset(params: RequestPasswordResetParams): Promise<boolean>
+  validatePasswordResetCode(
+    params: ValidatePasswordResetCodeParams
+  ): Promise<string | null>
+  resetPasswordWithCode(
+    params: ResetPasswordWithCodeParams
+  ): Promise<Account | null>
+  changePassword(params: ChangePasswordParams): Promise<void>
+  updateAccountName(params: UpdateAccountNameParams): Promise<void>
+  updateAccountImage(params: UpdateAccountImageParams): Promise<void>
+}
+
+// ============================================================================
+// Status Database
+// ============================================================================
+
+interface BaseCreateStatusParams {
+  id: string
+  actorId: string
+  to: string[]
+  cc: string[]
+
+  url: string
+  text: string
+  summary?: string | null
+  reply?: string
+
+  createdAt?: number
+}
+
+export type CreateNoteParams = BaseCreateStatusParams
+
+type BaseStatusParams = {
+  statusId: string
+}
+
+export type UpdateNoteParams = Pick<CreateNoteParams, 'text' | 'summary'> &
+  BaseStatusParams
+
+export type UpdateNoteVisibilityParams = BaseStatusParams & {
+  to: string[]
+  cc: string[]
+}
+
+export type CreateAnnounceParams = Pick<
+  BaseCreateStatusParams,
+  'id' | 'actorId' | 'to' | 'cc' | 'createdAt'
+> & {
+  originalStatusId: string
+}
+
+export type CreatePollParams = BaseCreateStatusParams & {
+  choices: string[]
+  endAt: number
+  pollType?: 'oneOf' | 'anyOf'
+}
+export type UpdatePollParams = Pick<CreatePollParams, 'text' | 'summary'> &
+  BaseStatusParams & {
+    choices: { title: string; totalVotes: number }[]
+  }
+
+export type GetStatusParams = BaseStatusParams & {
+  currentActorId?: string
+  withReplies?: boolean
+}
+export type GetStatusRepliesParams = BaseStatusParams & {
+  url?: string
+}
+export type DeleteStatusParams = BaseStatusParams
+
+export type GetStatusFromUrlParams = {
+  url: string
+}
+export type GetStatusFromUrlHashParams = {
+  urlHash: string
+  actorId?: string
+}
+
+export type GetActorAnnouncedStatusIdParams = {
+  actorId: string
+  originalStatusId: string
+}
+export type CountStatusParams = {
+  actorId: string
+}
+
+export type UpdatePollChoiceParams = {
+  statusId: string
+  choices: { title: string }[]
+}
+
+export type AddPollVoteParams = {
+  actorId: string
+  statusId: string
+  choice: number
+}
+
+export type GetPollVotesParams = {
+  actorId: string
+  statusId: string
+}
+
+export type AddStatusTagParams = {
+  actorId: string
+  statusId: string
+  type: TagType
+  name: string
+  value: string
+}
+
+export type GetActorStatusesCountParams = { actorId: string }
+export type GetActorStatusesParams = {
+  actorId: string
+  minStatusId?: string | null
+  maxStatusId?: string | null
+  limit?: number
+}
+export type GetStatusesByIdsParams = {
+  statusIds: string[]
+  currentActorId?: string
+  withReplies?: boolean
+}
+
+export type HasActorAnnouncedStatusParams = BaseStatusParams & {
+  actorId?: string
+}
+export type GetFavouritedByParams = BaseStatusParams & {
+  limit?: number
+  offset?: number
+}
+
+export type CreateTagParams = {
+  statusId: string
+  name: string
+  type: TagType
+  value?: string
+}
+export type GetTagsParams = {
+  statusId: string
+}
+export type GetStatusesByHashtagParams = {
+  hashtag: string
+  limit?: number
+  maxStatusId?: string
+}
+export type GetHashtagStatusesPageParams = {
+  hashtag: string
+  limit: number
+  offset: number
+}
+export type GetHashtagStatusesPageResult = {
+  statuses: Status[]
+  total: number
+}
+export type GetHashtagCounterParams = {
+  hashtag: string
+}
+export type IncreaseHashtagCounterParams = {
+  hashtag: string
+}
+export type DecreaseHashtagCounterParams = {
+  hashtag: string
+}
+export type GetStatusReblogsCountParams = {
+  statusId: string
+}
+export type GetStatusRepliesCountParams = {
+  statusId: string
+}
+
+export type CreatePollAnswerParams = {
+  statusId: string
+  actorId: string
+  choice: number
+}
+export type HasActorVotedParams = {
+  statusId: string
+  actorId: string
+}
+export type GetActorPollVotesParams = {
+  statusId: string
+  actorId: string
+}
+export type IncrementPollChoiceVotesParams = {
+  statusId: string
+  choiceIndex: number
+}
+
+export interface StatusDatabase {
+  createNote(params: CreateNoteParams): Promise<Status>
+  createAnnounce(params: CreateAnnounceParams): Promise<Status>
+  createPoll(params: CreatePollParams): Promise<Status>
+  updateNote(params: UpdateNoteParams): Promise<Status | null>
+  updateNoteVisibility(
+    params: UpdateNoteVisibilityParams
+  ): Promise<Status | null>
+  updatePoll(params: UpdatePollParams): Promise<Status | null>
+  getStatus(params: GetStatusParams): Promise<Status | null>
+  getStatusReplies(params: GetStatusRepliesParams): Promise<Status[]>
+  getStatusFromUrl(params: GetStatusFromUrlParams): Promise<Status | null>
+  getStatusFromUrlHash(
+    params: GetStatusFromUrlHashParams
+  ): Promise<Status | null>
+  getActorAnnouncedStatusId(
+    params: GetActorAnnouncedStatusIdParams
+  ): Promise<string | null>
+  hasActorAnnouncedStatus(
+    params: HasActorAnnouncedStatusParams
+  ): Promise<boolean>
+  getActorAnnounceStatus(
+    params: HasActorAnnouncedStatusParams
+  ): Promise<Status | null>
+  deleteStatus(params: DeleteStatusParams): Promise<void>
+  countStatus(params: CountStatusParams): Promise<number>
+  updatePollChoice(params: UpdatePollChoiceParams): Promise<void>
+  addPollVote(params: AddPollVoteParams): Promise<void>
+  getPollVotes(params: GetPollVotesParams): Promise<number[]>
+  addStatusTag(params: AddStatusTagParams): Promise<void>
+  getActorStatusesCount(params: GetActorStatusesCountParams): Promise<number>
+  getActorStatuses(params: GetActorStatusesParams): Promise<Status[]>
+  getStatusesByIds(params: GetStatusesByIdsParams): Promise<Status[]>
+  getFavouritedBy(params: GetFavouritedByParams): Promise<Actor[]>
+  createTag(params: CreateTagParams): Promise<Tag>
+  getTags(params: GetTagsParams): Promise<Tag[]>
+  getStatusesByHashtag(params: GetStatusesByHashtagParams): Promise<Status[]>
+  getHashtagStatusesPage(
+    params: GetHashtagStatusesPageParams
+  ): Promise<GetHashtagStatusesPageResult>
+  getHashtagCounter(params: GetHashtagCounterParams): Promise<number>
+  increaseHashtagCounter(params: IncreaseHashtagCounterParams): Promise<void>
+  decreaseHashtagCounter(params: DecreaseHashtagCounterParams): Promise<void>
+  getStatusReblogsCount(params: GetStatusReblogsCountParams): Promise<number>
+  getStatusRepliesCount(params: GetStatusRepliesCountParams): Promise<number>
+  createPollAnswer(params: CreatePollAnswerParams): Promise<void>
+  hasActorVoted(params: HasActorVotedParams): Promise<boolean>
+  getActorPollVotes(params: GetActorPollVotesParams): Promise<number[]>
+  incrementPollChoiceVotes(
+    params: IncrementPollChoiceVotesParams
+  ): Promise<void>
+}
+
+// ============================================================================
+// Follow Database
+// ============================================================================
+
+export type CreateFollowParams = {
+  actorId: string
+  targetActorId: string
+  status: FollowStatus
+  inbox: string
+  sharedInbox: string
+}
+export type GetLocalFollowersForActorIdParams = { targetActorId: string }
+export type GetLocalActorsFromFollowerUrlParams = { followerUrl: string }
+export type GetLocalFollowsFromInboxUrlParams = {
+  targetActorId: string
+  followerInboxUrl: string
+}
+export type GetFollowFromIdParams = { followId: string }
+export type GetAcceptedOrRequestedFollowParams = {
+  actorId: string
+  targetActorId: string
+}
+export type GetFollowersInboxParams = { targetActorId: string }
+export type UpdateFollowStatusParams = {
+  followId: string
+  status: FollowStatus
+}
+// New type for getting follows with pagination
+export type GetFollowingParams = {
+  actorId: string
+  limit: number
+  maxId?: string | null
+  minId?: string | null
+}
+export type GetFollowersParams = {
+  targetActorId: string
+  limit: number
+  maxId?: string | null
+  minId?: string | null
+}
+export type GetFollowRequestsParams = {
+  targetActorId: string
+  limit: number
+  offset?: number
+}
+export type GetFollowRequestsCountParams = {
+  targetActorId: string
+}
+
+export interface FollowDatabase {
+  createFollow(params: CreateFollowParams): Promise<Follow>
+  getFollowFromId(params: GetFollowFromIdParams): Promise<Follow | null>
+  getLocalFollowersForActorId(
+    params: GetLocalFollowersForActorIdParams
+  ): Promise<Follow[]>
+  getLocalFollowsFromInboxUrl(
+    params: GetLocalFollowsFromInboxUrlParams
+  ): Promise<Follow[]>
+  getLocalActorsFromFollowerUrl(
+    params: GetLocalActorsFromFollowerUrlParams
+  ): Promise<Actor[]>
+  getAcceptedOrRequestedFollow(
+    params: GetAcceptedOrRequestedFollowParams
+  ): Promise<Follow | null>
+  getFollowersInbox(params: GetFollowersInboxParams): Promise<string[]>
+  updateFollowStatus(params: UpdateFollowStatusParams): Promise<void>
+  // New method for getting following with pagination
+  getFollowing(params: GetFollowingParams): Promise<Follow[]>
+  getFollowers(params: GetFollowersParams): Promise<Follow[]>
+  // Follow requests methods
+  getFollowRequests(params: GetFollowRequestsParams): Promise<Follow[]>
+  getFollowRequestsCount(params: GetFollowRequestsCountParams): Promise<number>
+}
+
+// ============================================================================
+// Like Database
+// ============================================================================
+
+interface BaseLikeParams {
+  actorId: string
+  statusId: string
+}
+export type CreateLikeParams = BaseLikeParams
+export type DeleteLikeParams = BaseLikeParams
+export type GetLikeCountParams = Pick<BaseLikeParams, 'statusId'>
+export type IsActorLikedStatusParams = BaseLikeParams
+
+export interface LikeDatabase {
+  createLike(params: CreateLikeParams): Promise<void>
+  deleteLike(params: DeleteLikeParams): Promise<void>
+  getLikeCount(params: GetLikeCountParams): Promise<number>
+  isActorLikedStatus(params: IsActorLikedStatusParams): Promise<boolean>
+}
+
+// ============================================================================
+// Media Database
+// ============================================================================
+
+interface MetaData {
+  width: number
+  height: number
+}
+
+interface BaseMedia {
+  actorId: string
+  original: {
+    path: string
+    bytes: number
+    mimeType: string
+    metaData: MetaData
+    fileName?: string
+  }
+  thumbnail?: {
+    path: string
+    bytes: number
+    mimeType: string
+    metaData: MetaData
+  }
+  description?: string
+}
+
+export interface Media extends BaseMedia {
+  id: string
+}
+
+export interface MediaWithStatus extends Media {
+  statusId?: string
+}
+
+export interface PaginatedMediaWithStatus {
+  items: MediaWithStatus[]
+  total: number
+}
+
+export type CreateMediaParams = BaseMedia
+
+export type CreateAttachmentParams = {
+  actorId: string
+  statusId: string
+  mediaType: string
+  url: string
+  width?: number
+  height?: number
+  name?: string
+  mediaId?: string
+  createdAt?: number
+}
+export type GetAttachmentsParams = {
+  statusId: string
+}
+export type AttachmentWithMedia = Attachment & {
+  mediaId?: string | null
+}
+export type GetAttachmentsWithMediaParams = {
+  statusId: string
+}
+export type GetAttachmentsForActorParams = {
+  actorId: string
+  limit?: number
+  maxCreatedAt?: number
+}
+export type GetMediasForAccountParams = {
+  accountId: string
+  limit?: number
+  page?: number
+  maxCreatedAt?: number
+}
+export type GetStorageUsageForAccountParams = {
+  accountId: string
+}
+export type DeleteMediaParams = {
+  mediaId: string
+}
+export type DeleteAttachmentsByIdsParams = {
+  attachmentIds: string[]
+}
+export type GetMediaByIdParams = {
+  mediaId: string
+  accountId: string
+}
+
+export interface MediaDatabase {
+  createMedia(params: CreateMediaParams): Promise<Media | null>
+
+  createAttachment(params: CreateAttachmentParams): Promise<Attachment>
+  getAttachments(params: GetAttachmentsParams): Promise<Attachment[]>
+  getAttachmentsWithMedia(
+    params: GetAttachmentsWithMediaParams
+  ): Promise<AttachmentWithMedia[]>
+  getAttachmentsForActor(
+    params: GetAttachmentsForActorParams
+  ): Promise<Attachment[]>
+  getMediasWithStatusForAccount(
+    params: GetMediasForAccountParams
+  ): Promise<PaginatedMediaWithStatus>
+  getMediaByIdForAccount(params: GetMediaByIdParams): Promise<Media | null>
+  getStorageUsageForAccount(
+    params: GetStorageUsageForAccountParams
+  ): Promise<number>
+  deleteAttachmentsByIds(params: DeleteAttachmentsByIdsParams): Promise<number>
+  deleteMedia(params: DeleteMediaParams): Promise<boolean>
+}
+
+// ============================================================================
+// Notification Database
+// ============================================================================
+
+export const NotificationType = z.enum([
+  'follow_request',
+  'follow',
+  'like',
+  'mention',
+  'reply',
+  'reblog',
+  'activity_import'
+])
+
+export type NotificationType = z.infer<typeof NotificationType>
+
+export interface Notification {
+  id: string
+  actorId: string
+  type: NotificationType
+  sourceActorId: string
+  statusId?: string
+  followId?: string
+  isRead: boolean
+  readAt?: number
+  groupKey?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export type CreateNotificationParams = {
+  actorId: string
+  type: NotificationType
+  sourceActorId: string
+  statusId?: string
+  followId?: string
+  groupKey?: string
+}
+
+export type GetNotificationsParams = {
+  actorId: string
+  limit: number
+  offset?: number
+  types?: NotificationType[]
+  excludeTypes?: NotificationType[]
+  onlyUnread?: boolean
+  ids?: string[]
+  maxNotificationId?: string
+  minNotificationId?: string
+  sinceNotificationId?: string
+}
+
+export type GetNotificationsCountParams = {
+  actorId: string
+  onlyUnread?: boolean
+  types?: NotificationType[]
+}
+
+export type MarkNotificationsReadParams = {
+  notificationIds: string[]
+}
+
+export type UpdateNotificationParams = {
+  notificationId: string
+  isRead?: boolean
+  readAt?: number
+}
+
+// ============================================================================
+// Push Subscription Database
+// ============================================================================
+
+export interface PushSubscription {
+  id: string
+  actorId: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  createdAt: number
+  updatedAt: number
+}
+
+export type CreatePushSubscriptionParams = {
+  actorId: string
+  endpoint: string
+  p256dh: string
+  auth: string
+}
+
+export type DeletePushSubscriptionParams = {
+  endpoint: string
+  actorId: string
+}
+
+export type GetPushSubscriptionsForActorParams = {
+  actorId: string
+}
+
+export interface PushSubscriptionDatabase {
+  createPushSubscription(
+    params: CreatePushSubscriptionParams
+  ): Promise<PushSubscription>
+  deletePushSubscription(params: DeletePushSubscriptionParams): Promise<void>
+  getPushSubscriptionsForActor(
+    params: GetPushSubscriptionsForActorParams
+  ): Promise<PushSubscription[]>
+  deletePushSubscriptionsForActor(params: { actorId: string }): Promise<void>
+}
+
+export interface NotificationDatabase {
+  createNotification(params: CreateNotificationParams): Promise<Notification>
+  getNotifications(params: GetNotificationsParams): Promise<Notification[]>
+  getNotificationsCount(params: GetNotificationsCountParams): Promise<number>
+  markNotificationsRead(params: MarkNotificationsReadParams): Promise<void>
+  updateNotification(params: UpdateNotificationParams): Promise<void>
+  deleteNotification(notificationId: string): Promise<void>
+}
+
+// ============================================================================
+// OAuth Database
+// ============================================================================
+
+export const Scope = z.enum([
+  'openid',
+  'profile',
+  'email',
+  'read',
+  'write',
+  'follow',
+  'push'
+])
+export type Scope = z.infer<typeof Scope>
+
+export const UsableScopes = [
+  Scope.enum.openid,
+  Scope.enum.profile,
+  Scope.enum.email,
+  Scope.enum.read,
+  Scope.enum.write,
+  Scope.enum.follow
+]
+
+export const GetClientFromNameParams = z.object({
+  name: z.string()
+})
+export type GetClientFromNameParams = z.infer<typeof GetClientFromNameParams>
+
+export const GetClientFromIdParams = z.object({
+  clientId: z.string()
+})
+export type GetClientFromIdParams = z.infer<typeof GetClientFromIdParams>
+
+export interface OAuthDatabase {
+  getClientFromName(params: GetClientFromNameParams): Promise<Client | null>
+  getClientFromId(params: GetClientFromIdParams): Promise<Client | null>
+}
+
+// ============================================================================
+// Timeline Database
+// ============================================================================
+
+export type GetTimelineParams = {
+  timeline: Timeline
+  actorId?: string
+  minStatusId?: string | null
+  maxStatusId?: string | null
+  limit?: number
+}
+export type CreateTimelineStatusParams = {
+  timeline: Timeline
+  actorId: string
+  status: Status
+}
+
+export interface TimelineDatabase {
+  getTimeline({
+    timeline,
+    actorId,
+    minStatusId,
+    maxStatusId,
+    limit
+  }: GetTimelineParams): Promise<Status[]>
+  createTimelineStatus(params: CreateTimelineStatusParams): Promise<void>
+}
+
+// ============================================================================
+// Admin Database
+// ============================================================================
+
+export type GetAllAccountsParams = {
+  limit: number
+  offset: number
+}
+
+export type GetAllAccountsResult = {
+  accounts: Account[]
+  total: number
+}
+
+export type GetAccountWithActorsParams = {
+  accountId: string
+}
+
+export type GetAccountWithActorsResult = {
+  account: Account
+  actors: Actor[]
+}
+
+export interface ServiceStats {
+  totalAccounts: number
+  totalActors: number
+  totalStatuses: number
+  totalMediaFiles: number
+  totalMediaBytes: number
+  totalFitnessFiles: number
+  totalFitnessBytes: number
+}
+
+export interface ServiceStatsBucket {
+  bucketHour: number
+  value: number
+}
+
+export type ServiceStatCounterType =
+  | 'accounts'
+  | 'actors'
+  | 'statuses'
+  | 'media-files'
+  | 'media-bytes'
+  | 'fitness-files'
+  | 'fitness-bytes'
+
+export const ALL_COUNTER_TYPES: ServiceStatCounterType[] = [
+  'accounts',
+  'actors',
+  'statuses',
+  'media-files',
+  'media-bytes',
+  'fitness-files',
+  'fitness-bytes'
+]
+
+/** Max allowed time window for bucket queries (91 days) */
+export const MAX_STATS_WINDOW_MS = 91 * 24 * 60 * 60 * 1000
+
+export interface GetServiceStatsBucketsParams {
+  counterType: ServiceStatCounterType
+  startTime: number
+  endTime: number
+}
+
+export type HashtagSortOrder = 'alphabetical' | 'recent' | 'count'
+
+export interface AdminHashtag {
+  name: string
+  postCount: number
+  latestPostAt: number | null
+}
+
+export interface GetAllHashtagsParams {
+  limit: number
+  offset: number
+  sort: HashtagSortOrder
+}
+
+export interface GetAllHashtagsResult {
+  hashtags: AdminHashtag[]
+  total: number
+}
+
+export interface AdminDatabase {
+  getAllAccounts(params: GetAllAccountsParams): Promise<GetAllAccountsResult>
+  getAccountWithActors(
+    params: GetAccountWithActorsParams
+  ): Promise<GetAccountWithActorsResult | null>
+  getServiceStats(): Promise<ServiceStats>
+  getServiceStatsBuckets(
+    params: GetServiceStatsBucketsParams
+  ): Promise<ServiceStatsBucket[]>
+  getAllHashtags(params: GetAllHashtagsParams): Promise<GetAllHashtagsResult>
+}

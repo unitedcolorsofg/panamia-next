@@ -1,6 +1,5 @@
-import { Actor as ActivityPubActor } from '@llun/activities.schema'
-
-import { Actor } from '@/lib/models/actor'
+import { Actor as ActivityPubActor } from '@/lib/types/activitypub'
+import { Actor } from '@/lib/types/domain/actor'
 import { getISOTimeUTC } from '@/lib/utils/getISOTimeUTC'
 
 export const getPersonFromActor = (

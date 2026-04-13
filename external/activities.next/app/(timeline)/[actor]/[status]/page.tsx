@@ -1,14 +1,15 @@
 import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
 import { notFound } from 'next/navigation'
 import { FC } from 'react'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { getConfig } from '@/lib/config'
 import { getDatabase } from '@/lib/database'
-import { getActorProfile } from '@/lib/models/actor'
-import { FollowStatus } from '@/lib/models/follow'
-import { StatusType } from '@/lib/models/status'
+import { FETCH_REMOTE_STATUS_JOB_NAME } from '@/lib/jobs/names'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
+import { getQueue } from '@/lib/services/queue'
+import { getActorProfile } from '@/lib/types/domain/actor'
+import { FollowStatus } from '@/lib/types/domain/follow'
+import { Status, StatusType } from '@/lib/types/domain/status'
 import {
   ACTIVITY_STREAM_PUBLIC,
   ACTIVITY_STREAM_PUBLIC_COMPACT
@@ -17,6 +18,7 @@ import { cleanJson } from '@/lib/utils/cleanJson'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
 
 import { Header } from './Header'
+import { RemoteStatusLoading } from './RemoteStatusLoading'
 import { StatusBox } from './StatusBox'
 
 interface Props {
@@ -33,11 +35,12 @@ export const generateMetadata = async ({
 }
 
 const Page: FC<Props> = async ({ params }) => {
-  const { host } = getConfig()
+  const { host, fitnessStorage, mediaStorage } = getConfig()
+  const mapboxAccessToken = fitnessStorage?.mapboxAccessToken?.trim()
   const database = getDatabase()
   if (!database) throw new Error('Database is not available')
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const currentActor = await getActorFromSession(database, session)
   const currentActorProfile = currentActor
     ? getActorProfile(currentActor)
@@ -59,18 +62,38 @@ const Page: FC<Props> = async ({ params }) => {
     return notFound()
   }
 
+  const actorFromPath = await database.getActorFromUsername({
+    username: parts[0],
+    domain: parts[1]
+  })
+  const actorIdFromPath = actorFromPath?.id
+  const isStatusHash = /^[a-f0-9]{64}$/i.test(decodedStatusParam)
+
   const protocol = parts[1].startsWith('localhost') ? 'http' : 'https'
   const isFullStatusUrl = /^https?:\/\//.test(decodedStatusParam)
   const fullStatusId = isFullStatusUrl
     ? decodedStatusParam
     : `${protocol}://${parts[1]}/users/${parts[0]}/statuses/${decodedStatusParam}`
 
+  let status: Status | null = null
+  let statusId = ''
+
+  if (isStatusHash) {
+    status = await database.getStatusFromUrlHash({
+      urlHash: decodedStatusParam,
+      actorId: actorIdFromPath
+    })
+    statusId = status?.id ?? ''
+  }
+
   // Try full URL format first (ActivityPub standard), then fallback to raw id (for legacy/mock data)
-  let status = await database.getStatus({
-    statusId: fullStatusId,
-    withReplies: false
-  })
-  let statusId = fullStatusId
+  if (!status) {
+    status = await database.getStatus({
+      statusId: fullStatusId,
+      withReplies: false
+    })
+    statusId = fullStatusId
+  }
 
   if (!status && !isFullStatusUrl) {
     status = await database.getStatus({
@@ -78,6 +101,20 @@ const Page: FC<Props> = async ({ params }) => {
       withReplies: false
     })
     statusId = decodedStatusParam
+  }
+
+  // Try to fetch remote status if not found and user is logged in
+  if (!status && session && !isStatusHash) {
+    const queue = getQueue()
+    // Queue the fetch job with a deterministic ID to avoid duplicates
+    await queue.publish({
+      id: `fetch-remote-status-${fullStatusId}`,
+      name: FETCH_REMOTE_STATUS_JOB_NAME,
+      data: { statusId: fullStatusId }
+    })
+
+    // Show loading state
+    return <RemoteStatusLoading />
   }
 
   if (!status) {
@@ -89,10 +126,22 @@ const Page: FC<Props> = async ({ params }) => {
       ? status.originalStatus.url
       : status.url
 
-  const replies = await database.getStatusReplies({
-    statusId,
-    url: statusUrl
-  })
+  let replies: Status[]
+
+  if (
+    status.type === StatusType.enum.Note &&
+    status.replies &&
+    status.replies.length > 0
+  ) {
+    // If replies are embedded (e.g. temporary status), use them
+    replies = status.replies as Status[]
+  } else {
+    // Otherwise fetch from database
+    replies = await database.getStatusReplies({
+      statusId,
+      url: statusUrl
+    })
+  }
 
   // Check if the status is publicly visible (public or unlisted)
   const isPublicOrUnlisted =
@@ -149,11 +198,9 @@ const Page: FC<Props> = async ({ params }) => {
       previouses.push(replyStatus)
       // This should be impossible
       if (replyStatus.type === StatusType.enum.Announce) {
-        replyStatus = null
         break
       }
       if (!replyStatus.reply) {
-        replyStatus = null
         break
       }
       replyStatus = await database.getStatus({
@@ -163,9 +210,34 @@ const Page: FC<Props> = async ({ params }) => {
     }
   }
 
+  const statusForLayout =
+    status.type === StatusType.enum.Announce ? status.originalStatus : status
+  const isFitnessDashboard =
+    statusForLayout.type === StatusType.enum.Note &&
+    statusForLayout.fitness?.processingStatus === 'completed'
+
+  if (isFitnessDashboard) {
+    return (
+      <div className="overflow-hidden rounded-2xl border bg-background/80 shadow-sm">
+        <Header isFitnessDashboard />
+
+        <div className="border-b bg-background">
+          <StatusBox
+            host={host}
+            mapboxAccessToken={mapboxAccessToken}
+            currentTime={currentTime}
+            currentActor={currentActorProfile}
+            status={cleanJson(status)}
+            variant="detail"
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border bg-background/80 shadow-sm">
-      <Header />
+      <Header isFitnessDashboard={false} />
 
       {previouses.reverse().map((item) => (
         <div
@@ -174,6 +246,7 @@ const Page: FC<Props> = async ({ params }) => {
         >
           <StatusBox
             host={host}
+            mapboxAccessToken={mapboxAccessToken}
             currentTime={currentTime}
             currentActor={currentActorProfile}
             status={cleanJson(item)}
@@ -184,10 +257,12 @@ const Page: FC<Props> = async ({ params }) => {
       <div className="border-b bg-background">
         <StatusBox
           host={host}
+          mapboxAccessToken={mapboxAccessToken}
           currentTime={currentTime}
           currentActor={currentActorProfile}
           status={cleanJson(status)}
           variant="detail"
+          isMediaUploadEnabled={Boolean(mediaStorage)}
         />
       </div>
 
@@ -202,6 +277,7 @@ const Page: FC<Props> = async ({ params }) => {
               <StatusBox
                 key={reply.id}
                 host={host}
+                mapboxAccessToken={mapboxAccessToken}
                 currentTime={currentTime}
                 currentActor={currentActorProfile}
                 status={cleanJson(reply)}

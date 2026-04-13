@@ -1,11 +1,8 @@
-import { Note } from '@llun/activities.schema'
 import fetchMock, { enableFetchMocks } from 'jest-fetch-mock'
 
 import { createNoteFromUserInput } from '@/lib/actions/createNote'
 import { getTestSQLDatabase } from '@/lib/database/testUtils'
 import { SEND_NOTE_JOB_NAME } from '@/lib/jobs/names'
-import { Actor } from '@/lib/models/actor'
-import { StatusNote } from '@/lib/models/status'
 import { getQueue } from '@/lib/services/queue'
 import * as timelinesService from '@/lib/services/timelines'
 import { mockRequests } from '@/lib/stub/activities'
@@ -13,6 +10,9 @@ import { TEST_DOMAIN } from '@/lib/stub/const'
 import { seedDatabase } from '@/lib/stub/database'
 import { seedActor1 } from '@/lib/stub/seed/actor1'
 import { ACTOR2_ID, seedActor2 } from '@/lib/stub/seed/actor2'
+import { Note } from '@/lib/types/activitypub'
+import { Actor } from '@/lib/types/domain/actor'
+import { StatusNote } from '@/lib/types/domain/status'
 import { ACTIVITY_STREAM_PUBLIC } from '@/lib/utils/activitystream'
 import { getHashFromString } from '@/lib/utils/getHashFromString'
 import { getNoteFromStatus } from '@/lib/utils/getNoteFromStatus'
@@ -20,13 +20,13 @@ import { convertMarkdownText } from '@/lib/utils/text/convertMarkdownText'
 
 enableFetchMocks()
 
-jest.mock('../services/queue', () => ({
+jest.mock('@/lib/services/queue', () => ({
   getQueue: jest.fn().mockReturnValue({
     publish: jest.fn().mockResolvedValue(undefined)
   })
 }))
 
-jest.mock('../services/timelines', () => ({
+jest.mock('@/lib/services/timelines', () => ({
   addStatusToTimelines: jest.fn().mockResolvedValue(undefined)
 }))
 
@@ -236,6 +236,43 @@ How are you?
           actorId: actor1.id,
           statusId: status.id
         }
+      })
+    })
+
+    it('does not serialize fitness file attachments in note payload', async () => {
+      const status = (await createNoteFromUserInput({
+        text: 'Post with mixed attachments',
+        currentActor: actor1,
+        attachments: [
+          {
+            type: 'upload',
+            id: 'image-upload-id',
+            mediaType: 'image/png',
+            url: 'https://example.com/media/image.png',
+            width: 640,
+            height: 480,
+            name: 'image.png'
+          },
+          {
+            type: 'upload',
+            id: 'fitness-upload-id',
+            mediaType: 'application/tcx+xml',
+            url: '/api/v1/fitness-files/fitness-file-id',
+            width: 0,
+            height: 0,
+            name: 'training.tcx'
+          }
+        ],
+        database
+      })) as StatusNote
+
+      const note = getNoteFromStatus(status) as Note
+      const attachments = Array.isArray(note.attachment) ? note.attachment : []
+
+      expect(attachments).toHaveLength(1)
+      expect(attachments[0]).toMatchObject({
+        mediaType: 'image/png',
+        url: 'https://example.com/media/image.png'
       })
     })
 

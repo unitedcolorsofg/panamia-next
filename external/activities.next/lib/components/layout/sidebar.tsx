@@ -1,6 +1,5 @@
 'use client'
 
-import { Bell, Home, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -9,6 +8,7 @@ import {
   ActorSwitcher
 } from '@/lib/components/actor-switcher/ActorSwitcher'
 import { Logo } from '@/lib/components/layout/logo'
+import { buildNavItems } from '@/lib/components/layout/nav-items'
 import { NotificationBadge } from '@/lib/components/notification-badge/NotificationBadge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/lib/components/ui/avatar'
 import {
@@ -18,12 +18,6 @@ import {
   TooltipTrigger
 } from '@/lib/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-
-const navItems = [
-  { href: '/', label: 'Timeline', icon: Home },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/settings', label: 'Settings', icon: Settings }
-]
 
 interface User {
   name: string
@@ -37,15 +31,20 @@ interface SidebarProps {
   currentActor?: ActorInfo
   actors?: ActorInfo[]
   unreadCount?: number
+  fitnessUrl?: string
+  isAdmin?: boolean
 }
 
 export function Sidebar({
   user,
   currentActor,
   actors = [],
-  unreadCount = 0
+  unreadCount = 0,
+  fitnessUrl,
+  isAdmin = false
 }: SidebarProps) {
   const pathname = usePathname()
+  const allNavItems = buildNavItems({ fitnessUrl, isAdmin })
 
   const getAvatarInitial = (username: string) => {
     if (!username) return '?'
@@ -62,7 +61,7 @@ export function Sidebar({
 
         <nav className="flex-1 px-3">
           <ul className="space-y-1">
-            {navItems.map((item) => {
+            {allNavItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + '/')
               const isNotifications = item.href === '/notifications'
@@ -127,9 +126,9 @@ export function Sidebar({
           <Logo showText={false} size="md" />
         </div>
 
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 pb-4">
           <ul className="space-y-2">
-            {navItems.map((item) => {
+            {allNavItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + '/')
               const isNotifications = item.href === '/notifications'

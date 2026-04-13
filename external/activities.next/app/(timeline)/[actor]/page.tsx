@@ -1,19 +1,19 @@
 import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { FC } from 'react'
 
-import { getAuthOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { Bio } from '@/lib/components/bio/Bio'
 import { FollowAction } from '@/lib/components/follow-action/follow-action'
 import { Avatar, AvatarFallback, AvatarImage } from '@/lib/components/ui/avatar'
 import { Button } from '@/lib/components/ui/button'
 import { getConfig } from '@/lib/config'
 import { getDatabase } from '@/lib/database'
+import { getServerAuthSession } from '@/lib/services/auth/getSession'
 import { getActorFromSession } from '@/lib/utils/getActorFromSession'
 
 import { ActorTimelines } from './ActorTimelines'
+import { ProfileHeaderImage } from './ProfileHeaderImage'
 import { getProfileData } from './getProfileData'
 
 interface Props {
@@ -34,7 +34,7 @@ const Page: FC<Props> = async ({ params }) => {
   const database = getDatabase()
   if (!database) throw new Error('Database is not available')
 
-  const session = await getServerSession(getAuthOptions())
+  const session = await getServerAuthSession()
   const isLoggedIn = Boolean(session?.user?.email)
   const { actor } = await params
   const decodedActorHandle = decodeURIComponent(actor)
@@ -44,10 +44,17 @@ const Page: FC<Props> = async ({ params }) => {
   }
   const actorDomain = parts[1]
 
+  // Get current actor first so we can use it to sign requests for remote actors
+  const currentActor = await getActorFromSession(database, session)
+  const actorSettings = currentActor
+    ? await database.getActorSettings({ actorId: currentActor.id })
+    : undefined
+
   const actorProfile = await getProfileData(
     database,
     decodedActorHandle,
-    isLoggedIn
+    isLoggedIn,
+    currentActor ?? undefined
   )
   if (!actorProfile) {
     return notFound()
@@ -62,7 +69,6 @@ const Page: FC<Props> = async ({ params }) => {
     followersCount
   } = actorProfile
 
-  const currentActor = await getActorFromSession(database, session)
   const isCurrentUser = currentActor?.id === person.id
 
   const initials = (person.name || '')
@@ -76,10 +82,10 @@ const Page: FC<Props> = async ({ params }) => {
     if (typeof person.image === 'string') return null
     if (Array.isArray(person.image)) return null
     if (person.image.type !== 'Image') return null
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const image = person.image as any
-    if (typeof image.url !== 'string') return null
-    return image.url
+    return {
+      url: person.image.url,
+      mediaType: person.image.mediaType ?? null
+    }
   }
 
   const getIconImage = () => {
@@ -93,21 +99,19 @@ const Page: FC<Props> = async ({ params }) => {
     return image.url
   }
 
-  const headerImageUrl = getHeaderImage()
+  const headerImage = getHeaderImage()
+  const headerImageUrl = headerImage?.url ?? null
+  const headerImageMediaType = headerImage?.mediaType ?? null
   const iconImageUrl = getIconImage()
 
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-2xl border bg-background/80 shadow-sm">
-        <div className="relative h-36 bg-muted md:h-52">
-          {headerImageUrl && (
-            <img
-              src={headerImageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          )}
-        </div>
+        <ProfileHeaderImage
+          actorId={person.id}
+          imageUrl={headerImageUrl}
+          mediaType={headerImageMediaType}
+        />
 
         <div className="relative px-6 pb-6">
           <Avatar className="relative -mt-10 h-20 w-20 border-4 border-background">
@@ -162,6 +166,7 @@ const Page: FC<Props> = async ({ params }) => {
           actorId={person.id}
           statuses={statuses}
           attachments={attachments}
+          postLineLimit={actorSettings?.postLineLimit}
         />
       </section>
     </div>

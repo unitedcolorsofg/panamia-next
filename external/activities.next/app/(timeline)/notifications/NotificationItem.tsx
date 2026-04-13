@@ -1,10 +1,10 @@
 'use client'
 
-import { Mastodon } from '@llun/activities.schema'
 import { useEffect, useRef } from 'react'
 
-import { Status } from '@/lib/models/status'
 import { GroupedNotification } from '@/lib/services/notifications/groupNotifications'
+import { Mastodon } from '@/lib/types/activitypub'
+import { Status } from '@/lib/types/domain/status'
 
 import { FollowNotification } from './components/FollowNotification'
 import { FollowRequestNotification } from './components/FollowRequestNotification'
@@ -13,14 +13,19 @@ import { MentionNotification } from './components/MentionNotification'
 import { ReplyNotification } from './components/ReplyNotification'
 
 interface NotificationWithData extends GroupedNotification {
-  account: Mastodon.Account | null
-  status?: Status | null
+  account: Mastodon.Account
+  status?: Status
   groupedAccounts?: (Mastodon.Account | null)[] | null
 }
 
 interface Props {
-  notification: NotificationWithData
+  notification: GroupedNotification & {
+    account: Mastodon.Account | null
+    status?: Status | null
+    groupedAccounts?: (Mastodon.Account | null)[] | null
+  }
   currentActorId: string
+  host: string
   isRead: boolean
   observeElement: (element: HTMLElement | null) => void
 }
@@ -28,6 +33,7 @@ interface Props {
 export const NotificationItem = ({
   notification,
   currentActorId,
+  host,
   isRead,
   observeElement
 }: Props) => {
@@ -43,23 +49,58 @@ export const NotificationItem = ({
     return null
   }
 
+  // After null check, we know account is non-null
+  const notificationWithAccount: NotificationWithData = {
+    ...notification,
+    account: notification.account,
+    status: notification.status ?? undefined
+  }
+
   const renderNotification = () => {
-    switch (notification.type) {
+    switch (notificationWithAccount.type) {
       case 'follow_request':
         return (
           <FollowRequestNotification
-            notification={notification as any}
+            notification={notificationWithAccount}
             currentActorId={currentActorId}
           />
         )
       case 'follow':
-        return <FollowNotification notification={notification as any} />
+        return <FollowNotification notification={notificationWithAccount} />
       case 'like':
-        return <LikeNotification notification={notification as any} />
+        // Status-requiring notifications - type assertion for compatibility
+        return (
+          <LikeNotification
+            host={host}
+            notification={
+              notificationWithAccount as NotificationWithData & {
+                status: Status
+              }
+            }
+          />
+        )
       case 'reply':
-        return <ReplyNotification notification={notification as any} />
+        return (
+          <ReplyNotification
+            host={host}
+            notification={
+              notificationWithAccount as NotificationWithData & {
+                status: Status
+              }
+            }
+          />
+        )
       case 'mention':
-        return <MentionNotification notification={notification as any} />
+        return (
+          <MentionNotification
+            host={host}
+            notification={
+              notificationWithAccount as NotificationWithData & {
+                status: Status
+              }
+            }
+          />
+        )
       default:
         return null
     }

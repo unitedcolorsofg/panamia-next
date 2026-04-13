@@ -1,9 +1,20 @@
 import { recordActorIfNeeded } from '@/lib/actions/utils'
 import { acceptFollow } from '@/lib/activities'
-import { FollowRequest } from '@/lib/activities/actions/follow'
+import { FollowRequest } from '@/lib/activities/followAction'
 import { Database } from '@/lib/database/types'
-import { NotificationType } from '@/lib/database/types/notification'
-import { FollowStatus } from '@/lib/models/follow'
+import {
+  getHTMLContent as getFollowHTMLContent,
+  getSubject as getFollowSubject,
+  getTextContent as getFollowTextContent
+} from '@/lib/services/email/templates/follow'
+import {
+  getHTMLContent as getFollowRequestHTMLContent,
+  getSubject as getFollowRequestSubject,
+  getTextContent as getFollowRequestTextContent
+} from '@/lib/services/email/templates/followRequest'
+import { sendNotificationAlerts } from '@/lib/services/notifications/sendNotificationAlerts'
+import { NotificationType } from '@/lib/types/database/operations'
+import { FollowStatus } from '@/lib/types/domain/follow'
 
 interface CreateFollowerParams {
   followRequest: FollowRequest
@@ -49,6 +60,26 @@ export const createFollower = async ({
       sourceActorId: followerActor.id,
       followId: follow.id
     })
+
+    sendNotificationAlerts({
+      database,
+      actorId: targetActor.id,
+      sourceActorId: followerActor.id,
+      sourceActor: followerActor,
+      events: [
+        {
+          type: NotificationType.enum.follow_request,
+          emailContent: targetActor.account
+            ? {
+                recipientEmail: targetActor.account.email,
+                subject: getFollowRequestSubject(followerActor),
+                text: getFollowRequestTextContent(followerActor),
+                html: getFollowRequestHTMLContent(followerActor)
+              }
+            : undefined
+        }
+      ]
+    })
   } else {
     // Auto-accept: create follow with Accepted status and send Accept activity
     const follow = await database.createFollow({
@@ -69,6 +100,26 @@ export const createFollower = async ({
         followId: follow.id
       })
     ])
+
+    sendNotificationAlerts({
+      database,
+      actorId: targetActor.id,
+      sourceActorId: followerActor.id,
+      sourceActor: followerActor,
+      events: [
+        {
+          type: NotificationType.enum.follow,
+          emailContent: targetActor.account
+            ? {
+                recipientEmail: targetActor.account.email,
+                subject: getFollowSubject(followerActor),
+                text: getFollowTextContent(followerActor),
+                html: getFollowHTMLContent(followerActor)
+              }
+            : undefined
+        }
+      ]
+    })
   }
 
   return followRequest

@@ -1,9 +1,9 @@
-import { Mastodon } from '@llun/activities.schema'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FC } from 'react'
 
 import { GroupedNotification } from '@/lib/services/notifications/groupNotifications'
+import { Mastodon } from '@/lib/types/activitypub'
 
 interface NotificationWithAccount extends GroupedNotification {
   account: Mastodon.Account

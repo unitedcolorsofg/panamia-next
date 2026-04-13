@@ -1,17 +1,13 @@
 import { z } from 'zod'
 
 import { getDatabase } from '@/lib/database'
-import { Scope } from '@/lib/database/types/oauth'
 import { OAuthGuard } from '@/lib/services/guards/OAuthGuard'
 import { headerHost } from '@/lib/services/guards/headerHost'
 import { getMastodonNotification } from '@/lib/services/notifications/getMastodonNotification'
 import { groupNotifications } from '@/lib/services/notifications/groupNotifications'
+import { NotificationType, Scope } from '@/lib/types/database/operations'
 import { HttpMethod } from '@/lib/utils/getCORSHeaders'
-import {
-  apiErrorResponse,
-  apiResponse,
-  defaultOptions
-} from '@/lib/utils/response'
+import { ERROR_500, apiResponse, defaultOptions } from '@/lib/utils/response'
 import { traceApiRoute } from '@/lib/utils/traceApiRoute'
 import { urlToId } from '@/lib/utils/urlToId'
 
@@ -49,7 +45,12 @@ export const GET = traceApiRoute(
   OAuthGuard([Scope.enum.read], async (req, { currentActor }) => {
     const database = getDatabase()
     if (!database) {
-      return apiErrorResponse(500)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_500,
+        responseStatusCode: 500
+      })
     }
 
     const url = new URL(req.url)
@@ -87,14 +88,20 @@ export const GET = traceApiRoute(
     const internalTypes = types?.map((type) => {
       if (type === 'favourite') return 'like'
       if (type === 'reblog') return 'reblog'
+      // Maps Mastodon 'status' type to internal 'activity_import'.
+      // This codebase has no native follow-post 'status' notifications;
+      // if one is ever added, this mapping must be updated.
+      if (type === 'status') return 'activity_import'
       return type
-    })
+    }) as NotificationType[] | undefined
 
     const internalExcludeTypes = excludeTypes?.map((type) => {
       if (type === 'favourite') return 'like'
       if (type === 'reblog') return 'reblog'
+      // See comment above about 'status' → 'activity_import' mapping
+      if (type === 'status') return 'activity_import'
       return type
-    })
+    }) as NotificationType[] | undefined
 
     // Fetch notifications
     const notifications = await database.getNotifications({
@@ -102,8 +109,8 @@ export const GET = traceApiRoute(
       limit,
       maxNotificationId: maxId,
       minNotificationId: minId || sinceId,
-      types: internalTypes as any,
-      excludeTypes: internalExcludeTypes as any
+      types: internalTypes,
+      excludeTypes: internalExcludeTypes
     })
 
     // Group notifications if requested
@@ -186,21 +193,24 @@ export const POST = traceApiRoute(
   OAuthGuard([Scope.enum.write], async (req, { currentActor }) => {
     const database = getDatabase()
     if (!database) {
-      return apiErrorResponse(500)
+      return apiResponse({
+        req,
+        allowedMethods: CORS_HEADERS,
+        data: ERROR_500,
+        responseStatusCode: 500
+      })
     }
 
     // Delete all notifications in batches
     const batchSize = 1000
-    let hasMore = true
 
-    while (hasMore) {
+    while (true) {
       const notifications = await database.getNotifications({
         actorId: currentActor.id,
         limit: batchSize
       })
 
       if (notifications.length === 0) {
-        hasMore = false
         break
       }
 
@@ -213,14 +223,10 @@ export const POST = traceApiRoute(
 
       // If we got fewer than batchSize, we're done
       if (notifications.length < batchSize) {
-        hasMore = false
+        break
       }
     }
 
-    return apiResponse({
-      req,
-      allowedMethods: CORS_HEADERS,
-      data: {}
-    })
+    return apiResponse({ req, allowedMethods: CORS_HEADERS, data: {} })
   })
 )

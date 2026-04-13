@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 .yarn
+package-lock.json
 
 # testing
 /coverage
@@ -86,4 +87,5 @@ backups/
 .agent
 .claude
 .gemini
-CLAUDE.md
+.playwright-mcp
+AGENTS.override.md

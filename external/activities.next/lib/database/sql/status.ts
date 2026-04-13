@@ -1,10 +1,18 @@
 import { Knex } from 'knex'
 
 import { PER_PAGE_LIMIT } from '@/lib/database/constants'
+import {
+  CounterKey,
+  decreaseCounterValue,
+  getCounterValue,
+  increaseCounterValue
+} from '@/lib/database/sql/utils/counter'
+import { incrementBucket } from '@/lib/database/sql/utils/counterBucket'
 import { getCompatibleTime } from '@/lib/database/sql/utils/getCompatibleTime'
-import { ActorDatabase } from '@/lib/database/types/actor'
-import { LikeDatabase } from '@/lib/database/types/like'
-import { MediaDatabase } from '@/lib/database/types/media'
+import { SQLFitnessFile } from '@/lib/types/database/fitnessFile'
+import { ActorDatabase } from '@/lib/types/database/operations'
+import { LikeDatabase } from '@/lib/types/database/operations'
+import { MediaDatabase } from '@/lib/types/database/operations'
 import {
   CreateAnnounceParams,
   CreateNoteParams,
@@ -16,27 +24,37 @@ import {
   GetActorStatusesCountParams,
   GetActorStatusesParams,
   GetFavouritedByParams,
+  GetHashtagStatusesPageParams,
+  GetStatusFromUrlHashParams,
+  GetStatusFromUrlParams,
   GetStatusParams,
   GetStatusReblogsCountParams,
+  GetStatusRepliesCountParams,
   GetStatusRepliesParams,
+  GetStatusesByHashtagParams,
+  GetStatusesByIdsParams,
   GetTagsParams,
   HasActorAnnouncedStatusParams,
   HasActorVotedParams,
   IncrementPollChoiceVotesParams,
   StatusDatabase,
   UpdateNoteParams,
+  UpdateNoteVisibilityParams,
   UpdatePollParams
-} from '@/lib/database/types/status'
-import { Actor, getActorProfile } from '@/lib/models/actor'
-import { PollChoice } from '@/lib/models/pollChoice'
+} from '@/lib/types/database/operations'
+import { Actor, getActorProfile } from '@/lib/types/domain/actor'
+import { PollChoice } from '@/lib/types/domain/pollChoice'
 import {
   Status,
   StatusAnnounce,
   StatusNote,
   StatusPoll,
   StatusType
-} from '@/lib/models/status'
-import { Tag } from '@/lib/models/tag'
+} from '@/lib/types/domain/status'
+import { Tag } from '@/lib/types/domain/tag'
+import { ACTIVITY_STREAM_PUBLIC } from '@/lib/utils/activitystream'
+import { getAttachmentMediaPath } from '@/lib/utils/getAttachmentMediaPath'
+import { getHashFromString } from '@/lib/utils/getHashFromString'
 
 import { getCompatibleJSON } from './utils/getCompatibleJSON'
 
@@ -46,6 +64,144 @@ export const StatusSQLDatabaseMixin = (
   likeDatabase: LikeDatabase,
   mediaDatabase: MediaDatabase
 ): StatusDatabase => {
+  const parseStatusContent = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    content: any
+  ):
+    | string
+    | {
+        url?: string
+      }
+    | null => {
+    if (!content) return null
+    if (typeof content === 'string') {
+      try {
+        return getCompatibleJSON(content)
+      } catch {
+        return content
+      }
+    }
+    return content
+  }
+
+  const sortAttachmentsForFitnessMap = <T extends { id: string; url: string }>(
+    attachments: T[],
+    mapImagePath?: string | null
+  ): T[] => {
+    if (!mapImagePath) return attachments
+
+    const normalizedMapImagePath = decodeURIComponent(mapImagePath).replace(
+      /^\/+/,
+      ''
+    )
+    const mapAttachment = attachments.find((attachment) => {
+      const attachmentPath = getAttachmentMediaPath(attachment.url)
+      return (
+        attachmentPath === normalizedMapImagePath ||
+        attachmentPath.endsWith(normalizedMapImagePath)
+      )
+    })
+
+    if (!mapAttachment) return attachments
+
+    return [...attachments].sort((a, b) => {
+      if (a.id === mapAttachment.id) return -1
+      if (b.id === mapAttachment.id) return 1
+      return 0
+    })
+  }
+
+  const getOriginalStatusIdFromAnnounceContent = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    content: any
+  ): string | null => {
+    const parsed = parseStatusContent(content)
+    if (!parsed) return null
+    if (typeof parsed === 'string') {
+      return parsed
+    }
+    if (typeof parsed.url === 'string' && parsed.url.length > 0) {
+      return parsed.url
+    }
+    return null
+  }
+
+  const getStatusUrlHash = (url: string): string => getHashFromString(url)
+
+  const resolveParentStatusIdByReply = async (
+    reply: string,
+    trx: Knex.Transaction
+  ): Promise<string | null> => {
+    if (!reply) return null
+
+    const byId = await trx('statuses')
+      .where('id', reply)
+      .first<{ id: string }>('id')
+    if (byId?.id) return byId.id
+
+    const byUrl = await trx('statuses')
+      .where('urlHash', getStatusUrlHash(reply))
+      .andWhere('url', reply)
+      .first<{ id: string }>('id')
+    if (byUrl?.id) return byUrl.id
+
+    return null
+  }
+
+  const updateStatusCounters = async ({
+    actorId,
+    type,
+    reply,
+    content,
+    step,
+    trx,
+    currentTime
+  }: {
+    actorId: string
+    type: StatusType
+    reply: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    content: any
+    step: 'increment' | 'decrement'
+    trx: Knex.Transaction
+    currentTime: Date
+  }) => {
+    const adjust =
+      step === 'increment' ? increaseCounterValue : decreaseCounterValue
+
+    await adjust(trx, CounterKey.totalStatus(actorId), 1, currentTime)
+    await adjust(trx, CounterKey.serviceTotalStatuses(), 1, currentTime)
+    if (step === 'increment') {
+      await incrementBucket(trx, 'statuses', 1, currentTime)
+    }
+
+    const actor = await trx('actors')
+      .where('id', actorId)
+      .first<{ accountId: string | null }>('accountId')
+    if (actor?.accountId) {
+      await adjust(trx, CounterKey.nodeinfoLocalPosts(), 1, currentTime)
+    }
+
+    if (type === StatusType.enum.Announce) {
+      const originalStatusId = getOriginalStatusIdFromAnnounceContent(content)
+      if (originalStatusId) {
+        await adjust(
+          trx,
+          CounterKey.totalReblog(originalStatusId),
+          1,
+          currentTime
+        )
+      }
+    }
+
+    if (reply) {
+      const parentStatusId = await resolveParentStatusIdByReply(reply, trx)
+      if (parentStatusId) {
+        await adjust(trx, CounterKey.totalReply(parentStatusId), 1, currentTime)
+      }
+    }
+  }
+
   // Public
   async function createNote({
     id,
@@ -65,6 +221,8 @@ export const StatusSQLDatabaseMixin = (
     await database.transaction(async (trx) => {
       await trx('statuses').insert({
         id,
+        url,
+        urlHash: getStatusUrlHash(url),
         actorId,
         type: StatusType.enum.Note,
         content: JSON.stringify({
@@ -76,7 +234,19 @@ export const StatusSQLDatabaseMixin = (
         createdAt: statusCreatedAt,
         updatedAt: statusUpdatedAt
       })
-      await updateCount(actorId, currentTime, 'increment', trx)
+      await updateStatusCounters({
+        actorId,
+        type: StatusType.enum.Note,
+        reply,
+        content: {
+          url,
+          text,
+          summary
+        },
+        step: 'increment',
+        trx,
+        currentTime
+      })
       await Promise.all(
         to.map((actorId) =>
           trx('recipients').insert({
@@ -156,6 +326,8 @@ export const StatusSQLDatabaseMixin = (
       await trx('statuses')
         .where('id', status.id)
         .update({
+          url: status.url || null,
+          urlHash: status.url ? getStatusUrlHash(status.url) : null,
           content: JSON.stringify({
             url: status.url,
             text,
@@ -163,6 +335,47 @@ export const StatusSQLDatabaseMixin = (
           }),
           updatedAt: currentTime
         })
+    })
+    return getStatus({ statusId })
+  }
+
+  async function updateNoteVisibility({
+    statusId,
+    to,
+    cc
+  }: UpdateNoteVisibilityParams): Promise<Status | null> {
+    const status = await getStatus({ statusId })
+    if (!status) return null
+    if (status.type !== StatusType.enum.Note) return null
+
+    const currentTime = new Date()
+    await database.transaction(async (trx) => {
+      await trx('recipients').where('statusId', status.id).delete()
+      await trx('timelines').where('statusId', status.id).delete()
+      await Promise.all(
+        to.map((actorId) =>
+          trx('recipients').insert({
+            id: crypto.randomUUID(),
+            statusId: status.id,
+            actorId,
+            type: 'to',
+            createdAt: currentTime,
+            updatedAt: currentTime
+          })
+        )
+      )
+      await Promise.all(
+        cc.map((actorId) =>
+          trx('recipients').insert({
+            id: crypto.randomUUID(),
+            statusId: status.id,
+            actorId,
+            type: 'cc',
+            createdAt: currentTime,
+            updatedAt: currentTime
+          })
+        )
+      )
     })
     return getStatus({ statusId })
   }
@@ -182,6 +395,8 @@ export const StatusSQLDatabaseMixin = (
     await database.transaction(async (trx) => {
       await trx('statuses').insert({
         id,
+        url: null,
+        urlHash: null,
         actorId,
         type: StatusType.enum.Announce,
         reply: '',
@@ -189,7 +404,15 @@ export const StatusSQLDatabaseMixin = (
         createdAt: statusCreatedAt,
         updatedAt: statusUpdatedAt
       })
-      await updateCount(actorId, currentTime, 'increment', trx)
+      await updateStatusCounters({
+        actorId,
+        type: StatusType.enum.Announce,
+        reply: '',
+        content: originalStatusId,
+        step: 'increment',
+        trx,
+        currentTime
+      })
       await Promise.all(
         to.map((actorId) =>
           trx('recipients').insert({
@@ -260,6 +483,8 @@ export const StatusSQLDatabaseMixin = (
     await database.transaction(async (trx) => {
       await trx('statuses').insert({
         id,
+        url,
+        urlHash: getStatusUrlHash(url),
         actorId,
         type: StatusType.enum.Poll,
         content: JSON.stringify({
@@ -273,7 +498,21 @@ export const StatusSQLDatabaseMixin = (
         createdAt: statusCreatedAt,
         updatedAt: statusUpdatedAt
       })
-      await updateCount(actorId, currentTime, 'increment', trx)
+      await updateStatusCounters({
+        actorId,
+        type: StatusType.enum.Poll,
+        reply,
+        content: {
+          url,
+          text,
+          summary,
+          endAt,
+          pollType
+        },
+        step: 'increment',
+        trx,
+        currentTime
+      })
       await Promise.all(
         choices.map((choice) =>
           trx('poll_choices').insert({
@@ -372,6 +611,8 @@ export const StatusSQLDatabaseMixin = (
         await trx('statuses')
           .where('id', statusId)
           .update({
+            url: data.url || null,
+            urlHash: data.url ? getStatusUrlHash(data.url) : null,
             content: JSON.stringify({
               url: data.url,
               text: nextText,
@@ -460,11 +701,7 @@ export const StatusSQLDatabaseMixin = (
   async function getActorStatusesCount({
     actorId
   }: GetActorStatusesCountParams) {
-    const result = await database('counters')
-      .where('id', `total-status:${actorId}`)
-      .first()
-    if (!result) return 0
-    return result.value
+    return getCounterValue(database, CounterKey.totalStatus(actorId))
   }
 
   async function getActorStatuses({
@@ -505,6 +742,40 @@ export const StatusSQLDatabaseMixin = (
     return statusesWithAttachments
   }
 
+  async function getStatusesByIds({
+    statusIds,
+    currentActorId,
+    withReplies
+  }: GetStatusesByIdsParams): Promise<Status[]> {
+    if (statusIds.length === 0) {
+      return []
+    }
+
+    const uniqueStatusIds = [...new Set(statusIds)]
+    const statuses = await database('statuses')
+      .whereIn('id', uniqueStatusIds)
+      .select()
+    const statusMap = new Map(
+      statuses.map((statusData) => [statusData.id, statusData] as const)
+    )
+    const orderedStatusData = statusIds
+      .map((statusId) => statusMap.get(statusId))
+      .filter((statusData) => Boolean(statusData))
+    const statusesWithAttachments = (
+      await Promise.all(
+        orderedStatusData.map((statusData) =>
+          getStatusWithAttachmentsFromData(
+            statusData,
+            currentActorId,
+            withReplies
+          )
+        )
+      )
+    ).filter((status): status is Status => status !== null)
+
+    return statusesWithAttachments
+  }
+
   async function deleteStatus({
     statusId,
     trx
@@ -523,7 +794,31 @@ export const StatusSQLDatabaseMixin = (
     await Promise.all(
       replies.map(({ id }) => deleteStatus({ statusId: id, trx }))
     )
-    await updateCount(status.actorId, new Date(), 'decrement', trx)
+    await updateStatusCounters({
+      actorId: status.actorId,
+      type: status.type,
+      reply: status.reply || '',
+      content: status.content,
+      step: 'decrement',
+      trx,
+      currentTime: new Date()
+    })
+    const hashtagTags = await trx('tags')
+      .where('statusId', statusId)
+      .where('type', 'hashtag')
+    if (hashtagTags.length > 0) {
+      await Promise.all(
+        hashtagTags.map((tag: { name: string }) => {
+          const tagName = tag.name.startsWith('#')
+            ? tag.name.slice(1)
+            : tag.name
+          return decreaseCounterValue(
+            trx,
+            CounterKey.totalHashtag(tagName.toLowerCase())
+          )
+        })
+      )
+    }
     await Promise.all([
       trx('statuses').where('id', statusId).delete(),
       trx('recipients').where('statusId', statusId).delete(),
@@ -535,9 +830,24 @@ export const StatusSQLDatabaseMixin = (
   }
 
   async function getFavouritedBy({
-    statusId
+    statusId,
+    limit,
+    offset = 0
   }: GetFavouritedByParams): Promise<Actor[]> {
-    const result = await database('likes').where({ statusId })
+    let query = database('likes')
+      .where({ statusId })
+      .orderBy('createdAt', 'desc')
+      .orderBy('actorId', 'asc')
+
+    if (typeof limit === 'number') {
+      query = query.limit(limit)
+    }
+
+    if (offset > 0) {
+      query = query.offset(offset)
+    }
+
+    const result = await query
     const actors = await Promise.all(
       result.map((item) => actorDatabase.getActorFromId({ id: item.actorId }))
     )
@@ -563,6 +873,9 @@ export const StatusSQLDatabaseMixin = (
     })
     await database('tags').insert({
       ...data,
+      ...(type === 'hashtag'
+        ? { nameNormalized: name.toLowerCase() }
+        : undefined),
       createdAt: currentTime,
       updatedAt: currentTime
     })
@@ -578,6 +891,119 @@ export const StatusSQLDatabaseMixin = (
         updatedAt: getCompatibleTime(item.updatedAt)
       })
     )
+  }
+
+  // Normalise a caller-supplied hashtag value to the form stored in
+  // tags.nameNormalized: strip any leading '#' then re-add exactly one.
+  function normalizeHashtagName(hashtag: string): string {
+    const bare = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+    return `#${bare.toLowerCase()}`
+  }
+
+  async function getStatusesByHashtag({
+    hashtag,
+    limit = PER_PAGE_LIMIT,
+    maxStatusId
+  }: GetStatusesByHashtagParams): Promise<Status[]> {
+    const normalizedName = normalizeHashtagName(hashtag)
+    let query = database('tags')
+      .innerJoin('statuses', 'tags.statusId', 'statuses.id')
+      .innerJoin('recipients', 'statuses.id', 'recipients.statusId')
+      .where('tags.type', 'hashtag')
+      .where('tags.nameNormalized', normalizedName)
+      .where('recipients.actorId', ACTIVITY_STREAM_PUBLIC)
+      .whereIn('statuses.type', [StatusType.enum.Note, StatusType.enum.Poll])
+      .select('statuses.id', 'statuses.createdAt')
+      .distinct()
+      .orderBy('statuses.createdAt', 'desc')
+      .orderBy('statuses.id', 'desc')
+      .limit(limit)
+
+    if (maxStatusId) {
+      const cursor = await database('statuses')
+        .where('id', maxStatusId)
+        .select('createdAt')
+        .first<{ createdAt: Date }>()
+      if (cursor) {
+        query = query.where((wb) => {
+          wb.where('statuses.createdAt', '<', cursor.createdAt).orWhere(
+            (wb2) => {
+              wb2
+                .where('statuses.createdAt', '=', cursor.createdAt)
+                .where('statuses.id', '<', maxStatusId)
+            }
+          )
+        })
+      }
+    }
+
+    const rows = await query
+    const statusIds = rows.map((row: { id: string }) => row.id)
+    if (statusIds.length === 0) return []
+    return getStatusesByIds({ statusIds })
+  }
+
+  async function getHashtagCounter({
+    hashtag
+  }: {
+    hashtag: string
+  }): Promise<number> {
+    const tagName = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+    return getCounterValue(database, CounterKey.totalHashtag(tagName))
+  }
+
+  async function getHashtagStatusesPage({
+    hashtag,
+    limit,
+    offset
+  }: GetHashtagStatusesPageParams) {
+    const normalizedName = normalizeHashtagName(hashtag)
+    const baseQuery = () =>
+      database('tags')
+        .innerJoin('statuses', 'tags.statusId', 'statuses.id')
+        .innerJoin('recipients', 'statuses.id', 'recipients.statusId')
+        .where('tags.type', 'hashtag')
+        .where('tags.nameNormalized', normalizedName)
+        .where('recipients.actorId', ACTIVITY_STREAM_PUBLIC)
+        .whereIn('statuses.type', [StatusType.enum.Note, StatusType.enum.Poll])
+
+    const [rows, countResult] = await Promise.all([
+      baseQuery()
+        .distinct('statuses.id', 'statuses.createdAt')
+        .orderBy('statuses.createdAt', 'desc')
+        .orderBy('statuses.id', 'desc')
+        .limit(limit)
+        .offset(offset),
+      baseQuery()
+        .countDistinct<{ count: string }>({ count: 'statuses.id' })
+        .first()
+    ])
+
+    const statusIds = (rows as { id: string }[]).map((row) => row.id)
+    const statuses =
+      statusIds.length > 0 ? await getStatusesByIds({ statusIds }) : []
+    return {
+      statuses,
+      total: parseInt(String(countResult?.count ?? '0'), 10)
+    }
+  }
+
+  async function increaseHashtagCounter({
+    hashtag
+  }: {
+    hashtag: string
+  }): Promise<void> {
+    const tagName = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+    await increaseCounterValue(database, CounterKey.totalHashtag(tagName))
+  }
+
+  async function decreaseHashtagCounter({
+    hashtag
+  }: {
+    hashtag: string
+  }): Promise<void> {
+    const tagName = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+    await decreaseCounterValue(database, CounterKey.totalHashtag(tagName))
   }
 
   // Private
@@ -635,7 +1061,8 @@ export const StatusSQLDatabaseMixin = (
       totalLikes,
       isActorLikedStatusResult,
       actorAnnounceStatus,
-      edits
+      edits,
+      fitnessFile
     ] = await Promise.all([
       mediaDatabase.getAttachments({ statusId: data.id }),
       getTags({ statusId: data.id }),
@@ -646,10 +1073,7 @@ export const StatusSQLDatabaseMixin = (
             .orderBy('createdAt', 'desc')
         : Promise.resolve([]),
       actorDatabase.getActorFromId({ id: data.actorId }),
-      database('likes')
-        .where('statusId', data.id)
-        .count<{ count: string }>('* as count')
-        .first(),
+      getCounterValue(database, CounterKey.totalLike(data.id)),
       currentActorId
         ? likeDatabase.isActorLikedStatus({
             statusId: data.id,
@@ -662,7 +1086,11 @@ export const StatusSQLDatabaseMixin = (
             actorId: currentActorId
           })
         : null,
-      database('status_history').where('statusId', data.id)
+      database('status_history').where('statusId', data.id),
+      database<SQLFitnessFile>('fitness_files')
+        .where('statusId', data.id)
+        .whereNull('deletedAt')
+        .first()
     ])
 
     const repliesNote = (
@@ -677,11 +1105,15 @@ export const StatusSQLDatabaseMixin = (
           : null
       )
       .filter((item): item is StatusNote => Boolean(item))
+    const orderedAttachments = sortAttachmentsForFitnessMap(
+      attachments,
+      fitnessFile?.mapImagePath
+    )
 
     const content = getCompatibleJSON(data.content)
     const base = {
       id: data.id,
-      url: content.url,
+      url: content.url ?? data.url,
       to: to.map((item) => item.actorId),
       cc: cc.map((item) => item.actorId),
       actorId: data.actorId,
@@ -691,12 +1123,47 @@ export const StatusSQLDatabaseMixin = (
       summary: content.summary,
       reply: data.reply,
       replies: repliesNote,
-      totalLikes: parseInt(totalLikes?.count ?? '0', 10),
+      totalLikes,
       isActorLiked: isActorLikedStatusResult,
       actorAnnounceStatusId: actorAnnounceStatus?.id ?? null,
       isLocalActor: Boolean(actor?.account),
-      attachments,
+      attachments: orderedAttachments,
       tags,
+      ...(fitnessFile
+        ? {
+            fitness: {
+              id: fitnessFile.id,
+              fileName: fitnessFile.fileName,
+              fileType: fitnessFile.fileType,
+              mimeType: fitnessFile.mimeType,
+              bytes: Number(fitnessFile.bytes),
+              url: `/api/v1/fitness-files/${fitnessFile.id}`,
+              processingStatus: fitnessFile.processingStatus ?? 'pending',
+              ...(typeof fitnessFile.totalDistanceMeters === 'number'
+                ? { totalDistanceMeters: fitnessFile.totalDistanceMeters }
+                : null),
+              ...(typeof fitnessFile.totalDurationSeconds === 'number'
+                ? { totalDurationSeconds: fitnessFile.totalDurationSeconds }
+                : null),
+              ...(typeof fitnessFile.elevationGainMeters === 'number'
+                ? { elevationGainMeters: fitnessFile.elevationGainMeters }
+                : null),
+              ...(fitnessFile.activityType
+                ? { activityType: fitnessFile.activityType }
+                : null),
+              hasMapData: Boolean(fitnessFile.hasMapData),
+              ...(fitnessFile.description
+                ? { description: fitnessFile.description }
+                : null),
+              ...(fitnessFile.deviceManufacturer
+                ? { deviceManufacturer: fitnessFile.deviceManufacturer }
+                : null),
+              ...(fitnessFile.deviceName
+                ? { deviceName: fitnessFile.deviceName }
+                : null)
+            }
+          }
+        : null),
       createdAt: getCompatibleTime(data.createdAt),
       updatedAt: getCompatibleTime(data.updatedAt),
 
@@ -733,44 +1200,16 @@ export const StatusSQLDatabaseMixin = (
     return StatusNote.parse(base)
   }
 
-  async function updateCount(
-    actorId: string,
-    time: Date,
-    step: 'increment' | 'decrement',
-    trx: Knex.Transaction
-  ) {
-    const count = await trx('counters')
-      .where({
-        id: `total-status:${actorId}`
-      })
-      .first()
-    if (!count) {
-      await trx('counters').insert({
-        id: `total-status:${actorId}`,
-        value: 1,
-        createdAt: time,
-        updatedAt: time
-      })
-    } else {
-      await trx('counters')
-        .where({ id: `total-status:${actorId}` })
-        .update({
-          value: count.value + (step === 'increment' ? 1 : -1),
-          updatedAt: time
-        })
-    }
-  }
-
   async function getStatusReblogsCount({
     statusId
   }: GetStatusReblogsCountParams): Promise<number> {
-    const result = await database('statuses')
-      .where('type', StatusType.enum.Announce)
-      .where('content', statusId)
-      .count<{ count: string }>('* as count')
-      .first()
-    if (!result) return 0
-    return parseInt(result.count, 10)
+    return getCounterValue(database, CounterKey.totalReblog(statusId))
+  }
+
+  async function getStatusRepliesCount({
+    statusId
+  }: GetStatusRepliesCountParams): Promise<number> {
+    return getCounterValue(database, CounterKey.totalReply(statusId))
   }
 
   async function createPollAnswer({
@@ -824,23 +1263,158 @@ export const StatusSQLDatabaseMixin = (
       .increment('totalVotes', 1)
   }
 
+  async function getStatusFromUrl({ url }: GetStatusFromUrlParams) {
+    const status = await database('statuses')
+      .where('urlHash', getStatusUrlHash(url))
+      .andWhere('url', url)
+      .first<{ id: string }>('id')
+
+    if (status?.id) {
+      return getStatus({ statusId: status.id })
+    }
+
+    return null
+  }
+
+  async function getStatusFromUrlHash({
+    urlHash,
+    actorId
+  }: GetStatusFromUrlHashParams) {
+    const query = database('statuses').where('urlHash', urlHash)
+    if (actorId) {
+      query.andWhere('actorId', actorId)
+    }
+
+    const status = await query.first()
+    if (!status) return null
+
+    return getStatusWithAttachmentsFromData(status)
+  }
+
+  async function getActorAnnouncedStatusId({
+    actorId,
+    originalStatusId
+  }: {
+    actorId: string
+    originalStatusId: string
+  }) {
+    const result = await database('statuses')
+      .where('actorId', actorId)
+      .andWhere('originalStatusId', originalStatusId)
+      .first<{ id: string }>('id')
+    return result?.id ?? null
+  }
+
+  async function countStatus({ actorId }: { actorId: string }) {
+    return getCounterValue(database, CounterKey.totalStatus(actorId))
+  }
+
+  async function updatePollChoice({
+    statusId,
+    choices
+  }: {
+    statusId: string
+    choices: { title: string }[]
+  }) {
+    await database('poll_choices').where('statusId', statusId).delete()
+    if (choices.length > 0) {
+      await database('poll_choices').insert(
+        choices.map((choice, index) => ({
+          statusId,
+          choiceId: index,
+          title: choice.title,
+          totalVotes: 0
+        }))
+      )
+    }
+  }
+
+  async function addPollVote({
+    actorId,
+    statusId,
+    choice
+  }: {
+    actorId: string
+    statusId: string
+    choice: number
+  }) {
+    await database('poll_answers').insert({
+      actorId,
+      statusId,
+      answerId: choice
+    })
+  }
+
+  async function getPollVotes({
+    actorId,
+    statusId
+  }: {
+    actorId: string
+    statusId: string
+  }) {
+    const results = await database('poll_answers')
+      .where({ actorId, statusId })
+      .select<{ answerId: number }[]>('answerId')
+    return results.map((r) => r.answerId)
+  }
+
+  async function addStatusTag({
+    actorId,
+    statusId,
+    type,
+    name,
+    value
+  }: {
+    actorId: string
+    statusId: string
+    type: string
+    name: string
+    value: string
+  }) {
+    await database('tags').insert({
+      actorId,
+      statusId,
+      type,
+      name,
+      value,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+  }
+
   return {
     createNote,
     updateNote,
+    updateNoteVisibility,
     createAnnounce,
     createPoll,
     updatePoll,
     getStatus,
     getStatusReplies,
+    getStatusFromUrl,
+    getStatusFromUrlHash,
+    getActorAnnouncedStatusId,
     hasActorAnnouncedStatus,
     getActorAnnounceStatus,
     getActorStatusesCount,
     getActorStatuses,
+    getStatusesByIds,
     deleteStatus,
+    countStatus,
+    updatePollChoice,
+    addPollVote,
+    getPollVotes,
+    addStatusTag,
     getFavouritedBy,
     createTag,
     getTags,
+    getStatusesByHashtag,
+    getHashtagStatusesPage,
+    getHashtagCounter,
+    increaseHashtagCounter,
+    decreaseHashtagCounter,
     getStatusReblogsCount,
+    getStatusRepliesCount,
     createPollAnswer,
     hasActorVoted,
     getActorPollVotes,

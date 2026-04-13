@@ -1,8 +1,9 @@
 import { Reducer } from 'react'
 
-import { PostBoxAttachment } from '../../models/attachment'
-import { MAX_ATTACHMENTS } from '../../services/medias/constants'
-import { MastodonVisibility } from '../../utils/getVisibility'
+import { MAX_ATTACHMENTS } from '@/lib/services/medias/constants'
+import { PostBoxAttachment } from '@/lib/types/domain/attachment'
+import { MastodonVisibility } from '@/lib/utils/getVisibility'
+
 import { Choice, DEFAULT_DURATION, Duration } from './poll-choices'
 
 interface StatusExtension {
@@ -14,6 +15,11 @@ interface StatusExtension {
     pollType: 'oneOf' | 'anyOf'
   }
   visibility: MastodonVisibility
+  fitnessFile?: {
+    file: File
+    uploading: boolean
+    uploadedId?: string
+  }
 }
 
 export const resetExtension = () => ({ type: 'resetExtension' as const })
@@ -84,6 +90,29 @@ export const setVisibility = (visibility: MastodonVisibility) => ({
 })
 type ActionSetVisibility = ReturnType<typeof setVisibility>
 
+export const setFitnessFile = (file: File) => ({
+  type: 'setFitnessFile' as const,
+  file
+})
+type ActionSetFitnessFile = ReturnType<typeof setFitnessFile>
+
+export const setFitnessFileUploading = (uploading: boolean) => ({
+  type: 'setFitnessFileUploading' as const,
+  uploading
+})
+type ActionSetFitnessFileUploading = ReturnType<typeof setFitnessFileUploading>
+
+export const setFitnessFileUploaded = (uploadedId: string) => ({
+  type: 'setFitnessFileUploaded' as const,
+  uploadedId
+})
+type ActionSetFitnessFileUploaded = ReturnType<typeof setFitnessFileUploaded>
+
+export const removeFitnessFile = () => ({
+  type: 'removeFitnessFile' as const
+})
+type ActionRemoveFitnessFile = ReturnType<typeof removeFitnessFile>
+
 type Actions =
   | ActionReset
   | ActionSetAttachments
@@ -96,6 +125,10 @@ type Actions =
   | ActionUpdateAttachment
   | ActionRemoveAttachment
   | ActionSetVisibility
+  | ActionSetFitnessFile
+  | ActionSetFitnessFileUploading
+  | ActionSetFitnessFileUploaded
+  | ActionRemoveFitnessFile
 
 const key = () => Math.round(Math.random() * 1000)
 
@@ -237,6 +270,48 @@ export const statusExtensionReducer: Reducer<StatusExtension, Actions> = (
       return {
         ...state,
         visibility: action.visibility
+      }
+    }
+    case 'setFitnessFile': {
+      return {
+        ...state,
+        poll: {
+          ...state.poll,
+          showing: false
+        },
+        fitnessFile: {
+          file: action.file,
+          uploading: false
+        },
+        // Auto-set visibility to private when fitness file is attached
+        visibility: 'private' as MastodonVisibility
+      }
+    }
+    case 'setFitnessFileUploading': {
+      if (!state.fitnessFile) return state
+      return {
+        ...state,
+        fitnessFile: {
+          ...state.fitnessFile,
+          uploading: action.uploading
+        }
+      }
+    }
+    case 'setFitnessFileUploaded': {
+      if (!state.fitnessFile) return state
+      return {
+        ...state,
+        fitnessFile: {
+          ...state.fitnessFile,
+          uploading: false,
+          uploadedId: action.uploadedId
+        }
+      }
+    }
+    case 'removeFitnessFile': {
+      return {
+        ...state,
+        fitnessFile: undefined
       }
     }
     default:

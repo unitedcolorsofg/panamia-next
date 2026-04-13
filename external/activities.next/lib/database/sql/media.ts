@@ -1,19 +1,30 @@
 import { Knex } from 'knex'
 
 import {
+  CounterKey,
+  decreaseCounterValue,
+  getCounterValue,
+  increaseCounterValue,
+  parseCounterValue
+} from '@/lib/database/sql/utils/counter'
+import { incrementBucket } from '@/lib/database/sql/utils/counterBucket'
+import {
+  AttachmentWithMedia,
   CreateAttachmentParams,
   CreateMediaParams,
+  DeleteAttachmentsByIdsParams,
   DeleteMediaParams,
   GetAttachmentsForActorParams,
   GetAttachmentsParams,
+  GetAttachmentsWithMediaParams,
   GetMediaByIdParams,
   GetMediasForAccountParams,
   GetStorageUsageForAccountParams,
   Media,
   MediaDatabase,
   PaginatedMediaWithStatus
-} from '@/lib/database/types/media'
-import { Attachment } from '@/lib/models/attachment'
+} from '@/lib/types/database/operations'
+import { Attachment } from '@/lib/types/domain/attachment'
 
 import { getCompatibleJSON } from './utils/getCompatibleJSON'
 import { getCompatibleTime } from './utils/getCompatibleTime'
@@ -27,33 +38,61 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
   }: CreateMediaParams) {
     if (!actorId) return null
 
-    const content = {
-      actorId,
-      original: original.path,
-      originalBytes: original.bytes,
-      originalMimeType: original.mimeType,
-      originalMetaData: JSON.stringify(original.metaData),
-      ...(original.fileName ? { originalFileName: original.fileName } : null),
-      ...(thumbnail
-        ? {
-            thumbnail: thumbnail.path,
-            thumbnailBytes: thumbnail.bytes,
-            thumbnailMimeType: thumbnail.mimeType,
-            thumbnailMetaData: JSON.stringify(thumbnail.metaData)
-          }
-        : null),
-      ...(description ? { description } : null)
-    }
+    return database.transaction(async (trx) => {
+      const actor = await trx('actors')
+        .where('id', actorId)
+        .select<{ accountId: string | null }>('accountId')
+        .first()
 
-    const ids = await database('medias').insert(content, ['id'])
-    if (ids.length === 0) return null
-    return {
-      id: ids[0].id,
-      actorId,
-      original,
-      ...(thumbnail ? { thumbnail } : null),
-      ...(description ? { description } : null)
-    } as Media
+      const content = {
+        actorId,
+        original: original.path,
+        originalBytes: original.bytes,
+        originalMimeType: original.mimeType,
+        originalMetaData: JSON.stringify(original.metaData),
+        ...(original.fileName ? { originalFileName: original.fileName } : null),
+        ...(thumbnail
+          ? {
+              thumbnail: thumbnail.path,
+              thumbnailBytes: thumbnail.bytes,
+              thumbnailMimeType: thumbnail.mimeType,
+              thumbnailMetaData: JSON.stringify(thumbnail.metaData)
+            }
+          : null),
+        ...(description ? { description } : null)
+      }
+
+      const ids = await trx('medias').insert(content, ['id'])
+      if (ids.length === 0) return null
+
+      const usageDelta = original.bytes + (thumbnail?.bytes ?? 0)
+      if (actor?.accountId) {
+        if (usageDelta > 0) {
+          await increaseCounterValue(
+            trx,
+            CounterKey.mediaUsage(actor.accountId),
+            usageDelta
+          )
+        }
+        await increaseCounterValue(
+          trx,
+          CounterKey.totalMedia(actor.accountId),
+          1
+        )
+      }
+      await incrementBucket(trx, 'media-files', 1)
+      if (usageDelta > 0) {
+        await incrementBucket(trx, 'media-bytes', usageDelta)
+      }
+
+      return {
+        id: ids[0].id,
+        actorId,
+        original,
+        ...(thumbnail ? { thumbnail } : null),
+        ...(description ? { description } : null)
+      } as Media
+    })
   },
   async createAttachment({
     actorId,
@@ -62,9 +101,12 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
     url,
     width,
     height,
-    name = ''
+    name = '',
+    mediaId,
+    createdAt
   }: CreateAttachmentParams): Promise<Attachment> {
-    const currentTime = new Date()
+    const currentTime =
+      typeof createdAt === 'number' ? new Date(createdAt) : new Date()
     const data = Attachment.parse({
       id: crypto.randomUUID(),
       actorId,
@@ -80,6 +122,7 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
     })
     await database('attachments').insert({
       ...data,
+      mediaId,
       createdAt: currentTime,
       updatedAt: currentTime
     })
@@ -87,10 +130,10 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
   },
 
   async getAttachments({ statusId }: GetAttachmentsParams) {
-    const data = await database<Attachment>('attachments').where(
-      'statusId',
-      statusId
-    )
+    const data = await database<Attachment>('attachments')
+      .where('statusId', statusId)
+      .orderBy('createdAt', 'asc')
+      .orderBy('id', 'asc')
     return data
       .map((item) => {
         if (!item.actorId) return null
@@ -103,6 +146,51 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
         })
       })
       .filter((item): item is Attachment => Boolean(item))
+  },
+
+  async getAttachmentsWithMedia({
+    statusId
+  }: GetAttachmentsWithMediaParams): Promise<AttachmentWithMedia[]> {
+    const data = await database('attachments')
+      .where('statusId', statusId)
+      .orderBy('createdAt', 'asc')
+      .orderBy('id', 'asc')
+      .select(
+        'id',
+        'actorId',
+        'statusId',
+        'type',
+        'mediaType',
+        'url',
+        'width',
+        'height',
+        'name',
+        'createdAt',
+        'updatedAt',
+        'mediaId'
+      )
+
+    return data
+      .map((item) => {
+        if (!item.actorId) return null
+
+        const attachment = Attachment.parse({
+          ...item,
+          width: item.width ?? undefined,
+          height: item.height ?? undefined,
+          createdAt: getCompatibleTime(item.createdAt),
+          updatedAt: getCompatibleTime(item.updatedAt)
+        })
+
+        return {
+          ...attachment,
+          mediaId:
+            item.mediaId === null || item.mediaId === undefined
+              ? null
+              : String(item.mediaId)
+        } satisfies AttachmentWithMedia
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
   },
 
   async getAttachmentsForActor({
@@ -142,30 +230,16 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
     page = 1,
     maxCreatedAt
   }: GetMediasForAccountParams): Promise<PaginatedMediaWithStatus> {
-    // First, get the total count
-    const countQuery = database('medias')
-      .join('actors', 'medias.actorId', 'actors.id')
-      .where('actors.accountId', accountId)
-      .count('medias.id as count')
-      .first()
+    // Get total count from counter table for performance
+    const totalPromise = getCounterValue(
+      database,
+      CounterKey.totalMedia(accountId)
+    )
 
     // Then get the paginated items
     let itemsQuery = database('medias')
       .join('actors', 'medias.actorId', 'actors.id')
-      .leftJoin('attachments', function () {
-        // Match media with attachments using LIKE pattern matching (database-agnostic)
-        // Handles:
-        // 1. Direct match: attachments.url = medias.original (for test fixtures)
-        // 2. URL ends with path: attachments.url LIKE '%' || medias.original (for S3/ObjectStorage)
-        //
-        // Note: For local storage where URLs contain only filenames, this won't match
-        // because the full filesystem path isn't present in the URL. This is a limitation
-        // of using database-agnostic queries without substring extraction.
-        this.on('medias.original', '=', 'attachments.url')
-        this.orOn(database.raw("attachments.url LIKE '%' || medias.original"))
-        this.orOn('medias.thumbnail', '=', 'attachments.url')
-        this.orOn(database.raw("attachments.url LIKE '%' || medias.thumbnail"))
-      })
+      .leftJoin('attachments', 'medias.id', 'attachments.mediaId')
       .where('actors.accountId', accountId)
       .distinct(
         'medias.id',
@@ -197,8 +271,7 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
     const offset = (page - 1) * limit
     itemsQuery = itemsQuery.limit(limit).offset(offset)
 
-    const [countResult, data] = await Promise.all([countQuery, itemsQuery])
-    const total = Number(countResult?.count || 0)
+    const [total, data] = await Promise.all([totalPromise, itemsQuery])
 
     const items = data.map((item) => ({
       id: String(item.id),
@@ -280,24 +353,58 @@ export const MediaSQLDatabaseMixin = (database: Knex): MediaDatabase => ({
   async getStorageUsageForAccount({
     accountId
   }: GetStorageUsageForAccountParams): Promise<number> {
-    const result = await database('medias')
-      .join('actors', 'medias.actorId', 'actors.id')
-      .where('actors.accountId', accountId)
-      .sum({
-        totalOriginal: 'medias.originalBytes',
-        totalThumbnail: 'medias.thumbnailBytes'
-      })
-      .first()
+    return getCounterValue(database, CounterKey.mediaUsage(accountId))
+  },
 
-    if (!result) return 0
+  async deleteAttachmentsByIds({
+    attachmentIds
+  }: DeleteAttachmentsByIdsParams): Promise<number> {
+    if (attachmentIds.length === 0) {
+      return 0
+    }
 
-    const totalOriginal = Number(result.totalOriginal) || 0
-    const totalThumbnail = Number(result.totalThumbnail) || 0
-    return totalOriginal + totalThumbnail
+    return database('attachments').whereIn('id', attachmentIds).delete()
   },
 
   async deleteMedia({ mediaId }: DeleteMediaParams): Promise<boolean> {
-    const deleted = await database('medias').where('id', mediaId).del()
-    return deleted > 0
+    return database.transaction(async (trx) => {
+      const media = await trx('medias')
+        .where('id', mediaId)
+        .select('actorId', 'originalBytes', 'thumbnailBytes')
+        .first<{
+          actorId: string
+          originalBytes: number | string | bigint | null
+          thumbnailBytes: number | string | bigint | null
+        }>()
+      if (!media) return false
+
+      const actor = await trx('actors')
+        .where('id', media.actorId)
+        .select<{ accountId: string | null }>('accountId')
+        .first()
+
+      const deleted = await trx('medias').where('id', mediaId).del()
+      if (!deleted) return false
+
+      const usageDelta =
+        parseCounterValue(media.originalBytes) +
+        parseCounterValue(media.thumbnailBytes)
+
+      if (actor?.accountId) {
+        if (usageDelta > 0) {
+          await decreaseCounterValue(
+            trx,
+            CounterKey.mediaUsage(actor.accountId),
+            usageDelta
+          )
+        }
+        await decreaseCounterValue(
+          trx,
+          CounterKey.totalMedia(actor.accountId),
+          1
+        )
+      }
+      return true
+    })
   }
 })

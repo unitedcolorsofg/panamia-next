@@ -3,11 +3,11 @@ import fetchMock, { enableFetchMocks } from 'jest-fetch-mock'
 import { getTestSQLDatabase } from '@/lib/database/testUtils'
 import { createPollJob } from '@/lib/jobs/createPollJob'
 import { CREATE_POLL_JOB_NAME } from '@/lib/jobs/names'
-import { Actor } from '@/lib/models/actor'
-import { StatusType } from '@/lib/models/status'
 import { mockRequests } from '@/lib/stub/activities'
 import { seedDatabase } from '@/lib/stub/database'
 import { seedActor1 } from '@/lib/stub/seed/actor1'
+import { Actor } from '@/lib/types/domain/actor'
+import { StatusType } from '@/lib/types/domain/status'
 import { ACTIVITY_STREAM_PUBLIC } from '@/lib/utils/activitystream'
 import { getISOTimeUTC } from '@/lib/utils/getISOTimeUTC'
 
@@ -356,5 +356,47 @@ describe('createPollJob', () => {
     const status = await database.getStatus({ statusId: notAQuestion.id })
     // Should not be created as a poll since type is Note
     expect(status?.type).not.toEqual(StatusType.enum.Poll)
+  })
+
+  it('creates poll without tag field', async () => {
+    const questionWithoutTag = {
+      '@context': 'https://www.w3.org/ns/activitystreams',
+      id: `https://somewhere.test/actors/pollcreator/questions/${Date.now()}`,
+      type: 'Question',
+      attributedTo: REMOTE_ACTOR_ID,
+      to: [ACTIVITY_STREAM_PUBLIC],
+      cc: [`${REMOTE_ACTOR_ID}/followers`],
+      content: '<p>Question without tags</p>',
+      published: getISOTimeUTC(Date.now()),
+      endTime: getISOTimeUTC(Date.now() + 24 * 60 * 60 * 1000),
+      url: `https://somewhere.test/actors/pollcreator/questions/${Date.now()}`,
+      oneOf: [
+        {
+          type: 'Note',
+          name: 'Yes',
+          replies: { type: 'Collection', totalItems: 0 }
+        },
+        {
+          type: 'Note',
+          name: 'No',
+          replies: { type: 'Collection', totalItems: 0 }
+        }
+      ]
+      // Note: No tag field at all, simulating real ActivityPub payloads
+    }
+
+    await createPollJob(database, {
+      id: 'id',
+      name: CREATE_POLL_JOB_NAME,
+      data: questionWithoutTag
+    })
+
+    const status = await database.getStatus({ statusId: questionWithoutTag.id })
+    expect(status).toBeDefined()
+    expect(status?.type).toEqual(StatusType.enum.Poll)
+    if (status?.type !== StatusType.enum.Poll) {
+      fail('Status type must be Poll')
+    }
+    expect(status.choices).toHaveLength(2)
   })
 })
