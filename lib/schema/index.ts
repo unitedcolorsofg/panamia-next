@@ -180,6 +180,61 @@ export const parkingOptions = pgEnum('parking_options', [
   'lot',
   'garage',
   'valet',
+  'limited_garage',
+  'good_luck',
+]);
+
+export const venueType = pgEnum('venue_type', [
+  'bar_restaurant',
+  'library_civic',
+  'park_outdoor_public',
+  'private_residence',
+  'religious_community_hall',
+  'coworking_office',
+  'gallery_museum',
+  'theater_performance',
+  'studio_practice',
+  'classroom_school',
+  'beach_waterfront',
+  'hotel_ballroom',
+  'warehouse_industrial',
+  'rooftop',
+  'other',
+]);
+
+export const venueEnvironment = pgEnum('venue_environment', [
+  'indoor',
+  'outdoor',
+  'mixed',
+]);
+
+export const venueUsage = pgEnum('venue_usage', [
+  'single_purpose',
+  'mixed_use',
+]);
+
+export const adaAccessibility = pgEnum('ada_accessibility', [
+  'yes',
+  'partial',
+  'none',
+  'unknown',
+]);
+
+export const rentalModel = pgEnum('rental_model', [
+  'free',
+  'hourly',
+  'flat',
+  'tickets',
+  'request_quote',
+  'revenue_share',
+  'other',
+]);
+
+export const venueOwnership = pgEnum('venue_ownership', [
+  'private',
+  'public',
+  'nonprofit',
+  'unknown',
 ]);
 
 export const streamStatus = pgEnum('stream_status', [
@@ -217,6 +272,12 @@ export type PhotoPolicy = (typeof photoPolicy.enumValues)[number];
 export type Dresscode = (typeof dresscode.enumValues)[number];
 export type ParkingOptions = (typeof parkingOptions.enumValues)[number];
 export type StreamStatus = (typeof streamStatus.enumValues)[number];
+export type VenueType = (typeof venueType.enumValues)[number];
+export type VenueEnvironment = (typeof venueEnvironment.enumValues)[number];
+export type VenueUsage = (typeof venueUsage.enumValues)[number];
+export type AdaAccessibility = (typeof adaAccessibility.enumValues)[number];
+export type RentalModel = (typeof rentalModel.enumValues)[number];
+export type VenueOwnership = (typeof venueOwnership.enumValues)[number];
 
 // =============================================================================
 // Auth Tables (better-auth)
@@ -1057,7 +1118,40 @@ export const venues = pgTable(
     lat: numeric('lat', { precision: 10, scale: 7 }),
     lng: numeric('lng', { precision: 10, scale: 7 }),
     capacity: integer('capacity'),
+    fireCapacity: integer('fire_capacity').notNull(),
+    parcelControlNumber: text('parcel_control_number'),
+    parcelUnit: text('parcel_unit'),
+    venueType: venueType('venue_type'),
+    venueEnvironment: venueEnvironment('venue_environment'),
+    venueUsage: venueUsage('venue_usage'),
+    venueOwnership: venueOwnership('venue_ownership')
+      .notNull()
+      .default('unknown'),
+    adaAccessibility: adaAccessibility('ada_accessibility')
+      .notNull()
+      .default('unknown'),
     parkingOptions: parkingOptions('parking_options').notNull().default('none'),
+    parkingInstructions: text('parking_instructions'),
+    hasLiquorLicense: boolean('has_liquor_license').notNull().default(false),
+    houseRules: text('house_rules'),
+    ownerContact: jsonb('owner_contact'),
+    avInfrastructure: jsonb('av_infrastructure')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    safety: jsonb('safety'),
+    buildingPlansUrl: text('building_plans_url'),
+    supportingDocsUrls: jsonb('supporting_docs_urls')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    isFree: boolean('is_free').notNull().default(false),
+    rentalModel: rentalModel('rental_model'),
+    rentalPricing: jsonb('rental_pricing'),
+    bookingInstructions: text('booking_instructions'),
+    insuranceCoiUrl: text('insurance_coi_url'),
+    insuranceCoiExpiresAt: timestamp('insurance_coi_expires_at', {
+      withTimezone: true,
+    }),
+    insuranceNotes: text('insurance_notes'),
     operatorProfileId: text('operator_profile_id').notNull(),
     status: venueStatus('status').notNull().default('pending_review'),
     safetyContact: jsonb('safety_contact'),
@@ -1079,6 +1173,8 @@ export const venues = pgTable(
     ),
     statusIdx: index('venues_status_idx').on(table.status),
     cityStateIdx: index('venues_city_state_idx').on(table.city, table.state),
+    venueTypeIdx: index('venues_type_idx').on(table.venueType),
+    venueIsFreeIdx: index('venues_is_free_idx').on(table.isFree),
   })
 );
 

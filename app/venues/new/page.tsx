@@ -1,58 +1,8 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { useSession } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import VenueEditor from '@/components/VenueEditor';
-import Link from 'next/link';
-
-export default function NewVenuePage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/signin?callbackUrl=/venues/new');
-    }
-  }, [status, router]);
-
-  if (status === 'loading') {
-    return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
-  if (!session) {
-    return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign In Required</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600 dark:text-gray-400">
-              You must be signed in to submit a venue.
-            </p>
-            <Button asChild>
-              <Link href="/signin?callbackUrl=/venues/new">Sign In</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
-  return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
-      <VenueEditor />
-    </main>
-  );
+// The /venues/new path has been superseded by the multi-page wizard at
+// /form/submit-venue. We keep this file as a permanent redirect so bookmarks,
+// docs, and existing e2e tests that reference the old path still work.
+export default function NewVenueRedirect() {
+  redirect('/form/submit-venue');
 }

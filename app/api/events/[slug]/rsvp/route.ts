@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { events, eventAttendees, profiles } from '@/lib/schema';
+import { events, eventAttendees, profiles, venues } from '@/lib/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
@@ -68,18 +68,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const now = new Date();
 
     await db.transaction(async (tx) => {
-      // Check capacity
-      if (willBeGoing && !wasGoing && event.attendeeCap !== null) {
+      // Check capacity: enforce min(event.attendeeCap, venue.fireCapacity).
+      if (willBeGoing && !wasGoing) {
         const currentEvent = await tx.query.events.findFirst({
           where: eq(events.id, event.id),
-          columns: { attendeeCount: true, attendeeCap: true },
+          columns: { attendeeCount: true, attendeeCap: true, venueId: true },
         });
-        if (
-          currentEvent &&
-          currentEvent.attendeeCap !== null &&
-          currentEvent.attendeeCount >= currentEvent.attendeeCap
-        ) {
-          throw new Error('MAX_CAPACITY');
+        if (currentEvent) {
+          const venueRow = await tx.query.venues.findFirst({
+            where: eq(venues.id, currentEvent.venueId),
+            columns: { fireCapacity: true },
+          });
+          const caps: number[] = [];
+          if (currentEvent.attendeeCap !== null) {
+            caps.push(currentEvent.attendeeCap);
+          }
+          if (venueRow && venueRow.fireCapacity > 0) {
+            caps.push(venueRow.fireCapacity);
+          }
+          if (caps.length > 0) {
+            const hardCap = Math.min(...caps);
+            if (currentEvent.attendeeCount >= hardCap) {
+              throw new Error('MAX_CAPACITY');
+            }
+          }
         }
       }
 

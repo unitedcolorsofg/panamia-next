@@ -40,10 +40,17 @@ test.describe('Events — Auth-Protected Pages', () => {
     await expect(page).toHaveURL(/\/signin/);
   });
 
-  test('/venues/new redirects unauthenticated users to signin', async ({
+  test('/venues/new redirects to /form/submit-venue then to signin for unauthenticated users', async ({
     page,
   }) => {
     await page.goto('/venues/new');
+    await expect(page).toHaveURL(/\/signin/);
+  });
+
+  test('/form/submit-venue redirects unauthenticated users to signin', async ({
+    page,
+  }) => {
+    await page.goto('/form/submit-venue');
     await expect(page).toHaveURL(/\/signin/);
   });
 

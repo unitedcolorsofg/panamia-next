@@ -154,6 +154,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Enforce venue fire_capacity as a hard cap on attendeeCap.
+    // If caller omits attendeeCap, default to the venue's fire_capacity.
+    const parsedAttendeeCap =
+      attendeeCap !== undefined && attendeeCap !== null && attendeeCap !== ''
+        ? parseInt(attendeeCap, 10)
+        : null;
+    if (
+      parsedAttendeeCap !== null &&
+      (!Number.isFinite(parsedAttendeeCap) || parsedAttendeeCap <= 0)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'attendeeCap must be a positive integer' },
+        { status: 400 }
+      );
+    }
+    if (
+      parsedAttendeeCap !== null &&
+      venue.fireCapacity > 0 &&
+      parsedAttendeeCap > venue.fireCapacity
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `attendeeCap exceeds venue fire capacity (${venue.fireCapacity})`,
+          code: 'EXCEEDS_FIRE_CAPACITY',
+        },
+        { status: 400 }
+      );
+    }
+    const effectiveAttendeeCap =
+      parsedAttendeeCap ?? (venue.fireCapacity > 0 ? venue.fireCapacity : null);
+
     const slug = generateSlug(title);
     const iCalUid = `${createId()}@panamia.club`;
     const now = new Date();
@@ -175,7 +207,7 @@ export async function POST(request: NextRequest) {
         timezone: timezone || 'America/New_York',
         status: 'draft',
         visibility: visibility || 'public',
-        attendeeCap: attendeeCap ? parseInt(attendeeCap, 10) : null,
+        attendeeCap: effectiveAttendeeCap,
         ageRestriction: ageRestriction || 'all_ages',
         photoPolicy: photoPolicy || 'allowed',
         dresscode: dresscode || 'none',

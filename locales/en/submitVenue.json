@@ -1,0 +1,215 @@
+{
+  "title": "Submit a Venue",
+  "subtitle": "Register a venue so it can be used to host Pana MIA events. Submissions are reviewed by our admin team before going live.",
+  "loading": "Loading...",
+  "signInRequired": "You must be signed in to submit a venue.",
+  "panaRequired": "Only verified Panas can submit venues. Complete your profile first.",
+  "returnToVenues": "← Back to Venues",
+  "buttons": {
+    "next": "Next",
+    "back": "Back",
+    "cancel": "Cancel",
+    "submit": "Submit for Review",
+    "submitting": "Submitting..."
+  },
+  "hint": "Tell us what you know. If you don't know a field, leave it blank — we can fill in the details later.",
+  "pages": {
+    "identity": {
+      "heading": "Identity & Ownership",
+      "name": "Venue name",
+      "namePlaceholder": "e.g. The Anderson",
+      "nameRequired": "Venue name is required",
+      "website": "Website",
+      "websitePlaceholder": "https://...",
+      "ownerHeading": "Ownership / primary contact",
+      "ownerName": "Owner / manager name",
+      "ownerRole": "Role (owner, GM, booking, etc.)",
+      "ownerEmail": "Email",
+      "ownerPhone": "Phone"
+    },
+    "location": {
+      "heading": "Location & Parcel",
+      "address": "Street address",
+      "addressRequired": "Address is required",
+      "city": "City",
+      "cityRequired": "City is required",
+      "state": "State",
+      "stateRequired": "State is required",
+      "postalCode": "Postal code",
+      "country": "Country",
+      "parcelHeading": "Parcel control number (optional)",
+      "parcelHint": "Florida property folio / PCN. Used to prevent duplicate venue registrations.",
+      "pcn": "Parcel control number",
+      "pcnPlaceholder": "e.g. 01-4139-001-0070",
+      "pcnUnit": "Unit / suite (if applicable)",
+      "pcnCheckInProgress": "Checking...",
+      "pcnConflict": "A venue with this parcel already exists: {{name}} ({{status}})."
+    },
+    "type": {
+      "heading": "Venue Type",
+      "type": "What kind of venue is this?",
+      "environment": "Indoor, outdoor, or both?",
+      "usage": "Is this space primarily for events, or a mixed-use space?",
+      "ownership": "Who owns this venue?",
+      "ownerships": {
+        "private": "Privately owned",
+        "public": "Publicly owned (city, county, state, federal)",
+        "nonprofit": "Nonprofit owned",
+        "unknown": "I don't know"
+      },
+      "types": {
+        "bar_restaurant": "Bar / Restaurant",
+        "library_civic": "Library / Civic space",
+        "park_outdoor_public": "Park / Outdoor public space",
+        "private_residence": "Private residence",
+        "religious_community_hall": "Religious or community hall",
+        "coworking_office": "Coworking / Office",
+        "gallery_museum": "Gallery / Museum",
+        "theater_performance": "Theater / Performance space",
+        "studio_practice": "Studio (dance, yoga, rehearsal)",
+        "classroom_school": "Classroom / School",
+        "beach_waterfront": "Beach / Waterfront",
+        "hotel_ballroom": "Hotel / Ballroom",
+        "warehouse_industrial": "Warehouse / Industrial",
+        "rooftop": "Rooftop",
+        "other": "Other"
+      },
+      "environments": {
+        "indoor": "Indoor",
+        "outdoor": "Outdoor",
+        "mixed": "Both / covered outdoor"
+      },
+      "usages": {
+        "single_purpose": "Single-purpose event space",
+        "mixed_use": "Mixed-use (operates for other purposes too)"
+      }
+    },
+    "capacity": {
+      "heading": "Capacity",
+      "fireCapacity": "Fire / legal maximum capacity",
+      "fireCapacityHint": "This is a hard cap — RSVPs for events at this venue cannot exceed this number.",
+      "fireCapacityRequired": "Fire capacity is required",
+      "capacity": "Comfortable capacity (optional)",
+      "capacityHint": "How many people comfortably fit, not counting the legal maximum."
+    },
+    "av": {
+      "heading": "AV & Furnishings",
+      "subheading": "What does the venue provide on its own? Check all that apply.",
+      "tags": {
+        "wifi": "Wi-Fi",
+        "power_outlets": "Power outlets available",
+        "projector": "Projector",
+        "screen": "Screen",
+        "microphones": "Microphones",
+        "pa_system": "PA system",
+        "stage_lighting": "Stage lighting",
+        "livestream_cam": "Livestream camera",
+        "hdmi_input": "HDMI input",
+        "usb_c_input": "USB-C input",
+        "chairs_provided": "Chairs provided",
+        "tables_provided": "Tables provided",
+        "stage_area": "Stage area",
+        "none_byod": "No AV — bring your own"
+      }
+    },
+    "accessibility": {
+      "heading": "Accessibility & Parking",
+      "adaHeading": "ADA / accessibility",
+      "adaQuestion": "Is the venue wheelchair accessible?",
+      "ada": {
+        "yes": "Yes, fully accessible",
+        "partial": "Partially accessible",
+        "none": "Not accessible",
+        "unknown": "I don't know"
+      },
+      "accessibilityNotes": "Accessibility notes",
+      "accessibilityNotesPlaceholder": "Elevator, restroom accessibility, service animals allowed, etc.",
+      "parkingHeading": "Parking",
+      "parkingQuestion": "What parking is available?",
+      "parking": {
+        "none": "No parking",
+        "street": "Street parking",
+        "lot": "Parking lot",
+        "garage": "Parking garage",
+        "valet": "Valet",
+        "limited_garage": "Limited garage",
+        "good_luck": "Good luck!"
+      },
+      "parkingInstructions": "Parking instructions",
+      "parkingInstructionsPlaceholder": "Special directions, meter hours, validation, etc."
+    },
+    "safety": {
+      "heading": "Safety",
+      "subheading": "All fields optional — tell us what you know.",
+      "exitCount": "Number of emergency exits",
+      "aedOnSite": "AED (defibrillator) on site",
+      "firstAidKit": "First aid kit available",
+      "fireExtinguishersAccessible": "Fire extinguishers accessible",
+      "severeWeatherShelter": "Can serve as severe-weather / hurricane shelter",
+      "securityStaffed": "Security staff on site",
+      "evacuationPlanUrl": "Evacuation plan URL",
+      "safetyPlanUrl": "Safety plan URL",
+      "notes": "Additional safety notes",
+      "safetyContactHeading": "Safety contact",
+      "safetyContactName": "Safety contact name",
+      "safetyContactPhone": "Safety contact phone"
+    },
+    "insurance": {
+      "heading": "Insurance",
+      "subheading": "A Certificate of Insurance (COI) is strongly recommended. Events at this venue may require one.",
+      "coiUrl": "Certificate of Insurance URL",
+      "coiUrlPlaceholder": "https://...",
+      "coiExpires": "COI expiration date",
+      "notes": "Carrier, coverage amounts, additional insured requirements",
+      "notesPlaceholder": "e.g. $1M / $2M liability via Acme Insurance"
+    },
+    "rental": {
+      "heading": "Rental & Booking",
+      "isFree": "This venue is free to use",
+      "modelQuestion": "How is the venue rented?",
+      "models": {
+        "free": "Free / no charge",
+        "hourly": "Hourly rate",
+        "flat": "Flat rate",
+        "tickets": "Ticketed (share of ticket sales)",
+        "request_quote": "Request a quote",
+        "revenue_share": "Revenue share",
+        "other": "Other"
+      },
+      "hourlyRate": "Hourly rate (USD)",
+      "flatRate": "Flat rate (USD)",
+      "minimumHours": "Minimum hours",
+      "pricingNotes": "Pricing notes",
+      "pricingNotesPlaceholder": "Sliding scale, day/night rates, deposit required, etc.",
+      "bookingInstructions": "How to book",
+      "bookingInstructionsPlaceholder": "Email, form URL, lead time, etc."
+    },
+    "licensing": {
+      "heading": "Licensing & Rules",
+      "hasLiquorLicense": "Venue has an active liquor license",
+      "houseRules": "House rules",
+      "houseRulesPlaceholder": "Quiet hours, prohibited activities, dress code, load-in rules, etc.",
+      "buildingPlansUrl": "Building plans URL",
+      "supportingDocs": "Supporting documents",
+      "supportingDocsHint": "URLs to photos, floor plans, or other documents. Add one per line.",
+      "addDoc": "Add document URL"
+    },
+    "review": {
+      "heading": "Review & Submit",
+      "summaryIntro": "Here's what you're about to submit. You can go back to edit anything.",
+      "tos": "I confirm the information above is accurate to the best of my knowledge.",
+      "pendingNotice": "Your venue will be reviewed by Pana MIA admins before it appears in events."
+    },
+    "confirmation": {
+      "heading": "Submitted!",
+      "body": "Your venue is in the review queue. We'll email you when it's approved.",
+      "viewVenue": "View venue",
+      "backToVenues": "Back to venues"
+    }
+  },
+  "errors": {
+    "submitFailed": "Submission failed. Please try again.",
+    "parcelDuplicate": "A venue with this parcel control number already exists.",
+    "generic": "Something went wrong."
+  }
+}

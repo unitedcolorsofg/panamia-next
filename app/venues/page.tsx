@@ -38,7 +38,7 @@ export default async function VenuesPage() {
         </div>
         {session?.user?.panaVerified && (
           <Button asChild>
-            <Link href="/venues/new">Submit Venue</Link>
+            <Link href="/form/submit-venue">Submit Venue</Link>
           </Button>
         )}
       </div>

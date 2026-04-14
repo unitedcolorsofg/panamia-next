@@ -1,0 +1,215 @@
+{
+  "title": "Registrar un Lugar",
+  "subtitle": "Registra un lugar para que pueda usarse en eventos de Pana MIA. Los registros son revisados por nuestro equipo antes de publicarse.",
+  "loading": "Cargando...",
+  "signInRequired": "Debes iniciar sesión para registrar un lugar.",
+  "panaRequired": "Solo los Panas verificados pueden registrar lugares. Completa tu perfil primero.",
+  "returnToVenues": "← Volver a Lugares",
+  "buttons": {
+    "next": "Siguiente",
+    "back": "Atrás",
+    "cancel": "Cancelar",
+    "submit": "Enviar para revisión",
+    "submitting": "Enviando..."
+  },
+  "hint": "Cuéntanos lo que sepas. Si no conoces un dato, déjalo en blanco — podemos completarlo más tarde.",
+  "pages": {
+    "identity": {
+      "heading": "Identidad y propiedad",
+      "name": "Nombre del lugar",
+      "namePlaceholder": "ej. The Anderson",
+      "nameRequired": "El nombre del lugar es obligatorio",
+      "website": "Sitio web",
+      "websitePlaceholder": "https://...",
+      "ownerHeading": "Propiedad / contacto principal",
+      "ownerName": "Nombre del propietario / gerente",
+      "ownerRole": "Rol (propietario, gerente, reservas, etc.)",
+      "ownerEmail": "Correo electrónico",
+      "ownerPhone": "Teléfono"
+    },
+    "location": {
+      "heading": "Ubicación y parcela",
+      "address": "Dirección",
+      "addressRequired": "La dirección es obligatoria",
+      "city": "Ciudad",
+      "cityRequired": "La ciudad es obligatoria",
+      "state": "Estado",
+      "stateRequired": "El estado es obligatorio",
+      "postalCode": "Código postal",
+      "country": "País",
+      "parcelHeading": "Número de control de parcela (opcional)",
+      "parcelHint": "Folio / PCN de Florida. Se usa para prevenir registros duplicados.",
+      "pcn": "Número de control de parcela",
+      "pcnPlaceholder": "ej. 01-4139-001-0070",
+      "pcnUnit": "Unidad / suite (si aplica)",
+      "pcnCheckInProgress": "Verificando...",
+      "pcnConflict": "Ya existe un lugar con esta parcela: {{name}} ({{status}})."
+    },
+    "type": {
+      "heading": "Tipo de lugar",
+      "type": "¿Qué tipo de lugar es este?",
+      "environment": "¿Interior, exterior o ambos?",
+      "usage": "¿Este espacio es principalmente para eventos o de uso mixto?",
+      "ownership": "¿Quién es el dueño del lugar?",
+      "ownerships": {
+        "private": "Propiedad privada",
+        "public": "Propiedad pública (ciudad, condado, estado, federal)",
+        "nonprofit": "Propiedad de una organización sin fines de lucro",
+        "unknown": "No lo sé"
+      },
+      "types": {
+        "bar_restaurant": "Bar / Restaurante",
+        "library_civic": "Biblioteca / Espacio cívico",
+        "park_outdoor_public": "Parque / Espacio público al aire libre",
+        "private_residence": "Residencia privada",
+        "religious_community_hall": "Salón religioso o comunitario",
+        "coworking_office": "Coworking / Oficina",
+        "gallery_museum": "Galería / Museo",
+        "theater_performance": "Teatro / Espacio de presentaciones",
+        "studio_practice": "Estudio (danza, yoga, ensayo)",
+        "classroom_school": "Salón de clases / Escuela",
+        "beach_waterfront": "Playa / Costa",
+        "hotel_ballroom": "Hotel / Salón de eventos",
+        "warehouse_industrial": "Bodega / Industrial",
+        "rooftop": "Azotea",
+        "other": "Otro"
+      },
+      "environments": {
+        "indoor": "Interior",
+        "outdoor": "Exterior",
+        "mixed": "Ambos / exterior cubierto"
+      },
+      "usages": {
+        "single_purpose": "Espacio dedicado a eventos",
+        "mixed_use": "Uso mixto (también opera para otros fines)"
+      }
+    },
+    "capacity": {
+      "heading": "Capacidad",
+      "fireCapacity": "Capacidad máxima (código de incendios)",
+      "fireCapacityHint": "Este es un límite estricto — las confirmaciones para eventos en este lugar no pueden excederlo.",
+      "fireCapacityRequired": "La capacidad máxima es obligatoria",
+      "capacity": "Capacidad cómoda (opcional)",
+      "capacityHint": "Cuántas personas caben cómodamente, sin contar el máximo legal."
+    },
+    "av": {
+      "heading": "AV y mobiliario",
+      "subheading": "¿Qué provee el lugar por sí mismo? Marca todo lo que aplique.",
+      "tags": {
+        "wifi": "Wi-Fi",
+        "power_outlets": "Tomacorrientes disponibles",
+        "projector": "Proyector",
+        "screen": "Pantalla",
+        "microphones": "Micrófonos",
+        "pa_system": "Sistema de sonido (PA)",
+        "stage_lighting": "Iluminación de escenario",
+        "livestream_cam": "Cámara para transmisión en vivo",
+        "hdmi_input": "Entrada HDMI",
+        "usb_c_input": "Entrada USB-C",
+        "chairs_provided": "Sillas incluidas",
+        "tables_provided": "Mesas incluidas",
+        "stage_area": "Área de escenario",
+        "none_byod": "Sin AV — trae el tuyo"
+      }
+    },
+    "accessibility": {
+      "heading": "Accesibilidad y estacionamiento",
+      "adaHeading": "ADA / accesibilidad",
+      "adaQuestion": "¿El lugar es accesible para sillas de ruedas?",
+      "ada": {
+        "yes": "Sí, totalmente accesible",
+        "partial": "Parcialmente accesible",
+        "none": "No accesible",
+        "unknown": "No lo sé"
+      },
+      "accessibilityNotes": "Notas de accesibilidad",
+      "accessibilityNotesPlaceholder": "Elevador, baños accesibles, animales de servicio permitidos, etc.",
+      "parkingHeading": "Estacionamiento",
+      "parkingQuestion": "¿Qué estacionamiento hay disponible?",
+      "parking": {
+        "none": "Sin estacionamiento",
+        "street": "Estacionamiento en la calle",
+        "lot": "Estacionamiento propio",
+        "garage": "Garaje",
+        "valet": "Valet",
+        "limited_garage": "Garaje limitado",
+        "good_luck": "¡Buena suerte!"
+      },
+      "parkingInstructions": "Instrucciones de estacionamiento",
+      "parkingInstructionsPlaceholder": "Direcciones especiales, horarios de parquímetro, validación, etc."
+    },
+    "safety": {
+      "heading": "Seguridad",
+      "subheading": "Todos los campos son opcionales — cuéntanos lo que sepas.",
+      "exitCount": "Número de salidas de emergencia",
+      "aedOnSite": "AED (desfibrilador) en el lugar",
+      "firstAidKit": "Botiquín de primeros auxilios disponible",
+      "fireExtinguishersAccessible": "Extintores accesibles",
+      "severeWeatherShelter": "Puede servir como refugio ante clima severo / huracanes",
+      "securityStaffed": "Personal de seguridad presente",
+      "evacuationPlanUrl": "URL del plan de evacuación",
+      "safetyPlanUrl": "URL del plan de seguridad",
+      "notes": "Notas adicionales de seguridad",
+      "safetyContactHeading": "Contacto de seguridad",
+      "safetyContactName": "Nombre del contacto de seguridad",
+      "safetyContactPhone": "Teléfono del contacto de seguridad"
+    },
+    "insurance": {
+      "heading": "Seguros",
+      "subheading": "Se recomienda encarecidamente un Certificado de Seguro (COI). Los eventos en este lugar pueden requerirlo.",
+      "coiUrl": "URL del Certificado de Seguro",
+      "coiUrlPlaceholder": "https://...",
+      "coiExpires": "Fecha de vencimiento del COI",
+      "notes": "Aseguradora, montos de cobertura, requisitos de asegurado adicional",
+      "notesPlaceholder": "ej. Responsabilidad $1M / $2M con Acme Insurance"
+    },
+    "rental": {
+      "heading": "Renta y reserva",
+      "isFree": "Este lugar es gratuito",
+      "modelQuestion": "¿Cómo se renta el lugar?",
+      "models": {
+        "free": "Gratis / sin costo",
+        "hourly": "Tarifa por hora",
+        "flat": "Tarifa fija",
+        "tickets": "Boletos (porcentaje de venta de boletos)",
+        "request_quote": "Solicitar cotización",
+        "revenue_share": "Participación de ingresos",
+        "other": "Otro"
+      },
+      "hourlyRate": "Tarifa por hora (USD)",
+      "flatRate": "Tarifa fija (USD)",
+      "minimumHours": "Horas mínimas",
+      "pricingNotes": "Notas sobre precios",
+      "pricingNotesPlaceholder": "Escala variable, tarifas de día/noche, depósito requerido, etc.",
+      "bookingInstructions": "Cómo reservar",
+      "bookingInstructionsPlaceholder": "Correo, URL del formulario, tiempo mínimo, etc."
+    },
+    "licensing": {
+      "heading": "Licencias y reglas",
+      "hasLiquorLicense": "El lugar tiene licencia de licor vigente",
+      "houseRules": "Reglas de la casa",
+      "houseRulesPlaceholder": "Horas de silencio, actividades prohibidas, código de vestimenta, reglas de carga, etc.",
+      "buildingPlansUrl": "URL de los planos del edificio",
+      "supportingDocs": "Documentos de apoyo",
+      "supportingDocsHint": "URLs de fotos, planos o cualquier otro documento. Uno por línea.",
+      "addDoc": "Agregar URL"
+    },
+    "review": {
+      "heading": "Revisar y enviar",
+      "summaryIntro": "Esto es lo que vas a enviar. Puedes volver atrás para editar cualquier dato.",
+      "tos": "Confirmo que la información anterior es correcta a mi leal saber y entender.",
+      "pendingNotice": "Tu lugar será revisado por los administradores de Pana MIA antes de aparecer en eventos."
+    },
+    "confirmation": {
+      "heading": "¡Enviado!",
+      "body": "Tu lugar está en la fila de revisión. Te avisaremos por correo cuando sea aprobado.",
+      "viewVenue": "Ver lugar",
+      "backToVenues": "Volver a lugares"
+    }
+  },
+  "errors": {
+    "submitFailed": "Error al enviar. Inténtalo de nuevo.",
+    "parcelDuplicate": "Ya existe un lugar con este número de parcela.",
+    "generic": "Algo salió mal."
+  }
+}

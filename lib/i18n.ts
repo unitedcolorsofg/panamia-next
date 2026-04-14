@@ -19,6 +19,8 @@ import enJointeam from '@/locales/en/jointeam.json';
 import esJointeam from '@/locales/es/jointeam.json';
 import enSignin from '@/locales/en/signin.json';
 import esSignin from '@/locales/es/signin.json';
+import enSubmitVenue from '@/locales/en/submitVenue.json';
+import esSubmitVenue from '@/locales/es/submitVenue.json';
 
 i18n
   .use(LanguageDetector)
@@ -35,6 +37,7 @@ i18n
         contact: enContact,
         jointeam: enJointeam,
         signin: enSignin,
+        submitVenue: enSubmitVenue,
       },
       es: {
         common: es,
@@ -46,6 +49,7 @@ i18n
         contact: esContact,
         jointeam: esJointeam,
         signin: esSignin,
+        submitVenue: esSubmitVenue,
       },
     },
     fallbackLng: 'en',
