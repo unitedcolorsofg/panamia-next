@@ -86,7 +86,7 @@ export function ProfileSocials({ socials }: ProfileSocialsProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <Music className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 TikTok
               </a>
             </Button>
@@ -114,7 +114,7 @@ export function ProfileSocials({ socials }: ProfileSocialsProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <Music className="h-4 w-4" aria-hidden="true" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Spotify
               </a>
             </Button>
