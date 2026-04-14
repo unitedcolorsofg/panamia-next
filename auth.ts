@@ -1,6 +1,6 @@
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { magicLink, genericOAuth } from 'better-auth/plugins';
+import { magicLink, genericOAuth, customSession } from 'better-auth/plugins';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import {
@@ -550,7 +550,61 @@ function getProviderVerificationConfig(
 // on the proxy calls getDb() which returns the current request's hyperdriveInstance,
 // so better-auth queries always use the fresh per-request client.
 
+interface ProfileVerification {
+  panaVerified?: boolean;
+  legalAgeVerified?: boolean;
+}
+interface ProfileRoles {
+  mentoringModerator?: boolean;
+  eventOrganizer?: boolean;
+  contentModerator?: boolean;
+}
+
+type EnrichedUserFields = {
+  isAdmin: boolean;
+  panaVerified: boolean;
+  legalAgeVerified: boolean;
+  isMentoringModerator: boolean;
+  isEventOrganizer: boolean;
+  isContentModerator: boolean;
+};
+
+async function enrichUserFields(
+  userId: string,
+  email: string | null | undefined
+): Promise<EnrichedUserFields> {
+  const adminEmails =
+    process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
+    [];
+  const isAdmin = email ? adminEmails.includes(email.toLowerCase()) : false;
+
+  let profileVerification: ProfileVerification | null = null;
+  let profileRoles: ProfileRoles | null = null;
+  try {
+    const userProfile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+    });
+    if (userProfile) {
+      profileVerification =
+        userProfile.verification as ProfileVerification | null;
+      profileRoles = userProfile.roles as ProfileRoles | null;
+    }
+  } catch (error) {
+    console.error('Error fetching profile for session enrichment:', error);
+  }
+
+  return {
+    isAdmin,
+    panaVerified: profileVerification?.panaVerified || false,
+    legalAgeVerified: profileVerification?.legalAgeVerified || false,
+    isMentoringModerator: profileRoles?.mentoringModerator || false,
+    isEventOrganizer: profileRoles?.eventOrganizer || false,
+    isContentModerator: profileRoles?.contentModerator || false,
+  };
+}
+
 type BetterAuthInstance = ReturnType<typeof betterAuth>;
+export type BetterAuthServer = BetterAuthInstance;
 let _betterAuthInstance: BetterAuthInstance | null = null;
 
 function getBetterAuth(): BetterAuthInstance {
@@ -617,6 +671,10 @@ function getBetterAuth(): BetterAuthInstance {
             text({ url, host })
           );
         },
+      }),
+      customSession(async ({ user, session }) => {
+        const extras = await enrichUserFields(user.id, user.email);
+        return { user: { ...user, ...extras }, session };
       }),
       genericOAuth({
         config: [
@@ -793,16 +851,6 @@ function getBetterAuth(): BetterAuthInstance {
 // auth() compat shim — returns AppSession shape for server components
 // =============================================================================
 
-interface ProfileVerification {
-  panaVerified?: boolean;
-  legalAgeVerified?: boolean;
-}
-interface ProfileRoles {
-  mentoringModerator?: boolean;
-  eventOrganizer?: boolean;
-  contentModerator?: boolean;
-}
-
 export async function auth(): Promise<AppSession | null> {
   try {
     const session = await getBetterAuth().api.getSession({
@@ -810,29 +858,7 @@ export async function auth(): Promise<AppSession | null> {
     });
     if (!session) return null;
 
-    // Check admin status from environment variable
-    const adminEmails =
-      process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
-      [];
-    const isAdmin = session.user.email
-      ? adminEmails.includes(session.user.email.toLowerCase())
-      : false;
-
-    // Fetch profile to get verification badges and roles
-    let profileVerification: ProfileVerification | null = null;
-    let profileRoles: ProfileRoles | null = null;
-    try {
-      const userProfile = await db.query.profiles.findFirst({
-        where: eq(profiles.userId, session.user.id),
-      });
-      if (userProfile) {
-        profileVerification =
-          userProfile.verification as ProfileVerification | null;
-        profileRoles = userProfile.roles as ProfileRoles | null;
-      }
-    } catch (error) {
-      console.error('Error fetching profile in auth():', error);
-    }
+    const extras = await enrichUserFields(session.user.id, session.user.email);
 
     return {
       user: {
@@ -842,12 +868,7 @@ export async function auth(): Promise<AppSession | null> {
         // Privacy: clear name and image (use profile data instead)
         name: '',
         image: '',
-        isAdmin: isAdmin || false,
-        panaVerified: profileVerification?.panaVerified || false,
-        legalAgeVerified: profileVerification?.legalAgeVerified || false,
-        isMentoringModerator: profileRoles?.mentoringModerator || false,
-        isEventOrganizer: profileRoles?.eventOrganizer || false,
-        isContentModerator: profileRoles?.contentModerator || false,
+        ...extras,
       },
       expires: session.session.expiresAt.toISOString(),
     };

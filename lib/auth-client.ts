@@ -12,11 +12,16 @@ import { createAuthClient } from 'better-auth/react';
 import {
   magicLinkClient,
   genericOAuthClient,
+  customSessionClient,
 } from 'better-auth/client/plugins';
-import type { AppSession } from '@/auth';
+import type { AppSession, BetterAuthServer } from '@/auth';
 
 export const authClient = createAuthClient({
-  plugins: [magicLinkClient(), genericOAuthClient()],
+  plugins: [
+    magicLinkClient(),
+    genericOAuthClient(),
+    customSessionClient<BetterAuthServer>(),
+  ],
 });
 
 // ── useSession ───────────────────────────────────────────────────────────────
@@ -36,20 +41,30 @@ export function useSession(): {
     return { data: null, status: 'unauthenticated' };
   }
 
+  // data.user is extended by customSession (server-side) with enriched fields
+  const u = data.user as typeof data.user & {
+    isAdmin?: boolean;
+    panaVerified?: boolean;
+    legalAgeVerified?: boolean;
+    isMentoringModerator?: boolean;
+    isEventOrganizer?: boolean;
+    isContentModerator?: boolean;
+  };
+
   return {
     data: {
       user: {
-        id: data.user.id,
-        email: data.user.email,
-        emailVerified: data.user.emailVerified ? new Date() : null,
+        id: u.id,
+        email: u.email,
+        emailVerified: u.emailVerified ? new Date() : null,
         name: '',
         image: '',
-        isAdmin: false,
-        panaVerified: false,
-        legalAgeVerified: false,
-        isMentoringModerator: false,
-        isEventOrganizer: false,
-        isContentModerator: false,
+        isAdmin: u.isAdmin ?? false,
+        panaVerified: u.panaVerified ?? false,
+        legalAgeVerified: u.legalAgeVerified ?? false,
+        isMentoringModerator: u.isMentoringModerator ?? false,
+        isEventOrganizer: u.isEventOrganizer ?? false,
+        isContentModerator: u.isContentModerator ?? false,
       },
       expires: data.session.expiresAt.toISOString(),
     },
