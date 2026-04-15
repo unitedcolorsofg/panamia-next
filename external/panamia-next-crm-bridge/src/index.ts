@@ -33,7 +33,7 @@ export default {
     return new Response('Not found', { status: 404 });
   },
 
-  async scheduled(event: ScheduledEvent, env: Env): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
     switch (event.cron) {
       case '0 * * * *':
         await runContactSync(env);

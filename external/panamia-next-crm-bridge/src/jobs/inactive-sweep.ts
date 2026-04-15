@@ -18,6 +18,7 @@ import { GhlClient } from '../lib/ghl';
 interface InactiveRow {
   profile_id: string;
   ghl_contact_id: string;
+  [key: string]: unknown;
 }
 
 export async function runInactiveSweep(env: Env): Promise<void> {

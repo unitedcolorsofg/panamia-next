@@ -4,7 +4,7 @@
   "main": "worker.js",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --outfile=worker.js --platform=neutral --target=es2022 --format=esm --external:node:*",
+    "build": "esbuild src/index.ts --bundle --outfile=worker.js --platform=node --target=es2022 --format=esm --conditions=workerd,worker,browser",
     "dev": "wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "typecheck": "tsc --noEmit"

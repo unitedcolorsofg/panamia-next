@@ -6,7 +6,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, FileText, Eye, Trash2, Loader2 } from 'lucide-react';
+import {
+  Shield,
+  FileText,
+  Eye,
+  Trash2,
+  Loader2,
+  Megaphone,
+  Copy,
+  BellOff,
+  Zap,
+} from 'lucide-react';
 
 // =============================================================================
 // Privacy Settings Page — Phase 3 consent infrastructure
@@ -21,6 +31,30 @@ import { Shield, FileText, Eye, Trash2, Loader2 } from 'lucide-react';
 // Top-level terms consent cannot be withdrawn here — withdrawing requires
 // account deletion (see Phase 5).
 // =============================================================================
+
+interface GhlContact {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  dateAdded?: string;
+  tags?: string[];
+  dnd?: boolean;
+  dndSettings?: {
+    email?: { status: string };
+    sms?: { status: string };
+    whatsapp?: { status: string };
+    calls?: { status: string };
+  };
+}
+
+type CrmState =
+  | { kind: 'loading' }
+  | { kind: 'none' } // no GHL record linked
+  | { kind: 'unavailable'; message: string } // 503 / GHL unreachable
+  | { kind: 'loaded'; contact: GhlContact };
 
 interface ConsentReceipt {
   id: string;
@@ -57,6 +91,11 @@ export default function PrivacySettingsPage() {
   const [receipts, setReceipts] = useState<ConsentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [crm, setCrm] = useState<CrmState>({ kind: 'loading' });
+  const [crmAction, setCrmAction] = useState<
+    null | 'copy-name' | 'copy-phone' | 'unsubscribe' | 'delete' | 'enroll'
+  >(null);
+  const [crmMessage, setCrmMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -83,6 +122,138 @@ export default function PrivacySettingsPage() {
 
     fetchReceipts();
   }, [status]);
+
+  // -------------------------------------------------------------------------
+  // CRM privacy portal ("peaky window") — GHL contact record
+  // -------------------------------------------------------------------------
+  const loadCrm = async () => {
+    setCrm({ kind: 'loading' });
+    try {
+      const res = await fetch('/api/crm/contact');
+      if (!res.ok) {
+        // 503 = GHL unavailable; other non-OK also gets the graceful message
+        setCrm({
+          kind: 'unavailable',
+          message: 'Could not load marketing data — try again later.',
+        });
+        return;
+      }
+      const body = (await res.json()) as {
+        success: boolean;
+        data: GhlContact | null;
+      };
+      if (!body.success) {
+        setCrm({
+          kind: 'unavailable',
+          message: 'Could not load marketing data — try again later.',
+        });
+        return;
+      }
+      setCrm(
+        body.data ? { kind: 'loaded', contact: body.data } : { kind: 'none' }
+      );
+    } catch {
+      setCrm({
+        kind: 'unavailable',
+        message: 'Could not load marketing data — try again later.',
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    loadCrm();
+  }, [status]);
+
+  const handleCopyField = async (field: 'name' | 'phone') => {
+    setCrmAction(field === 'name' ? 'copy-name' : 'copy-phone');
+    setCrmMessage(null);
+    try {
+      const res = await fetch('/api/crm/contact/copy-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field }),
+      });
+      const body = await res.json();
+      setCrmMessage(
+        res.ok && body.success
+          ? `Copied ${field} to your Panamia profile.`
+          : (body?.error ?? 'Could not copy field.')
+      );
+    } catch {
+      setCrmMessage('Could not copy field — try again later.');
+    } finally {
+      setCrmAction(null);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    setCrmAction('unsubscribe');
+    setCrmMessage(null);
+    try {
+      const res = await fetch('/api/crm/contact/unsubscribe', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setCrmMessage('Unsubscribed from all marketing channels.');
+        await loadCrm();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setCrmMessage(
+          body?.error ?? 'Could not unsubscribe — try again later.'
+        );
+      }
+    } catch {
+      setCrmMessage('Could not unsubscribe — try again later.');
+    } finally {
+      setCrmAction(null);
+    }
+  };
+
+  const handleDeleteContact = async () => {
+    if (
+      !window.confirm(
+        'Delete your marketing record from HighLevel? This clears the record and prevents it from being recreated. This cannot be undone.'
+      )
+    )
+      return;
+    setCrmAction('delete');
+    setCrmMessage(null);
+    try {
+      const res = await fetch('/api/crm/contact', { method: 'DELETE' });
+      if (res.ok) {
+        setCrmMessage('Marketing record deleted.');
+        setCrm({ kind: 'none' });
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setCrmMessage(
+          body?.error ?? 'Could not delete record — try again later.'
+        );
+      }
+    } catch {
+      setCrmMessage('Could not delete record — try again later.');
+    } finally {
+      setCrmAction(null);
+    }
+  };
+
+  const handleEnrollTestWorkflow = async () => {
+    setCrmAction('enroll');
+    setCrmMessage(null);
+    try {
+      const res = await fetch('/api/crm/contact/enroll', { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      setCrmMessage(
+        res.ok && body.success
+          ? 'Enrolled in test workflow.'
+          : (body?.error ?? 'Could not enroll — try again later.')
+      );
+    } catch {
+      setCrmMessage('Could not enroll — try again later.');
+    } finally {
+      setCrmAction(null);
+    }
+  };
 
   const handleWithdraw = async (receipt: ConsentReceipt) => {
     // Top-level terms consent cannot be withdrawn — must delete account
@@ -233,6 +404,205 @@ export default function PrivacySettingsPage() {
             <p className="text-muted-foreground text-sm">
               No feature consents recorded yet. These are captured as you use
               platform features for the first time.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Marketing data (GoHighLevel) — privacy portal / "peaky window".
+          See docs/CRM-ROADMAP.md — fulfills GHL ToS §1.4 data-subject rights. */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Megaphone className="h-5 w-5" />
+            Marketing Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Panamia uses HighLevel to manage marketing communications (email,
+            SMS, etc.). You can review and control your marketing record here.
+          </p>
+
+          {crm.kind === 'loading' && (
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading marketing data…
+            </div>
+          )}
+
+          {crm.kind === 'unavailable' && (
+            <div className="text-muted-foreground text-sm">
+              {crm.message}{' '}
+              <button
+                type="button"
+                onClick={loadCrm}
+                className="underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {crm.kind === 'none' && (
+            <p className="text-muted-foreground text-sm">
+              No marketing record found for your account. If you sign up for a
+              Panamia event or opt in to a mailing list, a record will be
+              created then.
+            </p>
+          )}
+
+          {crm.kind === 'loaded' && (
+            <div className="space-y-3">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                {(crm.contact.firstName || crm.contact.lastName) && (
+                  <>
+                    <dt className="text-muted-foreground">Name</dt>
+                    <dd>
+                      {[crm.contact.firstName, crm.contact.lastName]
+                        .filter(Boolean)
+                        .join(' ')}
+                    </dd>
+                  </>
+                )}
+                {crm.contact.email && (
+                  <>
+                    <dt className="text-muted-foreground">Email</dt>
+                    <dd>{crm.contact.email}</dd>
+                  </>
+                )}
+                {crm.contact.phone && (
+                  <>
+                    <dt className="text-muted-foreground">Phone</dt>
+                    <dd>{crm.contact.phone}</dd>
+                  </>
+                )}
+                {crm.contact.source && (
+                  <>
+                    <dt className="text-muted-foreground">Source</dt>
+                    <dd>{crm.contact.source}</dd>
+                  </>
+                )}
+                {crm.contact.dateAdded && (
+                  <>
+                    <dt className="text-muted-foreground">Added</dt>
+                    <dd>{formatDate(crm.contact.dateAdded)}</dd>
+                  </>
+                )}
+                {crm.contact.tags && crm.contact.tags.length > 0 && (
+                  <>
+                    <dt className="text-muted-foreground">Tags</dt>
+                    <dd className="flex flex-wrap gap-1">
+                      {crm.contact.tags.map((t) => (
+                        <span
+                          key={t}
+                          className="bg-muted rounded px-2 py-0.5 text-xs"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </dd>
+                  </>
+                )}
+                <dt className="text-muted-foreground">Subscribed</dt>
+                <dd>
+                  {crm.contact.dnd
+                    ? 'No (all channels unsubscribed)'
+                    : 'Yes (some or all channels)'}
+                </dd>
+              </dl>
+
+              {/* Copy-to-profile actions — per-field, opt-in */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                {(crm.contact.firstName || crm.contact.lastName) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyField('name')}
+                    disabled={crmAction !== null}
+                  >
+                    {crmAction === 'copy-name' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">Copy name to profile</span>
+                  </Button>
+                )}
+                {crm.contact.phone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyField('phone')}
+                    disabled={crmAction !== null}
+                  >
+                    {crmAction === 'copy-phone' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">Copy phone to profile</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Marketing controls */}
+              <div className="flex flex-wrap gap-2 border-t pt-3">
+                {!crm.contact.dnd && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUnsubscribe}
+                    disabled={crmAction !== null}
+                  >
+                    {crmAction === 'unsubscribe' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <BellOff className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">Unsubscribe from all</span>
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteContact}
+                  disabled={crmAction !== null}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {crmAction === 'delete' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  <span className="ml-1">Delete marketing record</span>
+                </Button>
+              </div>
+
+              {/* Test workflow enrollment.
+                  Server returns 503 unless GHL_WORKFLOW_TEST_ID is set. */}
+              <div className="pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEnrollTestWorkflow}
+                  disabled={crmAction !== null}
+                  className="text-muted-foreground"
+                >
+                  {crmAction === 'enroll' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  <span className="ml-1">Trigger test workflow</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {crmMessage && (
+            <p className="text-muted-foreground border-t pt-2 text-sm">
+              {crmMessage}
             </p>
           )}
         </CardContent>
