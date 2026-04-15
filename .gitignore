@@ -63,4 +63,9 @@ scripts/id-mapping-*.json
 scripts/unmapped-user-ids-*.json
 
 .env.local.*
-external/
+external/*
+!external/panamia-next-crm-bridge/
+external/panamia-next-crm-bridge/node_modules/
+external/panamia-next-crm-bridge/worker.js
+external/panamia-next-crm-bridge/.dev.vars
+external/panamia-next-crm-bridge/.wrangler/
