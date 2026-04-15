@@ -86,7 +86,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function PrivacySettingsPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [receipts, setReceipts] = useState<ConsentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,12 +211,19 @@ export default function PrivacySettingsPage() {
   };
 
   const handleDeleteContact = async () => {
-    if (
-      !window.confirm(
-        'Delete your marketing record from HighLevel? This clears the record and prevents it from being recreated. This cannot be undone.'
-      )
-    )
+    // Require the user to type their own email to confirm. High-friction
+    // gate for an irreversible action (GHL contact deletion) that also
+    // permanently sets ghlOptedOut=true on the profile.
+    const expectedEmail = session?.user?.email;
+    if (!expectedEmail) return;
+    const typed = window.prompt(
+      `This deletes your marketing record from HighLevel. It cannot be undone, and prevents a new record from being created later.\n\nType your email (${expectedEmail}) to confirm:`
+    );
+    if (typed === null) return; // user cancelled
+    if (typed.trim().toLowerCase() !== expectedEmail.toLowerCase()) {
+      setCrmMessage('Email did not match. Deletion cancelled.');
       return;
+    }
     setCrmAction('delete');
     setCrmMessage(null);
     try {

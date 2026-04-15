@@ -14,8 +14,18 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { GhlClient } from '@/lib/ghl';
+import { checkSameOrigin } from '@/lib/csrf';
 
-export async function POST() {
+export async function POST(request: Request) {
+  const origin = checkSameOrigin(request);
+  if (!origin.ok) {
+    console.warn(`[crm.unsubscribe] origin check failed: ${origin.reason}`);
+    return NextResponse.json(
+      { success: false, error: 'Forbidden' },
+      { status: 403 }
+    );
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(
