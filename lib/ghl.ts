@@ -6,7 +6,10 @@
  * GHL_API_KEY is not configured so callers can degrade gracefully.
  */
 
-const GHL_API_BASE = 'https://rest.gohighlevel.com/v1';
+// LeadConnector API — the endpoint Private Integration Tokens (pit-*) hit.
+// The legacy base rest.gohighlevel.com/v1 only accepts legacy API keys and
+// rejects PITs with 401 "Api key is invalid."
+const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 const GHL_API_VERSION = '2021-07-28';
 
 export interface GhlContactFields {
