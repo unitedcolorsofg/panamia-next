@@ -41,6 +41,9 @@ export async function GET() {
 
   const ghl = GhlClient.create();
   if (!ghl) {
+    console.warn(
+      '[crm.GET] GhlClient.create() returned null — GHL_API_KEY or GHL_LOCATION_ID not set in runtime'
+    );
     return NextResponse.json(
       {
         success: false,
@@ -53,7 +56,11 @@ export async function GET() {
   try {
     const contact = await ghl.getContactById(profile.ghlContactId);
     return NextResponse.json({ success: true, data: contact });
-  } catch {
+  } catch (err) {
+    console.error(
+      `[crm.GET] getContactById(${profile.ghlContactId}) failed:`,
+      err
+    );
     return NextResponse.json(
       {
         success: false,
