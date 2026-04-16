@@ -393,11 +393,15 @@ export default function UserEditPage() {
     }
   };
 
+  // Depend on the user id, not the session object — even with the memoized
+  // useSession() shim, narrowing to a primitive prevents accidental re-fires
+  // if the shim is ever changed.
+  const sessionUserId = session?.user?.id;
   useEffect(() => {
-    if (session) {
+    if (sessionUserId) {
       setUserSession();
     }
-  }, [session]);
+  }, [sessionUserId]);
 
   if (!session) {
     return (
