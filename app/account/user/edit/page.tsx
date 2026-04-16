@@ -39,6 +39,7 @@ import { useTranslation } from 'react-i18next';
 import { getUserSession, saveUserSession } from '@/lib/user';
 import { UserInterface } from '@/lib/interfaces';
 import { Mail, AlertCircle, Check, X, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function UserEditPage() {
   const { data: session } = useSession();
@@ -130,6 +131,7 @@ export default function UserEditPage() {
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlActionLoading, setGhlActionLoading] = useState<string | null>(null);
   const [showDeleteContactDialog, setShowDeleteContactDialog] = useState(false);
+  const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
 
   // Check if screenname is actually changing
   const isScreennameChanging =
@@ -220,6 +222,7 @@ export default function UserEditPage() {
   };
 
   const handleGhlUnsubscribe = async () => {
+    setShowUnsubscribeDialog(false);
     setGhlActionLoading('unsubscribe');
     try {
       const res = await fetch('/api/crm/contact/unsubscribe', {
@@ -553,7 +556,7 @@ export default function UserEditPage() {
               open={showScreennameConfirmDialog}
               onOpenChange={setShowScreennameConfirmDialog}
             >
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-white dark:bg-zinc-900">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm Screenname Change</AlertDialogTitle>
                   <AlertDialogDescription className="space-y-3">
@@ -682,7 +685,7 @@ export default function UserEditPage() {
                             : 'Change Email'}
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="bg-white dark:bg-zinc-900">
                         <AlertDialogHeader>
                           <AlertDialogTitle>
                             Confirm Email Migration
@@ -788,7 +791,15 @@ export default function UserEditPage() {
                         </div>
                       </dl>
                       <p className="text-muted-foreground text-xs">
-                        Changes may take up to 24 hours to become effective.
+                        Changes may take up to 24 hours to become effective. See
+                        our{' '}
+                        <Link
+                          href="/legal/privacy#sharing"
+                          className="underline"
+                        >
+                          Privacy Policy
+                        </Link>{' '}
+                        for details on how marketing data is shared.
                       </p>
                       <div className="flex flex-wrap gap-2 border-t pt-4">
                         {(ghlContact.firstName || ghlContact.lastName) && (
@@ -822,7 +833,7 @@ export default function UserEditPage() {
                             variant="outline"
                             size="sm"
                             disabled={!!ghlActionLoading}
-                            onClick={handleGhlUnsubscribe}
+                            onClick={() => setShowUnsubscribeDialog(true)}
                           >
                             {ghlActionLoading === 'unsubscribe' && (
                               <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -860,10 +871,38 @@ export default function UserEditPage() {
             </Accordion>
 
             <AlertDialog
+              open={showUnsubscribeDialog}
+              onOpenChange={setShowUnsubscribeDialog}
+            >
+              {/* Explicit bg-white / dark:bg-zinc-900 — bg-background can appear
+                  transparent due to CSS layer specificity (see ConsentModal.tsx) */}
+              <AlertDialogContent className="bg-white dark:bg-zinc-900">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Unsubscribe from All Marketing
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This is a complete opt-out of <strong>all</strong> Panamia
+                    messages — including announcements, newsletters, and
+                    communications about non-website projects — across email,
+                    SMS, WhatsApp, and calls. The only messages you&apos;ll
+                    still receive are email sign-in links you request yourself.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleGhlUnsubscribe}>
+                    Unsubscribe
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog
               open={showDeleteContactDialog}
               onOpenChange={setShowDeleteContactDialog}
             >
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-white dark:bg-zinc-900">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Marketing Data</AlertDialogTitle>
                   <AlertDialogDescription>

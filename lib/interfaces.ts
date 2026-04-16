@@ -135,6 +135,8 @@ export interface ProfileInterface {
   affiliate?: string;
   socials: ProfileSocialsInterface;
   phone_number: string;
+  /** Drizzle/raw schema name — present when the API returns the unmapped row. */
+  phoneNumber?: string;
   whatsapp_community?: boolean;
   pronouns?: PronounsInterface;
   five_words: string;

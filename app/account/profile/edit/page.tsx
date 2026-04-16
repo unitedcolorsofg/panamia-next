@@ -140,7 +140,7 @@ export default function AccountProfileEdit() {
           </div>
           <div>
             <span className="font-medium">Phone Number:</span>{' '}
-            <span>{profileData?.phone_number}</span>
+            <span>{profileData?.phoneNumber ?? profileData?.phone_number}</span>
           </div>
           <div>
             <span className="font-medium">Pronouns:</span>{' '}

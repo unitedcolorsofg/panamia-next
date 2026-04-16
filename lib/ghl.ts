@@ -79,9 +79,15 @@ export class GhlClient {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
-      throw new Error(`GHL API ${res.status} — ${method} ${path}`);
+      const detail = await res.text().catch(() => '');
+      throw new Error(
+        `GHL API ${res.status} — ${method} ${path}${detail ? ` — ${detail.slice(0, 200)}` : ''}`
+      );
     }
-    return res.json() as Promise<T>;
+    if (res.status === 204) return undefined as T;
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
   }
 
   /** Get a contact by ID. */
@@ -115,14 +121,25 @@ export class GhlClient {
     );
   }
 
-  /** Set DND on all channels — effectively unsubscribes the contact from all marketing. */
+  /**
+   * Set DND on all channels — effectively unsubscribes the contact from all marketing.
+   *
+   * LeadConnector v2 has no dedicated DND endpoint; DND is updated via the
+   * standard contact update with `dnd: true` (top-level switch covering all
+   * channels) and explicit per-channel `dndSettings` for completeness.
+   */
   async setDndAll(id: string): Promise<void> {
-    const dnd: Record<string, { status: GhlDndStatus }> = {
-      email: { status: 'active' },
-      sms: { status: 'active' },
-      whatsapp: { status: 'active' },
-      calls: { status: 'active' },
-    };
-    await this.request<void>('PUT', `/contacts/${id}/dnd`, dnd);
+    await this.request<unknown>('PUT', `/contacts/${id}`, {
+      dnd: true,
+      dndSettings: {
+        Email: { status: 'active' as GhlDndStatus, code: 'user_unsubscribe' },
+        SMS: { status: 'active' as GhlDndStatus, code: 'user_unsubscribe' },
+        WhatsApp: {
+          status: 'active' as GhlDndStatus,
+          code: 'user_unsubscribe',
+        },
+        Call: { status: 'active' as GhlDndStatus, code: 'user_unsubscribe' },
+      },
+    });
   }
 }

@@ -107,7 +107,7 @@ export default function AccountProfileContact() {
                 id="phone_number"
                 name="phone_number"
                 type="text"
-                defaultValue={profile.phone_number}
+                defaultValue={profile.phoneNumber ?? profile.phone_number}
                 placeholder="(555) 123-4567"
               />
               <p className="text-sm text-gray-500">
