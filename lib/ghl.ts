@@ -142,4 +142,26 @@ export class GhlClient {
       },
     });
   }
+
+  /**
+   * Clear DND on all channels — re-subscribes the contact to marketing.
+   *
+   * Mirror of setDndAll: PUT /contacts/{id} with `dnd: false` and per-channel
+   * `dndSettings` reset to inactive. Contact must already exist; this does
+   * not undo a deleted record.
+   */
+  async clearDndAll(id: string): Promise<void> {
+    await this.request<unknown>('PUT', `/contacts/${id}`, {
+      dnd: false,
+      dndSettings: {
+        Email: { status: 'inactive' as GhlDndStatus, code: 'user_resubscribe' },
+        SMS: { status: 'inactive' as GhlDndStatus, code: 'user_resubscribe' },
+        WhatsApp: {
+          status: 'inactive' as GhlDndStatus,
+          code: 'user_resubscribe',
+        },
+        Call: { status: 'inactive' as GhlDndStatus, code: 'user_resubscribe' },
+      },
+    });
+  }
 }

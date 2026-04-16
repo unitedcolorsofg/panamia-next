@@ -255,6 +255,38 @@ export default function UserEditPage() {
     }
   };
 
+  const handleGhlSubscribe = async () => {
+    setGhlActionLoading('subscribe');
+    try {
+      const res = await fetch('/api/crm/contact/subscribe', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setGhlContact((prev) =>
+          prev && prev !== 'empty' ? { ...prev, dnd: false } : prev
+        );
+        toast({
+          title: 'Subscribed',
+          description: 'You will once again receive Panamia communications.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
+  };
+
   const handleGhlDeleteContact = async () => {
     setShowDeleteContactDialog(false);
     setGhlActionLoading('delete');
@@ -832,7 +864,19 @@ export default function UserEditPage() {
                             Copy phone to profile
                           </Button>
                         )}
-                        {!ghlContact.dnd && (
+                        {ghlContact.dnd ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!ghlActionLoading}
+                            onClick={handleGhlSubscribe}
+                          >
+                            {ghlActionLoading === 'subscribe' && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Subscribe
+                          </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
