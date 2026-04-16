@@ -25,8 +25,30 @@ import {
   envConfig,
   getSecrets,
   getVars,
+  getCfRuntimeVars,
   generateWorkflowSnippet,
 } from '../lib/env.config';
+
+const wranglerPath = resolve(process.cwd(), 'wrangler.jsonc');
+
+/**
+ * Strip JSONC comments (// line and / * block * /) so JSON.parse can consume the file.
+ * Naive but sufficient for our wrangler.jsonc — does not attempt to preserve comments
+ * inside string literals (we control the file and have none).
+ */
+function parseJsonc<T = unknown>(source: string): T {
+  const stripped = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  return JSON.parse(stripped) as T;
+}
+
+function readWranglerVarKeys(): string[] | null {
+  if (!existsSync(wranglerPath)) return null;
+  const content = readFileSync(wranglerPath, 'utf-8');
+  const parsed = parseJsonc<{ vars?: Record<string, unknown> }>(content);
+  return Object.keys(parsed.vars ?? {});
+}
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -47,6 +69,7 @@ Usage: npm run env:<command>
 
 Commands:
   check     Validate required environment variables are set
+  wrangler  Validate wrangler.jsonc \`vars\` block matches envConfig
   workflow  Generate GitHub Actions env snippet
   list      List all environment variables with their locations
   secrets   List variables that should be GitHub Secrets
@@ -61,6 +84,9 @@ function checkEnv() {
   const present: string[] = [];
   const optional: string[] = [];
   const stale: string[] = [];
+  const wranglerStale: string[] = [];
+  const wranglerMissing: string[] = [];
+  const wranglerMissingOptional: string[] = [];
 
   for (const [name, config] of Object.entries(envConfig)) {
     const value = process.env[name];
@@ -84,6 +110,30 @@ function checkEnv() {
     for (const key of Object.keys(parsed)) {
       if (!knownKeys.has(key)) {
         stale.push(key);
+      }
+    }
+  }
+
+  // Detect drift between wrangler.jsonc `vars` block and envConfig.
+  //   - wranglerStale: keys in wrangler.jsonc that no longer exist in envConfig
+  //   - wranglerMissing: runtime-target VARs in envConfig that aren't declared
+  //     in wrangler.jsonc (and would be wiped on the next CF Workers Builds deploy)
+  const wranglerKeys = readWranglerVarKeys();
+  if (wranglerKeys !== null) {
+    const knownKeys = new Set(Object.keys(envConfig));
+    for (const key of wranglerKeys) {
+      if (!knownKeys.has(key)) {
+        wranglerStale.push(key);
+      }
+    }
+
+    const declared = new Set(wranglerKeys);
+    for (const name of getCfRuntimeVars()) {
+      if (declared.has(name)) continue;
+      if (envConfig[name].required) {
+        wranglerMissing.push(name);
+      } else {
+        wranglerMissingOptional.push(name);
       }
     }
   }
@@ -116,6 +166,48 @@ function checkEnv() {
     );
   }
 
+  if (wranglerStale.length > 0) {
+    console.log(
+      `\n${RED}STALE variables in wrangler.jsonc \`vars\` (not in envConfig):${RESET}`
+    );
+    for (const name of wranglerStale) {
+      console.log(`  ${RED}-${RESET} ${name}`);
+    }
+    console.log(
+      `  ${YELLOW}Remove from wrangler.jsonc or add to lib/env.config.ts.${RESET}`
+    );
+  }
+
+  if (wranglerMissing.length > 0) {
+    console.log(
+      `\n${RED}MISSING required runtime VARs from wrangler.jsonc \`vars\`:${RESET}`
+    );
+    for (const name of wranglerMissing) {
+      const config = envConfig[name];
+      console.log(`  ${RED}-${RESET} ${name}`);
+      console.log(`    ${config.description}`);
+    }
+    console.log(
+      `  ${YELLOW}These runtime VARs would be wiped on the next CF Workers Builds deploy.${RESET}`
+    );
+    console.log(
+      `  ${YELLOW}Declare them in wrangler.jsonc \`vars\`, or set cfTarget: 'build' in envConfig${RESET}`
+    );
+    console.log(`  ${YELLOW}if they are baked at build time instead.${RESET}`);
+  }
+
+  if (wranglerMissingOptional.length > 0 && args.includes('--verbose')) {
+    console.log(
+      `\n${YELLOW}Optional runtime VARs not declared in wrangler.jsonc \`vars\`:${RESET}`
+    );
+    for (const name of wranglerMissingOptional) {
+      console.log(`  ${YELLOW}-${RESET} ${name}`);
+    }
+    console.log(
+      `  ${YELLOW}If you start using one in production, declare it here so CF Workers Builds doesn't wipe it.${RESET}`
+    );
+  }
+
   if (optional.length > 0 && args.includes('--verbose')) {
     console.log(
       `\n${YELLOW}Optional variables not set: ${optional.length}${RESET}`
@@ -127,7 +219,12 @@ function checkEnv() {
 
   console.log('');
 
-  if (missing.length > 0 || stale.length > 0) {
+  if (
+    missing.length > 0 ||
+    stale.length > 0 ||
+    wranglerStale.length > 0 ||
+    wranglerMissing.length > 0
+  ) {
     console.log(`${RED}${BOLD}Environment validation failed!${RESET}`);
     if (missing.length > 0) {
       console.log(
@@ -139,12 +236,83 @@ function checkEnv() {
         `Remove stale variables from .env.local (they are no longer used).`
       );
     }
+    if (wranglerStale.length > 0) {
+      console.log(
+        `Remove stale entries from wrangler.jsonc \`vars\` or add them to lib/env.config.ts.`
+      );
+    }
+    if (wranglerMissing.length > 0) {
+      console.log(
+        `Declare missing runtime VARs in wrangler.jsonc \`vars\` so CF Workers Builds preserves them.`
+      );
+    }
     console.log('');
     process.exit(1);
   } else {
     console.log(`${GREEN}${BOLD}Environment validation passed!${RESET}\n`);
     process.exit(0);
   }
+}
+
+/**
+ * Structural check: wrangler.jsonc `vars` block ↔ envConfig.
+ * Does not touch process.env, so it's safe to run from a pre-commit hook
+ * even when .env.local is absent.
+ *
+ * Errors:
+ *   - keys in wrangler.jsonc not declared in envConfig (stale)
+ *   - required runtime VARs in envConfig missing from wrangler.jsonc (gap)
+ */
+function checkWranglerSync() {
+  console.log(`\n${BOLD}Checking wrangler.jsonc vars sync...${RESET}\n`);
+
+  const wranglerKeys = readWranglerVarKeys();
+  if (wranglerKeys === null) {
+    console.log(`${YELLOW}wrangler.jsonc not found — skipping.${RESET}\n`);
+    process.exit(0);
+  }
+
+  const stale: string[] = [];
+  const missing: string[] = [];
+  const knownKeys = new Set(Object.keys(envConfig));
+  for (const key of wranglerKeys) {
+    if (!knownKeys.has(key)) stale.push(key);
+  }
+  const declared = new Set(wranglerKeys);
+  for (const name of getCfRuntimeVars()) {
+    if (!declared.has(name) && envConfig[name].required) {
+      missing.push(name);
+    }
+  }
+
+  if (stale.length > 0) {
+    console.log(`${RED}STALE keys in wrangler.jsonc \`vars\`:${RESET}`);
+    for (const name of stale) console.log(`  ${RED}-${RESET} ${name}`);
+    console.log(
+      `  ${YELLOW}Remove from wrangler.jsonc or add to lib/env.config.ts.${RESET}\n`
+    );
+  }
+
+  if (missing.length > 0) {
+    console.log(
+      `${RED}MISSING required runtime VARs from wrangler.jsonc \`vars\`:${RESET}`
+    );
+    for (const name of missing) {
+      console.log(`  ${RED}-${RESET} ${name}`);
+      console.log(`    ${envConfig[name].description}`);
+    }
+    console.log(
+      `  ${YELLOW}Without these declarations, CF Workers Builds wipes them on deploy.${RESET}\n`
+    );
+  }
+
+  if (stale.length > 0 || missing.length > 0) {
+    console.log(`${RED}${BOLD}wrangler.jsonc sync failed!${RESET}\n`);
+    process.exit(1);
+  }
+
+  console.log(`${GREEN}${BOLD}wrangler.jsonc vars are in sync!${RESET}\n`);
+  process.exit(0);
 }
 
 function listAll() {
@@ -235,6 +403,9 @@ switch (command) {
     break;
   case 'vars':
     listVars();
+    break;
+  case 'wrangler':
+    checkWranglerSync();
     break;
   case 'help':
   case '--help':

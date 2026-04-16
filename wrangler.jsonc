@@ -53,10 +53,28 @@
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 
-	// NOTE: env vars are NOT defined here.
-	// Add them to .env.local for local dev and to the CF dashboard
-	// (Workers & Pages -> Settings -> Variables and secrets) for production.
-	// See .env.local.example for the full list.
+	// Runtime env vars. Declare non-sensitive runtime vars here so they survive
+	// CF Workers Builds deploys — dashboard-set plaintext vars get wiped on each
+	// deploy unless they're in this file or promoted to secrets.
+	//
+	// Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
+	// NEXT_PUBLIC_* and explicitly build-baked vars (e.g. RECAPTCHA_SITE_KEY,
+	// BREVO_SENDER_*) belong in CF dashboard Build variables, NOT here —
+	// they're inlined at build time.
+	//
+	// The values below are PRODUCTION CF Workers values. They are intentionally
+	// distinct from .env.local — that file is for local-dev values only. Most
+	// vars here will differ from your .env.local (e.g. BETTER_AUTH_URL points
+	// to the deployed worker, BREVO_ENV is "PROD" not "DEV"). `npm run env:check`
+	// only enforces that the *keys* match envConfig, never the values.
+	// See .env.local.example.
+	"vars": {
+		"BETTER_AUTH_URL": "https://panamia-next.gschriss.workers.dev",
+		"BREVO_ENV": "DEV",
+		"R2_BUCKET_NAME": "panamia-media",
+		"R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",
+		"GHL_WORKFLOW_TEST_ID": "6682f160-e9a3-4aff-9f5d-099bd9c3e951"
+	},
 
 	// Capture Worker exceptions in Cloudflare dashboard → Workers & Pages → Observability
 	"observability": {

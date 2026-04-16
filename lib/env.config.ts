@@ -4,21 +4,43 @@
  * Single source of truth for all environment variables used in the application.
  * This file documents each variable and where it should be configured:
  *
- * - SECRET: GitHub Secrets (sensitive, encrypted)
- * - VAR: GitHub Variables (non-sensitive, visible in logs)
- * - LOCAL: Only needed for local development
+ * - SECRET: GitHub Secrets (sensitive, encrypted).
+ *           On Cloudflare Workers → `wrangler secret put`.
+ * - VAR:    GitHub Variables (non-sensitive, visible in logs).
+ *           On Cloudflare Workers, routing depends on the optional `cfTarget`
+ *           field (inferred from the name when unset — see EnvCfTarget):
+ *             - 'runtime' (default for non-NEXT_PUBLIC_*): declare in
+ *                `vars` block in wrangler.jsonc. Read at request time.
+ *             - 'build'   (default for NEXT_PUBLIC_*):    set in CF dashboard
+ *                Build variables. Inlined into the bundle at build time.
+ *           Do NOT set runtime vars via the CF dashboard — CF Workers Builds
+ *           wipes dashboard plaintext vars on each deploy.
+ * - LOCAL:  Only needed for local development.
  *
  * Usage:
  * - Run `npm run env:check` to validate required variables
+ *   and that wrangler.jsonc `vars` is in sync with envConfig's runtime VARs.
  * - Run `npm run env:workflow` to generate GitHub Actions snippet
  */
 
 export type EnvLocation = 'SECRET' | 'VAR' | 'LOCAL';
 
+/**
+ * For VAR-location vars on Cloudflare Workers, where the value lives:
+ *   - 'runtime': declared in wrangler.jsonc `vars` block. Read at request time.
+ *   - 'build':   set in CF dashboard Build variables. Inlined into the bundle
+ *                at build time by Vite (NEXT_PUBLIC_* and similar).
+ *
+ * Default (when `cfTarget` is unset): NEXT_PUBLIC_* → 'build', everything else → 'runtime'.
+ * Set explicitly to override the default.
+ */
+export type EnvCfTarget = 'runtime' | 'build';
+
 export interface EnvVarConfig {
   description: string;
   location: EnvLocation;
   required: boolean;
+  cfTarget?: EnvCfTarget;
   defaultValue?: string;
   example?: string;
   docsUrl?: string;
@@ -346,8 +368,10 @@ export const envConfig: Record<string, EnvVarConfig> = {
   GHL_LOCATION_ID: {
     description:
       'GHL sub-account/location ID. ' +
-      'Shown in the GHL dashboard URL and in Settings.',
-    location: 'VAR',
+      'Shown in the GHL dashboard URL and in Settings. ' +
+      'Not sensitive, but stored as a CF Workers secret (via `wrangler secret put`) ' +
+      'for symmetry with GHL_API_KEY and because it needs to survive deploys.',
+    location: 'SECRET',
     required: false,
     docsUrl: 'https://app.gohighlevel.com',
   },
@@ -432,6 +456,29 @@ export function getSecrets(): string[] {
 export function getVars(): string[] {
   return Object.entries(envConfig)
     .filter(([, config]) => config.location === 'VAR')
+    .map(([name]) => name);
+}
+
+/**
+ * Resolve the CF target for a given VAR entry. Explicit `cfTarget` wins;
+ * otherwise NEXT_PUBLIC_* defaults to 'build' and everything else to 'runtime'.
+ * Only meaningful for entries with location === 'VAR'.
+ */
+export function getCfTarget(name: string, config: EnvVarConfig): EnvCfTarget {
+  if (config.cfTarget) return config.cfTarget;
+  return name.startsWith('NEXT_PUBLIC_') ? 'build' : 'runtime';
+}
+
+/**
+ * Get all VAR-location entries whose values are read at runtime on CF —
+ * these must appear in wrangler.jsonc `vars` to survive deploys.
+ */
+export function getCfRuntimeVars(): string[] {
+  return Object.entries(envConfig)
+    .filter(
+      ([name, config]) =>
+        config.location === 'VAR' && getCfTarget(name, config) === 'runtime'
+    )
     .map(([name]) => name);
 }
 

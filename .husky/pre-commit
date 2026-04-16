@@ -298,6 +298,25 @@ fi
 echo "Env config files are in sync"
 
 # =============================================================================
+# Wrangler Vars Sync Check (wrangler.jsonc ↔ lib/env.config.ts)
+# =============================================================================
+# Catches two CF-specific drift modes:
+#   - keys in wrangler.jsonc `vars` that no longer exist in envConfig
+#   - required runtime VARs in envConfig missing from wrangler.jsonc `vars`
+#     (these get wiped on every CF Workers Builds deploy if undeclared)
+# Only runs when wrangler.jsonc, lib/env.config.ts, or the script itself
+# are part of the staged change set.
+
+WRANGLER_TRIGGER=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^(wrangler\.jsonc|lib/env\.config\.ts|scripts/env-check\.ts)$' || true)
+
+if [ -n "$WRANGLER_TRIGGER" ]; then
+  echo ""
+  echo "Checking wrangler.jsonc vars sync..."
+  npm run --silent env:wrangler || exit 1
+fi
+
+# =============================================================================
 # Env CI Sync Check (playwright.yml ↔ lib/env.config.ts)
 # =============================================================================
 
