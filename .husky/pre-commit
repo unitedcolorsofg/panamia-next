@@ -1,6 +1,32 @@
 #!/bin/sh
 
 # =============================================================================
+# Auto-pull if >3 hours since last check
+# =============================================================================
+
+TIMESTAMP_FILE=".git/.last-pull-check"
+INTERVAL=10800  # 3 hours in seconds
+
+now=$(date +%s)
+
+if [ -f "$TIMESTAMP_FILE" ]; then
+  last_check=$(cat "$TIMESTAMP_FILE")
+else
+  last_check=0
+fi
+
+elapsed=$((now - last_check))
+
+if [ "$elapsed" -ge "$INTERVAL" ]; then
+  echo "$now" > "$TIMESTAMP_FILE"
+  # Stash staged changes, pull, then restore
+  echo "Auto-pulling (last check was >3 hours ago)..."
+  git stash --quiet --keep-index 2>/dev/null || true
+  git pull --rebase --quiet 2>/dev/null || true
+  git stash pop --quiet 2>/dev/null || true
+fi
+
+# =============================================================================
 # Emoji Screening
 # =============================================================================
 # Rejects commits that introduce emoji characters into staged text files.

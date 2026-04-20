@@ -41,11 +41,11 @@ test.describe('Critical User Paths', () => {
 });
 
 test.describe('Mentoring Features', () => {
-  test('mentor discovery page requires authentication', async ({ page }) => {
+  test('mentor discovery page is publicly accessible', async ({ page }) => {
     await page.goto('/m/discover');
 
-    // Should redirect to custom signin page for unauthenticated users
-    await expect(page).toHaveURL(/\/signin/);
+    await expect(page).toHaveURL(/\/m\/discover/);
+    await expect(page.locator('h1')).toContainText('Discover Mentors');
   });
 
   test('mentor schedule page requires authentication', async ({ page }) => {
