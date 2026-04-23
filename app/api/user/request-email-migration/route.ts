@@ -8,7 +8,7 @@ import { db } from '@/lib/db';
 import { users, emailMigrations } from '@/lib/schema';
 import { and, eq, gt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import BrevoApi from '@/lib/brevo_api';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const host = request.headers.get('host') || 'localhost:3000';
     const migrationUrl = `${protocol}://${host}/migrate-email?token=${migrationToken}`;
 
-    await new BrevoApi().sendEmail(
+    await sendEmail(
       normalizedNewEmail,
       'Verify Your Pana MIA Email Migration',
       emailMigrationVerificationHtml({

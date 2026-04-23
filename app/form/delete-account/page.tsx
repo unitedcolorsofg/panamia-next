@@ -35,7 +35,6 @@ interface PreflightData {
     mediaFiles: number;
     thirdParty: {
       stripe: boolean;
-      brevo: boolean;
       ghl: boolean;
       google: boolean;
       apple: boolean;
@@ -184,7 +183,6 @@ function DeleteAccountForm() {
   if (preflight) {
     const tp = preflight.summary.thirdParty;
     if (tp.stripe) thirdPartyServices.push('Stripe (payment/subscriptions)');
-    if (tp.brevo) thirdPartyServices.push('Brevo (email contacts)');
     if (tp.ghl) thirdPartyServices.push('GoHighLevel (CRM)');
     if (tp.google) thirdPartyServices.push('Google (OAuth connection)');
     if (tp.apple) thirdPartyServices.push('Apple (OAuth connection)');

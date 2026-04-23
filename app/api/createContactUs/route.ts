@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { contactSubmissions } from '@/lib/schema';
-import BrevoApi from '@/lib/brevo_api';
-import { splitName } from '@/lib/standardized';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -51,27 +49,6 @@ const verifyRecaptcha = async (token: string): Promise<boolean> => {
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
     return false;
-  }
-};
-
-const callBrevo_createContact = async (email: string, name: string) => {
-  const brevo = new BrevoApi();
-
-  if (brevo.ready) {
-    // const contact = await brevo.findContact(email);
-    const [firstName, lastName] = splitName(name);
-    const attributes = {
-      FIRSTNAME: firstName,
-      LASTNAME: lastName,
-    };
-    let list_ids = [];
-    if (brevo.config.lists.addedByWebsite) {
-      list_ids.push(parseInt(brevo.config.lists.addedByWebsite));
-    }
-    if (brevo.config.lists.webformContactUs) {
-      list_ids.push(parseInt(brevo.config.lists.webformContactUs));
-    }
-    await brevo.createOrUpdateContact(email, attributes, list_ids);
   }
 };
 
@@ -146,11 +123,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-
-  // Add to Brevo (don't await, run in background)
-  Promise.allSettled([callBrevo_createContact(email, name)]).catch((err) =>
-    console.error('Brevo error:', err)
-  );
 
   return NextResponse.json(
     {

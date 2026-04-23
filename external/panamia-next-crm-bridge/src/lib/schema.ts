@@ -16,7 +16,14 @@
  * NOTE: lastLoginAt does NOT exist in the DB — use sessions table for activity.
  */
 
-import { boolean, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
@@ -77,6 +84,28 @@ export const subscriptions = pgTable('subscriptions', {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// newsletter_signups (transient queue — rows deleted after GHL sync)
+// ---------------------------------------------------------------------------
+
+export const newsletterSignups = pgTable(
+  'newsletter_signups',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull().unique(),
+    name: text('name'),
+    signupType: text('signup_type'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    createdAtIdx: index('newsletter_signups_created_at_idx').on(
+      table.createdAt
+    ),
+  })
+);
 
 // ---------------------------------------------------------------------------
 // Relations

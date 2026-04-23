@@ -3,34 +3,43 @@ import axios from 'axios';
 import classNames from 'clsx';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from 'react-google-recaptcha-v3';
 
 import styles from './SignupModal.module.css';
 import PanaButton from './PanaButton';
 
-export default function SignupModal() {
+function SignupModalInner() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [signup_type, setSignupType] = useState('');
   const { t } = useTranslation('toast');
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
-  // Detect if this is the production site
   const isProductionSite =
     process.env.NEXT_PUBLIC_HOST_URL?.includes('panamia.club') ?? false;
 
-  function submitSignupForm(e: FormEvent) {
-    validateSignupForm();
-    postSignupForm();
+  async function submitSignupForm(e: FormEvent) {
     e.preventDefault();
+    validateSignupForm();
+    await postSignupForm();
   }
 
   async function signupConfirmation() {}
 
   async function postSignupForm() {
     if (email) {
+      let recaptchaToken: string | undefined;
+      if (executeRecaptcha) {
+        recaptchaToken = await executeRecaptcha('newsletter_signup');
+      }
+
       const res = await axios
         .post(
           '/api/createSignup',
-          { name, email, signup_type },
+          { name, email, signup_type, recaptchaToken },
           {
             headers: {
               Accept: 'application/json',
@@ -243,5 +252,19 @@ export default function SignupModal() {
         )}
       </dialog>
     </div>
+  );
+}
+
+export default function SignupModal() {
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  if (!recaptchaSiteKey) {
+    return <SignupModalInner />;
+  }
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
+      <SignupModalInner />
+    </GoogleReCaptchaProvider>
   );
 }

@@ -4,20 +4,14 @@ Configuration files for external services and integrations.
 
 ## Files
 
-### `brevo.ts`
-
-Brevo (formerly Sendinblue) email service configuration:
-
-- API client setup
-- Email template IDs
-- Sender configuration
+_(No service config files remain — email is handled via CF Email Sending binding in `lib/email.ts`)_
 
 ## Usage
 
 Import configuration where needed:
 
 ```typescript
-import { brevoConfig } from '@/config/brevo';
+import { sendEmail } from '@/lib/email';
 ```
 
 ## Adding Configurations

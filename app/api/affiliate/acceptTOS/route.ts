@@ -5,8 +5,7 @@ import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { unguardUser } from '@/lib/user';
 import type { User } from '@/lib/schema';
-import BrevoApi from '@/lib/brevo_api';
-import { getBrevoConfig } from '@/config/brevo';
+import { sendTemplateEmail } from '@/lib/email';
 
 interface AffiliateData {
   activated: boolean;
@@ -79,19 +78,11 @@ export async function POST(request: NextRequest) {
           .returning();
         console.log('existingUser.affiliate', updatedUser.affiliate);
 
-        // send Brevo template email
-        const brevo = new BrevoApi();
-        const brevo_config = getBrevoConfig();
-        const template_id = brevo_config.templates.admin.affiliate_submission;
-        if (template_id) {
-          const params = {
-            name: updatedUser.name,
-            email: updatedUser.email,
-            affiliate: updatedAffiliate.code || 'n/a',
-          };
-          const response = await brevo.sendTemplateEmail(template_id, params);
-          console.log('response', response);
-        }
+        await sendTemplateEmail('admin.affiliate_submission', {
+          name: updatedUser.name,
+          email: updatedUser.email,
+          affiliate: updatedAffiliate.code || 'n/a',
+        });
 
         return NextResponse.json({
           success: true,

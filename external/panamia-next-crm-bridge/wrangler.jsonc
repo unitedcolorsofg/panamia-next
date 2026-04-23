@@ -15,10 +15,11 @@
   ],
 
   // Cron triggers:
-  //   hourly  — contact-sync: sweep recently updated profiles → push field changes to GHL
-  //   daily   — inactive-sweep: flag users with lastLoginAt > 30d → add inactive-30d tag
+  //   hourly     — contact-sync: sweep recently updated profiles → push field changes to GHL
+  //   daily      — inactive-sweep: flag users with lastLoginAt > 30d → add inactive-30d tag
+  //   every 15m  — newsletter-sync: push newsletter_signups queue to GHL, delete processed rows
   "triggers": {
-    "crons": ["0 * * * *", "0 3 * * *"]
+    "crons": ["0 * * * *", "0 3 * * *", "*/15 * * * *"]
   },
 
   "observability": {

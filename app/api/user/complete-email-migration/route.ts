@@ -6,7 +6,7 @@ import {
 import { db } from '@/lib/db';
 import { emailMigrations, users, sessions, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import BrevoApi from '@/lib/brevo_api';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,16 +91,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Send confirmation to old email (non-blocking - don't fail migration if this fails)
-    new BrevoApi()
-      .sendEmail(
-        oldEmail,
-        'Your Pana MIA Account Email Was Changed',
-        emailMigrationConfirmationHtml({ oldEmail, newEmail, timestamp }),
-        emailMigrationConfirmationText({ oldEmail, newEmail, timestamp })
-      )
-      .catch((error: Error) => {
-        console.error('Failed to send confirmation email:', error);
-      });
+    sendEmail(
+      oldEmail,
+      'Your Pana MIA Account Email Was Changed',
+      emailMigrationConfirmationHtml({ oldEmail, newEmail, timestamp }),
+      emailMigrationConfirmationText({ oldEmail, newEmail, timestamp })
+    ).catch((error: Error) => {
+      console.error('Failed to send confirmation email:', error);
+    });
 
     return NextResponse.json({
       success: true,

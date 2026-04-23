@@ -1,11 +1,9 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
-import BrevoApi from '@/lib/brevo_api';
-import { getBrevoConfig } from '@/config/brevo';
+import { sendTemplateEmail } from '@/lib/email';
 
 interface ProfileStatus {
   access?: string;
@@ -26,18 +24,8 @@ export async function POST(request: NextRequest) {
     where: eq(profiles.email, email),
   });
 
-  const brevo_config = getBrevoConfig();
-  const template_id = brevo_config.templates.admin.profile_submission;
-  if (template_id === 0) {
-    return NextResponse.json(
-      { success: false, error: 'No Template ID' },
-      { status: 200 }
-    );
-  }
   if (existingProfile) {
     if (existingProfile.active === false) {
-      // send Brevo template email
-      const brevo = new BrevoApi();
       const profileStatus = existingProfile.status as ProfileStatus | null;
       const descriptions =
         existingProfile.descriptions as ProfileDescriptions | null;
@@ -53,9 +41,9 @@ export async function POST(request: NextRequest) {
       decline_url.searchParams.set('email', existingProfile.email);
       decline_url.searchParams.set('access', accessKey || '');
       decline_url.searchParams.set('action', 'decline');
-      const promises = [];
-      if (brevo_config.templates.admin.profile_submission) {
-        const params_admin = {
+
+      await Promise.all([
+        sendTemplateEmail('admin.profile_submission', {
           name: existingProfile.name,
           email: existingProfile.email,
           details: descriptions?.details || '',
@@ -72,28 +60,14 @@ export async function POST(request: NextRequest) {
           affiliate: existingProfile.affiliate || 'n/a',
           approve_url: approve_url.toString(),
           decline_url: decline_url.toString(),
-        };
-        promises.push(
-          brevo.sendTemplateEmail(
-            brevo_config.templates.admin.profile_submission,
-            params_admin
-          )
-        );
-      }
-      if (brevo_config.templates.profile.submitted) {
-        const params_submitted = {
-          name: existingProfile.name,
-        };
-        promises.push(
-          brevo.sendTemplateEmail(
-            brevo_config.templates.profile.submitted,
-            params_submitted,
-            existingProfile.email
-          )
-        );
-      }
-      await Promise.all(promises);
-      // TODO: Confirm 201 responses from Brevo
+        }),
+        sendTemplateEmail(
+          'profile.submitted',
+          { name: existingProfile.name },
+          existingProfile.email
+        ),
+      ]);
+
       return NextResponse.json({ success: true, data: [] }, { status: 200 });
     }
     return NextResponse.json({

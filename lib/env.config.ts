@@ -239,31 +239,30 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // BREVO (Transactional Email)
+  // EMAIL (Cloudflare Email Sending)
+  // https://developers.cloudflare.com/email-service/
   // =============================================================================
-  BREVO_APIKEY: {
-    description: 'Brevo (Sendinblue) API key',
-    location: 'SECRET',
-    required: false,
-    docsUrl: 'https://app.brevo.com/settings/keys/api',
-  },
-  NEXT_PUBLIC_BREVO_SENDEREMAIL: {
+  EMAIL_SENDER_ADDRESS: {
     description:
-      'Brevo sender email address (From: header). ' +
+      'Sender email address (From: header). ' +
       'Non-secret — visible in every outbound email. ' +
       'Baked into the bundle by Vite at build time. Must be in CF Build variables.',
     location: 'VAR',
     required: false,
+    example: 'hola@panamia.club',
   },
-  NEXT_PUBLIC_BREVO_SENDERNAME: {
+  EMAIL_SENDER_NAME: {
     description:
-      'Brevo sender display name. ' +
+      'Sender display name. ' +
       'Baked into the bundle by Vite at build time. Must be in CF Build variables.',
     location: 'VAR',
     required: false,
+    defaultValue: 'Pana MIA',
   },
-  BREVO_ENV: {
-    description: 'Brevo environment (DEV or PROD)',
+  EMAIL_ENV: {
+    description:
+      'Email environment — "PROD" enables real sends via CF Email binding, ' +
+      'anything else logs to console (default: DEV)',
     location: 'VAR',
     required: false,
     defaultValue: 'DEV',

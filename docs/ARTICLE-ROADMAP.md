@@ -231,7 +231,7 @@ interface UserAdditions {
 
 #### Email Integration
 
-- Use existing Nodemailer/Brevo setup
+- Use existing CF Email Sending setup (`lib/email.ts`)
 - Respect user's `emailPreferences`
 - Branded email templates matching existing magic link style
 
@@ -829,7 +829,7 @@ components/
 - Next.js 16
 - PostgreSQL / Drizzle
 - better-auth
-- Nodemailer / Brevo
+- CF Email Sending (`lib/email.ts`)
 - BunnyCDN (images)
 - Tailwind CSS
 - Radix UI

@@ -1,10 +1,8 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
-import BrevoApi from '@/lib/brevo_api';
-import { getBrevoConfig } from '@/config/brevo';
+import { sendTemplateEmail } from '@/lib/email';
 
 interface ProfileStatus {
   access?: string;
@@ -60,19 +58,11 @@ export async function POST(request: NextRequest) {
         .where(eq(profiles.email, emailCheck));
 
       if (!original_approved_date) {
-        // Send Approval email if first time approved
-        const brevo = new BrevoApi();
-        const brevo_config = getBrevoConfig();
-        if (brevo_config.templates.profile.published) {
-          const params = {
-            name: existingProfile.name,
-          };
-          await brevo.sendTemplateEmail(
-            brevo_config.templates.profile.published,
-            params,
-            existingProfile.email
-          );
-        }
+        await sendTemplateEmail(
+          'profile.published',
+          { name: existingProfile.name },
+          existingProfile.email
+        );
       }
 
       return NextResponse.json(
@@ -82,7 +72,7 @@ export async function POST(request: NextRequest) {
             {
               message: 'Profile has been set active',
               name: existingProfile.name,
-              handle: null, // screenname is on User model
+              handle: null,
               total: totalProfiles,
             },
           ],
@@ -107,18 +97,11 @@ export async function POST(request: NextRequest) {
         .where(eq(profiles.email, emailCheck));
 
       if (!original_declined_date) {
-        const brevo = new BrevoApi();
-        const brevo_config = getBrevoConfig();
-        if (brevo_config.templates.profile.not_published) {
-          const params = {
-            name: existingProfile.name,
-          };
-          await brevo.sendTemplateEmail(
-            brevo_config.templates.profile.not_published,
-            params,
-            existingProfile.email
-          );
-        }
+        await sendTemplateEmail(
+          'profile.not_published',
+          { name: existingProfile.name },
+          existingProfile.email
+        );
       }
 
       return NextResponse.json(
@@ -128,7 +111,7 @@ export async function POST(request: NextRequest) {
             {
               message: 'Profile has been declined',
               name: existingProfile.name,
-              handle: null, // screenname is on User model
+              handle: null,
               total: totalProfiles,
             },
           ],

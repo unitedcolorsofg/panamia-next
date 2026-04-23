@@ -24,7 +24,6 @@ import {
   intakeForms,
   emailMigrations,
   interactions,
-  brevoContacts,
   socialActors,
   socialStatuses,
   socialFollows,
@@ -44,7 +43,6 @@ import { createId } from '@paralleldrive/cuid2';
 import { deleteFile } from '@/lib/blob/api';
 import { revokeAllOAuthTokens } from '@/lib/oauth-revoke';
 import { signedHeaders } from '@/lib/federation/crypto/sign';
-import BrevoApi from '@/lib/brevo_api';
 import { GhlClient } from '@/lib/ghl';
 
 // ---------------------------------------------------------------------------
@@ -796,27 +794,6 @@ export async function deleteAccount(
         thirdPartyResults.stripe = false;
         warnings.push('Stripe cleanup failed');
       }
-    }
-
-    // Brevo
-    try {
-      const brevoApi = new BrevoApi();
-      const brevoOk = await brevoApi.deleteContact(user.email);
-      thirdPartyResults.brevo = brevoOk;
-      await safeDelete(
-        'brevoContacts',
-        () =>
-          db
-            .delete(brevoContacts)
-            .where(eq(brevoContacts.email, user.email))
-            .returning({ id: brevoContacts.id }),
-        deletedTables,
-        warnings
-      );
-    } catch (error) {
-      console.error('delete-account:brevo:error', error);
-      thirdPartyResults.brevo = false;
-      warnings.push('Brevo cleanup failed');
     }
 
     // GHL

@@ -12,6 +12,7 @@ import {
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
 import { getDb } from '../lib/db';
+import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 
 // Re-export Durable Object classes so wrangler can discover them
@@ -45,6 +46,7 @@ interface Env {
       };
     };
   };
+  EMAIL?: SendEmail;
   SIGNALING_ROOM: DurableObjectNamespace;
 }
 
@@ -53,6 +55,7 @@ export default {
     // Prime the db and R2 caches with CF bindings before any application code runs.
     // All subsequent getDb() / getStorage() calls return the cached instances.
     getDb(env);
+    getEmail(env);
     getStorage(env);
     const url = new URL(request.url);
 

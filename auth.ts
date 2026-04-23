@@ -11,7 +11,7 @@ import {
   profiles,
 } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import BrevoApi from '@/lib/brevo_api';
+import { sendEmail } from '@/lib/email';
 import { GhlClient } from '@/lib/ghl';
 
 // Custom email templates for magic link authentication
@@ -664,7 +664,7 @@ function getBetterAuth(): BetterAuthInstance {
       magicLink({
         sendMagicLink: async ({ email, url }) => {
           const { host } = new URL(url);
-          await new BrevoApi().sendEmail(
+          await sendEmail(
             email,
             'Sign in to Pana MIA',
             html({ url, host, email }),

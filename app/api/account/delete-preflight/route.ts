@@ -15,7 +15,6 @@ import {
   eventPhotos,
   mentorSessions,
   socialStatuses,
-  brevoContacts,
   venues,
 } from '@/lib/schema';
 
@@ -182,12 +181,6 @@ export async function GET() {
   // Third-party services
   const providerIds = user.accounts.map((a) => a.providerId);
 
-  // Brevo
-  const brevoRow = await db.query.brevoContacts.findFirst({
-    where: eq(brevoContacts.email, user.email),
-    columns: { id: true },
-  });
-
   return NextResponse.json({
     canDelete: blockers.length === 0,
     blockers,
@@ -215,7 +208,6 @@ export async function GET() {
       mediaFiles,
       thirdParty: {
         stripe: !!profile?.stripeCustomerId,
-        brevo: !!brevoRow,
         ghl: !!profile?.ghlContactId,
         google: providerIds.includes('google'),
         apple: providerIds.includes('apple'),

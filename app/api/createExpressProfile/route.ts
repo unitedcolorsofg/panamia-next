@@ -3,8 +3,7 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
-import BrevoApi from '@/lib/brevo_api';
-import { createUniqueString, splitName } from '@/lib/standardized';
+import { createUniqueString } from '@/lib/standardized';
 import { auth } from '@/auth';
 
 const validateEmail = (email: string): boolean => {
@@ -51,26 +50,6 @@ const verifyRecaptcha = async (token: string): Promise<boolean> => {
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
     return false;
-  }
-};
-
-const callBrevo_createContact = async (email: string, name: string) => {
-  const brevo = new BrevoApi();
-
-  if (brevo.ready) {
-    const [firstName, lastName] = splitName(name);
-    const attributes = {
-      FIRSTNAME: firstName,
-      LASTNAME: lastName,
-    };
-    let list_ids = [];
-    if (brevo.config.lists.addedByWebsite) {
-      list_ids.push(parseInt(brevo.config.lists.addedByWebsite));
-    }
-    if (brevo.config.lists.webformProfile) {
-      list_ids.push(parseInt(brevo.config.lists.webformProfile));
-    }
-    await brevo.createOrUpdateContact(email, attributes, list_ids);
   }
 };
 
@@ -204,11 +183,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-
-  // Add to Brevo (don't await, run in background)
-  Promise.allSettled([callBrevo_createContact(email, name)]).catch((err) =>
-    console.error('Brevo error:', err)
-  );
 
   return NextResponse.json(
     {

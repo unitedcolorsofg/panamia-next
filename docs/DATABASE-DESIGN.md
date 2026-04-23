@@ -39,7 +39,7 @@ export const db = drizzle(postgres(connectionString), { schema });
 | **Social**     | `social_actors`, `social_statuses`, `social_follows`, `social_likes`, `social_attachments`, `social_tags`, `social_recipients` |
 | **Mentoring**  | `mentor_sessions`, `intake_forms`                                                                                              |
 | **Engagement** | `notifications`, `user_follows`, `user_lists`, `user_list_members`, `interactions`, `screenname_history`                       |
-| **Ops**        | `contact_submissions`, `newsletter_signups`, `brevo_contacts`, `email_migrations`, `o_auth_verifications`                      |
+| **Ops**        | `contact_submissions`, `newsletter_signups`, `email_migrations`, `o_auth_verifications`                                        |
 
 ## Design Decisions
 

@@ -29,7 +29,7 @@ This document outlines the implementation plan for Pana MIA's in-app notificatio
 │  │  - PostgreSQL table with ActivityPub-shaped schema            │ │
 │  │  - Flower button UI in header                                 │ │
 │  │  - Co-author/review workflows                                 │ │
-│  │  - Email notifications via Brevo                              │ │
+│  │  - Email notifications via CF Email Sending                    │ │
 │  └───────────────────────────────────────────────────────────────┘ │
 │                              ↑                                      │
 │                       Internal events                               │
@@ -303,7 +303,7 @@ Implemented via scheduled cleanup on `expiresAt` field. Set at creation time bas
 
 ### Phase 1: Core Notification System
 
-**Status**: 📋 Planned
+**Status**: [Planned] Planned
 
 Build the foundation that articles, mentoring, and future features will use.
 
@@ -337,7 +337,7 @@ import {
   NotificationActivityType,
   NotificationContext,
 } from './model/notification';
-import { sendEmail } from './brevo_api';
+import { sendEmail } from './email';
 import user from './model/user';
 
 interface CreateNotificationParams {
@@ -439,7 +439,7 @@ The notification flower button:
 
 ### Phase 2: Federation Bridge (Future)
 
-**Status**: 📋 Future
+**Status**: [Planned] Future
 
 Connect internal notifications to ActivityPub ecosystem.
 
@@ -472,7 +472,7 @@ Implement ActivityPub directly in Pana MIA using patterns from activities.next:
 
 ### Phase 3: Lists Alignment (Future)
 
-**Status**: 📋 Future
+**Status**: [Planned] Future
 
 The current `userlist` model can be aligned with ActivityPub Collections:
 
@@ -510,7 +510,7 @@ All notification-related code MUST include upstream reference comments:
 
 - PostgreSQL / Drizzle
 - NextAuth (user context)
-- Nodemailer / Brevo (email)
+- CF Email Sending (`lib/email.ts`)
 
 ### New Dependencies
 

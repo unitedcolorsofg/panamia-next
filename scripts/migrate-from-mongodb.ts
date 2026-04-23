@@ -15,11 +15,13 @@
  *     --postgres "postgres://..."
  *
  * Options:
- *   --mongodb       MongoDB connection string (required for data migration)
- *   --postgres      PostgreSQL connection string (required)
- *   --dry-run       Preview what would be migrated without writing
- *   --skip-images   Skip image migration to R2
- *   --images-only   Only migrate images (skip data migration, requires existing PostgreSQL data)
+ *   --mongodb            MongoDB connection string (required for data migration)
+ *   --postgres           PostgreSQL connection string (required)
+ *   --dry-run            Preview what would be migrated without writing
+ *   --skip-images        Skip image migration to R2
+ *   --images-only        Only migrate images (skip data migration, requires existing PostgreSQL data)
+ *   --newsletter-to-ghl  Push all newsletter_signups to GHL and delete processed rows
+ *                        Requires GHL_API_KEY and GHL_LOCATION_ID env vars
  *
  * What gets migrated:
  *   - users (nextauth_users -> users)
@@ -40,7 +42,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 type DB = PostgresJsDatabase<typeof schema>;
 
-const { users, accounts, sessions, profiles } = schema;
+const { users, accounts, sessions, profiles, newsletterSignups } = schema;
 
 // Dynamically import mongodb only when needed
 let MongoClient: typeof import('mongodb').MongoClient;
@@ -51,6 +53,7 @@ interface MigrationArgs {
   dryRun: boolean;
   skipImages: boolean;
   imagesOnly: boolean;
+  newsletterToGhl: boolean;
 }
 
 function parseArgs(): MigrationArgs {
@@ -60,6 +63,7 @@ function parseArgs(): MigrationArgs {
   let dryRun = false;
   let skipImages = false;
   let imagesOnly = false;
+  let newsletterToGhl = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--mongodb' && args[i + 1]) {
@@ -74,6 +78,8 @@ function parseArgs(): MigrationArgs {
       skipImages = true;
     } else if (args[i] === '--images-only') {
       imagesOnly = true;
+    } else if (args[i] === '--newsletter-to-ghl') {
+      newsletterToGhl = true;
     }
   }
 
@@ -88,17 +94,20 @@ Options:
   --postgres      PostgreSQL connection string (required)
   --dry-run       Preview what would be migrated without writing
   --skip-images   Skip image migration to R2
-  --images-only   Only migrate images (skip data migration)
+  --images-only         Only migrate images (skip data migration)
+  --newsletter-to-ghl   Push newsletter_signups to GHL (requires GHL_API_KEY, GHL_LOCATION_ID)
 `);
     process.exit(1);
   }
 
-  if (!imagesOnly && !mongodb) {
-    console.error('Error: --mongodb is required unless using --images-only');
+  if (!imagesOnly && !newsletterToGhl && !mongodb) {
+    console.error(
+      'Error: --mongodb is required unless using --images-only or --newsletter-to-ghl'
+    );
     process.exit(1);
   }
 
-  return { mongodb, postgres, dryRun, skipImages, imagesOnly };
+  return { mongodb, postgres, dryRun, skipImages, imagesOnly, newsletterToGhl };
 }
 
 function generateCuid(): string {
@@ -352,6 +361,98 @@ async function migrateImages(
 }
 
 // =============================================================================
+// Newsletter → GHL Migration
+// =============================================================================
+
+const GHL_API_BASE = 'https://services.leadconnectorhq.com';
+const GHL_API_VERSION = '2021-07-28';
+
+async function ghlUpsertContact(
+  apiKey: string,
+  fields: Record<string, unknown>
+): Promise<void> {
+  const res = await fetch(`${GHL_API_BASE}/contacts/upsert`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Version: GHL_API_VERSION,
+    },
+    body: JSON.stringify(fields),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GHL API error: ${res.status} ${res.statusText} — ${text}`);
+  }
+}
+
+async function migrateNewsletterToGhl(
+  db: DB,
+  dryRun: boolean
+): Promise<{ synced: number; failed: number }> {
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE: Newsletter Signups → GHL');
+  console.log('='.repeat(60));
+
+  const apiKey = process.env.GHL_API_KEY;
+  const locationId = process.env.GHL_LOCATION_ID;
+
+  if (!apiKey || !locationId) {
+    console.error(
+      'Error: GHL_API_KEY and GHL_LOCATION_ID env vars are required for --newsletter-to-ghl'
+    );
+    process.exit(1);
+  }
+
+  const rows = await db.select().from(newsletterSignups);
+  console.log(`\nFound ${rows.length} newsletter signups to process\n`);
+
+  let synced = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    const trimmed = (row.name ?? '').trim();
+    const [firstName, ...rest] = trimmed.split(/\s+/);
+    const lastName = rest.join(' ');
+
+    console.log(`  ${row.email} (${trimmed || 'no name'})`);
+
+    if (dryRun) {
+      console.log(`    -> Would upsert to GHL with tag form:newsletter`);
+      synced++;
+      continue;
+    }
+
+    try {
+      await ghlUpsertContact(apiKey, {
+        email: row.email,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        locationId,
+        tags: ['form:newsletter'],
+      });
+
+      await db
+        .delete(newsletterSignups)
+        .where(eq(newsletterSignups.id, row.id));
+
+      console.log(`    -> Synced and deleted`);
+      synced++;
+
+      // Throttle to avoid GHL rate limits
+      await new Promise((r) => setTimeout(r, 100));
+    } catch (err) {
+      console.error(
+        `    -> ERROR: ${err instanceof Error ? err.message : err}`
+      );
+      failed++;
+    }
+  }
+
+  return { synced, failed };
+}
+
+// =============================================================================
 // Main Migration
 // =============================================================================
 
@@ -362,6 +463,7 @@ async function main() {
     dryRun,
     skipImages,
     imagesOnly,
+    newsletterToGhl,
   } = parseArgs();
 
   if (dryRun) {
@@ -379,6 +481,7 @@ async function main() {
   let mongoSessions: unknown[] = [];
   let mongoProfiles: unknown[] = [];
   let imageStats = { success: 0, errors: 0 };
+  let newsletterStats = { synced: 0, failed: 0 };
 
   try {
     // =========================================================================
@@ -602,8 +705,15 @@ async function main() {
     // =========================================================================
     // IMAGE MIGRATION
     // =========================================================================
-    if (!skipImages) {
+    if (!skipImages && !newsletterToGhl) {
       imageStats = await migrateImages(db, dryRun);
+    }
+
+    // =========================================================================
+    // NEWSLETTER → GHL MIGRATION
+    // =========================================================================
+    if (newsletterToGhl) {
+      newsletterStats = await migrateNewsletterToGhl(db, dryRun);
     }
 
     // =========================================================================
@@ -621,10 +731,16 @@ async function main() {
       console.log(`  Profiles: ${mongoProfiles.length}`);
     }
 
-    if (!skipImages) {
+    if (!skipImages && !newsletterToGhl) {
       console.log('\nImage Migration:');
       console.log(`  Migrated: ${imageStats.success}`);
       console.log(`  Errors: ${imageStats.errors}`);
+    }
+
+    if (newsletterToGhl) {
+      console.log('\nNewsletter → GHL:');
+      console.log(`  Synced: ${newsletterStats.synced}`);
+      console.log(`  Failed: ${newsletterStats.failed}`);
     }
 
     if (dryRun) {

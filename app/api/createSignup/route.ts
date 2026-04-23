@@ -1,78 +1,68 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import { NextRequest, NextResponse } from 'next/server';
-
 import { db } from '@/lib/db';
-import { newsletterSignups, brevoContacts } from '@/lib/schema';
+import { newsletterSignups } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import BrevoApi from '@/lib/brevo_api';
-import { splitName } from '@/lib/standardized';
+import { sendTemplateEmail } from '@/lib/email';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   return regEx.test(email);
 };
 
-const callBrevo_createContact = async (email: string, name: string) => {
-  const existingContact = await db.query.brevoContacts.findFirst({
-    where: eq(brevoContacts.email, email),
-  });
-  if (existingContact) {
-    return false; // skip since already created/updated in Brevo
+const verifyRecaptcha = async (token: string): Promise<boolean> => {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secretKey) {
+    console.error('RECAPTCHA_SECRET_KEY is not configured');
+    return false;
   }
 
-  const brevo = new BrevoApi();
-  if (brevo.ready) {
-    const [firstName, lastName] = splitName(name);
-    const attributes = {
-      FIRSTNAME: firstName,
-      LASTNAME: lastName,
-    };
-    const list_ids: number[] = [];
-    if (brevo.config.lists.addedByWebsite) {
-      list_ids.push(parseInt(brevo.config.lists.addedByWebsite));
-    }
-    if (brevo.config.lists.webformNewsletter) {
-      list_ids.push(parseInt(brevo.config.lists.webformNewsletter));
-    }
-    const brevoResponse = await brevo.createOrUpdateContact(
-      email,
-      attributes,
-      list_ids
+  try {
+    const response = await fetch(
+      'https://www.google.com/recaptcha/api/siteverify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${secretKey}&response=${token}`,
+      }
     );
-    await db.insert(brevoContacts).values({
-      email,
-      brevoId: brevoResponse.id,
-      listIds: list_ids,
-    });
-  }
-};
+    const data = await response.json();
+    if (data.success && data.score >= 0.5) return true;
 
-const callBrevo_sendAdminNoticeEmail = async (
-  name: string,
-  email: string,
-  signup_type: string
-) => {
-  const brevo = new BrevoApi();
-  const template_id = brevo.config.templates.adminSignupConfirmation;
-  if (template_id) {
-    const params = {
-      name: name,
-      email: email,
-      signup_type: signup_type,
-    };
-    await brevo.sendTemplateEmail(parseInt(template_id), params);
-    // TODO: Confirm 201 response from Brevo
+    console.warn('reCAPTCHA verification failed:', {
+      success: data.success,
+      score: data.score,
+      action: data.action,
+      errors: data['error-codes'],
+    });
+    return false;
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    return false;
   }
 };
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  // get and validate body variables
-  const { name, email, signup_type } = body;
+  const { name, email, signup_type, recaptchaToken } = body;
 
   if (!validateEmail(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address.' });
+  }
+
+  if (!recaptchaToken) {
+    return NextResponse.json(
+      { error: 'reCAPTCHA verification required.' },
+      { status: 400 }
+    );
+  }
+
+  const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
+  if (!isValidRecaptcha) {
+    return NextResponse.json(
+      { error: 'reCAPTCHA verification failed. Please try again.' },
+      { status: 400 }
+    );
   }
 
   const existingSignup = await db.query.newsletterSignups.findFirst({
@@ -92,10 +82,11 @@ export async function POST(request: NextRequest) {
       signupType: signup_type,
     });
 
-    await Promise.allSettled([
-      callBrevo_createContact(email, name),
-      callBrevo_sendAdminNoticeEmail(name, email, signup_type),
-    ]);
+    sendTemplateEmail('admin.newsletter_submission', {
+      name,
+      email,
+      signup_type,
+    }).catch((err) => console.error('Admin notification email error:', err));
 
     return NextResponse.json({
       msg: 'Successfully created new Signup',

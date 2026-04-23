@@ -13,6 +13,7 @@ import { handleGhlWebhook } from './handlers/webhook-ghl';
 import { handleStripeWebhook } from './handlers/webhook-stripe';
 import { runContactSync } from './jobs/contact-sync';
 import { runInactiveSweep } from './jobs/inactive-sweep';
+import { runNewsletterSync } from './jobs/newsletter-sync';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -40,6 +41,9 @@ export default {
         break;
       case '0 3 * * *':
         await runInactiveSweep(env);
+        break;
+      case '*/15 * * * *':
+        await runNewsletterSync(env);
         break;
       default:
         console.warn(`[index] unknown cron trigger: ${event.cron}`);

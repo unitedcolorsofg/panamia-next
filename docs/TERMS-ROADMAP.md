@@ -103,7 +103,7 @@ what deletion mechanisms each provider offers.
 | Provider              | Data shared                                     | Deletion mechanism                                                                        | Limitations                                                                                        |
 | --------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **Stripe**            | Email, payment method, transaction history      | Stripe customer deletion API; transaction records retained per Stripe's legal obligations | Stripe retains transaction data for 7+ years for tax/legal compliance even after customer deletion |
-| **Brevo**             | Email, name, list membership, sync metadata     | Brevo contact deletion API; we trigger on account deletion                                | Brevo may retain anonymized analytics; email delivery logs retained per Brevo's policy             |
+| **Cloudflare Email**  | Recipient email (transactional sends only)      | No stored contacts — stateless email sending via Worker binding                           | CF may retain delivery logs per Cloudflare's data processing terms                                 |
 | **GoHighLevel**       | GHL contact ID, email, name                     | Manual deletion via GHL API or dashboard                                                  | GHL data retention subject to their terms; we document opt-out via `ghlOptOut` flag                |
 | **Google (OAuth)**    | Email, name, profile image (received, not sent) | Revoke OAuth grant; we delete stored tokens                                               | Google retains its own auth logs per Google's privacy policy                                       |
 | **Apple (OAuth)**     | Email, name (received, not sent)                | Revoke OAuth grant; we delete stored tokens                                               | Apple retains its own auth logs per Apple's privacy policy                                         |
@@ -292,7 +292,7 @@ Categories:
 - **Uploads** — images, media files → Persistent / CC-licensed (follows content retention class)
 - **Analytics** — IP, user-agent, page views → Temporary (90 days)
 - **OAuth** — provider tokens → Temporary / 3rd-Party Synced (provider logs)
-- **Email/Contacts** — Brevo sync → Persistent / 3rd-Party Synced (Brevo)
+- **Email** — CF Email Sending (stateless, no stored contacts)
 - **CRM** — GoHighLevel contact data → Persistent / 3rd-Party Synced (GHL)
 
 ### Summary (Layer 2)
@@ -305,7 +305,7 @@ Sections (each links to corresponding full-text anchor):
    community record, and what's synced to third parties
 4. The archive threshold — when content becomes permanent and why
    (CC license irrevocability, community record integrity)
-5. Who we share data with (Stripe, Brevo, GoHighLevel, Cloudflare, OAuth
+5. Who we share data with (Stripe, GoHighLevel, Cloudflare, OAuth
    providers, ActivityPub federation peers) — what each provider retains
    and what deletion mechanisms we invoke
 6. Your content is CC-licensed (and what that means for deletion)
@@ -363,11 +363,11 @@ Satisfies disclosure requirements from:
           "providerRetention": "7_years_tax_legal"
         },
         {
-          "name": "Brevo",
-          "purpose": "email_communications",
-          "data": ["email", "name", "list_membership"],
-          "deletionMechanism": "brevo_contact_deletion_api",
-          "providerRetention": "anonymized_analytics_retained"
+          "name": "Cloudflare Email Sending",
+          "purpose": "transactional_email",
+          "data": ["recipient_email"],
+          "deletionMechanism": "stateless_no_stored_contacts",
+          "providerRetention": "delivery_logs_per_cf_terms"
         },
         {
           "name": "GoHighLevel",
@@ -669,7 +669,7 @@ a summary grouped by what will happen:
 | Provider          | What we'll request to delete                                          |
 | ----------------- | --------------------------------------------------------------------- |
 | Stripe            | Customer record (transaction history retained by Stripe for 7+ years) |
-| Brevo             | Contact and list membership                                           |
+| CF Email Sending  | _(stateless — no stored contacts to delete)_                          |
 | GoHighLevel       | CRM contact record                                                    |
 | Cloudflare R2     | Uploaded media for deleted content                                    |
 | OAuth providers   | Token revocation                                                      |
@@ -738,7 +738,7 @@ Deletion is processed immediately upon confirmation. No cooling-off period.
 4. Pre-archive content deleted
 5. Post-archive content anonymized (if chosen) or profile tombstoned
 6. Active Stripe subscriptions cancelled; Stripe customer deletion initiated
-7. Brevo contact deleted; GoHighLevel contact deleted
+7. GoHighLevel contact deleted
 8. OAuth grants revoked; stored tokens deleted
 9. Uploaded media for deleted content removed from R2
 10. Consent receipt and deletion audit log retained for 1 year (legal basis:
@@ -1052,8 +1052,7 @@ Publish at `legal/accessibility/statement.html`:
         `event_photos.uploader_profile_id`)
   - [x] Cancel active Stripe subscriptions + delete customer
         (dynamic import of `stripe`, uses `profiles.stripe_customer_id`)
-  - [x] Delete Brevo contact (`lib/brevo_api.ts` — new `deleteContact(email)`
-        method, DELETE `/v3/contacts/{email}`, returns true on 200 or 404)
+  - [x] ~~Delete Brevo contact~~ _(removed — Brevo replaced by CF Email Sending, stateless)_
   - [x] Delete GoHighLevel contact via `GhlClient.deleteContact()`
   - [x] Revoke OAuth grants (`lib/oauth-revoke.ts` — `revokeAllOAuthTokens()`,
         Google token revocation endpoint + Apple revocation endpoint)

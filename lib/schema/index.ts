@@ -720,30 +720,6 @@ export const oAuthVerifications = pgTable(
 );
 
 // =============================================================================
-// External Services
-// =============================================================================
-
-export const brevoContacts = pgTable('brevo_contacts', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .$defaultFn(() => new Date())
-    .$onUpdateFn(() => new Date()),
-  email: text('email').notNull().unique(),
-  brevoId: integer('brevo_id').notNull(),
-  listIds: integer('list_ids')
-    .array()
-    .notNull()
-    .default(sql`ARRAY[]::integer[]`),
-  syncedAt: timestamp('synced_at', { withTimezone: true }),
-});
-
-// =============================================================================
 // Analytics & Interactions
 // =============================================================================
 
@@ -1725,7 +1701,6 @@ export type ContactSubmission = typeof contactSubmissions.$inferSelect;
 export type NewsletterSignup = typeof newsletterSignups.$inferSelect;
 export type EmailMigration = typeof emailMigrations.$inferSelect;
 export type OAuthVerification = typeof oAuthVerifications.$inferSelect;
-export type BrevoContact = typeof brevoContacts.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;
 export type MentorSession = typeof mentorSessions.$inferSelect;
 export type IntakeForm = typeof intakeForms.$inferSelect;

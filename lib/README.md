@@ -39,26 +39,26 @@ See `.env.local.example` for annotated variable list.
 
 Primary data is stored in PostgreSQL via Drizzle ORM. See `lib/schema/index.ts` for the full schema.
 
-| Model               | Description                             |
-| ------------------- | --------------------------------------- |
-| `User`              | User accounts (auth, email, screenname) |
-| `Account`           | OAuth provider accounts                 |
-| `Session`           | User sessions                           |
-| `VerificationToken` | Email verification tokens               |
-| `Profile`           | Business/personal profiles              |
-| `Article`           | Community articles                      |
-| `Notification`      | In-app notifications                    |
-| `UserFollow`        | Follow relationships                    |
-| `UserList`          | User-created curated lists              |
-| `UserListMember`    | Members of user lists                   |
-| `ContactSubmission` | Contact form submissions                |
-| `NewsletterSignup`  | Newsletter signups                      |
-| `EmailMigration`    | Email change tokens (TTL-based)         |
-| `OAuthVerification` | OAuth email verification tokens         |
-| `BrevoContact`      | Brevo email service sync                |
-| `Interaction`       | User interactions/analytics             |
-| `MentorSession`     | Mentoring session bookings              |
-| `IntakeForm`        | Consolidated intake form submissions    |
+| Model               | Description                              |
+| ------------------- | ---------------------------------------- |
+| `User`              | User accounts (auth, email, screenname)  |
+| `Account`           | OAuth provider accounts                  |
+| `Session`           | User sessions                            |
+| `VerificationToken` | Email verification tokens                |
+| `Profile`           | Business/personal profiles               |
+| `Article`           | Community articles                       |
+| `Notification`      | In-app notifications                     |
+| `UserFollow`        | Follow relationships                     |
+| `UserList`          | User-created curated lists               |
+| `UserListMember`    | Members of user lists                    |
+| `ContactSubmission` | Contact form submissions                 |
+| `NewsletterSignup`  | Newsletter signups                       |
+| `EmailMigration`    | Email change tokens (TTL-based)          |
+| `OAuthVerification` | OAuth email verification tokens          |
+| ~~`BrevoContact`~~  | _(removed — Brevo replaced by CF Email)_ |
+| `Interaction`       | User interactions/analytics              |
+| `MentorSession`     | Mentoring session bookings               |
+| `IntakeForm`        | Consolidated intake form submissions     |
 
 ## Query Helpers (`query/`)
 
@@ -138,13 +138,13 @@ Cloudflare R2 integration for file uploads:
 
 ## External Services
 
-| File               | Service                         |
-| ------------------ | ------------------------------- |
-| `brevo_api.ts`     | Brevo (Sendinblue) email API    |
-| `pusher-server.ts` | Pusher server client (realtime) |
-| `pusher-client.ts` | Pusher browser client           |
-| `geolocation.ts`   | Geocoding utilities             |
-| `auth-api.ts`      | Auth helper functions           |
+| File               | Service                          |
+| ------------------ | -------------------------------- |
+| `email.ts`         | CF Email Sending (transactional) |
+| `pusher-server.ts` | Pusher server client (realtime)  |
+| `pusher-client.ts` | Pusher browser client            |
+| `geolocation.ts`   | Geocoding utilities              |
+| `auth-api.ts`      | Auth helper functions            |
 
 ## Client-Side Utilities
 

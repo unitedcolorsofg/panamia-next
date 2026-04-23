@@ -27,12 +27,12 @@ corepack enable
 
 These are required for specific features:
 
-| Service                                                                | Purpose               | Required For          |
-| ---------------------------------------------------------------------- | --------------------- | --------------------- |
-| [Stripe](https://stripe.com/)                                          | Payment processing    | Donations             |
-| [Brevo](https://brevo.com/)                                            | Transactional email   | Authentication emails |
-| [Cloudflare R2](https://developers.cloudflare.com/r2/)                 | Object storage        | File uploads          |
-| [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) | DB connection pooling | Production only       |
+| Service                                                                      | Purpose               | Required For          |
+| ---------------------------------------------------------------------------- | --------------------- | --------------------- |
+| [Stripe](https://stripe.com/)                                                | Payment processing    | Donations             |
+| [Cloudflare Email Sending](https://developers.cloudflare.com/email-service/) | Transactional email   | Authentication emails |
+| [Cloudflare R2](https://developers.cloudflare.com/r2/)                       | Object storage        | File uploads          |
+| [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/)       | DB connection pooling | Production only       |
 
 ---
 
@@ -76,7 +76,7 @@ Edit `.env.local` with your credentials. Key configurations:
 | `BETTER_AUTH_SECRET`   | Generate with `openssl rand -base64 32`                            |
 | `BETTER_AUTH_URL`      | `http://localhost:3000` for development                            |
 | `NEXT_PUBLIC_HOST_URL` | `http://localhost:3000` for development                            |
-| `EMAIL_SERVER_*`       | Required for authentication emails (Brevo)                         |
+| `EMAIL_SENDER_ADDRESS` | Sender email address for CF Email Sending                          |
 | `R2_ACCOUNT_ID`        | Cloudflare account ID                                              |
 | `R2_ACCESS_KEY_ID`     | R2 API token key ID (R2 → Manage R2 API Tokens)                    |
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret                                                |
@@ -284,10 +284,10 @@ yarn start
 
 ### Payments & Email
 
-| Technology                    | Purpose             |
-| ----------------------------- | ------------------- |
-| [Stripe](https://stripe.com/) | Payment processing  |
-| [Brevo](https://brevo.com/)   | Transactional email |
+| Technology                                                                   | Purpose             |
+| ---------------------------------------------------------------------------- | ------------------- |
+| [Stripe](https://stripe.com/)                                                | Payment processing  |
+| [Cloudflare Email Sending](https://developers.cloudflare.com/email-service/) | Transactional email |
 
 ### Testing & Quality
 

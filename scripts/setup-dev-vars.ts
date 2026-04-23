@@ -24,7 +24,7 @@ const KEYS = [
   'R2_PUBLIC_URL',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'BREVO_API_KEY',
+  'RECAPTCHA_SECRET_KEY',
 ];
 
 if (!existsSync('.env.local')) {

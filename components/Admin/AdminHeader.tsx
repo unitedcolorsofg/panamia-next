@@ -55,12 +55,6 @@ export default function AdminMenu() {
             </AdminButton>
           </li>
           <li>
-            <AdminButton href="/account/admin/signups">
-              <IconEdit height="16" />
-              Newsletter
-            </AdminButton>
-          </li>
-          <li>
             <AdminButton href="/account/admin/contactus">
               <IconEdit height="16" />
               Contact Us

@@ -50,13 +50,6 @@ export default function AdminDashboardPage() {
       color: 'text-purple-600',
     },
     {
-      title: 'Newsletter Signups',
-      description: 'View and manage newsletter subscribers',
-      href: '/account/admin/signups',
-      icon: IconEdit,
-      color: 'text-green-600',
-    },
-    {
       title: 'Contact Us',
       description: 'View contact form submissions',
       href: '/account/admin/contactus',
