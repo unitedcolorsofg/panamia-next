@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, score: data.score });
     }
 
-    // Allow v2 keys when not on pana.social (dev, workers.dev previews, etc.).
+    // Allow v2 keys when not on panamia.club (dev, workers.dev previews, etc.).
     // Note: dev script uses `env -u NODE_ENV` so NODE_ENV is undefined in dev.
     const host = request.headers.get('host') || '';
     const isDevOrPreview =
-      process.env.NODE_ENV !== 'production' || !host.includes('pana.social');
+      process.env.NODE_ENV !== 'production' || !host.includes('panamia.club');
     if (data.success && data.score === undefined && isDevOrPreview) {
       console.warn('reCAPTCHA: v2 keys detected in dev mode, allowing request');
       return NextResponse.json({ success: true, score: 1.0 });
