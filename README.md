@@ -8,6 +8,12 @@ A community platform connecting South Florida artists, creatives, and local busi
 
 ---
 
+<p align="center">
+  <img src="docs/pana-auric-field.png" alt="The Pana MIA Auric Field — layered architecture diagram" width="640" />
+</p>
+
+---
+
 ## What is Pana Mia?
 
 Pana Mia Club is a 501(c)(3) non-profit building tools to support regenerative, vibrant local economies in South Florida. We believe the future is local—and we're creating the digital infrastructure to make that future possible.
