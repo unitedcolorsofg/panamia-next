@@ -5,7 +5,7 @@
   "version": "0.1",
   "status": "draft",
   "effectiveDate": null,
-  "url": "https://panamia.club/legal/privacy",
+  "url": "https://pana.social/legal/privacy",
   "gpcSupported": true,
   "dataTiers": ["persistent", "temporary", "peer_networking"],
   "persistentRetentionClasses": {

@@ -38,7 +38,7 @@ export function getEmail(env?: CloudflareEmailEnv): SendEmail | null {
 }
 
 function getSenderAddress(): string {
-  return process.env.EMAIL_SENDER_ADDRESS || 'hola@panamia.club';
+  return process.env.EMAIL_SENDER_ADDRESS || 'hola@pana.social';
 }
 
 function getSenderName(): string {

@@ -405,7 +405,7 @@ function BecomeAPanaForm() {
                     <p className="italic">
                       {/* i18n: t('page1.contactNote') */}
                       If you have questions please reach out to us at
-                      hola@panamia.club
+                      hola@pana.social
                     </p>
                   </div>
                   <div className="flex justify-end pt-6">

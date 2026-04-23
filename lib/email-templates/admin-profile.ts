@@ -67,7 +67,7 @@ export function adminProfile(params: Record<string, unknown>) {
       `Decline: ${declineUrl}`,
       '',
       '---',
-      'Pana MIA · panamia.club',
+      'Pana MIA · pana.social',
     ].join('\n'),
   };
 }

@@ -112,13 +112,13 @@ These are displayed on the event detail page and enforced in the photo upload ro
 
 `GET /api/events/[slug]/calendar.ics` returns a hand-rolled RFC 5545 VCALENDAR with:
 
-- `UID`: the stable `iCalUid` set at event creation (`{cuid}@panamia.club`)
+- `UID`: the stable `iCalUid` set at event creation (`{cuid}@pana.social`)
 - `DTSTART`/`DTEND`: local time with `TZID` parameter
 - `DTSTAMP`: current UTC time
 - `SUMMARY`: event title
 - `DESCRIPTION`: description (HTML stripped, max 1000 chars)
 - `LOCATION`: venue name and address
-- `URL`: `https://panamia.club/e/{slug}`
+- `URL`: `https://pana.social/e/{slug}`
 - `STATUS`: `CONFIRMED` or `CANCELLED`
 
 Lines are folded at 75 octets per RFC 5545. Special characters are escaped.
@@ -142,14 +142,14 @@ Events integrate with the existing AP infrastructure in two ways:
 {
   "@context": ["https://www.w3.org/ns/activitystreams"],
   "type": "Event",
-  "id": "https://panamia.club/e/{slug}",
+  "id": "https://pana.social/e/{slug}",
   "name": "{title}",
   "content": "{description}",
-  "url": "https://panamia.club/e/{slug}",
+  "url": "https://pana.social/e/{slug}",
   "startTime": "{startsAt ISO8601}",
   "endTime": "{endsAt ISO8601}",
   "location": { "type": "Place", "name": "{venue.name}", "address": "..." },
-  "attributedTo": "https://panamia.club/p/{hostScreenname}/",
+  "attributedTo": "https://pana.social/p/{hostScreenname}/",
   "published": "{createdAt ISO8601}",
   "updated": "{updatedAt ISO8601}"
 }

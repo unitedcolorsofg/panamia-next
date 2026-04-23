@@ -1,7 +1,7 @@
 /**
  * Social Module
  *
- * This module provides social features for panamia.club,
+ * This module provides social features for pana.social,
  * using ActivityPub for federation with Mastodon, Pixelfed, etc.
  *
  * IMPORTANT: The external/activities.next/ directory is READ-ONLY.
@@ -31,17 +31,17 @@ export {
 
 /**
  * Get the domain from NEXT_PUBLIC_HOST_URL
- * Falls back to 'panamia.club' if not set
+ * Falls back to 'pana.social' if not set
  */
 function getDomain(): string {
   const hostUrl = process.env.NEXT_PUBLIC_HOST_URL;
-  if (!hostUrl) return 'panamia.club';
+  if (!hostUrl) return 'pana.social';
 
   try {
     const url = new URL(hostUrl);
     return url.hostname;
   } catch {
-    return 'panamia.club';
+    return 'pana.social';
   }
 }
 

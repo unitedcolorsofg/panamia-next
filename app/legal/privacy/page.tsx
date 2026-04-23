@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { PrivacyAtAGlance } from '@/components/legal/PrivacyAtAGlance';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
-const SITE = 'https://panamia.club';
+const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Pana MIA Club',
@@ -305,7 +305,7 @@ export default function PrivacyPolicyPage() {
           <p>
             Pana MIA Club, Corp.
             <br />
-            Email: <a href="mailto:hola@panamia.club">hola@panamia.club</a>
+            Email: <a href="mailto:hola@pana.social">hola@pana.social</a>
           </p>
         </section>
 

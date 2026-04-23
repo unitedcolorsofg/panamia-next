@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
-const SITE = 'https://panamia.club';
+const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
   title: 'Legal - Pana MIA Club',

@@ -593,7 +593,7 @@ PUSHER_CLUSTER=         # Cluster (safe in client)
 
 ## Vulnerability Disclosure
 
-If you discover a security vulnerability, please [contact us](https://www.panamia.club/form/contact-us/) with the subject line "SECURITY VULNERABILITY" or email directly if you have our contact information.
+If you discover a security vulnerability, please [contact us](https://pana.social/form/contact-us/) with the subject line "SECURITY VULNERABILITY" or email directly if you have our contact information.
 
 **Do not** create public GitHub issues for security vulnerabilities.
 

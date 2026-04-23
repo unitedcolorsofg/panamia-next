@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
-const SITE = 'https://panamia.club';
+const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
   title: 'DMCA Policy - Pana MIA Club',
@@ -48,8 +48,8 @@ function DmcaAgentInfo() {
           No DMCA agent is registered as of {today}. Pana MIA Club is in the
           process of registering a designated agent with the U.S. Copyright
           Office. In the meantime, DMCA takedown notices may be sent to{' '}
-          <a href="mailto:hola@panamia.club" className="underline">
-            hola@panamia.club
+          <a href="mailto:hola@pana.social" className="underline">
+            hola@pana.social
           </a>
           .
         </p>
@@ -184,7 +184,7 @@ export default function DmcaPolicyPage() {
           <h2>Contact</h2>
           <p>
             For general inquiries about this policy, contact{' '}
-            <a href="mailto:hola@panamia.club">hola@panamia.club</a>.
+            <a href="mailto:hola@pana.social">hola@pana.social</a>.
           </p>
         </section>
       </article>

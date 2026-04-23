@@ -22,7 +22,7 @@ This document outlines the implementation plan for Pana MIA's in-app notificatio
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         panamia.club                                │
+│                         pana.social                                │
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │  Notification System (Phase 1 - Complete)                     │ │
@@ -45,7 +45,7 @@ This document outlines the implementation plan for Pana MIA's in-app notificatio
                (future: federation via ActivityPub)
                               ↕
 ┌─────────────────────────────────────────────────────────────────────┐
-│                  social.panamia.club (Phase 2)                      │
+│                  social.pana.social (Phase 2)                      │
 │                  activities.next instance                           │
 │                  - Full ActivityPub federation                      │
 │                  - Mastodon-compatible                              │
@@ -78,7 +78,7 @@ Users are treated as "Actors" with:
 
 - Unique identifier (userId/screenname)
 - Public profile URL
-- Potential federated address (`@user@panamia.club`)
+- Potential federated address (`@user@pana.social`)
 
 ### 3. Object References
 
@@ -445,10 +445,10 @@ Connect internal notifications to ActivityPub ecosystem.
 
 #### Option A: activities.next Sidecar
 
-Deploy [activities.next](https://github.com/llun/activities.next) as `social.panamia.club`:
+Deploy [activities.next](https://github.com/llun/activities.next) as `social.pana.social`:
 
 ```
-panamia.club                    social.panamia.club
+pana.social                    social.pana.social
      ↓                                ↑
 Article published ──────────→ Create Note activity
      ↓                                ↓

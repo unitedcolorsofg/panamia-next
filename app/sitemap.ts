@@ -16,7 +16,7 @@ type SitemapEntry = {
   priority?: number;
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL ?? 'https://panamia.club';
+const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL ?? 'https://pana.social';
 
 const STATIC_ROUTES: SitemapEntry[] = [
   { url: SITE_URL, priority: 1.0, changeFrequency: 'weekly' },

@@ -115,7 +115,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       `SUMMARY:${escapeICalText(event.title)}`,
       ...(description ? [`DESCRIPTION:${description}`] : []),
       ...(location ? [`LOCATION:${location}`] : []),
-      `URL:https://panamia.club/e/${event.slug}`,
+      `URL:https://pana.social/e/${event.slug}`,
       `STATUS:${event.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
       'END:VEVENT',
       'END:VCALENDAR',

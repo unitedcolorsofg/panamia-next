@@ -73,7 +73,7 @@
 	// only enforces that the *keys* match envConfig, never the values.
 	// See .env.local.example.
 	"vars": {
-		"BETTER_AUTH_URL": "https://panamia-next.gschriss.workers.dev",
+		"BETTER_AUTH_URL": "https://pana.social",
 		"EMAIL_ENV": "DEV",
 		"R2_BUCKET_NAME": "panamia-media",
 		"R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",

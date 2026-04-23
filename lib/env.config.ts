@@ -249,7 +249,7 @@ export const envConfig: Record<string, EnvVarConfig> = {
       'Baked into the bundle by Vite at build time. Must be in CF Build variables.',
     location: 'VAR',
     required: false,
-    example: 'hola@panamia.club',
+    example: 'hola@pana.social',
   },
   EMAIL_SENDER_NAME: {
     description:
@@ -400,7 +400,7 @@ export const envConfig: Record<string, EnvVarConfig> = {
     description: 'DMCA agent email for takedown notices',
     location: 'VAR',
     required: false,
-    example: 'dmca@panamia.club',
+    example: 'dmca@pana.social',
   },
   DMCA_AGENT_ADDRESS: {
     description:

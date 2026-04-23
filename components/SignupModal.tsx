@@ -19,7 +19,7 @@ function SignupModalInner() {
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   const isProductionSite =
-    process.env.NEXT_PUBLIC_HOST_URL?.includes('panamia.club') ?? false;
+    process.env.NEXT_PUBLIC_HOST_URL?.includes('pana.social') ?? false;
 
   async function submitSignupForm(e: FormEvent) {
     e.preventDefault();
@@ -108,12 +108,10 @@ function SignupModalInner() {
         onClick={
           isProductionSite
             ? toggleModal
-            : () => window.open('https://www.panamia.club', '_blank')
+            : () => window.open('https://pana.social', '_blank')
         }
         text={
-          isProductionSite
-            ? 'Sign Up for our Newsletter'
-            : 'Visit www.panamia.club'
+          isProductionSite ? 'Sign Up for our Newsletter' : 'Visit pana.social'
         }
         color="pink"
         hoverColor="pink"
@@ -127,7 +125,7 @@ function SignupModalInner() {
         <div className={styles.modal__subtitle}>
           {isProductionSite
             ? "Welcome to Pana MIA Club, the SoFlo Local's Directory connecting you to your vibrant community creatives, small businesses and organizations"
-            : 'This is a testing/development site. For the official Pana MIA Club, please visit www.panamia.club'}
+            : 'This is a testing/development site. For the official Pana MIA Club, please visit pana.social'}
         </div>
         {isProductionSite ? (
           <form
@@ -233,13 +231,13 @@ function SignupModalInner() {
               </strong>
             </p>
             <a
-              href="https://www.panamia.club"
+              href="https://pana.social"
               target="_blank"
               rel="noopener noreferrer"
               className={classNames(styles.button, styles.cta)}
               style={{ display: 'block', textAlign: 'center' }}
             >
-              Go to www.panamia.club
+              Go to pana.social
             </a>
             <button
               type="button"

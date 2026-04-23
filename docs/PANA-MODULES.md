@@ -6,24 +6,24 @@ This document cross-references every platform module by its URL namespace, matur
 
 ## Module Registry
 
-| Namespace   | Module            | Description                                                       | Maturity | Docs                                                                                                                                                                                                  |
-| ----------- | ----------------- | ----------------------------------------------------------------- | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`         | **Home**          | Landing page — featured articles, directory CTA, FAQ              |    3     | —                                                                                                                                                                                                     |
-| `/a`        | **Articles**      | Community content platform: create, co-author, review, publish    |    2     | [ARTICLES.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/ARTICLES.md) · [ARTICLE-ROADMAP.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/ARTICLE-ROADMAP.md)   |
-| `/d`        | **Directory**     | Browse & search South Florida businesses and creatives            |    3     | —                                                                                                                                                                                                     |
-| `/m`        | **Mentoring**     | Peer-to-peer mentoring: discover, schedule, and run sessions      |    2     | [MENTORING-ROADMAP.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/MENTORING-ROADMAP.md)                                                                                           |
-| `/p`        | **Profiles**      | Public member profiles: bio, images, social links, posts          |    3     | —                                                                                                                                                                                                     |
-| `/s`        | **Social**        | ActivityPub microblogging: timeline, posts, media, federation     |    3     | [SOCIAL-ROADMAP.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/SOCIAL-ROADMAP.md) · [SCREENNAME.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/SCREENNAME.md) |
-| `/e`        | **Events**        | Community events — browse and RSVP                                |    0     | —                                                                                                                                                                                                     |
-| `/r`        | **Reserved**      | Reserved for future use                                           |    0     | —                                                                                                                                                                                                     |
-| `/account`  | **Account**       | Authenticated user hub: settings, profile editor, article history |    3     | [SIGNIN.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/SIGNIN.md)                                                                                                                 |
-| `/admin`    | **Admin**         | Staff tools: moderation, user management, analytics, metrics      |    2     | —                                                                                                                                                                                                     |
-| `/donate`   | **Donations**     | Stripe-powered fundraising with membership tiers                  |    2     | —                                                                                                                                                                                                     |
-| `/form`     | **Forms**         | Onboarding flows: become-a-pana, contact, affiliate, join-team    |    2     | —                                                                                                                                                                                                     |
-| `/signin`   | **Auth**          | Passwordless sign-in: magic link, Google, Apple, Mastodon OAuth   |    2     | [SIGNIN.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/SIGNIN.md)                                                                                                                 |
-| `/links`    | **Link Hub**      | Centralised link page for social sharing                          |    2     | —                                                                                                                                                                                                     |
-| `/podcasts` | **PanaVizión**    | YouTube podcast episode gallery                                   |    4     | —                                                                                                                                                                                                     |
-| `/updates`  | **Notifications** | Voice memos, @-mentions, Pana Updates notification feed           |    3     | [NOTIFICATIONS-ROADMAP.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/NOTIFICATIONS-ROADMAP.md)                                                                                   |
+| Namespace   | Module            | Description                                                       | Maturity | Docs                                                                    |
+| ----------- | ----------------- | ----------------------------------------------------------------- | :------: | ----------------------------------------------------------------------- |
+| `/`         | **Home**          | Landing page — featured articles, directory CTA, FAQ              |    3     | —                                                                       |
+| `/a`        | **Articles**      | Community content platform: create, co-author, review, publish    |    2     | [ARTICLES.md](ARTICLES.md) · [ARTICLE-ROADMAP.md](ARTICLE-ROADMAP.md)   |
+| `/d`        | **Directory**     | Browse & search South Florida businesses and creatives            |    3     | —                                                                       |
+| `/m`        | **Mentoring**     | Peer-to-peer mentoring: discover, schedule, and run sessions      |    2     | [MENTORING-ROADMAP.md](MENTORING-ROADMAP.md)                            |
+| `/p`        | **Profiles**      | Public member profiles: bio, images, social links, posts          |    3     | —                                                                       |
+| `/s`        | **Social**        | ActivityPub microblogging: timeline, posts, media, federation     |    3     | [SOCIAL-ROADMAP.md](SOCIAL-ROADMAP.md) · [SCREENNAME.md](SCREENNAME.md) |
+| `/e`        | **Events**        | Community events — browse and RSVP                                |    0     | —                                                                       |
+| `/r`        | **Reserved**      | Reserved for future use                                           |    0     | —                                                                       |
+| `/account`  | **Account**       | Authenticated user hub: settings, profile editor, article history |    3     | [SIGNIN.md](SIGNIN.md)                                                  |
+| `/admin`    | **Admin**         | Staff tools: moderation, user management, analytics, metrics      |    2     | —                                                                       |
+| `/donate`   | **Donations**     | Stripe-powered fundraising with membership tiers                  |    2     | —                                                                       |
+| `/form`     | **Forms**         | Onboarding flows: become-a-pana, contact, affiliate, join-team    |    2     | —                                                                       |
+| `/signin`   | **Auth**          | Passwordless sign-in: magic link, Google, Apple, Mastodon OAuth   |    2     | [SIGNIN.md](SIGNIN.md)                                                  |
+| `/links`    | **Link Hub**      | Centralised link page for social sharing                          |    2     | —                                                                       |
+| `/podcasts` | **PanaVizión**    | YouTube podcast episode gallery                                   |    4     | —                                                                       |
+| `/updates`  | **Notifications** | Voice memos, @-mentions, Pana Updates notification feed           |    3     | [NOTIFICATIONS-ROADMAP.md](NOTIFICATIONS-ROADMAP.md)                    |
 
 ---
 
@@ -53,12 +53,12 @@ This document cross-references every platform module by its URL namespace, matur
 
 ## Related Docs
 
-| Doc                                                                                                           | Scope                                               |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| [QUICK-START.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/QUICK-START.md)               | Dev setup, build commands, deployment               |
-| [DATABASE-DESIGN.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/DATABASE-DESIGN.md)       | Drizzle ORM schema, Hyperdrive, migrations          |
-| [FEATURES.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/FEATURES.md)                     | High-level feature overview (narrative format)      |
-| [TESTING-ROADMAP.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/TESTING-ROADMAP.md)       | Playwright coverage plan by module                  |
-| [CONTRIBUTING.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/CONTRIBUTING.md)             | Commit scopes, PR workflow, code standards          |
-| [FLOSS-ALTERNATIVES.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/FLOSS-ALTERNATIVES.md) | Open-source service philosophy                      |
-| [MASTODON-COMMENTS.md](https://github.com/unitedcolorsofg/panamia-next/blob/main/docs/MASTODON-COMMENTS.md)   | Linking articles to Mastodon for federated comments |
+| Doc                                            | Scope                                               |
+| ---------------------------------------------- | --------------------------------------------------- |
+| [QUICK-START.md](QUICK-START.md)               | Dev setup, build commands, deployment               |
+| [DATABASE-DESIGN.md](DATABASE-DESIGN.md)       | Drizzle ORM schema, Hyperdrive, migrations          |
+| [FEATURES.md](FEATURES.md)                     | High-level feature overview (narrative format)      |
+| [TESTING-ROADMAP.md](TESTING-ROADMAP.md)       | Playwright coverage plan by module                  |
+| [CONTRIBUTING.md](CONTRIBUTING.md)             | Commit scopes, PR workflow, code standards          |
+| [FLOSS-ALTERNATIVES.md](FLOSS-ALTERNATIVES.md) | Open-source service philosophy                      |
+| [MASTODON-COMMENTS.md](MASTODON-COMMENTS.md)   | Linking articles to Mastodon for federated comments |

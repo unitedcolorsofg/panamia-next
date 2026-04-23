@@ -33,7 +33,7 @@ export function LegalJsonLd({
     publisher: {
       '@type': 'Organization',
       name: 'Pana MIA Club, Corp.',
-      url: 'https://panamia.club',
+      url: 'https://pana.social',
     },
     ...(policyJsonUrl && {
       encoding: {

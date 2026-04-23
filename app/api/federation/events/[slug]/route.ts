@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const baseUrl = 'https://panamia.club';
+    const baseUrl = 'https://pana.social';
     const hostScreenname = event.hostProfile?.user?.screenname;
 
     const as2Event = {

@@ -19,7 +19,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const host = (await headers()).get('host') ?? '';
-  const isProductionSite = host.includes('panamia.club');
+  const isProductionSite = host.includes('pana.social');
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

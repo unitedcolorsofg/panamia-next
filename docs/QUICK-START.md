@@ -365,6 +365,6 @@ panamia.club/
 
 ## Getting Help
 
-- **Environment Variables**: [Contact us](https://www.panamia.club/form/contact-us/) for a developer ENV file
+- **Environment Variables**: [Contact us](https://pana.social/form/contact-us/) for a developer ENV file
 - **Documentation**: See the [docs/](.) folder
 - **Issues**: [GitHub Issues](https://github.com/panamiaclub/panamia.club/issues)

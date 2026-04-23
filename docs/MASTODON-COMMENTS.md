@@ -28,14 +28,14 @@ First, publish your article on Pana MIA as usual. The Mastodon comments feature 
 Share your article link on your Mastodon account. Write a compelling post that encourages discussion:
 
 ```
-📝 New article: "The State of Miami's Music Scene"
+New article: "The State of Miami's Music Scene"
 
 I explore the underground venues, emerging artists, and what makes
 our local music community unique.
 
-Read it here: https://panamia.club/articles/miami-music-scene
+Read it here: https://pana.social/articles/miami-music-scene
 
-What's your favorite local venue? 🎵
+What's your favorite local venue?
 ```
 
 ### Step 3: Copy Your Post URL

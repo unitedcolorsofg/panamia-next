@@ -36,7 +36,7 @@ export function adminNewsletter(params: Record<string, unknown>) {
       `Signup Type: ${String(params.signup_type || '')}`,
       '',
       '---',
-      'Pana MIA · panamia.club',
+      'Pana MIA · pana.social',
     ].join('\n'),
   };
 }

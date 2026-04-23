@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          'There was an error saving your profile. Please contact us at hola@panamia.club',
+          'There was an error saving your profile. Please contact us at hola@pana.social',
       },
       { status: 500 }
     );

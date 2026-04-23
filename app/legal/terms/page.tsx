@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { moduleDefinitions, ModuleContent } from './module-content';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
-const SITE = 'https://panamia.club';
+const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
   title: 'Terms of Service - Pana MIA Club',
@@ -217,7 +217,7 @@ export default function TermsPage() {
           <p>
             <strong>Community-drafted:</strong> These terms were mutually
             prepared with the community. You may propose changes by emailing{' '}
-            <a href="mailto:hola@panamia.club">hola@panamia.club</a>.
+            <a href="mailto:hola@pana.social">hola@pana.social</a>.
           </p>
         </div>
       </section>
@@ -231,7 +231,7 @@ export default function TermsPage() {
             community. They shall not be construed against either party as the
             drafter. Community members may request revisions or propose
             alterations to these terms by contacting{' '}
-            <a href="mailto:hola@panamia.club">hola@panamia.club</a>. Proposals
+            <a href="mailto:hola@pana.social">hola@pana.social</a>. Proposals
             are reviewed and, where adopted, incorporated into the next
             versioned release with changelog attribution.
           </p>
@@ -450,7 +450,7 @@ export default function TermsPage() {
           <p>
             Pana MIA Club, Corp. (d/b/a Pana MIA)
             <br />
-            Email: <a href="mailto:hola@panamia.club">hola@panamia.club</a>
+            Email: <a href="mailto:hola@pana.social">hola@pana.social</a>
           </p>
         </section>
       </article>

@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       parsedAttendeeCap ?? (venue.fireCapacity > 0 ? venue.fireCapacity : null);
 
     const slug = generateSlug(title);
-    const iCalUid = `${createId()}@panamia.club`;
+    const iCalUid = `${createId()}@pana.social`;
     const now = new Date();
 
     const [newEvent] = await db

@@ -32,7 +32,7 @@ export function profileSubmitted(params: Record<string, unknown>) {
       'Thank you for joining our community!',
       '',
       '---',
-      'Pana MIA · panamia.club · hola@panamia.club',
+      'Pana MIA · pana.social · hola@pana.social',
     ].join('\n'),
   };
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
-const SITE = 'https://panamia.club';
+const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
   title: 'Data Breach Disclosure Policy - Pana MIA Club',
@@ -96,7 +96,7 @@ export default function BreachPolicyPage() {
             breach, please contact us immediately:
           </p>
           <p>
-            <a href="mailto:hola@panamia.club">hola@panamia.club</a>
+            <a href="mailto:hola@pana.social">hola@pana.social</a>
           </p>
         </section>
       </article>
