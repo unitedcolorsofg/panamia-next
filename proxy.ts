@@ -5,11 +5,14 @@ const AP_TYPES = ['application/activity+json', 'application/ld+json'];
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get('host') || '';
-  if (host.endsWith('.workers.dev')) {
-    const url = new URL(request.url);
-    url.host = 'pana.social';
-    url.port = '';
-    return NextResponse.redirect(url, 301);
+  const canonicalUrl = process.env.NEXT_PUBLIC_HOST_URL;
+  if (canonicalUrl && host.endsWith('.workers.dev')) {
+    const target = new URL(request.url);
+    const canonical = new URL(canonicalUrl);
+    target.host = canonical.host;
+    target.port = '';
+    target.protocol = canonical.protocol;
+    return NextResponse.redirect(target, 301);
   }
 
   // ActivityPub content negotiation for /p/:screenname
