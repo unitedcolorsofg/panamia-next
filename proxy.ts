@@ -4,6 +4,14 @@ import type { NextRequest } from 'next/server';
 const AP_TYPES = ['application/activity+json', 'application/ld+json'];
 
 export function proxy(request: NextRequest) {
+  const host = request.headers.get('host') || '';
+  if (host.endsWith('.workers.dev')) {
+    const url = new URL(request.url);
+    url.host = 'pana.social';
+    url.port = '';
+    return NextResponse.redirect(url, 301);
+  }
+
   // ActivityPub content negotiation for /p/:screenname
   // Runs before trailing-slash 308 redirects, fixing federation
   const { pathname } = request.nextUrl;
