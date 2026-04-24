@@ -304,18 +304,13 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // STRIPE (Payments)
+  // STRIPE (Payments — server-side only, no client-side Stripe.js)
   // =============================================================================
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: {
-    description: 'Stripe publishable key (public)',
-    location: 'VAR',
-    required: false,
-    docsUrl: 'https://dashboard.stripe.com/apikeys',
-  },
   STRIPE_SECRET_KEY: {
-    description: 'Stripe secret key',
+    description: 'Stripe secret key (server-side Checkout Session creation)',
     location: 'SECRET',
     required: false,
+    docsUrl: 'https://dashboard.stripe.com/apikeys',
   },
 
   // =============================================================================

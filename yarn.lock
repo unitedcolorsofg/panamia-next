@@ -4317,13 +4317,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stripe/stripe-js@npm:^9.2.0":
-  version: 9.2.0
-  resolution: "@stripe/stripe-js@npm:9.2.0"
-  checksum: 10c0/9f92ac73d38aec32587f9c607af5bc7f08e37700282a905960ce6a10b4d1071df75f768ddf21853fc4e866052b9f1b2480341632a5c3012f124db85747022606
-  languageName: node
-  linkType: hard
-
 "@tabby_ai/hijri-converter@npm:1.0.5":
   version: 1.0.5
   resolution: "@tabby_ai/hijri-converter@npm:1.0.5"
@@ -8638,7 +8631,6 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.2.4"
     "@radix-ui/react-tabs": "npm:^1.1.13"
     "@radix-ui/react-toast": "npm:^1.2.15"
-    "@stripe/stripe-js": "npm:^9.2.0"
     "@tabler/icons-react": "npm:^3.41.1"
     "@tailwindcss/postcss": "npm:^4.2.2"
     "@tanstack/react-query": "npm:^5.99.2"

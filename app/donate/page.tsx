@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { Medal, Trophy, Crown, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +24,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const preAmounts = [25, 40, 100, 250, 500, 1000, 2500];
 const monthPreAmounts = [10, 15, 25];
 
@@ -98,11 +96,6 @@ export default function DonatePage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
-    if (!stripePromise) {
-      console.error('Stripe is not properly initialized');
-      return;
-    }
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
