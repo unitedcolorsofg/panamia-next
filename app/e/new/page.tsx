@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import EventEditor from '@/components/EventEditor';
+import dynamic from 'next/dynamic';
+
+const EventEditor = dynamic(() => import('@/components/EventEditor'), {
+  loading: () => (
+    <p className="text-muted-foreground py-12 text-center">Loading editor...</p>
+  ),
+});
 import Link from 'next/link';
 
 export default function NewEventPage() {

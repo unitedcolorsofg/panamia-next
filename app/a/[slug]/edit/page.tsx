@@ -12,7 +12,13 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import ArticleEditor from '@/components/ArticleEditor';
+import dynamic from 'next/dynamic';
+
+const ArticleEditor = dynamic(() => import('@/components/ArticleEditor'), {
+  loading: () => (
+    <p className="text-muted-foreground py-12 text-center">Loading editor...</p>
+  ),
+});
 import Link from 'next/link';
 
 interface CoAuthorInfo {
