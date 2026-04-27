@@ -95,6 +95,9 @@ export default defineConfig({
       'next/headers.js': path.resolve(
         './node_modules/vinext/dist/shims/headers.js'
       ),
+      'next/router.js': path.resolve(
+        './node_modules/vinext/dist/shims/router.js'
+      ),
     },
   },
   plugins: [
