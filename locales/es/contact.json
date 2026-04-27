@@ -13,7 +13,7 @@
   "messageLabel": "Mensaje o Preguntas",
   "namePlaceholder": "Nombre",
   "messagePlaceholder": "Tu mensaje o preguntas que tengas para nosotros",
-  "recaptchaNote": "Este formulario está protegido por reCAPTCHA para prevenir spam.",
+  "turnstileNote": "Este formulario está protegido para prevenir spam.",
   "sending": "Enviando...",
   "submitButton": "Enviar Formulario"
 }

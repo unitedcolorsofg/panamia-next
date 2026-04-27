@@ -40,7 +40,7 @@
     "app/api/user",
     "app/api/create-checkout-session",
     "app/api/create-portal-session",
-    "app/api/verify-recaptcha",
+    "app/api/verify-turnstile",
     "app/become-a-pana",
     "app/become-a-pana-google",
     "app/doc",

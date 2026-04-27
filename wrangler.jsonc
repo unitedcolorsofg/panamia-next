@@ -62,7 +62,7 @@
 	// deploy unless they're in this file or promoted to secrets.
 	//
 	// Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
-	// NEXT_PUBLIC_* and explicitly build-baked vars (e.g. RECAPTCHA_SITE_KEY,
+	// NEXT_PUBLIC_* and explicitly build-baked vars (e.g. TURNSTILE_SITE_KEY,
 	// EMAIL_SENDER_*) belong in CF dashboard Build variables, NOT here —
 	// they're inlined at build time.
 	//

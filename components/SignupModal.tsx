@@ -3,10 +3,7 @@ import axios from 'axios';
 import classNames from 'clsx';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from 'react-google-recaptcha-v3';
+import { useTurnstile } from '@/components/Turnstile';
 
 import styles from './SignupModal.module.css';
 import PanaButton from './PanaButton';
@@ -16,7 +13,12 @@ function SignupModalInner() {
   const [name, setName] = useState('');
   const [signup_type, setSignupType] = useState('');
   const { t } = useTranslation('toast');
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const {
+    token: turnstileToken,
+    reset: resetTurnstile,
+    Widget: TurnstileWidget,
+  } = useTurnstile(turnstileSiteKey, 'newsletter_signup');
 
   const isProductionSite =
     process.env.NEXT_PUBLIC_HOST_URL?.includes('panamia.club') ?? false;
@@ -31,15 +33,10 @@ function SignupModalInner() {
 
   async function postSignupForm() {
     if (email) {
-      let recaptchaToken: string | undefined;
-      if (executeRecaptcha) {
-        recaptchaToken = await executeRecaptcha('newsletter_signup');
-      }
-
       const res = await axios
         .post(
           '/api/createSignup',
-          { name, email, signup_type, recaptchaToken },
+          { name, email, signup_type, turnstileToken },
           {
             headers: {
               Accept: 'application/json',
@@ -59,6 +56,7 @@ function SignupModalInner() {
             setName('');
             setEmail('');
             setSignupType('');
+            resetTurnstile();
             toast({
               title: t('success'),
               description: t('signupSuccess'),
@@ -207,6 +205,7 @@ function SignupModalInner() {
                 </label>
               </li>
             </ul>
+            {TurnstileWidget}
             <button
               type="submit"
               className={classNames(styles.button, styles.cta)}
@@ -254,15 +253,5 @@ function SignupModalInner() {
 }
 
 export default function SignupModal() {
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-  if (!recaptchaSiteKey) {
-    return <SignupModalInner />;
-  }
-
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
-      <SignupModalInner />
-    </GoogleReCaptchaProvider>
-  );
+  return <SignupModalInner />;
 }

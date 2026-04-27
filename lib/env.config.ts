@@ -221,19 +221,19 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // RECAPTCHA
+  // TURNSTILE (Cloudflare)
   // =============================================================================
-  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: {
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: {
     description:
-      'Google reCAPTCHA v3 site key (public). ' +
+      'Cloudflare Turnstile site key (public). ' +
       'Baked into the bundle by Vite at build time. ' +
       'Must be set in CF dashboard Build variables (not Runtime).',
     location: 'VAR',
     required: true,
-    docsUrl: 'https://www.google.com/recaptcha/admin',
+    docsUrl: 'https://dash.cloudflare.com/?to=/:account/turnstile',
   },
-  RECAPTCHA_SECRET_KEY: {
-    description: 'Google reCAPTCHA v3 secret key',
+  TURNSTILE_SECRET_KEY: {
+    description: 'Cloudflare Turnstile secret key',
     location: 'SECRET',
     required: true,
   },

@@ -5,10 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from 'react-google-recaptcha-v3';
+import { useTurnstile } from '@/components/Turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,7 +18,12 @@ function SignInPageContent() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const {
+    token: turnstileToken,
+    reset: resetTurnstile,
+    Widget: TurnstileWidget,
+  } = useTurnstile(turnstileSiteKey, 'email_signin');
   const { toast } = useToast();
   const { t: tToast } = useTranslation('toast');
   const { t } = useTranslation('signin');
@@ -44,24 +46,20 @@ function SignInPageContent() {
     setIsSubmitting(true);
 
     try {
-      // Require reCAPTCHA for magic link
-      if (!executeRecaptcha) {
+      if (!turnstileToken) {
         toast({
           variant: 'destructive',
           title: tToast('error'),
-          description: tToast('recaptchaNotLoaded'),
+          description: tToast('turnstileNotReady'),
         });
         setIsSubmitting(false);
         return;
       }
 
-      const recaptchaToken = await executeRecaptcha('email_signin');
-
-      // Verify reCAPTCHA on server before sending magic link
-      const verifyResponse = await fetch('/api/auth/verify-recaptcha', {
+      const verifyResponse = await fetch('/api/auth/verify-turnstile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: recaptchaToken }),
+        body: JSON.stringify({ token: turnstileToken }),
       });
 
       if (!verifyResponse.ok) {
@@ -70,10 +68,12 @@ function SignInPageContent() {
           title: tToast('verificationFailed'),
           description: tToast('verificationFailedDesc'),
         });
+        resetTurnstile();
         setIsSubmitting(false);
         return;
       }
 
+      resetTurnstile();
       await signIn('email', { email, callbackUrl });
       toast({
         title: tToast('checkEmail'),
@@ -241,9 +241,7 @@ function SignInPageContent() {
                   required
                   disabled={isSubmitting}
                 />
-                <p className="text-center text-xs text-gray-500">
-                  {t('recaptchaProtected')}
-                </p>
+                {TurnstileWidget}
                 <Button
                   type="submit"
                   className="bg-pana-pink hover:bg-pana-pink/90 w-full"
@@ -290,36 +288,15 @@ function SignInPageContent() {
 }
 
 export default function SignInPage() {
-  // NEXT_PUBLIC_* vars are baked into the bundle by Vite at build time.
-  // Set this in CF dashboard Build variables (not Runtime), so it is present
-  // during `yarn build`. The site key is public — baking it in is intentional.
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-  if (!recaptchaSiteKey) {
-    console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not configured');
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        {/* Note: this error state is pre-auth so useTranslation is unavailable here.
-            If this needs translation, wrap in an I18nProvider or pass the string as a prop. */}
-        <p className="text-red-600">
-          reCAPTCHA is not configured. Please contact support.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
-      <Suspense
-        fallback={
-          <div className="flex min-h-screen items-center justify-center">
-            {/* Suspense fallback renders before i18n is ready — keep this hardcoded or use a spinner */}
-            Loading...
-          </div>
-        }
-      >
-        <SignInPageContent />
-      </Suspense>
-    </GoogleReCaptchaProvider>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <SignInPageContent />
+    </Suspense>
   );
 }

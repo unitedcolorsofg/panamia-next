@@ -2,10 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useSession } from '@/lib/auth-client';
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from 'react-google-recaptcha-v3';
+import { useTurnstile } from '@/components/Turnstile';
 import Link from 'next/link';
 import Image from 'next/image';
 import axios from 'axios';
@@ -30,7 +27,12 @@ function ContactForm() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: session } = useSession();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const {
+    token: turnstileToken,
+    reset: resetTurnstile,
+    Widget: TurnstileWidget,
+  } = useTurnstile(turnstileSiteKey, 'contact_form_submit');
   const { toast } = useToast();
   const { t: tToast } = useTranslation('toast');
   const { t } = useTranslation('contact');
@@ -42,7 +44,7 @@ function ContactForm() {
     return regEx.test(email);
   };
 
-  const createContactUs = async (recaptchaToken?: string) => {
+  const createContactUs = async (token?: string) => {
     const response = await axios
       .post(
         '/api/createContactUs',
@@ -50,7 +52,7 @@ function ContactForm() {
           name,
           email,
           message,
-          recaptchaToken,
+          turnstileToken: token,
         },
         {
           headers: {
@@ -107,24 +109,22 @@ function ContactForm() {
     setIsSubmitting(true);
 
     try {
-      let recaptchaToken: string | undefined;
+      let token: string | undefined;
 
-      // Only require reCAPTCHA for unauthenticated users
       if (!isAuthenticated) {
-        if (!executeRecaptcha) {
+        if (!turnstileToken) {
           toast({
             variant: 'destructive',
             title: tToast('securityError'),
-            description: tToast('recaptchaNotReady'),
+            description: tToast('turnstileNotReady'),
           });
           setIsSubmitting(false);
           return;
         }
-
-        recaptchaToken = await executeRecaptcha('contact_form_submit');
+        token = turnstileToken;
       }
 
-      const response = await createContactUs(recaptchaToken);
+      const response = await createContactUs(token);
 
       if (response?.data?.error) {
         toast({
@@ -133,10 +133,10 @@ function ContactForm() {
           description: response.data.error,
         });
       } else {
-        // Clear form
         setName('');
         setEmail('');
         setMessage('');
+        resetTurnstile();
 
         toast({
           title: tToast('messageSentTitle'),
@@ -256,11 +256,13 @@ function ContactForm() {
                 />
               </div>
 
-              {/* reCAPTCHA Notice for Unauthenticated Users */}
               {!isAuthenticated && (
-                <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-md p-3 text-sm">
-                  <Shield className="h-4 w-4" />
-                  <span>{t('recaptchaNote')}</span>
+                <div className="space-y-3">
+                  {TurnstileWidget}
+                  <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-md p-3 text-sm">
+                    <Shield className="h-4 w-4" />
+                    <span>{t('turnstileNote')}</span>
+                  </div>
                 </div>
               )}
 
@@ -291,17 +293,5 @@ function ContactForm() {
 }
 
 export default function ContactUsPage() {
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-  if (!recaptchaSiteKey) {
-    console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not configured');
-    // Still render the form, but reCAPTCHA won't work
-    return <ContactForm />;
-  }
-
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
-      <ContactForm />
-    </GoogleReCaptchaProvider>
-  );
+  return <ContactForm />;
 }

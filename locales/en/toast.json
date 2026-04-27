@@ -43,8 +43,8 @@
   "messageSentDesc": "We've received your message and will get back to you soon.",
 
   "securityError": "Security Error",
-  "recaptchaNotReady": "reCAPTCHA not ready. Please try again.",
-  "recaptchaNotLoaded": "reCAPTCHA not loaded. Please refresh and try again.",
+  "turnstileNotReady": "Verification not ready. Please try again.",
+  "turnstileNotLoaded": "Verification not loaded. Please refresh and try again.",
   "verificationFailed": "Verification Failed",
   "verificationFailedDesc": "Please try again or contact support.",
   "checkEmail": "Check Your Email",

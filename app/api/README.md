@@ -7,7 +7,7 @@ Server-side API endpoints for the Pana MIA application.
 | Endpoint                           | Method | Description                                     |
 | ---------------------------------- | ------ | ----------------------------------------------- |
 | `/api/auth/[...nextauth]`          | \*     | NextAuth.js handlers (signin, signout, session) |
-| `/api/auth/verify-recaptcha`       | POST   | Verify reCAPTCHA tokens                         |
+| `/api/auth/verify-turnstile`       | POST   | Verify Cloudflare Turnstile tokens              |
 | `/api/register`                    | POST   | Register new user                               |
 | `/api/oauth/complete-verification` | POST   | Complete OAuth email verification               |
 

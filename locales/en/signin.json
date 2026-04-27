@@ -14,7 +14,7 @@
   "or": "or",
   "signInWithEmail": "Sign in with email",
   "emailPlaceholder": "your@email.com",
-  "recaptchaProtected": "Protected by reCAPTCHA",
+  "turnstileProtected": "Protected by Cloudflare",
   "sendingLink": "Sending sign-in link...",
   "sendLink": "Send sign-in link",
   "backToOptions": "Back to other options",
@@ -22,6 +22,6 @@
   "termsLink": "Terms & Conditions",
   "needHelp": "Need help?",
   "contactUs": "Contact us",
-  "recaptchaError": "reCAPTCHA is not configured. Please contact support.",
+  "turnstileError": "Verification is not configured. Please contact support.",
   "loading": "Loading..."
 }

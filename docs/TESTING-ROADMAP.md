@@ -25,7 +25,7 @@ Configure in GitHub → Repository Settings → Secrets and variables → Action
 | `POSTGRES_DIRECT_URL`  | Test Supabase project direct connection string — used for migrations and DB reset |
 | `BETTER_AUTH_SECRET`   | Any random 32-byte secret (can differ from production)                            |
 | `ADMIN_EMAILS`         | Test admin email(s)                                                               |
-| `RECAPTCHA_SECRET_KEY` | reCAPTCHA secret key                                                              |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key                                                   |
 | `R2_PUBLIC_URL`        | R2 public bucket URL                                                              |
 | `R2_ACCOUNT_ID`        | Cloudflare account ID                                                             |
 | `R2_ACCESS_KEY_ID`     | R2 API token key ID                                                               |
@@ -38,7 +38,7 @@ Configure in GitHub → Repository Settings → Secrets and variables → Action
 | -------------------------------- | ----------------------- |
 | `BETTER_AUTH_URL`                | `http://localhost:3000` |
 | `NEXT_PUBLIC_HOST_URL`           | `http://localhost:3000` |
-| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA site key      |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Turnstile site key      |
 | `NEXT_PUBLIC_GOOGLE_ENABLED`     | `false`                 |
 | `NEXT_PUBLIC_APPLE_ENABLED`      | `false`                 |
 | `NEXT_PUBLIC_MASTODON_ENABLED`   | `false`                 |

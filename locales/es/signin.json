@@ -14,7 +14,7 @@
   "or": "o",
   "signInWithEmail": "Iniciar sesión con correo electrónico",
   "emailPlaceholder": "tu@correo.com",
-  "recaptchaProtected": "Protegido por reCAPTCHA",
+  "turnstileProtected": "Protegido por Cloudflare",
   "sendingLink": "Enviando enlace de acceso...",
   "sendLink": "Enviar enlace de acceso",
   "backToOptions": "Volver a otras opciones",
@@ -22,6 +22,6 @@
   "termsLink": "Términos y Condiciones",
   "needHelp": "¿Necesitas ayuda?",
   "contactUs": "Contáctanos",
-  "recaptchaError": "reCAPTCHA no está configurado. Por favor, contacta al soporte.",
+  "turnstileError": "Verificación no está configurada. Por favor, contacta al soporte.",
   "loading": "Cargando..."
 }

@@ -3,64 +3,33 @@ import { db } from '@/lib/db';
 import { newsletterSignups } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { sendTemplateEmail } from '@/lib/email';
+import { verifyTurnstile } from '@/lib/turnstile';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   return regEx.test(email);
 };
 
-const verifyRecaptcha = async (token: string): Promise<boolean> => {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secretKey) {
-    console.error('RECAPTCHA_SECRET_KEY is not configured');
-    return false;
-  }
-
-  try {
-    const response = await fetch(
-      'https://www.google.com/recaptcha/api/siteverify',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${secretKey}&response=${token}`,
-      }
-    );
-    const data = await response.json();
-    if (data.success && data.score >= 0.5) return true;
-
-    console.warn('reCAPTCHA verification failed:', {
-      success: data.success,
-      score: data.score,
-      action: data.action,
-      errors: data['error-codes'],
-    });
-    return false;
-  } catch (error) {
-    console.error('reCAPTCHA verification error:', error);
-    return false;
-  }
-};
-
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  const { name, email, signup_type, recaptchaToken } = body;
+  const { name, email, signup_type, turnstileToken } = body;
 
   if (!validateEmail(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address.' });
   }
 
-  if (!recaptchaToken) {
+  if (!turnstileToken) {
     return NextResponse.json(
-      { error: 'reCAPTCHA verification required.' },
+      { error: 'Verification required.' },
       { status: 400 }
     );
   }
 
-  const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
-  if (!isValidRecaptcha) {
+  const isValid = await verifyTurnstile(turnstileToken);
+  if (!isValid) {
     return NextResponse.json(
-      { error: 'reCAPTCHA verification failed. Please try again.' },
+      { error: 'Verification failed. Please try again.' },
       { status: 400 }
     );
   }

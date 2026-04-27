@@ -16,8 +16,8 @@ test.describe('Critical User Paths', () => {
     // Page should load (not 404)
     await expect(page).not.toHaveTitle(/404/);
 
-    // Note: Form submission requires ReCAPTCHA which is not configured in test environment
-    // Don't wait for networkidle - ReCAPTCHA prevents it from completing
+    // Note: Form submission requires Turnstile which is not configured in test environment
+    // Don't wait for networkidle - Turnstile prevents it from completing
   });
 
   test('contact form loads without errors', async ({ page }) => {
@@ -26,8 +26,8 @@ test.describe('Critical User Paths', () => {
     // Page should load (not 404)
     await expect(page).not.toHaveTitle(/404/);
 
-    // Note: Form submission requires ReCAPTCHA which is not configured in test environment
-    // Don't wait for networkidle - ReCAPTCHA prevents it from completing
+    // Note: Form submission requires Turnstile which is not configured in test environment
+    // Don't wait for networkidle - Turnstile prevents it from completing
   });
 
   test('donation flow initiates correctly', async ({ page }) => {
@@ -78,7 +78,7 @@ test.describe('Form Pages', () => {
       await page.goto(formUrl, { waitUntil: 'domcontentloaded' });
       await expect(page).not.toHaveTitle(/404/);
 
-      // Just verify the page loaded, don't wait for networkidle (ReCAPTCHA issues)
+      // Just verify the page loaded, don't wait for networkidle (Turnstile issues)
       const url = page.url();
       expect(url).toContain('/form/');
     }

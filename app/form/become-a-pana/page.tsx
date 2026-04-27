@@ -1035,6 +1035,6 @@ function BecomeAPanaForm() {
 }
 
 export default function BecomeAPanaPage() {
-  // reCAPTCHA not needed - users are authenticated before accessing form
+  // Turnstile not needed - users are authenticated before accessing form
   return <BecomeAPanaForm />;
 }
