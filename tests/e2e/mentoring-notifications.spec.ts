@@ -98,13 +98,14 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
     await expect(page).toHaveURL(/signin/);
   });
 
-  test('mentoring discover page redirects unauthenticated users', async ({
+  test('mentoring discover page is accessible to unauthenticated users', async ({
     page,
   }) => {
     await page.goto('/m/discover');
 
-    // Should redirect to signin page
-    await expect(page).toHaveURL(/signin/);
+    // Discover is public — unauthenticated users can browse mentors
+    await expect(page).toHaveURL(/\/m\/discover/);
+    await expect(page).not.toHaveTitle(/404/);
   });
 
   test('mentoring profile page redirects unauthenticated users', async ({
