@@ -1,16 +1,5 @@
-import dynamic from 'next/dynamic';
-
-const VideoCall = dynamic(
-  () => import('./_components/video-call').then((m) => m.VideoCall),
-  {
-    ssr: false,
-    loading: () => (
-      <p className="text-muted-foreground py-12 text-center">
-        Loading video...
-      </p>
-    ),
-  }
-);
+import { Suspense } from 'react';
+import { VideoCall } from './_components/video-call';
 
 export default function WebRtcTestPage() {
   return (
@@ -41,7 +30,15 @@ export default function WebRtcTestPage() {
           </li>
         </ul>
       </div>
-      <VideoCall />
+      <Suspense
+        fallback={
+          <p className="text-muted-foreground py-12 text-center">
+            Loading video...
+          </p>
+        }
+      >
+        <VideoCall />
+      </Suspense>
     </div>
   );
 }
