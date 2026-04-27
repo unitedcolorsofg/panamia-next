@@ -1,8 +1,9 @@
 {
   "nav": {
     "jumpTo": "Jump To",
-    "navigation": "Navigation",
+    "explore": "Explore",
     "home": "Home",
+    "featuresOverview": "Site Features Overview",
     "updates": "Updates",
     "directorySearch": "Directory Search",
     "myAccount": "My Account",

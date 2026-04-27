@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession, signOut } from '@/lib/auth-client';
 import Link from 'next/link';
@@ -19,6 +19,7 @@ import {
   CalendarDays,
   CalendarPlus,
   ChevronDown,
+  ChevronRight,
   Home,
   Search,
   UserCircle,
@@ -33,6 +34,7 @@ import {
   LogOut,
   PenLine,
   FileText,
+  LayoutGrid,
 } from 'lucide-react';
 
 import styles from './MainHeader.module.css';
@@ -53,6 +55,32 @@ export default function MainHeader({
 
   // Get admin status directly from session (no API call needed)
   const isAdmin = session?.user?.isAdmin || false;
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  const isSectionOpen = useCallback(
+    (key: string) => (isMobile ? (openSections[key] ?? false) : true),
+    [isMobile, openSections]
+  );
+
+  const toggleSection = useCallback(
+    (key: string, e: React.MouseEvent) => {
+      if (!isMobile) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    },
+    [isMobile]
+  );
 
   // Check if authenticated user has a profile
   useEffect(() => {
@@ -117,7 +145,11 @@ export default function MainHeader({
 
         {/* Authenticated users: Show Jump To dropdown */}
         {status !== 'loading' && session && (
-          <DropdownMenu>
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (!open) setOpenSections({});
+            }}
+          >
             <DropdownMenuTrigger asChild>
               <Button size="default" variant="outline" data-no-wobble="true">
                 {t('nav.jumpTo')}
@@ -125,11 +157,20 @@ export default function MainHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{t('nav.navigation')}</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('nav.explore')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href="/" className="flex cursor-pointer items-center">
                   <Home className="mr-2 h-4 w-4" />
                   {t('nav.home')}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/features"
+                  className="flex cursor-pointer items-center"
+                >
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  {t('nav.featuresOverview')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -143,6 +184,15 @@ export default function MainHeader({
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
+                  href="/timeline"
+                  className="flex cursor-pointer items-center"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  {t('nav.timelinePosts')}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
                   href="/directory/search"
                   className="flex cursor-pointer items-center"
                 >
@@ -152,102 +202,157 @@ export default function MainHeader({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('nav.myAccount')}</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/account/profile/edit"
-                  className="flex cursor-pointer items-center"
-                >
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  {t('nav.myProfile')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/account/user/edit"
-                  className="flex cursor-pointer items-center"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  {t('nav.accountSettings')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/timeline"
-                  className="flex cursor-pointer items-center"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  {t('nav.timelinePosts')}
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>
-                <Link href="/m">{t('nav.mentoring')}</Link>
+              <DropdownMenuLabel
+                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
+                onClick={(e) => toggleSection('events', e)}
+              >
+                {t('nav.events')}
+                {isMobile && (
+                  <ChevronRight
+                    className={`h-4 w-4 transition-transform ${isSectionOpen('events') ? 'rotate-90' : ''}`}
+                  />
+                )}
               </DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/m/discover"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  {t('nav.discoverMentors')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/m/profile/edit"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Compass className="mr-2 h-4 w-4" />
-                  {t('nav.mentorProfile')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/m/schedule"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Video className="mr-2 h-4 w-4" />
-                  {t('nav.mySessions')}
-                </Link>
-              </DropdownMenuItem>
+              {isSectionOpen('events') && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/e"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {t('nav.browseEvents')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/e/new"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <CalendarPlus className="mr-2 h-4 w-4" />
+                      {t('nav.hostEvent')}
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('nav.articles')}</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link href="/a" className="flex cursor-pointer items-center">
-                  <FileText className="mr-2 h-4 w-4" />
-                  {t('nav.browseArticles')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/a/new"
-                  className="flex cursor-pointer items-center"
-                >
-                  <PenLine className="mr-2 h-4 w-4" />
-                  {t('nav.writeArticle')}
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuLabel
+                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
+                onClick={(e) => toggleSection('articles', e)}
+              >
+                {t('nav.articles')}
+                {isMobile && (
+                  <ChevronRight
+                    className={`h-4 w-4 transition-transform ${isSectionOpen('articles') ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </DropdownMenuLabel>
+              {isSectionOpen('articles') && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/a"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      {t('nav.browseArticles')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/a/new"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <PenLine className="mr-2 h-4 w-4" />
+                      {t('nav.writeArticle')}
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('nav.events')}</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link href="/e" className="flex cursor-pointer items-center">
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  {t('nav.browseEvents')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/e/new"
-                  className="flex cursor-pointer items-center"
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  {t('nav.hostEvent')}
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuLabel
+                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
+                onClick={(e) => toggleSection('mentoring', e)}
+              >
+                {isSectionOpen('mentoring') ? (
+                  <Link href="/m">{t('nav.mentoring')}</Link>
+                ) : (
+                  t('nav.mentoring')
+                )}
+                {isMobile && (
+                  <ChevronRight
+                    className={`h-4 w-4 transition-transform ${isSectionOpen('mentoring') ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </DropdownMenuLabel>
+              {isSectionOpen('mentoring') && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/m/discover"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      {t('nav.discoverMentors')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/m/profile/edit"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <Compass className="mr-2 h-4 w-4" />
+                      {t('nav.mentorProfile')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/m/schedule"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <Video className="mr-2 h-4 w-4" />
+                      {t('nav.mySessions')}
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel
+                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
+                onClick={(e) => toggleSection('account', e)}
+              >
+                {t('nav.myAccount')}
+                {isMobile && (
+                  <ChevronRight
+                    className={`h-4 w-4 transition-transform ${isSectionOpen('account') ? 'rotate-90' : ''}`}
+                  />
+                )}
+              </DropdownMenuLabel>
+              {isSectionOpen('account') && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/account/profile/edit"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      {t('nav.myProfile')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/account/user/edit"
+                      className="flex cursor-pointer items-center"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      {t('nav.accountSettings')}
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
 
               <DropdownMenuSeparator />
               <DropdownMenuLabel>{t('nav.community')}</DropdownMenuLabel>

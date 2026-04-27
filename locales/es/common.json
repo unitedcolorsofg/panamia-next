@@ -1,8 +1,9 @@
 {
   "nav": {
     "jumpTo": "Ir A",
-    "navigation": "Navegación",
+    "explore": "Explorar",
     "home": "Inicio",
+    "featuresOverview": "Resumen de Funciones",
     "updates": "Novedades",
     "directorySearch": "Buscar Directorio",
     "myAccount": "Mi Cuenta",
