@@ -80,10 +80,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section with Search */}
-      <section
-        className="relative bg-cover bg-center py-8 text-center md:py-12"
-        style={{ backgroundImage: 'url(/img/home/website_banner.jpg)' }}
-      >
+      <section className="home-hero-banner relative bg-cover bg-center py-8 text-center md:py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-[90vw] space-y-8">
             {/* Logo */}

@@ -202,3 +202,12 @@ button[class*='bg-primary'] {
 .dark .bg-card {
   background-color: hsl(222.2 84% 4.9%) !important;
 }
+
+.home-hero-banner {
+  background-image: url('/img/home/website_banner.jpg');
+  background-image: image-set(
+    url('/img/home/website_banner.avif') type('image/avif'),
+    url('/img/home/website_banner.webp') type('image/webp'),
+    url('/img/home/website_banner.jpg') type('image/jpeg')
+  );
+}
