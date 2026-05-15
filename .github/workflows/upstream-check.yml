@@ -60,7 +60,7 @@ jobs:
 
       - name: Create or update GitHub Issue
         if: steps.check-updates.outputs.updates_available == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           CHANGED_PATHS: ${{ steps.check-updates.outputs.changed_paths }}
         with:
@@ -117,7 +117,7 @@ jobs:
 
       - name: Close issue if no updates
         if: steps.check-updates.outputs.updates_available == 'false'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
