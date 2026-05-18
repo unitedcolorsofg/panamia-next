@@ -113,6 +113,13 @@
       "when": 1779148800000,
       "tag": "0015_lockdown_drizzle_migrations",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1779408000000,
+      "tag": "0016_drop_duplicate_unique_indexes",
+      "breakpoints": true
     }
   ]
 }

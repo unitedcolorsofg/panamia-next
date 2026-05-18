@@ -543,8 +543,6 @@ export const profiles = pgTable(
     stripeCustomerId: text('stripe_customer_id'),
   },
   (table) => ({
-    emailIdx: index('profiles_email_idx').on(table.email),
-    userIdIdx: index('profiles_user_id_idx').on(table.userId),
     activeIdx: index('profiles_active_idx').on(table.active),
   })
 );
@@ -681,9 +679,6 @@ export const emailMigrations = pgTable(
   (table) => ({
     userIdIdx: index('email_migrations_user_id_idx').on(table.userId),
     newEmailIdx: index('email_migrations_new_email_idx').on(table.newEmail),
-    migrationTokenIdx: index('email_migrations_migration_token_idx').on(
-      table.migrationToken
-    ),
     expiresAtIdx: index('email_migrations_expires_at_idx').on(table.expiresAt),
   })
 );
@@ -706,9 +701,6 @@ export const oAuthVerifications = pgTable(
   },
   (table) => ({
     emailIdx: index('oauth_verifications_email_idx').on(table.email),
-    verificationTokenIdx: index(
-      'oauth_verifications_verification_token_idx'
-    ).on(table.verificationToken),
     providerAccountIdx: index('oauth_verifications_provider_account_idx').on(
       table.provider,
       table.providerAccountId
@@ -825,7 +817,6 @@ export const intakeForms = pgTable(
     formData: jsonb('form_data').notNull(),
   },
   (table) => ({
-    emailIdx: index('intake_forms_email_idx').on(table.email),
     formTypeIdx: index('intake_forms_form_type_idx').on(table.formType),
     completeIdx: index('intake_forms_complete_idx').on(table.complete),
   })
@@ -875,7 +866,6 @@ export const socialActors = pgTable(
       'social_actors_username_domain_unique'
     ).on(table.username, table.domain),
     domainIdx: index('social_actors_domain_idx').on(table.domain),
-    profileIdIdx: index('social_actors_profile_id_idx').on(table.profileId),
   })
 );
 
@@ -1143,7 +1133,6 @@ export const venues = pgTable(
     approvedBy: text('approved_by'),
   },
   (table) => ({
-    slugIdx: index('venues_slug_idx').on(table.slug),
     operatorProfileIdIdx: index('venues_operator_profile_id_idx').on(
       table.operatorProfileId
     ),
@@ -1202,7 +1191,6 @@ export const events = pgTable(
     streamEndedAt: timestamp('stream_ended_at', { withTimezone: true }),
   },
   (table) => ({
-    slugIdx: index('events_slug_idx').on(table.slug),
     hostProfileIdIdx: index('events_host_profile_id_idx').on(
       table.hostProfileId
     ),
@@ -1212,7 +1200,6 @@ export const events = pgTable(
       table.visibility
     ),
     startsAtIdx: index('events_starts_at_idx').on(table.startsAt),
-    iCalUidIdx: index('events_ical_uid_idx').on(table.iCalUid),
   })
 );
 
