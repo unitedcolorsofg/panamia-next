@@ -109,15 +109,15 @@ export async function GET(request: NextRequest) {
     );
 
     // Get admin info for removed articles
-    const removedByIds = articleRows
-      .filter((a) => a.removedBy)
-      .map((a) => a.removedBy as string);
+    const deletedByIds = articleRows
+      .filter((a) => a.deletedBy)
+      .map((a) => a.deletedBy as string);
     const adminRows =
-      removedByIds.length > 0
+      deletedByIds.length > 0
         ? await db
             .select({ id: users.id, screenname: users.screenname })
             .from(users)
-            .where(inArray(users.id, removedByIds))
+            .where(inArray(users.id, deletedByIds))
         : [];
     const adminMap = new Map(adminRows.map((a) => [a.id, a.screenname]));
 
@@ -135,9 +135,9 @@ export async function GET(request: NextRequest) {
         coAuthorsCount: coAuthors.filter((ca) => ca.status === 'accepted')
           .length,
         publishedAt: a.publishedAt,
-        removedAt: a.removedAt,
-        removedBy: a.removedBy ? adminMap.get(a.removedBy) : null,
-        removalReason: a.removalReason,
+        deletedAt: a.deletedAt,
+        deletedBy: a.deletedBy ? adminMap.get(a.deletedBy) : null,
+        deletionReason: a.deletionReason,
         createdAt: a.createdAt,
         updatedAt: a.updatedAt,
       };

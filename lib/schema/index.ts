@@ -19,6 +19,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
@@ -322,7 +323,9 @@ export const accounts = pgTable(
       .$defaultFn(() => createId()),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
-    userId: text('user_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
     idToken: text('id_token'),
@@ -350,7 +353,9 @@ export const sessions = pgTable('sessions', {
     .$defaultFn(() => createId()),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   token: text('token').notNull().unique(),
-  userId: text('user_id').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -394,7 +399,9 @@ export const consentReceipts = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => createId()),
-    userId: text('user_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     // 'terms' | 'privacy'
     document: text('document').notNull(),
     // Module ID (e.g. 'articles', 'social') or null for top-level acceptance
@@ -437,6 +444,9 @@ export const notifications = pgTable(
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
     type: notificationActivityType('type').notNull(),
+    // actor/target/object are polymorphic — target can be a user, article,
+    // event, etc., so no FK constraints. Denormalized actor_* and object_*
+    // columns below carry display data so stale references don't break the UI.
     actor: text('actor').notNull(),
     target: text('target').notNull(),
     object: text('object'),
@@ -484,7 +494,10 @@ export const profiles = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    userId: text('user_id').unique(),
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
     email: text('email').notNull().unique(),
     name: text('name').notNull(),
     phoneNumber: text('phone_number'),
@@ -574,17 +587,23 @@ export const articles = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
-    authorId: text('author_id'),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     coAuthors: jsonb('co_authors')
       .notNull()
       .default(sql`'[]'::jsonb`),
     reviewedBy: jsonb('reviewed_by'),
-    inReplyTo: text('in_reply_to'),
+    inReplyTo: text('in_reply_to').references((): AnyPgColumn => articles.id, {
+      onDelete: 'set null',
+    }),
     status: articleStatus('status').notNull().default('draft'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
-    removedAt: timestamp('removed_at', { withTimezone: true }),
-    removedBy: text('removed_by'),
-    removalReason: text('removal_reason'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: text('deleted_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    deletionReason: text('deletion_reason'),
     readingTime: integer('reading_time').notNull().default(1),
     mastodonPostUrl: text('mastodon_post_url'),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
@@ -670,7 +689,9 @@ export const emailMigrations = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .$defaultFn(() => new Date()),
-    userId: text('user_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     oldEmail: text('old_email').notNull(),
     newEmail: text('new_email').notNull(),
     migrationToken: text('migration_token').notNull().unique(),
@@ -725,6 +746,9 @@ export const interactions = pgTable(
       .notNull()
       .$defaultFn(() => new Date()),
     email: text('email').notNull(),
+    // userId is the preferred join key going forward (email can change).
+    // Nullable during transition — backfill from email then make notNull.
+    userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
     action: text('action'),
     affiliate: text('affiliate'),
     points: integer('points'),
@@ -732,6 +756,7 @@ export const interactions = pgTable(
   },
   (table) => ({
     emailIdx: index('interactions_email_idx').on(table.email),
+    userIdIdx: index('interactions_user_id_idx').on(table.userId),
     createdAtIdx: index('interactions_created_at_idx').on(table.createdAt),
     actionIdx: index('interactions_action_idx').on(table.action),
   })
@@ -756,8 +781,12 @@ export const mentorSessions = pgTable(
       .$onUpdateFn(() => new Date()),
     mentorEmail: text('mentor_email').notNull(),
     menteeEmail: text('mentee_email').notNull(),
-    mentorUserId: text('mentor_user_id'),
-    menteeUserId: text('mentee_user_id'),
+    mentorUserId: text('mentor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    menteeUserId: text('mentee_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     sessionId: text('session_id').notNull().unique(),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
     duration: integer('duration').notNull().default(60),
@@ -841,7 +870,9 @@ export const socialActors = pgTable(
       .$onUpdateFn(() => new Date()),
     username: text('username').notNull(),
     domain: text('domain').notNull(),
-    profileId: text('profile_id').unique(),
+    profileId: text('profile_id')
+      .unique()
+      .references(() => profiles.id, { onDelete: 'set null' }),
     uri: text('uri').notNull().unique(),
     inboxUrl: text('inbox_url').notNull(),
     outboxUrl: text('outbox_url').notNull(),
@@ -883,14 +914,23 @@ export const socialStatuses = pgTable(
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
     uri: text('uri').notNull().unique(),
-    actorId: text('actor_id').notNull(),
-    articleId: text('article_id'),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    articleId: text('article_id').references(() => articles.id, {
+      onDelete: 'cascade',
+    }),
     type: text('type').notNull().default('Note'),
     content: text('content'),
     contentWarning: text('content_warning'),
     url: text('url'),
     inReplyToUri: text('in_reply_to_uri'),
-    inReplyToId: text('in_reply_to_id'),
+    inReplyToId: text('in_reply_to_id').references(
+      (): AnyPgColumn => socialStatuses.id,
+      {
+        onDelete: 'set null',
+      }
+    ),
     recipientTo: jsonb('recipient_to')
       .notNull()
       .default(sql`'[]'::jsonb`),
@@ -904,7 +944,9 @@ export const socialStatuses = pgTable(
     repliesCount: integer('replies_count').notNull().default(0),
     likesCount: integer('likes_count').notNull().default(0),
     announcesCount: integer('announces_count').notNull().default(0),
-    eventId: text('event_id'),
+    eventId: text('event_id').references((): AnyPgColumn => events.id, {
+      onDelete: 'set null',
+    }),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
   },
   (table) => ({
@@ -936,11 +978,19 @@ export const articleAnnouncements = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    articleId: text('article_id').notNull(),
-    authorId: text('author_id').notNull(),
-    actorId: text('actor_id'),
+    articleId: text('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id').references(() => socialActors.id, {
+      onDelete: 'set null',
+    }),
     content: text('content').notNull(),
-    statusId: text('status_id').unique(),
+    statusId: text('status_id')
+      .unique()
+      .references(() => socialStatuses.id, { onDelete: 'set null' }),
   },
   (table) => ({
     articleAuthorUnique: uniqueIndex(
@@ -968,8 +1018,12 @@ export const socialFollows = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    actorId: text('actor_id').notNull(),
-    targetActorId: text('target_actor_id').notNull(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    targetActorId: text('target_actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
     uri: text('uri').unique(),
     status: socialFollowStatus('status').notNull().default('pending'),
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
@@ -996,8 +1050,12 @@ export const socialLikes = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .$defaultFn(() => new Date()),
-    actorId: text('actor_id').notNull(),
-    statusId: text('status_id').notNull(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    statusId: text('status_id')
+      .notNull()
+      .references(() => socialStatuses.id, { onDelete: 'cascade' }),
     uri: text('uri').unique(),
   },
   (table) => ({
@@ -1019,7 +1077,9 @@ export const socialAttachments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .$defaultFn(() => new Date()),
-    statusId: text('status_id').notNull(),
+    statusId: text('status_id')
+      .notNull()
+      .references(() => socialStatuses.id, { onDelete: 'cascade' }),
     type: text('type').notNull(),
     mediaType: text('media_type'),
     url: text('url').notNull(),
@@ -1046,7 +1106,9 @@ export const socialTags = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .$defaultFn(() => new Date()),
-    statusId: text('status_id').notNull(),
+    statusId: text('status_id')
+      .notNull()
+      .references(() => socialStatuses.id, { onDelete: 'cascade' }),
     type: text('type').notNull(),
     name: text('name').notNull(),
     href: text('href'),
@@ -1118,7 +1180,9 @@ export const venues = pgTable(
       withTimezone: true,
     }),
     insuranceNotes: text('insurance_notes'),
-    operatorProfileId: text('operator_profile_id').notNull(),
+    operatorProfileId: text('operator_profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'restrict' }),
     status: venueStatus('status').notNull().default('pending_review'),
     safetyContact: jsonb('safety_contact'),
     accessibilityNotes: text('accessibility_notes'),
@@ -1127,10 +1191,14 @@ export const venues = pgTable(
       .default(sql`'[]'::jsonb`),
     website: text('website'),
     suspendedAt: timestamp('suspended_at', { withTimezone: true }),
-    suspendedBy: text('suspended_by'),
+    suspendedBy: text('suspended_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     suspensionReason: text('suspension_reason'),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
-    approvedBy: text('approved_by'),
+    approvedBy: text('approved_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
   },
   (table) => ({
     operatorProfileIdIdx: index('venues_operator_profile_id_idx').on(
@@ -1160,8 +1228,12 @@ export const events = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     coverImage: text('cover_image'),
-    hostProfileId: text('host_profile_id'),
-    venueId: text('venue_id').notNull(),
+    hostProfileId: text('host_profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    venueId: text('venue_id')
+      .notNull()
+      .references(() => venues.id, { onDelete: 'restrict' }),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     timezone: text('timezone').notNull().default('America/New_York'),
@@ -1178,7 +1250,9 @@ export const events = pgTable(
     panamiaCoOrganizer: boolean('panamia_co_organizer').notNull().default(true),
     tosAcceptedAt: timestamp('tos_accepted_at', { withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
-    cancelledBy: text('cancelled_by'),
+    cancelledBy: text('cancelled_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     cancellationReason: text('cancellation_reason'),
     streamEligible: boolean('stream_eligible').notNull().default(false),
     streamStatus: streamStatus('stream_status').notNull().default('offline'),
@@ -1216,11 +1290,17 @@ export const eventOrganizers = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    eventId: text('event_id').notNull(),
-    profileId: text('profile_id').notNull(),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     role: organizerRole('role').notNull(),
     canSeeRsvpList: boolean('can_see_rsvp_list').notNull().default(false),
-    invitedBy: text('invited_by'),
+    invitedBy: text('invited_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     invitedAt: timestamp('invited_at', { withTimezone: true }).$defaultFn(
       () => new Date()
     ),
@@ -1251,10 +1331,16 @@ export const eventAttendees = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    eventId: text('event_id').notNull(),
-    profileId: text('profile_id').notNull(),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     status: attendeeStatus('status').notNull(),
-    invitedBy: text('invited_by'),
+    invitedBy: text('invited_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     respondedAt: timestamp('responded_at', { withTimezone: true }),
   },
   (table) => ({
@@ -1283,8 +1369,12 @@ export const eventNotes = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    eventId: text('event_id').notNull(),
-    authorProfileId: text('author_profile_id').notNull(),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    authorProfileId: text('author_profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     audience: text('audience').notNull().default('all'),
   },
@@ -1312,12 +1402,21 @@ export const eventPhotos = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
-    eventId: text('event_id').notNull(),
-    uploaderProfileId: text('uploader_profile_id'),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    uploaderProfileId: text('uploader_profile_id').references(
+      () => profiles.id,
+      {
+        onDelete: 'set null',
+      }
+    ),
     url: text('url').notNull(),
     caption: text('caption'),
     approved: boolean('approved').notNull().default(false),
-    approvedBy: text('approved_by'),
+    approvedBy: text('approved_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
   },
@@ -1346,7 +1445,9 @@ export const screennameHistory = pgTable(
       .notNull()
       .$defaultFn(() => new Date()),
     screenname: text('screenname').notNull().unique(),
-    userId: text('user_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     redirectTo: text('redirect_to'),
   },
   (table) => ({
@@ -1393,7 +1494,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     relationName: 'notificationTarget',
   }),
   articles: many(articles, { relationName: 'articleAuthor' }),
-  articlesRemoved: many(articles, { relationName: 'articleRemovedBy' }),
+  articlesDeleted: many(articles, { relationName: 'articleDeletedBy' }),
   mentorSessions: many(mentorSessions, { relationName: 'mentorSessions' }),
   menteeSessions: many(mentorSessions, { relationName: 'menteeSessions' }),
   articleAnnouncements: many(articleAnnouncements),
@@ -1452,10 +1553,10 @@ export const articlesRelations = relations(articles, ({ one, many }) => ({
     references: [users.id],
     relationName: 'articleAuthor',
   }),
-  removedByUser: one(users, {
-    fields: [articles.removedBy],
+  deletedByUser: one(users, {
+    fields: [articles.deletedBy],
     references: [users.id],
-    relationName: 'articleRemovedBy',
+    relationName: 'articleDeletedBy',
   }),
   parentArticle: one(articles, {
     fields: [articles.inReplyTo],

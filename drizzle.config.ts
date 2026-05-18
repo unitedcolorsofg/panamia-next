@@ -1,3 +1,24 @@
+/**
+ * Drizzle config.
+ *
+ * IMPORTANT — DO NOT RUN `drizzle-kit generate` IN THIS PROJECT.
+ *
+ * Migrations under `drizzle/*.sql` are hand-written (see drizzle/TEMPLATE.sql).
+ * The drizzle-kit snapshot in `drizzle/meta/` is intentionally stuck at 0000
+ * and is NOT kept in sync with the schema. Running `drizzle-kit generate` will
+ * diff schema.ts against that stale 0000 snapshot and emit a huge bogus
+ * migration that re-creates tables that already exist in production.
+ *
+ * Why hand-written: tight control over transactions, data backfills, rollback
+ * blocks, and comments — all things drizzle-kit's generator strips out.
+ *
+ * This config IS still used for:
+ *   - `drizzle-kit migrate` (applies hand-written SQL files in order)
+ *   - `drizzle-kit studio` (read-only DB inspector)
+ *
+ * The `yarn db:generate` script has been replaced with a guardrail that
+ * prints this notice and exits 1.
+ */
 import { existsSync } from 'fs';
 import { config as loadDotenv } from 'dotenv';
 import { defineConfig } from 'drizzle-kit';

@@ -69,14 +69,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Store previous removal info for audit trail
-    const previousRemovalReason = articleDoc.removalReason;
+    const previousRemovalReason = articleDoc.deletionReason;
 
     // Restore article to published
     const [updatedArticle] = await db
       .update(articles)
       .set({
         status: 'published',
-        // Keep removedAt, removedBy, removalReason for audit trail
+        // Keep deletedAt, deletedBy, deletionReason for audit trail
       })
       .where(eq(articles.id, articleDoc.id))
       .returning();

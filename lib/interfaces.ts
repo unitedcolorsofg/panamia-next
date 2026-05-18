@@ -335,9 +335,9 @@ export interface ArticleInterface {
   inReplyTo?: string;
   status: ArticleStatus;
   publishedAt?: Date;
-  removedAt?: Date;
-  removedBy?: string;
-  removalReason?: string;
+  deletedAt?: Date;
+  deletedBy?: string;
+  deletionReason?: string;
   readingTime: number;
   mastodonPostUrl?: string;
   createdAt: Date;

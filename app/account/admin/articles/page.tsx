@@ -54,9 +54,9 @@ interface AdminArticle {
   };
   coAuthorsCount: number;
   publishedAt?: string;
-  removedAt?: string;
-  removedBy?: string;
-  removalReason?: string;
+  deletedAt?: string;
+  deletedBy?: string;
+  deletionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -330,12 +330,12 @@ export default function AdminArticlesPage() {
                     {article.status === 'removed' && (
                       <div className="mt-2 rounded-md bg-red-50 p-2 text-sm dark:bg-red-900/20">
                         <p className="text-red-700 dark:text-red-400">
-                          Removed by {article.removedBy || 'Admin'} on{' '}
-                          {article.removedAt && formatDate(article.removedAt)}
+                          Removed by {article.deletedBy || 'Admin'} on{' '}
+                          {article.deletedAt && formatDate(article.deletedAt)}
                         </p>
-                        {article.removalReason && (
+                        {article.deletionReason && (
                           <p className="mt-1 text-red-600 dark:text-red-300">
-                            Reason: {article.removalReason}
+                            Reason: {article.deletionReason}
                           </p>
                         )}
                       </div>
@@ -485,11 +485,11 @@ export default function AdminArticlesPage() {
                 {articleToRestore?.title}
               </p>
             </div>
-            {articleToRestore?.removalReason && (
+            {articleToRestore?.deletionReason && (
               <div className="mt-4 rounded-md bg-gray-50 p-3 dark:bg-gray-800">
                 <p className="text-sm font-medium">Original removal reason:</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {articleToRestore.removalReason}
+                  {articleToRestore.deletionReason}
                 </p>
               </div>
             )}

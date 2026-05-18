@@ -86,9 +86,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .update(articles)
       .set({
         status: 'removed',
-        removedAt: new Date(),
-        removedBy: session.user.id,
-        removalReason: reason.trim(),
+        deletedAt: new Date(),
+        deletedBy: session.user.id,
+        deletionReason: reason.trim(),
       })
       .where(eq(articles.id, articleDoc.id))
       .returning();
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       data: {
         slug: updatedArticle.slug,
         status: updatedArticle.status,
-        removedAt: updatedArticle.removedAt,
-        removedBy: currentProfile?.name || 'Admin',
+        deletedAt: updatedArticle.deletedAt,
+        deletedBy: currentProfile?.name || 'Admin',
       },
     });
   } catch (error) {
