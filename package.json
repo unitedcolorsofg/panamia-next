@@ -91,7 +91,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.37.1",
-    "@commitlint/cli": "^20.5.3",
+    "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^20.5.3",
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.8.0",
