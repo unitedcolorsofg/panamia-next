@@ -219,11 +219,11 @@ This runs `drizzle-kit migrate` then `vinext deploy` (Vite build + wrangler publ
 
 **Cloudflare Workers Builds — dashboard commands:**
 
-| Field                                   | Command              | Notes                                                                             |
-| --------------------------------------- | -------------------- | --------------------------------------------------------------------------------- |
-| Build command                           | `yarn build`         | Compiles only — no DB side effects                                                |
-| Deploy command                          | `yarn deploy:vinext` | Runs `drizzle-kit migrate` then `vinext deploy`; only fires on production deploys |
-| Non-production branch / version command | `yarn build`         | Compiles a preview without migrating; CF uploads it as a non-production version   |
+| Field                                   | Command                                          | Notes                                                                             |
+| --------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Build command                           | `yarn build`                                     | Compiles only — no DB side effects                                                |
+| Deploy command                          | `npx drizzle-kit migrate && npx wrangler deploy` | Runs migrations against prod DB, then ships the build; only fires on prod deploys |
+| Non-production branch / version command | `npx wrangler versions upload`                   | Uploads the build as a non-production Worker version; no DB migration             |
 
 The split keeps `drizzle-kit migrate` out of the build phase so retries and preview-branch builds never mutate prod schema. Migrations happen at deploy time only.
 
