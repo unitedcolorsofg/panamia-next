@@ -116,12 +116,10 @@ ALTER TABLE "venues"
   ADD COLUMN "insurance_coi_expires_at" timestamp with time zone,
   ADD COLUMN "insurance_notes" text;
 
--- Seed the pre-existing Pana MIA Main Office row with a fire_capacity so
--- the NOT NULL constraint can be enforced. 40 is a reasonable default for
--- a small office / training space and can be edited by admins.
-UPDATE "venues" SET "fire_capacity" = 40 WHERE "slug" = 'pana-mia-main-office';
-
--- Any other rows: default to 0 (forces admin to update before RSVP works).
+-- Backfill any existing rows so the NOT NULL constraint can be enforced.
+-- Defaults to 0 (forces admin to update before RSVP works). The previous
+-- targeted UPDATE for the 'pana-mia-main-office' seed row was removed when
+-- migration 0005 was converted to a no-op.
 UPDATE "venues" SET "fire_capacity" = 0 WHERE "fire_capacity" IS NULL;
 
 ALTER TABLE "venues" ALTER COLUMN "fire_capacity" SET NOT NULL;

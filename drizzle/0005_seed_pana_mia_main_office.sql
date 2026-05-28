@@ -1,40 +1,16 @@
 -- Migration: 0005_seed_pana_mia_main_office
--- Purpose: Insert the default "Pana MIA Main Office" venue so new events
---          have at least one active venue to select without waiting for
---          admin approval of a user-submitted venue.
--- Ticket: N/A
--- Reversible: Yes
+-- Status:    NO-OP (intentionally empty)
 --
--- Rollback:
---   DELETE FROM "venues" WHERE "slug" = 'pana-mia-main-office';
+-- Originally this migration seeded a "Pana MIA Main Office" venue with
+-- operator_profile_id = 'sfre2h1ds4uobwx57ei04n20'. That referenced a
+-- profile that was created out-of-band in prod but did not exist in a
+-- fresh database, so applying migrations from scratch (CI test DB) failed
+-- when 0017 added the FK on venues.operator_profile_id -> profiles.id.
+--
+-- The seed venue is no longer required (production was wiped while still
+-- greenfield, and 0012's UPDATE on the venue silently no-ops if it doesn't
+-- exist). The file is retained as a no-op to preserve migration ordering.
+--
+-- Reversible: N/A (no-op)
 
-INSERT INTO "venues" (
-  "id",
-  "created_at",
-  "updated_at",
-  "slug",
-  "name",
-  "address",
-  "city",
-  "state",
-  "country",
-  "parking_options",
-  "operator_profile_id",
-  "status",
-  "photos"
-) VALUES (
-  'cm0panamiamain000000000001',
-  NOW(),
-  NOW(),
-  'pana-mia-main-office',
-  'Pana MIA Main Office',
-  '100 Biscayne Blvd',
-  'Miami',
-  'FL',
-  'US',
-  'street',
-  'sfre2h1ds4uobwx57ei04n20',
-  'active',
-  '[]'::jsonb
-)
-ON CONFLICT ("slug") DO NOTHING;
+SELECT 1;
