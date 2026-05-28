@@ -118,6 +118,9 @@ jobs:
           echo "R2_BUCKET_NAME=${{ vars.R2_BUCKET_NAME }}" >> .dev.vars
           echo "R2_PUBLIC_URL=${{ vars.R2_PUBLIC_URL }}" >> .dev.vars
 
+      # `yarn build` is now just `vinext build` (no migrate prefix), so this
+      # is equivalent — kept explicit for clarity that CI does not migrate
+      # during build (migrations were applied in the "Apply migrations" step).
       - name: Build app
         run: yarn build
         env:

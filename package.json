@@ -6,7 +6,7 @@
   "packageManager": "yarn@4.12.0",
   "scripts": {
     "dev": "env -u NODE_ENV node server.js",
-    "build": "drizzle-kit migrate && vinext build",
+    "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint .",
     "test": "playwright test",
@@ -28,8 +28,8 @@
     "dev:setup": "npx tsx scripts/setup-dev-vars.ts",
     "dev:vinext": "vinext dev --port 3001",
     "dev:http": "vinext dev --hostname 0.0.0.0",
-    "build:vinext": "drizzle-kit migrate && vinext build",
-    "deploy:vinext": "vinext deploy"
+    "build:vinext": "vinext build",
+    "deploy:vinext": "drizzle-kit migrate && vinext deploy"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",

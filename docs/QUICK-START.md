@@ -204,7 +204,7 @@ See [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) for manual testing procedures
 
 This project deploys to [Cloudflare Workers](https://workers.cloudflare.com/) via the Vinext build pipeline.
 
-**Deploy:**
+**Deploy (from your machine):**
 
 ```bash
 yarn deploy:vinext
@@ -217,11 +217,15 @@ This runs `drizzle-kit migrate` then `vinext deploy` (Vite build + wrangler publ
 - Workers & Pages → `<app>` → Settings → **Variables and secrets** (CF-RUNTIME)
 - Workers & Pages → `<app>` → Settings → **Build → Variables and secrets** (CF-BUILD, for `NEXT_PUBLIC_*` vars baked at build time)
 
-**Cloudflare dashboard build command:**
+**Cloudflare Workers Builds — dashboard commands:**
 
-```
-yarn deploy:vinext
-```
+| Field                                   | Command              | Notes                                                                             |
+| --------------------------------------- | -------------------- | --------------------------------------------------------------------------------- |
+| Build command                           | `yarn build`         | Compiles only — no DB side effects                                                |
+| Deploy command                          | `yarn deploy:vinext` | Runs `drizzle-kit migrate` then `vinext deploy`; only fires on production deploys |
+| Non-production branch / version command | `yarn build`         | Compiles a preview without migrating; CF uploads it as a non-production version   |
+
+The split keeps `drizzle-kit migrate` out of the build phase so retries and preview-branch builds never mutate prod schema. Migrations happen at deploy time only.
 
 **Database connection pooling** — configure a [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) binding in `wrangler.jsonc`:
 
