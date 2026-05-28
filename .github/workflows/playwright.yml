@@ -35,17 +35,46 @@ jobs:
       # Reset the test DB to a clean slate before each run so tests never
       # inherit state from a previous run. POSTGRES_DIRECT_URL must point to a
       # dedicated Supabase test project — never the production project.
-      # We also drop the `drizzle` schema (where drizzle-kit stores
-      # `__drizzle_migrations`) so migration tracking restarts from scratch;
-      # otherwise drizzle-kit thinks every migration is already applied and
-      # skips recreating the public tables we just dropped.
+      #
+      # We bootstrap the `drizzle.__drizzle_migrations` table manually so
+      # migration 0015 (which enables RLS on it) has something to target.
+      # In production, drizzle-kit migrate creates this table on first run;
+      # in CI we apply migrations via raw psql (see "Apply migrations" step
+      # below for why), so we must seed it ourselves.
+      #
+      # Why psql instead of drizzle-kit migrate in CI:
+      # GitHub-hosted runners are IPv4-only, but Supabase's direct DB host
+      # (db.<ref>.supabase.co) is IPv6-only since early 2024. That forces us
+      # to use the session pooler (aws-X.pooler.supabase.com:5432) from CI.
+      # drizzle-kit's postgres.js client hangs indefinitely against the
+      # session pooler — psql does not. Prod (Cloudflare Workers via
+      # Hyperdrive) is unaffected and continues to use drizzle-kit migrate.
       - name: Reset test database
         run: |
-          psql "${{ secrets.POSTGRES_DIRECT_URL }}" \
-            -c "DROP SCHEMA IF EXISTS drizzle CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          psql "${{ secrets.POSTGRES_DIRECT_URL }}" -v ON_ERROR_STOP=1 <<'SQL'
+          DROP SCHEMA IF EXISTS drizzle CASCADE;
+          DROP SCHEMA public CASCADE;
+          CREATE SCHEMA public;
+          CREATE SCHEMA drizzle;
+          CREATE TABLE drizzle.__drizzle_migrations (
+            id SERIAL PRIMARY KEY,
+            hash TEXT NOT NULL,
+            created_at BIGINT
+          );
+          SQL
 
-      - name: Run database migrations
-        run: npx drizzle-kit migrate
+      # Apply hand-written migrations in order via psql. See "Reset test
+      # database" step above for the IPv4/IPv6 background on why we can't
+      # use drizzle-kit migrate here. Prod still uses drizzle-kit migrate
+      # (which tracks applied migrations in drizzle.__drizzle_migrations);
+      # CI wipes and reapplies every run, so tracking is unnecessary.
+      - name: Apply migrations
+        run: |
+          set -e
+          for f in drizzle/[0-9]*.sql; do
+            echo "=== $f ==="
+            psql "$POSTGRES_DIRECT_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
         env:
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
