@@ -4,24 +4,25 @@ TypeScript type definitions and declarations.
 
 ## Files
 
-### `next-auth.d.ts`
+### `auth.d.ts`
 
-Extends NextAuth types to include custom user properties:
+Re-exports the `AppSession` type from `@/auth` (the better-auth instance), which
+augments the base session with custom user properties:
 
 - User ID from database
-- Custom session fields
-- Extended JWT types
+- `isAdmin`, `panaVerified`, and `roles` (enriched from the profiles table)
 
 ```typescript
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      // ... extended properties
-    };
-  }
-}
+import type { AppSession } from '@/auth';
 ```
+
+### `css-modules.d.ts`
+
+Type declarations for `*.module.css` imports.
+
+### `next-fetch.d.ts`
+
+Type augmentation for the vinext fetch/request shims.
 
 ## Usage
 

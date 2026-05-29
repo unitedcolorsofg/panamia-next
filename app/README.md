@@ -17,6 +17,10 @@ Next.js 16 App Router directory containing all pages, layouts, and API routes.
 | `/a/[slug]`         | View single article                          |
 | `/a/new`            | Create new article (auth required)           |
 | `/p/[user]`         | Public profile view                          |
+| `/s`                | Social timeline (auth required)              |
+| `/e/[slug]`         | View single event                            |
+| `/venues`           | Browse venues                                |
+| `/venues/[slug]`    | View single venue                            |
 | `/signin`           | Authentication page                          |
 | `/links`            | Link tree style page                         |
 | `/podcasts`         | Podcast listings                             |
@@ -63,14 +67,31 @@ Site administration (requires admin role):
 
 Mentorship program pages:
 
-| Route              | Description                |
-| ------------------ | -------------------------- |
-| `/m/discover`      | Find mentors               |
-| `/m/profile`       | Your mentor/mentee profile |
-| `/m/profile/edit`  | Edit mentoring profile     |
-| `/m/schedule`      | View/manage schedule       |
-| `/m/schedule/book` | Book a session             |
-| `/m/session/[id]`  | View session details       |
+| Route                       | Description                                         |
+| --------------------------- | --------------------------------------------------- |
+| `/m/discover`               | Find mentors                                        |
+| `/m/profile`                | Your mentor/mentee profile                          |
+| `/m/profile/edit`           | Edit mentoring profile                              |
+| `/m/schedule`               | View/manage schedule                                |
+| `/m/schedule/book`          | Book a session                                      |
+| `/m/session/[id]`           | View session details                                |
+| `/m/webrtc-test`            | Video-call proof-of-concept (WebRTC + DO signaling) |
+| `/m/webrtc-test/whiteboard` | Collaborative whiteboard (popup/standalone)         |
+
+### Events (`/e/*`) & Venues (`/venues/*`)
+
+Community events and the venues that host them:
+
+| Route                        | Description              |
+| ---------------------------- | ------------------------ |
+| `/e/[slug]`                  | View single event        |
+| `/e/[slug]/edit`             | Edit event (organizer)   |
+| `/e/[slug]/manage/attendees` | Manage RSVPs (organizer) |
+| `/e/[slug]/manage/notes`     | Organizer notes          |
+| `/e/[slug]/manage/photos`    | Manage event photos      |
+| `/venues`                    | Browse venues            |
+| `/venues/new`                | Create a venue           |
+| `/venues/[slug]`             | View single venue        |
 
 ### Forms (`/form/*`)
 
@@ -101,7 +122,6 @@ RSS and JSON feeds for articles:
 | ------------------------------------- | ------------------------ |
 | `/affiliate`                          | Affiliate portal         |
 | `/donation/confirmation`              | Post-donation page       |
-| `/event/panimo-by-pana-mia`           | Event page               |
 | `/doc/terms-and-conditions`           | Terms of service         |
 | `/doc/affiliate-terms-and-conditions` | Affiliate terms          |
 | `/become-a-pana`                      | Signup landing page      |

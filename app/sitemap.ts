@@ -36,10 +36,6 @@ const STATIC_ROUTES: SitemapEntry[] = [
     url: `${SITE_URL}/doc/affiliate-terms-and-conditions`,
     changeFrequency: 'monthly',
   },
-  {
-    url: `${SITE_URL}/event/panimo-by-pana-mia`,
-    changeFrequency: 'monthly',
-  },
 ];
 
 export default async function sitemap(): Promise<SitemapEntry[]> {

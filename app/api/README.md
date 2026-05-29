@@ -6,7 +6,7 @@ Server-side API endpoints for the Pana MIA application.
 
 | Endpoint                           | Method | Description                                     |
 | ---------------------------------- | ------ | ----------------------------------------------- |
-| `/api/auth/[...nextauth]`          | \*     | NextAuth.js handlers (signin, signout, session) |
+| `/api/auth/[...all]`               | \*     | better-auth handlers (signin, signout, session) |
 | `/api/auth/verify-turnstile`       | POST   | Verify Cloudflare Turnstile tokens              |
 | `/api/register`                    | POST   | Register new user                               |
 | `/api/oauth/complete-verification` | POST   | Complete OAuth email verification               |
@@ -110,11 +110,86 @@ Community articles feature:
 | `/api/getFeaturedPanas`   | GET    | Get featured profiles |
 | `/api/getProfile`         | GET    | Get public profile    |
 
-## Social Features
+## Social (`/api/social/*`)
 
-Social features (follow, timeline, etc.) are being rebuilt using the social
-layer documented in `docs/SOCIAL-ROADMAP.md`. The legacy `/api/addFollower`,
-`/api/list/*` endpoints have been removed.
+The social timeline (microblogging) feature, surfaced at the `/s` page. Built on
+an ActivityPub-style actor/status model so posts can federate (see
+[Federation](#federation-apifederation) below). Access is gated by
+`SocialEligibilityGate` / `lib/query/social.ts`. See `docs/SOCIAL-ROADMAP.md`.
+
+### Actors
+
+| Endpoint                               | Method      | Description                            |
+| -------------------------------------- | ----------- | -------------------------------------- |
+| `/api/social/actors/me`                | GET/POST    | Get or create the current user's actor |
+| `/api/social/actors/me/posts`          | GET         | Current user's own posts               |
+| `/api/social/actors/search`            | GET         | Search actors by name/handle           |
+| `/api/social/actors/[username]`        | GET         | Get an actor's public profile          |
+| `/api/social/actors/[username]/posts`  | GET         | An actor's public posts                |
+| `/api/social/actors/[username]/follow` | POST/DELETE | Follow / unfollow an actor             |
+| `/api/social/follows`                  | GET         | List the current user's follows        |
+
+### Statuses (posts)
+
+| Endpoint                                  | Method      | Description                    |
+| ----------------------------------------- | ----------- | ------------------------------ |
+| `/api/social/statuses`                    | GET/POST    | List or create statuses        |
+| `/api/social/statuses/[statusId]`         | GET/DELETE  | Get or delete a single status  |
+| `/api/social/statuses/[statusId]/like`    | POST/DELETE | Like / unlike a status         |
+| `/api/social/statuses/[statusId]/replies` | GET         | Get replies to a status        |
+| `/api/social/timeline`                    | GET         | Home / public timeline (paged) |
+
+### Media & Messages
+
+| Endpoint                     | Method | Description                        |
+| ---------------------------- | ------ | ---------------------------------- |
+| `/api/social/media`          | POST   | Register a media attachment        |
+| `/api/social/media/upload`   | POST   | Upload media (images, voice memos) |
+| `/api/social/messages/inbox` | GET    | Received direct messages           |
+| `/api/social/messages/sent`  | GET    | Sent direct messages               |
+
+> Voice memos (recorded via `components/social/VoiceMemoComposer`) post through
+> the media + status endpoints and surface on the `/updates` page.
+
+## Federation (`/api/federation/*`)
+
+ActivityPub endpoints that expose local content to the fediverse (Mastodon,
+Pixelfed, etc.):
+
+| Endpoint                        | Method | Description                            |
+| ------------------------------- | ------ | -------------------------------------- |
+| `/api/federation/actor/[user]`  | GET    | ActivityPub actor document             |
+| `/api/federation/events/[slug]` | GET    | ActivityPub representation of an event |
+
+## Events (`/api/events/*`)
+
+Community events, surfaced at `/e/[slug]` (with `/e/[slug]/manage/*` organizer
+tools) and editable via `components/EventEditor`:
+
+| Endpoint                                    | Method           | Description                     |
+| ------------------------------------------- | ---------------- | ------------------------------- |
+| `/api/events`                               | GET/POST         | List or create events           |
+| `/api/events/[slug]`                        | GET/PATCH/DELETE | Get, update, or delete an event |
+| `/api/events/[slug]/rsvp`                   | POST/DELETE      | RSVP / cancel RSVP              |
+| `/api/events/[slug]/rsvp/list`              | GET              | List RSVPs                      |
+| `/api/events/[slug]/organizers`             | GET/POST         | List / add organizers           |
+| `/api/events/[slug]/organizers/[profileId]` | PATCH/DELETE     | Update / remove an organizer    |
+| `/api/events/[slug]/photos`                 | GET/POST         | List / add event photos         |
+| `/api/events/[slug]/photos/[photoId]`       | PATCH/DELETE     | Update / remove a photo         |
+| `/api/events/[slug]/notes`                  | GET/POST         | Organizer notes                 |
+| `/api/events/[slug]/calendar.ics`           | GET              | Download event as iCalendar     |
+| `/api/events/[slug]/stream-webhook`         | POST             | Live-stream provider webhook    |
+
+## Venues (`/api/venues/*`)
+
+Physical venues that host events, surfaced at `/venues`, `/venues/new`, and
+`/venues/[slug]`:
+
+| Endpoint                   | Method    | Description                  |
+| -------------------------- | --------- | ---------------------------- |
+| `/api/venues`              | GET/POST  | List or create venues        |
+| `/api/venues/[slug]`       | GET/PATCH | Get or update a venue        |
+| `/api/venues/check-parcel` | GET       | Look up parcel/property data |
 
 ## Admin (`/api/admin/*`)
 
@@ -146,11 +221,24 @@ Admin-only endpoints (require admin role):
 | ------------------------------ | ------ | ---------------------- |
 | `/api/create-checkout-session` | POST   | Create Stripe checkout |
 
-## Realtime
+## Realtime (WebRTC signaling)
 
-| Endpoint           | Method | Description                 |
-| ------------------ | ------ | --------------------------- |
-| `/api/pusher/auth` | POST   | Authenticate Pusher channel |
+Realtime is handled by a Cloudflare **Durable Object** (`SignalingRoom`, see
+`worker/signaling-room.ts`), not a REST endpoint — Pusher has been removed.
+
+| Endpoint                | Protocol  | Description                                |
+| ----------------------- | --------- | ------------------------------------------ |
+| `/ws/signaling/:roomId` | WebSocket | WebRTC signaling room (max 3 participants) |
+
+The room relays SDP offers/answers, ICE candidates, chat, and Yjs whiteboard
+updates between peers; media and files flow peer-to-peer (the server only
+relays signaling). Participants and chat history are persisted in the DO's
+SQLite so a dropped client (e.g. wifi → cellular) can reconnect; all state is
+deleted once the last participant leaves.
+
+This backs the **mentoring video** proof-of-concept at `/m/webrtc-test`
+(peer-to-peer video/audio, text chat, data-channel file transfer, and a
+collaborative whiteboard at `/m/webrtc-test/whiteboard`).
 
 ## Image Uploads
 
@@ -187,6 +275,6 @@ All API endpoints return JSON with consistent structure:
 
 ## Authentication
 
-Most endpoints require authentication via NextAuth session.
+Most endpoints require authentication via a better-auth session.
 Admin endpoints additionally check for admin role.
 Public endpoints (search, profiles, articles) don't require auth.

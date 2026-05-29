@@ -70,7 +70,7 @@ Reusable client-side query functions (React Query mutations/queries):
 | `profile.ts`       | Profile mutations (save, update)  |
 | `directory.ts`     | Directory listing queries         |
 | `notifications.ts` | Notification queries              |
-| `userlist.ts`      | List queries                      |
+| `social.ts`        | Social timeline queries/mutations |
 | `admin.ts`         | Admin-specific queries            |
 
 ## Server Utilities (`server/`)
@@ -138,13 +138,21 @@ Cloudflare R2 integration for file uploads:
 
 ## External Services
 
-| File               | Service                          |
-| ------------------ | -------------------------------- |
-| `email.ts`         | CF Email Sending (transactional) |
-| `pusher-server.ts` | Pusher server client (realtime)  |
-| `pusher-client.ts` | Pusher browser client            |
-| `geolocation.ts`   | Geocoding utilities              |
-| `auth-api.ts`      | Auth helper functions            |
+| File             | Service                          |
+| ---------------- | -------------------------------- |
+| `email.ts`       | CF Email Sending (transactional) |
+| `geolocation.ts` | Geocoding utilities              |
+| `auth-api.ts`    | Auth helper functions            |
+
+> WebSocket realtime (WebRTC signaling, chat, whiteboard sync) lives in the
+> `SignalingRoom` Durable Object at `worker/signaling-room.ts`, reached via
+> `/ws/signaling/:roomId`.
+
+## Federation (`federation/`)
+
+ActivityPub federation layer (actor documents, inbox handling, HTTP signatures)
+backing the social timeline. See `federation/index.ts` and the
+`/api/federation/*` routes.
 
 ## Client-Side Utilities
 
@@ -172,6 +180,6 @@ import type { UserInterface, ArticleInterface } from '@/lib/interfaces';
 
 ## Notes
 
-- All files are server-side unless noted (localstorage, pusher-client)
+- All files are server-side unless noted (e.g. `localstorage.ts`, client query hooks)
 - Database uses Drizzle ORM with PostgreSQL (Supabase), Hyperdrive in production
 - Validations use Zod schemas
