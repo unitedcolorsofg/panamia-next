@@ -56,6 +56,44 @@ export const useProfile = () => {
   });
 };
 
+/**
+ * The user's saved default CC license, used to pre-select the license picker
+ * when composing new Articles (/a) and social posts (/s). Falls back to
+ * 'cc-by-4' (the new-user default) while loading or if no profile is found.
+ */
+export const useDefaultCcLicense = (): 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' => {
+  const { data } = useProfile();
+  return data?.defaultCcLicense ?? 'cc-by-4';
+};
+
+export const useMutateDefaultLicense = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (defaultCcLicense: string) => {
+      return axios.post('/api/profile/saveDefaultLicense', {
+        defaultCcLicense,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: i18n.t('success', { ns: 'toast' }),
+        description: i18n.t('profileUpdated', { ns: 'toast' }),
+      });
+      return queryClient.invalidateQueries({
+        queryKey: profileQueryKey,
+        exact: true,
+      });
+    },
+    onError: () => {
+      toast({
+        title: i18n.t('error', { ns: 'toast' }),
+        description: i18n.t('profileUpdateFailed', { ns: 'toast' }),
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
 export const useMutateProfileContact = () => {
   const queryClient = useQueryClient();
   return useMutation({

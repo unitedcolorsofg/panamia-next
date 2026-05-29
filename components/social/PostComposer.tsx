@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 // Phase 3 consent infrastructure — notice for social timeline deletion policy
 import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
@@ -47,6 +47,7 @@ import {
   CCLicensePickerModal,
   type CCLicenseValue,
 } from '@/components/legal/CCLicensePicker';
+import { useDefaultCcLicense } from '@/lib/query/profile';
 
 interface PostComposerProps {
   inReplyTo?: string;
@@ -116,7 +117,18 @@ export function PostComposer({
   const [uploading, setUploading] = useState(false);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [safariMediaNotice, setSafariMediaNotice] = useState(false);
-  const [ccLicense, setCcLicense] = useState<CCLicenseValue>('cc-by-sa-4');
+  // Seed the license from the user's saved default, but stop tracking the
+  // default once they explicitly pick one for this post (override).
+  const defaultCcLicense = useDefaultCcLicense();
+  const [ccLicense, setCcLicense] = useState<CCLicenseValue>(defaultCcLicense);
+  const licenseTouched = useRef(false);
+  useEffect(() => {
+    if (!licenseTouched.current) setCcLicense(defaultCcLicense);
+  }, [defaultCcLicense]);
+  const handleLicenseChange = (license: CCLicenseValue) => {
+    licenseTouched.current = true;
+    setCcLicense(license);
+  };
   const [showLicensePicker, setShowLicensePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -530,7 +542,7 @@ export function PostComposer({
         open={showLicensePicker}
         onOpenChange={setShowLicensePicker}
         value={ccLicense}
-        onChange={setCcLicense}
+        onChange={handleLicenseChange}
       />
 
       {/* Phase 3: social timeline deletion notice (type="notice") */}

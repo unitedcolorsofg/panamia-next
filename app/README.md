@@ -26,21 +26,21 @@ Next.js 16 App Router directory containing all pages, layouts, and API routes.
 
 Authenticated user pages for managing their own content:
 
-| Route                          | Description                            |
-| ------------------------------ | -------------------------------------- |
-| `/account/user/edit`           | Edit user settings (email, screenname) |
-| `/account/profile`             | Profile dashboard                      |
-| `/account/profile/edit`        | Edit profile basics                    |
-| `/account/profile/desc`        | Edit profile description               |
-| `/account/profile/address`     | Edit location/address                  |
-| `/account/profile/contact`     | Edit contact info                      |
-| `/account/profile/social`      | Edit social links                      |
-| `/account/profile/categories`  | Edit business categories               |
-| `/account/profile/images`      | Manage profile images                  |
-| `/account/profile/gentedepana` | Gente de Pana settings                 |
-| `/account/articles`            | Manage your articles                   |
-| `/updates`                     | View updates & send voice memos        |
-| `/account/admin/*`             | Admin panel (admin users only)         |
+| Route                          | Description                                             |
+| ------------------------------ | ------------------------------------------------------- |
+| `/account/user/edit`           | Edit user settings (email, screenname, default license) |
+| `/account/profile`             | Profile dashboard                                       |
+| `/account/profile/edit`        | Edit profile basics                                     |
+| `/account/profile/desc`        | Edit profile description                                |
+| `/account/profile/address`     | Edit location/address                                   |
+| `/account/profile/contact`     | Edit contact info                                       |
+| `/account/profile/social`      | Edit social links                                       |
+| `/account/profile/categories`  | Edit business categories                                |
+| `/account/profile/images`      | Manage profile images                                   |
+| `/account/profile/gentedepana` | Gente de Pana settings                                  |
+| `/account/articles`            | Manage your articles                                    |
+| `/updates`                     | View updates & send voice memos                         |
+| `/account/admin/*`             | Admin panel (admin users only)                          |
 
 ### Admin Pages (`/admin/*`)
 

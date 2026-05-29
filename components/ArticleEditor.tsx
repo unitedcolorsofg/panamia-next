@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 // Phase 3 consent infrastructure — gate article publishing behind module consent
 import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
@@ -46,8 +46,10 @@ import UserSearch from '@/components/UserSearch';
 import ArticleSearch from '@/components/ArticleSearch';
 import {
   CCLicensePicker,
+  CCBadge,
   type CCLicenseValue,
 } from '@/components/legal/CCLicensePicker';
+import { useDefaultCcLicense } from '@/lib/query/profile';
 
 interface CoAuthorInfo {
   userId: string;
@@ -121,9 +123,27 @@ export default function ArticleEditor({
   const [inReplyTo, setInReplyTo] = useState<ReplyToArticle | null>(
     initialData.inReplyTo || null
   );
+  // New articles seed the license from the author's saved default; existing
+  // articles keep their stored license. Once the author picks a license for
+  // this article, stop tracking the default (per-article override).
+  const defaultCcLicense = useDefaultCcLicense();
   const [ccLicense, setCcLicense] = useState<CCLicenseValue>(
-    initialData.ccLicense || 'cc-by-sa-4'
+    initialData.ccLicense || defaultCcLicense
   );
+  const licenseTouched = useRef(false);
+  useEffect(() => {
+    if (
+      mode === 'create' &&
+      !initialData.ccLicense &&
+      !licenseTouched.current
+    ) {
+      setCcLicense(defaultCcLicense);
+    }
+  }, [defaultCcLicense, mode, initialData.ccLicense]);
+  const handleLicenseChange = (license: CCLicenseValue) => {
+    licenseTouched.current = true;
+    setCcLicense(license);
+  };
 
   // Fetch current user ID for excluding from search
   useEffect(() => {
@@ -566,7 +586,7 @@ export default function ArticleEditor({
           {/* CC License */}
           <div className="space-y-2">
             <Label>License</Label>
-            <CCLicensePicker value={ccLicense} onChange={setCcLicense} />
+            <CCLicensePicker value={ccLicense} onChange={handleLicenseChange} />
           </div>
 
           {/* Content Editor with Preview */}
@@ -680,6 +700,11 @@ export default function ArticleEditor({
               <div className="space-y-3">
                 <p className="text-sm text-gray-500">
                   Invite someone to collaborate on this article:
+                </p>
+                <p className="text-muted-foreground flex flex-wrap items-center gap-1 text-xs">
+                  By accepting, a co-author agrees to publish under this
+                  article&rsquo;s license (<CCBadge license={ccLicense} />
+                  ). They can decline the invitation instead.
                 </p>
                 <UserSearch
                   onSelect={handleInviteCoAuthor}

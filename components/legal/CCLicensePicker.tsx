@@ -38,13 +38,13 @@ const LICENSE_OPTIONS: {
   badgeUrl: string;
 }[] = [
   {
-    value: 'cc-by-sa-4',
-    label: 'CC BY-SA 4.0',
-    spdx: 'CC-BY-SA-4.0',
+    value: 'cc-0',
+    label: 'CC0 1.0',
+    spdx: 'CC0-1.0',
     description:
-      'Anyone may share and adapt your work with attribution. Adaptations must use the same license.',
-    deedUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-    badgeUrl: 'https://licensebuttons.net/l/by-sa/4.0/88x31.png',
+      'You dedicate your work to the public domain, waiving all copyright and related rights worldwide. No attribution required.',
+    deedUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    badgeUrl: 'https://licensebuttons.net/p/zero/1.0/88x31.png',
   },
   {
     value: 'cc-by-4',
@@ -56,13 +56,13 @@ const LICENSE_OPTIONS: {
     badgeUrl: 'https://licensebuttons.net/l/by/4.0/88x31.png',
   },
   {
-    value: 'cc-0',
-    label: 'CC0 1.0',
-    spdx: 'CC0-1.0',
+    value: 'cc-by-sa-4',
+    label: 'CC BY-SA 4.0',
+    spdx: 'CC-BY-SA-4.0',
     description:
-      'You dedicate your work to the public domain, waiving all copyright and related rights worldwide. No attribution required.',
-    deedUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-    badgeUrl: 'https://licensebuttons.net/p/zero/1.0/88x31.png',
+      'Anyone may share and adapt your work with attribution. Adaptations must use the same license.',
+    deedUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    badgeUrl: 'https://licensebuttons.net/l/by-sa/4.0/88x31.png',
   },
 ];
 

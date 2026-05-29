@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+/* next-themes toggles a `.dark` class on <html> (attribute="class"), but Tailwind
+   v4 defaults the `dark:` variant to `@media (prefers-color-scheme: dark)` and does
+   NOT read `darkMode` from tailwind.config.js (the JS config is ignored unless
+   loaded via @config). Without this directive, toggling dark mode flips the CSS
+   variables keyed off `.dark` below while leaving every `dark:` utility inert —
+   e.g. a modal's `dark:bg-zinc-900` never activates, so light foreground text lands
+   on a `bg-white` panel (the white-on-white bug). Binding the variant to the class
+   keeps utilities and variables flipping together. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Font family CSS variables — loaded via direct <link> in app/layout.tsx
    (replaces next/font/google which generated malformed Google Fonts URLs) */
 :root {

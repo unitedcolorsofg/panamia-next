@@ -525,6 +525,11 @@ export const profiles = pgTable(
     membershipLevel: membershipLevel('membership_level')
       .notNull()
       .default('free'),
+    // Default Creative Commons license applied when this user composes new
+    // Articles (/a) and social timeline posts (/s). Overridable per item.
+    defaultCcLicense: ccLicense('default_cc_license')
+      .notNull()
+      .default('cc-by-4'),
     descriptions: jsonb('descriptions'),
     socials: jsonb('socials'),
     galleryImages: jsonb('gallery_images'),

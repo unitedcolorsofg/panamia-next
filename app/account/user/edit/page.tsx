@@ -40,6 +40,11 @@ import { getUserSession, saveUserSession } from '@/lib/user';
 import { UserInterface } from '@/lib/interfaces';
 import { Mail, AlertCircle, Check, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  CCLicensePicker,
+  type CCLicenseValue,
+} from '@/components/legal/CCLicensePicker';
+import { useProfile, useMutateDefaultLicense } from '@/lib/query/profile';
 
 export default function UserEditPage() {
   const { data: session } = useSession();
@@ -55,6 +60,21 @@ export default function UserEditPage() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
   const [sessionScreenname, setSessionScreenname] = useState('');
+
+  // Default publishing license (stored on the profile, used to pre-select the
+  // picker when composing new Articles and posts).
+  const { data: profile } = useProfile();
+  const mutateDefaultLicense = useMutateDefaultLicense();
+  const [defaultLicense, setDefaultLicense] =
+    useState<CCLicenseValue>('cc-by-4');
+  useEffect(() => {
+    if (profile?.defaultCcLicense) setDefaultLicense(profile.defaultCcLicense);
+  }, [profile?.defaultCcLicense]);
+  const handleDefaultLicenseChange = (license: CCLicenseValue) => {
+    setDefaultLicense(license);
+    mutateDefaultLicense.mutate(license);
+  };
+
   const [screennameStatus, setScreennameStatus] = useState<
     'idle' | 'checking' | 'available' | 'taken' | 'invalid'
   >('idle');
@@ -914,6 +934,25 @@ export default function UserEditPage() {
                       </div>
                     </div>
                   )}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="default-license">
+                <AccordionTrigger>Default Publishing License</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pt-2">
+                    <p className="text-muted-foreground text-sm">
+                      Choose the Creative Commons license that&rsquo;s
+                      pre-selected when you compose new articles and timeline
+                      posts. You can still override it for any individual
+                      article or post at compose time.
+                    </p>
+                    <CCLicensePicker
+                      value={defaultLicense}
+                      onChange={handleDefaultLicenseChange}
+                      disabled={mutateDefaultLicense.isPending}
+                    />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

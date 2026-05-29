@@ -29,18 +29,19 @@ Current user operations:
 These endpoints handle profile data updates. Similar endpoints exist under
 `/api/admin/*`, `/api/affiliate/*`, and `/api/geo/*` for different contexts:
 
-| Endpoint            | Method | Description                    |
-| ------------------- | ------ | ------------------------------ |
-| `*/get`             | GET    | Get profile data               |
-| `*/saveDesc`        | POST   | Update description             |
-| `*/saveAddress`     | POST   | Update location                |
-| `*/saveContact`     | POST   | Update contact info            |
-| `*/saveSocial`      | POST   | Update social links            |
-| `*/saveCategories`  | POST   | Update categories              |
-| `*/saveGenteDePana` | POST   | Update Gente de Pana           |
-| `*/upload`          | POST   | Upload profile image           |
-| `*/acceptTOS`       | POST   | Accept terms of service        |
-| `*/action`          | POST   | Profile actions (verify, etc.) |
+| Endpoint               | Method | Description                         |
+| ---------------------- | ------ | ----------------------------------- |
+| `*/get`                | GET    | Get profile data                    |
+| `*/saveDesc`           | POST   | Update description                  |
+| `*/saveAddress`        | POST   | Update location                     |
+| `*/saveContact`        | POST   | Update contact info                 |
+| `*/saveSocial`         | POST   | Update social links                 |
+| `*/saveCategories`     | POST   | Update categories                   |
+| `*/saveGenteDePana`    | POST   | Update Gente de Pana                |
+| `*/saveDefaultLicense` | POST   | Set default publishing (CC) license |
+| `*/upload`             | POST   | Upload profile image                |
+| `*/acceptTOS`          | POST   | Accept terms of service             |
+| `*/action`             | POST   | Profile actions (verify, etc.)      |
 
 ## Articles (`/api/articles/*`)
 

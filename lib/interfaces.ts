@@ -150,6 +150,8 @@ export interface ProfileInterface {
   images?: ProfileImagesInterface;
   linked_profiles: [];
   mentoring?: MentoringInterface;
+  /** Default CC license pre-selected when composing new Articles and posts. */
+  defaultCcLicense?: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0';
   createdAt: Date;
   updatedAt: Date;
 }
