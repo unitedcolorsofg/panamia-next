@@ -193,6 +193,13 @@ if [ -n "$STAGED_DIRS" ]; then
       .|node_modules*|.git*|.next*|.vercel*|public/*)
         continue
         ;;
+      # Exceptions: these folders intentionally have no README.
+      # - drizzle/ holds generated migration SQL (documented in docs/DATABASE-DESIGN.md)
+      # - leaf API route folders are documented collectively in app/api/README.md,
+      #   not per-route (no sibling save*/ route carries its own README)
+      drizzle|drizzle/*|app/api/profile/saveDefaultLicense)
+        continue
+        ;;
     esac
 
     # Check if this is a new directory (all files in it are being added)
