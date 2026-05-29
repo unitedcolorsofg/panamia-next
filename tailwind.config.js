@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 const config = {
-  darkMode: 'media', // Use system color scheme preference
+  darkMode: 'class', // Driven by next-themes (attribute="class") in app/layout.tsx
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',

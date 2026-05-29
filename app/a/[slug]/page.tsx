@@ -350,7 +350,9 @@ export async function generateMetadata({ params }: PageProps) {
   const licenseUrl =
     articleData.ccLicense === 'cc-by-4'
       ? 'https://creativecommons.org/licenses/by/4.0/'
-      : 'https://creativecommons.org/licenses/by-sa/4.0/';
+      : articleData.ccLicense === 'cc-0'
+        ? 'https://creativecommons.org/publicdomain/zero/1.0/'
+        : 'https://creativecommons.org/licenses/by-sa/4.0/';
 
   return {
     title: articleData.title,

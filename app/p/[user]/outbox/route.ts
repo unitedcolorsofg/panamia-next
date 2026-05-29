@@ -79,6 +79,7 @@ export async function GET(
   const LICENSE_DEED: Record<string, string> = {
     'cc-by-4': 'https://creativecommons.org/licenses/by/4.0/',
     'cc-by-sa-4': 'https://creativecommons.org/licenses/by-sa/4.0/',
+    'cc-0': 'https://creativecommons.org/publicdomain/zero/1.0/',
   };
 
   const orderedItems = statuses.map((status) => ({

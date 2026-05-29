@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate ccLicense
-    const validLicenses = ['cc-by-4', 'cc-by-sa-4'] as const;
+    const validLicenses = ['cc-by-4', 'cc-by-sa-4', 'cc-0'] as const;
     const resolvedLicense =
       ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
 

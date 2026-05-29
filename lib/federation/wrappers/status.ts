@@ -83,7 +83,7 @@ export async function createStatus(
   }>,
   recipientActorIds?: string[],
   location?: StatusLocation,
-  ccLicense: 'cc-by-4' | 'cc-by-sa-4' = 'cc-by-sa-4'
+  ccLicense: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' = 'cc-by-sa-4'
 ): Promise<CreateStatusResult> {
   // Fetch the actor with profile
   const actor = await db.query.socialActors.findFirst({

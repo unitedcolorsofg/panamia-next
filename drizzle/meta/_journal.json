@@ -127,6 +127,13 @@
       "when": 1779494400000,
       "tag": "0017_add_foreign_keys_and_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780099200000,
+      "tag": "0018_add_cc0_to_cc_license",
+      "breakpoints": true
     }
   ]
 }

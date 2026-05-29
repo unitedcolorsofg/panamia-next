@@ -264,7 +264,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Validate ccLicense
     if (
       updates.ccLicense &&
-      !['cc-by-4', 'cc-by-sa-4'].includes(updates.ccLicense as string)
+      !['cc-by-4', 'cc-by-sa-4', 'cc-0'].includes(updates.ccLicense as string)
     ) {
       return NextResponse.json(
         { success: false, error: 'Invalid CC license' },

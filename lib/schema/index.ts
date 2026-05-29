@@ -69,7 +69,11 @@ export const notificationObjectType = pgEnum('notification_object_type', [
   'venue',
 ]);
 
-export const ccLicense = pgEnum('cc_license', ['cc-by-4', 'cc-by-sa-4']);
+export const ccLicense = pgEnum('cc_license', [
+  'cc-by-4',
+  'cc-by-sa-4',
+  'cc-0',
+]);
 
 export const articleType = pgEnum('article_type', [
   'business_update',

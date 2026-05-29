@@ -7,9 +7,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Check, Scale } from 'lucide-react';
+import { Check } from 'lucide-react';
 
-export type CCLicenseValue = 'cc-by-4' | 'cc-by-sa-4';
+function CCHeartIcon({ className }: { className?: string }) {
+  return (
+    <img
+      src="/logos/cc_heart.svg"
+      alt=""
+      aria-hidden="true"
+      className={`${className ?? ''} dark:invert`.trim()}
+    />
+  );
+}
+
+export type CCLicenseValue = 'cc-by-4' | 'cc-by-sa-4' | 'cc-0';
 
 interface CCLicensePickerProps {
   value: CCLicenseValue;
@@ -44,6 +55,15 @@ const LICENSE_OPTIONS: {
     deedUrl: 'https://creativecommons.org/licenses/by/4.0/',
     badgeUrl: 'https://licensebuttons.net/l/by/4.0/88x31.png',
   },
+  {
+    value: 'cc-0',
+    label: 'CC0 1.0',
+    spdx: 'CC0-1.0',
+    description:
+      'You dedicate your work to the public domain, waiving all copyright and related rights worldwide. No attribution required.',
+    deedUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    badgeUrl: 'https://licensebuttons.net/p/zero/1.0/88x31.png',
+  },
 ];
 
 /**
@@ -67,7 +87,7 @@ export function CCLicenseBadge({
       disabled={disabled}
       className="hover:bg-accent inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50"
     >
-      <Scale className="h-3 w-3" />
+      <CCHeartIcon className="h-3 w-3" />
       {option.label}
     </button>
   );
@@ -93,14 +113,22 @@ export function CCLicensePickerModal({
       <DialogContent className="bg-white sm:max-w-md dark:bg-zinc-900">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Scale className="h-5 w-5" />
-            Content License
+            <CCHeartIcon className="h-5 w-5" />
+            Content Copyright Release
           </DialogTitle>
         </DialogHeader>
 
         <p className="text-muted-foreground text-sm">
-          All content on Panamia Club is Creative Commons licensed. Choose your
-          license:
+          We&rsquo;re committed to making all content available as{' '}
+          <a
+            href="https://creativecommons.org/public-domain/freeworks/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Free Cultural Works
+          </a>
+          . Choose your license:
         </p>
 
         <div className="space-y-3 py-2">
@@ -191,7 +219,7 @@ export function CCLicensePicker({
         disabled={disabled}
         className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors disabled:opacity-50"
       >
-        <Scale className="h-5 w-5 shrink-0 text-green-600" />
+        <CCHeartIcon className="h-5 w-5 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium">{option.label}</div>
           <div className="text-muted-foreground text-xs">

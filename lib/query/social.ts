@@ -409,7 +409,7 @@ export const useCreatePost = () => {
         precision?: 'precise' | 'general';
       };
       /** CC license selection (default: cc-by-sa-4) */
-      ccLicense?: 'cc-by-4' | 'cc-by-sa-4';
+      ccLicense?: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0';
     }) => {
       return axios.post('/api/social/statuses', data);
     },

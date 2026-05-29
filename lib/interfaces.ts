@@ -389,7 +389,7 @@ export interface SocialStatusDisplay {
     name?: string;
     precision?: 'precise' | 'general';
   } | null;
-  ccLicense?: 'cc-by-4' | 'cc-by-sa-4' | null;
+  ccLicense?: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' | null;
 }
 
 export interface SocialActorDisplay {
