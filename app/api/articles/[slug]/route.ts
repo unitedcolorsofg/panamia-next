@@ -228,6 +228,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       'articleType',
       'tags',
       'coverImage',
+      'coverImageAlt',
       'inReplyTo',
       'ccLicense',
     ];

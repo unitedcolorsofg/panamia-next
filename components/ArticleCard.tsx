@@ -20,6 +20,7 @@ interface ArticleCardProps {
   articleType: 'business_update' | 'community_commentary';
   tags?: string[];
   coverImage?: string;
+  coverImageAlt?: string;
   readingTime?: number;
   publishedAt: string;
   author: {
@@ -36,6 +37,7 @@ export default function ArticleCard({
   articleType,
   tags = [],
   coverImage,
+  coverImageAlt,
   readingTime,
   publishedAt,
   author,
@@ -58,7 +60,7 @@ export default function ArticleCard({
           <div className="relative aspect-video overflow-hidden">
             <Image
               src={coverImage}
-              alt={title}
+              alt={coverImageAlt || title}
               fill
               className="object-cover transition-transform group-hover:scale-105"
             />

@@ -329,6 +329,7 @@ export interface ArticleInterface {
   content: string;
   excerpt: string;
   coverImage?: string;
+  coverImageAlt?: string;
   articleType: ArticleType;
   tags: string[];
   authorId: string;

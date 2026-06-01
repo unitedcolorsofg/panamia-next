@@ -143,6 +143,7 @@ async function getArticle(slug: string) {
     articleType: articleDoc.articleType,
     tags: articleDoc.tags || [],
     coverImage: articleDoc.coverImage,
+    coverImageAlt: articleDoc.coverImageAlt,
     readingTime: articleDoc.readingTime,
     ccLicense: articleDoc.ccLicense as CCLicenseValue,
     publishedAt: articleDoc.publishedAt?.toISOString(),
@@ -187,7 +188,7 @@ export default async function ArticlePage({ params }: PageProps) {
           <div className="relative mb-8 aspect-video overflow-hidden rounded-lg">
             <Image
               src={articleData.coverImage}
-              alt={articleData.title}
+              alt={articleData.coverImageAlt || articleData.title}
               fill
               className="object-cover"
               priority

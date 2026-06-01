@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       articleType,
       tags,
       coverImage,
+      coverImageAlt,
       inReplyTo,
       ccLicense,
     } = body;
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
         articleType,
         tags: tags || [],
         coverImage,
+        coverImageAlt,
         authorId: currentUser.id,
         coAuthors: [],
         status: 'draft',
@@ -185,6 +187,7 @@ export async function GET(request: NextRequest) {
           publishedAt: true,
           readingTime: true,
           coverImage: true,
+          coverImageAlt: true,
         },
       }),
       db

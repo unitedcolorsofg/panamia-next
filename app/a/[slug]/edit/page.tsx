@@ -46,6 +46,7 @@ interface ArticleData {
   articleType: 'business_update' | 'community_commentary';
   tags: string[];
   coverImage?: string;
+  coverImageAlt?: string;
   status: string;
   coAuthors?: CoAuthorInfo[];
   reviewedBy?: ReviewerInfo;
@@ -192,6 +193,7 @@ export default function EditArticlePage() {
           articleType: article.articleType,
           tags: article.tags,
           coverImage: article.coverImage,
+          coverImageAlt: article.coverImageAlt,
           coAuthors: article.coAuthors,
           reviewedBy: article.reviewedBy,
           status: article.status,

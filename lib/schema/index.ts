@@ -591,6 +591,7 @@ export const articles = pgTable(
     content: text('content').notNull(),
     excerpt: text('excerpt'),
     coverImage: text('cover_image'),
+    coverImageAlt: text('cover_image_alt'),
     articleType: articleType('article_type').notNull(),
     tags: text('tags')
       .array()

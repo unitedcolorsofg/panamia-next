@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
         articleType: a.articleType,
         tags: a.tags,
         coverImage: a.coverImage,
+        coverImageAlt: a.coverImageAlt,
         readingTime: a.readingTime,
         publishedAt: a.publishedAt,
         author: (a.authorId ? authorMap.get(a.authorId) : undefined) || {

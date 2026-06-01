@@ -37,6 +37,7 @@ interface Article {
   articleType: 'business_update' | 'community_commentary';
   tags: string[];
   coverImage?: string;
+  coverImageAlt?: string;
   readingTime?: number;
   publishedAt: string;
   author: {
@@ -229,6 +230,7 @@ export default function HomePage() {
                   articleType={article.articleType}
                   tags={article.tags}
                   coverImage={article.coverImage}
+                  coverImageAlt={article.coverImageAlt}
                   readingTime={article.readingTime}
                   publishedAt={article.publishedAt}
                   author={article.author}

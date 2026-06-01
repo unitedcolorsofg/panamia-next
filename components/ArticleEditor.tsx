@@ -78,6 +78,7 @@ interface ArticleEditorProps {
     articleType?: 'business_update' | 'community_commentary';
     tags?: string[];
     coverImage?: string;
+    coverImageAlt?: string;
     coAuthors?: CoAuthorInfo[];
     reviewedBy?: ReviewerInfo;
     status?: string;
@@ -101,6 +102,9 @@ export default function ArticleEditor({
   const [tags, setTags] = useState<string[]>(initialData.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [coverImage, setCoverImage] = useState(initialData.coverImage || '');
+  const [coverImageAlt, setCoverImageAlt] = useState(
+    initialData.coverImageAlt || ''
+  );
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,6 +206,7 @@ export default function ArticleEditor({
         articleType,
         tags,
         coverImage: coverImage || undefined,
+        coverImageAlt: coverImageAlt || undefined,
         inReplyTo: inReplyTo?._id || undefined,
         ccLicense,
       };
@@ -531,6 +536,17 @@ export default function ArticleEditor({
               onChange={(e) => setCoverImage(e.target.value)}
               placeholder="https://..."
               type="url"
+            />
+          </div>
+
+          {/* Cover Image Alt Text */}
+          <div className="space-y-2">
+            <Label htmlFor="coverImageAlt">Alt Text</Label>
+            <Input
+              id="coverImageAlt"
+              value={coverImageAlt}
+              onChange={(e) => setCoverImageAlt(e.target.value)}
+              placeholder="Describe the cover image for screen readers"
             />
           </div>
 
