@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 export async function GET(_request: NextRequest) {
   try {
     // Admin gate: ADMIN_EMAILS-derived session.user.isAdmin, consistent with
-    // checkAdminAuth() — no reliance on the unwired users.role column.
+    // checkAdminAuth().
     const session = await auth();
     if (!session?.user?.isAdmin) {
       return NextResponse.json(

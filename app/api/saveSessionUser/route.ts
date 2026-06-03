@@ -173,7 +173,6 @@ function formatUserResponse(user: User) {
     name: user.name,
     screenname: user.screenname,
     status: {
-      role: user.role,
       locked: user.lockedAt,
     },
     affiliate: user.affiliate,

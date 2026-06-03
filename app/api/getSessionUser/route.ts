@@ -59,7 +59,6 @@ export async function GET(_request: NextRequest) {
         .values({
           email,
           name: session.user?.name || null,
-          role: 'user',
           affiliate: affiliateJson,
           alternateEmails: [],
         })
@@ -111,7 +110,6 @@ function formatUserResponse(user: User) {
     name: user.name,
     screenname: user.screenname,
     status: {
-      role: user.role,
       locked: user.lockedAt,
     },
     affiliate: user.affiliate,

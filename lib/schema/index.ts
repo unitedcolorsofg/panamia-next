@@ -300,7 +300,6 @@ export const users = pgTable('users', {
   lastScreennameChange: timestamp('last_screenname_change', {
     withTimezone: true,
   }),
-  role: text('role').notNull().default('user'),
   accountType: accountType('account_type').notNull().default('personal'),
   lockedAt: timestamp('locked_at', { withTimezone: true }),
   alternateEmails: text('alternate_emails')

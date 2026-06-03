@@ -117,7 +117,6 @@ function formatUserForUnguard(user: User) {
     email: user.email,
     name: user.name,
     screenname: user.screenname,
-    role: user.role,
     accountType: user.accountType,
   };
 }

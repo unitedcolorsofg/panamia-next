@@ -523,7 +523,6 @@ async function main() {
               emailVerified: !!user.emailVerified,
               name: user.name || null,
               screenname: user.screenname || null,
-              role: user.role || 'user',
               createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
               updatedAt: user.updatedAt ? new Date(user.updatedAt) : new Date(),
             });

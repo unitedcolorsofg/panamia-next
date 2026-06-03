@@ -20,7 +20,6 @@ export async function GET(_request: NextRequest) {
         id: true,
         email: true,
         screenname: true,
-        role: true,
         accountType: true,
       },
       with: {
@@ -39,9 +38,6 @@ export async function GET(_request: NextRequest) {
           email: existingUser.email,
           screenname: existingUser.screenname,
           name: existingUser.profile?.name,
-          status: {
-            role: existingUser.role,
-          },
           accountType: existingUser.accountType,
         },
       });

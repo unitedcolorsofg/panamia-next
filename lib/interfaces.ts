@@ -177,7 +177,6 @@ export interface SignupInterface {
 }
 
 export interface UserStatusInterface {
-  role?: string;
   locked?: boolean;
 }
 

@@ -41,10 +41,6 @@ export default function AdminUsersPage() {
                 <div>
                   <span className="font-semibold">Email:</span> {item?.email}
                 </div>
-                <div>
-                  <span className="font-semibold">Role:</span>{' '}
-                  {item?.status?.role}
-                </div>
               </div>
             </div>
           </CardContent>

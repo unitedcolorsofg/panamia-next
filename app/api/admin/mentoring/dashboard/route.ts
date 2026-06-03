@@ -57,11 +57,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // TODO: Add admin role check
-  // const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email) });
-  // if (user?.role !== 'admin') {
-  //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  // }
+  // TODO: Add admin check via session.user.isAdmin (ADMIN_EMAILS-derived),
+  // e.g. `if (!session.user.isAdmin) return 403`, consistent with checkAdminAuth().
 
   try {
     // Parse date range from query params
