@@ -2,31 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { users, profiles } from '@/lib/schema';
+import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(_request: NextRequest) {
   try {
+    // Admin gate: ADMIN_EMAILS-derived session.user.isAdmin, consistent with
+    // checkAdminAuth() — no reliance on the unwired users.role column.
     const session = await auth();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'No user session available' },
-        { status: 401 }
-      );
-    }
-    const email = session.user?.email;
-    if (!email) {
-      return NextResponse.json(
-        { success: false, error: 'No valid email' },
-        { status: 200 }
-      );
-    }
-
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, email),
-    });
-
-    if (existingUser?.role !== 'admin') {
+    if (!session?.user?.isAdmin) {
       return NextResponse.json(
         { error: 'Not Authorized:admin' },
         { status: 401 }
