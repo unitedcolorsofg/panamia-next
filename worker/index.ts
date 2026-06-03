@@ -7,6 +7,7 @@
  */
 import {
   handleImageOptimization,
+  isImageOptimizationPath,
   DEFAULT_DEVICE_SIZES,
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
@@ -73,7 +74,9 @@ export default {
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization
     // normalizes backslashes and validates the origin hasn't changed.
-    if (url.pathname === '/_vinext/image') {
+    // Match both /_next/image (emitted by the next/image shim) and the
+    // /_vinext/image alias — matching only one path 404s the other.
+    if (isImageOptimizationPath(url.pathname)) {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(
         request,
