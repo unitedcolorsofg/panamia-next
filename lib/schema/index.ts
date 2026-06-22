@@ -497,8 +497,11 @@ export const profiles = pgTable(
       .notNull()
       .$defaultFn(() => new Date())
       .$onUpdateFn(() => new Date()),
+    // Nullable: profiles can be unclaimed (created before a user attaches via
+    // auto-claim) or tombstoned (userId nulled on account deletion to keep the
+    // profile for attribution while severing the cascade FK). Postgres treats
+    // NULLs as distinct, so the unique constraint still allows many such rows.
     userId: text('user_id')
-      .notNull()
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
     email: text('email').notNull().unique(),

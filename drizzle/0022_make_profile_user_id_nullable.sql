@@ -1,0 +1,25 @@
+-- Migration: 0022_make_profile_user_id_nullable
+-- Purpose: Drop the NOT NULL constraint on profiles.user_id (set in 0017). The
+--   application design requires this column to be nullable in two flows:
+--     1. Unclaimed profiles — profiles created before a user attaches to them
+--        via auto-claim (queried with isNull(profiles.userId) in
+--        lib/server/profile.ts and app/api/oauth/complete-verification).
+--     2. Tombstoned profiles — account deletion nulls user_id to sever the
+--        ON DELETE CASCADE FK so the profile survives for attribution
+--        (lib/server/delete-account.ts). Under NOT NULL this UPDATE throws.
+--   The UNIQUE constraint and ON DELETE CASCADE FK are unchanged; Postgres
+--   treats NULLs as distinct, so many unclaimed/tombstoned rows coexist.
+-- Ticket: N/A
+-- Reversible: Yes (no data loss; reversal only safe while no NULL rows exist).
+--
+-- Dependencies: 0000_initial_schema (profiles table), 0017_add_foreign_keys_and_soft_delete
+--   (which set the NOT NULL this migration drops).
+-- Data Migration: None.
+--
+-- Rollback:
+--   ALTER TABLE "profiles" ALTER COLUMN "user_id" SET NOT NULL;
+--   (fails if any unclaimed/tombstoned rows with NULL user_id exist)
+--
+-- =============================================================================
+
+ALTER TABLE "profiles" ALTER COLUMN "user_id" DROP NOT NULL;
