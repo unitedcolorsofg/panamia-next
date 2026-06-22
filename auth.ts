@@ -631,6 +631,11 @@ function getBetterAuth(): BetterAuthInstance {
     // Without this, the adapter falls back to two separate queries (sessions SELECT +
     // users SELECT via handleFallbackJoin) which hangs in CF Workers with max:1.
     experimental: { joins: true },
+    // vinext #2158: vinext 0.1.1+ may hand the [...all] catch-all handler a path
+    // with a trailing slash; better-auth rejects it under default trailing-slash
+    // validation, 404ing every auth endpoint. Skipping that validation is the
+    // maintainer-suggested workaround.
+    advanced: { skipTrailingSlashes: true },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
