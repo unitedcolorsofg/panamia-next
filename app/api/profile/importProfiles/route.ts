@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     const [newProfile] = await db
       .insert(profiles)
       .values({
+        userId: session.user.id,
         name,
         email,
         active: true,
