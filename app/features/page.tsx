@@ -8,6 +8,9 @@ import {
   Gift,
 } from 'lucide-react';
 
+// Static features page — cache at the edge, revalidate hourly (Workers Cache).
+export const revalidate = 3600;
+
 const features = [
   {
     title: 'Events',

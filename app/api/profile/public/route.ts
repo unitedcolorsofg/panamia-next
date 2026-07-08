@@ -16,10 +16,19 @@ export async function GET(request: NextRequest) {
     });
 
     if (user?.profile) {
-      return NextResponse.json({
-        success: true,
-        data: unguardProfile(user.profile),
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          data: unguardProfile(user.profile),
+        },
+        {
+          // Public, anonymous profile data — cacheable at the edge (keyed by handle).
+          headers: {
+            'Cache-Control':
+              'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
+          },
+        }
+      );
     }
   }
 

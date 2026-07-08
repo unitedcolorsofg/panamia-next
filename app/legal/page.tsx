@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
+// Static legal content — cache at the edge, revalidate hourly (Workers Cache).
+export const revalidate = 3600;
+
 const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {

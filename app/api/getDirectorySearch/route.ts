@@ -47,11 +47,23 @@ export async function GET(request: NextRequest) {
     resultsView,
   };
 
+  // Public, anonymous directory data — cacheable at the edge (Workers Cache).
+  // Keyed by full URL, so each distinct search caches separately. Note: an
+  // empty query generates a server-side `random` batch that is not in the URL,
+  // so all default-browse visitors share the same batch for the TTL.
+  const cacheHeaders = {
+    'Cache-Control':
+      'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
+  };
+
   const apiResponse = await getSearch(params);
   if (apiResponse) {
-    return NextResponse.json(apiResponse);
+    return NextResponse.json(apiResponse, { headers: cacheHeaders });
   }
-  return NextResponse.json({ success: true, data: [], pagination: {} });
+  return NextResponse.json(
+    { success: true, data: [], pagination: {} },
+    { headers: cacheHeaders }
+  );
 }
 
 export const maxDuration = 5;

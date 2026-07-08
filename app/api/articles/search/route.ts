@@ -77,10 +77,19 @@ export async function GET(request: NextRequest) {
       },
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: { articles: enrichedArticles },
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: { articles: enrichedArticles },
+      },
+      {
+        // Public, anonymous article search — cacheable at the edge (keyed by query).
+        headers: {
+          'Cache-Control':
+            'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error searching articles:', error);
     return NextResponse.json(
