@@ -23,6 +23,12 @@ import {
   type CCLicenseValue,
 } from '@/components/legal/CCLicensePicker';
 
+// Cache published article renders at the edge (Workers Cache).
+// Safe: server-rendered from a param-driven DB read only, no cookies/headers/
+// session — SSR output is identical for every visitor. Only published articles
+// are shown here. vinext emits `s-maxage=300, stale-while-revalidate`.
+export const revalidate = 300;
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }

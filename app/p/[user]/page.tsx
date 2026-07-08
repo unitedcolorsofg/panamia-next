@@ -9,6 +9,12 @@ import { ProfileTags } from './_components/profile-tags';
 import { MentoringSection } from './_components/mentoring-section';
 import { SocialSection } from './_components/social-section';
 
+// Cache public profile renders at the edge (Workers Cache).
+// Safe: this page reads no cookies/headers/session server-side — session,
+// theme, and language are all hydrated client-side, so the SSR output is
+// identical for every visitor. vinext emits `s-maxage=300, stale-while-revalidate`.
+export const revalidate = 300;
+
 interface PageProps {
   params: Promise<{ user: string }>;
 }
