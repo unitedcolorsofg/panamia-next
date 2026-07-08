@@ -11,6 +11,24 @@
 		"directory": "dist/client",
 		"binding": "ASSETS"
 	},
+	// Workers Cache: regional tiered cache in front of the Worker.
+	// Opt-in per response via Cache-Control — enabling this does NOT cache
+	// anything by itself. Responses are only cached when they explicitly set a
+	// cacheable Cache-Control (public, max-age=…); GET-only; Set-Cookie skipped.
+	// https://blog.cloudflare.com/workers-cache/
+	//
+	// Safe here because:
+	//  - No anonymous session cookie (better-auth sets no cookie until sign-in;
+	//    no session.cookieCache configured).
+	//  - Theme (next-themes) and language (i18next) are client-side/localStorage,
+	//    and session state is hydrated client-side (SessionProvider is a client
+	//    component) — so SSR output is byte-identical for every visitor.
+	// Auth/personalized responses stay uncached because they emit no-store.
+	// Public route handlers (feeds, federation, .well-known) already set
+	// public Cache-Control and are cached immediately.
+	"cache": {
+		"enabled": true
+	},
 	// Hyperdrive binding for Supabase PostgreSQL access from Workers
 	// https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
 	"hyperdrive": [
