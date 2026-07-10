@@ -31,6 +31,7 @@ import {
   Shield,
   Info,
   Gift,
+  Radio,
   LogOut,
   PenLine,
   FileText,
@@ -372,6 +373,12 @@ export default function MainHeader({
                 >
                   <Gift className="mr-2 h-4 w-4" />
                   {t('nav.supportUs')}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/r" className="flex cursor-pointer items-center">
+                  <Radio className="mr-2 h-4 w-4" />
+                  {t('nav.resilienceNetwork')}
                 </Link>
               </DropdownMenuItem>
 

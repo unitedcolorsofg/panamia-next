@@ -3,16 +3,10 @@
 import { useSession } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import dynamic from 'next/dynamic';
-
-const EventEditor = dynamic(() => import('@/components/EventEditor'), {
-  loading: () => (
-    <p className="text-muted-foreground py-12 text-center">Loading editor...</p>
-  ),
-});
-import Link from 'next/link';
+import EventForm from '@/components/events/EventForm';
 
 export default function NewEventPage() {
   const { data: session, status } = useSession();
@@ -26,7 +20,7 @@ export default function NewEventPage() {
 
   if (status === 'loading') {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
+      <main className="container mx-auto max-w-4xl px-4 py-8">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
@@ -38,17 +32,14 @@ export default function NewEventPage() {
 
   if (!session) {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
+      <main className="container mx-auto max-w-4xl px-4 py-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Sign In Required</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="py-12 text-center">
             <p className="mb-4 text-gray-600 dark:text-gray-400">
-              You must be signed in to host an event.
+              Please sign in to host an event.
             </p>
             <Button asChild>
-              <Link href="/signin?callbackUrl=/e/new">Sign In</Link>
+              <Link href="/signin?callbackUrl=/e/new">Sign in</Link>
             </Button>
           </CardContent>
         </Card>
@@ -57,8 +48,15 @@ export default function NewEventPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
-      <EventEditor mode="create" />
+    <main className="container mx-auto max-w-4xl px-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Host an Event</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EventForm />
+        </CardContent>
+      </Card>
     </main>
   );
 }

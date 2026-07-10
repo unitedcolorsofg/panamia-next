@@ -14,6 +14,7 @@ interface GhlContactData {
 }
 import { useSession } from '@/lib/auth-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RotateKeysSection } from '@/components/relay/RotateKeysSection';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -934,6 +935,13 @@ export default function UserEditPage() {
                       </div>
                     </div>
                   )}
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="rotate-keys">
+                <AccordionTrigger>Rotate Nostr Keys</AccordionTrigger>
+                <AccordionContent>
+                  <RotateKeysSection context="inline" />
                 </AccordionContent>
               </AccordionItem>
 

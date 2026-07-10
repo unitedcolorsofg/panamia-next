@@ -425,6 +425,55 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // NOSTR / RESILIENCE RELAY (panamia-nosflare)
+  // Crosspost + NIP-29 relay ops. All optional — crosspost is best-effort and
+  // no-ops when unconfigured. On Cloudflare Workers the relay is reached via the
+  // RELAY service binding in wrangler.jsonc (not an env var); RELAY_INTERNAL_URL
+  // is the HTTP fallback used in local dev / when the binding is absent.
+  // =============================================================================
+  CROSSPOST_AUTH_TOKEN: {
+    description:
+      'Shared secret authenticating panamia → relay crosspost and internal ' +
+      'relay calls. Must match the relay Worker CROSSPOST_AUTH_TOKEN. Required ' +
+      'for article/event crossposting to succeed; crosspost no-ops without it.',
+    location: 'SECRET',
+    required: false,
+    // Generate a 256-bit random shared secret; set the same value on the relay.
+    example: 'openssl rand -hex 32',
+  },
+  NOSTR_HOME_RELAY: {
+    description:
+      "This instance's authoritative home relay (wss URL). nostr_event_id is " +
+      'recorded only when this relay accepts the crosspost. Must match the ' +
+      'relay Worker NOSTR_HOME_RELAY.',
+    location: 'VAR',
+    required: false,
+    defaultValue: 'wss://relay.pana.social',
+    example: 'wss://relay.pana.social',
+  },
+  RELAY_INTERNAL_URL: {
+    description:
+      "HTTP URL of the relay Worker's internal endpoint, used as a fallback " +
+      'when the RELAY service binding is unavailable (local dev, non-Worker ' +
+      'contexts). On CF Workers the RELAY service binding is preferred.',
+    location: 'VAR',
+    required: false,
+    example:
+      'https://panamia-nosflare.<account>.workers.dev/internal/crosspost',
+  },
+  RELAY_PUBLIC_KEY: {
+    description:
+      "The relay's hex x-only Nostr public key. Non-sensitive. Used to label " +
+      'NIP-56 abuse reports that target the relay itself in the moderation UI. ' +
+      "Derive it from the relay's secret key (the value set as the relay " +
+      'Worker NOSTR_PRIVATE_KEY).',
+    location: 'VAR',
+    required: false,
+    // With nak (github.com/fiatjaf/nak): derive the x-only pubkey from the sec.
+    example: 'nak key public <relay-nsec-or-hex-sec>   # 64-hex output',
+  },
+
+  // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
   DEV_RECEIVER_EMAIL: {

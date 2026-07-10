@@ -1,9 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { events, eventOrganizers, profiles } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { events, profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { auth } from '@/auth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Users, Eye } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -12,120 +16,86 @@ interface PageProps {
 export default async function ManageEventPage({ params }: PageProps) {
   const { slug } = await params;
   const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+  if (!session?.user?.id) {
+    redirect(`/signin?callbackUrl=/e/${slug}/manage`);
+  }
 
-  const event = await db.query.events.findFirst({
-    where: eq(events.slug, slug),
-    with: { venue: { columns: { name: true, city: true, state: true } } },
-  });
+  const [event, profile] = await Promise.all([
+    db.query.events.findFirst({
+      where: eq(events.slug, slug),
+      with: { venue: { columns: { name: true, city: true } } },
+    }),
+    db.query.profiles.findFirst({
+      where: eq(profiles.userId, session.user.id),
+      columns: { id: true },
+    }),
+  ]);
   if (!event) notFound();
-
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
-  if (!profile) notFound();
-
-  const isAdmin = session.user.isAdmin || false;
-  const org = await db.query.eventOrganizers.findFirst({
-    where: and(
-      eq(eventOrganizers.eventId, event.id),
-      eq(eventOrganizers.profileId, profile.id)
-    ),
-  });
-
-  if (!org && !isAdmin) redirect(`/e/${slug}`);
-
-  const isHost = org?.role === 'host';
-  const canSeeRsvpList = org?.canSeeRsvpList || isAdmin;
+  if (!profile || profile.id !== event.hostProfileId) notFound();
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href={`/e/${slug}`}
-        className="text-muted-foreground hover:text-foreground text-sm"
-      >
-        ← Back to Event
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">Manage: {event.title}</h1>
-      <p className="text-muted-foreground mt-1 text-sm">
-        Status: <span className="font-medium capitalize">{event.status}</span> ·{' '}
-        Your role:{' '}
-        <span className="font-medium capitalize">
-          {org?.role?.replace('_', ' ') || 'Admin'}
-        </span>
-      </p>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {canSeeRsvpList && (
-          <Link
-            href={`/e/${slug}/manage/attendees`}
-            className="hover:bg-accent rounded-lg border p-4"
-          >
-            <p className="font-medium">Attendees</p>
-            <p className="text-muted-foreground text-sm">
-              View and manage RSVP list ({event.attendeeCount} going)
-            </p>
-          </Link>
-        )}
-        <Link
-          href={`/e/${slug}/manage/notes`}
-          className="hover:bg-accent rounded-lg border p-4"
-        >
-          <p className="font-medium">Notes</p>
-          <p className="text-muted-foreground text-sm">
-            Post updates for attendees
-          </p>
-        </Link>
-        <Link
-          href={`/e/${slug}/manage/photos`}
-          className="hover:bg-accent rounded-lg border p-4"
-        >
-          <p className="font-medium">Photos</p>
-          <p className="text-muted-foreground text-sm">
-            Approve submitted photos
-          </p>
-        </Link>
-        {(isHost || isAdmin) && (
-          <Link
-            href={`/e/${slug}/edit`}
-            className="hover:bg-accent rounded-lg border p-4"
-          >
-            <p className="font-medium">Edit Event</p>
-            <p className="text-muted-foreground text-sm">
-              Update event details, publish, or cancel
-            </p>
-          </Link>
-        )}
-      </div>
-
-      {event.cfStreamSrtUrl && (
-        <div className="mt-6 rounded-lg border p-4">
-          <p className="font-medium">Livestream Setup</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Your event has a Cloudflare Stream live input configured.
-          </p>
-          <div className="mt-2 space-y-1 text-sm">
-            <p>
-              <span className="font-medium">SRT URL:</span>{' '}
-              <code className="bg-muted rounded px-1">
-                {event.cfStreamSrtUrl}
-              </code>
-            </p>
-            {event.cfStreamSrtKey && (
-              <p>
-                <span className="font-medium">Stream Key:</span>{' '}
-                <code className="bg-muted rounded px-1">
-                  {event.cfStreamSrtKey}
-                </code>
-              </p>
+    <main className="container mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{event.title}</h1>
+          <div className="mt-1 flex items-center gap-2">
+            <Badge variant="secondary" className="capitalize">
+              {event.status}
+            </Badge>
+            {event.nostrEventId && (
+              <span className="text-xs text-gray-400">· on Nostr</span>
             )}
-            <p>
-              <span className="font-medium">Status:</span>{' '}
-              <span className="capitalize">{event.streamStatus}</span>
-            </p>
           </div>
         </div>
-      )}
-    </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/e/${event.slug}`}>
+            <Eye className="mr-2 h-4 w-4" />
+            View
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" />
+              Attendees
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-gray-500">
+              {event.attendeeCount} confirmed going.
+            </p>
+            <Button asChild size="sm">
+              <Link href={`/e/${event.slug}/manage/attendees`}>
+                View roster
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Pencil className="h-4 w-4" />
+              Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-gray-500">
+              Edit details{event.status !== 'published' ? ' and publish' : ''}.
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/e/${event.slug}/edit`}>Edit event</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Placeholder (v2): event photos and organizer notes management. See
+          docs/EVENTS-ROADMAP.md — event_photos / event_notes tables and the
+          /e/[slug]/photos + manage/notes routes are deferred. */}
+    </main>
   );
 }

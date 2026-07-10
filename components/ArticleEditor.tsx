@@ -216,7 +216,9 @@ export default function ArticleEditor({
       } else {
         // Default save behavior
         const url =
-          mode === 'create' ? '/api/articles' : `/api/a/${initialData.slug}`;
+          mode === 'create'
+            ? '/api/articles'
+            : `/api/articles/${initialData.slug}`;
         const method = mode === 'create' ? 'POST' : 'PATCH';
 
         const response = await fetch(url, {
@@ -256,7 +258,7 @@ export default function ArticleEditor({
 
     try {
       const response = await fetch(
-        `/api/a/${initialData.slug}/coauthors/invite`,
+        `/api/articles/${initialData.slug}/coauthors/invite`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -299,7 +301,7 @@ export default function ArticleEditor({
 
     try {
       const response = await fetch(
-        `/api/a/${initialData.slug}/review/request`,
+        `/api/articles/${initialData.slug}/review/request`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -346,9 +348,12 @@ export default function ArticleEditor({
     setError(null);
 
     try {
-      const response = await fetch(`/api/a/${initialData.slug}/publish`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/articles/${initialData.slug}/publish`,
+        {
+          method: 'POST',
+        }
+      );
 
       const data = await response.json();
 
@@ -449,6 +454,12 @@ export default function ArticleEditor({
               )}
             </div>
           </CardTitle>
+          {canPublish && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Publishing cross-posts this article to the Pana Resilience
+              Network.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Title */}

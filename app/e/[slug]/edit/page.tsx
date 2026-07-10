@@ -3,36 +3,22 @@
 import { useSession } from '@/lib/auth-client';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import dynamic from 'next/dynamic';
+import EventForm, {
+  type EventFormInitial,
+} from '@/components/events/EventForm';
+import { Loader2 } from 'lucide-react';
 
-const EventEditor = dynamic(() => import('@/components/EventEditor'), {
-  loading: () => (
-    <p className="text-muted-foreground py-12 text-center">Loading editor...</p>
-  ),
-});
-import Link from 'next/link';
-
-interface EventData {
+interface EventData extends EventFormInitial {
   slug: string;
-  title: string;
-  description?: string;
-  venueId: string;
-  startsAt: string;
-  endsAt?: string;
-  timezone: string;
-  visibility: string;
-  attendeeCap?: number | null;
-  ageRestriction: string;
-  photoPolicy: string;
-  dresscode: string;
-  streamEligible: boolean;
   status: string;
+  nostrEventId?: string | null;
 }
 
 export default function EditEventPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
@@ -40,6 +26,7 @@ export default function EditEventPage() {
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -48,91 +35,74 @@ export default function EditEventPage() {
   }, [sessionStatus, router, slug]);
 
   useEffect(() => {
-    async function fetchEvent() {
+    async function load() {
       try {
         const res = await fetch(`/api/events/${slug}`);
         const data = await res.json();
-
-        if (!data.success) {
-          setError(data.error || 'Event not found');
-          return;
-        }
-
-        setEvent(data.data);
-      } catch {
-        setError('Failed to load event');
+        if (!data.success) throw new Error(data.error || 'Not found');
+        const e = data.data;
+        setEvent({
+          slug: e.slug,
+          status: e.status,
+          title: e.title,
+          description: e.description,
+          coverImage: e.coverImage,
+          coverImageAlt: e.coverImageAlt,
+          venueId: e.venueId,
+          startsAt: e.startsAt,
+          endsAt: e.endsAt,
+          timezone: e.timezone,
+          mode: e.mode,
+          attendeeCap: e.attendeeCap,
+          tags: e.tags,
+          visibility: e.visibility,
+          nostrEventId: e.nostrEventId,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load event');
       } finally {
         setLoading(false);
       }
     }
+    if (slug) load();
+  }, [slug]);
 
-    if (session && slug) {
-      fetchEvent();
+  async function publish() {
+    setPublishing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/events/${slug}/publish`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Publish failed');
+      router.push(`/e/${slug}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish');
+    } finally {
+      setPublishing(false);
     }
-  }, [session, slug]);
+  }
 
   if (sessionStatus === 'loading' || loading) {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
+      <main className="container mx-auto max-w-4xl px-4 py-8">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </CardContent>
         </Card>
       </main>
     );
   }
 
-  if (!session) {
+  if (error && !event) {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
+      <main className="container mx-auto max-w-4xl px-4 py-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Sign In Required</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600 dark:text-gray-400">
-              You must be signed in to edit an event.
-            </p>
-            <Button asChild>
-              <Link href={`/signin?callbackUrl=/e/${slug}/edit`}>Sign In</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
-            <Button asChild variant="outline">
-              <Link href={`/e/${slug}`}>Back to Event</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
-  if (!event) {
-    return (
-      <main className="container mx-auto max-w-2xl px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Event Not Found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600 dark:text-gray-400">
-              The event you&apos;re looking for doesn&apos;t exist or you
-              don&apos;t have access to it.
-            </p>
+          <CardContent className="py-12 text-center">
+            <p className="mb-4 text-red-600">{error}</p>
             <Button asChild variant="outline">
               <Link href="/e">Back to Events</Link>
             </Button>
@@ -143,26 +113,22 @@ export default function EditEventPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
-      <EventEditor
-        mode="edit"
-        initialData={{
-          slug: event.slug,
-          title: event.title,
-          description: event.description,
-          venueId: event.venueId,
-          startsAt: event.startsAt,
-          endsAt: event.endsAt,
-          timezone: event.timezone,
-          visibility: event.visibility,
-          attendeeCap: event.attendeeCap,
-          ageRestriction: event.ageRestriction,
-          photoPolicy: event.photoPolicy,
-          dresscode: event.dresscode,
-          streamEligible: event.streamEligible,
-          status: event.status,
-        }}
-      />
+    <main className="container mx-auto max-w-4xl px-4 py-8">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Edit Event</CardTitle>
+          {event?.status !== 'published' && (
+            <Button onClick={publish} disabled={publishing}>
+              {publishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Publish
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+          {event && <EventForm editSlug={slug} initial={event} />}
+        </CardContent>
+      </Card>
     </main>
   );
 }

@@ -1,0 +1,1235 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1400 900"
+   font-family="monospace"
+   font-size="13"
+   version="1.1"
+   id="svg57"
+   sodipodi:docname="pana-resilience-wireframe.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   inkscape:export-filename="../../panamia-resilience/docs/pana-resilience-wireframe.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs57" />
+  <sodipodi:namedview
+     id="namedview57"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.88888889"
+     inkscape:cx="707.625"
+     inkscape:cy="472.5"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg57"
+     showgrid="false"
+     inkscape:export-bgcolor="#ffffffff" />
+  <text
+     x="40"
+     y="30"
+     font-size="15px"
+     font-weight="bold"
+     id="text1">21-May-2026 Auric Wireframe Mockup</text>
+  <!-- ============================================================
+       MAGNEMITE — Pana NOSTR Bridge Module
+       Sphere centered at (700, 360), r = 115
+       Right U-magnet: horizontal, points right toward relay
+       Left  U-magnet: rotated 148° around sphere centre, points
+                        down-left toward the inset
+       ============================================================ -->
+  <!-- LEFT U-MAGNET (rotated 148° around sphere centre) -->
+  <path
+     d="m 485.75226,500.96326 -41.76994,49.80233 -11.49284,-9.63921 35.34379,-42.14044 -22.98569,-19.27843 -35.34379,42.14043 -11.49285,-9.63921 41.76994,-49.80233 z"
+     id="path2"
+     style="fill:none;stroke:#000000;stroke-width:2" />
+  <rect
+     x="-814.26941"
+     y="-312.66678"
+     width="14"
+     height="22"
+     fill="#2563eb"
+     id="rect2-5"
+     transform="rotate(-169.58822)"
+     style="stroke:#000000;stroke-width:2" />
+  <rect
+     x="134.92862"
+     y="-652.92224"
+     width="14"
+     height="22"
+     fill="#2563eb"
+     id="rect3"
+     transform="rotate(129.98705)"
+     style="stroke:#000000;stroke-width:2" />
+  <!-- RIGHT U-MAGNET (horizontal) -->
+  <path
+     d="m 679.49452,377.45065 63.63842,13.23451 -3.05412,14.68579 -53.84789,-11.19843 -6.10823,29.37158 53.84789,11.19842 -3.05411,14.68579 -63.63842,-13.2345 z"
+     id="path3"
+     style="fill:none;stroke:#000000;stroke-width:2" />
+  <rect
+     x="805.11273"
+     y="225.1937"
+     width="14"
+     height="22"
+     fill="#dc2626"
+     id="rect4"
+     transform="rotate(11.748009)"
+     style="stroke:#000000;stroke-width:2" />
+  <!-- CENTRAL SPHERE — no interior content -->
+  <circle
+     cx="556"
+     cy="372"
+     r="81.6129"
+     stroke="#000000"
+     stroke-width="1.77419"
+     fill="#ffffff"
+     id="circle5" />
+  <!-- light axonometric hint -->
+  <ellipse
+     cx="556"
+     cy="372"
+     rx="83.879868"
+     ry="24.799265"
+     stroke="#000000"
+     stroke-width="0.72939"
+     fill="none"
+     opacity="0.25"
+     id="ellipse5" />
+  <!-- TOP SCREW — hex bolt sticking up from sphere apex -->
+  <g
+     id="magnemite-screw"
+     transform="matrix(1.9771297,0,0,1.9771297,-543.28411,-273.59631)">
+    <polygon
+       points="570,273 570,287 556,293 542,287 542,273 556,267 "
+       fill="#a8a8a8"
+       stroke="#222222"
+       stroke-width="1.5"
+       id="polygon1" />
+    <polygon
+       points="556,267 570,273 556,279 542,273 "
+       fill="#cccccc"
+       stroke="#222222"
+       stroke-width="1"
+       id="polygon2" />
+    <line
+       x1="550"
+       y1="272"
+       x2="562"
+       y2="274"
+       stroke="#222222"
+       stroke-width="1.2"
+       id="line2" />
+    <line
+       x1="556"
+       y1="268"
+       x2="556"
+       y2="278"
+       stroke="#222222"
+       stroke-width="1.2"
+       id="line3" />
+  </g>
+  <!-- CENTRAL EYE — single round eye at sphere centre -->
+  <g
+     id="magnemite-eye"
+     transform="matrix(0.93283582,0,0,0.93283582,37.343284,24.985075)">
+    <circle
+       cx="556"
+       cy="372"
+       r="16"
+       fill="#ffffff"
+       stroke="#000000"
+       stroke-width="1.5"
+       id="circle3" />
+    <circle
+       cx="556"
+       cy="372"
+       r="9"
+       fill="#000000"
+       id="circle4" />
+    <circle
+       cx="552"
+       cy="368"
+       r="2.5"
+       fill="#ffffff"
+       id="circle6" />
+  </g>
+  <!-- module label -->
+  <text
+     x="675"
+     y="710.375"
+     text-anchor="middle"
+     font-size="15px"
+     font-weight="bold"
+     id="text5"><tspan
+       sodipodi:role="line"
+       id="tspan58"
+       x="675"
+       y="710.375">Pana Resilience Network</tspan><tspan
+       sodipodi:role="line"
+       x="675"
+       y="729.125"
+       id="tspan59" /></text>
+  <text
+     x="666"
+     y="728.375"
+     text-anchor="middle"
+     fill="#444444"
+     id="text6"><tspan
+       sodipodi:role="line"
+       id="tspan71"
+       x="666"
+       y="728.375">&quot;/r&quot; Pana Module</tspan><tspan
+       sodipodi:role="line"
+       id="tspan72"
+       x="666"
+       y="744.625">Purpose: User onboarding,</tspan><tspan
+       sodipodi:role="line"
+       x="666"
+       y="760.875"
+       id="tspan73">identity (pubkey) rotation,</tspan><tspan
+       sodipodi:role="line"
+       x="666"
+       y="777.125"
+       id="tspan61">general relay access control,</tspan><tspan
+       sodipodi:role="line"
+       x="666"
+       y="793.375"
+       id="tspan62">cross-platform content publication</tspan></text>
+  <!-- right-magnet callout (above) -->
+  <!-- left-magnet callout — angled label following the magnet's tilt -->
+  <!-- ============================================================
+       MAGNETIC FIELD LINES — left magnet tip → inset
+                              right magnet tip → relay tower
+       Drawn as dashed curved arcs (no arrowheads — coupling, not flow)
+       ============================================================ -->
+  <!-- LEFT-SIDE field lines (toward inset, bottom-left) -->
+  <g
+     stroke="#000000"
+     stroke-width="1.2"
+     stroke-dasharray="6, 4"
+     fill="none"
+     opacity="0.75"
+     id="g11"
+     transform="rotate(-11.793447,571.22106,458.55108)" />
+  <!-- RIGHT-SIDE field lines (toward relay tower) -->
+  <!-- ============================================================
+       PANA RESILIENCE NETWORK — 1x1 tower, separate security stack
+       Upper security dome is HARDENED (thicker stroke + lock icon)
+       ============================================================ -->
+  <!-- HARDENED upper security dome — thicker stroke -->
+  <g
+     stroke="#000000"
+     stroke-width="3.5"
+     fill="none"
+     id="g15"
+     transform="translate(-164,116)">
+    <ellipse
+       cx="1180"
+       cy="225"
+       rx="135"
+       ry="22"
+       id="ellipse14" />
+    <path
+       d="m 1045,225 a 135,85 0 0 1 270,0"
+       id="path15" />
+  </g>
+  <!-- inner policy dome (lighter, normal stroke) -->
+  <g
+     stroke="#000000"
+     stroke-width="1.5"
+     fill="none"
+     opacity="0.7"
+     id="g16"
+     transform="translate(-164,124)">
+    <ellipse
+       cx="1180"
+       cy="265"
+       rx="110"
+       ry="18"
+       id="ellipse15" />
+    <path
+       d="m 1070,265 a 110,65 0 0 1 220,0"
+       id="path16" />
+  </g>
+  <!-- LOCK ICON — sits on the hardened dome, just left of centre -->
+  <g
+     stroke="#000000"
+     stroke-width="2"
+     fill="#ffffff"
+     transform="matrix(0.82692306,0,0,0.82692306,1003.5962,266.375)"
+     id="g18">
+    <!-- shackle -->
+    <path
+       d="m 6,16 v -6 a 9,9 0 0 1 18,0 v 6"
+       fill="none"
+       id="path17" />
+    <!-- body -->
+    <rect
+       x="2"
+       y="16"
+       width="26"
+       height="22"
+       rx="2"
+       id="rect17" />
+    <!-- keyhole -->
+    <circle
+       cx="15"
+       cy="25"
+       r="2.5"
+       fill="#000000"
+       stroke="none"
+       id="circle17" />
+    <rect
+       x="14"
+       y="25"
+       width="2"
+       height="6"
+       fill="#000000"
+       stroke="none"
+       id="rect18" />
+  </g>
+  <!-- tower: three tiers (top puck, middle slab, base) -->
+  <g
+     stroke="#000000"
+     stroke-width="2"
+     fill="none"
+     id="g27"
+     transform="translate(-164,118)">
+    <!-- top puck — membership gating -->
+    <g
+       transform="translate(1130,310)"
+       id="g20">
+      <polygon
+         points="50,30 0,15 50,0 100,15 "
+         id="polygon18" />
+      <polygon
+         points="50,30 0,15 0,40 50,55 "
+         id="polygon19" />
+      <polygon
+         points="50,30 100,15 100,40 50,55 "
+         id="polygon20" />
+    </g>
+    <line
+       x1="1138"
+       y1="375"
+       x2="1138"
+       y2="395"
+       stroke-dasharray="3, 3"
+       id="line20" />
+    <line
+       x1="1230"
+       y1="375"
+       x2="1230"
+       y2="395"
+       stroke-dasharray="3, 3"
+       id="line21" />
+    <!-- middle slab — event handling -->
+    <g
+       transform="translate(1120,400)"
+       id="g23">
+      <polygon
+         points="60,30 0,15 60,0 120,15 "
+         id="polygon21" />
+      <polygon
+         points="60,30 0,15 0,40 60,55 "
+         id="polygon22" />
+      <polygon
+         points="60,30 120,15 120,40 60,55 "
+         id="polygon23" />
+    </g>
+    <line
+       x1="1128"
+       y1="465"
+       x2="1128"
+       y2="485"
+       stroke-dasharray="3, 3"
+       id="line23" />
+    <line
+       x1="1240"
+       y1="465"
+       x2="1240"
+       y2="485"
+       stroke-dasharray="3, 3"
+       id="line24" />
+    <!-- base — durable storage -->
+    <g
+       transform="translate(1105,490)"
+       id="g26">
+      <polygon
+         points="75,36 0,18 75,0 150,18 "
+         id="polygon24" />
+      <polygon
+         points="75,36 0,18 0,48 75,66 "
+         id="polygon25" />
+      <polygon
+         points="75,36 150,18 150,48 75,66 "
+         id="polygon26" />
+    </g>
+  </g>
+  <!-- callouts (right margin) -->
+  <line
+     x1="1066"
+     y1="443"
+     x2="1176"
+     y2="443"
+     stroke="#000000"
+     id="line27" />
+  <line
+     x1="1076"
+     y1="538"
+     x2="1176"
+     y2="538"
+     stroke="#000000"
+     id="line28" />
+  <text
+     x="1181"
+     y="436"
+     id="text29">event acceptance</text>
+  <text
+     x="1182.7129"
+     y="635.55078"
+     id="text29-2">Cloudflare worker</text>
+  <text
+     x="1181"
+     y="451"
+     fill="#666666"
+     id="text30">+ delivery to subscribers</text>
+  <line
+     x1="1091"
+     y1="633"
+     x2="1176"
+     y2="633"
+     stroke="#000000"
+     id="line30" />
+  <text
+     x="1181"
+     y="539"
+     id="text31"><tspan
+       sodipodi:role="line"
+       id="tspan64"
+       x="1181"
+       y="539">long-term media storage</tspan></text>
+  <!-- hardened-dome callout -->
+  <line
+     x1="1101.5559"
+     y1="309.99948"
+     x2="1157.3385"
+     y2="283.01419"
+     stroke="#000000"
+     id="line31"
+     style="stroke-width:0.779879" />
+  <line
+     x1="1157.2827"
+     y1="283.01721"
+     x2="1173.5081"
+     y2="283.01721"
+     stroke="#000000"
+     id="line32"
+     style="stroke-width:0.348214" />
+  <text
+     x="1307.75"
+     y="276.125"
+     text-anchor="end"
+     id="text32"><tspan
+       sodipodi:role="line"
+       x="1307.75"
+       y="276.125"
+       id="tspan68">hardened security</tspan></text>
+  <text
+     x="1175.875"
+     y="294.5"
+     text-anchor="end"
+     fill="#666666"
+     id="text33"
+     style="text-align:start;direction:ltr;text-anchor:start"><tspan
+       sodipodi:role="line"
+       id="tspan66"
+       x="1175.875"
+       y="294.5">only pre-registered nostr</tspan><tspan
+       sodipodi:role="line"
+       id="tspan67"
+       x="1175.875"
+       y="310.75">keys admitted</tspan></text>
+  <line
+     x1="1101.7948"
+     y1="382.49167"
+     x2="1157.5774"
+     y2="355.50638"
+     stroke="#000000"
+     id="line31-2"
+     style="stroke-width:0.779879" />
+  <line
+     x1="1156.3966"
+     y1="355.5094"
+     x2="1173.7469"
+     y2="355.5094"
+     stroke="#000000"
+     id="line32-9"
+     style="stroke-width:0.360084" />
+  <text
+     x="1315.8639"
+     y="346.36719"
+     text-anchor="end"
+     id="text32-1"><tspan
+       sodipodi:role="line"
+       x="1315.8639"
+       y="346.36719"
+       id="tspan68-2">policy enforcement</tspan></text>
+  <text
+     x="1363.9889"
+     y="363.61719"
+     text-anchor="end"
+     fill="#666666"
+     id="text33-7"><tspan
+       sodipodi:role="line"
+       id="tspan67-9"
+       x="1363.9889"
+       y="363.61719">bypassed for e2e content</tspan></text>
+  <!-- tower label -->
+  <text
+     x="1016"
+     y="708"
+     text-anchor="middle"
+     font-size="15px"
+     font-weight="bold"
+     id="text34">relay.pana.social</text>
+  <text
+     x="1045.25"
+     y="729.375"
+     text-anchor="middle"
+     fill="#444444"
+     id="text35"><tspan
+       sodipodi:role="line"
+       x="1045.25"
+       y="729.375"
+       id="tspan60">accessed by nostr apps only</tspan></text>
+  <!-- ============================================================
+       BOTTOM-LEFT INSET — greyscale auric field, front-right cube
+       highlighted; technical-drawing zoom lines diverge up-right
+       toward the Magnemite.
+       ============================================================ -->
+  <!-- inset frame -->
+  <rect
+     x="60"
+     y="600"
+     width="290"
+     height="240"
+     stroke="#999"
+     stroke-width="1"
+     fill="none"
+     stroke-dasharray="4,3"
+     id="rect35"
+     style="stroke-dasharray:2,4;stroke-dashoffset:0" />
+  <text
+     x="173.5"
+     y="593.875"
+     text-anchor="middle"
+     font-size="11px"
+     fill="#666666"
+     id="text36">You Are Here — Pana Auric Field</text>
+  <!-- greyscale auric field, scaled inside the frame -->
+  <g
+     stroke="#bbb"
+     stroke-width="1"
+     fill="none"
+     id="g53">
+    <!-- domes -->
+    <ellipse
+       cx="205"
+       cy="660"
+       rx="110"
+       ry="20"
+       id="ellipse36" />
+    <path
+       d="M 95,660 A 110,55 0 0 1 315,660"
+       id="path36" />
+    <ellipse
+       cx="205"
+       cy="682"
+       rx="92"
+       ry="16"
+       id="ellipse37" />
+    <path
+       d="M 113,682 A 92,46 0 0 1 297,682"
+       id="path37" />
+    <ellipse
+       cx="205"
+       cy="703"
+       rx="78"
+       ry="13"
+       id="ellipse38" />
+    <path
+       d="M 127,703 A 78,38 0 0 1 283,703"
+       id="path38" />
+    <!-- three faint corner cubes -->
+    <g
+       transform="translate(145,735)"
+       id="g40">
+      <polygon
+         points="0,10 18,0 36,10 18,20"
+         id="polygon38" />
+      <polygon
+         points="0,10 0,28 18,38 18,20"
+         id="polygon39" />
+      <polygon
+         points="36,10 36,28 18,38 18,20"
+         id="polygon40" />
+    </g>
+    <g
+       transform="translate(225,735)"
+       id="g43">
+      <polygon
+         points="0,10 18,0 36,10 18,20"
+         id="polygon41" />
+      <polygon
+         points="0,10 0,28 18,38 18,20"
+         id="polygon42" />
+      <polygon
+         points="36,10 36,28 18,38 18,20"
+         id="polygon43" />
+    </g>
+    <g
+       transform="translate(125,772)"
+       id="g46">
+      <polygon
+         points="0,10 18,0 36,10 18,20"
+         id="polygon44" />
+      <polygon
+         points="0,10 0,28 18,38 18,20"
+         id="polygon45" />
+      <polygon
+         points="36,10 36,28 18,38 18,20"
+         id="polygon46" />
+    </g>
+    <!-- base grid -->
+    <g
+       transform="translate(120,800)"
+       id="g52">
+      <polygon
+         points="0,0 85,-22 170,0 85,22"
+         id="polygon47" />
+      <line
+         x1="22"
+         y1="-5"
+         x2="107"
+         y2="17"
+         id="line47" />
+      <line
+         x1="43"
+         y1="-11"
+         x2="128"
+         y2="11"
+         id="line48" />
+      <line
+         x1="64"
+         y1="-17"
+         x2="149"
+         y2="5"
+         id="line49" />
+      <line
+         x1="22"
+         y1="5"
+         x2="43"
+         y2="-11"
+         id="line50" />
+      <line
+         x1="64"
+         y1="17"
+         x2="86"
+         y2="-1"
+         id="line51" />
+      <line
+         x1="107"
+         y1="17"
+         x2="128"
+         y2="-1"
+         id="line52" />
+    </g>
+    <!-- shells -->
+    <polygon
+       points="115,828 205,808 295,828 205,848"
+       id="polygon52" />
+  </g>
+  <!-- HIGHLIGHTED front-right cube (the extracted module) -->
+  <g
+     stroke="#000"
+     stroke-width="2"
+     fill="none"
+     transform="translate(245,772)"
+     id="g55">
+    <polygon
+       points="0,10 18,0 36,10 18,20"
+       id="polygon53" />
+    <polygon
+       points="0,10 0,28 18,38 18,20"
+       id="polygon54" />
+    <polygon
+       points="36,10 36,28 18,38 18,20"
+       id="polygon55" />
+  </g>
+  <polygon
+     points="0,10 18,0 36,10 18,20 "
+     id="polygon53-5"
+     style="fill:none;stroke:#000000;stroke-width:0.0795636;stroke-dasharray:0.0795636, 0.238691;stroke-dashoffset:0"
+     transform="matrix(12.568556,0,0,12.568556,328.45012,219.87792)" />
+  <polygon
+     points="36,10 36,28 18,38 18,20 "
+     id="polygon55-5"
+     style="fill:none;stroke:#000000;stroke-width:0.0795636;stroke-dasharray:0.0795636, 0.238691;stroke-dashoffset:0"
+     transform="matrix(12.568556,0,0,12.568556,328.45012,219.87792)" />
+  <polygon
+     points="0,10 0,28 18,38 18,20 "
+     id="polygon54-3"
+     style="fill:none;stroke:#000000;stroke-width:0.0795636;stroke-dasharray:0.0795636, 0.238691;stroke-dashoffset:0"
+     transform="matrix(12.568556,0,0,12.568556,328.45012,219.87792)" />
+  <!-- small circle marker around highlighted cube (technical-detail convention) -->
+  <circle
+     cx="263"
+     cy="791"
+     r="32"
+     stroke="#000"
+     stroke-width="1.2"
+     fill="none"
+     id="circle55" />
+  <!-- ZOOM LINES — two diverging straight lines from the detail
+       circle outward to bracket the Magnemite -->
+  <line
+     x1="232.39252"
+     y1="780.35345"
+     x2="329.85754"
+     y2="349.27158"
+     stroke="#000000"
+     stroke-width="0.747017"
+     id="line55"
+     style="stroke-dasharray:0.74701703,2.24105108;stroke-dashoffset:0" />
+  <line
+     x1="283.28958"
+     y1="817.78064"
+     x2="551.38123"
+     y2="698.19897"
+     stroke="#000000"
+     stroke-width="0.561423"
+     id="line56"
+     inkscape:transform-center-x="25.808804"
+     inkscape:transform-center-y="-17.357384"
+     style="stroke-dasharray:0.561423,1.68426901;stroke-dashoffset:0" />
+  <!-- detail-view label tag -->
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <text
+     x="700"
+     y="875"
+     text-anchor="middle"
+     font-size="11px"
+     fill="#888888"
+     id="text57" />
+  <path
+     style="fill:#000000;fill-opacity:1"
+     d="m 484.5,455.625 -21.375,27"
+     id="path65" />
+  <path
+     style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-opacity:1"
+     d="M 490.5,445.625 470.25,469.25"
+     id="path66"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-opacity:1"
+     d="m 670.7786,404.89639 -30.64943,-5.36795"
+     id="path66-3"
+     sodipodi:nodetypes="cc" />
+  <!-- ============================================================
+       HALO RELAYS — simple top-dome silhouettes
+       Three peer relays the clients also publish to.
+       relay.damus.io and nos.lol are free; nostr.wine is paid ($).
+       ============================================================ -->
+  <g
+     stroke="#777777"
+     stroke-width="1.3"
+     fill="none"
+     id="g1"
+     style="font-size:11px;font-family:monospace"
+     transform="translate(0,-50)">
+    <ellipse
+       cx="760"
+       cy="90"
+       rx="48"
+       ry="8"
+       id="ellipse1" />
+    <path
+       d="m 712,90 a 48,30 0 0 1 96,0"
+       id="path1" />
+  </g>
+  <text
+     x="760"
+     y="58.064217"
+     text-anchor="middle"
+     fill="#555555"
+     id="text3"
+     style="font-size:11px;font-family:monospace">relay.damus.io</text>
+  <g
+     stroke="#777777"
+     stroke-width="1.3"
+     fill="none"
+     id="g4"
+     style="font-size:11px;font-family:monospace"
+     transform="translate(0,-51)">
+    <ellipse
+       cx="920"
+       cy="90"
+       rx="42"
+       ry="8"
+       id="ellipse3" />
+    <path
+       d="m 878,90 a 42,28 0 0 1 84,0"
+       id="path4" />
+  </g>
+  <text
+     x="920"
+     y="59.130379"
+     text-anchor="middle"
+     fill="#555555"
+     id="text4"
+     style="font-size:11px;font-family:monospace">nos.lol</text>
+  <g
+     stroke="#444444"
+     stroke-width="1.6"
+     fill="none"
+     id="g6"
+     style="font-size:11px;font-family:monospace"
+     transform="translate(0,-50)">
+    <ellipse
+       cx="1080"
+       cy="90"
+       rx="46"
+       ry="8"
+       id="ellipse4" />
+    <path
+       d="m 1034,90 a 46,30 0 0 1 92,0"
+       id="path5" />
+  </g>
+  <text
+     x="1086"
+     y="58.663094"
+     text-anchor="middle"
+     fill="#333333"
+     font-weight="bold"
+     id="text7"
+     style="font-size:11px;font-family:monospace">nostr.wine ($)</text>
+  <!-- ============================================================
+       HALO CONNECTIONS — grey dotted, client TOP edge → halo peak
+       4 clients × 3 halo relays = 12 lines.
+       ============================================================ -->
+  <line
+     x1="650"
+     y1="85"
+     x2="760"
+     y2="60"
+     id="line7"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="820"
+     y1="85"
+     x2="760"
+     y2="60"
+     id="line8"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="990"
+     y1="85"
+     x2="760"
+     y2="60"
+     id="line9"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="1160"
+     y1="85"
+     x2="760"
+     y2="60"
+     id="line10"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="650"
+     y1="85"
+     x2="920"
+     y2="60"
+     id="line11"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="820"
+     y1="85"
+     x2="920"
+     y2="60"
+     id="line12"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="990"
+     y1="85"
+     x2="920"
+     y2="60"
+     id="line13"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="1160"
+     y1="85"
+     x2="920"
+     y2="60"
+     id="line14"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="650"
+     y1="85"
+     x2="1080"
+     y2="60"
+     id="line15"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="820"
+     y1="85"
+     x2="1080"
+     y2="60"
+     id="line16"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="990"
+     y1="85"
+     x2="1080"
+     y2="60"
+     id="line17"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <line
+     x1="1160"
+     y1="85"
+     x2="1080"
+     y2="60"
+     id="line18"
+     style="opacity:0.85;fill:none;stroke:#9a9a9a;stroke-width:0.9;stroke-dasharray:2, 3" />
+  <!-- ============================================================
+       CLIENT ICONS — placeholders matching the apps' brand essence.
+       Replace via Inkscape (File → Import) with real Android icons.
+       Icon footprint: 50×50, centered at (cx, 110).
+       ============================================================ -->
+  <g
+     id="clients"
+     font-family="sans-serif"
+     font-size="11">
+    <!-- AMETHYST — purple crystal/gem -->
+    <g
+       transform="translate(625,85)"
+       id="g35">
+      <rect
+         x="0"
+         y="0"
+         width="50"
+         height="50"
+         rx="10"
+         fill="#1a0b2e"
+         stroke="#5b2c6f"
+         stroke-width="1.5"
+         id="rect19" />
+      <polygon
+         points="25,8 42,22 36,42 14,42 8,22"
+         fill="#9b59b6"
+         stroke="#e0b0ff"
+         stroke-width="1"
+         id="polygon27" />
+      <line
+         x1="25"
+         y1="8"
+         x2="25"
+         y2="42"
+         stroke="#5b2c6f"
+         stroke-width="0.8"
+         id="line29" />
+      <line
+         x1="8"
+         y1="22"
+         x2="42"
+         y2="22"
+         stroke="#5b2c6f"
+         stroke-width="0.8"
+         id="line33" />
+      <line
+         x1="8"
+         y1="22"
+         x2="25"
+         y2="42"
+         stroke="#5b2c6f"
+         stroke-width="0.5"
+         id="line34" />
+      <line
+         x1="42"
+         y1="22"
+         x2="25"
+         y2="42"
+         stroke="#5b2c6f"
+         stroke-width="0.5"
+         id="line35" />
+    </g>
+    <text
+       x="650"
+       y="150"
+       text-anchor="middle"
+       font-weight="bold"
+       id="text37">Amethyst</text>
+    <!-- NOSTRORD — voice/chat client (Discord-like) -->
+    <g
+       transform="translate(795,85)"
+       id="g41">
+      <rect
+         x="0"
+         y="0"
+         width="50"
+         height="50"
+         rx="10"
+         fill="#5865f2"
+         stroke="#3c44a0"
+         stroke-width="1.5"
+         id="rect37" />
+      <!-- speech bubble -->
+      <path
+         d="M 12,16 L 38,16 Q 42,16 42,20 L 42,30 Q 42,34 38,34 L 24,34 L 17,40 L 19,34 L 12,34 Q 8,34 8,30 L 8,20 Q 8,16 12,16 Z"
+         fill="#ffffff"
+         stroke="none"
+         id="path39" />
+      <circle
+         cx="18"
+         cy="25"
+         r="2"
+         fill="#5865f2"
+         id="circle39" />
+      <circle
+         cx="25"
+         cy="25"
+         r="2"
+         fill="#5865f2"
+         id="circle40" />
+      <circle
+         cx="32"
+         cy="25"
+         r="2"
+         fill="#5865f2"
+         id="circle41" />
+    </g>
+    <text
+       x="820"
+       y="150"
+       text-anchor="middle"
+       font-weight="bold"
+       id="text41">Nostrord</text>
+    <!-- 0xCHAT — dark with 0x mark -->
+    <g
+       transform="translate(965,85)"
+       id="g42">
+      <rect
+         x="0"
+         y="0"
+         width="50"
+         height="50"
+         rx="10"
+         fill="#0f1421"
+         stroke="#000"
+         stroke-width="1.5"
+         id="rect41" />
+      <!-- chat bubble silhouette -->
+      <path
+         d="M 10,14 L 40,14 Q 44,14 44,18 L 44,30 Q 44,34 40,34 L 22,34 L 14,42 L 16,34 L 10,34 Q 6,34 6,30 L 6,18 Q 6,14 10,14 Z"
+         fill="none"
+         stroke="#7c5cff"
+         stroke-width="1.5"
+         id="path41" />
+      <text
+         x="25"
+         y="29"
+         text-anchor="middle"
+         font-family="monospace"
+         font-size="13"
+         font-weight="bold"
+         fill="#7c5cff"
+         id="text42">0x</text>
+    </g>
+    <text
+       x="990"
+       y="150"
+       text-anchor="middle"
+       font-weight="bold"
+       id="text43">0xChat</text>
+    <!-- WHITE NOISE — minimal black with waveform -->
+    <g
+       transform="translate(1135,85)"
+       id="g44">
+      <rect
+         x="0"
+         y="0"
+         width="50"
+         height="50"
+         rx="10"
+         fill="#000"
+         stroke="#000"
+         stroke-width="1"
+         id="rect43" />
+      <path
+         d="M 6,25 L 10,18 L 14,32 L 18,12 L 22,38 L 26,15 L 30,32 L 34,20 L 38,28 L 42,22 L 46,25"
+         stroke="#fff"
+         stroke-width="1.5"
+         fill="none"
+         id="path43" />
+    </g>
+    <text
+       x="1160"
+       y="150"
+       text-anchor="middle"
+       font-weight="bold"
+       id="text44">White Noise</text>
+  </g>
+  <!-- ============================================================
+       PROTOCOL LINES — solid black, client BOTTOM edge → relay
+       hardened dome.  Each line labelled with its primary NIP.
+       Hardened dome peak ≈ (1016, 258), rim ≈ (881..1151, 343).
+       Attachment points are spread across the upper surface.
+       ============================================================ -->
+  <line
+     x1="676.96814"
+     y1="151.82178"
+     x2="918.53186"
+     y2="283.42822"
+     id="line44"
+     style="fill:none;stroke:#000000;stroke-width:1.48361" />
+  <line
+     x1="842.3941"
+     y1="159.61592"
+     x2="968.8559"
+     y2="259.75906"
+     id="line45"
+     style="fill:none;stroke:#000000;stroke-width:1.25818" />
+  <line
+     x1="997.72247"
+     y1="156.30119"
+     x2="1046.5276"
+     y2="257.44879"
+     id="line46"
+     style="fill:none;stroke:#000000;stroke-width:1.26192" />
+  <line
+     x1="1158.5985"
+     y1="155.30397"
+     x2="1107.2765"
+     y2="278.19604"
+     id="line53"
+     style="fill:none;stroke:#000000;stroke-width:1.75369" />
+  <!-- protocol labels — white-rect background for readability over halo lines -->
+  <rect
+     x="745"
+     y="195"
+     width="56"
+     height="16"
+     fill="#ffffff"
+     stroke="#000000"
+     stroke-width="0.5"
+     id="rect53"
+     style="font-weight:bold;font-size:11px;font-family:monospace" />
+  <text
+     x="773"
+     y="207.00415"
+     text-anchor="middle"
+     id="text53"
+     style="font-weight:bold;font-size:11px;font-family:monospace">NIP-01</text>
+  <rect
+     x="870"
+     y="195"
+     width="56"
+     height="16"
+     fill="#ffffff"
+     stroke="#000000"
+     stroke-width="0.5"
+     id="rect54"
+     style="font-weight:bold;font-size:11px;font-family:monospace" />
+  <text
+     x="898"
+     y="206.97729"
+     text-anchor="middle"
+     id="text54"
+     style="font-weight:bold;font-size:11px;font-family:monospace">NIP-29</text>
+  <rect
+     x="995"
+     y="195"
+     width="56"
+     height="16"
+     fill="#ffffff"
+     stroke="#000000"
+     stroke-width="0.5"
+     id="rect55"
+     style="font-weight:bold;font-size:11px;font-family:monospace" />
+  <text
+     x="1023"
+     y="207.00952"
+     text-anchor="middle"
+     id="text55"
+     style="font-weight:bold;font-size:11px;font-family:monospace">NIP-17</text>
+  <rect
+     x="1096"
+     y="195"
+     width="92"
+     height="16"
+     fill="#ffffff"
+     stroke="#000000"
+     stroke-width="0.5"
+     id="rect56"
+     style="font-weight:bold;font-size:11px;font-family:monospace" />
+  <text
+     x="1142"
+     y="206.57178"
+     text-anchor="middle"
+     id="text56"
+     style="font-weight:bold;font-size:11px;font-family:monospace">Marmot / MLS</text>
+  <!-- ============================================================
+       LEGEND — small key explaining the two line styles
+       ============================================================ -->
+  <rect
+     x="-141.36975"
+     y="677.71307"
+     width="14"
+     height="22"
+     fill="#dc2626"
+     id="rect5"
+     transform="rotate(-49.379203)"
+     style="stroke:#000000;stroke-width:2" />
+  <polygon
+     points="886,385 887,376 882,384 885,384 884,394 889,385 "
+     fill="#fde047"
+     stroke="#000000"
+     stroke-width="0.6"
+     id="bolt-L-bot"
+     transform="matrix(-2.9633953,-1.9007629,1.9007629,-2.9633953,2303.6664,3403.0405)" />
+  <polygon
+     points="885,384 884,394 889,385 886,385 887,376 882,384 "
+     fill="#fde047"
+     stroke="#000000"
+     stroke-width="0.6"
+     id="bolt-L-bot-9"
+     transform="matrix(-0.12434183,3.5184017,-3.5184017,-0.12434183,2256.4318,-2665.1518)" />
+  <polygon
+     points="885,384 884,394 889,385 886,385 887,376 882,384 "
+     fill="#fde047"
+     stroke="#000000"
+     stroke-width="0.6"
+     id="bolt-L-bot-9-1"
+     transform="matrix(-0.12434183,3.5184017,-3.5184017,-0.12434183,2248.3387,-2616.2913)" />
+  <polygon
+     points="889,385 886,385 887,376 882,384 885,384 884,394 "
+     fill="#fde047"
+     stroke="#000000"
+     stroke-width="0.6"
+     id="bolt-L-bot-9-3"
+     transform="matrix(2.8275213,2.0975545,-2.0975545,2.8275213,-1326.0605,-2397.8333)" />
+</svg>

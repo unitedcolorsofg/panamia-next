@@ -77,7 +77,7 @@ export default function EditArticlePage() {
   useEffect(() => {
     async function fetchArticle() {
       try {
-        const response = await fetch(`/api/a/${slug}`);
+        const response = await fetch(`/api/articles/${slug}`);
         const data = await response.json();
 
         if (!data.success) {

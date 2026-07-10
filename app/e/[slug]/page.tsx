@@ -1,272 +1,243 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/auth';
+import Image from 'next/image';
 import { db } from '@/lib/db';
-import { events, eventOrganizers, profiles } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
-import { MapPin, Clock, Users, Download, Radio } from 'lucide-react';
+import { events, eventAttendees, profiles } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
+import { auth } from '@/auth';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getEmbedUrl } from '@/lib/cloudflare-stream';
+import RsvpForm from '@/components/events/RsvpForm';
+import {
+  ArrowLeft,
+  CalendarDays,
+  MapPin,
+  Globe,
+  Users,
+  Download,
+  Settings,
+} from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ rsvp?: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params;
-  const event = await db.query.events.findFirst({
-    where: eq(events.slug, slug),
-    columns: { title: true, description: true },
-  });
-  if (!event) return { title: 'Event Not Found' };
-  return {
-    title: `${event.title} | Panamia Club`,
-    description: event.description?.slice(0, 160),
-  };
-}
-
-export default async function EventPage({ params }: PageProps) {
-  const { slug } = await params;
-  const session = await auth();
-
-  const event = await db.query.events.findFirst({
+async function getEvent(slug: string) {
+  return db.query.events.findFirst({
     where: eq(events.slug, slug),
     with: {
       venue: true,
-      hostProfile: { columns: { id: true, name: true } },
-      organizers: {
-        with: { profile: { columns: { id: true, name: true } } },
-      },
+      host: { columns: { id: true, name: true, userId: true } },
     },
   });
+}
 
+const RSVP_BANNERS: Record<string, { text: string; tone: 'ok' | 'warn' }> = {
+  confirmed: { text: 'Your RSVP is confirmed. See you there!', tone: 'ok' },
+  expired: {
+    text: 'That confirmation link expired. Please RSVP again.',
+    tone: 'warn',
+  },
+  invalid: { text: 'That confirmation link is invalid.', tone: 'warn' },
+  error: { text: 'Something went wrong confirming your RSVP.', tone: 'warn' },
+};
+
+export default async function EventPage({ params, searchParams }: PageProps) {
+  const { slug } = await params;
+  const { rsvp } = await searchParams;
+  const event = await getEvent(slug);
   if (!event) notFound();
 
-  // Access control
-  const isPublic =
-    event.status === 'published' && event.visibility === 'public';
-  if (!isPublic && !session?.user?.id) notFound();
+  // Only the host can view a draft before it's published. (Unlisted events are
+  // reachable by direct link once published — not access-gated; see roadmap.)
+  const session = await auth();
+  const viewerProfile = session?.user?.id
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+        columns: { id: true },
+      })
+    : null;
+  const isHost = !!viewerProfile && viewerProfile.id === event.hostProfileId;
+  if (event.status !== 'published' && !isHost) notFound();
 
-  // Check if caller is organizer
-  let callerProfile = null;
-  let isOrganizer = false;
-  if (session?.user?.id) {
-    callerProfile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, session.user.id),
+  // The viewer's existing RSVP, if any (logged-in only).
+  let myStatus: 'going' | 'maybe' | 'not_going' | null = null;
+  if (viewerProfile) {
+    const mine = await db.query.eventAttendees.findFirst({
+      where: and(
+        eq(eventAttendees.eventId, event.id),
+        eq(eventAttendees.profileId, viewerProfile.id)
+      ),
+      columns: { status: true },
     });
-    if (callerProfile) {
-      isOrganizer = !!(await db.query.eventOrganizers.findFirst({
-        where: and(
-          eq(eventOrganizers.eventId, event.id),
-          eq(eventOrganizers.profileId, callerProfile.id)
-        ),
-      }));
-    }
+    myStatus = mine?.status ?? null;
   }
 
-  const isAdmin = session?.user?.isAdmin || false;
-  const isLive = event.streamStatus === 'live' && event.cfStreamPlaybackId;
-  const hasRecording =
-    event.streamStatus === 'ended' && event.cfStreamRecordingUrl;
+  const when = event.startsAt.toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: event.timezone || undefined,
+  });
 
-  let embedUrl: string | null = null;
-  if (isLive && event.cfStreamPlaybackId) {
-    try {
-      embedUrl = getEmbedUrl(event.cfStreamPlaybackId);
-    } catch {
-      /* no CF_STREAM_CUSTOMER_CODE */
-    }
-  }
+  const caps = [event.attendeeCap, event.venue?.fireCapacity].filter(
+    (c): c is number => typeof c === 'number' && c > 0
+  );
+  const hardCap = caps.length ? Math.min(...caps) : null;
+  const full = hardCap !== null && event.attendeeCount >= hardCap;
+
+  const banner = rsvp ? RSVP_BANNERS[rsvp] : null;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
+    <main className="container mx-auto max-w-3xl px-4 py-8">
       <Link
         href="/e"
-        className="text-muted-foreground hover:text-foreground text-sm"
+        className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
       >
-        ← Back to Events
+        <ArrowLeft className="h-4 w-4" />
+        Back to Events
       </Link>
 
-      {event.coverImage && (
-        <img
-          src={event.coverImage}
-          alt={event.title}
-          className="mt-4 max-h-64 w-full rounded-lg object-cover"
-        />
+      {banner && (
+        <div
+          className={
+            banner.tone === 'ok'
+              ? 'mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300'
+              : 'mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300'
+          }
+        >
+          {banner.text}
+        </div>
       )}
 
-      <div className="mt-4 flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold">{event.title}</h1>
-            {event.status === 'cancelled' && (
-              <span className="bg-destructive/10 text-destructive rounded px-2 py-0.5 text-sm font-medium">
-                Cancelled
-              </span>
-            )}
-            {isLive && (
-              <span className="flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700">
-                <Radio className="h-3.5 w-3.5 animate-pulse" /> LIVE
-              </span>
-            )}
-          </div>
-
-          {event.panamiaCoOrganizer && (
-            <p className="text-muted-foreground mt-1 text-sm">
-              Organized with Panamia Club
-            </p>
-          )}
+      {event.status !== 'published' && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+          This event is a <strong>{event.status}</strong> — only you can see it
+          until it&apos;s published.
         </div>
+      )}
 
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/api/events/${slug}/calendar.ics`}>
-              <Download className="mr-1.5 h-4 w-4" />
-              .ics
-            </Link>
-          </Button>
-          {(isOrganizer || isAdmin) && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/e/${slug}/manage`}>Manage</Link>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Live embed */}
-      {embedUrl && (
-        <div className="mt-6 aspect-video w-full overflow-hidden rounded-lg border">
-          <iframe
-            src={embedUrl}
-            className="h-full w-full"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
+      {event.coverImage && (
+        <div className="relative mb-8 aspect-video overflow-hidden rounded-lg">
+          <Image
+            src={event.coverImage}
+            alt={event.coverImageAlt || event.title}
+            fill
+            className="object-cover"
+            priority
           />
         </div>
       )}
 
-      {/* Recording */}
-      {hasRecording && event.cfStreamRecordingUrl && (
-        <div className="mt-6 rounded-lg border p-4">
-          <p className="font-medium">Event Recording</p>
-          <Button asChild className="mt-2" variant="outline">
-            <a
-              href={event.cfStreamRecordingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Watch Recording
-            </a>
-          </Button>
-        </div>
-      )}
-
-      <div className="mt-6 space-y-3">
-        {event.venue && (
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0" />
-            <div>
-              <Link
-                href={`/venues/${event.venue.slug}`}
-                className="font-medium hover:underline"
-              >
-                {event.venue.name}
-              </Link>
-              <p className="text-muted-foreground">
-                {event.venue.address}, {event.venue.city}, {event.venue.state}
-                {event.venue.postalCode ? ` ${event.venue.postalCode}` : ''}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-          <span>
-            {new Date(event.startsAt).toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-              timeZone: event.timezone || 'America/New_York',
-            })}
-            {event.endsAt &&
-              ` – ${new Date(event.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: event.timezone || 'America/New_York' })}`}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="capitalize">
+          {event.mode}
+        </Badge>
+        {event.tags?.map((tag) => (
+          <Badge key={tag} variant="outline">
+            #{tag}
+          </Badge>
+        ))}
+        {event.nostrEventId && (
+          <span
+            className="text-xs text-gray-400"
+            title={`Nostr event ${event.nostrEventId}`}
+          >
+            · on Nostr
           </span>
-        </div>
+        )}
+      </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <Users className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+      <h1 className="mb-4 text-3xl font-bold md:text-4xl">{event.title}</h1>
+
+      <div className="mb-6 space-y-2 text-gray-700 dark:text-gray-300">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 flex-shrink-0 text-gray-400" />
+          <span>{when}</span>
+        </div>
+        {event.mode === 'online' ? (
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 flex-shrink-0 text-gray-400" />
+            <span>Online event</span>
+          </div>
+        ) : (
+          event.venue && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 flex-shrink-0 text-gray-400" />
+              <span>
+                {event.venue.name} · {event.venue.address}, {event.venue.city},{' '}
+                {event.venue.state}
+              </span>
+            </div>
+          )
+        )}
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 flex-shrink-0 text-gray-400" />
           <span>
             {event.attendeeCount} going
-            {event.attendeeCap ? ` / ${event.attendeeCap} capacity` : ''}
+            {hardCap ? ` · ${hardCap} capacity` : ''}
           </span>
         </div>
+        {event.host?.name && (
+          <p className="text-sm text-gray-500">Hosted by {event.host.name}</p>
+        )}
+      </div>
+
+      <div className="mb-8 flex flex-wrap gap-3">
+        <Button asChild variant="outline" size="sm">
+          <a href={`/api/events/${event.slug}/calendar.ics`}>
+            <Download className="mr-2 h-4 w-4" />
+            Add to calendar
+          </a>
+        </Button>
+        {isHost && (
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/e/${event.slug}/manage`}>
+              <Settings className="mr-2 h-4 w-4" />
+              Manage
+            </Link>
+          </Button>
+        )}
       </div>
 
       {event.description && (
-        <div className="prose prose-sm dark:prose-invert mt-6 max-w-none">
-          <p className="whitespace-pre-wrap">{event.description}</p>
+        <div className="prose prose-lg dark:prose-invert mb-10 max-w-none whitespace-pre-wrap">
+          {event.description}
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {event.ageRestriction !== 'all_ages' && (
-          <span className="bg-muted rounded-full px-3 py-1 text-sm">
-            {event.ageRestriction === '18_plus' ? '18+' : '21+'}
-          </span>
-        )}
-        {event.dresscode !== 'none' && (
-          <span className="bg-muted rounded-full px-3 py-1 text-sm">
-            {event.dresscode === 'smart_casual'
-              ? 'Smart Casual'
-              : 'Formal Attire'}
-          </span>
-        )}
-        {event.photoPolicy !== 'allowed' && (
-          <span className="bg-muted rounded-full px-3 py-1 text-sm">
-            {event.photoPolicy === 'restricted'
-              ? 'Photos Restricted'
-              : 'No Photos'}
-          </span>
-        )}
-        {event.streamEligible && (
-          <span className="bg-muted rounded-full px-3 py-1 text-sm">
-            Livestream Eligible
-          </span>
-        )}
-      </div>
-
-      {session?.user?.id && event.status === 'published' && (
-        <div className="mt-6 flex gap-2">
-          <Button asChild>
-            <Link href={`/api/events/${slug}/rsvp`}>RSVP</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/e/${slug}/photos`}>Photos</Link>
-          </Button>
-        </div>
+      {event.status === 'published' && (
+        <section className="rounded-lg border p-6">
+          <h2 className="mb-4 text-xl font-semibold">RSVP</h2>
+          <RsvpForm
+            slug={event.slug}
+            capacity={hardCap}
+            goingCount={event.attendeeCount}
+            initialStatus={myStatus}
+            full={full}
+          />
+        </section>
       )}
-
-      {event.organizers && event.organizers.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold">Organizers</h2>
-          <ul className="mt-2 space-y-1">
-            {event.organizers.map((org) => (
-              <li key={org.id} className="text-muted-foreground text-sm">
-                {org.profile?.name} — {org.role.replace('_', ' ')}
-              </li>
-            ))}
-            {event.panamiaCoOrganizer && (
-              <li className="text-muted-foreground text-sm">
-                Panamia Club — Co-Organizer
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
+    </main>
   );
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const event = await getEvent(slug);
+  if (!event) return { title: 'Event Not Found' };
+  return {
+    title: `${event.title} | Pana MIA Events`,
+    description: event.description?.slice(0, 200) ?? undefined,
+    openGraph: {
+      title: event.title,
+      description: event.description?.slice(0, 200) ?? undefined,
+      type: 'website',
+      images: event.coverImage ? [event.coverImage] : [],
+    },
+  };
 }

@@ -23,6 +23,8 @@ import Status401_Unauthorized from '@/components/Page/Status401_Unauthorized';
 import { listSelectedCategories } from '@/lib/profile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { NpubQr } from '@/components/relay/NpubQr';
+import { npubFromHex } from '@/lib/nostr/keys';
 
 const SpanBlank = () => {
   return <span className="text-gray-400 italic">blank</span>;
@@ -86,6 +88,17 @@ export default function AccountProfileEdit() {
     return <Status401_Unauthorized />;
   }
 
+  // Relay-enrolled profiles have a hex nostr_pubkey; encode to npub for display
+  // (we never render raw hex). null when not enrolled or the key is malformed.
+  let npub: string | null = null;
+  if (profileData.nostrPubkey) {
+    try {
+      npub = npubFromHex(profileData.nostrPubkey);
+    } catch {
+      npub = null;
+    }
+  }
+
   return (
     <main className="container mx-auto max-w-5xl px-4 py-8">
       <PageMeta title="Edit Profile" desc="" />
@@ -119,6 +132,13 @@ export default function AccountProfileEdit() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Nostr identity (relay-enrolled accounts only) */}
+      {npub && (
+        <div className="mb-6">
+          <NpubQr npub={npub} />
+        </div>
+      )}
 
       {/* Contact Info */}
       <Card className="mb-6">

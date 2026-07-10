@@ -126,6 +126,8 @@ export interface ProfileInterface {
   email: string;
   name: string;
   screenname?: string; // From User.screenname
+  /** Hex x-only Nostr pubkey, set once the profile completes relay enrollment. */
+  nostrPubkey?: string;
   active?: boolean;
   status?: ProfileStatusInterface;
   locally_based: string;
@@ -248,12 +250,7 @@ export interface NotificationInterface {
   actorScreenname?: string;
   actorName?: string;
   objectType?:
-    | 'article'
-    | 'profile'
-    | 'session'
-    | 'comment'
-    | 'event'
-    | 'venue';
+    'article' | 'profile' | 'session' | 'comment' | 'event' | 'venue';
   objectTitle?: string;
   objectUrl?: string;
   message?: string;
@@ -282,11 +279,7 @@ export interface NotificationPreferencesInterface {
 export type ArticleType = 'business_update' | 'community_commentary';
 
 export type ArticleStatus =
-  | 'draft'
-  | 'pending_review'
-  | 'revision_needed'
-  | 'published'
-  | 'removed';
+  'draft' | 'pending_review' | 'revision_needed' | 'published' | 'removed';
 
 export interface CoAuthorInterface {
   userId: string;

@@ -153,6 +153,7 @@ async function getArticle(slug: string) {
     readingTime: articleDoc.readingTime,
     ccLicense: articleDoc.ccLicense as CCLicenseValue,
     publishedAt: articleDoc.publishedAt?.toISOString(),
+    nostrEventId: articleDoc.nostrEventId,
     authorId: articleDoc.authorId,
     author: authorInfo,
     coAuthors: coAuthorsInfo,
@@ -265,6 +266,14 @@ export default async function ArticlePage({ params }: PageProps) {
               )}
               {articleData.ccLicense && (
                 <CCBadge license={articleData.ccLicense} />
+              )}
+              {articleData.nostrEventId && (
+                <span
+                  className="text-xs text-gray-400"
+                  title={`Nostr event ${articleData.nostrEventId}`}
+                >
+                  · on Nostr
+                </span>
               )}
             </div>
           </div>

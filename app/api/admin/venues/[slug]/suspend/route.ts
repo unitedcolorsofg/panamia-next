@@ -57,9 +57,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .update(events)
         .set({
           status: 'cancelled',
-          cancelledAt: now,
-          cancelledBy: session.user.id,
-          cancellationReason: `Venue suspended: ${suspensionReason}`,
         })
         .where(eq(events.id, event.id));
 

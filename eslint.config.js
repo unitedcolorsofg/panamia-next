@@ -3,7 +3,17 @@ import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: ['external/**', '.yarn/**', 'dist/**', 'node_modules/**'],
+    // Standalone relay operator/diagnostic tools + their test harness are run
+    // via `tsx`/node --test and are intentionally decoupled from the app's
+    // lint/typecheck (see tsconfig.json exclude).
+    ignores: [
+      'external/**',
+      '.yarn/**',
+      'dist/**',
+      'node_modules/**',
+      'scripts/relay-*.ts',
+      'tests-relay/**',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],

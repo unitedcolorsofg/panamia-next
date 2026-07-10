@@ -46,6 +46,11 @@
   "exclude": [
     "node_modules",
     "scripts/migrate-from-mongodb.ts",
+    // Standalone relay operator/diagnostic tools + their test harness. Run via
+    // `tsx`, decoupled from the app build/typecheck (they talk to the relay over
+    // WebSocket and read RELAY_URL from the shell, not .env.local).
+    "scripts/relay-*.ts",
+    "tests-relay/**",
     "external/**",
     "worker/**"
   ]

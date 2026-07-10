@@ -30,7 +30,6 @@ interface PreflightData {
       attended: number;
       archived: number;
     };
-    eventPhotos: { total: number; archived: number };
     mentorSessions: { completed: number; pending: number };
     mediaFiles: number;
     thirdParty: {
@@ -126,8 +125,7 @@ export default function DeleteAccountForm() {
   const hasArchivedContent =
     preflight &&
     (preflight.summary.articles.archived > 0 ||
-      preflight.summary.events.archived > 0 ||
-      preflight.summary.eventPhotos.archived > 0);
+      preflight.summary.events.archived > 0);
 
   // Total pages: skip page 2 (attribution) if no archived content
   const totalPages = hasArchivedContent ? 5 : 4;
@@ -297,14 +295,6 @@ export default function DeleteAccountForm() {
                               {preflight.summary.events.hosted} total
                               {preflight.summary.events.archived > 0 &&
                                 ` (${preflight.summary.events.archived} archived)`}
-                            </div>
-                          </div>
-                        )}
-                        {preflight.summary.eventPhotos.total > 0 && (
-                          <div className="rounded border p-3">
-                            <div className="font-medium">Event Photos</div>
-                            <div className="text-muted-foreground">
-                              {preflight.summary.eventPhotos.total} total
                             </div>
                           </div>
                         )}

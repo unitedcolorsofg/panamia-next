@@ -12,7 +12,6 @@ import {
   users,
   articles,
   events,
-  eventPhotos,
   mentorSessions,
   socialStatuses,
   venues,
@@ -144,21 +143,6 @@ export async function GET() {
     eventsArchived = hosted.filter((e) => e.status === 'completed').length;
   }
 
-  // Event photos
-  let eventPhotosTotal = 0;
-  let eventPhotosArchived = 0;
-  if (profile) {
-    const photos = await db.query.eventPhotos.findMany({
-      where: eq(eventPhotos.uploaderProfileId, profile.id),
-      columns: { id: true },
-      with: { event: { columns: { startsAt: true } } },
-    });
-    eventPhotosTotal = photos.length;
-    eventPhotosArchived = (
-      photos as ((typeof photos)[0] & { event: { startsAt: Date } })[]
-    ).filter((p) => p.event.startsAt < threeMonthsAgo).length;
-  }
-
   // Mentor sessions
   const completedSessions = await db.query.mentorSessions.findMany({
     where: and(
@@ -196,10 +180,6 @@ export async function GET() {
         organized: eventsOrganized,
         attended: eventsAttended,
         archived: eventsArchived,
-      },
-      eventPhotos: {
-        total: eventPhotosTotal,
-        archived: eventPhotosArchived,
       },
       mentorSessions: {
         completed: completedSessions.length,

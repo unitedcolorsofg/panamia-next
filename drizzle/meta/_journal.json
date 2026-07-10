@@ -162,6 +162,20 @@
       "when": 1780531200000,
       "tag": "0022_make_profile_user_id_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1780617600000,
+      "tag": "0023_nostr_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780704000000,
+      "tag": "0024_events_nostr_model",
+      "breakpoints": true
     }
   ]
 }

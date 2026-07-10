@@ -24,7 +24,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             postalCode: true,
           },
         },
-        hostProfile: { with: { user: { columns: { screenname: true } } } },
+        host: { with: { user: { columns: { screenname: true } } } },
       },
     });
 
@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     const baseUrl = 'https://pana.social';
-    const hostScreenname = event.hostProfile?.user?.screenname;
+    const hostScreenname = event.host?.user?.screenname;
 
     const as2Event = {
       '@context': ['https://www.w3.org/ns/activitystreams'],

@@ -15,6 +15,7 @@ import handler from 'vinext/server/app-router-entry';
 import { getDb } from '../lib/db';
 import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
+import { getRelay } from '../lib/relay/crosspost-client';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -27,12 +28,7 @@ interface Env {
     put(
       key: string,
       value:
-        | ArrayBuffer
-        | ArrayBufferView
-        | ReadableStream
-        | string
-        | null
-        | Blob,
+        ArrayBuffer | ArrayBufferView | ReadableStream | string | null | Blob,
       options?: { httpMetadata?: { contentType?: string } }
     ): Promise<unknown>;
     delete(keys: string | string[]): Promise<void>;
@@ -49,6 +45,10 @@ interface Env {
   };
   EMAIL?: SendEmail;
   SIGNALING_ROOM: DurableObjectNamespace;
+  // Service binding to the panamia-nosflare relay Worker (Nostr crosspost +
+  // NIP-29 relay ops). Optional: crosspost is best-effort and no-ops if unbound.
+  RELAY?: Fetcher;
+  CROSSPOST_AUTH_TOKEN?: string;
 }
 
 export default {
@@ -58,6 +58,7 @@ export default {
     getDb(env);
     getEmail(env);
     getStorage(env);
+    getRelay(env);
     const url = new URL(request.url);
 
     // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object

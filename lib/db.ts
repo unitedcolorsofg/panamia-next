@@ -29,7 +29,7 @@ export interface CloudflareEnv {
   POSTGRES_URL?: string;
 }
 
-type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
+export type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 
 // Cache for plain Node.js dev server (server.js) only — process.env.POSTGRES_URL connections
 // don't have the workerd cross-request I/O restriction so sharing is safe there.

@@ -75,6 +75,15 @@
 	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
 	// "images": { "binding": "IMAGES" }
 
+	// Service binding to the panamia-nosflare relay Worker. Used by the article
+	// publish path (POST /api/articles/[slug]/publish) and event publish to
+	// forward kind-30023 / kind-31923 events to the relay's /internal/* endpoints,
+	// which sign with the shared relay key and fan out to NOSTR_*_CROSSPOST_LIST.
+	// Optional: crosspost is best-effort; when unbound the client falls back to
+	// RELAY_INTERNAL_URL (see lib/relay/crosspost-client.ts). The reverse binding
+	// (PANAMIA → here) lives in the panamia-nosflare repo's wrangler config.
+	"services": [{ "binding": "RELAY", "service": "panamia-nosflare" }],
+
 	// Runtime env vars. Declare non-sensitive runtime vars here so they survive
 	// CF Workers Builds deploys — dashboard-set plaintext vars get wiped on each
 	// deploy unless they're in this file or promoted to secrets.

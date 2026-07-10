@@ -33,10 +33,7 @@ import {
   articleAnnouncements,
   deletionLogs,
   events,
-  eventOrganizers,
   eventAttendees,
-  eventNotes,
-  eventPhotos,
   venues,
 } from '@/lib/schema';
 import { createId } from '@paralleldrive/cuid2';
@@ -268,26 +265,8 @@ export async function deleteAccount(
       );
     }
 
-    // Event photos by this profile
-    let allPhotos: { id: string; url: string; eventId: string }[] = [];
-    let archivedPhotos: typeof allPhotos = [];
-    let preArchivePhotos: typeof allPhotos = [];
-
-    if (profile) {
-      allPhotos = (await db.query.eventPhotos.findMany({
-        where: eq(eventPhotos.uploaderProfileId, profile.id),
-        columns: { id: true, url: true, eventId: true },
-        with: {
-          event: { columns: { startsAt: true } },
-        },
-      })) as ((typeof allPhotos)[0] & { event: { startsAt: Date } })[];
-      archivedPhotos = (
-        allPhotos as ((typeof allPhotos)[0] & { event: { startsAt: Date } })[]
-      ).filter((p) => p.event.startsAt < threeMonthsAgo);
-      preArchivePhotos = (
-        allPhotos as ((typeof allPhotos)[0] & { event: { startsAt: Date } })[]
-      ).filter((p) => p.event.startsAt >= threeMonthsAgo);
-    }
+    // NOTE: event_photos was dropped in the Nostr event-model merge; there is
+    // no per-profile event photo ownership to clean up anymore.
 
     // -------------------------------------------------------------------
     // 5. Handle archived content based on attribution choice
@@ -303,31 +282,39 @@ export async function deleteAccount(
         archivedContentIds.push(...ids);
       }
 
-      // Anonymize archived events
+      // Archived (completed) events cannot be host-anonymized: under the Nostr
+      // event model host_profile_id is required (NOT NULL, ON DELETE RESTRICT)
+      // and the profile row is hard-deleted on the 'anonymize' path, so these
+      // events must be deleted along with their attendees.
       if (archivedEvents.length > 0 && profile) {
         const ids = archivedEvents.map((e) => e.id);
-        await db
-          .update(events)
-          .set({ hostProfileId: null })
-          .where(inArray(events.id, ids));
-        archivedContentIds.push(...ids);
-      }
-
-      // Anonymize archived photos
-      if (archivedPhotos.length > 0) {
-        const ids = archivedPhotos.map((p) => p.id);
-        await db
-          .update(eventPhotos)
-          .set({ uploaderProfileId: null })
-          .where(inArray(eventPhotos.id, ids));
-        archivedContentIds.push(...ids);
+        await safeDelete(
+          'eventAttendees',
+          () =>
+            db
+              .delete(eventAttendees)
+              .where(inArray(eventAttendees.eventId, ids))
+              .returning({ id: eventAttendees.id }),
+          deletedTables,
+          warnings
+        );
+        await safeDelete(
+          'events',
+          () =>
+            db
+              .delete(events)
+              .where(inArray(events.id, ids))
+              .returning({ id: events.id }),
+          deletedTables,
+          warnings
+        );
       }
     } else {
-      // 'keep' — leave content as-is, just record what was preserved
+      // 'keep' — leave content as-is (the profile is tombstoned, not deleted,
+      // so hosted events keep a valid host FK); record what was preserved.
       archivedContentIds.push(
         ...archivedArticles.map((a) => a.id),
-        ...archivedEvents.map((e) => e.id),
-        ...archivedPhotos.map((p) => p.id)
+        ...archivedEvents.map((e) => e.id)
       );
     }
 
@@ -408,19 +395,9 @@ export async function deleteAccount(
       );
     }
 
-    // Pre-archive events: delete attendees, organizers, notes, photos first
+    // Pre-archive events: delete attendees first, then the events.
     if (preArchiveEvents.length > 0 && profile) {
       const ids = preArchiveEvents.map((e) => e.id);
-      await safeDelete(
-        'eventNotes',
-        () =>
-          db
-            .delete(eventNotes)
-            .where(inArray(eventNotes.eventId, ids))
-            .returning({ id: eventNotes.id }),
-        deletedTables,
-        warnings
-      );
       await safeDelete(
         'eventAttendees',
         () =>
@@ -432,54 +409,12 @@ export async function deleteAccount(
         warnings
       );
       await safeDelete(
-        'eventOrganizers',
-        () =>
-          db
-            .delete(eventOrganizers)
-            .where(inArray(eventOrganizers.eventId, ids))
-            .returning({ id: eventOrganizers.id }),
-        deletedTables,
-        warnings
-      );
-      // Delete event photos for pre-archive events
-      const prEventPhotos = await db.query.eventPhotos.findMany({
-        where: inArray(eventPhotos.eventId, ids),
-        columns: { id: true, url: true },
-      });
-      if (prEventPhotos.length > 0) {
-        await safeDelete(
-          'eventPhotos',
-          () =>
-            db
-              .delete(eventPhotos)
-              .where(inArray(eventPhotos.eventId, ids))
-              .returning({ id: eventPhotos.id }),
-          deletedTables,
-          warnings
-        );
-      }
-      await safeDelete(
         'events',
         () =>
           db
             .delete(events)
             .where(inArray(events.id, ids))
             .returning({ id: events.id }),
-        deletedTables,
-        warnings
-      );
-    }
-
-    // Delete pre-archive photos (uploaded to other people's events)
-    if (preArchivePhotos.length > 0) {
-      const ids = preArchivePhotos.map((p) => p.id);
-      await safeDelete(
-        'eventPhotos',
-        () =>
-          db
-            .delete(eventPhotos)
-            .where(inArray(eventPhotos.id, ids))
-            .returning({ id: eventPhotos.id }),
         deletedTables,
         warnings
       );
@@ -722,18 +657,9 @@ export async function deleteAccount(
       warnings
     );
 
-    // Remaining event organizer/attendee/note rows for this profile
+    // Remaining event attendee rows for this profile (organizer/note tables
+    // were dropped in the Nostr event-model merge).
     if (profile) {
-      await safeDelete(
-        'eventOrganizers',
-        () =>
-          db
-            .delete(eventOrganizers)
-            .where(eq(eventOrganizers.profileId, profile.id))
-            .returning({ id: eventOrganizers.id }),
-        deletedTables,
-        warnings
-      );
       await safeDelete(
         'eventAttendees',
         () =>
@@ -741,16 +667,6 @@ export async function deleteAccount(
             .delete(eventAttendees)
             .where(eq(eventAttendees.profileId, profile.id))
             .returning({ id: eventAttendees.id }),
-        deletedTables,
-        warnings
-      );
-      await safeDelete(
-        'eventNotes',
-        () =>
-          db
-            .delete(eventNotes)
-            .where(eq(eventNotes.authorProfileId, profile.id))
-            .returning({ id: eventNotes.id }),
         deletedTables,
         warnings
       );
@@ -832,9 +748,6 @@ export async function deleteAccount(
     }
     for (const e of preArchiveEvents) {
       if (e.coverImage) mediaUrls.push(e.coverImage);
-    }
-    for (const p of preArchivePhotos) {
-      if (p.url) mediaUrls.push(p.url);
     }
     if (socialActor) {
       const actorStatuses = await db.query.socialStatuses

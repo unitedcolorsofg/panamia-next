@@ -61,7 +61,7 @@ export default function InvitePage() {
     async function fetchData() {
       try {
         // Fetch article
-        const articleRes = await fetch(`/api/a/${slug}`);
+        const articleRes = await fetch(`/api/articles/${slug}`);
         const articleData = await articleRes.json();
 
         if (!articleData.success) {
@@ -117,7 +117,7 @@ export default function InvitePage() {
   const handleRespond = async (action: 'accept' | 'decline') => {
     setResponding(true);
     try {
-      const response = await fetch(`/api/a/${slug}/coauthors/respond`, {
+      const response = await fetch(`/api/articles/${slug}/coauthors/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),

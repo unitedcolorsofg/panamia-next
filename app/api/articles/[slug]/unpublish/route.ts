@@ -59,7 +59,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Unpublish - revert to draft
     const [updatedArticle] = await db
       .update(articles)
-      .set({ status: 'draft', publishedAt: null })
+      // Clear nostrEventId locally on revert. The kind-30023 event lingers on
+      // relays — NIP-09 deletion is intentionally out of scope for now.
+      .set({ status: 'draft', publishedAt: null, nostrEventId: null })
       .where(eq(articles.id, articleDoc.id))
       .returning();
 

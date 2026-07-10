@@ -78,7 +78,7 @@ export default function ReviewPage() {
   useEffect(() => {
     async function fetchArticle() {
       try {
-        const response = await fetch(`/api/a/${slug}`);
+        const response = await fetch(`/api/articles/${slug}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -118,7 +118,7 @@ export default function ReviewPage() {
     if (!newComment.trim()) return;
 
     try {
-      const response = await fetch(`/api/a/${slug}/review/comments`, {
+      const response = await fetch(`/api/articles/${slug}/review/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: newComment }),
@@ -154,7 +154,7 @@ export default function ReviewPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/a/${slug}/review/respond`, {
+      const response = await fetch(`/api/articles/${slug}/review/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve', checklist }),
@@ -180,7 +180,7 @@ export default function ReviewPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/a/${slug}/review/respond`, {
+      const response = await fetch(`/api/articles/${slug}/review/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

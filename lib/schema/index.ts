@@ -135,48 +135,29 @@ export const eventStatus = pgEnum('event_status', [
   'completed',
 ]);
 
+// 'unlisted' = excluded from the /e listing and never crossposted to Nostr, but
+// still viewable by direct URL (secret link). It is NOT access-controlled —
+// true invitation-only private events (followers/invite/private) are a future
+// phase, intentionally dropped in the Nostr merge; see docs/EVENTS-ROADMAP.md.
 export const eventVisibility = pgEnum('event_visibility', [
   'public',
-  'followers',
-  'invite',
-  'private',
+  'unlisted',
+]);
+
+// online / offline / hybrid — maps 1:1 to nostrlab's NIP-52 `mode` tag, lower
+// case on the wire (see lib/event.ts crosspost mapping).
+export const eventMode = pgEnum('event_mode', ['online', 'offline', 'hybrid']);
+
+export const rsvpStatus = pgEnum('rsvp_status', [
+  'going',
+  'maybe',
+  'not_going',
 ]);
 
 export const venueStatus = pgEnum('venue_status', [
   'pending_review',
   'active',
   'suspended',
-]);
-
-export const organizerRole = pgEnum('organizer_role', [
-  'host',
-  'co_organizer',
-  'volunteer',
-]);
-
-export const attendeeStatus = pgEnum('attendee_status', [
-  'invited',
-  'going',
-  'maybe',
-  'not_going',
-]);
-
-export const ageRestriction = pgEnum('age_restriction', [
-  'all_ages',
-  '18_plus',
-  '21_plus',
-]);
-
-export const photoPolicy = pgEnum('photo_policy', [
-  'allowed',
-  'restricted',
-  'prohibited',
-]);
-
-export const dresscode = pgEnum('dresscode', [
-  'none',
-  'smart_casual',
-  'formal',
 ]);
 
 export const parkingOptions = pgEnum('parking_options', [
@@ -242,12 +223,27 @@ export const venueOwnership = pgEnum('venue_ownership', [
   'unknown',
 ]);
 
-export const streamStatus = pgEnum('stream_status', [
-  'offline',
-  'connecting',
-  'live',
-  'ended',
+// Moderator workflow state for forwarded NIP-56 abuse reports.
+// 'removed' is terminal/non-revocable: the reported content + report event have
+// been hard-deleted from the relay, so there is nothing to reopen.
+export const relayReportStatus = pgEnum('relay_report_status', [
+  'open',
+  'actioned',
+  'dismissed',
+  'removed',
 ]);
+
+// Provenance of a profile's nostr_pubkey: 'issued' = generated client-side
+// via the /r flow; 'byo' = uploaded by the user after acknowledging the
+// cross-relay correlation disclosure. See docs/RESILIENCE-ROADMAP.md.
+export const nostrPubkeySource = pgEnum('nostr_pubkey_source', [
+  'issued',
+  'byo',
+]);
+
+// NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
+// columns) was intentionally dropped in the Nostr event-model merge. Placeholder
+// only — reintroduce here alongside the events table fields when streaming lands.
 
 // =============================================================================
 // Convenience type aliases for enum values
@@ -269,14 +265,12 @@ export type IntakeFormType = (typeof intakeFormType.enumValues)[number];
 export type SocialFollowStatus = (typeof socialFollowStatus.enumValues)[number];
 export type EventStatus = (typeof eventStatus.enumValues)[number];
 export type EventVisibility = (typeof eventVisibility.enumValues)[number];
+export type EventMode = (typeof eventMode.enumValues)[number];
+export type RsvpStatus = (typeof rsvpStatus.enumValues)[number];
 export type VenueStatus = (typeof venueStatus.enumValues)[number];
-export type OrganizerRole = (typeof organizerRole.enumValues)[number];
-export type AttendeeStatus = (typeof attendeeStatus.enumValues)[number];
-export type AgeRestriction = (typeof ageRestriction.enumValues)[number];
-export type PhotoPolicy = (typeof photoPolicy.enumValues)[number];
-export type Dresscode = (typeof dresscode.enumValues)[number];
 export type ParkingOptions = (typeof parkingOptions.enumValues)[number];
-export type StreamStatus = (typeof streamStatus.enumValues)[number];
+export type RelayReportStatus = (typeof relayReportStatus.enumValues)[number];
+export type NostrPubkeySource = (typeof nostrPubkeySource.enumValues)[number];
 export type VenueType = (typeof venueType.enumValues)[number];
 export type VenueEnvironment = (typeof venueEnvironment.enumValues)[number];
 export type VenueUsage = (typeof venueUsage.enumValues)[number];
@@ -565,9 +559,14 @@ export const profiles = pgTable(
     ghlOptedOut: boolean('ghl_opted_out').notNull().default(false),
     // Stripe
     stripeCustomerId: text('stripe_customer_id'),
+    // Nostr identity — hex secp256k1 x-only pubkey (64 chars), unique across
+    // all profiles. Nullable: keys are issued/BYO opt-in via the /r flow.
+    nostrPubkey: text('nostr_pubkey').unique(),
+    nostrPubkeySource: nostrPubkeySource('nostr_pubkey_source'),
   },
   (table) => ({
     activeIdx: index('profiles_active_idx').on(table.active),
+    nostrPubkeyIdx: index('profiles_nostr_pubkey_idx').on(table.nostrPubkey),
   })
 );
 
@@ -619,6 +618,8 @@ export const articles = pgTable(
     readingTime: integer('reading_time').notNull().default(1),
     mastodonPostUrl: text('mastodon_post_url'),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
+    // Set only when the home relay accepted the NIP-23 kind-30023 mirror.
+    nostrEventId: text('nostr_event_id'),
   },
   (table) => ({
     statusPublishedIdx: index('articles_status_published_idx').on(
@@ -1240,41 +1241,38 @@ export const events = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     coverImage: text('cover_image'),
-    hostProfileId: text('host_profile_id').references(() => profiles.id, {
-      onDelete: 'set null',
-    }),
-    venueId: text('venue_id')
+    coverImageAlt: text('cover_image_alt'),
+    hostProfileId: text('host_profile_id')
       .notNull()
-      .references(() => venues.id, { onDelete: 'restrict' }),
+      .references(() => profiles.id, { onDelete: 'restrict' }),
+    // Nullable: online-only events have no physical venue.
+    venueId: text('venue_id').references(() => venues.id, {
+      onDelete: 'restrict',
+    }),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     timezone: text('timezone').notNull().default('America/New_York'),
     status: eventStatus('status').notNull().default('draft'),
     visibility: eventVisibility('visibility').notNull().default('public'),
+    mode: eventMode('mode').notNull().default('offline'),
     attendeeCap: integer('attendee_cap'),
+    // Only verified, 'going' RSVPs count. Maintained transactionally by the
+    // rsvp routes; the hard cap is min(attendeeCap, venue.fireCapacity).
     attendeeCount: integer('attendee_count').notNull().default(0),
-    ageRestriction: ageRestriction('age_restriction')
+    icalUid: text('ical_uid').notNull().unique(),
+    tags: text('tags')
+      .array()
       .notNull()
-      .default('all_ages'),
-    photoPolicy: photoPolicy('photo_policy').notNull().default('allowed'),
-    dresscode: dresscode('dresscode').notNull().default('none'),
-    iCalUid: text('ical_uid').notNull().unique(),
-    panamiaCoOrganizer: boolean('panamia_co_organizer').notNull().default(true),
-    tosAcceptedAt: timestamp('tos_accepted_at', { withTimezone: true }),
-    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
-    cancelledBy: text('cancelled_by').references(() => users.id, {
-      onDelete: 'set null',
-    }),
-    cancellationReason: text('cancellation_reason'),
-    streamEligible: boolean('stream_eligible').notNull().default(false),
-    streamStatus: streamStatus('stream_status').notNull().default('offline'),
-    cfStreamId: text('cf_stream_id'),
-    cfStreamPlaybackId: text('cf_stream_playback_id'),
-    cfStreamSrtUrl: text('cf_stream_srt_url'),
-    cfStreamSrtKey: text('cf_stream_srt_key'),
-    cfStreamRecordingUrl: text('cf_stream_recording_url'),
-    streamLiveAt: timestamp('stream_live_at', { withTimezone: true }),
-    streamEndedAt: timestamp('stream_ended_at', { withTimezone: true }),
+      .default(sql`ARRAY[]::text[]`),
+    // Set only when the home relay accepted the kind-31923 mirror.
+    nostrEventId: text('nostr_event_id'),
+    // ---------------------------------------------------------------------
+    // Deferred (placeholder) — dropped in the Nostr event-model merge, see
+    // docs/EVENTS-ROADMAP.md v2 backlog: age_restriction, photo_policy,
+    // dresscode, panamia_co_organizer, tos_accepted_at, cancellation fields,
+    // and Cloudflare live-streaming (stream_status, cf_stream_*). Reintroduce
+    // as a follow-up migration when those features land.
+    // ---------------------------------------------------------------------
   },
   (table) => ({
     hostProfileIdIdx: index('events_host_profile_id_idx').on(
@@ -1289,47 +1287,10 @@ export const events = pgTable(
   })
 );
 
-export const eventOrganizers = pgTable(
-  'event_organizers',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date())
-      .$onUpdateFn(() => new Date()),
-    eventId: text('event_id')
-      .notNull()
-      .references(() => events.id, { onDelete: 'cascade' }),
-    profileId: text('profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    role: organizerRole('role').notNull(),
-    canSeeRsvpList: boolean('can_see_rsvp_list').notNull().default(false),
-    invitedBy: text('invited_by').references(() => users.id, {
-      onDelete: 'set null',
-    }),
-    invitedAt: timestamp('invited_at', { withTimezone: true }).$defaultFn(
-      () => new Date()
-    ),
-    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-    declinedAt: timestamp('declined_at', { withTimezone: true }),
-    message: text('message'),
-  },
-  (table) => ({
-    eventProfileUnique: uniqueIndex('event_organizers_event_profile_unique').on(
-      table.eventId,
-      table.profileId
-    ),
-    eventIdIdx: index('event_organizers_event_id_idx').on(table.eventId),
-    profileIdIdx: index('event_organizers_profile_id_idx').on(table.profileId),
-  })
-);
-
+// One row per (event, attendee). Attendees need NO Nostr key and NO account:
+// anonymous RSVPs are name+email, verified via a magic link backed by the
+// existing verification_tokens table. Logged-in users get profileId set and
+// emailVerifiedAt stamped immediately (auth already verified their email).
 export const eventAttendees = pgTable(
   'event_attendees',
   {
@@ -1346,100 +1307,48 @@ export const eventAttendees = pgTable(
     eventId: text('event_id')
       .notNull()
       .references(() => events.id, { onDelete: 'cascade' }),
-    profileId: text('profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    status: attendeeStatus('status').notNull(),
-    invitedBy: text('invited_by').references(() => users.id, {
-      onDelete: 'set null',
+    // Set for logged-in attendees; null for anonymous email RSVPs.
+    profileId: text('profile_id').references(() => profiles.id, {
+      onDelete: 'cascade',
     }),
+    // Nullable: RSVPs that arrive from Nostr (kind 31925) have no email — they
+    // are keyed by nostrPubkey instead. Web RSVPs always set email.
+    email: text('email'),
+    name: text('name').notNull(),
+    status: rsvpStatus('status').notNull(),
+    // Null until confirmed. Web: stamped on magic-link click (or immediately
+    // for logged-in users). Nostr: stamped on ingest — the event signature IS
+    // the verification. Only non-null + status 'going' counts toward capacity.
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     respondedAt: timestamp('responded_at', { withTimezone: true }),
+    // Inbound two-way sync (phase 2). The signer pubkey of a kind-31925 RSVP
+    // ingested from Nostr; identifies the attendee when there's no profile.
+    nostrPubkey: text('nostr_pubkey'),
+    // created_at of the last kind-31925 we applied — guards against applying a
+    // stale RSVP when events arrive out of order (Nostr is replaceable, latest
+    // wins). See app/api/internal/relay/rsvp.
+    nostrRsvpAt: timestamp('nostr_rsvp_at', { withTimezone: true }),
+    // The kind-31925 event id we last ingested (inbound), or — once RSVP→Nostr
+    // outbound lands — the id we published. See docs/EVENTS-ROADMAP.md.
+    nostrEventId: text('nostr_event_id'),
   },
   (table) => ({
+    eventEmailUnique: uniqueIndex('event_attendees_event_email_unique').on(
+      table.eventId,
+      table.email
+    ),
     eventProfileUnique: uniqueIndex('event_attendees_event_profile_unique').on(
       table.eventId,
       table.profileId
     ),
+    eventNostrPubkeyUnique: uniqueIndex(
+      'event_attendees_event_nostr_pubkey_unique'
+    ).on(table.eventId, table.nostrPubkey),
     eventStatusIdx: index('event_attendees_event_status_idx').on(
       table.eventId,
       table.status
     ),
     profileIdIdx: index('event_attendees_profile_id_idx').on(table.profileId),
-  })
-);
-
-export const eventNotes = pgTable(
-  'event_notes',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date())
-      .$onUpdateFn(() => new Date()),
-    eventId: text('event_id')
-      .notNull()
-      .references(() => events.id, { onDelete: 'cascade' }),
-    authorProfileId: text('author_profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    content: text('content').notNull(),
-    audience: text('audience').notNull().default('all'),
-  },
-  (table) => ({
-    eventCreatedIdx: index('event_notes_event_created_idx').on(
-      table.eventId,
-      table.createdAt
-    ),
-    authorProfileIdIdx: index('event_notes_author_profile_id_idx').on(
-      table.authorProfileId
-    ),
-  })
-);
-
-export const eventPhotos = pgTable(
-  'event_photos',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .$defaultFn(() => new Date())
-      .$onUpdateFn(() => new Date()),
-    eventId: text('event_id')
-      .notNull()
-      .references(() => events.id, { onDelete: 'cascade' }),
-    uploaderProfileId: text('uploader_profile_id').references(
-      () => profiles.id,
-      {
-        onDelete: 'set null',
-      }
-    ),
-    url: text('url').notNull(),
-    caption: text('caption'),
-    approved: boolean('approved').notNull().default(false),
-    approvedBy: text('approved_by').references(() => users.id, {
-      onDelete: 'set null',
-    }),
-    approvedAt: timestamp('approved_at', { withTimezone: true }),
-    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
-  },
-  (table) => ({
-    eventApprovedIdx: index('event_photos_event_approved_idx').on(
-      table.eventId,
-      table.approved
-    ),
-    uploaderProfileIdIdx: index('event_photos_uploader_profile_id_idx').on(
-      table.uploaderProfileId
-    ),
   })
 );
 
@@ -1555,7 +1464,6 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   }),
   venuesOperated: many(venues),
   eventsHosted: many(events),
-  eventOrganizerRows: many(eventOrganizers),
   eventAttendeeRows: many(eventAttendees),
 }));
 
@@ -1715,30 +1623,13 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
     fields: [events.venueId],
     references: [venues.id],
   }),
-  hostProfile: one(profiles, {
+  host: one(profiles, {
     fields: [events.hostProfileId],
     references: [profiles.id],
   }),
-  organizers: many(eventOrganizers),
   attendees: many(eventAttendees),
-  notes: many(eventNotes),
-  photos: many(eventPhotos),
   socialStatuses: many(socialStatuses),
 }));
-
-export const eventOrganizersRelations = relations(
-  eventOrganizers,
-  ({ one }) => ({
-    event: one(events, {
-      fields: [eventOrganizers.eventId],
-      references: [events.id],
-    }),
-    profile: one(profiles, {
-      fields: [eventOrganizers.profileId],
-      references: [profiles.id],
-    }),
-  })
-);
 
 export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
   event: one(events, {
@@ -1747,28 +1638,6 @@ export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
   }),
   profile: one(profiles, {
     fields: [eventAttendees.profileId],
-    references: [profiles.id],
-  }),
-}));
-
-export const eventNotesRelations = relations(eventNotes, ({ one }) => ({
-  event: one(events, {
-    fields: [eventNotes.eventId],
-    references: [events.id],
-  }),
-  author: one(profiles, {
-    fields: [eventNotes.authorProfileId],
-    references: [profiles.id],
-  }),
-}));
-
-export const eventPhotosRelations = relations(eventPhotos, ({ one }) => ({
-  event: one(events, {
-    fields: [eventPhotos.eventId],
-    references: [events.id],
-  }),
-  uploader: one(profiles, {
-    fields: [eventPhotos.uploaderProfileId],
     references: [profiles.id],
   }),
 }));
@@ -1784,6 +1653,166 @@ export const screennameHistoryRelations = relations(
 );
 
 export const deletionLogsRelations = relations(deletionLogs, () => ({}));
+
+// =============================================================================
+// Relay Groups (NIP-29) — panamia is sole source of truth. Read by the relay
+// Worker's /api/internal/relay/* endpoints. See docs/RESILIENCE-ROADMAP.md.
+// =============================================================================
+
+export const relayGroups = pgTable(
+  'relay_groups',
+  {
+    // NIP-29 group_id — relay-chosen string, used as the "h" tag on group
+    // events. Stable for the life of the group; not a UUID.
+    groupId: text('group_id').primaryKey(),
+    name: text('name').notNull(),
+    about: text('about'),
+    picture: text('picture'),
+    // Discoverable groups have their kind 39000 metadata emitted publicly.
+    discoverable: boolean('discoverable').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => ({
+    discoverableIdx: index('relay_groups_discoverable_idx').on(
+      table.discoverable
+    ),
+  })
+);
+
+export const relayGroupMembers = pgTable(
+  'relay_group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => relayGroups.groupId, { onDelete: 'cascade' }),
+    // Hex-encoded secp256k1 x-only pubkey. No FK to profiles yet — the
+    // nostr_pubkey linkage is deferred (BYO + issuance flow TBD).
+    pubkey: text('pubkey').notNull(),
+    joinedAt: timestamp('joined_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    pk: uniqueIndex('relay_group_members_pk').on(table.groupId, table.pubkey),
+    pubkeyIdx: index('relay_group_members_pubkey_idx').on(table.pubkey),
+  })
+);
+
+// Leaves in the 24h debounce grace period (kind 9022 advisory). Maturation is
+// mature-on-read via lib/relay/group-maturation.ts, not cron-driven.
+export const relayGroupLeavePending = pgTable(
+  'relay_group_leave_pending',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => relayGroups.groupId, { onDelete: 'cascade' }),
+    pubkey: text('pubkey').notNull(),
+    requestedAt: timestamp('requested_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    pk: uniqueIndex('relay_group_leave_pending_pk').on(
+      table.groupId,
+      table.pubkey
+    ),
+    requestedAtIdx: index('relay_group_leave_pending_requested_at_idx').on(
+      table.requestedAt
+    ),
+  })
+);
+
+// Joins awaiting admin approval (kind 9021 advisory). Row stays until an admin
+// approves (insert into relay_group_members + delete here) or denies (delete).
+export const relayGroupJoinPending = pgTable(
+  'relay_group_join_pending',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => relayGroups.groupId, { onDelete: 'cascade' }),
+    pubkey: text('pubkey').notNull(),
+    requestedAt: timestamp('requested_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    pk: uniqueIndex('relay_group_join_pending_pk').on(
+      table.groupId,
+      table.pubkey
+    ),
+    requestedAtIdx: index('relay_group_join_pending_requested_at_idx').on(
+      table.requestedAt
+    ),
+  })
+);
+
+// NIP-56 abuse reports (kind 1984) forwarded from the relay. Accepted from
+// anyone — member or not — so no FK from reporter/target pubkeys to profiles.
+// report_type is plain text (not an enum): the NIP-56 type set drifts.
+export const relayReports = pgTable(
+  'relay_reports',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    // The kind 1984 event id on the relay.
+    eventId: text('event_id').notNull(),
+    // Hex x-only pubkey of the reporter (event.pubkey).
+    reporterPubkey: text('reporter_pubkey').notNull(),
+    // Reported account (NIP-56 `p` tag) — nullable.
+    targetPubkey: text('target_pubkey'),
+    // Reported event (NIP-56 `e` tag) — nullable.
+    targetEventId: text('target_event_id'),
+    reportType: text('report_type'),
+    content: text('content').notNull().default(''),
+    // Snapshot of the reported event captured by the relay at forward time.
+    reportedContent: text('reported_content'),
+    reportedKind: integer('reported_kind'),
+    reportedAt: timestamp('reported_at', { withTimezone: true }).notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    status: relayReportStatus('status').notNull().default('open'),
+    moderationReason: text('moderation_reason'),
+    lastModerationActionAt: timestamp('last_moderation_action_at', {
+      withTimezone: true,
+    }),
+  },
+  (table) => ({
+    // Dedup for queue readability (NOT an abuse control): collapse repeat
+    // reports of the same target+type by the same reporter.
+    dedupIdx: uniqueIndex('relay_reports_dedup_idx').on(
+      table.reporterPubkey,
+      table.targetPubkey,
+      table.targetEventId,
+      table.reportType
+    ),
+    statusIdx: index('relay_reports_status_idx').on(table.status),
+    receivedAtIdx: index('relay_reports_received_at_idx').on(table.receivedAt),
+  })
+);
+
+export const relayGroupsRelations = relations(relayGroups, ({ many }) => ({
+  members: many(relayGroupMembers),
+  leavePending: many(relayGroupLeavePending),
+  joinPending: many(relayGroupJoinPending),
+}));
+
+export const relayGroupMembersRelations = relations(
+  relayGroupMembers,
+  ({ one }) => ({
+    group: one(relayGroups, {
+      fields: [relayGroupMembers.groupId],
+      references: [relayGroups.groupId],
+    }),
+  })
+);
 
 // =============================================================================
 // Inferred Types
@@ -1814,8 +1843,10 @@ export type SocialTag = typeof socialTags.$inferSelect;
 export type ScreennameHistory = typeof screennameHistory.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type Event = typeof events.$inferSelect;
-export type EventOrganizer = typeof eventOrganizers.$inferSelect;
 export type EventAttendee = typeof eventAttendees.$inferSelect;
-export type EventNote = typeof eventNotes.$inferSelect;
-export type EventPhoto = typeof eventPhotos.$inferSelect;
 export type DeletionLog = typeof deletionLogs.$inferSelect;
+export type RelayGroup = typeof relayGroups.$inferSelect;
+export type RelayGroupMember = typeof relayGroupMembers.$inferSelect;
+export type RelayGroupLeavePending = typeof relayGroupLeavePending.$inferSelect;
+export type RelayGroupJoinPending = typeof relayGroupJoinPending.$inferSelect;
+export type RelayReport = typeof relayReports.$inferSelect;

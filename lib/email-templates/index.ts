@@ -4,6 +4,7 @@ import { profileNotPublished } from './profile-not-published';
 import { adminNewsletter } from './admin-newsletter';
 import { adminProfile } from './admin-profile';
 import { adminAffiliate } from './admin-affiliate';
+import { eventRsvpConfirm } from './event-rsvp-confirm';
 
 export type TemplateId =
   | 'profile.submitted'
@@ -11,7 +12,8 @@ export type TemplateId =
   | 'profile.not_published'
   | 'admin.newsletter_submission'
   | 'admin.profile_submission'
-  | 'admin.affiliate_submission';
+  | 'admin.affiliate_submission'
+  | 'event.rsvp_confirm';
 
 type TemplateRenderer = (params: Record<string, unknown>) => {
   subject: string;
@@ -26,6 +28,7 @@ const templates: Record<TemplateId, TemplateRenderer> = {
   'admin.newsletter_submission': adminNewsletter,
   'admin.profile_submission': adminProfile,
   'admin.affiliate_submission': adminAffiliate,
+  'event.rsvp_confirm': eventRsvpConfirm,
 };
 
 export function renderTemplate(
