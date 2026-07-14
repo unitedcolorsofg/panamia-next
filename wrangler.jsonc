@@ -12,20 +12,16 @@
 		"binding": "ASSETS"
 	},
 	// Workers Cache: regional tiered cache in front of the Worker.
-	// Opt-in per response via Cache-Control — enabling this does NOT cache
-	// anything by itself. Responses are only cached when they explicitly set a
-	// cacheable Cache-Control (public, max-age=…); GET-only; Set-Cookie skipped.
 	// https://blog.cloudflare.com/workers-cache/
 	//
-	// Safe here because:
-	//  - No anonymous session cookie (better-auth sets no cookie until sign-in;
-	//    no session.cookieCache configured).
-	//  - Theme (next-themes) and language (i18next) are client-side/localStorage,
-	//    and session state is hydrated client-side (SessionProvider is a client
-	//    component) — so SSR output is byte-identical for every visitor.
-	// Auth/personalized responses stay uncached because they emit no-store.
-	// Public route handlers (feeds, federation, .well-known) already set
-	// public Cache-Control and are cached immediately.
+	// A 200 with no Cache-Control is cacheable under a default TTL, and the
+	// cache key ignores cookies (Cloudflare does not honour Vary: Cookie at the
+	// edge). Anything session-scoped must therefore say no-store itself, or it
+	// will be served to anonymous visitors:
+	//  - proxy.ts — any request carrying a better-auth session cookie
+	//  - app/api/auth/[...all]/route.ts — every auth response
+	//
+	// Anonymous requests carry no cookie, so public routes still cache.
 	"cache": {
 		"enabled": true
 	},

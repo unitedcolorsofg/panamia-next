@@ -52,6 +52,19 @@ export function proxy(request: NextRequest) {
   // Set security headers
   const response = NextResponse.next();
 
+  // Keep signed-in responses out of the shared cache. Workers Cache keys on the
+  // URL alone, so anything cached for a signed-in visitor is served to everyone.
+  // Keying off the cookie rather than a route list covers future routes too;
+  // anonymous requests carry no cookie and still cache normally.
+  // better-auth accepts either separator, with or without the __Secure- prefix.
+  const hasSessionCookie =
+    /(?:^|;\s*)(?:__Secure-)?better-auth[.-]session_token=/.test(
+      request.headers.get('cookie') ?? ''
+    );
+  if (hasSessionCookie) {
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+  }
+
   // Forward GPC detection status to server components and API routes
   if (gpcDetected) {
     response.headers.set('x-gpc-detected', '1');
