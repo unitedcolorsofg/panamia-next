@@ -19,7 +19,9 @@
     "app/api/profile": "profiles",
     "app/d": "profiles",
     "app/donate": "payments",
-    "app/donation": "payments"
+    "app/donation": "payments",
+    "app/r": "resilience",
+    "app/api/relay": "resilience"
   },
   "cross_cutting": ["uploads", "community"],
   "exempt": [
@@ -53,7 +55,6 @@
     "app/links",
     "app/migrate-email",
     "app/podcasts",
-    "app/r",
     "app/signin",
     "app/status",
     "app/test",

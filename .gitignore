@@ -65,6 +65,9 @@ scripts/auth-data-export-*.json
 scripts/id-mapping-*.json
 scripts/unmapped-user-ids-*.json
 
+# Internal legal analysis — kept local, not published
+docs/NOSTR-LEGAL-OPINION.md
+
 .env.local.*
 external/*
 !external/panamia-next-crm-bridge/

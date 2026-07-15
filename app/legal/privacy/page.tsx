@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PrivacyAtAGlance } from '@/components/legal/PrivacyAtAGlance';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
+import { tiers, policyVersion, policyStatus } from '@/lib/legal/privacy-policy';
 
 const SITE = 'https://pana.social';
 
@@ -27,84 +28,18 @@ function Placeholder({ label }: { label: string }) {
   );
 }
 
-const dataTiers = [
-  {
-    tier: 'Persistent',
-    description: 'Stored for the lifetime of your account or longer.',
-    classes: [
-      {
-        name: 'Deletable on Request',
-        description: 'Deleted immediately upon confirmed request.',
-        categories: [
-          'Account credentials and authentication tokens',
-          'Profile information (contact, address, descriptions, images, social links)',
-          'Mentoring profile (expertise, languages, bio, hourly rate)',
-          'Notification preferences',
-          'Intake form submissions',
-          'Session notes and mentoring session metadata',
-          'Social graph (follows, followers, likes)',
-          'RSVPs and event attendance records',
-        ],
-      },
-      {
-        name: 'Community Record',
-        description:
-          'Anonymizable but not deletable after archive threshold. Content is CC-licensed (irrevocable).',
-        categories: [
-          'Published articles (archive: 3 months after publication)',
-          'Social timeline posts (no archive threshold — always fully deleted)',
-          'Event records (archive: after event completion)',
-          'Event photos (archive: 3 months after event)',
-          'Article peer review comments (archive: follows article)',
-        ],
-      },
-      {
-        name: 'Third-Party Synced',
-        description:
-          'Deletion initiated but subject to provider retention policies.',
-        categories: [
-          'Stripe — email, payment method, transaction history (7-year legal hold)',
-          'Brevo — email, name, list membership',
-          'GoHighLevel — contact ID, email, name',
-          'Google OAuth — email, name, profile image (received, not sent)',
-          'Apple OAuth — email, name (received, not sent)',
-          'Cloudflare R2 — uploaded media files',
-          'ActivityPub peers — federated posts, actor profiles, follows',
-        ],
-      },
-    ],
-  },
-  {
-    tier: 'Temporary',
-    description:
-      'Retained only as long as necessary to provide a specific service, then automatically purged.',
-    categories: [
-      'Mentoring session signaling and WebRTC connection metadata',
-      'Whiteboard state (purged 30 min after session ends)',
-      'Real-time chat messages during mentoring sessions',
-      'Session video/audio streams (never recorded server-side unless explicitly enabled)',
-      'OAuth tokens and transient authentication state',
-      'IP addresses and user-agent strings (90-day analytics window)',
-      'Email verification and magic-link tokens (expire per config)',
-      'Event livestream SRT ingestion keys (valid only during stream)',
-    ],
-  },
-  {
-    tier: 'Peer Networking',
-    description:
-      'Exchanged directly between participants. Pana MIA Club facilitates but does not control after transmission.',
-    categories: [
-      'Video and audio streams during mentoring sessions (WebRTC peer-to-peer)',
-      'Whiteboard content visible to session participants',
-      'Chat messages seen by the other participant before deletion',
-      'Co-author content shared during article collaboration',
-      'Profile information visible to other users',
-      'Event RSVP and attendance information visible to organizers/attendees',
-      'Social posts, replies, likes, and follows federated via ActivityPub',
-      'Information shared at in-person events (verbal, written, photos)',
-    ],
-  },
-];
+// Tier / class / category content is derived from app/legal/privacy/policy.json.
+// Add or amend categories there, not here.
+
+const retentionClassHeadings: Record<string, string> = {
+  deletable: 'Deletable on Request',
+  community_record: 'Community Record',
+  third_party_synced: 'Third-Party Synced',
+  moderation_record: 'Moderation Record',
+  auto_purged: 'Auto-Purged',
+  in_the_wind: 'In the Wind',
+  participant_observed: 'Seen by Participants',
+};
 
 export default function PrivacyPolicyPage() {
   return (
@@ -113,12 +48,15 @@ export default function PrivacyPolicyPage() {
         name="Pana MIA Club Privacy Policy"
         description="How Pana MIA Club collects, uses, and protects your data. Three-tier data classification, your rights, and third-party sharing."
         url={`${SITE}/legal/privacy`}
-        version="0.1"
+        version={policyVersion}
         policyJsonUrl={`${SITE}/legal/privacy/policy.json`}
       />
       <header className="mb-10 border-b pb-6">
         <h1 className="text-4xl font-bold">Privacy Policy</h1>
-        <p className="text-muted-foreground mt-2">Version 0.1 — Draft</p>
+        <p className="text-muted-foreground mt-2">
+          Version {policyVersion} —{' '}
+          {policyStatus.charAt(0).toUpperCase() + policyStatus.slice(1)}
+        </p>
         <p className="text-muted-foreground mt-1 text-sm">
           The English-language version of this policy shall take precedence over
           any translations.
@@ -158,7 +96,19 @@ export default function PrivacyPolicyPage() {
             on request. Content that becomes community record (articles after 3
             months, completed events) can be anonymized but not fully removed,
             because the CC license you chose is irrevocable. Social posts are
-            always fully deletable.
+            always fully deletable. Two things are never deleted on request:
+            abuse reports, which have to outlive the accounts they concern, and
+            anything already published to a network we do not run.
+          </p>
+          <p>
+            <strong>Nostr and federation:</strong> If you join the Resilience
+            Network, your public key and group membership live in our systems
+            and are deleted with your account — but posts you published to Nostr
+            are signed, permanent, and hosted by relays we have no relationship
+            with. We can remove them from our relay. Nobody can remove them from
+            Nostr at large. ActivityPub works the same way: we send a Delete,
+            and remote servers may honor it or ignore it. Your secret key (nsec)
+            is never sent to us and we cannot recover it for you.
           </p>
           <p>
             <strong>Third parties:</strong> We share data with Stripe
@@ -194,32 +144,30 @@ export default function PrivacyPolicyPage() {
             retained, and what happens when you request deletion.
           </p>
 
-          {dataTiers.map((tier) => (
-            <div key={tier.tier} className="mb-8">
-              <h3>{tier.tier} Data</h3>
+          {tiers.map((tier) => (
+            <div key={tier.id} className="mb-8">
+              <h3>{tier.label} Data</h3>
               <p>{tier.description}</p>
 
-              {'classes' in tier && tier.classes ? (
-                tier.classes.map((cls) => (
-                  <div key={cls.name} className="mb-4">
-                    <h4>{cls.name}</h4>
-                    <p className="text-muted-foreground text-sm">
-                      {cls.description}
-                    </p>
-                    <ul>
-                      {cls.categories.map((cat) => (
-                        <li key={cat}>{cat}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              ) : (
-                <ul>
-                  {tier.categories?.map((cat) => (
-                    <li key={cat}>{cat}</li>
-                  ))}
-                </ul>
-              )}
+              {tier.classes.map((cls) => (
+                <div key={cls.id} className="mb-4">
+                  {/* A single-class tier needs no sub-heading — the class and
+                      the tier describe the same thing. */}
+                  {tier.classes.length > 1 && (
+                    <>
+                      <h4>{retentionClassHeadings[cls.id] ?? cls.id}</h4>
+                      <p className="text-muted-foreground text-sm">
+                        {cls.description}
+                      </p>
+                    </>
+                  )}
+                  <ul>
+                    {cls.categories.map((cat) => (
+                      <li key={cat.name}>{cat.display.prose}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           ))}
         </section>

@@ -2,12 +2,22 @@
   "@context": "https://schema.org",
   "@type": "PrivacyPolicy",
   "name": "Pana MIA Club Privacy Policy",
-  "version": "0.1",
+  "version": "0.2",
   "status": "draft",
   "effectiveDate": null,
   "url": "https://pana.social/legal/privacy",
   "gpcSupported": true,
+  "_comment": "SOURCE OF TRUTH for the privacy framework. The Privacy at a Glance grid (components/legal/PrivacyAtAGlance.tsx) and the prose tier list (app/legal/privacy/page.tsx) are both derived from this file via lib/legal/privacy-policy.ts -- do not hand-maintain category lists there. Machine-readable fields (name, data, source, purpose, retention) are snake_case and stable; the `display` object carries presentation copy only. `module` links a category to its legal terms module id in ../terms/namespaces.json.",
   "dataTiers": ["persistent", "temporary", "peer_networking"],
+  "retentionClasses": [
+    "deletable",
+    "community_record",
+    "third_party_synced",
+    "moderation_record",
+    "auto_purged",
+    "in_the_wind",
+    "participant_observed"
+  ],
   "persistentRetentionClasses": {
     "deletable": {
       "description": "Deleted immediately upon confirmed request",
@@ -18,11 +28,20 @@
           "data": ["email", "password_hash", "screenname", "name"],
           "source": "user_provided",
           "purpose": "authentication_and_identity",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "user",
+            "source": "You provide",
+            "purpose": "Authentication and identity",
+            "retention": "Account lifetime",
+            "sharedWith": "OAuth providers",
+            "prose": "Account credentials and authentication tokens"
+          }
         },
         {
           "name": "profile",
           "label": "Profile",
+          "module": "profiles",
           "data": [
             "contact",
             "address",
@@ -32,39 +51,83 @@
           ],
           "source": "user_provided",
           "purpose": "directory_listing_and_community",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "user",
+            "source": "You provide",
+            "purpose": "Directory listing and community",
+            "retention": "Account lifetime",
+            "sharedWith": "Public / ActivityPub",
+            "prose": "Profile information (contact, address, descriptions, images, social links)"
+          }
         },
         {
           "name": "mentoring_profile",
           "label": "Mentoring Profile",
+          "module": "mentoring",
           "data": ["expertise", "languages", "bio", "hourly_rate"],
           "source": "user_provided",
           "purpose": "mentor_directory",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "users",
+            "source": "You provide",
+            "purpose": "Mentor directory",
+            "retention": "Account lifetime",
+            "sharedWith": "Public",
+            "prose": "Mentoring profile (expertise, languages, bio, hourly rate)"
+          }
         },
         {
           "name": "session_notes",
           "label": "Session Notes",
-          "data": ["mentor_notes", "mentee_notes", "session_metadata"],
+          "module": "mentoring",
+          "data": ["notes", "topic", "session_metadata"],
           "source": "user_provided",
           "purpose": "mentoring_record",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "file-text",
+            "source": "You provide",
+            "purpose": "Mentoring records",
+            "retention": "Account lifetime",
+            "sharedWith": "None",
+            "prose": "Session notes and mentoring session metadata"
+          }
         },
         {
           "name": "social_graph",
           "label": "Social Graph",
+          "module": "social",
           "data": ["follows", "followers", "likes"],
           "source": "user_action",
           "purpose": "social_features",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "share-2",
+            "source": "Your actions",
+            "purpose": "Social features",
+            "retention": "Account lifetime",
+            "sharedWith": "ActivityPub peers",
+            "prose": "Social graph (follows, followers, likes)"
+          }
         },
         {
           "name": "rsvps",
           "label": "RSVPs",
+          "module": "events",
           "data": ["event_attendance", "rsvp_status"],
           "source": "user_action",
           "purpose": "event_management",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "calendar",
+            "source": "Your actions",
+            "purpose": "Event management",
+            "retention": "Account lifetime",
+            "sharedWith": "Organizers / attendees",
+            "prose": "RSVPs and event attendance records"
+          }
         },
         {
           "name": "notifications",
@@ -72,7 +135,15 @@
           "data": ["notification_settings"],
           "source": "user_provided",
           "purpose": "communication_preferences",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "message-circle",
+            "source": "You provide",
+            "purpose": "Communication preferences",
+            "retention": "Account lifetime",
+            "sharedWith": "None",
+            "prose": "Notification preferences"
+          }
         },
         {
           "name": "intake",
@@ -80,7 +151,51 @@
           "data": ["form_responses"],
           "source": "user_provided",
           "purpose": "membership_onboarding",
-          "retention": "active_account_lifetime"
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "file-text",
+            "source": "You provide",
+            "purpose": "Membership onboarding",
+            "retention": "Account lifetime",
+            "sharedWith": "None",
+            "prose": "Intake form submissions"
+          }
+        },
+        {
+          "name": "nostr_identity",
+          "label": "Nostr Identity",
+          "module": "resilience",
+          "data": ["nostr_pubkey", "nostr_pubkey_source"],
+          "source": "user_provided",
+          "purpose": "relay_identity_and_nip05",
+          "retention": "active_account_lifetime",
+          "secretKeyHandling": "never_transmitted_never_stored",
+          "note": "Your secret key (nsec) is generated in your browser and is never transmitted to or stored by Pana MIA Club. A bring-your-own key is verified with a signed proof of control rather than by uploading the key itself. Deleting your account removes the public key from our systems; it does not and cannot remove events you already published to Nostr.",
+          "display": {
+            "icon": "key",
+            "source": "You provide",
+            "purpose": "Relay identity and NIP-05 handle",
+            "retention": "Account lifetime",
+            "sharedWith": "Public / Nostr relays",
+            "prose": "Nostr identity: your public key and whether it was generated for you or brought your own (your secret key is never sent to us)"
+          }
+        },
+        {
+          "name": "relay_group_membership",
+          "label": "Relay Group Membership",
+          "module": "resilience",
+          "data": ["group_id", "pubkey", "joined_at"],
+          "source": "user_action",
+          "purpose": "group_access_control",
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "users",
+            "source": "Your actions",
+            "purpose": "Relay group access control",
+            "retention": "Account lifetime",
+            "sharedWith": "Group members",
+            "prose": "Relay group membership records (which groups your public key belongs to, and when it joined)"
+          }
         }
       ]
     },
@@ -90,7 +205,6 @@
         "articles": "3_months_after_publication",
         "social_posts": "no_threshold_always_deletable",
         "events": "after_completion",
-        "event_photos": "3_months_after_event",
         "article_reviews": "follows_article"
       },
       "anonymization": "author_replaced_with_Former_Member",
@@ -98,47 +212,74 @@
         {
           "name": "articles",
           "label": "Articles",
+          "module": "articles",
           "data": ["content", "metadata", "review_history"],
           "source": "user_provided",
           "purpose": "community_knowledge",
           "retention": "community_record_3_months",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "display": {
+            "icon": "file-text",
+            "source": "You provide",
+            "purpose": "Community knowledge",
+            "retention": "Archive: 3 months",
+            "sharedWith": "Public / ActivityPub",
+            "prose": "Published articles (archive: 3 months after publication)"
+          }
         },
         {
           "name": "article_reviews",
           "label": "Article Reviews",
+          "module": "articles",
           "data": ["peer_review_comments"],
           "source": "user_provided",
           "purpose": "editorial_quality",
-          "retention": "follows_article"
+          "retention": "follows_article",
+          "display": {
+            "icon": "message-circle",
+            "source": "You provide",
+            "purpose": "Editorial quality",
+            "retention": "Follows article",
+            "sharedWith": "Public",
+            "prose": "Article peer review comments (archive: follows article)"
+          }
         },
         {
           "name": "social_posts",
           "label": "Social Posts",
+          "module": "social",
           "data": ["posts", "replies", "tags", "mentions"],
           "source": "user_provided",
           "purpose": "social_expression",
           "retention": "always_deletable",
           "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
-          "note": "Social timeline posts are always fully deleted on request regardless of age"
+          "note": "Social timeline posts are always fully deleted on request regardless of age",
+          "display": {
+            "icon": "message-circle",
+            "source": "You provide",
+            "purpose": "Social expression",
+            "retention": "Always deletable",
+            "sharedWith": "Public / ActivityPub",
+            "prose": "Social timeline posts (no archive threshold — always fully deleted)"
+          }
         },
         {
           "name": "events",
           "label": "Events",
+          "module": "events",
           "data": ["event_records", "organizer_data"],
           "source": "user_provided",
           "purpose": "community_events",
           "retention": "community_record_after_completion",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
-        },
-        {
-          "name": "event_photos",
-          "label": "Event Photos",
-          "data": ["approved_uploads"],
-          "source": "user_provided",
-          "purpose": "event_documentation",
-          "retention": "community_record_3_months_post_event",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"]
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "display": {
+            "icon": "calendar",
+            "source": "You provide",
+            "purpose": "Community events",
+            "retention": "Archive: after event",
+            "sharedWith": "Public",
+            "prose": "Event records (archive: after event completion)"
+          }
         }
       ]
     },
@@ -186,75 +327,452 @@
           "data": ["email", "name"],
           "deletionMechanism": "revoke_grant_delete_tokens",
           "providerRetention": "apple_auth_logs_per_apple_policy"
+        }
+      ],
+      "categories": [
+        {
+          "name": "payments",
+          "label": "Payments",
+          "module": "payments",
+          "providers": ["Stripe", "GoHighLevel"],
+          "data": ["email", "payment_method", "transaction_history"],
+          "source": "user_provided",
+          "purpose": "donations_memberships_merchandise",
+          "retention": "stripe_7_year_hold",
+          "display": {
+            "icon": "credit-card",
+            "source": "You provide",
+            "purpose": "Donations, memberships, merchandise",
+            "retention": "Stripe: 7-year hold",
+            "sharedWith": "Stripe / GoHighLevel",
+            "prose": "Stripe — email, payment method, transaction history (7-year legal hold)"
+          }
         },
         {
-          "name": "ActivityPub peers",
-          "purpose": "social_federation",
-          "data": ["posts", "actor_profiles", "follows"],
-          "deletionMechanism": "activitypub_delete_activity",
-          "providerRetention": "remote_servers_may_ignore_delete"
+          "name": "email_contacts",
+          "label": "Email / Contacts",
+          "providers": ["Brevo"],
+          "data": ["email", "name", "list_membership"],
+          "source": "user_provided",
+          "purpose": "email_communications",
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "globe",
+            "source": "You provide",
+            "purpose": "Email communications",
+            "retention": "Account lifetime",
+            "sharedWith": "Brevo",
+            "prose": "Brevo — email, name, list membership"
+          }
+        },
+        {
+          "name": "crm",
+          "label": "CRM",
+          "providers": ["GoHighLevel"],
+          "data": ["email", "name", "contact_id"],
+          "source": "user_provided",
+          "purpose": "contact_management",
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "globe",
+            "source": "You provide",
+            "purpose": "Contact management",
+            "retention": "Account lifetime",
+            "sharedWith": "GoHighLevel",
+            "prose": "GoHighLevel — contact ID, email, name"
+          }
+        },
+        {
+          "name": "uploads",
+          "label": "Uploads",
+          "module": "uploads",
+          "providers": ["Cloudflare"],
+          "data": ["uploaded_media"],
+          "source": "user_provided",
+          "purpose": "media_hosting",
+          "retention": "follows_content",
+          "display": {
+            "icon": "upload",
+            "source": "You provide",
+            "purpose": "Media hosting",
+            "retention": "Follows content",
+            "sharedWith": "Cloudflare R2 / Public",
+            "prose": "Cloudflare R2 — uploaded media files"
+          }
+        },
+        {
+          "name": "oauth_identity",
+          "label": "OAuth Identity",
+          "providers": ["Google", "Apple"],
+          "data": ["email", "name", "profile_image"],
+          "source": "oauth_provider",
+          "purpose": "authentication",
+          "retention": "active_account_lifetime",
+          "note": "Received from the provider, not sent to them",
+          "display": {
+            "icon": "shield",
+            "source": "OAuth provider",
+            "purpose": "Authentication",
+            "retention": "Account lifetime",
+            "sharedWith": "Google / Apple",
+            "prose": "Google / Apple OAuth — email, name, profile image (received, not sent)"
+          }
+        }
+      ]
+    },
+    "moderation_record": {
+      "description": "Safety records retained independently of the accounts they concern. Not deletable on request: a member cannot erase reports made about them, and a reporter cannot retroactively withdraw a record that moderators relied on.",
+      "userDeletable": false,
+      "survivesAccountDeletion": true,
+      "rationale": "abuse_reports_must_outlive_the_accounts_they_concern",
+      "categories": [
+        {
+          "name": "relay_abuse_reports",
+          "label": "Abuse Reports",
+          "module": "resilience",
+          "data": [
+            "reporter_pubkey",
+            "target_pubkey",
+            "report_type",
+            "reported_content_snapshot",
+            "reported_kind"
+          ],
+          "source": "user_action",
+          "purpose": "safety_and_moderation",
+          "retention": "retained_after_account_deletion",
+          "display": {
+            "icon": "flag",
+            "source": "A member reports",
+            "purpose": "Safety and moderation",
+            "retention": "Outlives account deletion",
+            "sharedWith": "Moderators",
+            "prose": "Relay abuse reports (NIP-56) — the reporter's and target's public keys, plus a snapshot of the reported content. Retained even after the accounts involved are deleted."
+          }
         }
       ]
     }
   },
   "temporaryData": {
     "description": "Retained only as long as necessary, then automatically purged",
+    "retentionClass": "auto_purged",
     "categories": [
       {
         "name": "signaling",
         "label": "Session Signaling",
-        "retention": "session_duration"
+        "module": "mentoring",
+        "data": ["webrtc_connection_metadata"],
+        "source": "session_activity",
+        "purpose": "real_time_collaboration",
+        "retention": "session_duration",
+        "display": {
+          "icon": "video",
+          "source": "Session activity",
+          "purpose": "Real-time collaboration",
+          "retention": "Session duration",
+          "sharedWith": "Session participants",
+          "prose": "Mentoring session signaling and WebRTC connection metadata"
+        }
       },
       {
         "name": "whiteboard",
         "label": "Whiteboard State",
-        "retention": "30_minutes_after_session"
+        "module": "mentoring",
+        "data": ["whiteboard_state"],
+        "source": "session_activity",
+        "purpose": "real_time_collaboration",
+        "retention": "30_minutes_after_session",
+        "display": {
+          "icon": "file-text",
+          "source": "Session activity",
+          "purpose": "Real-time collaboration",
+          "retention": "Session + 30 min",
+          "sharedWith": "Session participants",
+          "prose": "Whiteboard state (purged 30 min after session ends)"
+        }
       },
       {
         "name": "session_chat",
         "label": "Session Chat",
-        "retention": "session_duration"
+        "module": "mentoring",
+        "data": ["chat_messages"],
+        "source": "session_activity",
+        "purpose": "real_time_collaboration",
+        "retention": "session_duration",
+        "display": {
+          "icon": "message-circle",
+          "source": "Session activity",
+          "purpose": "Real-time collaboration",
+          "retention": "Session duration",
+          "sharedWith": "Session participants",
+          "prose": "Real-time chat messages during mentoring sessions"
+        }
       },
       {
         "name": "session_streams",
         "label": "Session Video/Audio",
+        "module": "mentoring",
+        "data": ["video_stream", "audio_stream"],
+        "source": "session_activity",
+        "purpose": "real_time_collaboration",
         "retention": "session_duration",
-        "note": "Never recorded server-side unless explicitly enabled"
+        "note": "Never recorded server-side unless explicitly enabled",
+        "display": {
+          "icon": "video",
+          "source": "Session activity",
+          "purpose": "Real-time collaboration",
+          "retention": "Session duration",
+          "sharedWith": "Session participants",
+          "prose": "Session video/audio streams (never recorded server-side unless explicitly enabled)"
+        }
       },
       {
         "name": "oauth_tokens",
         "label": "OAuth Tokens",
-        "retention": "token_lifetime"
+        "data": ["access_token", "refresh_token", "id_token"],
+        "source": "oauth_provider",
+        "purpose": "authentication",
+        "retention": "token_lifetime",
+        "display": {
+          "icon": "shield",
+          "source": "OAuth provider",
+          "purpose": "Authentication",
+          "retention": "Token lifetime",
+          "sharedWith": "Google / Apple",
+          "prose": "OAuth tokens and transient authentication state"
+        }
       },
       {
         "name": "analytics",
         "label": "Analytics (IP, User-Agent)",
-        "retention": "90_days"
+        "data": ["ip_address", "user_agent"],
+        "source": "automatic",
+        "purpose": "site_analytics",
+        "retention": "90_days",
+        "display": {
+          "icon": "eye",
+          "source": "Automatic",
+          "purpose": "Site analytics",
+          "retention": "90 days",
+          "sharedWith": "Cloudflare",
+          "prose": "IP addresses and user-agent strings (90-day analytics window)"
+        }
       },
       {
         "name": "verification_tokens",
         "label": "Verification Tokens",
-        "retention": "per_config"
+        "data": ["magic_link_token", "email_verification_token"],
+        "source": "automatic",
+        "purpose": "authentication",
+        "retention": "per_config",
+        "display": {
+          "icon": "shield",
+          "source": "Automatic",
+          "purpose": "Authentication",
+          "retention": "Expires per config",
+          "sharedWith": "None",
+          "prose": "Email verification and magic-link tokens (expire per config)"
+        }
       },
       {
-        "name": "srt_keys",
-        "label": "Livestream SRT Keys",
-        "retention": "stream_duration"
+        "name": "relay_pending_requests",
+        "label": "Pending Group Requests",
+        "module": "resilience",
+        "data": ["group_id", "pubkey", "requested_at"],
+        "source": "user_action",
+        "purpose": "join_approval_and_leave_debounce",
+        "retention": "until_admin_action_or_24h_grace",
+        "display": {
+          "icon": "users",
+          "source": "Your actions",
+          "purpose": "Join approval and leave debounce",
+          "retention": "Admin action / 24h",
+          "sharedWith": "Admins",
+          "prose": "Pending relay group join and leave requests (joins: until an admin acts; leaves: a 24-hour grace period)"
+        }
       }
     ]
   },
   "peerNetworkingData": {
-    "description": "Exchanged directly between participants; not controlled by Pana MIA Club after transmission",
-    "categories": [
-      "webrtc_streams",
-      "whiteboard_content",
-      "seen_chat_messages",
-      "co_author_content",
-      "visible_profile_info",
-      "event_attendance_info",
-      "activitypub_federated_content",
-      "in_person_exchanges"
-    ]
+    "description": "Exchanged directly between participants, or propagated to servers we do not operate; not controlled by Pana MIA Club after transmission",
+    "peerNetworkingRetentionClasses": {
+      "in_the_wind": {
+        "description": "Published to an open, unbounded set of servers we do not operate. Deletion requests are advisory only -- a remote server MAY honor them and MAY ignore them. Neither Pana MIA Club nor anyone else can guarantee retraction once content has propagated.",
+        "recallable": false,
+        "deletionMechanism": "advisory_request_only",
+        "note": "Categorically weaker than third_party_synced. There, a named provider receives a deletion request under a contract. Here there is no enumerable counterparty to ask.",
+        "categories": [
+          {
+            "name": "activitypub_federated_content",
+            "label": "Federated Social Content",
+            "module": "social",
+            "data": ["posts", "actor_profiles", "follows"],
+            "source": "user_provided",
+            "purpose": "social_federation",
+            "retention": "not_recallable",
+            "deletionMechanism": "activitypub_delete_activity",
+            "note": "Remote servers may ignore a Delete activity",
+            "display": {
+              "icon": "share-2",
+              "source": "You publish",
+              "purpose": "Social federation",
+              "retention": "Not recallable",
+              "sharedWith": "ActivityPub peers (open set)",
+              "prose": "Social posts, replies, likes, and follows federated via ActivityPub — a best-effort Delete is sent, but remote servers may ignore it"
+            }
+          },
+          {
+            "name": "nostr_published_events",
+            "label": "Nostr Events",
+            "module": "resilience",
+            "data": [
+              "group_chat_messages",
+              "profile_metadata",
+              "rsvps",
+              "relay_lists"
+            ],
+            "source": "user_provided",
+            "purpose": "community_relay_and_nostr_interop",
+            "retention": "not_recallable",
+            "deletionMechanism": "nip09_delete_request_advisory",
+            "note": "A Nostr event is signed by your key and stays cryptographically valid forever, so any relay may rehost it. NIP-09 delete requests are advisory: relays MAY honor them. There is no enumerable list of relays to ask. We can delete from our own relay; no one can delete from Nostr at large.",
+            "display": {
+              "icon": "radio",
+              "source": "You publish",
+              "purpose": "Community relay and Nostr interoperability",
+              "retention": "Not recallable",
+              "sharedWith": "Nostr relays (open set)",
+              "prose": "Anything you publish to Nostr — group chat, profile metadata, RSVPs. We can remove it from our own relay; no one can remove it from Nostr at large."
+            }
+          }
+        ]
+      },
+      "participant_observed": {
+        "description": "Seen directly by the people you shared it with. We do not retain it; they may.",
+        "recallable": false,
+        "deletionMechanism": "none_applicable",
+        "categories": [
+          {
+            "name": "webrtc_streams",
+            "label": "Session Streams",
+            "module": "mentoring",
+            "data": ["video_stream", "audio_stream"],
+            "source": "session_activity",
+            "purpose": "real_time_collaboration",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "video",
+              "source": "Session activity",
+              "purpose": "Real-time collaboration",
+              "retention": "Not retained by us",
+              "sharedWith": "Session participants",
+              "prose": "Video and audio streams during mentoring sessions (WebRTC peer-to-peer)"
+            }
+          },
+          {
+            "name": "whiteboard_content",
+            "label": "Whiteboard Content",
+            "module": "mentoring",
+            "data": ["whiteboard_drawings"],
+            "source": "session_activity",
+            "purpose": "real_time_collaboration",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "file-text",
+              "source": "Session activity",
+              "purpose": "Real-time collaboration",
+              "retention": "Not retained by us",
+              "sharedWith": "Session participants",
+              "prose": "Whiteboard content visible to session participants"
+            }
+          },
+          {
+            "name": "seen_chat_messages",
+            "label": "Seen Chat Messages",
+            "module": "mentoring",
+            "data": ["chat_messages"],
+            "source": "session_activity",
+            "purpose": "real_time_collaboration",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "message-circle",
+              "source": "Session activity",
+              "purpose": "Real-time collaboration",
+              "retention": "Not retained by us",
+              "sharedWith": "Session participants",
+              "prose": "Chat messages seen by the other participant before deletion"
+            }
+          },
+          {
+            "name": "co_author_content",
+            "label": "Co-Author Content",
+            "module": "articles",
+            "data": ["draft_content"],
+            "source": "user_provided",
+            "purpose": "article_collaboration",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "users",
+              "source": "You provide",
+              "purpose": "Article collaboration",
+              "retention": "Not retained by us",
+              "sharedWith": "Co-authors",
+              "prose": "Co-author content shared during article collaboration"
+            }
+          },
+          {
+            "name": "visible_profile_info",
+            "label": "Visible Profile Info",
+            "module": "profiles",
+            "data": ["public_profile_fields"],
+            "source": "user_provided",
+            "purpose": "community_visibility",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "user",
+              "source": "You provide",
+              "purpose": "Community visibility",
+              "retention": "Not retained by us",
+              "sharedWith": "Other members",
+              "prose": "Profile information visible to other users"
+            }
+          },
+          {
+            "name": "event_attendance_info",
+            "label": "Event Attendance",
+            "module": "events",
+            "data": ["rsvp_status", "attendee_identity"],
+            "source": "user_action",
+            "purpose": "event_coordination",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "calendar",
+              "source": "Your actions",
+              "purpose": "Event coordination",
+              "retention": "Not retained by us",
+              "sharedWith": "Organizers / attendees",
+              "prose": "Event RSVP and attendance information visible to organizers and attendees"
+            }
+          },
+          {
+            "name": "in_person_exchanges",
+            "label": "In-Person Exchanges",
+            "module": "events",
+            "data": ["verbal", "written", "photos"],
+            "source": "in_person",
+            "purpose": "community_events",
+            "retention": "not_retained_by_us",
+            "display": {
+              "icon": "users",
+              "source": "In person",
+              "purpose": "Community events",
+              "retention": "Not retained by us",
+              "sharedWith": "People present",
+              "prose": "Information shared at in-person events (verbal, written, photos)"
+            }
+          }
+        ]
+      }
+    }
   },
   "userRights": {
     "access": true,
@@ -263,7 +781,21 @@
     "portability": true,
     "anonymization": "community_record_class",
     "optOutOfSale": true,
-    "gpcHonored": true
+    "gpcHonored": true,
+    "limits": [
+      {
+        "class": "community_record",
+        "limit": "anonymizable_not_deletable_after_archive_threshold"
+      },
+      {
+        "class": "moderation_record",
+        "limit": "not_deletable_survives_account_deletion"
+      },
+      {
+        "class": "in_the_wind",
+        "limit": "not_recallable_deletion_requests_are_advisory_only"
+      }
+    ]
   },
   "contentLicense": {
     "options": ["CC-BY-4.0", "CC-BY-SA-4.0"],

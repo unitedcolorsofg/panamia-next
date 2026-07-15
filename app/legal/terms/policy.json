@@ -83,6 +83,12 @@
       "status": "draft"
     },
     {
+      "name": "resilience",
+      "url": "https://pana.social/legal/terms/modules/resilience",
+      "version": "0.1",
+      "status": "draft"
+    },
+    {
       "name": "community",
       "url": "https://pana.social/legal/terms/modules/community",
       "version": "0.1",

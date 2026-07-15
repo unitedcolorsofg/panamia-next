@@ -6,7 +6,9 @@
 # 1. Every module ID (from "modules" + "cross_cutting") has a page file
 # 2. Every module ID has an entry in module-content.tsx
 # 3. No orphan module pages exist without a mapping
-# 4. (--staged) New app/ dirs are classified in namespaces.json
+# 4. Every module ID has a versioned entry in terms/policy.json "modules"
+# 5. Every "module" referenced by privacy/policy.json is a real module ID
+# 6. (--staged) New app/ dirs are classified in namespaces.json
 #
 # Usage:
 #   ./scripts/check-legal-modules.sh           # full check
@@ -16,6 +18,8 @@ LEGAL_DIR="app/legal/terms"
 NAMESPACES="$LEGAL_DIR/namespaces.json"
 MODULE_CONTENT="$LEGAL_DIR/module-content.tsx"
 MODULES_DIR="$LEGAL_DIR/modules"
+TERMS_POLICY="$LEGAL_DIR/policy.json"
+PRIVACY_POLICY="app/legal/privacy/policy.json"
 
 if [ ! -f "$NAMESPACES" ]; then
   echo "ERROR: $NAMESPACES not found"
@@ -109,7 +113,79 @@ if [ -n "$ORPHAN_PAGES" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. (--staged) Check if staged files introduce unclassified app/ directories
+# 4. Every module ID must have a versioned entry in terms/policy.json
+# ---------------------------------------------------------------------------
+# policy.json carries the per-module version consumed by /api/consent/record.
+# A module missing here silently records consent against no version.
+
+if [ -f "$TERMS_POLICY" ]; then
+  POLICY_IDS=$(sed -n '/"modules": \[/,/^  \]/p' "$TERMS_POLICY" \
+    | grep '"name":' \
+    | sed 's/.*"name": *"//;s/".*//' \
+    | sort -u)
+
+  MISSING_POLICY=""
+  for id in $ALL_MODULE_IDS; do
+    if ! echo "$POLICY_IDS" | grep -qx "$id"; then
+      MISSING_POLICY="$MISSING_POLICY
+  $id"
+    fi
+  done
+
+  if [ -n "$MISSING_POLICY" ]; then
+    ERROR="1"
+    echo ""
+    echo "ERROR: Module IDs missing from $TERMS_POLICY \"modules\":"
+    echo "$MISSING_POLICY"
+    echo "  Add an entry with a url, version, and status."
+  fi
+
+  ORPHAN_POLICY=""
+  for id in $POLICY_IDS; do
+    if ! echo "$ALL_MODULE_IDS" | grep -qx "$id"; then
+      ORPHAN_POLICY="$ORPHAN_POLICY
+  $id"
+    fi
+  done
+
+  if [ -n "$ORPHAN_POLICY" ]; then
+    ERROR="1"
+    echo ""
+    echo "ERROR: $TERMS_POLICY lists modules with no mapping in $NAMESPACES:"
+    echo "$ORPHAN_POLICY"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 5. privacy/policy.json "module" refs must point at real module IDs
+# ---------------------------------------------------------------------------
+# Privacy categories tag themselves with the legal terms module they belong to.
+# A typo would silently orphan the category rather than fail loudly.
+
+if [ -f "$PRIVACY_POLICY" ]; then
+  PRIVACY_REFS=$(grep -oE '"module": "[a-z_]+"' "$PRIVACY_POLICY" \
+    | sed 's/.*: "//;s/"//' \
+    | sort -u)
+
+  BAD_REFS=""
+  for id in $PRIVACY_REFS; do
+    if ! echo "$ALL_MODULE_IDS" | grep -qx "$id"; then
+      BAD_REFS="$BAD_REFS
+  $id"
+    fi
+  done
+
+  if [ -n "$BAD_REFS" ]; then
+    ERROR="1"
+    echo ""
+    echo "ERROR: $PRIVACY_POLICY references unknown legal module IDs:"
+    echo "$BAD_REFS"
+    echo "  Each \"module\" must match a module ID in $NAMESPACES"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 6. (--staged) Check if staged files introduce unclassified app/ directories
 # ---------------------------------------------------------------------------
 
 if [ "$1" = "--staged" ]; then

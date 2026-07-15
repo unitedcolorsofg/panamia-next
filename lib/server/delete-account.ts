@@ -35,6 +35,9 @@ import {
   events,
   eventAttendees,
   venues,
+  relayGroupMembers,
+  relayGroupJoinPending,
+  relayGroupLeavePending,
 } from '@/lib/schema';
 import { createId } from '@paralleldrive/cuid2';
 import { deleteFile } from '@/lib/blob/api';
@@ -826,7 +829,61 @@ export async function deleteAccount(
     }
 
     // -------------------------------------------------------------------
-    // 13. Delete profile
+    // 13. Relay / Nostr cleanup (Resilience module)
+    // -------------------------------------------------------------------
+    // These tables key off the Nostr pubkey and have no FK to profiles, so
+    // nothing cascades. Without this the roster rows outlive the account and
+    // still tie a pubkey — and therefore that person's relay activity — to a
+    // group. The pubkey itself is cleared with the profile below.
+    //
+    // relay_reports is deliberately NOT touched. Abuse reports are a
+    // moderation_record in app/legal/privacy/policy.json: they must outlive
+    // the accounts they concern, or deleting your account would erase the
+    // reports filed against you.
+    //
+    // Events already published to Nostr are beyond reach by design — the
+    // in_the_wind class in policy.json. Removing the pubkey here does not and
+    // cannot retract them; a NIP-09 delete is advisory and only our own relay
+    // is guaranteed to honor it.
+    if (profile?.nostrPubkey) {
+      const pubkey = profile.nostrPubkey;
+
+      await safeDelete(
+        'relayGroupMembers',
+        () =>
+          db
+            .delete(relayGroupMembers)
+            .where(eq(relayGroupMembers.pubkey, pubkey))
+            .returning({ groupId: relayGroupMembers.groupId }),
+        deletedTables,
+        warnings
+      );
+
+      await safeDelete(
+        'relayGroupJoinPending',
+        () =>
+          db
+            .delete(relayGroupJoinPending)
+            .where(eq(relayGroupJoinPending.pubkey, pubkey))
+            .returning({ groupId: relayGroupJoinPending.groupId }),
+        deletedTables,
+        warnings
+      );
+
+      await safeDelete(
+        'relayGroupLeavePending',
+        () =>
+          db
+            .delete(relayGroupLeavePending)
+            .where(eq(relayGroupLeavePending.pubkey, pubkey))
+            .returning({ groupId: relayGroupLeavePending.groupId }),
+        deletedTables,
+        warnings
+      );
+    }
+
+    // -------------------------------------------------------------------
+    // 14. Delete profile
     // -------------------------------------------------------------------
     if (profile) {
       if (options.attributionChoice === 'keep') {
@@ -866,6 +923,12 @@ export async function deleteAccount(
             stripeCustomerId: null,
             neighborhoods: null,
             verifiedZipCode: null,
+            // A pubkey is a unique, permanent, cross-relay-correlatable
+            // identifier. Leaving it on a tombstoned profile would let anyone
+            // tie "Former Member" back to that person's Nostr activity, which
+            // defeats the anonymization.
+            nostrPubkey: null,
+            nostrPubkeySource: null,
           })
           .where(eq(profiles.id, profile.id));
         deletedTables['profiles(tombstoned)'] = 1;
@@ -885,7 +948,7 @@ export async function deleteAccount(
     }
 
     // -------------------------------------------------------------------
-    // 14. Delete auth records
+    // 15. Delete auth records
     // -------------------------------------------------------------------
     await safeDelete(
       'verification',
@@ -929,12 +992,12 @@ export async function deleteAccount(
     );
 
     // -------------------------------------------------------------------
-    // 15. Keep screennameHistory (federation 410 Gone continues working)
+    // 16. Keep screennameHistory (federation 410 Gone continues working)
     // -------------------------------------------------------------------
     // No action needed — rows are intentionally preserved.
 
     // -------------------------------------------------------------------
-    // 16. Finalize deletion log
+    // 17. Finalize deletion log
     // -------------------------------------------------------------------
     await db
       .update(deletionLogs)

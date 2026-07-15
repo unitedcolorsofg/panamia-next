@@ -265,8 +265,6 @@ panamia.club is a resilience network. Groups are the organisational primitive fo
 - **Relay-signed metadata** — group name, description, member list, admin list are authoritative events signed by the relay's keypair
 - **Standard event format** — group messages are ordinary Nostr events with an `h` tag, queryable by any NIP-29 aware client
 
-The legal analysis in [NOSTR-LEGAL-OPINION.md](./NOSTR-LEGAL-OPINION.md) concludes NIP-29 is not meaningfully more legally exposed than baseline relay operation.
-
 ### Privacy posture: public discovery, private content
 
 | Surface                               | Visibility                                  | Rationale                                                                  |
@@ -472,7 +470,7 @@ Because the upstream Nostr design is unsettled, our roadmap's local-relay-as-gat
 
 ### Abuse reporting
 
-Secure comms does not grant blanket anonymity. Every event on the relay is signed by an authenticated pubkey tied to a panamia.club member account (via `profiles.nostrPubkey`). This is a deliberate design choice: the relay provides encrypted transport and membership-gated access, but the operator retains the ability to identify who posted what and to act on abuse reports. The legal obligations documented in [FLORIDA-PLATFORM-OBLIGATIONS.md](./FLORIDA-PLATFORM-OBLIGATIONS.md) and [NOSTR-LEGAL-OPINION.md](./NOSTR-LEGAL-OPINION.md) apply fully.
+Secure comms does not grant blanket anonymity. Every event on the relay is signed by an authenticated pubkey tied to a panamia.club member account (via `profiles.nostrPubkey`). This is a deliberate design choice: the relay provides encrypted transport and membership-gated access, but the operator retains the ability to identify who posted what and to act on abuse reports.
 
 **Report intake:**
 

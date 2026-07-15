@@ -132,6 +132,23 @@ export const moduleDefinitions: ModuleDefinition[] = [
     placeholder: 'Payments module terms',
   },
   {
+    id: 'resilience',
+    title: 'Resilience Network',
+    summary:
+      'The Resilience Network is a community Nostr relay. Your secret key is generated in your browser and never sent to us — if you lose it, we cannot recover it. Your public key and group membership are deleted with your account, but anything you publish to Nostr is signed, permanent, and hosted by relays we do not operate: we can remove it from our relay, but no one can remove it from Nostr at large. Group chat is access-controlled, not end-to-end encrypted.',
+    items: [
+      'Key custody: secret keys are generated client-side and never transmitted',
+      'Bring-your-own keys: proof of control, and the cross-relay correlation disclosure',
+      'One Nostr identity per profile; key rotation and what it does not carry over',
+      'Group membership records and the NIP-05 handle at pana.social',
+      'Group chat is read-gated at the relay, not end-to-end encrypted',
+      'Confidentiality: not republishing other members’ group messages',
+      'Abuse reports (NIP-56) are retained after account deletion',
+      'Published Nostr events cannot be retracted (NIP-09 deletes are advisory)',
+    ],
+    placeholder: 'Resilience Network module terms',
+  },
+  {
     id: 'community',
     title: 'Community',
     summary:
