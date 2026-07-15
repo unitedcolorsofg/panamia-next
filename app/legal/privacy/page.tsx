@@ -112,9 +112,9 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             <strong>Third parties:</strong> We share data with Stripe
-            (payments), Brevo (email), GoHighLevel (CRM), Cloudflare (hosting),
-            and OAuth providers (Google, Apple). Each provider may retain data
-            per their own policies after we request deletion.
+            (payments), GoHighLevel (CRM and newsletter), Cloudflare (hosting
+            and email), and OAuth providers (Google, Apple). Each provider may
+            retain data per their own policies after we request deletion.
           </p>
           <p>
             <strong>Your rights:</strong> You can access, correct, delete, or
@@ -188,7 +188,7 @@ export default function PrivacyPolicyPage() {
         {/* 4. Who We Share Data With */}
         <section id="sharing">
           <h2>4. Who We Share Data With</h2>
-          <Placeholder label="Third-party sharing details — Stripe, Brevo, GoHighLevel, Cloudflare, OAuth providers, ActivityPub federation peers" />
+          <Placeholder label="Third-party sharing details — Stripe, GoHighLevel, Cloudflare (hosting, R2, email), OAuth providers, ActivityPub federation peers, Nostr relays" />
         </section>
 
         {/* 5. Content Licensing */}

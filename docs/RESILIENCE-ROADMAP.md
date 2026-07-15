@@ -304,7 +304,7 @@ DMs (kinds 4/17/1059) stay encrypted to the recipient regardless of where the ev
 
 **Scope discipline**: the clause must be narrow. Sweeping "never discuss anything you saw here, ever" language is likely unenforceable as overbroad. Tie it specifically to republication of other members' messages.
 
-This subsection is design-only; the actual clause drafting belongs in `TERMS-ROADMAP.md` and should go through legal review.
+This subsection is design-only; the actual clause drafting belongs in `PRIVACY-ROADMAP.md` and should go through legal review.
 
 ### Authority model: panamia is sole source of truth
 

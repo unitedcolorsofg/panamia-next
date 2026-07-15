@@ -68,7 +68,7 @@ scripts/unmapped-user-ids-*.json
 # Internal legal analysis — kept local, not published
 docs/NOSTR-LEGAL-OPINION.md
 
-.env.local.*
+.env.local*
 external/*
 !external/panamia-next-crm-bridge/
 external/panamia-next-crm-bridge/node_modules/

@@ -58,7 +58,7 @@ import { useTranslation } from 'react-i18next';
 //    The ToS checkbox on page 7 should be wired to consent_receipts when that
 //    table exists. Record: user_id, document='terms', module='profiles',
 //    version (from legal/terms/policy.json), timestamp, ip.
-//    See docs/TERMS-ROADMAP.md Phase 3 for full spec.
+//    See docs/PRIVACY-ROADMAP.md Phase 3 for full spec.
 //
 // 6. DIRECTORY LISTING VISIBILITY
 //    Allow users to opt out of being listed in the public directory. This is

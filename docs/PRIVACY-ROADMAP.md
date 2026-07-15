@@ -1,4 +1,7 @@
-# Terms of Service & Privacy Policy Roadmap
+# Privacy & Terms of Service Roadmap
+
+Covers both the privacy policy and the terms of service: they share one
+taxonomy, one consent mechanism, and one module registry.
 
 ## Overview
 
@@ -18,6 +21,11 @@ All layers are derived from a single **source-of-truth schema** so they cannot
 drift out of sync. Each module is independently versioned with a public
 changelog.
 
+The glance grid and the prose tier list are both generated from
+`app/legal/privacy/policy.json` via `lib/legal/privacy-policy.ts`. See
+_Framework Architecture_ below. What the framework cannot yet do is check
+itself against the database — see _Known Gaps_.
+
 ---
 
 ## Data Classification
@@ -26,10 +34,37 @@ All personal and user-generated data falls into exactly one of three tiers.
 Every disclosure (Privacy at a Glance, summary, legal text, schema) must identify
 which tier applies.
 
+Each tier is subdivided into **retention classes** answering the question users
+actually have: _what happens when I ask you to delete this?_ There are seven.
+
+| Tier                | Retention class        | Meaning                                                                  |
+| ------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| **Persistent**      | `deletable`            | Deleted immediately on confirmed request                                 |
+|                     | `community_record`     | Anonymizable but not deletable after the archive threshold               |
+|                     | `third_party_synced`   | Deletion requested from a named provider; their retention policy governs |
+|                     | `moderation_record`    | Not deletable; outlives the accounts it concerns                         |
+| **Temporary**       | `auto_purged`          | Automatically purged after a defined TTL                                 |
+| **Peer Networking** | `in_the_wind`          | Propagated to servers we do not operate; deletion is advisory only       |
+|                     | `participant_observed` | Seen by other people; we never retained it, they may have                |
+
+Why the less obvious three exist:
+
+- **`moderation_record`** — NIP-56 abuse reports cannot be user-deletable
+  (an abuser would erase the reports filed against them) and are not
+  CC-licensed community content. They are retained for safety independently of
+  the accounts involved.
+- **`in_the_wind`** — `third_party_synced` is modelled as a `providers` list
+  where each entry names a counterparty and a deletion mechanism. A signed
+  Nostr event propagates to an unbounded set of relays with no counterparty to
+  ask, and NIP-09 deletes are advisory. Describing that as "deletion initiated"
+  would be false. ActivityPub federation belongs here for the same reason.
+- **`participant_observed`** covers the rest of the peer tier: data seen by
+  session participants or people physically present, which we never stored.
+
 ### Persistent Data (Supabase / PostgreSQL)
 
 Data stored for the lifetime of the user's account or longer. Persistent Data
-is subdivided into three retention classes based on whether and when deletion
+is subdivided into four retention classes based on whether and when deletion
 requests are honored.
 
 #### Deletable on Request
@@ -43,6 +78,12 @@ to erasure. Deletion is processed immediately upon confirmed request.
 - Notification preferences
 - Intake form submissions
 - Session notes and mentoring session metadata
+- Social graph (follows, followers, likes)
+- RSVPs and event attendance records
+- Nostr identity — the public key and whether it was issued or brought-your-own.
+  The secret key (nsec) is generated in the browser and never transmitted to us,
+  so there is nothing on our side to delete and nothing we can recover.
+- Relay group membership (which groups a public key belongs to, and when)
 
 **Retention:** Active account lifetime; deleted immediately on request.
 
@@ -58,8 +99,10 @@ at the point of publication.
 | Published articles           | 3 months after publication | Fully deleted                     | Content remains; attribution kept or anonymized (user's choice) |
 | Social timeline posts        | **No archive threshold**   | **Always fully deleted**          | **Always fully deleted**                                        |
 | Event records                | After event completion     | Fully deleted                     | Content remains; attribution kept or anonymized (user's choice) |
-| Event photos (approved)      | 3 months after event       | Fully deleted                     | Content remains; attribution kept or anonymized (user's choice) |
 | Article peer review comments | When article is archived   | Fully deleted                     | Content remains; attribution kept or anonymized (user's choice) |
+
+There is no event-photo row: per-event photo uploads do not exist (no
+`event_photos` table). Add one if they land.
 
 **Social timeline exception:** Personal social timeline posts (including
 replies, reposts, and attachments) are **always fully deleted** on account
@@ -114,6 +157,25 @@ what deletion mechanisms each provider offers.
 providers listed above. The privacy policy and Privacy at a Glance clearly state
 which providers may retain data beyond our deletion request, and for how long.
 
+#### Moderation Record
+
+Safety records retained independently of the accounts they concern. **Not
+deletable on request** and they survive account deletion — a member cannot
+erase reports filed about them by deleting their account, and a reporter cannot
+retroactively withdraw a record moderators acted on.
+
+| Data                         | Retention                 |
+| ---------------------------- | ------------------------- |
+| Relay abuse reports (NIP-56) | Outlives account deletion |
+
+Each report holds the reporter's and target's public keys, the report type, and
+a snapshot of the reported content captured by the relay at forward time.
+Reports are accepted from anyone — member or not — so neither pubkey is a
+foreign key to `profiles`.
+
+This class is the reason `relay_reports` is deliberately excluded from
+`deleteAccount()`. Everything else keyed to a member's pubkey is purged there.
+
 ### Temporary Data (Short Retention)
 
 Data retained only as long as necessary to provide a specific service, then
@@ -126,15 +188,23 @@ automatically purged.
 - OAuth tokens and transient authentication state
 - IP addresses and user-agent strings (90-day analytics window)
 - Email verification and magic-link tokens (expire per better-auth config)
-- Event livestream SRT ingestion keys (valid only during stream)
+- Pending relay group join and leave requests (joins: until an admin acts;
+  leaves: a 24-hour debounce grace period)
+
+There are no livestream SRT keys: Cloudflare-backed live-streaming was dropped
+in the Nostr event-model merge. Reinstate if streaming returns.
 
 **Retention:** Ranges from session-duration to 90 days. Each category specifies
 its exact TTL in the Privacy at a Glance and schema.
 
 ### Peer Networking Data (User-to-User)
 
-Data exchanged directly between participants that Panamia Club facilitates but
-does not control after transmission. Users are informed that:
+Data exchanged directly between participants, or propagated to servers we do not
+operate. Split into two retention classes: `in_the_wind` (published to an
+unbounded set of remote servers — ActivityPub and Nostr) and
+`participant_observed` (seen by specific people, never stored by us).
+
+Users are informed that:
 
 - **We cannot retrieve, modify, or delete** data that has already been received
   by another participant.
@@ -143,7 +213,18 @@ does not control after transmission. Users are informed that:
 
 Includes:
 
-**Digital peer interactions:**
+**`in_the_wind` — published to servers we do not operate:**
+
+- Social posts, replies, likes, and follows federated via ActivityPub. A
+  best-effort `Delete` activity is sent; remote servers may ignore it.
+- Anything published to Nostr via the Resilience Network — group chat, kind 0
+  profile metadata, RSVPs, relay lists. A Nostr event is signed by the member's
+  key and stays cryptographically valid forever, so any relay may rehost it.
+  NIP-09 delete requests are advisory and there is no enumerable list of relays
+  to ask. We can delete from our own relay; nobody can delete from Nostr at
+  large.
+
+**`participant_observed` — digital peer interactions:**
 
 - Video and audio streams during mentoring sessions (WebRTC peer-to-peer)
 - Whiteboard content visible to session participants
@@ -151,11 +232,8 @@ Includes:
 - Co-author content shared during article collaboration
 - Profile information visible to other users (name, bio, images, social links)
 - Event RSVP and attendance information visible to organizers and attendees
-- Social posts, replies, likes, and follows federated via ActivityPub
-- Any content federated to external Mastodon/ActivityPub servers (once
-  federated, subject to the remote server's policies)
 
-**In-person event interactions:**
+**`participant_observed` — in-person event interactions:**
 
 - Information shared verbally or in writing at Panamia Club events
 - Business cards, contact details, or other materials exchanged between
@@ -934,6 +1012,233 @@ The privacy policy must include:
 
 ---
 
+## Framework Architecture
+
+`app/legal/privacy/policy.json` is the source of truth. Both rendered surfaces
+derive from it through `lib/legal/privacy-policy.ts`:
+
+```
+app/legal/privacy/policy.json          <- author categories HERE
+        |
+        v
+lib/legal/privacy-policy.ts            <- resolves tier + retention class
+        |                                 from position, exports `tiers`,
+        |                                 `allCategories`, `providers`
+        +--> components/legal/PrivacyAtAGlance.tsx   (glance grid)
+        +--> app/legal/privacy/page.tsx              (prose tier list)
+```
+
+A category's tier and retention class come from **where it sits** in the JSON,
+not from a field on the category:
+
+| JSON location                        | Tier              | Class              |
+| ------------------------------------ | ----------------- | ------------------ |
+| `persistentRetentionClasses.<class>` | `persistent`      | the containing key |
+| `temporaryData`                      | `temporary`       | `auto_purged`      |
+| `peerNetworkingData.<class>`         | `peer_networking` | the containing key |
+
+Machine-readable fields (`name`, `data`, `source`, `purpose`, `retention`) are
+snake_case and stable. The `display` object carries presentation copy only.
+`module` links a category to its legal terms module id.
+
+Because that mapping is total, **tier is a filter, not a badge**. Each glance
+card shows only its retention class; the class already determines the tier, so
+a tier badge would restate it. Tier still earns its keep as a coarse filter —
+three buttons instead of seven.
+
+### The module registry
+
+"A module" means an entry in four places, validated by
+`scripts/check-legal-modules.sh` in pre-commit:
+
+| File                                    | Carries                                  |
+| --------------------------------------- | ---------------------------------------- |
+| `app/legal/terms/namespaces.json`       | route dir -> module id (or exempt)       |
+| `app/legal/terms/module-content.tsx`    | summary + items                          |
+| `app/legal/terms/modules/{id}/page.tsx` | the page                                 |
+| `app/legal/terms/policy.json`           | per-module version (read by consent API) |
+
+The checker also validates that every `module` referenced from
+`privacy/policy.json` resolves to a real module id.
+
+---
+
+## Known Gaps
+
+Honest assessment of where the framework is weak. Ordered by cost.
+
+### 1. It cannot tell when it is wrong about the schema
+
+**Nothing connects the framework to the database.** Every documentation defect
+found to date traces to this single gap, in both directions:
+
+- **Documented, does not exist:** `event_photos` carried a 3-month archive
+  threshold with no table behind it; `srt_keys` described dropped columns.
+- **Exists, undocumented:** the `/r` relay tables held real personal data with
+  no category at all, and account deletion did not touch them.
+
+`check-legal-modules.sh` validates the registry against _itself_ — namespaces
+against module-content against pages against policy.json. Every one of those is
+the framework checking its own internal consistency. A category naming a
+nonexistent table passes. A table full of personal data with no category
+passes.
+
+This is the highest-value fix available. See _Schema Binding_ below.
+
+### 2. `source` is three questions wearing one label
+
+The `display.source` field mixes:
+
+- _who originated it_ — "You provide", "A member reports", "OAuth provider"
+- _how it reached us_ — "Your recorded choices", "Automatic"
+- _through what medium_ — "Physical presence", "Session activity"
+
+This is why naming it resists every attempt: there is no single coherent thing
+being named. Acceptable as a plain-language hint; do not mistake it for a
+taxonomy. Note that "opt-in" must not be used here — the policy already uses it
+in its regulatory sense (`optOutOfSale`, GPC/CPRA), and reusing it for "tapped
+follow" would imply consent as the lawful basis.
+
+### 3. English only
+
+`locales/es` exists, the directory is `/directorio`, the community is South
+Florida — and the document explaining what happens to people's data is English
+only, with a clause saying English governs.
+
+Moving display strings into `policy.json` was right for anti-drift and wrong
+for i18n: labels now sit in a data file with no `t()` path. Translating means
+`display.prose` becoming a key (`privacy.categories.nostr_identity.prose`)
+rather than a literal, with `display.icon` staying as-is. Worth doing before
+the prose layer is written, not after.
+
+### 4. Re-consent hinges entirely on the major version digit
+
+`recordConsent` matches on `majorVersion`, so a bump from 0.1 to 0.2 re-prompts
+nobody, while 0.x to 1.0 re-prompts everybody. Retention classes can be added
+and categories removed without triggering re-consent as long as the leading
+digit is untouched.
+
+This is a mechanism note, not a recommendation: whether a given change warrants
+re-consent is the site owners' call. What the mechanism means in practice is
+that **the version number they choose is the decision** — there is no separate
+"is this material?" flag, so bumping major _is_ how that judgment gets
+expressed. Worth knowing before `effectiveDate` is set.
+
+### 5. Smaller
+
+- **`display.prose` is a re-drift vector.** Each category has `label`,
+  `data[]`, `retention` _and_ a hand-written sentence restating them. Editing
+  `data[]` silently staling the prose is the three-copy problem shrunk to one
+  file.
+- **No schema validation on the JSON.** `asRawCategories` is an unchecked cast;
+  the contract is convention. A bad `display.icon` silently falls back to a
+  generic glyph; a missing `display` crashes the page. JSON Schema would be
+  cheap.
+- **`policy.json` 404s.** `JsonLd.tsx` advertises it as `encoding.contentUrl`,
+  but a raw `.json` under `app/` is not a route, so the machine-readable claim
+  is currently false. Fixing means moving the data file — a directory named
+  `policy.json` cannot coexist with the file — which touches the terms side too.
+
+### 6. CC0 is shippable but undocumented, and it breaks anonymization
+
+`components/legal/CCLicensePicker.tsx` offers **CC0 1.0** as a selectable
+option (listed first), and `cc-0` is a value in the `cc_license` Postgres enum.
+Neither `privacy/policy.json` nor `terms/policy.json` mentions it — both list
+only `CC-BY-4.0` and `CC-BY-SA-4.0`. This document's _Content Licensing
+Requirement_ section says the same.
+
+This is not a cosmetic omission. The `community_record` class rests on
+attribution:
+
+- Anonymization is described as invoking "the CC BY 4.0 / CC BY-SA 4.0 Section
+  3(a)(3) attribution removal right on the user's behalf". **CC0 waives
+  attribution outright** — there is no attribution right to invoke, because it
+  is already gone.
+- The deletion flow's "keep my name / remove my name" choice is meaningless for
+  CC0 content: the name was never a license condition.
+- "Attribution requirements are displayed alongside content" does not hold.
+
+Decide one of: (a) remove CC0 from the picker and the enum; (b) document it in
+both policies and define what anonymization means for CC0 content — probably
+"nothing to do, it was already waived"; or (c) keep it but restrict it to
+content types outside `community_record`. Until then a member can publish under
+terms the policy does not describe.
+
+### 7. The scaffolding has outrun the substance
+
+Privacy policy sections 1, 3, 4, 6, 7, 10 and 12 are `<Placeholder>`.
+`status: draft`, `effectiveDate: null`. This is a well-structured apparatus
+describing a policy that does not legally exist yet. Getting the shape right
+first is a reasonable order — but tidiness is not completeness, and the risk is
+that the framework starts feeling done because it looks done.
+
+---
+
+## Schema Binding
+
+Closing gap #1. Three options were considered.
+
+**Option A — JSON hints: categories point at tables.**
+Add `"tables": ["relay_group_members"]` to each category in `policy.json`.
+Rejected: strings cannot fail a build. A table rename breaks the link silently,
+and it only catches documented-but-missing. Catching the direction that
+actually bit us (exists-but-undocumented) needs a schema parser anyway.
+
+**Option B — schema annotations: each table points at its category.**
+Rejected: Drizzle has no first-class metadata slot on `pgTable`. The options
+are comments (unenforceable) or a parallel map — which is Option C. It also
+turns `lib/schema/index.ts` into a legal document.
+
+**Option C — a typed inventory (recommended).**
+A TypeScript module importing the actual Drizzle table objects:
+
+```ts
+// lib/legal/data-inventory.ts
+import { relayGroupMembers, profiles, relayGroups } from '@/lib/schema';
+
+export const NOT_PERSONAL_DATA = Symbol('not-personal-data');
+
+// Exhaustive over every table in the schema. Adding a table without
+// classifying it here is a compile error.
+export const inventory: Record<
+  SchemaTableName,
+  CategoryName[] | typeof NOT_PERSONAL_DATA
+> = {
+  relay_group_members: ['relay_group_membership'],
+  profiles: ['profile', 'mentoring_profile', 'nostr_identity'],
+  relay_groups: NOT_PERSONAL_DATA, // group metadata, no member data
+  // ...
+};
+```
+
+Two properties neither other option has:
+
+1. **Renaming or dropping a table is a compile error** — the import breaks.
+   No string matching, no CI parser.
+2. **Adding a table breaks the build until it is classified.** A
+   `Record<AllSchemaTables, ...>` is exhaustive, so the forcing function lands
+   at the moment the table is written, which is when the author actually knows
+   the answer.
+
+Caveats to design around:
+
+- **Granularity is table-level, not column-level.** `profiles` alone backs
+  three categories. This catches "table undocumented"; it does not catch "new
+  personal column added to `profiles`". Column-level is possible and much
+  heavier — treat as v2.
+- **Some categories have no table** (`in_person_exchanges`, `webrtc_streams`,
+  `session_streams`). They need an explicit "no storage" declaration in
+  `policy.json` so the reverse check can assert every category is either backed
+  by a table or declared storage-free.
+- **The relay's own event store is out of scope.** `nostr_published_events`
+  lives in the relay Worker's D1, not our Postgres. The inventory covers the
+  panamia schema; the relay store must be declared external rather than
+  silently missing.
+- **Filtering `PgTable` from the schema module's exports** takes care — it also
+  exports enums, relations, and types.
+
+---
+
 ## Accessibility Statement
 
 Publish at `legal/accessibility/statement.html`:
@@ -968,10 +1273,11 @@ Publish at `legal/accessibility/statement.html`:
 - [x] Write plain-language summaries for privacy policy and each ToS module
       (summary box rendered above each module's detail list)
 - [x] Design and build Privacy at a Glance component
-      (`components/legal/PrivacyAtAGlance.tsx` — filterable grid, 18 categories)
-- [ ] Design and build CC license picker component
-      (code comments only: `components/legal/CCLicensePicker.tsx`;
-      implementation deferred to Phase 4)
+      (`components/legal/PrivacyAtAGlance.tsx` — filterable grid, 37 categories
+      derived from `policy.json`; presentation-only, no category list of its own)
+- [x] Design and build CC license picker component
+      (`components/legal/CCLicensePicker.tsx` — see Phase 4 for the shipped
+      exports and consumers)
 - [x] Build contextual disclosure modal component
       (`components/legal/ContextualDisclosure.tsx` — localStorage-backed,
       version-aware, per-module)
@@ -1036,7 +1342,11 @@ Publish at `legal/accessibility/statement.html`:
       page 5: checkbox + destructive button with spinner)
 - [x] Implement immediate deletion executor
       (`lib/server/delete-account.ts` — `deleteAccount(userId, options)`,
-      16-step orchestrated cleanup):
+      17-step orchestrated cleanup):
+  - [x] Purge relay/Nostr data (`relay_group_members`,
+        `relay_group_join_pending`, `relay_group_leave_pending` by pubkey;
+        `nostrPubkey`/`nostrPubkeySource` cleared on the tombstone path).
+        `relay_reports` is deliberately retained — `moderation_record`.
   - [x] Purge Deletable data (account, profile, sessions, notifications,
         consent receipts, intake forms, email migrations, interactions)
   - [x] Delete all social timeline posts regardless of age
@@ -1052,7 +1362,6 @@ Publish at `legal/accessibility/statement.html`:
         `event_photos.uploader_profile_id`)
   - [x] Cancel active Stripe subscriptions + delete customer
         (dynamic import of `stripe`, uses `profiles.stripe_customer_id`)
-  - [x] ~~Delete Brevo contact~~ _(removed — Brevo replaced by CF Email Sending, stateless)_
   - [x] Delete GoHighLevel contact via `GhlClient.deleteContact()`
   - [x] Revoke OAuth grants (`lib/oauth-revoke.ts` — `revokeAllOAuthTokens()`,
         Google token revocation endpoint + Apple revocation endpoint)
@@ -1125,6 +1434,21 @@ Publish at `legal/accessibility/statement.html`:
 - [ ] Set DMCA agent renewal reminder (3-year cycle)
 - [ ] Schedule annual accessibility review
 - [ ] Schedule annual privacy policy review against regulatory changes
+
+### Phase 9 — Make the Framework Verifiable
+
+Closes _Known Gaps_. Ordered by value.
+
+- [ ] Build `lib/legal/data-inventory.ts` — an exhaustive typed map from every
+      Drizzle table to its privacy categories or `NOT_PERSONAL_DATA`
+      (see _Schema Binding_). Adding a table must fail the build until it is
+      classified.
+- [ ] Declare storage-free categories in `policy.json` so the reverse check can
+      assert every category is either table-backed or explicitly storage-free
+- [ ] Resolve CC0 — remove it from the picker and enum, or document it in both
+      policies and define what anonymization means for it (_Known Gaps_ #6)
+- [ ] JSON Schema for `policy.json`; drop the unchecked `asRawCategories` cast
+- [ ] Serve `policy.json` — it currently 404s while JSON-LD advertises it
 
 ---
 

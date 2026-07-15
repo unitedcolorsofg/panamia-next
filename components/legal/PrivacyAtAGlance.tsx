@@ -48,18 +48,14 @@ const icons: Record<string, LucideIcon> = {
   radio: Radio,
 };
 
+// Tier is a filter, not a badge. Every retention class belongs to exactly one
+// tier, so a tier badge on the card would restate what the class badge already
+// says. Tier still earns its place as a coarse filter (three buttons rather
+// than seven).
 const tierLabels: Record<Tier, string> = {
   persistent: 'Persistent',
   temporary: 'Temporary',
   peer_networking: 'Peer',
-};
-
-const tierColors: Record<Tier, string> = {
-  persistent: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
-  temporary:
-    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-  peer_networking:
-    'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200',
 };
 
 const retentionClassLabels: Record<RetentionClass, string> = {
@@ -137,11 +133,6 @@ export function PrivacyAtAGlance() {
                 <span className="font-medium">{cat.label}</span>
               </div>
               <div className="mb-2 flex flex-wrap gap-1">
-                <Badge
-                  className={`${tierColors[cat.tier]} border-0 text-[10px]`}
-                >
-                  {tierLabels[cat.tier]}
-                </Badge>
                 <Badge
                   className={`${retentionClassColors[cat.retentionClass]} border-0 text-[10px]`}
                 >

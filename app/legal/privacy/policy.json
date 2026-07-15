@@ -105,7 +105,7 @@
           "retention": "active_account_lifetime",
           "display": {
             "icon": "share-2",
-            "source": "Your actions",
+            "source": "Your recorded choices",
             "purpose": "Social features",
             "retention": "Account lifetime",
             "sharedWith": "ActivityPub peers",
@@ -122,7 +122,7 @@
           "retention": "active_account_lifetime",
           "display": {
             "icon": "calendar",
-            "source": "Your actions",
+            "source": "Your recorded choices",
             "purpose": "Event management",
             "retention": "Account lifetime",
             "sharedWith": "Organizers / attendees",
@@ -190,7 +190,7 @@
           "retention": "active_account_lifetime",
           "display": {
             "icon": "users",
-            "source": "Your actions",
+            "source": "Your recorded choices",
             "purpose": "Relay group access control",
             "retention": "Account lifetime",
             "sharedWith": "Group members",
@@ -294,16 +294,16 @@
           "providerRetention": "7_years_tax_legal"
         },
         {
-          "name": "Brevo",
-          "purpose": "email_communications",
-          "data": ["email", "name", "list_membership"],
-          "deletionMechanism": "brevo_contact_deletion_api",
-          "providerRetention": "anonymized_analytics_retained"
+          "name": "Cloudflare Email Sending",
+          "purpose": "transactional_email",
+          "data": ["recipient_email"],
+          "deletionMechanism": "stateless_no_stored_contacts",
+          "providerRetention": "delivery_logs_per_cf_terms"
         },
         {
           "name": "GoHighLevel",
-          "purpose": "crm",
-          "data": ["email", "name", "contact_id"],
+          "purpose": "crm_and_newsletter",
+          "data": ["email", "name", "contact_id", "newsletter_membership"],
           "deletionMechanism": "ghl_api_or_manual",
           "providerRetention": "subject_to_ghl_terms"
         },
@@ -349,37 +349,38 @@
           }
         },
         {
-          "name": "email_contacts",
-          "label": "Email / Contacts",
-          "providers": ["Brevo"],
-          "data": ["email", "name", "list_membership"],
+          "name": "transactional_email",
+          "label": "Transactional Email",
+          "providers": ["Cloudflare Email Sending"],
+          "data": ["recipient_email"],
           "source": "user_provided",
-          "purpose": "email_communications",
-          "retention": "active_account_lifetime",
+          "purpose": "transactional_email",
+          "retention": "no_stored_contacts",
+          "note": "Sent through a native Cloudflare Workers binding with no contact list. There is no stored contact record to delete; Cloudflare may retain delivery logs under its own terms.",
           "display": {
             "icon": "globe",
             "source": "You provide",
-            "purpose": "Email communications",
-            "retention": "Account lifetime",
-            "sharedWith": "Brevo",
-            "prose": "Brevo — email, name, list membership"
+            "purpose": "Transactional email",
+            "retention": "No contacts stored",
+            "sharedWith": "Cloudflare",
+            "prose": "Cloudflare Email Sending — your address at send time only. No contact list is kept, so there is nothing to delete; Cloudflare may retain delivery logs."
           }
         },
         {
           "name": "crm",
-          "label": "CRM",
+          "label": "CRM / Newsletter",
           "providers": ["GoHighLevel"],
-          "data": ["email", "name", "contact_id"],
+          "data": ["email", "name", "contact_id", "newsletter_membership"],
           "source": "user_provided",
-          "purpose": "contact_management",
+          "purpose": "contact_management_and_newsletter",
           "retention": "active_account_lifetime",
           "display": {
             "icon": "globe",
             "source": "You provide",
-            "purpose": "Contact management",
+            "purpose": "Contact management and newsletter",
             "retention": "Account lifetime",
             "sharedWith": "GoHighLevel",
-            "prose": "GoHighLevel — contact ID, email, name"
+            "prose": "GoHighLevel — contact ID, email, name, newsletter list membership"
           }
         },
         {
@@ -583,7 +584,7 @@
         "retention": "until_admin_action_or_24h_grace",
         "display": {
           "icon": "users",
-          "source": "Your actions",
+          "source": "Your recorded choices",
           "purpose": "Join approval and leave debounce",
           "retention": "Admin action / 24h",
           "sharedWith": "Admins",
@@ -746,7 +747,7 @@
             "retention": "not_retained_by_us",
             "display": {
               "icon": "calendar",
-              "source": "Your actions",
+              "source": "Your recorded choices",
               "purpose": "Event coordination",
               "retention": "Not retained by us",
               "sharedWith": "Organizers / attendees",
@@ -763,7 +764,7 @@
             "retention": "not_retained_by_us",
             "display": {
               "icon": "users",
-              "source": "In person",
+              "source": "Physical presence",
               "purpose": "Community events",
               "retention": "Not retained by us",
               "sharedWith": "People present",
