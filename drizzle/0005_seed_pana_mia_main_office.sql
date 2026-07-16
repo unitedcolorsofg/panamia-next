@@ -1,5 +1,7 @@
 -- Migration: 0005_seed_pana_mia_main_office
 -- Status:    NO-OP (intentionally empty)
+-- Purpose: Retained as a no-op to preserve migration ordering; see below.
+-- Ticket: N/A
 --
 -- Originally this migration seeded a "Pana MIA Main Office" venue with
 -- operator_profile_id = 'sfre2h1ds4uobwx57ei04n20'. That referenced a
