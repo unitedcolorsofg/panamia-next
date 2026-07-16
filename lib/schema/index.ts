@@ -396,9 +396,10 @@ export const consentReceipts = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => createId()),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    // No FK to users: consent receipts are a compliance_record and must
+    // outlive the account (proof consent existed). A cascade FK would delete
+    // them with the user. Kept as a bare id, like deletion_logs.user_id.
+    userId: text('user_id').notNull(),
     // 'terms' | 'privacy'
     document: text('document').notNull(),
     // Module ID (e.g. 'articles', 'social') or null for top-level acceptance
@@ -1366,9 +1367,11 @@ export const screennameHistory = pgTable(
       .notNull()
       .$defaultFn(() => new Date()),
     screenname: text('screenname').notNull().unique(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    // No FK to users: screenname history is a compliance_record kept for
+    // federation 410-Gone continuity, so it must survive account deletion.
+    // A cascade FK (the previous definition) silently wiped it on delete,
+    // contradicting that intent. Kept as a bare id, like deletion_logs.user_id.
+    userId: text('user_id').notNull(),
     redirectTo: text('redirect_to'),
   },
   (table) => ({

@@ -36,6 +36,7 @@ const retentionClassHeadings: Record<string, string> = {
   community_record: 'Community Record',
   third_party_synced: 'Third-Party Synced',
   moderation_record: 'Moderation Record',
+  compliance_record: 'Compliance Record',
   auto_purged: 'Auto-Purged',
   in_the_wind: 'In the Wind',
   participant_observed: 'Seen by Participants',

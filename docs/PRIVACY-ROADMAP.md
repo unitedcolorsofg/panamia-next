@@ -1425,16 +1425,22 @@ Publish at `legal/accessibility/statement.html`:
 
 ### Phase 9 — Make the Framework Verifiable
 
-Closes _Known Gaps_. Ordered by value.
+Closes _Known Gaps_. The schema-binding layer is in place: `data-inventory.ts`
+maps every Drizzle table to its categories (missing entry = compile error),
+`validateInventory()` + `scripts/check-data-inventory.ts` enforce it in
+pre-commit, and every table is now classified. Remaining:
 
-- [ ] Build `lib/legal/data-inventory.ts` — an exhaustive typed map from every
-      Drizzle table to its privacy categories or `NOT_PERSONAL_DATA`
-      (see _Schema Binding_). Adding a table must fail the build until it is
-      classified.
-- [ ] Declare storage-free categories in `policy.json` so the reverse check can
-      assert every category is either table-backed or explicitly storage-free
 - [ ] JSON Schema for `policy.json`; drop the unchecked `asRawCategories` cast
-- [ ] Serve `policy.json` — it currently 404s while JSON-LD advertises it
+- [ ] Serve the machine-readable policy at a stable public URL. The JSON-LD on
+      `/legal/privacy` already advertises `${SITE}/legal/privacy/policy.json` as
+      its `encoding.contentUrl`, but nothing serves it (a raw `.json` under
+      `app/` is not a route), so that link 404s today. Add a route that returns
+      the raw JSON with `Content-Type: application/json` — a stable, linkable,
+      crawlable endpoint for automated tools, regulators, and integrators. Same
+      for `terms/policy.json`. Moving the source file means a directory named
+      `policy.json` cannot coexist with the file, so this touches both policies.
+- [ ] Column-level inventory (v2): catch a new personal column added to an
+      already-classified table, not just an unclassified new table
 
 ---
 

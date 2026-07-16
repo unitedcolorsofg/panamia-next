@@ -21,6 +21,7 @@ export type RetentionClass =
   | 'community_record'
   | 'third_party_synced'
   | 'moderation_record'
+  | 'compliance_record'
   | 'auto_purged'
   | 'in_the_wind'
   | 'participant_observed';

@@ -19,7 +19,8 @@ import {
   verification,
   articles,
   notifications,
-  consentReceipts,
+  contactSubmissions,
+  newsletterSignups,
   mentorSessions,
   intakeForms,
   emailMigrations,
@@ -604,13 +605,28 @@ export async function deleteAccount(
       deletedTables,
       warnings
     );
+    // consent_receipts are intentionally NOT deleted here: they are a
+    // compliance_record (proof the user accepted a given policy version) and
+    // are retained under a legitimate-interest basis after account deletion.
+    // See app/legal/privacy/policy.json. The FK was dropped in migration 0027
+    // so the row survives removal of the users row.
     await safeDelete(
-      'consentReceipts',
+      'contactSubmissions',
       () =>
         db
-          .delete(consentReceipts)
-          .where(eq(consentReceipts.userId, userId))
-          .returning({ id: consentReceipts.id }),
+          .delete(contactSubmissions)
+          .where(eq(contactSubmissions.email, user.email))
+          .returning({ id: contactSubmissions.id }),
+      deletedTables,
+      warnings
+    );
+    await safeDelete(
+      'newsletterSignups',
+      () =>
+        db
+          .delete(newsletterSignups)
+          .where(eq(newsletterSignups.email, user.email))
+          .returning({ id: newsletterSignups.id }),
       deletedTables,
       warnings
     );

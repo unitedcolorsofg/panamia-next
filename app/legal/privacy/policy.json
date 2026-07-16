@@ -14,6 +14,7 @@
     "community_record",
     "third_party_synced",
     "moderation_record",
+    "compliance_record",
     "auto_purged",
     "in_the_wind",
     "participant_observed"
@@ -195,6 +196,27 @@
             "retention": "Account lifetime",
             "sharedWith": "Group members",
             "prose": "Relay group membership records (which groups your public key belongs to, and when it joined)"
+          }
+        },
+        {
+          "name": "other_member_data",
+          "label": "Other Member Data",
+          "data": [
+            "contact_messages",
+            "newsletter_signup",
+            "engagement_activity"
+          ],
+          "source": "user_provided",
+          "purpose": "contact_newsletter_and_engagement",
+          "retention": "active_account_lifetime",
+          "note": "A catch-all for smaller member-provided datasets: contact-form messages, newsletter signups (local list, distinct from the GoHighLevel CRM record), and the engagement/points activity ledger. All removed when the member deletes their account through the account-deletion flow.",
+          "display": {
+            "icon": "database",
+            "source": "You provide",
+            "purpose": "Contact, newsletter, and engagement",
+            "retention": "Account lifetime",
+            "sharedWith": "None",
+            "prose": "Other member data — contact-form messages, newsletter signups, and engagement/points activity"
           }
         }
       ]
@@ -451,6 +473,72 @@
           }
         }
       ]
+    },
+    "compliance_record": {
+      "description": "Records retained after account deletion to meet legal, audit, or operational obligations. Not user-deletable; kept under a legitimate-interest basis, not consent.",
+      "userDeletable": false,
+      "survivesAccountDeletion": true,
+      "rationale": "proof_of_consent_deletion_audit_and_federation_continuity",
+      "categories": [
+        {
+          "name": "consent_receipts",
+          "label": "Consent Receipts",
+          "data": ["user_id", "document", "version", "ip", "gpc_detected"],
+          "source": "user_action",
+          "purpose": "proof_of_consent",
+          "retention": "retained_after_account_deletion",
+          "note": "A record that you accepted a given policy version, kept so we can demonstrate consent existed. Retained when you delete your account rather than removed with it.",
+          "display": {
+            "icon": "shield",
+            "source": "Your recorded choices",
+            "purpose": "Proof of consent",
+            "retention": "Outlives account deletion",
+            "sharedWith": "None",
+            "prose": "Consent receipts — which policy version you accepted, when, and from what IP. Retained after account deletion as proof consent existed."
+          }
+        },
+        {
+          "name": "deletion_audit",
+          "label": "Deletion Audit Log",
+          "data": [
+            "user_id",
+            "email",
+            "screenname",
+            "attribution_choice",
+            "ip"
+          ],
+          "source": "automatic",
+          "purpose": "deletion_audit_trail",
+          "retention": "retained_after_account_deletion",
+          "note": "A record that an account deletion happened and what it did. It is itself the proof of deletion, so it necessarily outlives the account.",
+          "display": {
+            "icon": "file-text",
+            "source": "Automatic",
+            "purpose": "Deletion audit trail",
+            "retention": "Outlives account deletion",
+            "sharedWith": "None",
+            "prose": "Deletion audit log — a record that your account was deleted and what was removed. Kept as proof the deletion occurred."
+          }
+        },
+        {
+          "name": "screenname_redirects",
+          "label": "Screenname Redirects",
+          "module": "social",
+          "data": ["screenname", "redirect_to"],
+          "source": "automatic",
+          "purpose": "federation_continuity",
+          "retention": "retained_after_account_deletion",
+          "note": "Old screennames map to a 410 Gone response so federated servers stop resolving a departed member's handle. Retained so those redirects keep working.",
+          "display": {
+            "icon": "share-2",
+            "source": "Automatic",
+            "purpose": "Federation continuity",
+            "retention": "Outlives account deletion",
+            "sharedWith": "ActivityPub peers",
+            "prose": "Screenname history — retained after deletion so federated servers get a stable 410 Gone for handles you no longer use."
+          }
+        }
+      ]
     }
   },
   "temporaryData": {
@@ -561,17 +649,22 @@
       {
         "name": "verification_tokens",
         "label": "Verification Tokens",
-        "data": ["magic_link_token", "email_verification_token"],
+        "data": [
+          "magic_link_token",
+          "email_verification_token",
+          "email_migration_token"
+        ],
         "source": "automatic",
         "purpose": "authentication",
         "retention": "per_config",
+        "note": "Short-lived tokens with an expiry: sign-in magic links, email verification, and the token issued when changing your account email.",
         "display": {
           "icon": "shield",
           "source": "Automatic",
           "purpose": "Authentication",
           "retention": "Expires per config",
           "sharedWith": "None",
-          "prose": "Email verification and magic-link tokens (expire per config)"
+          "prose": "Email verification, magic-link, and email-change tokens (expire per config)"
         }
       },
       {
@@ -791,6 +884,10 @@
       {
         "class": "moderation_record",
         "limit": "not_deletable_survives_account_deletion"
+      },
+      {
+        "class": "compliance_record",
+        "limit": "not_deletable_survives_account_deletion_legitimate_interest"
       },
       {
         "class": "in_the_wind",

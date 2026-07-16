@@ -22,6 +22,7 @@
     "env:list": "npx tsx scripts/env-check.ts list",
     "env:secrets": "npx tsx scripts/env-check.ts secrets",
     "env:vars": "npx tsx scripts/env-check.ts vars",
+    "check:privacy-schema": "npx tsx scripts/check-data-inventory.ts",
     "db:reset": "npx tsx scripts/reset-test-db.ts",
     "db:studio": "drizzle-kit studio",
     "db:generate": "echo 'This project hand-writes migrations under drizzle/. The drizzle-kit snapshot is intentionally stale (see drizzle.config.ts). If you really need to run drizzle-kit generate, invoke it directly with: npx drizzle-kit generate' && exit 1",

@@ -63,6 +63,7 @@ const retentionClassLabels: Record<RetentionClass, string> = {
   community_record: 'Community Record',
   third_party_synced: '3rd-Party Synced',
   moderation_record: 'Moderation Record',
+  compliance_record: 'Compliance Record',
   auto_purged: 'Auto-Purged',
   in_the_wind: 'In the Wind',
   participant_observed: 'Participant-Seen',
@@ -77,6 +78,8 @@ const retentionClassColors: Record<RetentionClass, string> = {
     'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200',
   moderation_record:
     'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+  compliance_record:
+    'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200',
   auto_purged:
     'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
   in_the_wind:
