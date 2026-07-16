@@ -36,7 +36,8 @@
             "purpose": "Authentication and identity",
             "retention": "Account lifetime",
             "sharedWith": "OAuth providers",
-            "prose": "Account credentials and authentication tokens"
+            "prose": "Account credentials and authentication tokens",
+            "tooltip": "Your login details — email, password, and the sign-in tokens that keep you logged in."
           }
         },
         {
@@ -59,7 +60,8 @@
             "purpose": "Directory listing and community",
             "retention": "Account lifetime",
             "sharedWith": "Public / ActivityPub",
-            "prose": "Profile information (contact, address, descriptions, images, social links)"
+            "prose": "Profile information (contact, address, descriptions, images, social links)",
+            "tooltip": "Your public directory listing: contact info, address, description, photos, and social links."
           }
         },
         {
@@ -76,7 +78,8 @@
             "purpose": "Mentor directory",
             "retention": "Account lifetime",
             "sharedWith": "Public",
-            "prose": "Mentoring profile (expertise, languages, bio, hourly rate)"
+            "prose": "Mentoring profile (expertise, languages, bio, hourly rate)",
+            "tooltip": "The mentor listing you fill out — your expertise, languages, short bio, and hourly rate."
           }
         },
         {
@@ -93,7 +96,8 @@
             "purpose": "Mentoring records",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Session notes and mentoring session metadata"
+            "prose": "Session notes and mentoring session metadata",
+            "tooltip": "Notes you or your mentor write about a session, plus basic details like its topic."
           }
         },
         {
@@ -110,7 +114,8 @@
             "purpose": "Social features",
             "retention": "Account lifetime",
             "sharedWith": "ActivityPub peers",
-            "prose": "Social graph (follows, followers, likes)"
+            "prose": "Social graph (follows, followers, likes)",
+            "tooltip": "Who you follow and the posts you've liked."
           }
         },
         {
@@ -127,7 +132,8 @@
             "purpose": "Event management",
             "retention": "Account lifetime",
             "sharedWith": "Organizers / attendees",
-            "prose": "RSVPs and event attendance records"
+            "prose": "RSVPs and event attendance records",
+            "tooltip": "The events you've said you're attending."
           }
         },
         {
@@ -143,7 +149,8 @@
             "purpose": "Communication preferences",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Notification preferences"
+            "prose": "Notification preferences",
+            "tooltip": "Your choices about which alerts and emails we send you."
           }
         },
         {
@@ -159,7 +166,8 @@
             "purpose": "Membership onboarding",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Intake form submissions"
+            "prose": "Intake form submissions",
+            "tooltip": "The answers you gave on the become-a-pana join form."
           }
         },
         {
@@ -178,7 +186,8 @@
             "purpose": "Relay identity and NIP-05 handle",
             "retention": "Account lifetime",
             "sharedWith": "Public / Nostr relays",
-            "prose": "Nostr identity: your public key and whether it was generated for you or brought your own (your secret key is never sent to us)"
+            "prose": "Nostr identity: your public key and whether it was generated for you or brought your own (your secret key is never sent to us)",
+            "tooltip": "Your public key for the community messaging network. Your secret key never leaves your device."
           }
         },
         {
@@ -195,7 +204,8 @@
             "purpose": "Relay group access control",
             "retention": "Account lifetime",
             "sharedWith": "Group members",
-            "prose": "Relay group membership records (which groups your public key belongs to, and when it joined)"
+            "prose": "Relay group membership records (which groups your public key belongs to, and when it joined)",
+            "tooltip": "Which community messaging groups your key belongs to, and when it joined."
           }
         },
         {
@@ -216,7 +226,8 @@
             "purpose": "Contact, newsletter, and engagement",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Other member data — contact-form messages, newsletter signups, and engagement/points activity"
+            "prose": "Other member data — contact-form messages, newsletter signups, and engagement/points activity",
+            "tooltip": "Smaller bits you've given us: contact-form messages, newsletter signups, and your activity points."
           }
         }
       ]
@@ -246,7 +257,8 @@
             "purpose": "Community knowledge",
             "retention": "Archive: 3 months",
             "sharedWith": "Public / ActivityPub",
-            "prose": "Published articles (archive: 3 months after publication)"
+            "prose": "Published articles (archive: 3 months after publication)",
+            "tooltip": "Articles you've published to the community."
           }
         },
         {
@@ -263,7 +275,8 @@
             "purpose": "Editorial quality",
             "retention": "Follows article",
             "sharedWith": "Public",
-            "prose": "Article peer review comments (archive: follows article)"
+            "prose": "Article peer review comments (archive: follows article)",
+            "tooltip": "Feedback you leave reviewing another member's article before it's published."
           }
         },
         {
@@ -282,7 +295,8 @@
             "purpose": "Social expression",
             "retention": "Always deletable",
             "sharedWith": "Public / ActivityPub",
-            "prose": "Social timeline posts (no archive threshold — always fully deleted)"
+            "prose": "Social timeline posts (no archive threshold — always fully deleted)",
+            "tooltip": "Your posts, replies, and reposts on the community timeline."
           }
         },
         {
@@ -300,7 +314,8 @@
             "purpose": "Community events",
             "retention": "Archive: after event",
             "sharedWith": "Public",
-            "prose": "Event records (archive: after event completion)"
+            "prose": "Event records (archive: after event completion)",
+            "tooltip": "Events you've created, including their details and description."
           }
         }
       ]
@@ -367,7 +382,8 @@
             "purpose": "Donations, memberships, merchandise",
             "retention": "Stripe: 7-year hold",
             "sharedWith": "Stripe / GoHighLevel",
-            "prose": "Stripe — email, payment method, transaction history (7-year legal hold)"
+            "prose": "Stripe — email, payment method, transaction history (7-year legal hold)",
+            "tooltip": "Your donation and membership payments, handled by Stripe."
           }
         },
         {
@@ -385,7 +401,8 @@
             "purpose": "Transactional email",
             "retention": "No contacts stored",
             "sharedWith": "Cloudflare",
-            "prose": "Cloudflare Email Sending — your address at send time only. No contact list is kept, so there is nothing to delete; Cloudflare may retain delivery logs."
+            "prose": "Cloudflare Email Sending — your address at send time only. No contact list is kept, so there is nothing to delete; Cloudflare may retain delivery logs.",
+            "tooltip": "The address we send account emails to. We don't build a mailing list from it — it's used only at send time."
           }
         },
         {
@@ -402,7 +419,8 @@
             "purpose": "Contact management and newsletter",
             "retention": "Account lifetime",
             "sharedWith": "GoHighLevel",
-            "prose": "GoHighLevel — contact ID, email, name, newsletter list membership"
+            "prose": "GoHighLevel — contact ID, email, name, newsletter list membership",
+            "tooltip": "Your contact record in our newsletter/CRM system (GoHighLevel), including newsletter list membership."
           }
         },
         {
@@ -420,7 +438,8 @@
             "purpose": "Media hosting",
             "retention": "Follows content",
             "sharedWith": "Cloudflare R2 / Public",
-            "prose": "Cloudflare R2 — uploaded media files"
+            "prose": "Cloudflare R2 — uploaded media files",
+            "tooltip": "Photos and files you've uploaded, stored on Cloudflare."
           }
         },
         {
@@ -438,7 +457,8 @@
             "purpose": "Authentication",
             "retention": "Account lifetime",
             "sharedWith": "Google / Apple",
-            "prose": "Google / Apple OAuth — email, name, profile image (received, not sent)"
+            "prose": "Google / Apple OAuth — email, name, profile image (received, not sent)",
+            "tooltip": "Basic info (email, name, picture) we receive when you sign in with Google or Apple. Nothing is sent back to them."
           }
         }
       ]
@@ -469,7 +489,8 @@
             "purpose": "Safety and moderation",
             "retention": "Outlives account deletion",
             "sharedWith": "Moderators",
-            "prose": "Relay abuse reports (NIP-56) — the reporter's and target's public keys, plus a snapshot of the reported content. Retained even after the accounts involved are deleted."
+            "prose": "Relay abuse reports (NIP-56) — the reporter's and target's public keys, plus a snapshot of the reported content. Retained even after the accounts involved are deleted.",
+            "tooltip": "Reports members file about abusive messages on the relay. Kept even after an account leaves, so moderation records survive."
           }
         }
       ]
@@ -494,7 +515,8 @@
             "purpose": "Proof of consent",
             "retention": "Outlives account deletion",
             "sharedWith": "None",
-            "prose": "Consent receipts — which policy version you accepted, when, and from what IP. Retained after account deletion as proof consent existed."
+            "prose": "Consent receipts — which policy version you accepted, when, and from what IP. Retained after account deletion as proof consent existed.",
+            "tooltip": "A record that you accepted a given version of our policies — proof the consent happened."
           }
         },
         {
@@ -517,7 +539,8 @@
             "purpose": "Deletion audit trail",
             "retention": "Outlives account deletion",
             "sharedWith": "None",
-            "prose": "Deletion audit log — a record that your account was deleted and what was removed. Kept as proof the deletion occurred."
+            "prose": "Deletion audit log — a record that your account was deleted and what was removed. Kept as proof the deletion occurred.",
+            "tooltip": "A record that an account was deleted and what was removed — kept as proof the deletion took place."
           }
         },
         {
@@ -535,7 +558,8 @@
             "purpose": "Federation continuity",
             "retention": "Outlives account deletion",
             "sharedWith": "ActivityPub peers",
-            "prose": "Screenname history — retained after deletion so federated servers get a stable 410 Gone for handles you no longer use."
+            "prose": "Screenname history — retained after deletion so federated servers get a stable 410 Gone for handles you no longer use.",
+            "tooltip": "Usernames you've used before, kept so links to a former handle still resolve on other servers."
           }
         }
       ]
@@ -559,7 +583,8 @@
           "purpose": "Real-time collaboration",
           "retention": "Session duration",
           "sharedWith": "Session participants",
-          "prose": "Mentoring session signaling and WebRTC connection metadata"
+          "prose": "Mentoring session signaling and WebRTC connection metadata",
+          "tooltip": "Behind-the-scenes connection info that sets up a live mentoring call. Discarded when the session ends."
         }
       },
       {
@@ -576,7 +601,8 @@
           "purpose": "Real-time collaboration",
           "retention": "Session + 30 min",
           "sharedWith": "Session participants",
-          "prose": "Whiteboard state (purged 30 min after session ends)"
+          "prose": "Whiteboard state (purged 30 min after session ends)",
+          "tooltip": "The shared drawing board during a mentoring session. Erased 30 minutes after it ends."
         }
       },
       {
@@ -593,7 +619,8 @@
           "purpose": "Real-time collaboration",
           "retention": "Session duration",
           "sharedWith": "Session participants",
-          "prose": "Real-time chat messages during mentoring sessions"
+          "prose": "Real-time chat messages during mentoring sessions",
+          "tooltip": "Chat messages typed during a live mentoring session."
         }
       },
       {
@@ -611,7 +638,8 @@
           "purpose": "Real-time collaboration",
           "retention": "Session duration",
           "sharedWith": "Session participants",
-          "prose": "Session video/audio streams (never recorded server-side unless explicitly enabled)"
+          "prose": "Session video/audio streams (never recorded server-side unless explicitly enabled)",
+          "tooltip": "The live video and audio of a session. Not recorded on our servers unless you turn recording on."
         }
       },
       {
@@ -627,7 +655,8 @@
           "purpose": "Authentication",
           "retention": "Token lifetime",
           "sharedWith": "Google / Apple",
-          "prose": "OAuth tokens and transient authentication state"
+          "prose": "OAuth tokens and transient authentication state",
+          "tooltip": "Temporary keys that keep your Google or Apple sign-in active."
         }
       },
       {
@@ -643,7 +672,8 @@
           "purpose": "Site analytics",
           "retention": "90 days",
           "sharedWith": "Cloudflare",
-          "prose": "IP addresses and user-agent strings (90-day analytics window)"
+          "prose": "IP addresses and user-agent strings (90-day analytics window)",
+          "tooltip": "Your IP address and browser type, kept briefly (90 days) to understand site traffic."
         }
       },
       {
@@ -664,7 +694,8 @@
           "purpose": "Authentication",
           "retention": "Expires per config",
           "sharedWith": "None",
-          "prose": "Email verification, magic-link, and email-change tokens (expire per config)"
+          "prose": "Email verification, magic-link, and email-change tokens (expire per config)",
+          "tooltip": "Short-lived codes for signing in, verifying your email, or changing it. They expire quickly."
         }
       },
       {
@@ -681,7 +712,8 @@
           "purpose": "Join approval and leave debounce",
           "retention": "Admin action / 24h",
           "sharedWith": "Admins",
-          "prose": "Pending relay group join and leave requests (joins: until an admin acts; leaves: a 24-hour grace period)"
+          "prose": "Pending relay group join and leave requests (joins: until an admin acts; leaves: a 24-hour grace period)",
+          "tooltip": "Requests to join or leave a community group that are waiting on approval or a short grace period."
         }
       }
     ]
@@ -711,7 +743,8 @@
               "purpose": "Social federation",
               "retention": "Not recallable",
               "sharedWith": "ActivityPub peers (open set)",
-              "prose": "Social posts, replies, likes, and follows federated via ActivityPub — a best-effort Delete is sent, but remote servers may ignore it"
+              "prose": "Social posts, replies, likes, and follows federated via ActivityPub — a best-effort Delete is sent, but remote servers may ignore it",
+              "tooltip": "Posts and follows that leave our servers to reach Mastodon and similar networks. Once out, we can ask other servers to delete them but can't force it."
             }
           },
           {
@@ -735,7 +768,8 @@
               "purpose": "Community relay and Nostr interoperability",
               "retention": "Not recallable",
               "sharedWith": "Nostr relays (open set)",
-              "prose": "Anything you publish to Nostr — group chat, profile metadata, RSVPs. We can remove it from our own relay; no one can remove it from Nostr at large."
+              "prose": "Anything you publish to Nostr — group chat, profile metadata, RSVPs. We can remove it from our own relay; no one can remove it from Nostr at large.",
+              "tooltip": "Anything you publish to the Nostr network — group chats, profile info, RSVPs. We can remove it from our relay, but no one can remove it from Nostr everywhere."
             }
           }
         ]
@@ -759,7 +793,8 @@
               "purpose": "Real-time collaboration",
               "retention": "Not retained by us",
               "sharedWith": "Session participants",
-              "prose": "Video and audio streams during mentoring sessions (WebRTC peer-to-peer)"
+              "prose": "Video and audio streams during mentoring sessions (WebRTC peer-to-peer)",
+              "tooltip": "The live video and audio of a mentoring call, sent directly between you and the other person, not through us."
             }
           },
           {
@@ -776,7 +811,8 @@
               "purpose": "Real-time collaboration",
               "retention": "Not retained by us",
               "sharedWith": "Session participants",
-              "prose": "Whiteboard content visible to session participants"
+              "prose": "Whiteboard content visible to session participants",
+              "tooltip": "What you draw on the shared board, visible to the others in your session."
             }
           },
           {
@@ -793,7 +829,8 @@
               "purpose": "Real-time collaboration",
               "retention": "Not retained by us",
               "sharedWith": "Session participants",
-              "prose": "Chat messages seen by the other participant before deletion"
+              "prose": "Chat messages seen by the other participant before deletion",
+              "tooltip": "Session chat the other person already saw before it was deleted."
             }
           },
           {
@@ -810,7 +847,8 @@
               "purpose": "Article collaboration",
               "retention": "Not retained by us",
               "sharedWith": "Co-authors",
-              "prose": "Co-author content shared during article collaboration"
+              "prose": "Co-author content shared during article collaboration",
+              "tooltip": "Draft article content you share with a co-author while writing together."
             }
           },
           {
@@ -827,7 +865,8 @@
               "purpose": "Community visibility",
               "retention": "Not retained by us",
               "sharedWith": "Other members",
-              "prose": "Profile information visible to other users"
+              "prose": "Profile information visible to other users",
+              "tooltip": "The parts of your profile other members can see."
             }
           },
           {
@@ -844,7 +883,8 @@
               "purpose": "Event coordination",
               "retention": "Not retained by us",
               "sharedWith": "Organizers / attendees",
-              "prose": "Event RSVP and attendance information visible to organizers and attendees"
+              "prose": "Event RSVP and attendance information visible to organizers and attendees",
+              "tooltip": "Your RSVP and attendance, visible to the event's organizers and other attendees."
             }
           },
           {
@@ -861,7 +901,8 @@
               "purpose": "Community events",
               "retention": "Not retained by us",
               "sharedWith": "People present",
-              "prose": "Information shared at in-person events (verbal, written, photos)"
+              "prose": "Information shared at in-person events (verbal, written, photos)",
+              "tooltip": "Anything you share face-to-face at an event — spoken, written, or photographed by others."
             }
           }
         ]

@@ -18,6 +18,8 @@ import {
   Flag,
   Radio,
   Database,
+  HelpCircle,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -99,6 +101,17 @@ const filters: FilterTier[] = [
 
 export function PrivacyAtAGlance() {
   const [filter, setFilter] = useState<FilterTier>('all');
+  // Which cards have their plain-language explanation expanded. Each card
+  // toggles independently; several can be open at once while scanning.
+  const [explained, setExplained] = useState<Set<string>>(new Set());
+
+  const toggleExplain = (name: string) =>
+    setExplained((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
 
   const filtered =
     filter === 'all'
@@ -126,15 +139,45 @@ export function PrivacyAtAGlance() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((cat) => {
           const Icon = icons[cat.display.icon] ?? Database;
+          const isOpen = explained.has(cat.name);
+          const panelId = `glance-explain-${cat.name}`;
           return (
             <div
               key={cat.name}
               className="hover:bg-muted/30 rounded-lg border p-4 transition-colors"
             >
-              <div className="mb-2 flex items-center gap-2">
-                <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="font-medium">{cat.label}</span>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
+                  <span className="font-medium">{cat.label}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleExplain(cat.name)}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  aria-label={
+                    isOpen
+                      ? `Hide explanation of ${cat.label}`
+                      : `What is ${cat.label}?`
+                  }
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring -mt-1 -mr-1 shrink-0 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  {isOpen ? (
+                    <X className="h-4 w-4" />
+                  ) : (
+                    <HelpCircle className="h-4 w-4" />
+                  )}
+                </button>
               </div>
+              {isOpen && (
+                <p
+                  id={panelId}
+                  className="text-muted-foreground bg-muted/40 mb-2 rounded p-2 text-xs leading-relaxed"
+                >
+                  {cat.display.tooltip}
+                </p>
+              )}
               <div className="mb-2 flex flex-wrap gap-1">
                 <Badge
                   className={`${retentionClassColors[cat.retentionClass]} border-0 text-[10px]`}
