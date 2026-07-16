@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   // Validate ccLicense if provided
   const validLicenses = ['cc-by-4', 'cc-by-sa-4', 'cc-0'] as const;
   const resolvedLicense =
-    ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
+    ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-4';
 
   if (!content || typeof content !== 'string') {
     return NextResponse.json(

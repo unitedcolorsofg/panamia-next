@@ -109,8 +109,7 @@ export async function GET(
       })),
       tag: [],
       summary: status.contentWarning || null,
-      'cc:license':
-        LICENSE_DEED[status.ccLicense] || LICENSE_DEED['cc-by-sa-4'],
+      'cc:license': LICENSE_DEED[status.ccLicense] || LICENSE_DEED['cc-by-4'],
     },
   }));
 

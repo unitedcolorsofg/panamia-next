@@ -133,7 +133,7 @@ export default function DmcaPolicyPage() {
           <p>
             All user-generated content on Pana MIA Club must be licensed under{' '}
             <Link href="/legal/terms#content-licensing">
-              CC BY 4.0 or CC BY-SA 4.0
+              CC BY 4.0, CC BY-SA 4.0, or CC0 1.0
             </Link>
             . Content that cannot be CC-licensed (e.g., third-party copyrighted
             material the user does not own) must not be uploaded.

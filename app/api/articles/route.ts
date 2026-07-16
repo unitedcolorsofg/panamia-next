@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // Validate ccLicense
     const validLicenses = ['cc-by-4', 'cc-by-sa-4', 'cc-0'] as const;
     const resolvedLicense =
-      ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-sa-4';
+      ccLicense && validLicenses.includes(ccLicense) ? ccLicense : 'cc-by-4';
 
     // Validate required fields
     if (!title?.trim()) {
@@ -150,9 +150,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
     const articleType = searchParams.get('type') as
-      | 'business_update'
-      | 'community_commentary'
-      | null;
+      'business_update' | 'community_commentary' | null;
     const tag = searchParams.get('tag');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);

@@ -183,6 +183,13 @@
       "when": 1780790400000,
       "tag": "0025_events_nostr_model_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1780876800000,
+      "tag": "0026_default_cc_by",
+      "breakpoints": true
     }
   ]
 }

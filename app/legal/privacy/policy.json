@@ -217,7 +217,7 @@
           "source": "user_provided",
           "purpose": "community_knowledge",
           "retention": "community_record_3_months",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
           "display": {
             "icon": "file-text",
             "source": "You provide",
@@ -252,7 +252,7 @@
           "source": "user_provided",
           "purpose": "social_expression",
           "retention": "always_deletable",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
           "note": "Social timeline posts are always fully deleted on request regardless of age",
           "display": {
             "icon": "message-circle",
@@ -271,7 +271,7 @@
           "source": "user_provided",
           "purpose": "community_events",
           "retention": "community_record_after_completion",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0"],
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
           "display": {
             "icon": "calendar",
             "source": "You provide",
@@ -799,10 +799,16 @@
     ]
   },
   "contentLicense": {
-    "options": ["CC-BY-4.0", "CC-BY-SA-4.0"],
-    "default": "CC-BY-SA-4.0",
+    "options": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
+    "default": "CC-BY-4.0",
     "spdxIdentifiers": true,
     "irrevocable": true,
-    "deletionImplication": "cc_license_survives_content_removal"
+    "deletionImplication": "cc_license_survives_content_removal",
+    "attribution": {
+      "CC-BY-4.0": "required_by_license",
+      "CC-BY-SA-4.0": "required_by_license",
+      "CC0-1.0": "voluntary_no_license_requirement"
+    },
+    "anonymizationNote": "For CC-BY / CC-BY-SA, removing a member's name on archived content exercises the licensor's Section 3(a)(3) attribution-removal right. For CC0 there is no attribution requirement to remove; the platform simply stops displaying the attribution it showed voluntarily. The member's keep-or-remove choice applies to all three."
   }
 }

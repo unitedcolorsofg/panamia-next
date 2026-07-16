@@ -131,11 +131,14 @@ posts, which are always deleted). The user chooses one of two options:
   links to their archived contributions. Private data (email, address,
   payment history, etc.) is still deleted.
 - **Anonymize:** Their name/screenname is replaced with "Former Member" and
-  their profile link is removed. The content and its CC license remain.
-  This invokes the CC BY 4.0 / CC BY-SA 4.0 Section 3(a)(3) attribution
-  removal right on the user's behalf.
+  their profile link is removed. The content and its license remain. For
+  CC BY 4.0 / CC BY-SA 4.0 this invokes the licensor's Section 3(a)(3)
+  attribution-removal right on the user's behalf. For CC0 1.0 there is no
+  attribution requirement to remove — attribution was displayed voluntarily,
+  and the platform simply stops displaying it. The choice applies uniformly
+  across all three licenses.
 
-In both cases, the original CC license on the content is unaffected.
+In both cases, the original license on the content is unaffected.
 
 #### Third-Party Synced
 
@@ -256,10 +259,11 @@ All user-generated content uploaded to or created on Panamia Club must be
 licensed under one of the following Creative Commons licenses, selected by the
 user at the time of creation:
 
-| License          | What it allows                                            |
-| ---------------- | --------------------------------------------------------- |
-| **CC BY 4.0**    | Anyone may share and adapt the work, with attribution     |
-| **CC BY-SA 4.0** | Same as CC BY, plus adaptations must use the same license |
+| License          | What it allows                                                        |
+| ---------------- | --------------------------------------------------------------------- |
+| **CC BY 4.0**    | Anyone may share and adapt the work, with attribution                 |
+| **CC BY-SA 4.0** | Same as CC BY, plus adaptations must use the same license             |
+| **CC0 1.0**      | Public-domain dedication; anyone may use the work, no attribution due |
 
 ### Policy
 
@@ -267,12 +271,14 @@ user at the time of creation:
    "all rights reserved" copyright. Content that cannot be CC-licensed (e.g.,
    third-party copyrighted material the user does not own) must not be uploaded.
 2. **License selection is required** at the point of upload or publication.
-   Default is CC BY-SA 4.0; users may switch to CC BY 4.0.
-3. **License is irrevocable** per CC legal code — once published under CC BY or
-   CC BY-SA, the license grant cannot be withdrawn (though the user may stop
-   distributing).
-4. **Attribution requirements** are displayed alongside content (author name/
-   screenname, link to original, license badge).
+   Default is CC BY 4.0; users may switch to CC BY-SA 4.0 or CC0 1.0.
+3. **License is irrevocable** per CC legal code — once published, the grant (or,
+   for CC0, the public-domain dedication) cannot be withdrawn, though the user
+   may stop distributing.
+4. **Attribution** is displayed alongside content (author name/screenname, link
+   to original, license badge). CC BY and CC BY-SA _require_ it; CC0 carries no
+   such requirement, so its attribution is voluntary and may be removed on
+   request without exercising a license right.
 5. **Machine-readable license metadata** is embedded in every piece of content
    (JSON-LD, OpenGraph, and ActivityPub object properties).
 6. **Scope:** Applies to articles, social posts, profile descriptions, event
@@ -284,7 +290,7 @@ user at the time of creation:
 - License picker component shared across article editor, social composer, event
   form, and image upload flows
 - License stored per content item in the database (`cc_license` column:
-  `cc-by-4` or `cc-by-sa-4`)
+  `cc-by-4`, `cc-by-sa-4`, or `cc-0`)
 - ActivityPub objects include `cc:license` property
 - Article and post pages render a visible CC badge linking to the license deed
 - Upload API rejects submissions without a license selection
@@ -786,9 +792,10 @@ comments), they are shown:
 > personal data is retained.
 >
 > ○ **Remove my name** — Your name is replaced with "Former Member" on all
-> archived content. Your profile page is fully removed. This uses the
-> Creative Commons attribution removal right (Section 3(a)(3)) on your
-> behalf.
+> archived content. Your profile page is fully removed. For CC BY / CC BY-SA
+> content this uses the Creative Commons attribution-removal right
+> (Section 3(a)(3)) on your behalf; for CC0 content, which carries no
+> attribution requirement, we simply stop displaying your name.
 
 If the user has no post-archive content, this step is skipped entirely.
 
@@ -1139,38 +1146,19 @@ expressed. Worth knowing before `effectiveDate` is set.
   is currently false. Fixing means moving the data file — a directory named
   `policy.json` cannot coexist with the file — which touches the terms side too.
 
-### 6. CC0 is shippable but undocumented, and it breaks anonymization
+### 6. Per-module legal prose is the remaining work
 
-`components/legal/CCLicensePicker.tsx` offers **CC0 1.0** as a selectable
-option (listed first), and `cc-0` is a value in the `cc_license` Postgres enum.
-Neither `privacy/policy.json` nor `terms/policy.json` mentions it — both list
-only `CC-BY-4.0` and `CC-BY-SA-4.0`. This document's _Content Licensing
-Requirement_ section says the same.
+The framework's structure is in place; what it does not yet have is the
+module-specific legal text that goes inside it. Privacy policy sections 1, 3, 4,
+6, 7, 10 and 12 are still `<Placeholder>`, and every terms module renders its
+summary and item list over a `<Placeholder>` for the full clause text.
+`status: draft`, `effectiveDate: null`.
 
-This is not a cosmetic omission. The `community_record` class rests on
-attribution:
-
-- Anonymization is described as invoking "the CC BY 4.0 / CC BY-SA 4.0 Section
-  3(a)(3) attribution removal right on the user's behalf". **CC0 waives
-  attribution outright** — there is no attribution right to invoke, because it
-  is already gone.
-- The deletion flow's "keep my name / remove my name" choice is meaningless for
-  CC0 content: the name was never a license condition.
-- "Attribution requirements are displayed alongside content" does not hold.
-
-Decide one of: (a) remove CC0 from the picker and the enum; (b) document it in
-both policies and define what anonymization means for CC0 content — probably
-"nothing to do, it was already waived"; or (c) keep it but restrict it to
-content types outside `community_record`. Until then a member can publish under
-terms the policy does not describe.
-
-### 7. The scaffolding has outrun the substance
-
-Privacy policy sections 1, 3, 4, 6, 7, 10 and 12 are `<Placeholder>`.
-`status: draft`, `effectiveDate: null`. This is a well-structured apparatus
-describing a policy that does not legally exist yet. Getting the shape right
-first is a reasonable order — but tidiness is not completeness, and the risk is
-that the framework starts feeling done because it looks done.
+This is the expected order — get the taxonomy and the module registry right,
+then write the binding prose per module — but it means the apparatus can look
+more finished than it is. The next substantive step is drafting each module's
+actual terms and each numbered privacy section, module by module, not more
+structural work.
 
 ---
 
@@ -1445,8 +1433,6 @@ Closes _Known Gaps_. Ordered by value.
       classified.
 - [ ] Declare storage-free categories in `policy.json` so the reverse check can
       assert every category is either table-backed or explicitly storage-free
-- [ ] Resolve CC0 — remove it from the picker and enum, or document it in both
-      policies and define what anonymization means for it (_Known Gaps_ #6)
 - [ ] JSON Schema for `policy.json`; drop the unchecked `asRawCategories` cast
 - [ ] Serve `policy.json` — it currently 404s while JSON-LD advertises it
 

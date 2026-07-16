@@ -196,9 +196,11 @@ export default function PrivacyPolicyPage() {
           <h2>5. Your Content Is CC-Licensed</h2>
           <p>
             All content you publish on Pana MIA Club is licensed under Creative
-            Commons (CC BY 4.0 or CC BY-SA 4.0, your choice). This means the
-            license grant survives even if the content is later removed from the
-            platform. See our{' '}
+            Commons (CC BY 4.0, CC BY-SA 4.0, or CC0 1.0, your choice). This
+            means the grant survives even if the content is later removed from
+            the platform. Under CC BY and CC BY-SA you may ask us to remove your
+            name from archived content; CC0 requires no attribution in the first
+            place, so we simply stop displaying it. See our{' '}
             <Link href="/legal/terms#content-licensing">Terms of Service</Link>{' '}
             for details.
           </p>

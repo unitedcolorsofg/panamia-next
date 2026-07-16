@@ -187,9 +187,9 @@ export default function TermsPage() {
           <p>
             <strong>Your content is CC-licensed:</strong> Everything you publish
             (articles, posts, photos) must be licensed under Creative Commons
-            (CC BY 4.0 or CC BY-SA 4.0). This license is irrevocable — once you
-            publish, others retain the right to share and adapt your work even
-            if you later remove it.
+            (CC BY 4.0, CC BY-SA 4.0, or CC0 1.0). This is irrevocable — once
+            you publish, others retain the right to share and adapt your work
+            even if you later remove it.
           </p>
           <p>
             <strong>No AI-generated content:</strong> Wholly AI-generated

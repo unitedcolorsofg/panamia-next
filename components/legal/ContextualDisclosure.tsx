@@ -45,7 +45,7 @@ const moduleDisclosures: Record<LegalModule, ModuleDisclosure> = {
     summary:
       'Articles you publish are licensed under Creative Commons and may be federated to other platforms via ActivityPub. After 3 months, published articles become part of the community record.',
     highlights: [
-      'Choose CC BY 4.0 or CC BY-SA 4.0 per article',
+      'Choose CC BY 4.0, CC BY-SA 4.0, or CC0 1.0 per article',
       'CC licenses are irrevocable once published',
       'After 3 months, content can be anonymized but not fully deleted',
       'AI-generated content is prohibited; AI-assisted tools require disclosure',

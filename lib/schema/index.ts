@@ -617,7 +617,7 @@ export const articles = pgTable(
     deletionReason: text('deletion_reason'),
     readingTime: integer('reading_time').notNull().default(1),
     mastodonPostUrl: text('mastodon_post_url'),
-    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
+    ccLicense: ccLicense('cc_license').notNull().default('cc-by-4'),
     // Set only when the home relay accepted the NIP-23 kind-30023 mirror.
     nostrEventId: text('nostr_event_id'),
   },
@@ -960,7 +960,7 @@ export const socialStatuses = pgTable(
     eventId: text('event_id').references((): AnyPgColumn => events.id, {
       onDelete: 'set null',
     }),
-    ccLicense: ccLicense('cc_license').notNull().default('cc-by-sa-4'),
+    ccLicense: ccLicense('cc_license').notNull().default('cc-by-4'),
   },
   (table) => ({
     actorPublishedIdx: index('social_statuses_actor_published_idx').on(
