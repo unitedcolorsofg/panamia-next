@@ -28,20 +28,14 @@ import { PgTable } from 'drizzle-orm/pg-core';
 import { allCategories } from './privacy-policy';
 
 // A table that stores no personal data (group config, join tables of opaque
-// ids, etc.). Distinct from NEEDS_CLASSIFICATION: this is a positive assertion,
-// not a deferral.
+// ids, etc.). A positive assertion a reviewer can challenge — there is no
+// "classify later" escape hatch, so an unclassified new table simply does not
+// compile. Either name its categories or assert it holds none.
 export const NOT_PERSONAL_DATA = Symbol('not-personal-data');
-
-// A table that DOES hold personal data but has no privacy category yet. Keeps
-// the build green (the decision was made) while surfacing the table as work —
-// deliberately NOT the same as NOT_PERSONAL_DATA, so uncovered personal data
-// cannot hide behind a "nothing to see here". Surfaced by validateInventory().
-export const NEEDS_CLASSIFICATION = Symbol('needs-classification');
 
 type CategoryName = (typeof allCategories)[number]['name'];
 
-type Classification =
-  CategoryName[] | typeof NOT_PERSONAL_DATA | typeof NEEDS_CLASSIFICATION;
+type Classification = CategoryName[] | typeof NOT_PERSONAL_DATA;
 
 // Every key of the schema module whose value is a Drizzle table. Enums,
 // relations, and type aliases are excluded by the `extends PgTable` test.
@@ -146,8 +140,7 @@ export const STORAGE_FREE_CATEGORIES: CategoryName[] = [
 export interface InventoryIssue {
   kind:
     | 'unknown_category' // a table references a category name that does not exist
-    | 'uncovered_category' // a category is neither table-backed nor storage-free
-    | 'needs_classification'; // a table holds personal data with no category yet
+    | 'uncovered_category'; // a category is neither table-backed nor storage-free
   detail: string;
 }
 
@@ -164,13 +157,6 @@ export function validateInventory(): InventoryIssue[] {
 
   for (const [table, classification] of Object.entries(inventory)) {
     if (classification === NOT_PERSONAL_DATA) continue;
-    if (classification === NEEDS_CLASSIFICATION) {
-      issues.push({
-        kind: 'needs_classification',
-        detail: `${table} holds personal data with no privacy category`,
-      });
-      continue;
-    }
     for (const cat of classification) {
       if (!CATEGORY_NAMES.has(cat)) {
         issues.push({
@@ -192,11 +178,4 @@ export function validateInventory(): InventoryIssue[] {
   }
 
   return issues;
-}
-
-/** Tables still awaiting a privacy category. */
-export function tablesNeedingClassification(): string[] {
-  return Object.entries(inventory)
-    .filter(([, c]) => c === NEEDS_CLASSIFICATION)
-    .map(([t]) => t);
 }

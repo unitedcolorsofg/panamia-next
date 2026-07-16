@@ -443,9 +443,8 @@ fi
 # Data Inventory Check (privacy categories <-> Drizzle schema)
 # =============================================================================
 # Runs only when the schema, the privacy policy, or the inventory itself is part
-# of the staged change set. Fails on unknown/uncovered categories; the
-# needs-classification backlog is reported but non-fatal. (A newly added table
-# with no inventory entry is already a TypeScript compile error.)
+# of the staged change set. Fails on unknown/uncovered categories. (A newly
+# added table with no inventory entry is already a TypeScript compile error.)
 
 INVENTORY_TRIGGER=$(git diff --cached --name-only --diff-filter=ACM \
   | grep -E '^(lib/schema/|app/legal/privacy/policy\.json$|lib/legal/data-inventory\.ts$|lib/legal/privacy-policy\.ts$|scripts/check-data-inventory\.ts$)' || true)
