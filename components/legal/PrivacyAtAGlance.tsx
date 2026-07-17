@@ -18,16 +18,10 @@ import {
   Flag,
   Radio,
   Database,
-  HelpCircle,
-  X,
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  allCategories,
-  type Tier,
-  type RetentionClass,
-} from '@/lib/legal/privacy-policy';
+import { allCategories, type RetentionClass } from '@/lib/legal/privacy-policy';
 
 // Cards are derived from app/legal/privacy/policy.json — add a category there,
 // not here. Only presentation (icon glyph, badge colors) lives in this file.
@@ -48,16 +42,6 @@ const icons: Record<string, LucideIcon> = {
   key: Key,
   flag: Flag,
   radio: Radio,
-};
-
-// Tier is a filter, not a badge. Every retention class belongs to exactly one
-// tier, so a tier badge on the card would restate what the class badge already
-// says. Tier still earns its place as a coarse filter (three buttons rather
-// than seven).
-const tierLabels: Record<Tier, string> = {
-  persistent: 'Persistent',
-  temporary: 'Temporary',
-  peer_networking: 'Peer',
 };
 
 const retentionClassLabels: Record<RetentionClass, string> = {
@@ -90,47 +74,44 @@ const retentionClassColors: Record<RetentionClass, string> = {
     'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200',
 };
 
-type FilterTier = 'all' | Tier;
+type FilterClass = 'all' | RetentionClass;
 
-const filters: FilterTier[] = [
+// Cards show a retention-class badge, so the filter row is by class too — the
+// button vocabulary matches what's on the cards. Ordered for end users
+// (deletable first, the reassuring common case), not by taxonomy.
+const filters: FilterClass[] = [
   'all',
-  'persistent',
-  'temporary',
-  'peer_networking',
+  'deletable',
+  'community_record',
+  'participant_observed',
+  'third_party_synced',
+  'auto_purged',
+  'moderation_record',
+  'compliance_record',
+  'in_the_wind',
 ];
 
 export function PrivacyAtAGlance() {
-  const [filter, setFilter] = useState<FilterTier>('all');
-  // Which cards have their plain-language explanation expanded. Each card
-  // toggles independently; several can be open at once while scanning.
-  const [explained, setExplained] = useState<Set<string>>(new Set());
-
-  const toggleExplain = (name: string) =>
-    setExplained((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  const [filter, setFilter] = useState<FilterClass>('all');
 
   const filtered =
     filter === 'all'
       ? allCategories
-      : allCategories.filter((c) => c.tier === filter);
+      : allCategories.filter((c) => c.retentionClass === filter);
 
   return (
     <div className="not-prose">
       {/* Filter buttons */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {filters.map((t) => (
+        {filters.map((f) => (
           <button
-            key={t}
-            onClick={() => setFilter(t)}
+            key={f}
+            onClick={() => setFilter(f)}
             className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-              filter === t ? 'bg-foreground text-background' : 'hover:bg-muted'
+              filter === f ? 'bg-foreground text-background' : 'hover:bg-muted'
             }`}
           >
-            {t === 'all' ? 'All' : tierLabels[t]}
+            {f === 'all' ? 'All' : retentionClassLabels[f]}
           </button>
         ))}
       </div>
@@ -139,45 +120,18 @@ export function PrivacyAtAGlance() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((cat) => {
           const Icon = icons[cat.display.icon] ?? Database;
-          const isOpen = explained.has(cat.name);
-          const panelId = `glance-explain-${cat.name}`;
           return (
             <div
               key={cat.name}
               className="hover:bg-muted/30 rounded-lg border p-4 transition-colors"
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
-                  <span className="font-medium">{cat.label}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toggleExplain(cat.name)}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  aria-label={
-                    isOpen
-                      ? `Hide explanation of ${cat.label}`
-                      : `What is ${cat.label}?`
-                  }
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring -mt-1 -mr-1 shrink-0 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                >
-                  {isOpen ? (
-                    <X className="h-4 w-4" />
-                  ) : (
-                    <HelpCircle className="h-4 w-4" />
-                  )}
-                </button>
+              <div className="mb-1.5 flex items-center gap-2">
+                <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
+                <span className="font-medium">{cat.label}</span>
               </div>
-              {isOpen && (
-                <p
-                  id={panelId}
-                  className="text-muted-foreground bg-muted/40 mb-2 rounded p-2 text-xs leading-relaxed"
-                >
-                  {cat.display.tooltip}
-                </p>
-              )}
+              <p className="text-muted-foreground mb-2 text-xs leading-relaxed">
+                {cat.display.blurb}
+              </p>
               <div className="mb-2 flex flex-wrap gap-1">
                 <Badge
                   className={`${retentionClassColors[cat.retentionClass]} border-0 text-[10px]`}

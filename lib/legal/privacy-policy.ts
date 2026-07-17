@@ -33,8 +33,8 @@ export interface CategoryDisplay {
   retention: string;
   sharedWith: string;
   prose: string;
-  /** Plain-language, non-technical gloss of the card title (glance "?" toggle). */
-  tooltip: string;
+  /** Short plain-language, non-technical gloss shown on every glance card. */
+  blurb: string;
 }
 
 /** A category as authored in policy.json, before tier/class are attached. */
