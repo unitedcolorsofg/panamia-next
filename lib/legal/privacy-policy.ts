@@ -42,6 +42,13 @@ interface RawCategory {
   name: string;
   label: string;
   module?: string;
+  /**
+   * A second retention class for phased data (authored in policy.json).
+   * Articles, for example, are deletable before the archive threshold and a
+   * community record after, so they carry both. The card shows both badges and
+   * either class filter matches. The class from JSON position is primary.
+   */
+  secondaryClass?: RetentionClass;
   data?: string[];
   source: string;
   purpose: string;

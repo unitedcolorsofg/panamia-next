@@ -130,7 +130,6 @@ export const STORAGE_FREE_CATEGORIES: CategoryName[] = [
   // External — a third party or an open network holds it, not our DB
   'analytics', // Cloudflare
   'nostr_published_events', // relay D1 + open Nostr network, out of scope here
-  'transactional_email', // Cloudflare Email Sending, stateless
 ];
 
 // ---------------------------------------------------------------------------

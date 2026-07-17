@@ -229,55 +229,6 @@
             "prose": "Other member data — contact-form messages, newsletter signups, and engagement/points activity",
             "blurb": "Smaller bits you've given us: contact-form messages, newsletter signups, and your activity points."
           }
-        }
-      ]
-    },
-    "community_record": {
-      "description": "Anonymizable but not deletable after archive threshold",
-      "archiveThresholds": {
-        "articles": "3_months_after_publication",
-        "social_posts": "no_threshold_always_deletable",
-        "events": "after_completion",
-        "article_reviews": "follows_article"
-      },
-      "anonymization": "author_replaced_with_Former_Member",
-      "categories": [
-        {
-          "name": "articles",
-          "label": "Articles",
-          "module": "articles",
-          "data": ["content", "metadata", "review_history"],
-          "source": "user_provided",
-          "purpose": "community_knowledge",
-          "retention": "community_record_3_months",
-          "license": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
-          "display": {
-            "icon": "file-text",
-            "source": "You provide",
-            "purpose": "Community knowledge",
-            "retention": "Archive: 3 months",
-            "sharedWith": "Public / ActivityPub",
-            "prose": "Published articles (archive: 3 months after publication)",
-            "blurb": "Articles you've published to the community."
-          }
-        },
-        {
-          "name": "article_reviews",
-          "label": "Article Reviews",
-          "module": "articles",
-          "data": ["peer_review_comments"],
-          "source": "user_provided",
-          "purpose": "editorial_quality",
-          "retention": "follows_article",
-          "display": {
-            "icon": "message-circle",
-            "source": "You provide",
-            "purpose": "Editorial quality",
-            "retention": "Follows article",
-            "sharedWith": "Public",
-            "prose": "Article peer review comments (archive: follows article)",
-            "blurb": "Feedback you leave reviewing another member's article before it's published."
-          }
         },
         {
           "name": "social_posts",
@@ -297,6 +248,74 @@
             "sharedWith": "Public / ActivityPub",
             "prose": "Social timeline posts (no archive threshold — always fully deleted)",
             "blurb": "Your posts, replies, and reposts on the community timeline."
+          }
+        },
+        {
+          "name": "uploads",
+          "label": "Uploads",
+          "module": "uploads",
+          "data": ["uploaded_media"],
+          "source": "user_provided",
+          "purpose": "media_hosting",
+          "retention": "follows_content",
+          "display": {
+            "icon": "upload",
+            "source": "You provide",
+            "purpose": "Media hosting",
+            "retention": "Follows content",
+            "sharedWith": "Cloudflare R2 / Public",
+            "prose": "Cloudflare R2 — uploaded media files",
+            "blurb": "Photos and files you've uploaded, stored on Cloudflare."
+          }
+        }
+      ]
+    },
+    "community_record": {
+      "description": "Anonymizable but not deletable after archive threshold",
+      "archiveThresholds": {
+        "articles": "3_months_after_publication",
+        "events": "after_completion",
+        "article_reviews": "follows_article"
+      },
+      "anonymization": "author_replaced_with_Former_Member",
+      "categories": [
+        {
+          "name": "articles",
+          "secondaryClass": "deletable",
+          "label": "Articles",
+          "module": "articles",
+          "data": ["content", "metadata", "review_history"],
+          "source": "user_provided",
+          "purpose": "community_knowledge",
+          "retention": "community_record_3_months",
+          "license": ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0"],
+          "display": {
+            "icon": "file-text",
+            "source": "You provide",
+            "purpose": "Community knowledge",
+            "retention": "Archive: 3 months",
+            "sharedWith": "Public / ActivityPub",
+            "prose": "Published articles (archive: 3 months after publication)",
+            "blurb": "Articles you've published to the community."
+          }
+        },
+        {
+          "name": "article_reviews",
+          "secondaryClass": "deletable",
+          "label": "Article Reviews",
+          "module": "articles",
+          "data": ["peer_review_comments"],
+          "source": "user_provided",
+          "purpose": "editorial_quality",
+          "retention": "follows_article",
+          "display": {
+            "icon": "message-circle",
+            "source": "You provide",
+            "purpose": "Editorial quality",
+            "retention": "Follows article",
+            "sharedWith": "Public",
+            "prose": "Article peer review comments (archive: follows article)",
+            "blurb": "Feedback you leave reviewing another member's article before it's published."
           }
         },
         {
@@ -387,25 +406,6 @@
           }
         },
         {
-          "name": "transactional_email",
-          "label": "Transactional Email",
-          "providers": ["Cloudflare Email Sending"],
-          "data": ["recipient_email"],
-          "source": "user_provided",
-          "purpose": "transactional_email",
-          "retention": "no_stored_contacts",
-          "note": "Sent through a native Cloudflare Workers binding with no contact list. There is no stored contact record to delete; Cloudflare may retain delivery logs under its own terms.",
-          "display": {
-            "icon": "globe",
-            "source": "You provide",
-            "purpose": "Transactional email",
-            "retention": "No contacts stored",
-            "sharedWith": "Cloudflare",
-            "prose": "Cloudflare Email Sending — your address at send time only. No contact list is kept, so there is nothing to delete; Cloudflare may retain delivery logs.",
-            "blurb": "The address we send account emails to. We don't build a mailing list from it — it's used only at send time."
-          }
-        },
-        {
           "name": "crm",
           "label": "CRM / Newsletter",
           "providers": ["GoHighLevel"],
@@ -421,25 +421,6 @@
             "sharedWith": "GoHighLevel",
             "prose": "GoHighLevel — contact ID, email, name, newsletter list membership",
             "blurb": "Your contact record in our newsletter/CRM system (GoHighLevel), including newsletter list membership."
-          }
-        },
-        {
-          "name": "uploads",
-          "label": "Uploads",
-          "module": "uploads",
-          "providers": ["Cloudflare"],
-          "data": ["uploaded_media"],
-          "source": "user_provided",
-          "purpose": "media_hosting",
-          "retention": "follows_content",
-          "display": {
-            "icon": "upload",
-            "source": "You provide",
-            "purpose": "Media hosting",
-            "retention": "Follows content",
-            "sharedWith": "Cloudflare R2 / Public",
-            "prose": "Cloudflare R2 — uploaded media files",
-            "blurb": "Photos and files you've uploaded, stored on Cloudflare."
           }
         },
         {
@@ -631,15 +612,15 @@
         "source": "session_activity",
         "purpose": "real_time_collaboration",
         "retention": "session_duration",
-        "note": "Never recorded server-side unless explicitly enabled",
+        "note": "Not recorded server-side — there is no recording feature",
         "display": {
           "icon": "video",
           "source": "Session activity",
           "purpose": "Real-time collaboration",
           "retention": "Session duration",
           "sharedWith": "Session participants",
-          "prose": "Session video/audio streams (never recorded server-side unless explicitly enabled)",
-          "blurb": "The live video and audio of a session. Not recorded on our servers unless you turn recording on."
+          "prose": "Session video/audio streams (not recorded server-side)",
+          "blurb": "The live video and audio of a session. We don't record it."
         }
       },
       {
@@ -713,7 +694,7 @@
           "retention": "Admin action / 24h",
           "sharedWith": "Admins",
           "prose": "Pending relay group join and leave requests (joins: until an admin acts; leaves: a 24-hour grace period)",
-          "blurb": "Requests to join or leave a community group that are waiting on approval or a short grace period."
+          "blurb": "Requests to join or leave a Resilience Network group that are waiting on approval or a short grace period."
         }
       }
     ]

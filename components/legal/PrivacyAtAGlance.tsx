@@ -97,7 +97,9 @@ export function PrivacyAtAGlance() {
   const filtered =
     filter === 'all'
       ? allCategories
-      : allCategories.filter((c) => c.retentionClass === filter);
+      : allCategories.filter(
+          (c) => c.retentionClass === filter || c.secondaryClass === filter
+        );
 
   return (
     <div className="not-prose">
@@ -133,11 +135,17 @@ export function PrivacyAtAGlance() {
                 {cat.display.blurb}
               </p>
               <div className="mb-2 flex flex-wrap gap-1">
-                <Badge
-                  className={`${retentionClassColors[cat.retentionClass]} border-0 text-[10px]`}
-                >
-                  {retentionClassLabels[cat.retentionClass]}
-                </Badge>
+                {[cat.retentionClass, cat.secondaryClass]
+                  .filter((c): c is RetentionClass => Boolean(c))
+                  .sort((a, b) => filters.indexOf(a) - filters.indexOf(b))
+                  .map((c) => (
+                    <Badge
+                      key={c}
+                      className={`${retentionClassColors[c]} border-0 text-[10px]`}
+                    >
+                      {retentionClassLabels[c]}
+                    </Badge>
+                  ))}
               </div>
               <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs">
                 <dt>Source:</dt>
