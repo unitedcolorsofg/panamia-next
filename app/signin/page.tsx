@@ -21,6 +21,7 @@ function SignInPageContent() {
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const {
     token: turnstileToken,
+    error: turnstileError,
     reset: resetTurnstile,
     Widget: TurnstileWidget,
   } = useTurnstile(turnstileSiteKey, 'email_signin');
@@ -242,10 +243,17 @@ function SignInPageContent() {
                   disabled={isSubmitting}
                 />
                 {TurnstileWidget}
+                {turnstileError && (
+                  <p className="text-center text-sm text-red-600">
+                    {t('turnstileBlocked')}
+                  </p>
+                )}
                 <Button
                   type="submit"
                   className="bg-pana-pink hover:bg-pana-pink/90 w-full"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting || (!!turnstileSiteKey && !turnstileToken)
+                  }
                 >
                   {isSubmitting ? t('sendingLink') : t('sendLink')}
                 </Button>

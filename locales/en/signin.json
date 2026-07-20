@@ -17,6 +17,7 @@
   "turnstileProtected": "Protected by Cloudflare",
   "sendingLink": "Sending sign-in link...",
   "sendLink": "Send sign-in link",
+  "turnstileBlocked": "We couldn't load the verification check. If you use a content blocker, iCloud Private Relay, or Lockdown Mode, please disable it for this page and refresh.",
   "backToOptions": "Back to other options",
   "termsAgreement": "By continuing, you agree to our",
   "termsLink": "Terms & Conditions",

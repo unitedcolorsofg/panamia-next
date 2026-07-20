@@ -19,35 +19,59 @@ interface TurnstileProps {
   siteKey: string;
   onToken: (token: string) => void;
   onExpire?: () => void;
+  onError?: () => void;
   action?: string;
   className?: string;
 }
 
+// How long to wait for the Turnstile script to load before giving up.
+// A blocked host (content blocker, iCloud Private Relay, Lockdown Mode) can
+// otherwise leave the load promise pending forever with no user feedback.
+const SCRIPT_LOAD_TIMEOUT_MS = 10000;
+
 let scriptLoaded = false;
 let scriptLoading = false;
-const loadCallbacks: (() => void)[] = [];
+const loadCallbacks: ((err?: Error) => void)[] = [];
+
+function settleCallbacks(err?: Error) {
+  loadCallbacks.forEach((cb) => cb(err));
+  loadCallbacks.length = 0;
+}
 
 function loadScript() {
   if (scriptLoaded) return Promise.resolve();
-  if (scriptLoading) {
-    return new Promise<void>((resolve) => {
-      loadCallbacks.push(resolve);
-    });
-  }
 
-  scriptLoading = true;
-  return new Promise<void>((resolve) => {
-    loadCallbacks.push(resolve);
+  return new Promise<void>((resolve, reject) => {
+    loadCallbacks.push((err) => (err ? reject(err) : resolve()));
+
+    // A load is already in flight — this promise will settle with it.
+    if (scriptLoading) return;
+    scriptLoading = true;
+
     const script = document.createElement('script');
     script.src =
       'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true;
+
+    const timeout = setTimeout(() => {
+      scriptLoading = false;
+      settleCallbacks(new Error('Turnstile script load timed out'));
+    }, SCRIPT_LOAD_TIMEOUT_MS);
+
     script.onload = () => {
+      clearTimeout(timeout);
       scriptLoaded = true;
       scriptLoading = false;
-      loadCallbacks.forEach((cb) => cb());
-      loadCallbacks.length = 0;
+      settleCallbacks();
     };
+    script.onerror = () => {
+      clearTimeout(timeout);
+      scriptLoading = false;
+      // Allow a later mount to retry by re-appending a fresh script.
+      script.remove();
+      settleCallbacks(new Error('Turnstile script failed to load'));
+    };
+
     document.head.appendChild(script);
   });
 }
@@ -56,6 +80,7 @@ export default function Turnstile({
   siteKey,
   onToken,
   onExpire,
+  onError,
   action,
   className,
 }: TurnstileProps) {
@@ -65,17 +90,22 @@ export default function Turnstile({
   useEffect(() => {
     let mounted = true;
 
-    loadScript().then(() => {
-      if (!mounted || !containerRef.current || !window.turnstile) return;
+    loadScript()
+      .then(() => {
+        if (!mounted || !containerRef.current || !window.turnstile) return;
 
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
-        callback: (token: string) => onToken(token),
-        'expired-callback': () => onExpire?.(),
-        action,
-        appearance: 'interaction-only',
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          callback: (token: string) => onToken(token),
+          'expired-callback': () => onExpire?.(),
+          'error-callback': () => onError?.(),
+          action,
+          appearance: 'always',
+        });
+      })
+      .catch(() => {
+        if (mounted) onError?.();
       });
-    });
 
     return () => {
       mounted = false;
@@ -91,19 +121,36 @@ export default function Turnstile({
 
 export function useTurnstile(siteKey: string | undefined, action?: string) {
   const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const reset = useCallback(() => {
+    setToken(null);
+    setError(false);
+  }, []);
+
+  const handleToken = useCallback((value: string) => {
+    setError(false);
+    setToken(value);
+  }, []);
+
+  const handleError = useCallback(() => {
+    setToken(null);
+    setError(true);
+  }, []);
+
+  const handleExpire = useCallback(() => {
     setToken(null);
   }, []);
 
   const Widget = siteKey ? (
     <Turnstile
       siteKey={siteKey}
-      onToken={setToken}
-      onExpire={reset}
+      onToken={handleToken}
+      onExpire={handleExpire}
+      onError={handleError}
       action={action}
     />
   ) : null;
 
-  return { token, reset, Widget };
+  return { token, error, reset, Widget };
 }
