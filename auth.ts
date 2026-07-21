@@ -581,8 +581,11 @@ async function enrichUserFields(
   let profileVerification: ProfileVerification | null = null;
   let profileRoles: ProfileRoles | null = null;
   try {
+    // Only verification/roles are read below — scope the select so a full-row
+    // read (~50 cols) can't fail on an unrelated column and the query stays cheap.
     const userProfile = await db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
+      columns: { verification: true, roles: true },
     });
     if (userProfile) {
       profileVerification =
@@ -590,7 +593,15 @@ async function enrichUserFields(
       profileRoles = userProfile.roles as ProfileRoles | null;
     }
   } catch (error) {
-    console.error('Error fetching profile for session enrichment:', error);
+    // Drizzle wraps the driver error as "Failed query: <sql>" and puts the real
+    // postgres error (missing column, connection/statement timeout, etc.) on
+    // `.cause` — log it explicitly so the failure isn't opaque.
+    const cause = (error as { cause?: unknown }).cause;
+    console.error('Error fetching profile for session enrichment:', {
+      message: error instanceof Error ? error.message : String(error),
+      cause,
+      code: (cause as { code?: string })?.code,
+    });
   }
 
   return {
