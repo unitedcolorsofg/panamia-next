@@ -305,11 +305,17 @@ export function VoiceMemoComposer({
             publicUrl: string;
           }>;
         });
-        await fetch(presignedUrl, {
+        const putRes = await fetch(presignedUrl, {
           method: 'PUT',
           body: audioBlob,
           headers: { 'Content-Type': audioBlob.type },
         });
+        // fetch resolves on HTTP errors too — a failed R2 PUT (e.g. 403
+        // signature mismatch) must throw so it reaches the catch/toast below
+        // instead of sending a message with an unstored media URL.
+        if (!putRes.ok) {
+          throw new Error(`Upload failed (${putRes.status})`);
+        }
         attachment = {
           type: 'audio',
           mediaType: audioBlob.type,

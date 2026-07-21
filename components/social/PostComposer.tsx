@@ -181,11 +181,17 @@ export function PostComposer({
               publicUrl: string;
             }>;
           });
-          await fetch(presignedUrl, {
+          const oggPut = await fetch(presignedUrl, {
             method: 'PUT',
             body: oggBlob,
             headers: { 'Content-Type': 'audio/ogg' },
           });
+          // fetch resolves on HTTP errors too — a failed R2 PUT (e.g. 403
+          // signature mismatch) must throw so it reaches the catch/toast below
+          // instead of attaching a URL to an object that was never stored.
+          if (!oggPut.ok) {
+            throw new Error(`Upload failed (${oggPut.status})`);
+          }
           setAttachments((prev) => [
             ...prev,
             {
@@ -223,11 +229,14 @@ export function PostComposer({
               publicUrl: string;
             }>;
           });
-          await fetch(presignedUrl, {
+          const webmPut = await fetch(presignedUrl, {
             method: 'PUT',
             body: webmBlob,
             headers: { 'Content-Type': 'video/webm' },
           });
+          if (!webmPut.ok) {
+            throw new Error(`Upload failed (${webmPut.status})`);
+          }
           setAttachments((prev) => [
             ...prev,
             {
