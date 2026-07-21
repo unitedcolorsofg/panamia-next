@@ -78,11 +78,15 @@ export default function MentoringCharts({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
-                    tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                    tickFormatter={(value) =>
+                      format(new Date(String(value)), 'MMM dd')
+                    }
                   />
                   <YAxis />
                   <Tooltip
-                    labelFormatter={(value) => format(new Date(value), 'PPP')}
+                    labelFormatter={(value) =>
+                      format(new Date(String(value)), 'PPP')
+                    }
                   />
                   <Legend />
                   <Line
