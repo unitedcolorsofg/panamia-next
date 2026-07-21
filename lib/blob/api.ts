@@ -14,11 +14,7 @@
  */
 
 import { getStorage } from '@/lib/r2';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
+import { AwsClient } from 'aws4fetch';
 
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
 
@@ -36,15 +32,25 @@ function inferContentType(fileName: string): string {
   return map[ext] ?? 'application/octet-stream';
 }
 
-function getS3Client(): S3Client {
-  return new S3Client({
+// S3-compatible client for the plain-Node dev fallback (no R2 binding present).
+function getR2Client(): AwsClient {
+  return new AwsClient({
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
     region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
-    },
+    service: 's3',
   });
+}
+
+const R2_ENDPOINT = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+
+// Encode each path segment but preserve the "/" separators in the object key.
+function encodeKey(key: string): string {
+  return key.split('/').map(encodeURIComponent).join('/');
+}
+
+function objectUrl(key: string): string {
+  return `${R2_ENDPOINT}/${process.env.R2_BUCKET_NAME}/${encodeKey(key)}`;
 }
 
 /**
@@ -65,16 +71,15 @@ export const uploadFile = async (
       // CF Workers: native binding (no credentials needed)
       await bucket.put(fileName, file, { httpMetadata: { contentType } });
     } else {
-      // Node.js fallback: S3-compatible API
-      const s3 = getS3Client();
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: fileName,
-          Body: file,
-          ContentType: contentType,
-        })
-      );
+      // Node.js fallback: S3-compatible API signed with aws4fetch.
+      const res = await getR2Client().fetch(objectUrl(fileName), {
+        method: 'PUT',
+        body: new Uint8Array(file),
+        headers: { 'Content-Type': contentType },
+      });
+      if (!res.ok) {
+        throw new Error(`R2 PUT failed: ${res.status} ${await res.text()}`);
+      }
     }
 
     const url = `${R2_PUBLIC_URL}/${fileName}`;
@@ -105,13 +110,14 @@ export const deleteFile = async (url: string): Promise<boolean> => {
     if (bucket) {
       await bucket.delete(key);
     } else {
-      const s3 = getS3Client();
-      await s3.send(
-        new DeleteObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: key,
-        })
-      );
+      // Node.js fallback: S3-compatible API signed with aws4fetch.
+      const res = await getR2Client().fetch(objectUrl(key), {
+        method: 'DELETE',
+      });
+      // R2 returns 204 on delete; 404 is fine (already gone).
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`R2 DELETE failed: ${res.status} ${await res.text()}`);
+      }
     }
 
     console.log(`R2:DELETE:${key}`);

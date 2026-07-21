@@ -10,8 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { AwsClient } from 'aws4fetch';
 import { auth } from '@/auth';
 
 const ALLOWED_TYPES = ['audio/ogg', 'video/webm'];
@@ -20,15 +19,19 @@ const PRESIGN_TTL = 300; // seconds
 
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
 
-function getS3Client(): S3Client {
-  return new S3Client({
+function getR2Client(): AwsClient {
+  return new AwsClient({
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
+    // R2 requires region "auto"; the S3-compatible API is the "s3" service.
     region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
-    },
+    service: 's3',
   });
+}
+
+// Encode each path segment but preserve the "/" separators in the object key.
+function encodeKey(key: string): string {
+  return key.split('/').map(encodeURIComponent).join('/');
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -67,20 +70,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const s3 = getS3Client();
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: filename,
-      ContentType: contentType,
-      ContentLength: size,
-    });
+    const client = getR2Client();
+    const endpoint = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const url = new URL(
+      `${endpoint}/${process.env.R2_BUCKET_NAME}/${encodeKey(filename)}`
+    );
+    // Presigned query-auth URL. Only the URL/host is signed — the browser sets
+    // Content-Type on the PUT (unsigned headers are allowed on presigned URLs),
+    // and Content-Length is intentionally left out of the signature so the
+    // browser's fetch-set length can't cause a SignatureDoesNotMatch.
+    url.searchParams.set('X-Amz-Expires', String(PRESIGN_TTL));
 
-    const presignedUrl = await getSignedUrl(s3, command, {
-      expiresIn: PRESIGN_TTL,
+    const signed = await client.sign(url.toString(), {
+      method: 'PUT',
+      aws: { signQuery: true },
     });
 
     return NextResponse.json({
-      presignedUrl,
+      presignedUrl: signed.url,
       publicUrl: `${R2_PUBLIC_URL}/${filename}`,
     });
   } catch (error) {
