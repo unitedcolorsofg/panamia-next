@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     // Build query conditions
     const conditions = [eq(articles.status, 'published')];
 
-    if (type && ['business_update', 'community_commentary'].includes(type)) {
+    if (
+      type &&
+      ['business_update', 'community_commentary', 'staff_update'].includes(type)
+    ) {
       conditions.push(eq(articles.articleType, type as ArticleType));
     }
 

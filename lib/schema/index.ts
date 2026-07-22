@@ -78,6 +78,7 @@ export const ccLicense = pgEnum('cc_license', [
 export const articleType = pgEnum('article_type', [
   'business_update',
   'community_commentary',
+  'staff_update',
 ]);
 
 export const articleStatus = pgEnum('article_status', [

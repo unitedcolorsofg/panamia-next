@@ -21,13 +21,18 @@ interface RouteParams {
 const TYPE_LABELS: Record<string, string> = {
   business_update: 'Business Updates',
   community_commentary: 'Community Commentary',
+  staff_update: 'Staff Update',
 };
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { type } = await params;
 
-    if (!['business_update', 'community_commentary'].includes(type)) {
+    if (
+      !['business_update', 'community_commentary', 'staff_update'].includes(
+        type
+      )
+    ) {
       return new Response('Invalid article type', { status: 400 });
     }
 

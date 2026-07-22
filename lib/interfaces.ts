@@ -276,7 +276,8 @@ export interface NotificationPreferencesInterface {
  * UPSTREAM REFERENCE: external/activities.next/lib/database/types/
  * Article schema designed for future ActivityPub federation
  */
-export type ArticleType = 'business_update' | 'community_commentary';
+export type ArticleType =
+  'business_update' | 'community_commentary' | 'staff_update';
 
 export type ArticleStatus =
   'draft' | 'pending_review' | 'revision_needed' | 'published' | 'removed';

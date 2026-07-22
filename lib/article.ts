@@ -116,6 +116,7 @@ export function isPublishable(articleDoc: {
   coAuthors?: Array<{ status: string }>;
   reviewedBy?: { status: string };
   status?: ArticleStatus;
+  articleType?: ArticleType;
 }): { publishable: boolean; reason?: string } {
   if (!articleDoc.title?.trim()) {
     return { publishable: false, reason: 'Article must have a title' };
@@ -131,6 +132,14 @@ export function isPublishable(articleDoc: {
 
   if (articleDoc.status === 'removed') {
     return { publishable: false, reason: 'Article has been removed' };
+  }
+
+  // Staff updates are admin-authored official posts. Reviewers do not apply and
+  // a co-author is optional, so the collaboration gate below is skipped — the
+  // admin-only authoring gate lives in the API routes. (Admin status is
+  // re-checked at publish time in the publish route.)
+  if (articleDoc.articleType === 'staff_update') {
+    return { publishable: true };
   }
 
   const hasAcceptedCoAuthor = articleDoc.coAuthors?.some(

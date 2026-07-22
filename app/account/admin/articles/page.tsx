@@ -46,7 +46,7 @@ interface AdminArticle {
   slug: string;
   title: string;
   status: 'draft' | 'published' | 'removed';
-  articleType: 'business_update' | 'community_commentary';
+  articleType: 'business_update' | 'community_commentary' | 'staff_update';
   author: {
     screenname?: string;
     name?: string;

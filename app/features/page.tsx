@@ -6,12 +6,29 @@ import {
   MessageCircle,
   Search,
   Gift,
+  Radio,
 } from 'lucide-react';
 
 // Static features page — cache at the edge, revalidate hourly (Workers Cache).
 export const revalidate = 3600;
 
-const features = [
+const features: {
+  title: string;
+  description: string;
+  href: string;
+  icon: typeof CalendarDays;
+  id?: string;
+}[] = [
+  {
+    // id anchors the deep-link from the article editor's "Publishing
+    // cross-posts this Article to the Pana Resilience Network" caption.
+    id: 'resilience',
+    title: 'Pana Resilience Network',
+    description:
+      'A community-run Nostr relay. Published Articles are cross-posted here as long-form notes, mirrored across the network for resilience.',
+    href: '/r',
+    icon: Radio,
+  },
   {
     title: 'Events',
     description:
@@ -72,8 +89,9 @@ export default function FeaturesPage() {
         {features.map((feature) => (
           <Link
             key={feature.href}
+            id={feature.id}
             href={feature.href}
-            className="group border-border bg-card hover:border-primary/40 rounded-xl border p-6 transition-colors"
+            className="group border-border bg-card hover:border-primary/40 scroll-mt-24 rounded-xl border p-6 transition-colors"
           >
             <feature.icon className="text-primary mb-4 h-8 w-8" />
             <h2 className="mb-2 text-xl font-semibold">{feature.title}</h2>

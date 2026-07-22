@@ -6,18 +6,46 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, MessageSquare } from 'lucide-react';
+import { Briefcase, MessageSquare, Megaphone } from 'lucide-react';
+
+type ArticleTypeBadgeType =
+  'business_update' | 'community_commentary' | 'staff_update';
 
 interface ArticleTypeBadgeProps {
-  type: 'business_update' | 'community_commentary';
+  type: ArticleTypeBadgeType;
   size?: 'sm' | 'md' | 'lg';
 }
+
+const TYPE_CONFIG: Record<
+  ArticleTypeBadgeType,
+  {
+    label: string;
+    variant: 'default' | 'secondary';
+    Icon: typeof Briefcase;
+  }
+> = {
+  business_update: {
+    label: 'Business Update',
+    variant: 'default',
+    Icon: Briefcase,
+  },
+  community_commentary: {
+    label: 'Community Commentary',
+    variant: 'secondary',
+    Icon: MessageSquare,
+  },
+  staff_update: {
+    label: 'Staff Update',
+    variant: 'default',
+    Icon: Megaphone,
+  },
+};
 
 export default function ArticleTypeBadge({
   type,
   size = 'md',
 }: ArticleTypeBadgeProps) {
-  const isBusinessUpdate = type === 'business_update';
+  const { label, variant, Icon } = TYPE_CONFIG[type];
 
   const sizeClasses = {
     sm: 'text-xs py-0.5 px-2',
@@ -33,15 +61,11 @@ export default function ArticleTypeBadge({
 
   return (
     <Badge
-      variant={isBusinessUpdate ? 'default' : 'secondary'}
+      variant={variant}
       className={`inline-flex items-center gap-1.5 ${sizeClasses[size]}`}
     >
-      {isBusinessUpdate ? (
-        <Briefcase className={iconSizes[size]} />
-      ) : (
-        <MessageSquare className={iconSizes[size]} />
-      )}
-      {isBusinessUpdate ? 'Business Update' : 'Community Commentary'}
+      <Icon className={iconSizes[size]} />
+      {label}
     </Badge>
   );
 }

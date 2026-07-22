@@ -31,7 +31,7 @@ interface Article {
   slug: string;
   title: string;
   excerpt: string;
-  articleType: 'business_update' | 'community_commentary';
+  articleType: 'business_update' | 'community_commentary' | 'staff_update';
   status: string;
   userRole: 'author' | 'coauthor';
   coAuthorStatus?: string;

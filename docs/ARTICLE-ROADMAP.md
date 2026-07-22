@@ -28,6 +28,12 @@ Community articles enable users to publish content with collaborative authorship
 | ------------------------ | -------------------------------------- | ---------------------------------- |
 | **Business Update**      | Self-promotional content (encouraged!) | "New menu items at our restaurant" |
 | **Community Commentary** | Opinion, analysis, local interest      | "The State of Miami's Music Scene" |
+| **Staff Update**         | Official Pana MIA team posts (admin)   | "Platform Maintenance Schedule"    |
+
+> **Staff Update** (`staff_update`) is admin-only. Reviewers do not apply and a
+> co-author is optional, so the collaboration publish gate is bypassed for this
+> type. Enforced in `POST`/`PATCH /api/articles`, the publish route, and
+> `isPublishable()`; the editor only surfaces the option to admins.
 
 ### Account Types
 
@@ -79,11 +85,7 @@ interface Article {
 
   // Workflow
   status:
-    | 'draft'
-    | 'pending_review'
-    | 'revision_needed'
-    | 'published'
-    | 'removed';
+    'draft' | 'pending_review' | 'revision_needed' | 'published' | 'removed';
   publishedAt?: Date;
   removedAt?: Date;
   removedBy?: ObjectId;

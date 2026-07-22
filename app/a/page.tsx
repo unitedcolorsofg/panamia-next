@@ -27,7 +27,7 @@ interface Article {
   slug: string;
   title: string;
   excerpt?: string;
-  articleType: 'business_update' | 'community_commentary';
+  articleType: 'business_update' | 'community_commentary' | 'staff_update';
   tags: string[];
   coverImage?: string;
   coverImageAlt?: string;
@@ -141,6 +141,7 @@ function ArticlesContent() {
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="business_update">Business Updates</SelectItem>
             <SelectItem value="community_commentary">Commentary</SelectItem>
+            <SelectItem value="staff_update">Staff Updates</SelectItem>
           </SelectContent>
         </Select>
 

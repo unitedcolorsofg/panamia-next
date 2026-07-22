@@ -17,7 +17,7 @@ interface ArticleCardProps {
   slug: string;
   title: string;
   excerpt?: string;
-  articleType: 'business_update' | 'community_commentary';
+  articleType: 'business_update' | 'community_commentary' | 'staff_update';
   tags?: string[];
   coverImage?: string;
   coverImageAlt?: string;
@@ -71,7 +71,9 @@ export default function ArticleCard({
             <Badge variant="secondary" className="text-xs">
               {articleType === 'business_update'
                 ? 'Business Update'
-                : 'Commentary'}
+                : articleType === 'staff_update'
+                  ? 'Staff Update'
+                  : 'Commentary'}
             </Badge>
             {tags.slice(0, 2).map((tag) => (
               <Badge key={tag} variant="outline" className="text-xs">

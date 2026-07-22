@@ -12,6 +12,11 @@ Community articles let you share business updates, local news, and community com
 | ------------------------ | ----------------------------------------- | ------------------------------- |
 | **Business Update**      | Promoting your products, services, events | "New Spring Menu at Our Bakery" |
 | **Community Commentary** | Opinion, analysis, local interest stories | "The Future of Little Havana"   |
+| **Staff Update**         | Official posts from the Pana MIA team     | "Platform Maintenance Schedule" |
+
+> **Staff Update** is an admin-only type. It does not require a reviewer, and a
+> co-author is optional — an admin can publish it directly. The type option only
+> appears in the editor for admin users.
 
 ## Getting Started
 

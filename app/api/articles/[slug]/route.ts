@@ -252,13 +252,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Validate article type
     if (
       updates.articleType &&
-      !['business_update', 'community_commentary'].includes(
+      !['business_update', 'community_commentary', 'staff_update'].includes(
         updates.articleType as string
       )
     ) {
       return NextResponse.json(
         { success: false, error: 'Invalid article type' },
         { status: 400 }
+      );
+    }
+
+    // Only admins may set (or keep) the staff_update type.
+    if (updates.articleType === 'staff_update' && !session.user.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Only admins can set the staff update type' },
+        { status: 403 }
       );
     }
 

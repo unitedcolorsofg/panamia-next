@@ -147,6 +147,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Staff updates bypass the collaboration gate, so re-verify admin at publish
+    // time — an article's type could have been set while the author was an admin.
+    if (articleDoc.articleType === 'staff_update' && !session.user.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Only admins can publish staff updates' },
+        { status: 403 }
+      );
+    }
+
     // Check publishability requirements
     const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
     const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
@@ -157,6 +166,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       coAuthors: coAuthors || [],
       reviewedBy: reviewedBy || undefined,
       status: articleDoc.status as ArticleStatus,
+      articleType: articleDoc.articleType,
     });
     if (!publishCheck.publishable) {
       return NextResponse.json(

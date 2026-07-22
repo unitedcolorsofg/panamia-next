@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useSession } from '@/lib/auth-client';
 // Phase 3 consent infrastructure — gate article publishing behind module consent
 import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
@@ -75,7 +76,7 @@ interface ArticleEditorProps {
     slug?: string;
     title?: string;
     content?: string;
-    articleType?: 'business_update' | 'community_commentary';
+    articleType?: 'business_update' | 'community_commentary' | 'staff_update';
     tags?: string[];
     coverImage?: string;
     coverImageAlt?: string;
@@ -94,10 +95,12 @@ export default function ArticleEditor({
   onSave,
 }: ArticleEditorProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.isAdmin ?? false;
   const [title, setTitle] = useState(initialData.title || '');
   const [content, setContent] = useState(initialData.content || '');
   const [articleType, setArticleType] = useState<
-    'business_update' | 'community_commentary'
+    'business_update' | 'community_commentary' | 'staff_update'
   >(initialData.articleType || 'community_commentary');
   const [tags, setTags] = useState<string[]>(initialData.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -168,12 +171,25 @@ export default function ArticleEditor({
   }, [mode]);
 
   const handleAddTag = useCallback(() => {
-    const tag = tagInput.trim().toLowerCase();
-    if (tag && !tags.includes(tag) && tags.length < 5) {
-      setTags([...tags, tag]);
-      setTagInput('');
-    }
-  }, [tagInput, tags]);
+    // Accept a single tag or a delimited list (e.g. a pasted
+    // "food, miami; local") and split it into individual tags. Splits on
+    // commas, semicolons, and newlines only — not spaces, so multi-word tags
+    // like "little havana" survive. Deduped and capped at 5.
+    const incoming = tagInput
+      .split(/[,;\n]+/)
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (incoming.length === 0) return;
+    setTags((prev) => {
+      const next = [...prev];
+      for (const tag of incoming) {
+        if (next.length >= 5) break;
+        if (!next.includes(tag)) next.push(tag);
+      }
+      return next;
+    });
+    setTagInput('');
+  }, [tagInput]);
 
   const handleRemoveTag = useCallback((tagToRemove: string) => {
     setTags((prev) => prev.filter((t) => t !== tagToRemove));
@@ -181,7 +197,7 @@ export default function ArticleEditor({
 
   const handleTagKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ',') {
+      if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
         e.preventDefault();
         handleAddTag();
       }
@@ -373,14 +389,19 @@ export default function ArticleEditor({
     }
   };
 
-  // Check if article can be published
+  const isStaffUpdate = articleType === 'staff_update';
+
+  // Check if article can be published. Staff updates are admin-authored and
+  // skip the co-author/reviewer collaboration gate.
   const canPublish =
     mode === 'edit' &&
     articleStatus !== 'published' &&
     title.trim() &&
     content.trim() &&
-    (coAuthors.some((ca) => ca.status === 'accepted') ||
-      reviewer?.status === 'approved');
+    (isStaffUpdate
+      ? isAdmin
+      : coAuthors.some((ca) => ca.status === 'accepted') ||
+        reviewer?.status === 'approved');
 
   // IDs to exclude from user search (current user, existing co-authors, reviewer)
   const excludedUserIds = [
@@ -456,8 +477,14 @@ export default function ArticleEditor({
           </CardTitle>
           {canPublish && (
             <p className="text-muted-foreground mt-2 text-xs">
-              Publishing cross-posts this article to the Pana Resilience
-              Network.
+              Publishing cross-posts this Article to the{' '}
+              <a
+                href="/features#resilience"
+                className="hover:text-foreground underline underline-offset-2"
+              >
+                Pana Resilience Network
+              </a>
+              .
             </p>
           )}
         </CardHeader>
@@ -480,7 +507,8 @@ export default function ArticleEditor({
             <Select
               value={articleType}
               onValueChange={(
-                value: 'business_update' | 'community_commentary'
+                value:
+                  'business_update' | 'community_commentary' | 'staff_update'
               ) => setArticleType(value)}
             >
               <SelectTrigger id="articleType">
@@ -491,12 +519,18 @@ export default function ArticleEditor({
                   Community Commentary
                 </SelectItem>
                 <SelectItem value="business_update">Business Update</SelectItem>
+                {/* Staff updates are official Pana MIA posts — admins only. */}
+                {(isAdmin || articleType === 'staff_update') && (
+                  <SelectItem value="staff_update">Staff Update</SelectItem>
+                )}
               </SelectContent>
             </Select>
             <p className="text-sm text-gray-500">
               {articleType === 'business_update'
                 ? 'Self-promotional content about your business, products, or services'
-                : 'Opinion, analysis, or local interest content'}
+                : articleType === 'staff_update'
+                  ? 'Official update from the Pana MIA team. No reviewer required and a co-author is optional.'
+                  : 'Opinion, analysis, or local interest content'}
             </p>
           </div>
 
@@ -548,17 +582,23 @@ export default function ArticleEditor({
               placeholder="https://..."
               type="url"
             />
-          </div>
-
-          {/* Cover Image Alt Text */}
-          <div className="space-y-2">
-            <Label htmlFor="coverImageAlt">Alt Text</Label>
-            <Input
-              id="coverImageAlt"
-              value={coverImageAlt}
-              onChange={(e) => setCoverImageAlt(e.target.value)}
-              placeholder="Describe the cover image for screen readers"
-            />
+            {/* Alt text is a detail of the cover image, not a peer field —
+                nest it under the URL with an indent and a lighter label so it
+                reads as a sub-detail rather than its own top-level input. */}
+            <div className="border-muted mt-1 space-y-1 border-l-2 pl-3">
+              <Label
+                htmlFor="coverImageAlt"
+                className="text-muted-foreground text-xs font-normal"
+              >
+                Alt text (for screen readers)
+              </Label>
+              <Input
+                id="coverImageAlt"
+                value={coverImageAlt}
+                onChange={(e) => setCoverImageAlt(e.target.value)}
+                placeholder="Describe the cover image"
+              />
+            </div>
           </div>
 
           {/* In Reply To */}
@@ -669,10 +709,16 @@ export default function ArticleEditor({
               Publishing Requirements
             </h3>
             <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">
-              Before you can publish, your article must have at least one
-              accepted co-author OR be approved by a reviewer. This ensures
-              collaborative quality and accountability.
+              {isStaffUpdate
+                ? 'Staff updates are official Pana MIA posts. No reviewer is required and a co-author is optional — an admin can publish directly.'
+                : 'Before you can publish, your article must have at least one accepted co-author OR be approved by a reviewer. This ensures collaborative quality and accountability.'}
             </p>
+            {mode === 'create' && (
+              <p className="mt-2 text-sm text-blue-800 dark:text-blue-200">
+                Save this draft first — the collaboration tools for inviting a
+                co-author or requesting a review appear once the draft exists.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -753,73 +799,76 @@ export default function ArticleEditor({
               </div>
             </div>
 
-            <div className="border-t pt-6">
-              {/* Reviewer Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <ClipboardCheck className="h-4 w-4" />
-                  <h3 className="font-medium">Review</h3>
+            {/* Reviewers do not apply to staff updates */}
+            {!isStaffUpdate && (
+              <div className="border-t pt-6">
+                {/* Reviewer Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck className="h-4 w-4" />
+                    <h3 className="font-medium">Review</h3>
+                  </div>
+
+                  {/* Current Reviewer */}
+                  {reviewer ? (
+                    <div className="flex items-center justify-between rounded-md border p-3">
+                      <span className="font-medium">
+                        @{reviewer.screenname || 'Unknown'}
+                      </span>
+                      <Badge
+                        variant={
+                          reviewer.status === 'approved'
+                            ? 'default'
+                            : reviewer.status === 'pending'
+                              ? 'secondary'
+                              : 'destructive'
+                        }
+                        className="flex items-center gap-1"
+                      >
+                        {getStatusIcon(reviewer.status)}
+                        {getStatusLabel(reviewer.status)}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-500">
+                        Request a review from another community member:
+                      </p>
+                      <UserSearch
+                        onSelect={handleRequestReview}
+                        excludeIds={excludedUserIds}
+                        placeholder="Search for a reviewer..."
+                      />
+                      {requestingReview && (
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Requesting review...
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Review status info */}
+                  {reviewer?.status === 'revision_needed' && (
+                    <div className="rounded-md bg-yellow-50 p-3 dark:bg-yellow-950">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        The reviewer has requested revisions. Please address
+                        their comments and save your changes. You can view
+                        comments on the review page.
+                      </p>
+                    </div>
+                  )}
+
+                  {reviewer?.status === 'approved' && (
+                    <div className="rounded-md bg-green-50 p-3 dark:bg-green-950">
+                      <p className="text-sm text-green-800 dark:text-green-200">
+                        Your article has been approved! You can now publish it.
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Current Reviewer */}
-                {reviewer ? (
-                  <div className="flex items-center justify-between rounded-md border p-3">
-                    <span className="font-medium">
-                      @{reviewer.screenname || 'Unknown'}
-                    </span>
-                    <Badge
-                      variant={
-                        reviewer.status === 'approved'
-                          ? 'default'
-                          : reviewer.status === 'pending'
-                            ? 'secondary'
-                            : 'destructive'
-                      }
-                      className="flex items-center gap-1"
-                    >
-                      {getStatusIcon(reviewer.status)}
-                      {getStatusLabel(reviewer.status)}
-                    </Badge>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-sm text-gray-500">
-                      Request a review from another community member:
-                    </p>
-                    <UserSearch
-                      onSelect={handleRequestReview}
-                      excludeIds={excludedUserIds}
-                      placeholder="Search for a reviewer..."
-                    />
-                    {requestingReview && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Requesting review...
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Review status info */}
-                {reviewer?.status === 'revision_needed' && (
-                  <div className="rounded-md bg-yellow-50 p-3 dark:bg-yellow-950">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      The reviewer has requested revisions. Please address their
-                      comments and save your changes. You can view comments on
-                      the review page.
-                    </p>
-                  </div>
-                )}
-
-                {reviewer?.status === 'approved' && (
-                  <div className="rounded-md bg-green-50 p-3 dark:bg-green-950">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      Your article has been approved! You can now publish it.
-                    </p>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
 
             {/* Publishing Status Summary */}
             <div className="border-t pt-4">

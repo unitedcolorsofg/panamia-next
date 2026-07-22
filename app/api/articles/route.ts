@@ -78,11 +78,21 @@ export async function POST(request: NextRequest) {
 
     if (
       !articleType ||
-      !['business_update', 'community_commentary'].includes(articleType)
+      !['business_update', 'community_commentary', 'staff_update'].includes(
+        articleType
+      )
     ) {
       return NextResponse.json(
         { success: false, error: 'Valid article type is required' },
         { status: 400 }
+      );
+    }
+
+    // Staff updates are official Pana MIA posts — only admins may author them.
+    if (articleType === 'staff_update' && !session.user.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Only admins can create staff updates' },
+        { status: 403 }
       );
     }
 
@@ -150,7 +160,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
     const articleType = searchParams.get('type') as
-      'business_update' | 'community_commentary' | null;
+      'business_update' | 'community_commentary' | 'staff_update' | null;
     const tag = searchParams.get('tag');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);

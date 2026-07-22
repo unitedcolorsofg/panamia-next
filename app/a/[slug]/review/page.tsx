@@ -31,7 +31,7 @@ interface ArticleData {
   slug: string;
   title: string;
   content: string;
-  articleType: 'business_update' | 'community_commentary';
+  articleType: 'business_update' | 'community_commentary' | 'staff_update';
   tags: string[];
   authorId: string;
   reviewedBy?: {
