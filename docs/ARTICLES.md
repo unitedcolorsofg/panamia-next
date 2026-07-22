@@ -69,7 +69,20 @@ Use the **Preview** tab to see how your article will look when published.
 
 ## Collaboration
 
-Articles cannot be published without collaboration. You have two options:
+Most articles cannot be published without collaboration. You have two options:
+invite a **co-author** or request a **review**. (The exception is **Staff
+Updates** — see [Staff Updates](#staff-updates) — which admins publish
+directly.)
+
+> **The collaboration tools live on the edit page and only appear after you
+> save the draft the first time.** A brand-new article has no URL yet, so on
+> the New Article screen you'll see a reminder to save first; the co-author and
+> reviewer search boxes appear once the draft exists (`/a/<slug>/edit`).
+
+> **You never approve your own article.** As the author you only ever see
+> **Save Draft** and — once the article is eligible — **Publish**. Accepting a
+> co-author invitation and approving a review are done by the _invited_ person
+> on their own screens (reached from their notification), not by you.
 
 ### Option 1: Invite Co-Authors
 
@@ -115,6 +128,22 @@ Reviewers verify your article's accuracy without becoming co-authors.
 5. Add comments if you have feedback
 6. Click **Approve Article** or **Request Revisions**
 
+### Tracking Pending Invitations
+
+The edit page has a **Pending Invitations** panel near the bottom listing every
+co-author or reviewer you've invited who hasn't yet responded. It reflects the
+article's saved state, so:
+
+- If someone you invited appears there with a **Pending** badge, the invitation
+  was recorded and is waiting on them.
+- If the panel says **"No pending invitations"** right after you invited
+  someone, the invitation didn't save — try again and watch for an error
+  message at the top of the editor.
+
+Pending invitations do **not** count toward publishing and are **not** credited
+on the published article — only _accepted_ co-authors and an _approved_ reviewer
+appear once it's live.
+
 ---
 
 ## Article Workflow
@@ -144,13 +173,36 @@ Draft
 
 ## Publishing
 
-Once your article has at least one accepted co-author OR an approved review, you can publish:
+### Eligibility
 
-1. Open your article in the editor
+For Business Update and Community Commentary articles, the **Publish** button
+only appears once the article has a title, content, and **at least one accepted
+co-author OR an approved review**. Until then you'll only see **Save Draft** and
+a "Waiting for co-author acceptance or reviewer approval" indicator — there is
+no separate "Approve" button in your editor (approval happens on the invitee's
+side, as described under [Collaboration](#collaboration)).
+
+**Staff Updates** skip this gate entirely — see [Staff Updates](#staff-updates).
+
+### Publishing your article
+
+1. Open your article in the editor (`/a/<slug>/edit`)
 2. Verify the "Ready to publish" indicator is shown
-3. Click **Publish Article**
+3. Click **Publish**
+
+**If any invitations are still pending** when you publish, a confirmation
+dialog lists them and warns they will **not** appear as co-authors or reviewers
+on the published article. You can **Keep waiting** for them to respond, or
+**Publish anyway** without them.
 
 Published articles appear on the public articles page and in RSS feeds.
+
+### Cross-posting to the Pana Resilience Network
+
+Publishing also cross-posts the article to the
+[Pana Resilience Network](/features#resilience) as a Nostr long-form note
+(NIP-23), mirrored across the community relay. This happens automatically on
+publish; it does not block publishing if the relay is unreachable.
 
 ### After Publishing
 
@@ -160,9 +212,30 @@ Published articles appear on the public articles page and in RSS feeds.
 
 ---
 
+## Staff Updates
+
+**Staff Update** is an official post from the Pana MIA team. It behaves like the
+other article types with two differences:
+
+- **Admin-only.** The "Staff Update" type only appears in the editor's type
+  dropdown for admin users, and the API rejects the type from non-admins.
+- **No collaboration required to publish.** Reviewers do not apply, and a
+  co-author is optional — an admin can publish a Staff Update directly, without
+  an accepted co-author or approved review. (A co-author can still be invited if
+  desired.)
+
+Everything else — tags, cover image, the public article page, RSS/JSON feeds,
+and the Nostr cross-post — works the same as other types.
+
+---
+
 ## Managing Your Articles
 
-View all your articles at **Account > My Articles** or `/account/articles`.
+View all your articles at `/account/articles`. In the header menu, the
+**My Articles** heading (in the Articles section) links straight there. This is
+the only place drafts are listed — a draft is not reachable from its public URL
+(`/a/<slug>` shows published articles only), so use this dashboard or the direct
+edit link (`/a/<slug>/edit`) to get back to a draft.
 
 From here you can:
 

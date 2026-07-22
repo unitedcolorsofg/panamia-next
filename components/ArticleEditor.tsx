@@ -46,6 +46,16 @@ import {
 import UserSearch from '@/components/UserSearch';
 import ArticleSearch from '@/components/ArticleSearch';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   CCLicensePicker,
   CCBadge,
   type CCLicenseValue,
@@ -124,6 +134,7 @@ export default function ArticleEditor({
   const [requestingReview, setRequestingReview] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [showPublishWarning, setShowPublishWarning] = useState(false);
   const [articleStatus, setArticleStatus] = useState(
     initialData.status || 'draft'
   );
@@ -403,6 +414,22 @@ export default function ArticleEditor({
       : coAuthors.some((ca) => ca.status === 'accepted') ||
         reviewer?.status === 'approved');
 
+  // Pending invites are not credited on publish — only accepted co-authors and
+  // an approved reviewer appear on the published article. Surfaced in the
+  // "Pending Invitations" list and warned about before publishing.
+  const pendingCoAuthors = coAuthors.filter((ca) => ca.status === 'pending');
+  const pendingReviewer = reviewer?.status === 'pending' ? reviewer : null;
+  const hasPendingInvites = pendingCoAuthors.length > 0 || !!pendingReviewer;
+
+  // Gate publish behind a confirmation when invites are still pending.
+  const requestPublish = () => {
+    if (hasPendingInvites) {
+      setShowPublishWarning(true);
+    } else {
+      handlePublish();
+    }
+  };
+
   // IDs to exclude from user search (current user, existing co-authors, reviewer)
   const excludedUserIds = [
     currentUserId,
@@ -464,7 +491,7 @@ export default function ArticleEditor({
                 {saving ? 'Saving...' : 'Save Draft'}
               </Button>
               {canPublish && (
-                <Button onClick={handlePublish} disabled={publishing}>
+                <Button onClick={requestPublish} disabled={publishing}>
                   {publishing ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -894,6 +921,115 @@ export default function ArticleEditor({
           </CardContent>
         </Card>
       )}
+
+      {/* Pending Invitations — collaborators who haven't accepted/approved yet.
+          Sourced from the article's saved state, so an empty list here means no
+          invite is actually recorded (useful for spotting a failed invite). */}
+      {mode === 'edit' && initialData.slug && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Pending Invitations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hasPendingInvites ? (
+              <ul className="space-y-2">
+                {pendingCoAuthors.map((ca) => (
+                  <li
+                    key={`pending-ca-${ca.userId}`}
+                    className="flex items-center justify-between rounded-md border p-3"
+                  >
+                    <span className="font-medium">
+                      @{ca.screenname || 'Unknown'}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Co-author · Pending
+                    </Badge>
+                  </li>
+                ))}
+                {pendingReviewer && (
+                  <li
+                    key={`pending-rv-${pendingReviewer.userId}`}
+                    className="flex items-center justify-between rounded-md border p-3"
+                  >
+                    <span className="font-medium">
+                      @{pendingReviewer.screenname || 'Unknown'}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <ClipboardCheck className="h-3 w-3" />
+                      Reviewer · Pending
+                    </Badge>
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No pending invitations. Invites you send appear here until the
+                recipient accepts or declines.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Warn before publishing while invites are still pending — pending
+          collaborators are not credited on the published article. */}
+      <AlertDialog
+        open={showPublishWarning}
+        onOpenChange={setShowPublishWarning}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Publish with pending invitations?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>
+                  These invitations are still pending and will{' '}
+                  <strong>not</strong> appear as co-authors or reviewers on the
+                  published article:
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {pendingCoAuthors.map((ca) => (
+                    <li key={`warn-ca-${ca.userId}`}>
+                      @{ca.screenname || 'Unknown'} — co-author
+                    </li>
+                  ))}
+                  {pendingReviewer && (
+                    <li key={`warn-rv-${pendingReviewer.userId}`}>
+                      @{pendingReviewer.screenname || 'Unknown'} — reviewer
+                    </li>
+                  )}
+                </ul>
+                <p className="mt-2">
+                  You can wait for them to respond, or publish now without them.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep waiting</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowPublishWarning(false);
+                handlePublish();
+              }}
+            >
+              Publish anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Phase 3: archive threshold consent gate for articles */}
       <ConsentModal

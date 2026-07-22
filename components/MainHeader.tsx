@@ -242,7 +242,16 @@ export default function MainHeader({
                 className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
                 onClick={(e) => toggleSection('articles', e)}
               >
-                {t('nav.articles')}
+                {/* Header doubles as a link to the author's article dashboard;
+                    stopPropagation so clicking the text navigates rather than
+                    toggling the section on mobile. */}
+                <Link
+                  href="/account/articles"
+                  onClick={(e) => e.stopPropagation()}
+                  className="cursor-pointer hover:underline"
+                >
+                  {t('nav.articles')}
+                </Link>
                 {isMobile && (
                   <ChevronRight
                     className={`h-4 w-4 transition-transform ${isSectionOpen('articles') ? 'rotate-90' : ''}`}
