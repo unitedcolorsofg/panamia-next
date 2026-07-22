@@ -332,7 +332,7 @@ export default function ArticleEditor({
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reviewerId: user._id }),
+          body: JSON.stringify({ userId: user._id }),
         }
       );
 
