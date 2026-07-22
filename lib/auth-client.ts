@@ -121,22 +121,29 @@ export async function signIn(
   const callbackURL = options?.callbackUrl ?? '/';
 
   if (provider === 'email' || provider === 'nodemailer') {
-    // Magic link sign-in
-    await authClient.signIn.magicLink({
+    // Magic link sign-in. better-auth returns { error } instead of throwing,
+    // so surface it — otherwise a failed send looks like success to the caller.
+    const { error } = await authClient.signIn.magicLink({
       email: options?.email ?? '',
       callbackURL,
     });
+    if (error) {
+      throw new Error(error.message ?? 'Magic link sign-in failed');
+    }
     return;
   }
 
   if (provider) {
     // Social / OAuth sign-in
-    await authClient.signIn.social({
+    const { error } = await authClient.signIn.social({
       provider: provider as Parameters<
         typeof authClient.signIn.social
       >[0]['provider'],
       callbackURL,
     });
+    if (error) {
+      throw new Error(error.message ?? 'OAuth sign-in failed');
+    }
   }
 }
 
