@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { users, profiles } from '@/lib/schema';
-import { eq, and, ne, ilike, inArray } from 'drizzle-orm';
+import { eq, and, ne, ilike } from 'drizzle-orm';
 
 /**
  * GET /api/user/search?q=screenname
@@ -47,46 +47,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Search users by screenname (case-insensitive prefix match)
-    const foundUsers = await db.query.users.findMany({
-      where: and(
-        ne(users.id, currentUser.id),
-        ilike(users.screenname, `${query}%`)
-      ),
-      columns: { id: true, screenname: true, email: true },
-      limit,
-    });
-
-    // Get profile info for verified badge
-    const emails = foundUsers.map((u) => u.email);
-    const foundProfiles =
-      emails.length > 0
-        ? await db.query.profiles.findMany({
-            where: and(
-              inArray(profiles.email, emails),
-              eq(profiles.active, true)
-            ),
-            columns: { email: true, verification: true },
-          })
-        : [];
-
-    // Create email to verification map
-    const profileMap = new Map(
-      foundProfiles.map((p) => {
-        const verification = p.verification as {
-          panaVerified?: boolean;
-        } | null;
-        return [p.email, { verified: verification?.panaVerified || false }];
+    // Only surface users who can actually be invited: they must have an active
+    // profile linked by userId (the same record the co-author/reviewer invite
+    // routes require) and a screenname to match on. The INNER JOIN on
+    // profiles.userId is what prevents the search box from offering users the
+    // invite would then reject with "profile not found". verification comes from
+    // the joined profile, so no second query is needed for the verified badge.
+    const foundUsers = await db
+      .select({
+        id: users.id,
+        screenname: users.screenname,
+        verification: profiles.verification,
       })
-    );
+      .from(users)
+      .innerJoin(profiles, eq(profiles.userId, users.id))
+      .where(
+        and(
+          ne(users.id, currentUser.id),
+          ilike(users.screenname, `${query}%`),
+          eq(profiles.active, true)
+        )
+      )
+      .limit(limit);
 
     // Format response - screenname comes from User, not Profile
     const formattedUsers = foundUsers.map((u) => {
-      const profileInfo = profileMap.get(u.email);
+      const verification = u.verification as { panaVerified?: boolean } | null;
       return {
         _id: u.id,
         screenname: u.screenname,
-        verified: profileInfo?.verified || false,
+        verified: verification?.panaVerified || false,
       };
     });
 
