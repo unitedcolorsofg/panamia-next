@@ -39,6 +39,9 @@ import {
 } from 'lucide-react';
 
 import styles from './MainHeader.module.css';
+import { cn } from '@/lib/utils';
+import { useUnreadCount } from '@/lib/query/notifications';
+import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import { ThemeToggle } from './theme-toggle';
 
@@ -56,6 +59,27 @@ export default function MainHeader({
 
   // Get admin status directly from session (no API call needed)
   const isAdmin = session?.user?.isAdmin || false;
+
+  // Unread notifications drive the "Jump To" and Updates cues. Only poll for
+  // signed-in users.
+  const { data: unreadCount = 0 } = useUnreadCount({
+    enabled: !!session?.user,
+  });
+  const hasUnread = unreadCount > 0;
+  const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
+
+  // One-time opt-in for desktop notifications, tied to a click (a user
+  // gesture): opening Updates signals interest in being alerted. No-op if the
+  // user already granted or denied.
+  const requestDesktopPermission = useCallback(() => {
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'default'
+    ) {
+      void Notification.requestPermission();
+    }
+  }, []);
 
   const [isMobile, setIsMobile] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -103,6 +127,8 @@ export default function MainHeader({
 
   return (
     <header className={styles.header}>
+      {/* Ambient unread cues: browser-tab count + desktop notifications */}
+      <NotificationAlerts />
       {/* CTA bar: newsletter for unauthenticated, profile completion for authenticated without profile */}
       {status !== 'loading' && !session && (
         <div id="call-to-action-bar">
@@ -152,9 +178,25 @@ export default function MainHeader({
             }}
           >
             <DropdownMenuTrigger asChild>
-              <Button size="default" variant="outline" data-no-wobble="true">
+              <Button
+                size="default"
+                variant="outline"
+                data-no-wobble="true"
+                className={cn(
+                  'relative',
+                  hasUnread && 'border-pink-400 dark:border-pink-500'
+                )}
+              >
                 {t('nav.jumpTo')}
                 <ChevronDown className="ml-2 h-4 w-4" />
+                {hasUnread && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 animate-pulse items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-medium text-white"
+                    aria-label={`${unreadCount} unread updates`}
+                  >
+                    {unreadLabel}
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -177,10 +219,24 @@ export default function MainHeader({
               <DropdownMenuItem asChild>
                 <Link
                   href="/updates"
-                  className="flex cursor-pointer items-center"
+                  onClick={requestDesktopPermission}
+                  className={cn(
+                    'flex cursor-pointer items-center',
+                    hasUnread && 'font-medium text-pink-600 dark:text-pink-400'
+                  )}
                 >
-                  <Bell className="mr-2 h-4 w-4" />
+                  <Bell
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      hasUnread && 'animate-pulse text-pink-500'
+                    )}
+                  />
                   {t('nav.updates')}
+                  {hasUnread && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1.5 text-xs font-medium text-white">
+                      {unreadLabel}
+                    </span>
+                  )}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

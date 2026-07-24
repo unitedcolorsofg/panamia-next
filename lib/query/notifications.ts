@@ -73,12 +73,13 @@ export const useNotifications = (options?: {
   });
 };
 
-export const useUnreadCount = () => {
+export const useUnreadCount = (options?: { enabled?: boolean }) => {
   return useQuery<number, Error>({
     queryKey: [notificationQueryKey, 'unreadCount'],
     queryFn: () => fetchUnreadCount(),
     refetchInterval: 30000, // Poll every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
+    enabled: options?.enabled ?? true, // Skip polling for logged-out users
   });
 };
 
