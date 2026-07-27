@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { hasConsent } from '@/lib/consent';
-import { getModuleMajorVersion } from '@/lib/legal/policy-version';
+import {
+  getModuleMajorVersion,
+  getTermsMajorVersion,
+} from '@/lib/legal/policy-version';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -15,7 +18,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const document = searchParams.get('document');
   const module = searchParams.get('module') || null;
-  const majorVersionParam = searchParams.get('majorVersion');
 
   if (!document) {
     return NextResponse.json(
@@ -24,17 +26,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // The version comes from policy.json (source of truth). The client may still
-  // pass an explicit majorVersion for back-compat, but it's optional — when
-  // omitted we derive it from the module (or the top-level terms) version.
-  let majorVersion: number | null;
-  if (majorVersionParam !== null) {
-    majorVersion = parseInt(majorVersionParam, 10);
-  } else if (document === 'terms' && module) {
-    majorVersion = getModuleMajorVersion(module);
-  } else {
-    // Top-level terms/privacy (no module) — not derivable here.
-    majorVersion = null;
+  // The required version is resolved exclusively from policy.json (the source
+  // of truth) — clients never supply it, so they can't check against a stale
+  // version they happen to have consented to.
+  let majorVersion: number | null = null;
+  if (document === 'terms') {
+    majorVersion = module
+      ? getModuleMajorVersion(module)
+      : getTermsMajorVersion();
   }
 
   if (majorVersion === null || Number.isNaN(majorVersion)) {

@@ -126,7 +126,7 @@ export function PostComposer({
   // Social posts are always fully deletable regardless of age. This notice
   // informs the user of that policy on first use — it does NOT block posting.
   const { needsConsent: showSocialNotice, recordConsent: onSocialNotice } =
-    useModuleConsent({ document: 'terms', module: 'social', majorVersion: 0 });
+    useModuleConsent({ document: 'terms', module: 'social' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

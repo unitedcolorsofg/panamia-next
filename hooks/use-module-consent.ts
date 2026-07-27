@@ -13,25 +13,18 @@ import { useState, useEffect, useCallback } from 'react';
 //   const { needsConsent, recordConsent, isLoading } = useModuleConsent({
 //     document: 'terms',
 //     module: 'articles',
-//     majorVersion: 0,
 //   });
 //
 //   <ConsentModal open={needsConsent} onConsent={recordConsent} ... />
 //
-// The hook calls GET /api/consent/check and POST /api/consent/record.
-// These API routes are not yet implemented — see code comments in each for
-// the expected request/response shape.
+// The hook calls GET /api/consent/check and POST /api/consent/record. The
+// policy version is the single source of truth in policy.json and is resolved
+// server-side — callers never pass a version.
 // =============================================================================
 
 interface UseModuleConsentOptions {
   document: string;
   module: string | null;
-  /**
-   * Optional. When omitted, the server derives the current major version from
-   * policy.json (the source of truth) for the given module — preferred, so
-   * callers don't hardcode versions.
-   */
-  majorVersion?: number;
   /** Skip the consent check entirely (e.g., for admin users) */
   skip?: boolean;
 }
@@ -48,7 +41,6 @@ interface UseModuleConsentResult {
 export function useModuleConsent({
   document,
   module,
-  majorVersion,
   skip = false,
 }: UseModuleConsentOptions): UseModuleConsentResult {
   const [needsConsent, setNeedsConsent] = useState(false);
@@ -60,17 +52,11 @@ export function useModuleConsent({
 
     const checkConsent = async () => {
       try {
+        // No version param — the server resolves the current one from
+        // policy.json for this document + module.
         const params = new URLSearchParams({ document });
         if (module) params.set('module', module);
-        // Omit majorVersion to let the server derive it from policy.json.
-        if (majorVersion !== undefined) {
-          params.set('majorVersion', String(majorVersion));
-        }
 
-        // TODO: Implement GET /api/consent/check
-        // Expected response: { consented: boolean }
-        // Internally calls hasConsent() from lib/consent.ts which also
-        // lazily purges expired receipts (>1 year) for this user+doc+module.
         const res = await fetch(`/api/consent/check?${params}`);
         if (res.ok) {
           const data = await res.json();
@@ -85,25 +71,23 @@ export function useModuleConsent({
     };
 
     checkConsent();
-  }, [document, module, majorVersion, skip]);
+  }, [document, module, skip]);
 
   const recordConsent = useCallback(async () => {
     try {
-      // TODO: Implement POST /api/consent/record
-      // Expected body: { document, module, version, majorVersion }
-      // Internally calls recordConsent() from lib/consent.ts.
-      // IP and GPC detection are handled server-side from the request headers.
+      // The server derives the version from policy.json and records IP + GPC
+      // from the request headers — the client only sends document + module.
       await fetch('/api/consent/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document, module, majorVersion }),
+        body: JSON.stringify({ document, module }),
       });
       setNeedsConsent(false);
     } catch {
       // Still dismiss — don't trap the user on a network error
       setNeedsConsent(false);
     }
-  }, [document, module, majorVersion]);
+  }, [document, module]);
 
   return { needsConsent, recordConsent, isLoading };
 }

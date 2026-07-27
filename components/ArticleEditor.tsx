@@ -9,7 +9,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from '@/lib/auth-client';
-// Phase 3 consent infrastructure — gate article publishing behind module consent
+// Phase 3 consent infrastructure — gate article authoring behind module consent
 import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
 import { useRouter } from 'next/navigation';
@@ -421,16 +421,12 @@ export default function ArticleEditor({
     }
   };
 
-  // Phase 3 consent — archive threshold gate for articles
-  // Articles become part of the community record after 3 months. Users must
-  // consent to this before their first publish. The consent modal is a hard
-  // gate (type="gate") — publishing is blocked until accepted.
+  // Hard consent gate: the editor is blocked until the author accepts the
+  // Articles terms (articles enter the community record 3 months after
+  // publication). The API enforces the same consent on every write, so this is
+  // the human-facing half of that gate.
   const { needsConsent: needsArticleConsent, recordConsent: onArticleConsent } =
-    useModuleConsent({
-      document: 'terms',
-      module: 'articles',
-      majorVersion: 0,
-    });
+    useModuleConsent({ document: 'terms', module: 'articles' });
 
   const handlePublish = async () => {
     if (!initialData.slug) return;

@@ -23,3 +23,8 @@ export function getModuleMajorVersion(module: string): number | null {
   const version = getModuleVersion(module);
   return version === null ? null : parseMajorVersion(version);
 }
+
+/** Major version of the top-level terms document (no module). */
+export function getTermsMajorVersion(): number {
+  return parseMajorVersion(termsPolicy.version);
+}
