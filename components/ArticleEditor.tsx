@@ -128,7 +128,6 @@ export default function ArticleEditor({
   const savingRef = useRef(false); // guards against overlapping saves
   const lastSavedRef = useRef<string>(''); // serialized last-saved payload
   const createdSlugRef = useRef<string | null>(null); // slug after first create
-  const collabRef = useRef<HTMLDivElement>(null); // scroll target for "Invite"
 
   // Collaboration state
   const [coAuthors, setCoAuthors] = useState<CoAuthorInfo[]>(
@@ -337,16 +336,6 @@ export default function ArticleEditor({
     ccLicense,
     doSave,
   ]);
-
-  // "Invite" scrolls to the collaboration panel. In create mode the panel
-  // doesn't exist yet, so save first (which navigates into edit mode).
-  const handleInviteClick = useCallback(async () => {
-    if (collabRef.current) {
-      collabRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    await doSave();
-  }, [doSave]);
 
   const handleInviteCoAuthor = async (user: {
     _id: string;
@@ -577,21 +566,27 @@ export default function ArticleEditor({
                   <span className="text-red-500">Save failed</span>
                 )}
               </span>
-              {canPublish ? (
-                <Button onClick={requestPublish} disabled={publishing}>
-                  {publishing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
-                  {publishing ? 'Publishing...' : 'Publish'}
-                </Button>
-              ) : (
-                <Button onClick={handleInviteClick} disabled={!title.trim()}>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Invite
-                </Button>
-              )}
+              {/* Single primary action: greyed out until the article is
+                  eligible (see the Publishing Requirements card / collaboration
+                  panel below), active once it can be published. */}
+              <Button
+                onClick={requestPublish}
+                disabled={!canPublish || publishing}
+                title={
+                  canPublish
+                    ? undefined
+                    : isStaffUpdate
+                      ? 'Add a title and content to publish'
+                      : 'Add an accepted co-author or an approved reviewer to publish'
+                }
+              >
+                {publishing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                {publishing ? 'Publishing...' : 'Publish!'}
+              </Button>
             </div>
           </CardTitle>
           {canPublish && (
@@ -832,20 +827,13 @@ export default function ArticleEditor({
                 ? 'Staff updates are official Pana MIA posts. No reviewer is required and a co-author is optional — an admin can publish directly.'
                 : 'Before you can publish, your article must have at least one accepted co-author OR be approved by a reviewer. This ensures collaborative quality and accountability.'}
             </p>
-            {mode === 'create' && (
-              <p className="mt-2 text-sm text-blue-800 dark:text-blue-200">
-                Your draft saves automatically once it has a title. The tools to
-                invite a co-author or request a review appear right after — or
-                just press <strong>Invite</strong>.
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Collaboration Panel - Only in edit mode */}
       {mode === 'edit' && initialData.slug && (
-        <Card ref={collabRef}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
