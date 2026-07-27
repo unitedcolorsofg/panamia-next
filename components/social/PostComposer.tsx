@@ -5,8 +5,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
 import ReactMarkdown from 'react-markdown';
-import Image from 'next/image';
-import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -19,11 +17,9 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { useCreatePost } from '@/lib/query/social';
-import { transcodeToOpus, transcodeToWebMVideo } from '@/lib/media/transcode';
-
-const isSafari = () =>
-  typeof navigator !== 'undefined' &&
-  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+import MultiMediaUpload, {
+  type UploadedMedia,
+} from '@/components/MultiMediaUpload';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import {
   AlertTriangle,
@@ -35,13 +31,7 @@ import {
   Check,
   Pencil,
   Eye,
-  ImagePlus,
-  X,
-  Volume2,
-  Loader2,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useTranslation } from 'react-i18next';
 import {
   CCLicenseBadge,
   CCLicensePickerModal,
@@ -57,16 +47,6 @@ interface PostComposerProps {
 }
 
 const MAX_LENGTH = 500;
-const MAX_ATTACHMENTS = 4;
-const ACCEPTED_FILE_TYPES =
-  'image/jpeg,image/png,image/webp,image/gif,audio/*,video/*';
-
-interface UploadedMedia {
-  type: string;
-  mediaType: string;
-  url: string;
-  name: string;
-}
 
 const VISIBILITY_OPTIONS: {
   value: PostVisibility;
@@ -114,9 +94,6 @@ export function PostComposer({
   const [visibility, setVisibility] = useState<PostVisibility>('unlisted');
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [attachments, setAttachments] = useState<UploadedMedia[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [videoProgress, setVideoProgress] = useState<number | null>(null);
-  const [safariMediaNotice, setSafariMediaNotice] = useState(false);
   // Seed the license from the user's saved default, but stop tracking the
   // default once they explicitly pick one for this post (override).
   const defaultCcLicense = useDefaultCcLicense();
@@ -130,153 +107,7 @@ export function PostComposer({
     setCcLicense(license);
   };
   const [showLicensePicker, setShowLicensePicker] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const createPost = useCreatePost();
-  const { toast } = useToast();
-  const { t } = useTranslation('toast');
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-
-    const available = MAX_ATTACHMENTS - attachments.length;
-    if (available <= 0) return;
-
-    const filesToUpload = Array.from(files).slice(0, available);
-
-    // Warn Safari users that audio/video playback won't work on their device
-    const hasMedia = filesToUpload.some(
-      (f) => f.type.startsWith('audio/') || f.type.startsWith('video/')
-    );
-    if (hasMedia && isSafari()) {
-      setSafariMediaNotice(true);
-    }
-
-    setUploading(true);
-
-    for (const file of filesToUpload) {
-      try {
-        if (file.type.startsWith('audio/')) {
-          // Transcode → direct R2 upload via presigned URL (bypasses Worker body limit)
-          const oggBlob = await transcodeToOpus(file);
-          const uuid = crypto.randomUUID();
-          const filename = `social/media/${uuid}.ogg`;
-          const { presignedUrl, publicUrl } = await fetch(
-            '/api/social/media/upload',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                filename,
-                contentType: 'audio/ogg',
-                size: oggBlob.size,
-              }),
-            }
-          ).then(async (r) => {
-            if (!r.ok)
-              throw new Error((await r.json()).error ?? 'Upload token failed');
-            return r.json() as Promise<{
-              presignedUrl: string;
-              publicUrl: string;
-            }>;
-          });
-          const oggPut = await fetch(presignedUrl, {
-            method: 'PUT',
-            body: oggBlob,
-            headers: { 'Content-Type': 'audio/ogg' },
-          });
-          // fetch resolves on HTTP errors too — a failed R2 PUT (e.g. 403
-          // signature mismatch) must throw so it reaches the catch/toast below
-          // instead of attaching a URL to an object that was never stored.
-          if (!oggPut.ok) {
-            throw new Error(`Upload failed (${oggPut.status})`);
-          }
-          setAttachments((prev) => [
-            ...prev,
-            {
-              type: 'audio',
-              mediaType: 'audio/ogg',
-              url: publicUrl,
-              name: file.name,
-            },
-          ]);
-        } else if (file.type.startsWith('video/')) {
-          // Transcode → direct R2 upload via presigned URL (bypasses Worker body limit)
-          setVideoProgress(0);
-          const webmBlob = await transcodeToWebMVideo(file, (ratio) => {
-            setVideoProgress(Math.round(ratio * 100));
-          });
-          setVideoProgress(null);
-          const uuid = crypto.randomUUID();
-          const filename = `social/media/${uuid}.webm`;
-          const { presignedUrl, publicUrl } = await fetch(
-            '/api/social/media/upload',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                filename,
-                contentType: 'video/webm',
-                size: webmBlob.size,
-              }),
-            }
-          ).then(async (r) => {
-            if (!r.ok)
-              throw new Error((await r.json()).error ?? 'Upload token failed');
-            return r.json() as Promise<{
-              presignedUrl: string;
-              publicUrl: string;
-            }>;
-          });
-          const webmPut = await fetch(presignedUrl, {
-            method: 'PUT',
-            body: webmBlob,
-            headers: { 'Content-Type': 'video/webm' },
-          });
-          if (!webmPut.ok) {
-            throw new Error(`Upload failed (${webmPut.status})`);
-          }
-          setAttachments((prev) => [
-            ...prev,
-            {
-              type: 'video',
-              mediaType: 'video/webm',
-              url: publicUrl,
-              name: file.name,
-            },
-          ]);
-        } else {
-          // Images: small enough to flow through the API route as before
-          const formData = new FormData();
-          formData.append('file', file);
-          const res = await axios.post('/api/social/media', formData);
-          if (res.data?.success) {
-            setAttachments((prev) => [...prev, res.data.data]);
-          }
-        }
-      } catch (error) {
-        setVideoProgress(null);
-        const message =
-          axios.isAxiosError(error) && error.response?.data?.error
-            ? error.response.data.error
-            : 'Upload failed. Please try again.';
-        toast({
-          title: t('uploadFailed'),
-          description: message,
-          variant: 'destructive',
-        });
-      }
-    }
-
-    setUploading(false);
-    // Reset file input so the same file can be selected again
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const charCount = content.length;
   const isOverLimit = charCount > MAX_LENGTH;
@@ -377,34 +208,6 @@ export function PostComposer({
               <AlertTriangle className="mr-1 h-4 w-4" />
               CW
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ACCEPTED_FILE_TYPES}
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachments.length >= MAX_ATTACHMENTS || uploading}
-            >
-              {uploading ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <ImagePlus className="mr-1 h-4 w-4" />
-              )}
-              {videoProgress !== null
-                ? `Transcoding… ${videoProgress}%`
-                : uploading
-                  ? 'Uploading…'
-                  : attachments.length > 0
-                    ? `${attachments.length}/${MAX_ATTACHMENTS}`
-                    : 'Media'}
-            </Button>
           </div>
         </div>
         <TabsContent value="write" className="mt-2">
@@ -435,43 +238,13 @@ export function PostComposer({
         </TabsContent>
       </Tabs>
 
-      {/* Safari media notice */}
-      {safariMediaNotice && (
-        <p className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
-          {`Audio/video playback requires Chrome or Firefox \u{1F49B} \u2014 your upload will succeed but won't play on this device.`}
-        </p>
-      )}
-
-      {/* Attachment previews */}
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {attachments.map((att, i) => (
-            <div key={i} className="group relative">
-              {att.type === 'image' ? (
-                <Image
-                  src={att.url}
-                  alt={att.name || ''}
-                  width={80}
-                  height={80}
-                  className="h-20 w-20 rounded-md border object-cover"
-                  unoptimized
-                />
-              ) : (
-                <div className="bg-muted flex h-20 w-20 items-center justify-center rounded-md border">
-                  <Volume2 className="text-muted-foreground h-6 w-6" />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAttachment(i)}
-                className="bg-destructive text-destructive-foreground absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <MultiMediaUpload
+        value={attachments}
+        onChange={setAttachments}
+        imageUploadEndpoint="/api/social/media"
+        presignEndpoint="/api/social/media/upload"
+        pathPrefix="social/media"
+      />
 
       <div className="flex items-center justify-end gap-3">
         <span
