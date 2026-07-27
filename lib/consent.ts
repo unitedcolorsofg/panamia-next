@@ -96,7 +96,14 @@ export async function requireModuleConsent(
     ok: false,
     code: 'CONSENT_REQUIRED',
     module,
-    error: `You have not consented to the ${module} module terms`,
+    // Consent is informed and human: it must be given through interactive
+    // login (not the API), is keyed to the current policy version, and expires
+    // after one year — so this covers first-time consent, updated terms, and
+    // lapsed receipts alike.
+    error:
+      `Consent to the current ${module} module terms is required. ` +
+      `This must be granted through interactive login — it cannot be given via the API — ` +
+      `and all consents expire after one year, so you may need to consent again.`,
   };
 }
 
