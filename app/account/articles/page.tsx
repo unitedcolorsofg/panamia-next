@@ -16,6 +16,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   PenLine,
   Clock,
   CheckCircle,
@@ -24,6 +35,7 @@ import {
   Plus,
   Edit3,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 
 interface Article {
@@ -73,12 +85,50 @@ const statusConfig: Record<
   },
 };
 
-function ArticleCard({ article }: { article: Article }) {
+function ArticleCard({
+  article,
+  onDeleted,
+}: {
+  article: Article;
+  onDeleted: (slug: string) => void;
+}) {
   const status = statusConfig[article.status] || statusConfig.draft;
   const canEdit =
     article.status === 'draft' ||
     article.status === 'pending_review' ||
     article.status === 'revision_needed';
+  // The author or an accepted co-author can delete (co-authors share
+  // ownership), and only before publication — a published article must be
+  // unpublished first. Mirrors the DELETE API.
+  const canDelete =
+    article.status !== 'published' &&
+    (article.userRole === 'author' ||
+      (article.userRole === 'coauthor' &&
+        article.coAuthorStatus === 'accepted'));
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(`/api/articles/${article.slug}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete article');
+      }
+      onDeleted(article.slug);
+    } catch (err: unknown) {
+      setDeleteError(
+        (err instanceof Error ? err.message : null) ||
+          'Failed to delete article'
+      );
+      setDeleting(false);
+    }
+  };
 
   return (
     <Card>
@@ -145,6 +195,57 @@ function ArticleCard({ article }: { article: Article }) {
                   View
                 </Link>
               </Button>
+            )}
+            {canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 dark:text-red-400"
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this article?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      &ldquo;{article.title || 'Untitled Article'}&rdquo; will
+                      be permanently deleted for everyone, including any other
+                      authors. This cannot be undone.
+                      {deleteError && (
+                        <span className="mt-2 block text-red-600 dark:text-red-400">
+                          {deleteError}
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault(); // keep dialog open until the request settles
+                        handleDelete();
+                      }}
+                      disabled={deleting}
+                      className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                    >
+                      {deleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting…
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
@@ -303,7 +404,13 @@ export default function MyArticlesPage() {
         ) : (
           <div className="space-y-4">
             {filteredArticles.map((article) => (
-              <ArticleCard key={article._id} article={article} />
+              <ArticleCard
+                key={article._id}
+                article={article}
+                onDeleted={(slug) =>
+                  setArticles((prev) => prev.filter((a) => a.slug !== slug))
+                }
+              />
             ))}
           </div>
         )}

@@ -360,18 +360,34 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Only author can delete
-    if (articleDoc.authorId !== session.user.id) {
+    // The author or any accepted co-author can delete — co-authors share
+    // ownership. Pending/declined invitees cannot.
+    const deleteCoAuthors = articleDoc.coAuthors as unknown as
+      CoAuthor[] | null;
+    const canDelete =
+      articleDoc.authorId === session.user.id ||
+      deleteCoAuthors?.some(
+        (ca) => ca.userId === session.user.id && ca.status === 'accepted'
+      );
+    if (!canDelete) {
       return NextResponse.json(
-        { success: false, error: 'Only the author can delete this article' },
+        {
+          success: false,
+          error: 'Only the author or an accepted co-author can delete this',
+        },
         { status: 403 }
       );
     }
 
-    // Can only delete drafts
-    if (articleDoc.status !== 'draft') {
+    // A published article must be unpublished first — it's public and may have
+    // been cross-posted to the relay. Everything pre-publication
+    // (draft / pending_review / revision_needed) can be deleted by its author.
+    if (articleDoc.status === 'published') {
       return NextResponse.json(
-        { success: false, error: 'Can only delete draft articles' },
+        {
+          success: false,
+          error: 'Unpublish the article before deleting it',
+        },
         { status: 400 }
       );
     }

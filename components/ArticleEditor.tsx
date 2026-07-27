@@ -29,7 +29,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
-  Save,
   Eye,
   Edit3,
   X,
@@ -119,8 +118,17 @@ export default function ArticleEditor({
     initialData.coverImageAlt || ''
   );
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-save state. Drafts save automatically once they have a title, so
+  // there's no manual "Save Draft" button. saveState drives the status text.
+  const [saveState, setSaveState] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle');
+  const savingRef = useRef(false); // guards against overlapping saves
+  const lastSavedRef = useRef<string>(''); // serialized last-saved payload
+  const createdSlugRef = useRef<string | null>(null); // slug after first create
+  const collabRef = useRef<HTMLDivElement>(null); // scroll target for "Invite"
 
   // Collaboration state
   const [coAuthors, setCoAuthors] = useState<CoAuthorInfo[]>(
@@ -216,63 +224,129 @@ export default function ArticleEditor({
     [handleAddTag]
   );
 
-  const handleSave = async () => {
+  const buildSaveData = useCallback(
+    () => ({
+      title: title.trim(),
+      content,
+      articleType,
+      tags,
+      coverImage: coverImage || undefined,
+      coverImageAlt: coverImageAlt || undefined,
+      inReplyTo: inReplyTo?._id || undefined,
+      ccLicense,
+    }),
+    [
+      title,
+      content,
+      articleType,
+      tags,
+      coverImage,
+      coverImageAlt,
+      inReplyTo,
+      ccLicense,
+    ]
+  );
+
+  // Persist the draft. Creates on first save (then moves into edit mode so the
+  // collaboration tools appear), PATCHes thereafter. Returns the article's slug
+  // (or null if it couldn't save). No-ops when the title is empty or nothing
+  // changed since the last save. Used by both auto-save and the "Invite" button.
+  const doSave = useCallback(async (): Promise<string | null> => {
+    if (!title.trim()) return null;
+    const data = buildSaveData();
+    const serialized = JSON.stringify(data);
+    const existingSlug = initialData.slug ?? createdSlugRef.current;
+    if (serialized === lastSavedRef.current) return existingSlug;
+    if (savingRef.current) return null;
+
+    savingRef.current = true;
+    setSaveState('saving');
     setError(null);
-
-    if (!title.trim()) {
-      setError('Title is required');
-      return;
-    }
-
-    setSaving(true);
-
     try {
-      const data = {
-        title: title.trim(),
-        content,
-        articleType,
-        tags,
-        coverImage: coverImage || undefined,
-        coverImageAlt: coverImageAlt || undefined,
-        inReplyTo: inReplyTo?._id || undefined,
-        ccLicense,
-      };
-
       if (onSave) {
         await onSave(data);
-      } else {
-        // Default save behavior
-        const url =
-          mode === 'create'
-            ? '/api/articles'
-            : `/api/articles/${initialData.slug}`;
-        const method = mode === 'create' ? 'POST' : 'PATCH';
+        lastSavedRef.current = serialized;
+        setSaveState('saved');
+        return existingSlug;
+      }
 
-        const response = await fetch(url, {
-          method,
+      if (!existingSlug) {
+        const response = await fetch('/api/articles', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-
         const result = await response.json();
-
         if (!result.success) {
           throw new Error(result.error || 'Failed to save article');
         }
-
-        // Redirect to edit page for new articles, or stay on page for edits
-        if (mode === 'create') {
-          router.push(`/a/${result.data.slug}/edit`);
-        }
+        createdSlugRef.current = result.data.slug;
+        lastSavedRef.current = serialized;
+        setSaveState('saved');
+        // Move into edit mode where the collaboration panel lives.
+        router.replace(`/a/${result.data.slug}/edit`);
+        return result.data.slug;
       }
+
+      const response = await fetch(`/api/articles/${existingSlug}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save article');
+      }
+      lastSavedRef.current = serialized;
+      setSaveState('saved');
+      return existingSlug;
     } catch (err: unknown) {
+      setSaveState('error');
       setError(
         (err instanceof Error ? err.message : null) || 'Failed to save article'
       );
+      return null;
     } finally {
-      setSaving(false);
+      savingRef.current = false;
     }
-  };
+  }, [title, buildSaveData, onSave, initialData.slug, router]);
+
+  // Snapshot the initial content once so auto-save doesn't re-save unchanged
+  // data (e.g. immediately after the edit page loads).
+  // Only on mount — buildSaveData intentionally excluded so this snapshots the
+  // initial content exactly once.
+  useEffect(() => {
+    lastSavedRef.current = JSON.stringify(buildSaveData());
+  }, []);
+
+  // Debounced auto-save: persist ~1.5s after edits settle, once a title exists.
+  useEffect(() => {
+    if (!title.trim()) return;
+    const handle = setTimeout(() => {
+      void doSave();
+    }, 1500);
+    return () => clearTimeout(handle);
+  }, [
+    title,
+    content,
+    articleType,
+    tags,
+    coverImage,
+    coverImageAlt,
+    inReplyTo,
+    ccLicense,
+    doSave,
+  ]);
+
+  // "Invite" scrolls to the collaboration panel. In create mode the panel
+  // doesn't exist yet, so save first (which navigates into edit mode).
+  const handleInviteClick = useCallback(async () => {
+    if (collabRef.current) {
+      collabRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    await doSave();
+  }, [doSave]);
 
   const handleInviteCoAuthor = async (user: {
     _id: string;
@@ -481,16 +555,29 @@ export default function ArticleEditor({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{mode === 'create' ? 'New Article' : 'Edit Article'}</span>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleSave} disabled={saving} variant="outline">
-                {saving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
+            <div className="flex items-center gap-3">
+              {/* Auto-save status */}
+              <span
+                className="text-muted-foreground flex items-center gap-1 text-xs"
+                aria-live="polite"
+              >
+                {saveState === 'saving' && (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving…
+                  </>
                 )}
-                {saving ? 'Saving...' : 'Save Draft'}
-              </Button>
-              {canPublish && (
+                {saveState === 'saved' && (
+                  <>
+                    <Check className="h-3 w-3 text-green-500" />
+                    Saved
+                  </>
+                )}
+                {saveState === 'error' && (
+                  <span className="text-red-500">Save failed</span>
+                )}
+              </span>
+              {canPublish ? (
                 <Button onClick={requestPublish} disabled={publishing}>
                   {publishing ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -498,6 +585,11 @@ export default function ArticleEditor({
                     <Upload className="mr-2 h-4 w-4" />
                   )}
                   {publishing ? 'Publishing...' : 'Publish'}
+                </Button>
+              ) : (
+                <Button onClick={handleInviteClick} disabled={!title.trim()}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Invite
                 </Button>
               )}
             </div>
@@ -742,8 +834,9 @@ export default function ArticleEditor({
             </p>
             {mode === 'create' && (
               <p className="mt-2 text-sm text-blue-800 dark:text-blue-200">
-                Save this draft first — the collaboration tools for inviting a
-                co-author or requesting a review appear once the draft exists.
+                Your draft saves automatically once it has a title. The tools to
+                invite a co-author or request a review appear right after — or
+                just press <strong>Invite</strong>.
               </p>
             )}
           </div>
@@ -752,7 +845,7 @@ export default function ArticleEditor({
 
       {/* Collaboration Panel - Only in edit mode */}
       {mode === 'edit' && initialData.slug && (
-        <Card>
+        <Card ref={collabRef}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
