@@ -1,31 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { recordConsent } from '@/lib/consent';
-
-// Read policy.json at build time to get current versions
-// TODO: When policy versions are updated more frequently, consider reading
-// these dynamically or from a shared config module.
-import termsPolicy from '@/app/legal/terms/policy.json';
-import privacyPolicy from '@/app/legal/privacy/policy.json';
-
-function getVersion(document: string, module: string | null): string | null {
-  if (document === 'terms') {
-    if (!module) return termsPolicy.version;
-    const mod = termsPolicy.modules.find(
-      (m: { name: string }) => m.name === module
-    );
-    return mod?.version ?? null;
-  }
-  if (document === 'privacy') {
-    return privacyPolicy.version;
-  }
-  return null;
-}
-
-function parseMajorVersion(version: string): number {
-  const major = parseInt(version.split('.')[0], 10);
-  return isNaN(major) ? 0 : major;
-}
+import {
+  getDocumentVersion,
+  parseMajorVersion,
+} from '@/lib/legal/policy-version';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -46,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const version = getVersion(document, module || null);
+  const version = getDocumentVersion(document, module || null);
   if (!version) {
     return NextResponse.json(
       { success: false, error: 'Unknown document or module' },

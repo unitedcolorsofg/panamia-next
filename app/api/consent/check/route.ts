@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { hasConsent } from '@/lib/consent';
 import {
-  getModuleMajorVersion,
-  getTermsMajorVersion,
+  getDocumentVersion,
+  parseMajorVersion,
 } from '@/lib/legal/policy-version';
 
 export async function GET(request: NextRequest) {
@@ -29,19 +29,14 @@ export async function GET(request: NextRequest) {
   // The required version is resolved exclusively from policy.json (the source
   // of truth) — clients never supply it, so they can't check against a stale
   // version they happen to have consented to.
-  let majorVersion: number | null = null;
-  if (document === 'terms') {
-    majorVersion = module
-      ? getModuleMajorVersion(module)
-      : getTermsMajorVersion();
-  }
-
-  if (majorVersion === null || Number.isNaN(majorVersion)) {
+  const version = getDocumentVersion(document, module);
+  if (!version) {
     return NextResponse.json(
-      { success: false, error: 'Unknown or missing version' },
+      { success: false, error: 'Unknown document or module' },
       { status: 400 }
     );
   }
+  const majorVersion = parseMajorVersion(version);
 
   const consented = await hasConsent(
     session.user.id,
