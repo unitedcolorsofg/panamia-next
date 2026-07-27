@@ -204,6 +204,13 @@
       "when": 1784332800000,
       "tag": "0028_article_type_staff_update",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1785196800000,
+      "tag": "0029_articles_coauthors_gin",
+      "breakpoints": true
     }
   ]
 }

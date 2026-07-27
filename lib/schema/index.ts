@@ -633,6 +633,12 @@ export const articles = pgTable(
       table.status
     ),
     inReplyToIdx: index('articles_in_reply_to_idx').on(table.inReplyTo),
+    // GIN index for "user X is a co-author" containment queries
+    // (co_authors @> '[{"userId":"X"}]'). See migration 0029.
+    coAuthorsIdx: index('articles_co_authors_gin_idx').using(
+      'gin',
+      sql`${table.coAuthors} jsonb_path_ops`
+    ),
   })
 );
 

@@ -8,7 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { articles } from '@/lib/schema';
 import type { ArticleStatus } from '@/lib/schema';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 
 interface CoAuthor {
   userId: string;
@@ -35,73 +37,50 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Build status filter
-    const statusValues = status ? status.split(',') : null;
+    const statusValues = status ? (status.split(',') as ArticleStatus[]) : null;
 
-    // Query articles where user is author
-    const authorArticles = await db.query.articles.findMany({
-      where: (t, { eq, and, inArray }) =>
-        statusValues
-          ? and(
-              eq(t.authorId, currentUserId),
-              inArray(t.status, statusValues as ArticleStatus[])
-            )
-          : eq(t.authorId, currentUserId),
-      orderBy: (t, { desc }) => [desc(t.updatedAt)],
-      columns: {
-        id: true,
-        slug: true,
-        title: true,
-        excerpt: true,
-        articleType: true,
-        status: true,
-        authorId: true,
-        coAuthors: true,
-        publishedAt: true,
-        updatedAt: true,
-        readingTime: true,
-      },
-    });
-
-    // Query all articles to check coAuthors (JSONB filtering)
-    const allArticles = await db.query.articles.findMany({
-      where: statusValues
-        ? (t, { inArray }) => inArray(t.status, statusValues as ArticleStatus[])
-        : undefined,
-      orderBy: (t, { desc }) => [desc(t.updatedAt)],
-      columns: {
-        id: true,
-        slug: true,
-        title: true,
-        excerpt: true,
-        articleType: true,
-        status: true,
-        authorId: true,
-        coAuthors: true,
-        publishedAt: true,
-        updatedAt: true,
-        readingTime: true,
-      },
-    });
-
-    // Filter for co-authored articles
-    const coAuthoredArticles = allArticles.filter((a) => {
-      if (a.authorId === currentUserId) return false;
-      const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
-      return coAuthors?.some((ca) => ca.userId === currentUserId);
-    });
-
-    // Merge and sort by updatedAt
-    const combined = [...authorArticles, ...coAuthoredArticles].sort(
-      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    // Author OR co-author, in one indexed query. The co-author arm is a JSONB
+    // containment match backed by articles_co_authors_gin_idx (migration 0029),
+    // replacing the previous scan-all-articles-and-filter-in-JS approach.
+    const authorship = or(
+      eq(articles.authorId, currentUserId),
+      sql`${articles.coAuthors} @> ${JSON.stringify([{ userId: currentUserId }])}::jsonb`
+    );
+    const whereClause = and(
+      authorship,
+      statusValues ? inArray(articles.status, statusValues) : undefined
     );
 
-    // Apply pagination
-    const total = combined.length;
-    const paginatedArticles = combined.slice(offset, offset + limit);
+    const [rows, countResult] = await Promise.all([
+      db.query.articles.findMany({
+        where: whereClause,
+        orderBy: (t, { desc }) => [desc(t.updatedAt)],
+        limit,
+        offset,
+        columns: {
+          id: true,
+          slug: true,
+          title: true,
+          excerpt: true,
+          articleType: true,
+          status: true,
+          authorId: true,
+          coAuthors: true,
+          publishedAt: true,
+          updatedAt: true,
+          readingTime: true,
+        },
+      }),
+      db
+        .select({ count: sql<string>`count(*)` })
+        .from(articles)
+        .where(whereClause),
+    ]);
+
+    const total = Number(countResult[0].count);
 
     // Determine user's role in each article
-    const articlesWithRole = paginatedArticles.map((a) => {
+    const articlesWithRole = rows.map((a) => {
       const isAuthor = a.authorId === currentUserId;
       const coAuthors = a.coAuthors as unknown as CoAuthor[] | null;
       const coAuthorEntry = coAuthors?.find(
@@ -120,7 +99,7 @@ export async function GET(request: NextRequest) {
       data: {
         articles: articlesWithRole,
         total,
-        hasMore: offset + paginatedArticles.length < total,
+        hasMore: offset + rows.length < total,
       },
     });
   } catch (error) {

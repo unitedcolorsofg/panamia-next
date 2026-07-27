@@ -7,7 +7,7 @@
 
 import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import type { ArticleStatus } from './interfaces';
 import type { ArticleType } from './schema';
 
@@ -184,34 +184,30 @@ export async function getArticlesByAuthor(
       : eq(articles.status, status as ArticleStatus)
     : undefined;
 
-  // Query articles where user is author
-  const authorArticles = await db.query.articles.findMany({
-    where: and(eq(articles.authorId, authorId), statusCondition),
-    orderBy: [desc(articles.updatedAt)],
-  });
-
-  // Query all articles to check coAuthors (JSONB filtering)
-  // Note: For large datasets, consider using raw SQL with JSONB operators
-  const allArticles = await db.query.articles.findMany({
-    where: statusCondition,
-    orderBy: [desc(articles.updatedAt)],
-  });
-
-  // Filter for co-authored articles
-  const coAuthoredArticles = allArticles.filter((a) => {
-    if (a.authorId === authorId) return false; // Already in authorArticles
-    const coAuthors = a.coAuthors as Array<{ userId: string }> | null;
-    return coAuthors?.some((ca) => ca.userId === authorId);
-  });
-
-  // Merge and sort by updatedAt
-  const combined = [...authorArticles, ...coAuthoredArticles].sort(
-    (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+  // Author OR co-author, in one indexed query. The co-author arm uses a JSONB
+  // containment match backed by the articles_co_authors_gin_idx GIN index
+  // (migration 0029) instead of scanning every article and filtering in JS. A
+  // single row can't be double-counted since it's one OR predicate.
+  const authorship = or(
+    eq(articles.authorId, authorId),
+    sql`${articles.coAuthors} @> ${JSON.stringify([{ userId: authorId }])}::jsonb`
   );
+  const whereClause = and(authorship, statusCondition);
 
-  // Apply pagination
-  const total = combined.length;
-  const articlesList = combined.slice(offset, offset + limit);
+  const [articlesList, countResult] = await Promise.all([
+    db.query.articles.findMany({
+      where: whereClause,
+      orderBy: [desc(articles.updatedAt)],
+      limit,
+      offset,
+    }),
+    db
+      .select({ count: sql<string>`count(*)` })
+      .from(articles)
+      .where(whereClause),
+  ]);
+
+  const total = Number(countResult[0].count);
 
   return {
     articles: articlesList,
