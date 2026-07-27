@@ -84,10 +84,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       coAuthors?.some(
         (ca) => ca.userId === currentUserId && ca.status === 'accepted'
       );
+    // A pending co-author invitee needs read access so the invitation page can
+    // show them what they're being invited to. This grants read only — edit
+    // access stays gated on `isCoAuthor` (accepted) below. Mirrors reviewers,
+    // who can already view while their review is still pending.
+    const isInvitedCoAuthor =
+      currentUserId &&
+      coAuthors?.some(
+        (ca) => ca.userId === currentUserId && ca.status === 'pending'
+      );
     const isReviewer = currentUserId && reviewedBy?.userId === currentUserId;
 
     // Only published articles are publicly accessible
-    if (!isPublished && !isAuthor && !isCoAuthor && !isReviewer) {
+    if (
+      !isPublished &&
+      !isAuthor &&
+      !isCoAuthor &&
+      !isReviewer &&
+      !isInvitedCoAuthor
+    ) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
         { status: 404 }
