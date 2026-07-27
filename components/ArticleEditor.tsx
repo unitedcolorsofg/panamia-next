@@ -779,6 +779,9 @@ export default function ArticleEditor({
           <div className="space-y-2">
             <Label>License</Label>
             <CCLicensePicker value={ccLicense} onChange={handleLicenseChange} />
+            <p className="text-muted-foreground text-xs">
+              This license also applies to all cover photos or videos.
+            </p>
           </div>
 
           {/* Content Editor with Preview */}
