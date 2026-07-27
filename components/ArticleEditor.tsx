@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import UserSearch from '@/components/UserSearch';
 import ArticleSearch from '@/components/ArticleSearch';
+import MediaUpload from '@/components/MediaUpload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -694,33 +695,35 @@ export default function ArticleEditor({
             )}
           </div>
 
-          {/* Cover Image */}
+          {/* Cover Photo or Video */}
           <div className="space-y-2">
-            <Label htmlFor="coverImage">Cover Image URL (optional)</Label>
-            <Input
-              id="coverImage"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://..."
-              type="url"
+            <Label>Cover Photo or Video (optional)</Label>
+            <MediaUpload
+              value={coverImage || null}
+              onChange={(url) => setCoverImage(url ?? '')}
+              accept="both"
+              uploadEndpoint="/api/articles/media/upload"
+              pathPrefix="articles/media"
             />
-            {/* Alt text is a detail of the cover image, not a peer field —
-                nest it under the URL with an indent and a lighter label so it
-                reads as a sub-detail rather than its own top-level input. */}
-            <div className="border-muted mt-1 space-y-1 border-l-2 pl-3">
-              <Label
-                htmlFor="coverImageAlt"
-                className="text-muted-foreground text-xs font-normal"
-              >
-                Alt text (for screen readers)
-              </Label>
-              <Input
-                id="coverImageAlt"
-                value={coverImageAlt}
-                onChange={(e) => setCoverImageAlt(e.target.value)}
-                placeholder="Describe the cover image"
-              />
-            </div>
+            {/* Alt text is a detail of the cover, not a peer field — nest it
+                under the uploader with an indent and a lighter label so it reads
+                as a sub-detail. Only relevant once media is attached. */}
+            {coverImage && (
+              <div className="border-muted mt-1 space-y-1 border-l-2 pl-3">
+                <Label
+                  htmlFor="coverImageAlt"
+                  className="text-muted-foreground text-xs font-normal"
+                >
+                  Alt text (for screen readers)
+                </Label>
+                <Input
+                  id="coverImageAlt"
+                  value={coverImageAlt}
+                  onChange={(e) => setCoverImageAlt(e.target.value)}
+                  placeholder="Describe the cover image"
+                />
+              </div>
+            )}
           </div>
 
           {/* In Reply To */}

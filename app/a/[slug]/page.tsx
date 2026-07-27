@@ -12,6 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/db';
 import { articles, users } from '@/lib/schema';
 import { and, eq, inArray } from 'drizzle-orm';
+import { isVideoUrl } from '@/lib/media/is-video-url';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ArticleTypeBadge from '@/components/ArticleTypeBadge';
@@ -190,16 +191,33 @@ export default async function ArticlePage({ params }: PageProps) {
       </Link>
 
       <article>
-        {/* Cover Image */}
+        {/* Cover Photo or Video */}
         {articleData.coverImage && (
           <div className="relative mb-8 aspect-video overflow-hidden rounded-lg">
-            <Image
-              src={articleData.coverImage}
-              alt={articleData.coverImageAlt || articleData.title}
-              fill
-              className="object-cover"
-              priority
-            />
+            {isVideoUrl(articleData.coverImage) ? (
+              // Muted autoplay + loop (silent); controls let the reader unmute
+              // or pause. Audio never plays without the reader's action.
+              <video
+                src={articleData.coverImage}
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label={articleData.coverImageAlt || articleData.title}
+                className="h-full w-full bg-black object-contain"
+              />
+            ) : (
+              <Image
+                src={articleData.coverImage}
+                alt={articleData.coverImageAlt || articleData.title}
+                fill
+                unoptimized
+                className="object-cover"
+                priority
+              />
+            )}
           </div>
         )}
 
@@ -378,7 +396,11 @@ export async function generateMetadata({ params }: PageProps) {
       description: articleData.excerpt,
       type: 'article',
       publishedTime: articleData.publishedAt,
-      images: articleData.coverImage ? [articleData.coverImage] : [],
+      // A video cover isn't a valid og:image; only images are used here.
+      images:
+        articleData.coverImage && !isVideoUrl(articleData.coverImage)
+          ? [articleData.coverImage]
+          : [],
     },
     other: {
       'dcterms.license': licenseUrl,

@@ -12,6 +12,7 @@ import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Users } from 'lucide-react';
+import { isVideoUrl } from '@/lib/media/is-video-url';
 
 interface ArticleCardProps {
   slug: string;
@@ -58,12 +59,27 @@ export default function ArticleCard({
       <Card className="group h-full overflow-hidden transition-shadow hover:shadow-lg">
         {coverImage && (
           <div className="relative aspect-video overflow-hidden">
-            <Image
-              src={coverImage}
-              alt={coverImageAlt || title}
-              fill
-              className="object-cover transition-transform group-hover:scale-105"
-            />
+            {isVideoUrl(coverImage) ? (
+              // Silent looping preview — muted autoplay (never any audio). Full
+              // playback with sound happens on the article page the card links to.
+              <video
+                src={coverImage}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="h-full w-full bg-black object-cover"
+              />
+            ) : (
+              <Image
+                src={coverImage}
+                alt={coverImageAlt || title}
+                fill
+                unoptimized
+                className="object-cover transition-transform group-hover:scale-105"
+              />
+            )}
           </div>
         )}
         <CardContent className={coverImage ? 'pt-4' : 'pt-6'}>
