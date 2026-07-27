@@ -20,6 +20,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { articlesConsentGate } from '@/lib/article/consent';
 
 const ALLOWED_TYPES = [
   'image/jpeg',
@@ -69,6 +70,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 403 }
     );
   }
+
+  // Uploading is interacting with the module — require Articles-terms consent.
+  const consentBlock = await articlesConsentGate(session.user.id);
+  if (consentBlock) return consentBlock;
 
   const body = (await request.json()) as {
     filename?: string;

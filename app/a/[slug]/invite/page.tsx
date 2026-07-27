@@ -15,6 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, FileText, Loader2, User } from 'lucide-react';
+import { useModuleConsent } from '@/hooks/use-module-consent';
+import { ConsentModal } from '@/components/legal/ConsentModal';
 
 interface ArticleData {
   _id: string;
@@ -50,6 +52,12 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Accepting an invitation is interacting with the Articles module, so the
+  // invitee must give informed consent to its terms first — the same hard gate
+  // the editor shows. Version comes from policy.json (majorVersion omitted).
+  const { needsConsent: needsArticleConsent, recordConsent: onArticleConsent } =
+    useModuleConsent({ document: 'terms', module: 'articles' });
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -313,6 +321,16 @@ export default function InvitePage() {
           </div>
         </CardContent>
       </Card>
+
+      <ConsentModal
+        open={needsArticleConsent}
+        type="gate"
+        module="articles"
+        title="Articles Terms"
+        description="Articles are published under a CC license and become part of the community record 3 months after publication. After that threshold, deletion requests are not honored — you may choose to keep attribution or anonymize."
+        policyUrl="/legal/terms/modules/articles"
+        onConsent={onArticleConsent}
+      />
     </main>
   );
 }

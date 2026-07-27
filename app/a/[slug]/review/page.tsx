@@ -18,6 +18,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useModuleConsent } from '@/hooks/use-module-consent';
+import { ConsentModal } from '@/components/legal/ConsentModal';
 import {
   CheckCircle,
   AlertTriangle,
@@ -68,6 +70,12 @@ export default function ReviewPage() {
   });
   const [newComment, setNewComment] = useState('');
   const [revisionComment, setRevisionComment] = useState('');
+
+  // Reviewing is interacting with the Articles module, so the reviewer must
+  // give informed consent to its terms first — the same hard gate the editor
+  // shows. Version comes from policy.json (majorVersion omitted).
+  const { needsConsent: needsArticleConsent, recordConsent: onArticleConsent } =
+    useModuleConsent({ document: 'terms', module: 'articles' });
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -460,6 +468,16 @@ export default function ReviewPage() {
           </Card>
         </div>
       </div>
+
+      <ConsentModal
+        open={needsArticleConsent}
+        type="gate"
+        module="articles"
+        title="Articles Terms"
+        description="Articles are published under a CC license and become part of the community record 3 months after publication. After that threshold, deletion requests are not honored — you may choose to keep attribution or anonymize."
+        policyUrl="/legal/terms/modules/articles"
+        onConsent={onArticleConsent}
+      />
     </main>
   );
 }

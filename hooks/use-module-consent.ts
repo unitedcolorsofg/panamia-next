@@ -26,7 +26,12 @@ import { useState, useEffect, useCallback } from 'react';
 interface UseModuleConsentOptions {
   document: string;
   module: string | null;
-  majorVersion: number;
+  /**
+   * Optional. When omitted, the server derives the current major version from
+   * policy.json (the source of truth) for the given module — preferred, so
+   * callers don't hardcode versions.
+   */
+  majorVersion?: number;
   /** Skip the consent check entirely (e.g., for admin users) */
   skip?: boolean;
 }
@@ -55,11 +60,12 @@ export function useModuleConsent({
 
     const checkConsent = async () => {
       try {
-        const params = new URLSearchParams({
-          document,
-          majorVersion: String(majorVersion),
-        });
+        const params = new URLSearchParams({ document });
         if (module) params.set('module', module);
+        // Omit majorVersion to let the server derive it from policy.json.
+        if (majorVersion !== undefined) {
+          params.set('majorVersion', String(majorVersion));
+        }
 
         // TODO: Implement GET /api/consent/check
         // Expected response: { consented: boolean }

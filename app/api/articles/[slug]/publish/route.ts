@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
 import { isAuthor as isArticleAuthor } from '@/lib/article/permissions';
+import { articlesConsentGate } from '@/lib/article/consent';
 import { isVideoUrl } from '@/lib/media/is-video-url';
 import type { ArticleStatus } from '@/lib/schema';
 import {
@@ -133,6 +134,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 403 }
       );
     }
+
+    // Require current Articles-terms consent (server parity with the client
+    // gate; see lib/article/consent.ts).
+    const consentBlock = await articlesConsentGate(session.user.id);
+    if (consentBlock) return consentBlock;
 
     // Check if article can be published
     if (articleDoc.status === 'published') {

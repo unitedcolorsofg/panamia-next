@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { articlesConsentGate } from '@/lib/article/consent';
 import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
 import { eq, and, sql, SQL } from 'drizzle-orm';
@@ -28,6 +29,11 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Require current Articles-terms consent (server parity with the client
+    // gate; see lib/article/consent.ts).
+    const consentBlock = await articlesConsentGate(session.user.id);
+    if (consentBlock) return consentBlock;
 
     // Get user and verify they have a screenname
     const currentUser = await db.query.users.findFirst({

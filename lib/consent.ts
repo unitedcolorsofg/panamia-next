@@ -65,6 +65,41 @@ export async function hasConsent(
   return !!receipt;
 }
 
+export interface ConsentGateResult {
+  ok: boolean;
+  /** Machine-readable code for clients; present only when ok is false. */
+  code?: 'CONSENT_REQUIRED';
+  /** The module the caller still needs to consent to. */
+  module?: string;
+  /** Human-readable message suitable for an API error body. */
+  error?: string;
+}
+
+/**
+ * Server-side counterpart to the client's useModuleConsent gate: verifies the
+ * user has a current consent receipt for a module before a gated action (e.g.
+ * publishing an article) is allowed. Returns a structured result so routes can
+ * surface a consistent `code: 'CONSENT_REQUIRED'` alongside the module.
+ *
+ * This gives the API parity with the previously JavaScript-only gate — a
+ * scripted client can no longer bypass the consent modal.
+ */
+export async function requireModuleConsent(
+  userId: string,
+  document: string,
+  module: string,
+  majorVersion: number
+): Promise<ConsentGateResult> {
+  const consented = await hasConsent(userId, document, module, majorVersion);
+  if (consented) return { ok: true };
+  return {
+    ok: false,
+    code: 'CONSENT_REQUIRED',
+    module,
+    error: `You have not consented to the ${module} module terms`,
+  };
+}
+
 /**
  * Record a consent receipt. Called when the user accepts a gate or
  * acknowledges a notice.
