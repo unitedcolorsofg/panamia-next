@@ -567,26 +567,34 @@ export default function ArticleEditor({
                 )}
               </span>
               {/* Single primary action: greyed out until the article is
-                  eligible (see the Publishing Requirements card / collaboration
-                  panel below), active once it can be published. */}
-              <Button
-                onClick={requestPublish}
-                disabled={!canPublish || publishing}
-                title={
-                  canPublish
-                    ? undefined
-                    : isStaffUpdate
-                      ? 'Add a title and content to publish'
-                      : 'Add an accepted co-author or an approved reviewer to publish'
-                }
-              >
-                {publishing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
+                  eligible, active once it can be published. When disabled, a
+                  hover tooltip explains what's missing — the disabled button has
+                  pointer-events-none, so hover passes through to the group
+                  wrapper. (Mouse-only; the same reason is shown in the
+                  Publishing Requirements card below for everyone else.) */}
+              <span className="group relative inline-block">
+                <Button
+                  onClick={requestPublish}
+                  disabled={!canPublish || publishing}
+                >
+                  {publishing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {publishing ? 'Publishing...' : 'Publish!'}
+                </Button>
+                {!canPublish && !publishing && (
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute top-full right-0 z-50 mt-2 w-56 rounded-md bg-gray-900 px-3 py-2 text-xs whitespace-normal text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-700"
+                  >
+                    {isStaffUpdate
+                      ? 'Add a title and content to publish.'
+                      : 'This article is awaiting an accepted co-author or an approved reviewer.'}
+                  </span>
                 )}
-                {publishing ? 'Publishing...' : 'Publish!'}
-              </Button>
+              </span>
             </div>
           </CardTitle>
           {canPublish && (
