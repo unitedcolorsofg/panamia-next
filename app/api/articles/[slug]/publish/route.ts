@@ -12,6 +12,7 @@ import { articles, users, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
+import { isVideoUrl } from '@/lib/media/is-video-url';
 import type { ArticleStatus } from '@/lib/schema';
 import {
   crosspostArticle,
@@ -208,6 +209,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let nostrEventId: string | null = null;
     let crosspost: Awaited<ReturnType<typeof crosspostArticle>> | null = null;
     let crosspostError: string | null = null;
+    // A video cover isn't a NIP-23 image and crossposting video isn't
+    // implemented, so only image covers are sent to the relay.
+    const coverIsVideo = isVideoUrl(articleDoc.coverImage);
     try {
       crosspost = await crosspostArticle({
         slug: articleDoc.slug,
@@ -216,8 +220,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         content: articleDoc.content,
         tags: articleDoc.tags || [],
         articleType: articleDoc.articleType,
-        coverImage: normalizeImageUrl(articleDoc.coverImage || undefined, host),
-        coverImageAlt: articleDoc.coverImageAlt || undefined,
+        coverImage: coverIsVideo
+          ? undefined
+          : normalizeImageUrl(articleDoc.coverImage || undefined, host),
+        coverImageAlt: coverIsVideo
+          ? undefined
+          : articleDoc.coverImageAlt || undefined,
         publishedAt: Math.floor(publishedAt.getTime() / 1000),
         contributors,
         license: license?.label,
