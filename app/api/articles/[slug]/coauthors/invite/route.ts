@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
+import { isAuthor as isArticleAuthor } from '@/lib/article/permissions';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can invite co-authors
-    if (articleDoc.authorId !== session.user.id) {
+    if (!isArticleAuthor(articleDoc, session.user.id)) {
       return NextResponse.json(
         { success: false, error: 'Only the author can invite co-authors' },
         { status: 403 }

@@ -10,6 +10,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { articles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { isAuthor as isArticleAuthor } from '@/lib/article/permissions';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can unpublish
-    if (articleDoc.authorId !== session.user.id) {
+    if (!isArticleAuthor(articleDoc, session.user.id)) {
       return NextResponse.json(
         { success: false, error: 'Only the author can unpublish this article' },
         { status: 403 }

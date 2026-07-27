@@ -11,6 +11,10 @@ import { db } from '@/lib/db';
 import { articles, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
+import {
+  isAuthor as isArticleAuthor,
+  isAcceptedCoAuthor,
+} from '@/lib/article/permissions';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -62,12 +66,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Check if user is author or accepted co-author
     const coAuthors = (articleDoc.coAuthors as unknown as CoAuthor[]) || [];
-    const isAuthor = articleDoc.authorId === session.user.id;
-    const isCoAuthor = coAuthors.some(
-      (ca) => ca.userId === session.user.id && ca.status === 'accepted'
-    );
-
-    if (!isAuthor && !isCoAuthor) {
+    if (
+      !isArticleAuthor(articleDoc, session.user.id) &&
+      !isAcceptedCoAuthor(articleDoc, session.user.id)
+    ) {
       return NextResponse.json(
         { success: false, error: 'Only authors can request reviews' },
         { status: 403 }

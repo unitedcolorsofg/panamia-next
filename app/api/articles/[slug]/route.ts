@@ -9,47 +9,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { articles, users } from '@/lib/schema';
-import type { Article } from '@/lib/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { calculateReadingTime, generateExcerpt } from '@/lib/article';
+import {
+  canView,
+  canEdit,
+  isAuthor as isArticleAuthor,
+  isAcceptedCoAuthor,
+  isReviewer as isArticleReviewer,
+  type CoAuthorEntry as CoAuthor,
+  type ReviewRecord as ReviewedBy,
+} from '@/lib/article/permissions';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
-}
-
-interface CoAuthor {
-  userId: string;
-  status: string;
-  invitationMessage?: string;
-  invitedAt?: string;
-  acceptedAt?: string;
-}
-
-interface ReviewedBy {
-  userId: string;
-  status: string;
-  checklist?: Record<string, boolean>;
-  comments?: { id: string; text: string }[];
-  requestedAt?: string;
-  approvedAt?: string;
-}
-
-/**
- * Check if user has edit access to an article
- */
-function hasEditAccess(articleDoc: Article, userId: string): boolean {
-  // Author always has access
-  if (articleDoc.authorId === userId) {
-    return true;
-  }
-
-  // Accepted co-authors have access
-  const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
-  const coAuthor = coAuthors?.find(
-    (ca) => ca.userId === userId && ca.status === 'accepted'
-  );
-
-  return !!coAuthor;
 }
 
 /**
@@ -77,32 +50,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const coAuthors = articleDoc.coAuthors as unknown as CoAuthor[] | null;
     const reviewedBy = articleDoc.reviewedBy as unknown as ReviewedBy | null;
 
-    const isPublished = articleDoc.status === 'published';
-    const isAuthor = currentUserId && articleDoc.authorId === currentUserId;
-    const isCoAuthor =
-      currentUserId &&
-      coAuthors?.some(
-        (ca) => ca.userId === currentUserId && ca.status === 'accepted'
-      );
-    // A pending co-author invitee needs read access so the invitation page can
-    // show them what they're being invited to. This grants read only — edit
-    // access stays gated on `isCoAuthor` (accepted) below. Mirrors reviewers,
-    // who can already view while their review is still pending.
-    const isInvitedCoAuthor =
-      currentUserId &&
-      coAuthors?.some(
-        (ca) => ca.userId === currentUserId && ca.status === 'pending'
-      );
-    const isReviewer = currentUserId && reviewedBy?.userId === currentUserId;
+    const isAuthor = isArticleAuthor(articleDoc, currentUserId);
+    const isCoAuthor = isAcceptedCoAuthor(articleDoc, currentUserId);
+    const isReviewer = isArticleReviewer(articleDoc, currentUserId);
 
-    // Only published articles are publicly accessible
-    if (
-      !isPublished &&
-      !isAuthor &&
-      !isCoAuthor &&
-      !isReviewer &&
-      !isInvitedCoAuthor
-    ) {
+    // canView also admits a pending co-author invitee (so the invitation page
+    // can load) and the reviewer; published articles are public. Read only —
+    // edit stays gated on canEdit (accepted co-author) below.
+    if (!canView(articleDoc, currentUserId)) {
       return NextResponse.json(
         { success: false, error: 'Article not found' },
         { status: 404 }
@@ -175,7 +130,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         isAuthor,
         isCoAuthor,
         isReviewer,
-        canEdit: isAuthor || isCoAuthor,
+        canEdit: canEdit(articleDoc, currentUserId),
       };
     }
 
@@ -218,7 +173,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check edit access
-    if (!hasEditAccess(articleDoc, session.user.id)) {
+    if (!canEdit(articleDoc, session.user.id)) {
       return NextResponse.json(
         {
           success: false,
@@ -362,14 +317,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // The author or any accepted co-author can delete — co-authors share
     // ownership. Pending/declined invitees cannot.
-    const deleteCoAuthors = articleDoc.coAuthors as unknown as
-      CoAuthor[] | null;
-    const canDelete =
-      articleDoc.authorId === session.user.id ||
-      deleteCoAuthors?.some(
-        (ca) => ca.userId === session.user.id && ca.status === 'accepted'
-      );
-    if (!canDelete) {
+    if (
+      !isArticleAuthor(articleDoc, session.user.id) &&
+      !isAcceptedCoAuthor(articleDoc, session.user.id)
+    ) {
       return NextResponse.json(
         {
           success: false,

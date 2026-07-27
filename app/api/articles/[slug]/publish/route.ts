@@ -12,6 +12,7 @@ import { articles, users, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications';
 import { isPublishable } from '@/lib/article';
+import { isAuthor as isArticleAuthor } from '@/lib/article/permissions';
 import { isVideoUrl } from '@/lib/media/is-video-url';
 import type { ArticleStatus } from '@/lib/schema';
 import {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can publish
-    if (articleDoc.authorId !== session.user.id) {
+    if (!isArticleAuthor(articleDoc, session.user.id)) {
       return NextResponse.json(
         { success: false, error: 'Only the author can publish this article' },
         { status: 403 }
