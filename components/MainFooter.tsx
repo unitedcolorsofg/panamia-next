@@ -17,7 +17,9 @@ export default function GlobalFooter() {
   return (
     <footer className={styles.footer} id="footer">
       <div className={styles.footerInner}>
-        <PanaLogo color="pink" size="medium" />
+        <div className={styles.footerLogo}>
+          <PanaLogo color="pink" size="medium" />
+        </div>
         {/* Ways to support the mission: joining, seeing the impact, giving. */}
         <ul className={styles.footerLinksAlt}>
           <li>

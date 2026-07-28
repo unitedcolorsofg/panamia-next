@@ -68,4 +68,13 @@
   .footer {
     padding: 1rem 0.75rem;
   }
+
+  /* Break the flex row after the logo so it no longer steals width from the
+     columns — otherwise the narrow socials stack wraps below Support/Community.
+     Give it the full row and center it. */
+  .footerLogo {
+    flex-basis: 100%;
+    display: flex;
+    justify-content: center;
+  }
 }
