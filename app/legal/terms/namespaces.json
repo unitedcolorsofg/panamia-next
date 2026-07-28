@@ -44,7 +44,6 @@
     "app/api/create-portal-session",
     "app/api/verify-turnstile",
     "app/become-a-pana",
-    "app/become-a-pana-google",
     "app/doc",
     "app/feed",
     "app/feed.json",

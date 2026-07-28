@@ -125,7 +125,6 @@ RSS and JSON feeds for articles:
 | `/doc/terms-and-conditions`           | Terms of service         |
 | `/doc/affiliate-terms-and-conditions` | Affiliate terms          |
 | `/become-a-pana`                      | Signup landing page      |
-| `/become-a-pana-google`               | Google-specific signup   |
 | `/migrate-email`                      | Email migration flow     |
 | `/verify-oauth-email`                 | OAuth email verification |
 | `/test`                               | Development test page    |

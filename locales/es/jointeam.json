@@ -1,6 +1,6 @@
 {
   "title": "Únete al Equipo",
-  "subtitle": "¿Te apasiona la comunidad y el crecimiento local? ¡Buscamos colaboradores entusiastas para ayudarnos a transformar el Sur de la Florida!",
+  "subtitle": "¿Te apasionan la comunidad y el crecimiento local? Buscamos colaboradores entusiastas —en un rol específico o como voluntarios— para ayudarnos a transformar el Sur de la Florida.",
   "role1": {
     "title": "Desarrollador/Desarrollador UX",
     "p1": "Pana MIA es, en esencia, una solución tecnológica, una herramienta digital para conectar y unir comunidades locales. Únete a la comunidad de desarrolladores de Pana MIA y da vida a herramientas digitales que transformarán la vida y el amor por lo local. Buscamos desarrolladores front-end, diseñadores UI/UX, desarrolladores JS/React. Consulta nuestro GitHub en nuestra bio.",
@@ -41,9 +41,14 @@
     "p2": "Pana MIA busca personas amigables y comprometidas con la comunidad que quieran representarnos en eventos, en línea y en la comunidad. Los socios nos ayudarán a crear conciencia sobre nuestra misión y a educar sobre la importancia de apoyar lo local en el Sur de la Florida, lo que hacemos para ayudar y cómo apoyar a Pana MIA.",
     "p3": "Lo que puedes esperar: Mesas en Eventos, Creación de Contenido, Alcance Comunitario, Voluntariado en Eventos, Distribución de Contenido"
   },
+  "volunteer": {
+    "title": "Sé Voluntario",
+    "p1": "¿No buscas un rol específico? Siempre nos hacen falta manos, y el voluntariado es la forma más fácil de sumarte. Aporta el tiempo que tengas: un solo evento o un compromiso continuo.",
+    "p2": "En qué consiste: ayudar a montar y a llevar eventos, atender mesas y repartir materiales en la comunidad, tomar fotos y video, traducir, difundir el directorio y echar una mano en lo que estemos construyendo."
+  },
   "cta": {
-    "question": "¿Interesado en unirte al equipo?",
-    "desc": "Envíanos un mensaje a través de nuestro formulario de Contáctanos e indícanos qué rol te interesa.",
+    "question": "¿Te interesa unirte al equipo o ser voluntario?",
+    "desc": "Envíanos un mensaje por nuestro formulario de Contacto y cuéntanos qué rol te interesa, o que te gustaría ser voluntario.",
     "button": "Contáctanos"
   }
 }

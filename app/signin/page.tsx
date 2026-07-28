@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 
 function SignInPageContent() {
   const searchParams = useSearchParams();
@@ -104,10 +104,27 @@ function SignInPageContent() {
             className="h-auto max-w-full"
             priority
           />
-          {/* TODO: replace placeholder ad copy with real content in locales/en/signin.json
-              keys: adCopyBecomeAPana, adCopyDefault */}
+          {/* Copy depends on how the visitor got here: someone mid-way through
+              "Become a Pana" needs to know what they're signing up for, while
+              everyone else is most likely returning. */}
           <p className="max-w-md text-center text-gray-600">
-            {isBecomeAPana ? t('adCopyBecomeAPana') : t('adCopyDefault')}
+            {isBecomeAPana ? (
+              <>
+                {t('adCopyBecomeAPana')}{' '}
+                <Link
+                  href="/#faq-what-is-a-pana"
+                  className="text-pana-blue underline"
+                >
+                  <Trans
+                    i18nKey="adCopyBecomeAPanaLink"
+                    t={t}
+                    components={{ em: <em /> }}
+                  />
+                </Link>
+              </>
+            ) : (
+              t('adCopyDefault')
+            )}
           </p>
         </div>
 

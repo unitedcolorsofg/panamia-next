@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -47,12 +47,20 @@ interface Article {
   coAuthorCount: number;
 }
 
+// URL fragments that open a specific FAQ entry, mapped to its accordion value.
+// Linking to a collapsed accordion would otherwise just drop the reader next to
+// a closed row — see the sign-in ad copy, which points here.
+const FAQ_ANCHORS: Record<string, string> = {
+  'faq-what-is-a-pana': 'item-what-is-a-pana',
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { t } = useTranslation('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
+  const [openFaq, setOpenFaq] = useState('');
 
   useEffect(() => {
     async function fetchRecentArticles() {
@@ -69,6 +77,25 @@ export default function HomePage() {
       }
     }
     fetchRecentArticles();
+  }, []);
+
+  // Open (and scroll to) the FAQ entry named in the URL fragment. The scroll is
+  // explicit because this page renders client-side: by the time the accordion
+  // exists, the browser has already done its own fragment jump and found
+  // nothing. Also listens for hashchange so a same-page link still works.
+  useEffect(() => {
+    function openFromHash() {
+      const anchor = window.location.hash.slice(1);
+      const value = FAQ_ANCHORS[anchor];
+      if (!value) return;
+      setOpenFaq(value);
+      document
+        .getElementById(anchor)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -269,10 +296,33 @@ export default function HomePage() {
               {t('faq.title')}
             </h2>
 
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={openFaq}
+              onValueChange={setOpenFaq}
+            >
               <AccordionItem value="item-1">
                 <AccordionTrigger>{t('faq.q1')}</AccordionTrigger>
                 <AccordionContent>{t('faq.a1')}</AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem
+                value="item-what-is-a-pana"
+                id="faq-what-is-a-pana"
+                className="scroll-mt-24"
+              >
+                <AccordionTrigger>
+                  {/* The emphasis is part of the question — it distinguishes
+                      this from "What does Pana mean?" directly above. */}
+                  <Trans
+                    i18nKey="faq.qWhatIsAPana"
+                    t={t}
+                    components={{ em: <em /> }}
+                  />
+                </AccordionTrigger>
+                <AccordionContent>{t('faq.aWhatIsAPana')}</AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-2">
@@ -322,7 +372,15 @@ export default function HomePage() {
 
               <AccordionItem value="item-8">
                 <AccordionTrigger>{t('faq.q8')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a8')}</AccordionContent>
+                <AccordionContent>
+                  {t('faq.a8')}{' '}
+                  <Link
+                    href="/directory/search"
+                    className="text-primary underline"
+                  >
+                    {t('faq.a8Link')}
+                  </Link>
+                </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-9">

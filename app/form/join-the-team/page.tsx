@@ -119,6 +119,15 @@ export default function JoinTheTeamPage() {
           </Accordion>
         </div>
 
+        {/* General volunteering — folded in from the retired Google volunteer
+            form that /links used to point at. Sits outside the accordion
+            because it isn't a named role: it's the low-commitment way in. */}
+        <div className="bg-muted/40 mb-8 rounded-lg border p-6">
+          <h2 className="mb-3 text-xl font-semibold">{t('volunteer.title')}</h2>
+          <p className="mb-3 text-base">{t('volunteer.p1')}</p>
+          <p className="text-muted-foreground text-base">{t('volunteer.p2')}</p>
+        </div>
+
         {/* Contact Us */}
         <div className="rounded-lg border p-6 text-center">
           <p className="mb-4 text-lg font-semibold">{t('cta.question')}</p>

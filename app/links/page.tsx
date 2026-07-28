@@ -163,9 +163,7 @@ export default function LinksPage() {
             asChild
           >
             <Link
-              href="https://forms.gle/BFw91iYLj4yVjQZn6"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/form/join-the-team"
               className="flex items-center justify-center gap-2"
             >
               <Users className="h-5 w-5" aria-hidden="true" />
