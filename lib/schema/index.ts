@@ -227,6 +227,25 @@ export const venueOwnership = pgEnum('venue_ownership', [
 // Moderator workflow state for forwarded NIP-56 abuse reports.
 // 'removed' is terminal/non-revocable: the reported content + report event have
 // been hard-deleted from the relay, so there is nothing to reopen.
+// Contact Us moderation state. Declared order is load-bearing: Postgres sorts
+// enum columns by declaration, so `orderBy: asc(status)` floats open (unhandled)
+// submissions to the top of the admin queue.
+export const contactSubmissionStatus = pgEnum('contact_submission_status', [
+  'open',
+  'actioned',
+  'dismissed',
+]);
+
+// What a Contact Us submission is about. Keep in sync with CONTACT_CATEGORIES
+// in lib/contact-categories.ts, which carries the labels for form + admin.
+export const contactSubmissionCategory = pgEnum('contact_submission_category', [
+  'general',
+  'membership',
+  'press',
+  'technical',
+  'other',
+]);
+
 export const relayReportStatus = pgEnum('relay_report_status', [
   'open',
   'actioned',
@@ -662,13 +681,33 @@ export const contactSubmissions = pgTable(
     name: text('name').notNull(),
     email: text('email').notNull(),
     message: text('message'),
-    acknowledged: boolean('acknowledged').notNull().default(false),
+    // What the submission is about, chosen by the sender on /form/contact-us.
+    category: contactSubmissionCategory('category')
+      .notNull()
+      .default('general'),
+    // Set only when the form was submitted while signed in. Both are derived
+    // server-side from the session, never from the request body. `screenname`
+    // is a snapshot: it outlives account deletion and later renames so the
+    // admin queue keeps showing who the thread was with.
+    userId: text('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    screenname: text('screenname'),
+    // Moderation state, mirroring relay_reports: see /account/admin/contactus.
+    status: contactSubmissionStatus('status').notNull().default('open'),
+    moderationReason: text('moderation_reason'),
+    lastModerationActionAt: timestamp('last_moderation_action_at', {
+      withTimezone: true,
+    }),
   },
   (table) => ({
     emailIdx: index('contact_submissions_email_idx').on(table.email),
     createdAtIdx: index('contact_submissions_created_at_idx').on(
       table.createdAt
     ),
+    statusIdx: index('contact_submissions_status_idx').on(table.status),
+    categoryIdx: index('contact_submissions_category_idx').on(table.category),
+    userIdIdx: index('contact_submissions_user_id_idx').on(table.userId),
   })
 );
 

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { contactSubmissions } from '@/lib/schema';
+import { contactSubmissions, users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { verifyTurnstile } from '@/lib/turnstile';
+import {
+  isContactCategory,
+  CONTACT_CATEGORY_LABELS,
+} from '@/lib/contact-categories';
+import { sendTemplateEmail } from '@/lib/email';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -13,7 +19,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
 
   // Get and validate body variables
-  const { name, email, message, turnstileToken } = body;
+  const { name, email, message, category, turnstileToken } = body;
 
   // Validate required fields
   if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -37,28 +43,47 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check if user is authenticated
+  if (!isContactCategory(category)) {
+    return NextResponse.json(
+      { error: 'Please choose what your message is about.' },
+      { status: 400 }
+    );
+  }
+
+  // Turnstile is required for everyone, signed in or not — the widget is shown
+  // unconditionally on the form. A session cookie is not a bot check, and
+  // gating on it meant the only submissions that skipped verification were the
+  // ones from accounts a spammer had already created.
+  if (!turnstileToken) {
+    return NextResponse.json(
+      { error: 'Verification required.' },
+      { status: 400 }
+    );
+  }
+
+  const isValid = await verifyTurnstile(turnstileToken);
+  if (!isValid) {
+    return NextResponse.json(
+      {
+        error: 'Verification failed. Please try again or contact us in-person.',
+      },
+      { status: 400 }
+    );
+  }
+
+  // When the sender is signed in, record which account it was. Taken from the
+  // session rather than the request body so it can't be spoofed; the screenname
+  // is snapshotted here so a later rename doesn't rewrite the support history.
   const session = await auth();
-  const isAuthenticated = !!session?.user?.email;
-
-  // For unauthenticated users, verify Turnstile
-  if (!isAuthenticated) {
-    if (!turnstileToken) {
-      return NextResponse.json(
-        { error: 'Verification required.' },
-        { status: 400 }
-      );
-    }
-
-    const isValid = await verifyTurnstile(turnstileToken);
-    if (!isValid) {
-      return NextResponse.json(
-        {
-          error: 'Verification failed. Please try again or contact support.',
-        },
-        { status: 400 }
-      );
-    }
+  let userId: string | null = null;
+  let screenname: string | null = null;
+  if (session?.user?.id) {
+    userId = session.user.id;
+    const account = await db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+      columns: { screenname: true },
+    });
+    screenname = account?.screenname ?? null;
   }
 
   // Save to database
@@ -67,7 +92,9 @@ export async function POST(request: NextRequest) {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       message: message.trim(),
-      acknowledged: false,
+      category,
+      userId,
+      screenname,
     });
   } catch (error) {
     console.error('Database error saving contact form:', error);
@@ -79,6 +106,19 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  // Receipt to the sender, echoing back what we received. Fire-and-forget: the
+  // submission is already saved, so a mail failure must not turn a successful
+  // send into an error the user would retry.
+  sendTemplateEmail(
+    'contact.received',
+    {
+      name: name.trim(),
+      category: CONTACT_CATEGORY_LABELS[category],
+      message: message.trim(),
+    },
+    email.toLowerCase().trim()
+  ).catch((err) => console.error('Contact receipt email error:', err));
 
   return NextResponse.json(
     {

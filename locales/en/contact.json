@@ -10,10 +10,21 @@
   "formDesc": "Fill out the form below and we'll get back to you as soon as possible",
   "nameLabel": "Your Name",
   "emailLabel": "Email Address",
+  "emailNote": "We'll send a copy of your message to this address.",
+  "categoryLabel": "Category",
+  "categoryPlaceholder": "Choose a category",
+  "categories": {
+    "general": "General question",
+    "membership": "Membership & profiles",
+    "press": "Press & partnerships",
+    "technical": "Technical / website issue",
+    "other": "Other"
+  },
   "messageLabel": "Message or Questions",
   "namePlaceholder": "Name",
   "messagePlaceholder": "Your message or questions you have for us",
   "turnstileNote": "This form is protected to prevent spam.",
+  "turnstileBlocked": "We couldn't load the verification check. If you use a content blocker, iCloud Private Relay, or Lockdown Mode, please disable it for this page and refresh.",
   "sending": "Sending...",
   "submitButton": "Submit Form"
 }

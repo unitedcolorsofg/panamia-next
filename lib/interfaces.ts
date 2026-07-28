@@ -158,16 +158,6 @@ export interface ProfileInterface {
   updatedAt: Date;
 }
 
-export interface ContactUsInterface {
-  _id: string;
-  name: string;
-  email: string;
-  message: string;
-  acknowledged: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface SignupInterface {
   _id: string;
   email: string;

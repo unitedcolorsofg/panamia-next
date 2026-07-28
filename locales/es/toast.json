@@ -21,6 +21,8 @@
   "termsRequiredAffiliateDesc": "Por favor acepta los Terminos y Condiciones para continuar.",
   "messageTooShort": "Mensaje Muy Corto",
   "messageTooShortDesc": "Por favor ingresa un mensaje (minimo 10 caracteres).",
+  "categoryRequired": "Categoria Requerida",
+  "categoryRequiredDesc": "Por favor elige una categoria para tu mensaje.",
 
   "missingFields": "Campos Faltantes",
   "missingFieldsDesc": "Por favor completa la Calle, Ciudad, Estado y Codigo Postal",

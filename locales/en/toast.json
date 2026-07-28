@@ -21,6 +21,8 @@
   "termsRequiredAffiliateDesc": "Please accept the Terms and Conditions to continue.",
   "messageTooShort": "Message Too Short",
   "messageTooShortDesc": "Please enter a message (at least 10 characters).",
+  "categoryRequired": "Category Required",
+  "categoryRequiredDesc": "Please choose a category for your message.",
 
   "missingFields": "Missing Fields",
   "missingFieldsDesc": "Please fill out a Street, City, State and Zipcode",

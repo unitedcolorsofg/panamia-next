@@ -207,13 +207,14 @@ Admin-only endpoints (require admin role):
 
 ## Forms & Submissions
 
-| Endpoint                    | Method | Description              |
-| --------------------------- | ------ | ------------------------ |
-| `/api/createContactUs`      | POST   | Submit contact form      |
-| `/api/createSignup`         | POST   | Submit signup form       |
-| `/api/createExpressProfile` | POST   | Quick profile creation   |
-| `/api/getContactUsList`     | GET    | List contact submissions |
-| `/api/getSignupList`        | GET    | List signup requests     |
+| Endpoint                        | Method | Description                   |
+| ------------------------------- | ------ | ----------------------------- |
+| `/api/createContactUs`          | POST   | Submit contact form           |
+| `/api/createSignup`             | POST   | Submit signup form            |
+| `/api/createExpressProfile`     | POST   | Quick profile creation        |
+| `/api/admin/contactSubmissions` | GET    | List contact submissions      |
+| `/api/admin/contactSubmissions` | PATCH  | Set contact submission status |
+| `/api/getSignupList`            | GET    | List signup requests          |
 
 ## Payments
 

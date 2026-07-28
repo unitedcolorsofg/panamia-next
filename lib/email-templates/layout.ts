@@ -57,6 +57,19 @@ export function button(text: string, url: string): string {
 </table>`;
 }
 
+// Escape user-supplied text for interpolation into email HTML.
+//
+// `&` must be replaced FIRST or it would double-encode the entities added
+// below. Escaping `<`/`>` alone is enough to stop tag injection in a text node,
+// which is where every current caller puts its output — but quotes are escaped
+// too so that the next caller to interpolate into an attribute (href, title,
+// alt) doesn't silently get an injection. Entities decode back to the literal
+// characters in both contexts, so nothing is mangled for the reader.
 export function escape(s: string): string {
-  return s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

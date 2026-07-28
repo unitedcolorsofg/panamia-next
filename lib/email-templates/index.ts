@@ -5,6 +5,7 @@ import { adminNewsletter } from './admin-newsletter';
 import { adminProfile } from './admin-profile';
 import { adminAffiliate } from './admin-affiliate';
 import { eventRsvpConfirm } from './event-rsvp-confirm';
+import { contactReceived } from './contact-received';
 
 export type TemplateId =
   | 'profile.submitted'
@@ -13,7 +14,8 @@ export type TemplateId =
   | 'admin.newsletter_submission'
   | 'admin.profile_submission'
   | 'admin.affiliate_submission'
-  | 'event.rsvp_confirm';
+  | 'event.rsvp_confirm'
+  | 'contact.received';
 
 type TemplateRenderer = (params: Record<string, unknown>) => {
   subject: string;
@@ -29,6 +31,7 @@ const templates: Record<TemplateId, TemplateRenderer> = {
   'admin.profile_submission': adminProfile,
   'admin.affiliate_submission': adminAffiliate,
   'event.rsvp_confirm': eventRsvpConfirm,
+  'contact.received': contactReceived,
 };
 
 export function renderTemplate(

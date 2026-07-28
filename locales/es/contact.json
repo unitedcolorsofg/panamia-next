@@ -10,10 +10,21 @@
   "formDesc": "Completa el formulario a continuación y te responderemos lo antes posible",
   "nameLabel": "Tu Nombre",
   "emailLabel": "Correo Electrónico",
+  "emailNote": "Enviaremos una copia de tu mensaje a esta dirección.",
+  "categoryLabel": "Categoría",
+  "categoryPlaceholder": "Elige una categoría",
+  "categories": {
+    "general": "Pregunta general",
+    "membership": "Membresía y perfiles",
+    "press": "Prensa y colaboraciones",
+    "technical": "Problema técnico o del sitio web",
+    "other": "Otro"
+  },
   "messageLabel": "Mensaje o Preguntas",
   "namePlaceholder": "Nombre",
   "messagePlaceholder": "Tu mensaje o preguntas que tengas para nosotros",
   "turnstileNote": "Este formulario está protegido para prevenir spam.",
+  "turnstileBlocked": "No pudimos cargar la verificación. Si usas un bloqueador de contenido, iCloud Private Relay o el Modo de Aislamiento, desactívalo para esta página y actualiza.",
   "sending": "Enviando...",
   "submitButton": "Enviar Formulario"
 }
