@@ -18,38 +18,38 @@ export default function GlobalFooter() {
     <footer className={styles.footer} id="footer">
       <div className={styles.footerInner}>
         <PanaLogo color="pink" size="medium" />
-        <ul className={styles.footerLinks}>
-          <li>
-            <strong>{t('footer.panaMia')}</strong>
-          </li>
-          <li>
-            <Link href="/podcasts">{t('footer.panaVizion')}</Link>
-          </li>
-          <li>
-            <Link href="/about-us">{t('footer.about')}</Link>
-          </li>
-          <li>
-            <Link href="/links">{t('footer.links')}</Link>
-          </li>
-          <li>
-            <Link href="/directory/search">{t('footer.directorio')}</Link>
-          </li>
-          <li>
-            <Link href="/form/join-the-team/">{t('footer.joinTheTeam')}</Link>
-          </li>
-        </ul>
+        {/* Ways to support the mission: joining, seeing the impact, giving. */}
         <ul className={styles.footerLinksAlt}>
           <li>
-            <strong>{t('footer.users')}</strong>
-          </li>
-          <li hidden>
-            <Link href="/signin">{t('nav.signUp')}</Link>
+            <strong>{t('footer.support')}</strong>
           </li>
           <li>
             <Link href="/form/become-a-pana">{t('footer.becomeAPana')}</Link>
           </li>
           <li>
-            <Link href="/form/contact-us">{t('footer.contactUs')}</Link>
+            <Link href="/impact">{t('footer.impactReport')}</Link>
+          </li>
+          <li>
+            <Link href="/donate">{t('footer.donate')}</Link>
+          </li>
+        </ul>
+        {/* Community: how we relate to everyone who shows up — our commitments
+            and privacy promise are to all visitors, not a corporate footnote.
+            Contact Us closes the column as the open-door invitation. */}
+        <ul className={styles.footerLinksAlt}>
+          <li>
+            <strong>{t('footer.community')}</strong>
+          </li>
+          <li>
+            <Link href="/form/join-the-team/">{t('footer.joinTheTeam')}</Link>
+          </li>
+          <li>
+            {/* Links to the terms preamble enumerating what Panamia commits to
+                its members; the terms are the mechanism to uphold them. */}
+            <Link href="/legal/terms">{t('footer.ourCommitments')}</Link>
+          </li>
+          <li>
+            <Link href="/legal/privacy">{t('footer.privacyPolicy')}</Link>
           </li>
         </ul>
         <div className={styles.socials}>
@@ -81,13 +81,9 @@ export default function GlobalFooter() {
           </ul>
         </div>
       </div>
-      {/* "Our Commitments" links to the terms preamble which enumerates
-          what Panamia commits to its members. The terms themselves are the
-          mechanism to uphold those commitments. */}
-      <div className={styles.termsLink}>
-        <Link href="/legal/terms">{t('footer.ourCommitments')}</Link>
-        {' · '}
-        <Link href="/legal/privacy">{t('footer.privacyPolicy')}</Link>
+      {/* Closing thought: an open-door invitation, centered under everything. */}
+      <div className={styles.footerContact}>
+        <Link href="/form/contact-us">{t('footer.contactUs')}</Link>
       </div>
     </footer>
   );

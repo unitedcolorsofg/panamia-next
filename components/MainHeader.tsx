@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession, signOut } from '@/lib/auth-client';
 import Link from 'next/link';
@@ -37,6 +37,7 @@ import {
   FileText,
   LayoutGrid,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import styles from './MainHeader.module.css';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,91 @@ import CallToActionBar from './CallToActionBar';
 import { ThemeToggle } from './theme-toggle';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
+
+type NavItem = { href: string; labelKey: string; icon: LucideIcon };
+
+// A collapsible module section. `href` is the module root: the heading text is a
+// real link there (desktop and mobile), while hover (desktop) or tapping the row
+// (mobile) expands the sub-items. Kept at module scope so the array identity is
+// stable across renders.
+type NavSection = {
+  key: string;
+  labelKey: string;
+  href: string;
+  items: NavItem[];
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    key: 'directory',
+    labelKey: 'nav.directory',
+    href: '/directory',
+    items: [
+      { href: '/directory', labelKey: 'nav.browseDirectory', icon: Compass },
+      {
+        href: '/directory/search',
+        labelKey: 'nav.directorySearch',
+        icon: Search,
+      },
+    ],
+  },
+  {
+    key: 'events',
+    labelKey: 'nav.events',
+    href: '/e',
+    items: [
+      { href: '/e', labelKey: 'nav.browseEvents', icon: CalendarDays },
+      { href: '/e/new', labelKey: 'nav.hostEvent', icon: CalendarPlus },
+    ],
+  },
+  {
+    key: 'articles',
+    labelKey: 'nav.articles',
+    href: '/a',
+    items: [
+      { href: '/a', labelKey: 'nav.browseArticles', icon: FileText },
+      { href: '/a/new', labelKey: 'nav.writeArticle', icon: PenLine },
+    ],
+  },
+  {
+    key: 'mentoring',
+    labelKey: 'nav.mentoring',
+    href: '/m',
+    items: [
+      { href: '/m/discover', labelKey: 'nav.discoverMentors', icon: Users },
+      { href: '/m/profile/edit', labelKey: 'nav.mentorProfile', icon: Compass },
+      { href: '/m/schedule', labelKey: 'nav.mySessions', icon: Video },
+    ],
+  },
+  {
+    key: 'community',
+    labelKey: 'nav.community',
+    href: '/about-us',
+    items: [
+      { href: '/about-us', labelKey: 'nav.aboutPanaMia', icon: Info },
+      { href: '/features', labelKey: 'nav.featuresOverview', icon: LayoutGrid },
+      { href: '/donate', labelKey: 'nav.supportUs', icon: Gift },
+      { href: '/r', labelKey: 'nav.resilienceNetwork', icon: Radio },
+    ],
+  },
+  {
+    key: 'account',
+    labelKey: 'nav.myAccount',
+    href: '/account',
+    items: [
+      {
+        href: '/account/profile/edit',
+        labelKey: 'nav.myProfile',
+        icon: UserCircle,
+      },
+      {
+        href: '/account/user/edit',
+        labelKey: 'nav.accountSettings',
+        icon: User,
+      },
+    ],
+  },
+];
 
 export default function MainHeader({
   isProductionSite,
@@ -82,7 +168,9 @@ export default function MainHeader({
   }, []);
 
   const [isMobile, setIsMobile] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  // At most one section is expanded at a time. On desktop this is driven by
+  // hover/focus; on mobile it toggles when the heading row is tapped.
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
@@ -93,16 +181,33 @@ export default function MainHeader({
   }, []);
 
   const isSectionOpen = useCallback(
-    (key: string) => (isMobile ? (openSections[key] ?? false) : true),
-    [isMobile, openSections]
+    (key: string) => activeSection === key,
+    [activeSection]
   );
 
+  // Desktop expands on hover (handled by the section wrapper) and the heading is
+  // a real link; only intercept taps on mobile to toggle the accordion.
   const toggleSection = useCallback(
     (key: string, e: React.MouseEvent) => {
       if (!isMobile) return;
       e.preventDefault();
       e.stopPropagation();
-      setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+      setActiveSection((cur) => (cur === key ? null : key));
+    },
+    [isMobile]
+  );
+
+  // Hover (desktop only) and keyboard focus (both) open a section; leaving the
+  // wrapper on desktop collapses it.
+  const openOnHover = useCallback(
+    (key: string) => {
+      if (!isMobile) setActiveSection(key);
+    },
+    [isMobile]
+  );
+  const closeOnLeave = useCallback(
+    (key: string) => {
+      if (!isMobile) setActiveSection((cur) => (cur === key ? null : cur));
     },
     [isMobile]
   );
@@ -124,6 +229,54 @@ export default function MainHeader({
     // When session is null, hasProfile remains null (initial state)
     // The CTA bar only shows for authenticated users anyway
   }, [session]);
+
+  // Render a collapsible module section. The heading links to the module root;
+  // hover/focus (desktop) or a tap on the row (mobile) expands the sub-items.
+  // The grid-rows animation lives in the CSS module (`.section`/`.sectionOpen`).
+  const renderSection = (section: NavSection) => {
+    const open = isSectionOpen(section.key);
+    return (
+      <div
+        key={section.key}
+        onMouseEnter={() => openOnHover(section.key)}
+        onMouseLeave={() => closeOnLeave(section.key)}
+        onFocusCapture={() => setActiveSection(section.key)}
+      >
+        <DropdownMenuLabel
+          className="flex cursor-pointer items-center justify-between select-none"
+          onClick={(e) => toggleSection(section.key, e)}
+        >
+          {/* Heading text navigates to the module root; stopPropagation keeps a
+              tap from also toggling the accordion on mobile. */}
+          <Link
+            href={section.href}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-pointer hover:underline"
+          >
+            {t(section.labelKey)}
+          </Link>
+          <ChevronRight
+            className={cn('h-4 w-4 transition-transform', open && 'rotate-90')}
+          />
+        </DropdownMenuLabel>
+        <div className={cn(styles.section, open && styles.sectionOpen)}>
+          <div className={styles.sectionInner}>
+            {section.items.map((item) => (
+              <DropdownMenuItem asChild key={item.href}>
+                <Link
+                  href={item.href}
+                  className="flex cursor-pointer items-center"
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {t(item.labelKey)}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <header className={styles.header}>
@@ -174,7 +327,7 @@ export default function MainHeader({
         {status !== 'loading' && session && (
           <DropdownMenu
             onOpenChange={(open) => {
-              if (!open) setOpenSections({});
+              if (!open) setActiveSection(null);
             }}
           >
             <DropdownMenuTrigger asChild>
@@ -200,20 +353,12 @@ export default function MainHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* Pinned primary destinations — always visible, no collapse. */}
               <DropdownMenuLabel>{t('nav.explore')}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href="/" className="flex cursor-pointer items-center">
                   <Home className="mr-2 h-4 w-4" />
                   {t('nav.home')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/features"
-                  className="flex cursor-pointer items-center"
-                >
-                  <LayoutGrid className="mr-2 h-4 w-4" />
-                  {t('nav.featuresOverview')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -248,204 +393,15 @@ export default function MainHeader({
                   {t('nav.timelinePosts')}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/directory/search"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  {t('nav.directorySearch')}
-                </Link>
-              </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel
-                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
-                onClick={(e) => toggleSection('events', e)}
-              >
-                {t('nav.events')}
-                {isMobile && (
-                  <ChevronRight
-                    className={`h-4 w-4 transition-transform ${isSectionOpen('events') ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </DropdownMenuLabel>
-              {isSectionOpen('events') && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/e"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {t('nav.browseEvents')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/e/new"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <CalendarPlus className="mr-2 h-4 w-4" />
-                      {t('nav.hostEvent')}
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel
-                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
-                onClick={(e) => toggleSection('articles', e)}
-              >
-                {/* Header doubles as a link to the author's article dashboard;
-                    stopPropagation so clicking the text navigates rather than
-                    toggling the section on mobile. */}
-                <Link
-                  href="/account/articles"
-                  onClick={(e) => e.stopPropagation()}
-                  className="cursor-pointer hover:underline"
-                >
-                  {t('nav.articles')}
-                </Link>
-                {isMobile && (
-                  <ChevronRight
-                    className={`h-4 w-4 transition-transform ${isSectionOpen('articles') ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </DropdownMenuLabel>
-              {isSectionOpen('articles') && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/a"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      {t('nav.browseArticles')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/a/new"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <PenLine className="mr-2 h-4 w-4" />
-                      {t('nav.writeArticle')}
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel
-                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
-                onClick={(e) => toggleSection('mentoring', e)}
-              >
-                {isSectionOpen('mentoring') ? (
-                  <Link href="/m">{t('nav.mentoring')}</Link>
-                ) : (
-                  t('nav.mentoring')
-                )}
-                {isMobile && (
-                  <ChevronRight
-                    className={`h-4 w-4 transition-transform ${isSectionOpen('mentoring') ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </DropdownMenuLabel>
-              {isSectionOpen('mentoring') && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/m/discover"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      {t('nav.discoverMentors')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/m/profile/edit"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <Compass className="mr-2 h-4 w-4" />
-                      {t('nav.mentorProfile')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/m/schedule"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <Video className="mr-2 h-4 w-4" />
-                      {t('nav.mySessions')}
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel
-                className="flex cursor-pointer items-center justify-between select-none md:cursor-default"
-                onClick={(e) => toggleSection('account', e)}
-              >
-                {t('nav.myAccount')}
-                {isMobile && (
-                  <ChevronRight
-                    className={`h-4 w-4 transition-transform ${isSectionOpen('account') ? 'rotate-90' : ''}`}
-                  />
-                )}
-              </DropdownMenuLabel>
-              {isSectionOpen('account') && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/account/profile/edit"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      {t('nav.myProfile')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/account/user/edit"
-                      className="flex cursor-pointer items-center"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      {t('nav.accountSettings')}
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('nav.community')}</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/about-us"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Info className="mr-2 h-4 w-4" />
-                  {t('nav.aboutPanaMia')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/donate"
-                  className="flex cursor-pointer items-center"
-                >
-                  <Gift className="mr-2 h-4 w-4" />
-                  {t('nav.supportUs')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/r" className="flex cursor-pointer items-center">
-                  <Radio className="mr-2 h-4 w-4" />
-                  {t('nav.resilienceNetwork')}
-                </Link>
-              </DropdownMenuItem>
+              {/* Collapsible module sections — hover to expand (desktop),
+                  tap the row to expand (mobile). */}
+              {NAV_SECTIONS.map((section) => (
+                <Fragment key={section.key}>
+                  <DropdownMenuSeparator />
+                  {renderSection(section)}
+                </Fragment>
+              ))}
 
               {isAdmin && (
                 <>
