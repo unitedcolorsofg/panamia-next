@@ -18,6 +18,7 @@ import {
   Flag,
   Radio,
   Database,
+  Mail,
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ const icons: Record<string, LucideIcon> = {
   key: Key,
   flag: Flag,
   radio: Radio,
+  mail: Mail,
 };
 
 const retentionClassLabels: Record<RetentionClass, string> = {

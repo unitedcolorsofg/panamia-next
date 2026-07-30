@@ -12,6 +12,16 @@
 const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 const GHL_API_VERSION = '2021-07-28';
 
+// Newer endpoints (create contact, create opportunity, create task, get
+// pipelines) document their Version header as the enum ["v3"] and take *DtoV3
+// request bodies, while upsert still documents 2021-04-15/2021-07-28. The
+// version is therefore per-request rather than a client-wide constant.
+//
+// UNVERIFIED: which value each endpoint actually enforces has not been tested
+// against the live account — the docs and the deployed API have diverged
+// before. scripts/ghl-verify.ts probes both spellings per endpoint.
+const GHL_API_VERSION_V3 = 'v3';
+
 export interface GhlContactFields {
   firstName?: string;
   lastName?: string;
@@ -43,6 +53,116 @@ export interface GhlContact {
 
 export type GhlDndStatus = 'active' | 'inactive';
 
+/** A task hanging off a contact — the work item most inquiries route to. */
+export interface GhlTask {
+  id: string;
+  title: string;
+  body?: string;
+  /** ISO 8601. GHL requires this on create; there is no "no due date" task. */
+  dueDate: string;
+  completed: boolean;
+  assignedTo?: string;
+  contactId?: string;
+  dateAdded?: string;
+}
+
+export interface GhlTaskFields {
+  title: string;
+  dueDate: string;
+  completed: boolean;
+  body?: string;
+  /** GHL user ID. Unassigned tasks are the failure mode this exists to avoid. */
+  assignedTo?: string;
+}
+
+export type GhlOpportunityStatus = 'open' | 'won' | 'lost' | 'abandoned';
+
+export interface GhlOpportunity {
+  id: string;
+  name: string;
+  pipelineId: string;
+  pipelineStageId?: string;
+  status: GhlOpportunityStatus;
+  contactId?: string;
+  assignedTo?: string;
+  monetaryValue?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GhlOpportunityFields {
+  pipelineId: string;
+  name: string;
+  status: GhlOpportunityStatus;
+  contactId: string;
+  pipelineStageId?: string;
+  assignedTo?: string;
+  monetaryValue?: number;
+}
+
+export interface GhlPipelineStage {
+  id: string;
+  name: string;
+  position?: number;
+}
+
+export interface GhlPipeline {
+  id: string;
+  name: string;
+  stages: GhlPipelineStage[];
+}
+
+export interface GhlUser {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  roles?: { type?: string; role?: string };
+}
+
+/**
+ * A non-2xx response from GHL, carrying the status and raw body.
+ *
+ * Callers need the status, not just a message: a 404 on a contact read means
+ * the ID is stale and must be re-resolved by email (contact IDs are caches,
+ * not references — a dashboard merge invalidates the absorbed contact's ID),
+ * and a 400 on create may carry the ID of the duplicate that blocked it.
+ */
+export class GhlApiError extends Error {
+  readonly status: number;
+  readonly body: string;
+  readonly method: string;
+  readonly path: string;
+
+  constructor(status: number, method: string, path: string, body: string) {
+    super(
+      `GHL API ${status} — ${method} ${path}${body ? ` — ${body.slice(0, 200)}` : ''}`
+    );
+    this.name = 'GhlApiError';
+    this.status = status;
+    this.method = method;
+    this.path = path;
+    this.body = body;
+  }
+
+  /**
+   * When a location disallows duplicate contacts, GHL rejects POST /contacts/
+   * with 400 and returns the offending contact's ID in `meta.contactId`.
+   * Returns null when the body has no such pointer.
+   */
+  get duplicateContactId(): string | null {
+    try {
+      const parsed = JSON.parse(this.body) as {
+        meta?: { contactId?: string };
+      };
+      return parsed.meta?.contactId ?? null;
+    } catch {
+      return null;
+    }
+  }
+}
+
 export class GhlClient {
   private readonly apiKey: string;
   readonly locationId: string;
@@ -60,29 +180,28 @@ export class GhlClient {
     return new GhlClient(apiKey, locationId);
   }
 
-  private headers(): Record<string, string> {
+  private headers(version: string): Record<string, string> {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
-      Version: GHL_API_VERSION,
+      Version: version,
     };
   }
 
   private async request<T>(
     method: string,
     path: string,
-    body?: unknown
+    body?: unknown,
+    version: string = GHL_API_VERSION
   ): Promise<T> {
     const res = await fetch(`${GHL_API_BASE}${path}`, {
       method,
-      headers: this.headers(),
+      headers: this.headers(version),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      throw new Error(
-        `GHL API ${res.status} — ${method} ${path}${detail ? ` — ${detail.slice(0, 200)}` : ''}`
-      );
+      throw new GhlApiError(res.status, method, path, detail);
     }
     if (res.status === 204) return undefined as T;
     const text = await res.text();
@@ -111,6 +230,226 @@ export class GhlClient {
   /** Delete a contact by ID. */
   async deleteContact(id: string): Promise<void> {
     await this.request<void>('DELETE', `/contacts/${id}`);
+  }
+
+  /**
+   * Create a contact. `locationId` is injected; per the v3 schema it is the
+   * only required field, so validating that we're not writing a nameless,
+   * emailless record is the caller's job, not the API's.
+   *
+   * Throws GhlApiError on a duplicate when the location disallows them; read
+   * `duplicateContactId` off the error to recover the existing record.
+   */
+  async createContact(fields: GhlContactFields): Promise<GhlContact> {
+    const data = await this.request<{ contact: GhlContact }>(
+      'POST',
+      '/contacts/',
+      { ...fields, locationId: this.locationId },
+      GHL_API_VERSION_V3
+    );
+    return data.contact;
+  }
+
+  /**
+   * Create or update a contact, matched per the location's "Allow Duplicate
+   * Contact" setting. `new` distinguishes a create from an update.
+   *
+   * Note `tags` here *replaces* the contact's whole tag set — the docs steer
+   * callers to the add/remove tag endpoints instead. Routing must never send
+   * tags through this path or it would strip tags written by the Stripe relay
+   * (`panamia-subscriber`) off an existing member.
+   */
+  async upsertContact(
+    fields: GhlContactFields
+  ): Promise<{ contact: GhlContact; isNew: boolean }> {
+    const data = await this.request<{
+      contact: GhlContact;
+      new?: boolean;
+    }>('POST', '/contacts/upsert', {
+      ...fields,
+      locationId: this.locationId,
+    });
+    return { contact: data.contact, isNew: data.new ?? false };
+  }
+
+  /**
+   * Resolve a possibly-stale contact ID, per the spec's "IDs are caches, not
+   * references" rule: a dashboard merge is irreversible and invalidates the
+   * absorbed contact's ID, so a 404 means re-resolve by email rather than
+   * fail. Returns the live ID, or null if no contact matches the email.
+   *
+   * Only a 404 triggers re-resolution — a 401 or 5xx propagates, so a
+   * transport failure is never mistaken for a merged-away contact.
+   */
+  async resolveContactId(
+    cachedId: string | null,
+    email: string
+  ): Promise<string | null> {
+    if (cachedId) {
+      try {
+        const contact = await this.getContactById(cachedId);
+        return contact.id;
+      } catch (err) {
+        if (!(err instanceof GhlApiError) || err.status !== 404) throw err;
+      }
+    }
+    const found = await this.findByEmail(email);
+    return found?.id ?? null;
+  }
+
+  /**
+   * Add tags to a contact, leaving existing tags in place.
+   *
+   * UNVERIFIED: this path is carried over from the bridge client and is not
+   * covered by the docs pulled so far. Confirm with scripts/ghl-verify.ts
+   * before relying on it.
+   */
+  async addTags(id: string, tags: string[]): Promise<string[]> {
+    const data = await this.request<{ tags?: string[] }>(
+      'POST',
+      `/contacts/${id}/tags`,
+      { tags }
+    );
+    return data?.tags ?? [];
+  }
+
+  /** Remove tags from a contact. UNVERIFIED — see addTags. */
+  async removeTags(id: string, tags: string[]): Promise<void> {
+    await this.request<unknown>('DELETE', `/contacts/${id}/tags`, { tags });
+  }
+
+  /**
+   * Create a task against a contact.
+   *
+   * `dueDate` and `completed` are both required by the API — there is no
+   * open-ended task — so callers must pick a due date rather than omit one.
+   * `assignedTo` is optional to the API but not to the spec: an unassigned
+   * task lands in exactly the unowned pile this routing exists to avoid.
+   */
+  async createTask(contactId: string, fields: GhlTaskFields): Promise<GhlTask> {
+    const data = await this.request<{ task: GhlTask }>(
+      'POST',
+      `/contacts/${contactId}/tasks`,
+      fields,
+      GHL_API_VERSION_V3
+    );
+    return data.task;
+  }
+
+  /** List a contact's tasks. */
+  async getTasks(contactId: string): Promise<GhlTask[]> {
+    const data = await this.request<{ tasks?: GhlTask[] }>(
+      'GET',
+      `/contacts/${contactId}/tasks`
+    );
+    return data?.tasks ?? [];
+  }
+
+  /**
+   * Flip a task's completed flag — the outbound half of task sync, fired when
+   * an admin resolves the submission in the app queue.
+   *
+   * GHL exposes a dedicated completed endpoint alongside the general task
+   * update; this uses the narrow one so a sync write can never clobber a
+   * title, due date, or assignee a human changed in the dashboard.
+   */
+  async setTaskCompleted(
+    contactId: string,
+    taskId: string,
+    completed: boolean
+  ): Promise<void> {
+    await this.request<unknown>(
+      'PUT',
+      `/contacts/${contactId}/tasks/${taskId}/completed`,
+      { completed }
+    );
+  }
+
+  /** Delete a task. Used by the purge job to unwind unworked test records. */
+  async deleteTask(contactId: string, taskId: string): Promise<void> {
+    await this.request<void>(
+      'DELETE',
+      `/contacts/${contactId}/tasks/${taskId}`
+    );
+  }
+
+  /**
+   * Create an opportunity. Reserved for `press` inquiries so the pipeline
+   * stays a meaningful measure rather than a log of every inquiry.
+   */
+  async createOpportunity(
+    fields: GhlOpportunityFields
+  ): Promise<GhlOpportunity> {
+    const data = await this.request<{ opportunity: GhlOpportunity }>(
+      'POST',
+      '/opportunities/',
+      { ...fields, locationId: this.locationId },
+      GHL_API_VERSION_V3
+    );
+    return data.opportunity;
+  }
+
+  /** Get an opportunity by ID. 404 means it was deleted or merged away. */
+  async getOpportunity(id: string): Promise<GhlOpportunity> {
+    const data = await this.request<{ opportunity: GhlOpportunity }>(
+      'GET',
+      `/opportunities/${id}`
+    );
+    return data.opportunity;
+  }
+
+  /** Move an opportunity's stage and/or status — the outbound sync write. */
+  async updateOpportunity(
+    id: string,
+    fields: Partial<
+      Pick<
+        GhlOpportunityFields,
+        'name' | 'status' | 'pipelineStageId' | 'assignedTo' | 'monetaryValue'
+      >
+    >
+  ): Promise<GhlOpportunity> {
+    const data = await this.request<{ opportunity: GhlOpportunity }>(
+      'PUT',
+      `/opportunities/${id}`,
+      fields
+    );
+    return data.opportunity;
+  }
+
+  /** Delete an opportunity. */
+  async deleteOpportunity(id: string): Promise<void> {
+    await this.request<void>('DELETE', `/opportunities/${id}`);
+  }
+
+  /**
+   * List pipelines and their stages. Resolves the Inquiries pipeline and its
+   * stage IDs at runtime so stage IDs are never hardcoded in a deploy.
+   *
+   * The published schema types `stages` only as a bare array, so the stage
+   * object shape below is inferred and needs confirming against a real
+   * response.
+   */
+  async getPipelines(): Promise<GhlPipeline[]> {
+    const data = await this.request<{ pipelines?: GhlPipeline[] }>(
+      'GET',
+      `/opportunities/pipelines?locationId=${encodeURIComponent(this.locationId)}`,
+      undefined,
+      GHL_API_VERSION_V3
+    );
+    return data?.pipelines ?? [];
+  }
+
+  /**
+   * List users on the location. Backs the role-to-user mapping check — the
+   * spec notes assignment fails silently if a role's user is deactivated, so
+   * the sync path needs to be able to verify an assignee still exists.
+   */
+  async getUsers(): Promise<GhlUser[]> {
+    const data = await this.request<{ users?: GhlUser[] }>(
+      'GET',
+      `/users/?locationId=${encodeURIComponent(this.locationId)}`
+    );
+    return data?.users ?? [];
   }
 
   /** Enroll a contact in a workflow by ID. */

@@ -108,7 +108,7 @@ export const inventory: Record<TableExport, Classification> = {
 
   // --- Other deletable member data ---
   emailMigrations: ['verification_tokens'], // tokenized email-change, temporary
-  contactSubmissions: ['other_member_data'],
+  contactSubmissions: ['contact_inquiries'],
   newsletterSignups: ['other_member_data'],
   interactions: ['other_member_data'],
 };

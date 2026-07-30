@@ -219,15 +219,15 @@
           "source": "user_provided",
           "purpose": "contact_newsletter_and_engagement",
           "retention": "active_account_lifetime",
-          "note": "A catch-all for smaller member-provided datasets: contact-form messages, newsletter signups (local list, distinct from the GoHighLevel CRM record), and the engagement/points activity ledger. All removed when the member deletes their account through the account-deletion flow.",
+          "note": "A catch-all for smaller member-provided datasets: newsletter signups (local list, distinct from the GoHighLevel CRM record) and the engagement/points activity ledger. All removed when the member deletes their account through the account-deletion flow. Contact Us messages are no longer covered here — they are their own category, retained indefinitely.",
           "display": {
             "icon": "database",
             "source": "You provide",
-            "purpose": "Contact, newsletter, and engagement",
+            "purpose": "Newsletter and engagement",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Other member data — contact-form messages, newsletter signups, and engagement/points activity",
-            "blurb": "Smaller bits you've given us: contact-form messages, newsletter signups, and your activity points."
+            "prose": "Other member data — newsletter signups and engagement/points activity",
+            "blurb": "Smaller bits you've given us: newsletter signups and your activity points."
           }
         },
         {
@@ -359,7 +359,13 @@
         {
           "name": "GoHighLevel",
           "purpose": "crm_and_newsletter",
-          "data": ["email", "name", "contact_id", "newsletter_membership"],
+          "data": [
+            "email",
+            "name",
+            "contact_id",
+            "newsletter_membership",
+            "inquiry_message"
+          ],
           "deletionMechanism": "ghl_api_or_manual",
           "providerRetention": "subject_to_ghl_terms"
         },
@@ -409,7 +415,13 @@
           "name": "crm",
           "label": "CRM / Newsletter",
           "providers": ["GoHighLevel"],
-          "data": ["email", "name", "contact_id", "newsletter_membership"],
+          "data": [
+            "email",
+            "name",
+            "contact_id",
+            "newsletter_membership",
+            "inquiry_message"
+          ],
           "source": "user_provided",
           "purpose": "contact_management_and_newsletter",
           "retention": "active_account_lifetime",
@@ -541,6 +553,32 @@
             "sharedWith": "ActivityPub peers",
             "prose": "Screenname history — retained after deletion so federated servers get a stable 410 Gone for handles you no longer use.",
             "blurb": "Usernames you've used before, kept so links to a former handle still resolve on other servers."
+          }
+        },
+        {
+          "name": "contact_inquiries",
+          "label": "Contact Us Inquiries",
+          "secondaryClass": "third_party_synced",
+          "data": [
+            "name",
+            "email",
+            "message",
+            "category",
+            "screenname",
+            "user_id"
+          ],
+          "source": "user_action",
+          "purpose": "support_history",
+          "retention": "indefinite",
+          "note": "Messages sent through the Contact Us form. Kept indefinitely and not tied to an account: most arrive from people who are not signed in, and the app remains the record of an inquiry even after it has been routed to our CRM, where the working copy may be removed at any time.",
+          "display": {
+            "icon": "mail",
+            "source": "You write to us",
+            "purpose": "Support history",
+            "retention": "Kept indefinitely",
+            "sharedWith": "Site operators, GoHighLevel",
+            "prose": "Contact Us inquiries — your name, email address, the message you wrote, and what it was about. Retained indefinitely as the support record. Inquiries other than technical reports are also copied to our CRM so whoever answers them can work from the tool they already use; that copy may be removed at any time, and the record here is the one that persists.",
+            "blurb": "Messages you send us through the Contact Us form, kept as the lasting record of what was asked and answered."
           }
         }
       ]
