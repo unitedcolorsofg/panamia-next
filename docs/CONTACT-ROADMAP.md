@@ -5,9 +5,10 @@ GoHighLevel (GHL). Companion to [CRM-ROADMAP.md](./CRM-ROADMAP.md), which covers
 the broader GHL integration; this document covers only the inquiry path.
 
 Status: specification. The GHL client surface this design needs exists in
-`lib/ghl.ts`, and `scripts/ghl-verify.ts` probes it against the live account —
-but no routing is wired up, and the request shapes it uses are unverified until
-that probe has been run. Phases 1–7 below are all outstanding.
+`lib/ghl.ts`, and its request shapes are **verified against the live location**
+as of 2026-07-31 by `scripts/ghl-verify.ts` — see Verified GHL behavior below.
+No routing is wired up; Phases 1–7 are all outstanding, and Phase 3 (creating
+the Inquiries pipeline) now blocks anything that writes an Opportunity.
 
 ---
 
@@ -59,6 +60,40 @@ entry only**. The single existing fan-out to all admins is
   manually in the UI, via a Workflow action, or via `POST /opportunities/`.
 - Contact **merge** is a manual dashboard action. It is irreversible and
   invalidates the absorbed contact's ID.
+
+### Verified GHL behavior
+
+Observed against the live location on 2026-07-31 via `scripts/ghl-verify.ts`.
+Each of these contradicted either the documentation or an assumption in the
+design, so they are recorded here rather than left in commit messages.
+
+- **A missing contact is a 400, not a 404.** Reading an unknown or deleted
+  contact returns `{"error":"Contact with id X not found","status":400}`.
+  Stale-ID re-resolution therefore keys on status _and_ message
+  (`GhlApiError.isNotFound`); a plain `status === 404` test never fires and
+  would strand every merged-away contact.
+- **The location rejects duplicate contacts**, answering 400 with
+  `meta.contactId` and `matchingField: "email"`. Create-then-recover works: a
+  blocked create still yields the existing contact's ID.
+- **Adding a tag is additive** and preserves existing tags, confirmed by
+  re-reading the contact. Only the upsert endpoint's `tags` field overwrites.
+- **`assignedTo` survives** on both tasks and opportunities, so ownership can be
+  set at creation.
+- **The task completion round trip works** — `PUT .../completed` returns 200 and
+  the change reads back — which proves Phase 4b's outbound half.
+- **A 401 does not imply a missing scope.** GHL answers 401 when an endpoint
+  refuses the `Version` header too, so auth failures and version mismatches are
+  indistinguishable by status. `GET /users/` returned 401 under `v3` in one run
+  and 200 in the next.
+- **Deleting a task does not reliably delete it.** The endpoint answers 200
+  while the task remains visible in the dashboard, and deleting the owning
+  contact does not cascade to its tasks. Worse, the task _list_ stops returning
+  it, so a list-based check reports success for a record a human can still see.
+  Anything that needs to prove a task is gone must read the task directly.
+
+The last two are the reason this design verifies writes by reading them back
+rather than trusting a 2xx — a rule that applies to the bridge as much as to the
+probe.
 
 ### Constraints inherited from the existing integration
 
@@ -424,10 +459,22 @@ transition is reversible if they were premature.
 1. Is conversation read state shared across users? Verify by opening a thread on
    one seat and checking a second.
 2. Does any Workflow currently listen to `Inbound Message`?
-3. What is the existing pipeline actually named, and what are its stages?
+3. ~~What is the existing pipeline actually named, and what are its stages?~~
+   **Answered 2026-07-31.** Exactly one pipeline exists, a member-lead
+   follow-up pipeline with a single stage. There is no Inquiries pipeline and no
+   membership pipeline. Phase 3 has to create Inquiries before any `press`
+   routing can run, since the only target available today is the pipeline this
+   design says inquiries must stay out of. Run `scripts/ghl-verify.ts
+--read-only` for current names and IDs rather than pinning them here.
 4. Is the GHL webhook registered, and what signature header and event names does
    it send?
-5. Do the `panamia_*` custom fields exist in the account?
+5. ~~Do the `panamia_*` custom fields exist in the account?~~ **Answered
+   2026-07-31: no.** Fourteen contact custom fields exist, none prefixed
+   `panamia_`. Three overlap this design and are worth reusing rather than
+   duplicating: `contact.your_message`, `contact.contact_type`, and
+   `contact.how_do_you_prefer_to_be_contacted`. Most of the rest belong to
+   volunteer and program intake forms, which is itself a partial answer to
+   Question 6.
 6. Are GHL-hosted forms creating contacts the app has no record of?
 7. What is the plan's contact limit and current headroom? (Gates Phase 4 — see
    Known Limitations.)
@@ -462,6 +509,13 @@ into the four `app/api/crm/*` privacy portal routes first.
 
 Create the Inquiries pipeline, define roles and the role-to-user mapping,
 establish the tag conventions. Dashboard work; no code.
+
+**Now blocking.** The location has exactly one pipeline, and it is a member-lead
+one, so until Inquiries exists the only place a `press` opportunity could go is
+the pipeline this design says inquiries must stay out of. The probe's user list
+is the candidate pool for the role mapping; assignment is load-bearing for the
+Task Completed trigger's filter, so the mapping has to resolve to a real, active
+user.
 
 ### Phase 4 — Category routing
 

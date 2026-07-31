@@ -9,6 +9,9 @@ The integration is designed around two concerns that must not be conflated:
 1. **Privacy portal ("peaky window")** — a Settings page section that lets authenticated users read and manage their own GHL contact record directly. On-demand, user-driven, non-blocking.
 2. **Dedicated CRM worker** — a background sync engine (`panamia-crm-bridge`) that keeps GHL contact fields, tags, and pipeline stages in sync with Panamia DB state. Invisible to users.
 
+Inquiry routing (Contact Us submissions into GHL Tasks and Opportunities) is a
+third concern, specified separately in [CONTACT-ROADMAP.md](./CONTACT-ROADMAP.md).
+
 ---
 
 ## Integration Model
@@ -37,15 +40,19 @@ GHL holds contacts from the moment they enter the funnel (event check-in, opt-in
 | Lead source / UTM / event check-in       | GHL                                     | Read-only in privacy portal; not copied to Panamia                         |
 | Marketing preferences (DND, unsubscribe) | GHL                                     | Written by privacy portal; synced inbound via webhook                      |
 | Member profile (bio, mentoring, roles)   | Panamia                                 | Pushed outbound to GHL custom fields by CRM worker                         |
-| Subscription / payment status            | Panamia (Stripe)                        | CRM worker relays to GHL pipeline stage                                    |
-| Pipeline stage                           | GHL                                     | CRM worker writes; sales rep may override manually                         |
+| Subscription / payment status            | Panamia (Stripe)                        | CRM worker relays to GHL **tags** (not pipeline stage — see Phase 6)       |
+| Pipeline stage                           | GHL                                     | Not written by any code today; GHL automation or manual only               |
 | Tags                                     | GHL                                     | CRM worker writes; GHL automation reacts                                   |
+| Inquiry state (Contact Us)               | Panamia (intake), GHL (work)            | See [CONTACT-ROADMAP.md](./CONTACT-ROADMAP.md)                             |
 
 ---
 
 ## Contact Lifecycle
 
 ```
+NOTE: the pipeline stage transitions below are the intended design, not the
+implemented one. See Phase 4 — no pipeline code exists in the worker today.
+
 Entry points (lead sources)
         ↓
 GHL contact created (lead)
@@ -80,6 +87,8 @@ Contacts enter GHL only through explicit opt-in or legitimate interaction:
 | Referral         | Existing member shares link with UTM; landing page submits to GHL        |
 | Abandoned signup | User starts Panamia signup but doesn't complete; email captured pre-auth |
 | Manual import    | Admin imports attendee list from off-platform event (with consent)       |
+| Contact Us       | Authenticated submitter, or unauthenticated press (tagged `unverified`)  |
+| Instagram DM     | GHL auto-creates a contact from the IG profile; usually has no email     |
 
 PDL (People Data Layer) enrichment data, if used, is displayed read-only in the privacy portal with a provenance note ("sourced from third-party data provider") and is excluded from the copy-to-profile option.
 
@@ -167,13 +176,71 @@ CF Workers do support cron triggers on the main app directly — splitting is an
 
 When GHL state changes should affect Panamia:
 
-| GHL Event                         | Panamia Action                               |
-| --------------------------------- | -------------------------------------------- |
-| Contact DND set (all channels)    | Set `ghlOptedOut = true` on profile          |
-| Contact deleted                   | Set `ghlOptedOut = true` on profile          |
-| Manual pipeline move by sales rep | Log to Panamia (audit only, no state change) |
+| GHL Event                          | Panamia Action                                                     |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| Contact DND set (all channels)     | Set `ghlOptedOut = true` on profile                                |
+| Contact deleted                    | Set `ghlOptedOut = true` on profile                                |
+| Manual pipeline move by sales rep  | Log to Panamia (audit only, no state change)                       |
+| Inquiries opportunity stage change | Update `contact_submissions.status` (see CONTACT-ROADMAP)          |
+| Contact merged into another        | Absorbed ID stops resolving; re-resolve by email, update stored ID |
 
 Inbound events arrive via GHL webhook to `POST /webhooks/ghl` on the CRM worker. The worker verifies the HMAC signature (`GHL_WEBHOOK_SECRET`) before processing.
+
+---
+
+## Verified GHL API Behavior
+
+Observed against the live location on 2026-07-31 by `scripts/ghl-verify.ts`.
+**None of the bridge code has ever been exercised against a real GHL response**
+— every finding below therefore applies to code that is currently assumed to
+work rather than known to. Each contradicted either the documentation or an
+assumption already written into `src/lib/ghl.ts` or the handlers.
+
+### Affecting the bridge's client (`src/lib/ghl.ts`)
+
+- **A missing contact is a 400, not a 404**, returning
+  `{"error":"Contact with id X not found","status":400}`. The bridge client
+  throws a bare `Error` carrying only status text, so it cannot distinguish
+  "merged away, re-resolve by email" from a transport failure. The main app's
+  client grew `GhlApiError.isNotFound` for this; the bridge has no equivalent.
+- **A 2xx does not mean the write happened.** Deleting a task answers 200 while
+  leaving the task in place, and the task _list_ then stops returning it — so a
+  list-based confirmation reports success for a record still visible in the
+  dashboard. Any bridge write whose effect matters must be confirmed by reading
+  the record back directly, not by status code and not by a list scan.
+- **A 401 does not imply a bad token or a missing scope.** GHL also answers 401
+  when an endpoint refuses the `Version` header. `GET /users/` returned 401
+  under `v3` and 200 under `2021-07-28` in consecutive runs, so version handling
+  must be per-endpoint and 401 must never be logged as an auth failure alone.
+- **`PUT /contacts/{id}/dnd` is unconfirmed and probably wrong.** The bridge's
+  `updateDnd()` calls it; the main app's client states the endpoint does not
+  exist and sets DND through `PUT /contacts/{id}` with a `dndSettings` body.
+  One of the two is broken, and `inactive-sweep` depends on the answer. Not yet
+  covered by the probe.
+- **Upsert's `tags` field overwrites the contact's entire tag set.** Adding a
+  tag without destroying others requires `POST /contacts/{id}/tags`, which is
+  confirmed additive. Any bridge path that upserts with tags can silently strip
+  `panamia-subscriber` off a paying member.
+
+### Affecting the inbound handler (`src/handlers/webhook-ghl.ts`)
+
+- **The handler targets the wrong delivery mechanism.** It requires an
+  HMAC-SHA256 signature on `x-wm-hmac-sha256` and 401s without one. That suits
+  the native webhook subscription, but the inquiry design uses a Workflow
+  **Webhook (Outbound)** action, which documents no configurable headers and no
+  signing. Authentication has to become a shared secret in the action's Custom
+  Data plus an unguessable path.
+- **Its event names are assumptions.** `contact.delete` and `contact.dnd_update`
+  have never been seen on the wire, and a workflow webhook's payload shape is
+  author-controlled anyway.
+- Treat the file as a starting point to rewrite rather than a working receiver.
+
+### Confirmed working
+
+Contact create (duplicates rejected with a recoverable `meta.contactId`),
+additive tagging, task create with `assignedTo` preserved, the task completion
+round trip, and opportunity create. `Version: v3` is accepted by contact, task,
+opportunity, pipeline, location, and custom-field endpoints.
 
 ---
 
@@ -228,21 +295,34 @@ Key findings from ToS review relevant to this integration:
 - `auth.ts` `account.create.after` hook: after profile claim, searches GHL by email
 - If a matching GHL contact is found and `ghlOptedOut = false`, links `ghlContactId` on profile
 - Best-effort: GHL errors are caught and logged; account creation never blocked
-- CRM worker sets GHL pipeline stage to "Active Member" after claim (Phase 4)
+- NOT IMPLEMENTED: the pipeline stage move to "Active Member" was specified here
+  but no opportunity or pipeline code exists in the worker (see Phase 4)
 
-### Phase 4 — Dedicated CRM worker (complete)
+### Phase 4 — Dedicated CRM worker (partial)
 
+- **Pipeline stage transitions are NOT implemented.** The Overview, Contact
+  Lifecycle, and System of Record sections describe the worker writing stages
+  (Signup, Active Member, Paying Member, Churned); no such code exists. The
+  worker writes contact fields and tags only. Any pipeline movement in the GHL
+  account today is GHL-native automation reacting to those tags, or manual.
 - `jobs/contact-sync.ts` — hourly sweep of recently updated profiles → push name + `panamia_verified` custom field to GHL
 - `jobs/inactive-sweep.ts` — daily sweep via raw SQL against sessions table; adds `inactive-30d` tag on GHL contacts with no session activity in 30 days
 - `src/lib/schema.ts` — corrected: `panaVerified` is accessed from `verification` JSONB (not a separate column); `lastLoginAt` removed (use sessions table instead)
 - TODO (ops): deploy worker, configure HYPERDRIVE binding ID in `wrangler.jsonc`, set cron triggers in CF dashboard
 
-### Phase 5 — GHL inbound webhook handler (complete)
+### Phase 5 — GHL inbound webhook handler (written, never verified)
+
+Previously marked complete. It is code-complete but has never received a real
+delivery, and the 2026-07-31 findings above show its two load-bearing
+assumptions are likely wrong. Reclassified so nothing downstream treats it as
+proven.
 
 - `handlers/webhook-ghl.ts` — HMAC-SHA256 signature verification + DB update via HYPERDRIVE
 - `contact.delete` → sets `ghlOptedOut=true`, clears `ghlContactId` on profile
 - `contact.dnd_update` (dnd=true) → sets `ghlOptedOut=true` on profile
-- TODO (ops): register worker's `/webhooks/ghl` URL in GHL → Settings → Webhooks; note actual signature header name in GHL docs (may be `x-wm-hmac-sha256`)
+- Signature header `x-wm-hmac-sha256` and both event names are guesses; a
+  Workflow webhook sends neither a signature nor these names
+- TODO (ops): register worker's `/webhooks/ghl` URL in GHL → Settings → Webhooks, capture one real delivery, and rewrite the handler against what actually arrives
 
 ### Phase 6 — Stripe relay (complete)
 
