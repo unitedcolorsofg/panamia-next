@@ -6,6 +6,7 @@ import { adminProfile } from './admin-profile';
 import { adminAffiliate } from './admin-affiliate';
 import { eventRsvpConfirm } from './event-rsvp-confirm';
 import { contactReceived } from './contact-received';
+import { adminContact } from './admin-contact';
 
 export type TemplateId =
   | 'profile.submitted'
@@ -14,6 +15,7 @@ export type TemplateId =
   | 'admin.newsletter_submission'
   | 'admin.profile_submission'
   | 'admin.affiliate_submission'
+  | 'admin.contact_submission'
   | 'event.rsvp_confirm'
   | 'contact.received';
 
@@ -30,6 +32,7 @@ const templates: Record<TemplateId, TemplateRenderer> = {
   'admin.newsletter_submission': adminNewsletter,
   'admin.profile_submission': adminProfile,
   'admin.affiliate_submission': adminAffiliate,
+  'admin.contact_submission': adminContact,
   'event.rsvp_confirm': eventRsvpConfirm,
   'contact.received': contactReceived,
 };

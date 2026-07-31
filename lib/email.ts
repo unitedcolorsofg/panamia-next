@@ -21,7 +21,14 @@ export interface SendEmail {
     subject: string;
     html: string;
     text?: string;
+    replyTo?: string;
   }): Promise<void>;
+}
+
+export interface SendOptions {
+  // Reply-To header. Used by staff notifications so that hitting reply reaches
+  // the person who wrote in rather than the shared sending address.
+  replyTo?: string;
 }
 
 export interface CloudflareEmailEnv {
@@ -57,10 +64,16 @@ export async function sendEmail(
   to: string,
   subject: string,
   html: string,
-  text?: string
+  text?: string,
+  options?: SendOptions
 ): Promise<void> {
   if (isDevMode()) {
-    console.log('[email:dev] to=%s subject=%s', to, subject);
+    console.log(
+      '[email:dev] to=%s subject=%s replyTo=%s',
+      to,
+      subject,
+      options?.replyTo ?? '—'
+    );
     console.log(
       '[email:dev] html length=%d text length=%d',
       html.length,
@@ -83,13 +96,15 @@ export async function sendEmail(
     subject,
     html,
     ...(text && { text }),
+    ...(options?.replyTo && { replyTo: options.replyTo }),
   });
 }
 
 export async function sendTemplateEmail(
   templateId: TemplateId,
   params: Record<string, unknown>,
-  toEmail?: string
+  toEmail?: string,
+  options?: SendOptions
 ): Promise<void> {
   const defaultReceiver =
     process.env.DEV_RECEIVER_EMAIL || process.env.ADMIN_EMAILS?.split(',')[0];
@@ -104,5 +119,5 @@ export async function sendTemplateEmail(
   }
 
   const { subject, html, text } = renderTemplate(templateId, params);
-  await sendEmail(to, subject, html, text);
+  await sendEmail(to, subject, html, text, options);
 }

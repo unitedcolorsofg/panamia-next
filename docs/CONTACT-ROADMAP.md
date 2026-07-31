@@ -7,8 +7,9 @@ the broader GHL integration; this document covers only the inquiry path.
 Status: specification. The GHL client surface this design needs exists in
 `lib/ghl.ts`, and its request shapes are **verified against the live location**
 as of 2026-07-31 by `scripts/ghl-verify.ts` — see Verified GHL behavior below.
-No routing is wired up; Phases 1–7 are all outstanding, and Phase 3 (creating
-the Inquiries pipeline) now blocks anything that writes an Opportunity.
+Phase 1 (staff notifications) has shipped. No GHL routing is wired up; Phases
+2–7 remain outstanding, and Phase 3 (creating the Inquiries pipeline) blocks
+anything that writes an Opportunity.
 
 ---
 
@@ -36,15 +37,17 @@ a row to `contact_submissions` (status `open`), and sends a receipt to the
 sender. Admins read the queue at `/account/admin/contactus` and flip status via
 `PATCH /api/admin/contactSubmissions`.
 
-Nobody on the team is notified of a submission. Nothing reaches GHL. The queue
-is poll-only.
+Since Phase 1 the team is notified of a submission (see below). Nothing reaches
+GHL, and the queue is still poll-only.
 
-This makes Contact Us the outlier among the app's forms: newsletter, profile,
-and affiliate submissions all send an `admin.*` notification. Those notifications
-resolve their recipient through `sendTemplateEmail`'s fallback in `lib/email.ts`,
-which is `DEV_RECEIVER_EMAIL || ADMIN_EMAILS.split(',')[0]` — **the first admin
-entry only**. The single existing fan-out to all admins is
-`notifyAdminsOfReport` in `lib/server/relay-reports.ts`.
+The other `admin.*` notifications — newsletter, profile, affiliate — still
+resolve their recipient through `sendTemplateEmail`'s fallback in
+`lib/email.ts`, which is `DEV_RECEIVER_EMAIL || ADMIN_EMAILS.split(',')[0]` —
+**the first admin entry only**. Contact Us no longer uses that fallback; it
+routes through `lib/contact-routing.ts`. The other two fan-outs to all admins
+are `notifyAdminsOfReport` in `lib/server/relay-reports.ts` and, for
+unauthenticated press only, `notifyStaffOfContactSubmission` in
+`lib/server/contact-notify.ts`.
 
 ### Relevant GHL mechanics
 
@@ -235,14 +238,28 @@ prevent — and assignment would have to move back into the app's create call.
 Category-routed, and a pointer rather than a copy: sender, category, submission
 ID, and a deep link into the admin queue, with `Reply-To` set to the sender.
 
-- `technical`, `general` — site operators
+- `technical`, `general`, `other` — site operators
 - `press`, `membership` — team role address
 - unauthenticated `press` — additionally fans out to every `ADMIN_EMAILS`
   entry, modeled on `notifyAdminsOfReport`
 
+`other` is the catch-all and goes to operators, who can forward what turns out
+to belong elsewhere; the opposite default would put unclassifiable mail in
+front of the people least able to triage it.
+
 Fan-out is deliberately limited to unauthenticated press. Broad notifications
 that fire frequently get filtered, which is the failure this design is
 correcting.
+
+Role addresses are hardcoded in `lib/contact-routing.ts` rather than
+configured. They are role aliases on the org's own domain, not staff
+addresses — nothing sensitive, and nothing that changes when staffing does,
+since re-pointing a role is a mail-alias edit with no deploy. **Both roles
+currently resolve to `hola@pana.social`**, because no `press@` or `membership@`
+alias exists yet; splitting them means editing that one map, as every call site
+asks for a role rather than an address. An alias must not be added there before
+it is confirmed deliverable — one that bounces silently drops exactly the
+inquiries Goal 2 exists to protect.
 
 ### GHL linkage is not a status
 
@@ -516,11 +533,34 @@ transition is reversible if they were premature.
 
 ## Phased Rollout
 
-### Phase 1 — Role-address notifications
+### Phase 1 — Role-address notifications — SHIPPED
 
 Category-routed staff notification with `Reply-To`, replacing the
 `ADMIN_EMAILS[0]` fallback for Contact Us. All-admin fan-out for unauthenticated
 press. No GHL dependency; unblocked by every open question above.
+
+What landed:
+
+- `lib/contact-routing.ts` — category → role → address, the admin fan-out
+  predicate, and case-insensitive recipient dedupe (an admin who is also behind
+  the role alias is mailed once).
+- `lib/email-templates/admin-contact.ts` — the `admin.contact_submission`
+  template. Pointer only: sender, category, submission ID, queue link, and an
+  unverified-sender warning when the submitter was not signed in.
+- `lib/server/contact-notify.ts` — `notifyStaffOfContactSubmission`, modeled on
+  `notifyAdminsOfReport`: never throws, and mails recipients independently via
+  `Promise.allSettled` so one bad address cannot suppress the others and admins
+  are not exposed to each other in a `To:` header.
+- `lib/email.ts` — `sendEmail` / `sendTemplateEmail` gained an optional
+  `SendOptions` carrying `replyTo`. The CF Email binding's `send()` accepts
+  `replyTo` (camelCase); `cc`, `bcc`, `headers`, and `attachments` are also
+  available if a later phase needs them.
+- `app/api/createContactUs/route.ts` — the insert now `.returning({ id })`,
+  because the notification points at the row rather than copying it.
+
+Deferred out of Phase 1: a deep link to the individual submission. The admin
+queue has no per-row anchor, so the notification links to the queue root — see
+Phase 6.
 
 ### Phase 2 — Audit log
 

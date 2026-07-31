@@ -9,6 +9,7 @@ import {
   CONTACT_CATEGORY_LABELS,
 } from '@/lib/contact-categories';
 import { sendTemplateEmail } from '@/lib/email';
+import { notifyStaffOfContactSubmission } from '@/lib/server/contact-notify';
 
 const validateEmail = (email: string): boolean => {
   const regEx = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -86,16 +87,25 @@ export async function POST(request: NextRequest) {
     screenname = account?.screenname ?? null;
   }
 
-  // Save to database
+  // Save to database. The row ID comes back because the staff notification
+  // carries it — the notification is a pointer into the admin queue, not a copy
+  // of the message, so without the ID there is nothing to point at.
+  const cleanName = name.trim();
+  const cleanEmail = email.toLowerCase().trim();
+  let submissionId: string;
   try {
-    await db.insert(contactSubmissions).values({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      message: message.trim(),
-      category,
-      userId,
-      screenname,
-    });
+    const [inserted] = await db
+      .insert(contactSubmissions)
+      .values({
+        name: cleanName,
+        email: cleanEmail,
+        message: message.trim(),
+        category,
+        userId,
+        screenname,
+      })
+      .returning({ id: contactSubmissions.id });
+    submissionId = inserted.id;
   } catch (error) {
     console.error('Database error saving contact form:', error);
     return NextResponse.json(
@@ -113,12 +123,25 @@ export async function POST(request: NextRequest) {
   sendTemplateEmail(
     'contact.received',
     {
-      name: name.trim(),
+      name: cleanName,
       category: CONTACT_CATEGORY_LABELS[category],
       message: message.trim(),
     },
-    email.toLowerCase().trim()
+    cleanEmail
   ).catch((err) => console.error('Contact receipt email error:', err));
+
+  // Staff notification, routed by category. Also fire-and-forget, and for the
+  // same reason: until now nobody on the team was told a submission had
+  // arrived, so failing the request when the alert fails would trade a silent
+  // gap for a loud one on the sender's side.
+  notifyStaffOfContactSubmission({
+    id: submissionId,
+    name: cleanName,
+    email: cleanEmail,
+    category,
+    screenname,
+    isAuthenticated: userId !== null,
+  }).catch((err) => console.error('Contact staff notification error:', err));
 
   return NextResponse.json(
     {
