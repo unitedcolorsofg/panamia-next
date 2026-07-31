@@ -273,15 +273,61 @@ guessing GHL's event names.
 **Tasks (`membership`, `general`, `other`).** Outbound: resolving a submission
 in the admin queue calls `PUT /contacts/{id}/tasks/{taskId}/completed` — the
 narrow endpoint, so a sync write can never clobber a title, due date, or
-assignee a human edited. Inbound: the bridge polls `GET /contacts/{id}/tasks`
-for submissions holding a `ghl_task_id` and still at `open`, and flips those
-whose task has been completed.
+assignee a human edited. Inbound: a Workflow **Webhook (Outbound)** action fired
+on task completion, delivered to the bridge.
 
-Polling rather than a webhook is deliberate for tasks. It is unblocked by the
-unverified webhook path, so task sync can ship with Phase 4 instead of waiting
-for Phase 7 — which matters because tasks carry the majority of GHL-routed
-inquiries, and without this they stay `open` forever and permanently float to
-the top of a queue ordered by `asc(status)`.
+**Webhooks supersede polling.** Both directions of this design are webhook-based
+once the path is proven; polling is not the target state for either object type.
+The Workflow webhook action is a supported, documented GHL feature —
+[Workflow Action: Webhook (Outbound)][ghl-webhook] — with a configurable method
+and URL, and a Custom Data section of key/value pairs supporting merge fields
+(`{{contact.source}}`). Payloads carry contact and location data by default;
+other objects, tasks included, appear only when the workflow's trigger
+references them, so the trigger choice determines whether `taskId` is even in
+the body.
+
+[ghl-webhook]: https://help.gohighlevel.com/support/solutions/articles/155000003299-workflow-action-webhook-outbound-
+
+Two things the action's documentation does not provide, both of which the
+implementation has to answer rather than assume:
+
+- **No authentication or signing.** No configurable headers and no HMAC are
+  documented. This matters because `handlers/webhook-ghl.ts` currently requires
+  a signature on `x-wm-hmac-sha256` and 401s without one — that handler was
+  written for the native webhook subscription and would reject every workflow
+  delivery. Authentication has to move to something the action can actually
+  send: a shared secret in Custom Data, or an unguessable path segment, ideally
+  both, over HTTPS only.
+- **No documented retry.** Nothing states what happens to a delivery the bridge
+  misses or 500s on. Until that is observed, a dropped delivery is a submission
+  stranded at `open` with no second chance.
+
+Because of the second point, a low-frequency reconciliation sweep over
+`open` submissions holding a `ghl_task_id` stays in the design as a backstop —
+not as the sync mechanism, but as the thing that notices when the webhook did
+not arrive. If deliveries prove reliable in practice, the sweep interval can be
+widened or the sweep dropped.
+
+**Task Completed is a confirmed trigger**, with an optional Assigned User filter
+and filters on task custom fields. Two consequences follow from how those
+filters behave.
+
+_The trigger fires account-wide by default._ Assigned User is optional, so an
+unfiltered workflow fires whenever any user completes any task anywhere in the
+location — not only the ones this path created. The bridge therefore **scopes by
+matching the delivered task against a `ghl_task_id` on a submission** and
+ignores anything that does not match. Correctness lives in that match, never in
+the workflow filter: a filter is dashboard configuration that can be edited or
+misconfigured by someone with no idea it feeds the app, and it cannot scope
+reliably anyway, because the inquiry owner is a real person with unrelated tasks
+of their own. Treat the filter as noise reduction only.
+
+_Assignment becomes load-bearing._ GHL's own caveat is that an unassigned task
+makes the Assigned User filter behave unexpectedly. Assignment was already
+required by Goal 4 to keep work from landing in an unowned pile; it is now also
+what keeps that filter meaningful, so a silently dropped `assignedTo` is a sync
+defect and not merely an ownership one. `scripts/ghl-verify.ts` asserts the
+assignee survives task creation for exactly this reason.
 
 Loop prevention: the inbound handler compares the incoming state against the
 most recent outbound `crm_audit_log` row for that object and drops matching
@@ -333,9 +379,13 @@ transition is reversible if they were premature.
   result rather than participate in it.
 - **Read state in GHL Conversations is shared, not per user.** Any triage view
   built on unread is fragile. This design routes around it rather than fixing it.
-- **The inbound webhook path is unproven.** `handlers/webhook-ghl.ts` has never
-  been verified against a real delivery; both its signature header and its event
-  names are assumptions. Bilateral sync cannot be trusted until that is tested.
+- **The inbound webhook path is unproven, and the existing handler targets the
+  wrong mechanism.** `handlers/webhook-ghl.ts` has never been verified against a
+  real delivery; its signature header and event names are assumptions, and it
+  was written for the native webhook subscription rather than the Workflow
+  action this design uses. It handles only `contact.delete` and
+  `contact.dnd_update` — nothing for tasks or opportunities. Treat it as a
+  starting point to rewrite, not a working receiver.
 - **Instagram remains outside the app entirely.** The design unifies IG and
   Contact Us only at the Inquiries pipeline, by human promotion. The app never
   ingests IG messages.
@@ -344,9 +394,17 @@ transition is reversible if they were premature.
 - **Two systems still hold inquiry state.** The app queue is authoritative for
   intake and GHL for work, and bilateral sync keeps them aligned. That is a
   reconciliation surface, and reconciliation surfaces drift.
-- **Task sync is a poll, so resolution lags.** An inquiry closed in GHL stays
-  `open` in the app until the next bridge run. Acceptable for a support queue;
-  it would not be for anything user-facing.
+- **Webhook delivery has no documented guarantee.** The Webhook (Outbound)
+  action's documentation states no retry behavior, so a delivery the bridge
+  misses may simply be lost, stranding a submission at `open`. This is why a
+  reconciliation sweep stays in the design behind the webhook, and why "webhooks
+  supersede polling" means the webhook carries the signal, not that nothing
+  checks the result.
+- **Workflow webhooks cannot authenticate themselves.** No configurable headers
+  and no signing are documented, so the receiver's only options are a shared
+  secret in Custom Data and an unguessable path. Both are bearer secrets in a
+  URL or body rather than a signature over the payload, which is weaker than
+  what `handlers/webhook-ghl.ts` was written to expect.
 - **Copying inquiry text to GHL widens the third-party surface.** A message
   written by someone who is not signed in — and whose address nobody has
   confirmed — is replicated to a CRM the sender was never told about at the
@@ -373,6 +431,17 @@ transition is reversible if they were premature.
 6. Are GHL-hosted forms creating contacts the app has no record of?
 7. What is the plan's contact limit and current headroom? (Gates Phase 4 — see
    Known Limitations.)
+8. ~~Is there a workflow trigger for task completion?~~ **Answered: yes.** Task
+   Completed exists, with an optional Assigned User filter and custom-field
+   filters. Unfiltered it fires account-wide, which is why the bridge scopes on
+   `ghl_task_id` rather than on the filter — see Bilateral sync.
+9. What does a Workflow webhook delivery actually look like on the wire —
+   headers, body shape, and whether a failed delivery is retried? Answers the
+   authentication and backstop questions in Bilateral sync. **Specifically:
+   does a Task Completed payload carry the task's own ID?** The whole scoping
+   model depends on it; if the payload carries only contact fields, the bridge
+   cannot tell which task completed and would have to re-read the contact's
+   task list to find out.
 
 ---
 
@@ -407,11 +476,24 @@ message body and a deep link back to the submission.
 
 ### Phase 4b — Task completion sync
 
-Bridge job polling `GET /contacts/{id}/tasks` for `open` submissions holding a
-`ghl_task_id`, flipping those whose task is completed to `actioned`, plus the
-outbound `PUT .../completed` on admin resolve. Ships with Phase 4 rather than
-waiting for Phase 7: it needs no webhook, and without it the majority of routed
-inquiries never leave `open`.
+Inbound Workflow webhook on task completion, flipping the submission to
+`actioned`, plus the outbound `PUT .../completed` on admin resolve. Ships with
+Phase 4 — without it the majority of routed inquiries never leave `open`.
+
+Ungated — Task Completed is confirmed to exist (Open Question 8). The work is:
+
+1. A Workflow on Task Completed with a Webhook (Outbound) action pointing at the
+   bridge, carrying a shared secret in Custom Data.
+2. A receiver that authenticates, resolves the delivery to a submission by
+   `ghl_task_id`, ignores non-matching tasks, and drops echoes via
+   `crm_audit_log`.
+3. The outbound `PUT .../completed` on admin resolve.
+4. A widely-spaced reconciliation sweep behind the webhook, since delivery is
+   not guaranteed.
+
+Shares its receiver, authentication, and echo suppression with Phase 7 — the two
+differ only in which workflow fires and what the payload maps to, so building
+them together avoids doing the unproven part twice.
 
 ### Phase 5 — Unverified purge (cut)
 
@@ -425,8 +507,12 @@ contact-limit answer from Open Questions shows real pressure.
 Deep link from a submission to its GHL Task or Opportunity, a badge showing
 whether it routed to GHL, and queue filters for routed vs app-only.
 
-### Phase 7 — Bilateral sync
+### Phase 7 — Opportunity bilateral sync
 
 Only after the webhook path is verified against a real delivery. Workflow
-webhook to the bridge, stage-to-status mapping, echo suppression via the audit
-log.
+webhook to the bridge on opportunity stage change, stage-to-status mapping, echo
+suppression via the audit log.
+
+Shares its receiver, authentication, and echo-suppression machinery with Phase
+4b — the two differ only in which workflow fires and what the payload maps to,
+so building them together avoids doing the unproven part twice.
