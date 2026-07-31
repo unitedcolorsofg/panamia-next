@@ -222,6 +222,28 @@ Admin-only endpoints (require admin role):
 | ------------------------------ | ------ | ---------------------- |
 | `/api/create-checkout-session` | POST   | Create Stripe checkout |
 
+## CRM / Marketing Data (`/api/crm/*`)
+
+Backs the "Marketing Data (HighLevel)" section of `/account/user/edit`. Each
+route acts on the authenticated user's own GHL contact record and degrades
+gracefully — GHL is never a hard dependency. See
+[docs/CRM-ROADMAP.md](../../docs/CRM-ROADMAP.md).
+
+| Endpoint                       | Method | Description                                               |
+| ------------------------------ | ------ | --------------------------------------------------------- |
+| `/api/crm/contact`             | GET    | Read the user's GHL contact record                        |
+| `/api/crm/contact`             | DELETE | Delete the contact and set `ghlOptedOut`                  |
+| `/api/crm/contact/subscribe`   | POST   | Clear DND on all channels                                 |
+| `/api/crm/contact/unsubscribe` | POST   | Set DND on all channels                                   |
+| `/api/crm/contact/dnd`         | PATCH  | Set DND for one channel (`Email`/`SMS`/`WhatsApp`/`Call`) |
+| `/api/crm/contact/copy-field`  | POST   | Copy a GHL field onto the Panamia profile                 |
+| `/api/crm/contact/enroll`      | POST   | Enroll the contact in a GHL test workflow                 |
+
+`/dnd` reads the contact before writing and rewrites every channel. GHL was
+verified to merge a partial `dndSettings` rather than replace it, so this is
+belt-and-braces against undocumented behavior — but the read is needed anyway,
+since the top-level `dnd` flag is only true when every channel is suppressed.
+
 ## Realtime (WebRTC signaling)
 
 Realtime is handled by a Cloudflare **Durable Object** (`SignalingRoom`, see

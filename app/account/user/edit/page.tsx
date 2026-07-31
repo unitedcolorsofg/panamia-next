@@ -2,6 +2,30 @@
 
 import { useEffect, useState, FormEvent, useCallback } from 'react';
 
+// Channels the app manages, spelled as GHL requires. Mirrors GHL_DND_CHANNELS
+// in lib/ghl.ts; kept local so this client component does not pull in the
+// server-only GHL client.
+const DND_CHANNELS = [
+  { key: 'Email', label: 'Marketing emails' },
+  { key: 'SMS', label: 'Text messages' },
+  { key: 'WhatsApp', label: 'WhatsApp' },
+  { key: 'Call', label: 'Phone calls' },
+] as const;
+
+type DndChannel = (typeof DND_CHANNELS)[number]['key'];
+
+/** Every channel set to the same state, for the all-or-nothing actions. */
+function allChannels(
+  suppressed: boolean
+): Partial<Record<DndChannel, { status: string }>> {
+  return Object.fromEntries(
+    DND_CHANNELS.map(({ key }) => [
+      key,
+      { status: suppressed ? 'active' : 'inactive' },
+    ])
+  );
+}
+
 interface GhlContactData {
   id: string;
   firstName?: string;
@@ -11,6 +35,7 @@ interface GhlContactData {
   source?: string;
   tags?: string[];
   dnd?: boolean;
+  dndSettings?: Partial<Record<DndChannel, { status?: string }>>;
 }
 import { useSession } from '@/lib/auth-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -251,7 +276,9 @@ export default function UserEditPage() {
       });
       if (res.ok) {
         setGhlContact((prev) =>
-          prev && prev !== 'empty' ? { ...prev, dnd: true } : prev
+          prev && prev !== 'empty'
+            ? { ...prev, dnd: true, dndSettings: allChannels(true) }
+            : prev
         );
         toast({
           title: 'Unsubscribed',
@@ -276,6 +303,61 @@ export default function UserEditPage() {
     }
   };
 
+  const handleGhlChannelToggle = async (
+    channel: DndChannel,
+    suppressed: boolean
+  ) => {
+    setGhlActionLoading(`dnd-${channel}`);
+    try {
+      const res = await fetch('/api/crm/contact/dnd', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, suppressed }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // The route returns the resulting state of every channel, so adopt it
+        // wholesale rather than patching one key — that keeps the UI honest if
+        // another channel changed underneath us.
+        setGhlContact((prev) =>
+          prev && prev !== 'empty'
+            ? {
+                ...prev,
+                dnd: DND_CHANNELS.every((c) => data.data[c.key]),
+                dndSettings: Object.fromEntries(
+                  DND_CHANNELS.map((c) => [
+                    c.key,
+                    { status: data.data[c.key] ? 'active' : 'inactive' },
+                  ])
+                ),
+              }
+            : prev
+        );
+        toast({
+          title: suppressed ? 'Channel disabled' : 'Channel enabled',
+          description: suppressed
+            ? `You will no longer receive Panamia messages via ${channel}.`
+            : `You will receive Panamia messages via ${channel} again.`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description:
+            data.error || 'Could not reach HighLevel, please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not reach HighLevel, please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGhlActionLoading(null);
+    }
+  };
+
   const handleGhlSubscribe = async () => {
     setGhlActionLoading('subscribe');
     try {
@@ -283,8 +365,12 @@ export default function UserEditPage() {
         method: 'POST',
       });
       if (res.ok) {
+        // Mirror the all-channels change into dndSettings so the per-channel
+        // rows do not keep showing the pre-click state.
         setGhlContact((prev) =>
-          prev && prev !== 'empty' ? { ...prev, dnd: false } : prev
+          prev && prev !== 'empty'
+            ? { ...prev, dnd: false, dndSettings: allChannels(false) }
+            : prev
         );
         toast({
           title: 'Subscribed',
@@ -838,15 +924,50 @@ export default function UserEditPage() {
                             </dd>
                           </div>
                         )}
-                        <div className="flex justify-between gap-4">
-                          <dt className="text-muted-foreground">
-                            Marketing emails
-                          </dt>
-                          <dd>
-                            {ghlContact.dnd ? 'Unsubscribed' : 'Subscribed'}
-                          </dd>
-                        </div>
                       </dl>
+                      {/* Per-channel state, each independently toggleable. GHL
+                          tracks these separately, so collapsing them into one
+                          "subscribed" line would misreport a contact who is
+                          disabled on some channels and not others. */}
+                      <div className="space-y-1 border-t pt-4">
+                        <p className="text-muted-foreground mb-2 text-xs">
+                          Enable or disable individual channels, or use the
+                          buttons below to change them all at once.
+                        </p>
+                        {DND_CHANNELS.map(({ key, label }) => {
+                          const suppressed =
+                            ghlContact.dndSettings?.[key]?.status === 'active';
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between gap-4 py-1"
+                            >
+                              <span className="text-muted-foreground text-sm">
+                                {label}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">
+                                  {suppressed ? 'Disabled' : 'Enabled'}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!!ghlActionLoading}
+                                  aria-label={`${suppressed ? 'Enable' : 'Disable'} ${label}`}
+                                  onClick={() =>
+                                    handleGhlChannelToggle(key, !suppressed)
+                                  }
+                                >
+                                  {ghlActionLoading === `dnd-${key}` && (
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  )}
+                                  {suppressed ? 'Enable' : 'Disable'}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                       <p className="text-muted-foreground text-xs">
                         Changes may take up to 24 hours to become effective. See
                         our{' '}

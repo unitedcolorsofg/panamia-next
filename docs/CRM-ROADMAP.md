@@ -212,11 +212,26 @@ assumption already written into `src/lib/ghl.ts` or the handlers.
   when an endpoint refuses the `Version` header. `GET /users/` returned 401
   under `v3` and 200 under `2021-07-28` in consecutive runs, so version handling
   must be per-endpoint and 401 must never be logged as an auth failure alone.
-- **`PUT /contacts/{id}/dnd` is unconfirmed and probably wrong.** The bridge's
-  `updateDnd()` calls it; the main app's client states the endpoint does not
-  exist and sets DND through `PUT /contacts/{id}` with a `dndSettings` body.
-  One of the two is broken, and `inactive-sweep` depends on the answer. Not yet
-  covered by the probe.
+- **`PUT /contacts/{id}/dnd` does not exist — resolved 2026-07-31.** It answers
+  404 "Cannot PUT". The bridge's `updateDnd()` called it and could never have
+  worked; it now writes DND through `PUT /contacts/{id}` like the main app.
+  The bug was **latent, not live**: nothing in the worker called `updateDnd`,
+  and `inactive-sweep` only uses `addTag`. An earlier draft of this section said
+  the sweep depended on it, which was wrong.
+- **`dndSettings` key casing is load-bearing.** `PUT /contacts/{id}` requires
+  `Email`/`SMS`/`WhatsApp`/`Call` and rejects the lowercase spelling with 422
+  ("dndSettings.property email should not exist"). Lowercase appears in the
+  create-contact v3 schema, which is a different endpoint. The rejection is
+  loud, so a wrong casing cannot silently leave DND half-applied — worth noting
+  because that was the feared failure mode.
+- **DND is genuinely per-channel.** A single channel can be suppressed with
+  `dnd: false` and reads back suppressed, so the top-level flag is a master
+  switch rather than a gate over `dndSettings`. This is what makes per-channel
+  controls possible; without it the only honest UI would be all-or-nothing.
+- **A partial `dndSettings` merges** rather than replacing — naming one channel
+  leaves the others as they were. Undocumented, so `setDndChannels()` still
+  writes all four, but a single-key write would not currently destroy state.
+  Note this differs from upsert's `tags`, which does replace.
 - **Upsert's `tags` field overwrites the contact's entire tag set.** Adding a
   tag without destroying others requires `POST /contacts/{id}/tags`, which is
   confirmed additive. Any bridge path that upserts with tags can silently strip

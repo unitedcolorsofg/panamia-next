@@ -48,15 +48,27 @@ export interface GhlContact {
   tags?: string[];
   customField?: Array<{ id: string; value: string }>;
   dnd?: boolean;
-  dndSettings?: {
-    email?: { status: string };
-    sms?: { status: string };
-    whatsapp?: { status: string };
-    calls?: { status: string };
-  };
+  dndSettings?: Partial<Record<GhlDndChannel, { status?: string }>>;
 }
 
 export type GhlDndStatus = 'active' | 'inactive';
+
+/**
+ * The DND channels this app manages, spelled the way the API requires.
+ *
+ * Verified 2026-07-31: `PUT /contacts/{id}` accepts these capitalized keys and
+ * rejects the lowercase spelling with 422; reads come back capitalized too.
+ * GHL also exposes GMB and Facebook channels, deliberately omitted — nothing
+ * here sends on them, so offering a control implying otherwise would mislead.
+ */
+export type GhlDndChannel = 'Email' | 'SMS' | 'WhatsApp' | 'Call';
+
+export const GHL_DND_CHANNELS: readonly GhlDndChannel[] = [
+  'Email',
+  'SMS',
+  'WhatsApp',
+  'Call',
+] as const;
 
 /** A task hanging off a contact — the work item most inquiries route to. */
 export interface GhlTask {
@@ -496,7 +508,14 @@ export class GhlClient {
    *
    * LeadConnector v2 has no dedicated DND endpoint; DND is updated via the
    * standard contact update with `dnd: true` (top-level switch covering all
-   * channels) and explicit per-channel `dndSettings` for completeness.
+   * channels) and explicit per-channel `dndSettings`.
+   *
+   * Verified 2026-07-31 (scripts/ghl-dnd-probe.ts): `PUT /contacts/{id}/dnd`
+   * answers 404 "Cannot PUT", and this shape returns 200 with all four channels
+   * reading back as active. The capitalized keys below are required — the
+   * lowercase spelling from GHL's create-contact v3 schema is rejected here
+   * with 422 ("dndSettings.property email should not exist"). It fails loudly
+   * rather than silently, so a wrong casing cannot leave DND half-applied.
    */
   async setDndAll(id: string): Promise<void> {
     await this.request<unknown>('PUT', `/contacts/${id}`, {
@@ -510,6 +529,40 @@ export class GhlClient {
         },
         Call: { status: 'active' as GhlDndStatus, code: 'user_unsubscribe' },
       },
+    });
+  }
+
+  /**
+   * Set DND per channel, writing the complete set every time.
+   *
+   * Sending all four channels on every write is deliberate. Verified
+   * 2026-07-31 that GHL *merges* a partial `dndSettings` rather than replacing
+   * it, so a single-key write would in fact be safe today — but that behavior
+   * is undocumented, and the analogous case (upsert's `tags`) replaces. Writing
+   * the full set costs nothing and is correct under either behavior, so callers
+   * pass the desired state of every channel, not just the one they change.
+   *
+   * The top-level `dnd` flag is set only when every channel is suppressed. It
+   * is a master switch, not a gate: verified that one channel can be suppressed
+   * with `dnd: false` and reads back suppressed, which is what makes
+   * per-channel control possible at all.
+   */
+  async setDndChannels(
+    id: string,
+    active: Record<GhlDndChannel, boolean>
+  ): Promise<void> {
+    const dndSettings = Object.fromEntries(
+      GHL_DND_CHANNELS.map((channel) => [
+        channel,
+        {
+          status: (active[channel] ? 'active' : 'inactive') as GhlDndStatus,
+          code: active[channel] ? 'user_unsubscribe' : 'user_resubscribe',
+        },
+      ])
+    );
+    await this.request<unknown>('PUT', `/contacts/${id}`, {
+      dnd: GHL_DND_CHANNELS.every((channel) => active[channel]),
+      dndSettings,
     });
   }
 

@@ -27,11 +27,19 @@ export interface GhlContact extends GhlContactFields {
   source?: string;
 }
 
+/**
+ * Per-channel DND settings.
+ *
+ * The key casing is load-bearing and verified: `PUT /contacts/{id}` accepts
+ * `Email`/`SMS`/`WhatsApp`/`Call` and rejects the lowercase spelling with 422
+ * ("dndSettings.property email should not exist"). The lowercase form appears
+ * in GHL's create-contact v3 schema, which is a different endpoint.
+ */
 export interface GhlDndSettings {
-  email?: { status: 'active' | 'inactive' };
-  sms?: { status: 'active' | 'inactive' };
-  whatsapp?: { status: 'active' | 'inactive' };
-  calls?: { status: 'active' | 'inactive' };
+  Email?: { status: 'active' | 'inactive'; code?: string };
+  SMS?: { status: 'active' | 'inactive'; code?: string };
+  WhatsApp?: { status: 'active' | 'inactive'; code?: string };
+  Call?: { status: 'active' | 'inactive'; code?: string };
 }
 
 export class GhlClient {
@@ -114,8 +122,25 @@ export class GhlClient {
     await this.request<void>('DELETE', `/contacts/${id}/tags`, { tags: [tag] });
   }
 
-  /** Set DND (Do Not Disturb) on all channels — effectively unsubscribes the contact. */
-  async updateDnd(id: string, dnd: GhlDndSettings): Promise<void> {
-    await this.request<void>('PUT', `/contacts/${id}/dnd`, dnd);
+  /**
+   * Set DND (Do Not Disturb) per channel — suppresses marketing to the contact.
+   *
+   * This previously called `PUT /contacts/{id}/dnd`, which does not exist:
+   * verified 2026-07-31, it answers 404 "Cannot PUT /contacts/{id}/dnd". DND is
+   * written through the ordinary contact update instead, with the top-level
+   * `dnd` flag derived from whether any channel is being suppressed.
+   *
+   * Nothing in the worker calls this today — the bug was latent, not live, and
+   * `inactive-sweep` only uses `addTag`. Corrected so the next caller inherits
+   * a working method rather than a 404.
+   */
+  async updateDnd(id: string, settings: GhlDndSettings): Promise<void> {
+    const anyActive = Object.values(settings).some(
+      (channel) => channel?.status === 'active'
+    );
+    await this.request<unknown>('PUT', `/contacts/${id}`, {
+      dnd: anyActive,
+      dndSettings: settings,
+    });
   }
 }
