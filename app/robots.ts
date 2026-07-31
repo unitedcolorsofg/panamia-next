@@ -16,7 +16,7 @@ export default function robots(): RobotsResult {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/account', '/admin', '/api', '/test'],
+      disallow: ['/account', '/admin', '/api'],
     },
     sitemap: `${process.env.NEXT_PUBLIC_HOST_URL ?? 'https://pana.social'}/sitemap.xml`,
   };

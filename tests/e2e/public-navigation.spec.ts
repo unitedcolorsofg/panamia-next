@@ -43,6 +43,12 @@ test.describe('Public Navigation', () => {
     await expect(page).not.toHaveTitle(/404/);
   });
 
+  test('/contact-us redirects to the contact form', async ({ page }) => {
+    await page.goto('/contact-us');
+    await expect(page).toHaveURL(/form\/contact-us/);
+    await expect(page).not.toHaveTitle(/404/);
+  });
+
   test('links page loads', async ({ page }) => {
     await page.goto('/links');
     await expect(page).toHaveURL(/links/);
