@@ -140,7 +140,9 @@ Every unauthenticated submission in a GHL-bound category creates a contact per
 sender, tagged `unverified` and `source:contact-us`. These contacts:
 
 - are excluded from every marketing audience by the `unverified` tag,
-- are never enrolled in workflows,
+- are never enrolled in a **marketing** workflow — the assignment workflow keyed
+  on `inquiry:*` does fire for them, since an unverified inquiry still needs an
+  owner; the distinction is that nothing sends to them,
 - never have DND cleared.
 
 They are **not** purged on a schedule. An earlier draft had a bridge cron job
@@ -204,9 +206,29 @@ Membership tracking is out of scope here — see
 there is not implemented; membership state is currently carried by tags
 (`panamia-subscriber`, `panamia-churned`) written by the Stripe relay.
 
-Roles: at minimum a press/partnerships owner and a membership owner. The app
-stores a role-to-GHL-user mapping in configuration rather than hardcoding user
-IDs, so staffing changes do not require a deploy.
+Roles: at minimum a press/partnerships owner and a membership owner.
+
+**Ownership is assigned in GHL, not by the app.** An earlier draft had the app
+hold a role-to-GHL-user mapping in configuration; that was dropped. It could not
+deliver what it promised — a Workers `vars` change still needs a redeploy, so
+"staffing changes do not require a deploy" was untrue — and it put either
+account-specific user IDs or staff addresses in the repo to achieve it.
+
+Instead the app writes `inquiry:{category}` and a Workflow keyed on that tag
+assigns the record. Nothing here names a person, and re-pointing a role is a
+dashboard edit with no deploy at all.
+
+The cost is that the tags become load-bearing for ownership rather than merely
+descriptive: renaming one silently orphans every inquiry whose Workflow still
+filters on the old string. `lib/ghl-structure.ts` is the single definition, and
+`scripts/ghl-check-structure.ts` prints the exact strings to paste into the
+Workflow filters.
+
+**Unverified, and it gates this approach:** GHL's "Assign to user" action is
+understood to set the _contact's_ owner. Whether that reaches a Task's own
+`assignedTo` has not been tested. If it does not, tasks sit unassigned in the
+task list even though the contact is owned — the failure Goal 4 exists to
+prevent — and assignment would have to move back into the app's create call.
 
 ### Notifications
 
@@ -507,15 +529,35 @@ into the four `app/api/crm/*` privacy portal routes first.
 
 ### Phase 3 — GHL structure
 
-Create the Inquiries pipeline, define roles and the role-to-user mapping,
-establish the tag conventions. Dashboard work; no code.
+Dashboard work. The code side is done: `lib/ghl-structure.ts` defines the
+expected pipeline, stages, and tags, and `scripts/ghl-check-structure.ts`
+verifies the account against it and exits non-zero when something is missing.
 
-**Now blocking.** The location has exactly one pipeline, and it is a member-lead
-one, so until Inquiries exists the only place a `press` opportunity could go is
-the pipeline this design says inquiries must stay out of. The probe's user list
-is the candidate pool for the role mapping; assignment is load-bearing for the
-Task Completed trigger's filter, so the mapping has to resolve to a real, active
-user.
+**Blocking Phase 4.** The location has exactly one pipeline, a member-lead one,
+so until Inquiries exists the only place a `press` opportunity could go is the
+pipeline this design says inquiries must stay out of.
+
+To do in GHL:
+
+1. **Opportunities -> Pipelines -> Add Pipeline**, named `Inquiries`, with
+   stages in order: New, Assigned, Awaiting Reply, Resolved.
+2. **A Workflow per owned category**, triggered on Contact Tag Added matching
+   `inquiry:press` / `inquiry:membership` / `inquiry:general` / `inquiry:other`,
+   with an Assign to user action. `technical` gets none — it never reaches GHL.
+3. Confirm the assignment reaches the **Task's** `assignedTo`, not only the
+   contact's owner. If it does not, assignment moves back into the app's create
+   call and this step is redesigned.
+
+Then run:
+
+```
+npx tsx scripts/ghl-check-structure.ts --api-key=pit-xxxx --location-id=xxxx
+```
+
+It verifies the pipeline and stages, lists the users available to assign to, and
+prints the exact tag strings for the Workflow filters. It cannot verify the
+Workflows themselves — triggers and actions are not exposed by the API — so
+step 3 stays a manual check.
 
 ### Phase 4 — Category routing
 
