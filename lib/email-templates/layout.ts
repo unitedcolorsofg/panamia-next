@@ -1,20 +1,28 @@
 const BRAND_COLOR = '#4ab3ea';
 const BUTTON_BG = '#ec4899';
 
+// `body` is raw HTML by contract — every template builds it and is responsible
+// for escaping what it interpolates. `title` and `preheader` are NOT: they are
+// plain text, and several templates build the preheader from user-supplied
+// names. Escaping them here rather than at each call site is what keeps that
+// from being a per-template decision that one template gets wrong. Callers must
+// therefore pass these two UNESCAPED, or they double-encode.
 export function emailLayout(opts: {
   title: string;
   preheader: string;
   body: string;
 }): string {
+  const title = escape(opts.title);
+  const preheader = escape(opts.preheader);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${opts.title}</title>
+  <title>${title}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.preheader}</div>
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${preheader}</div>
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
