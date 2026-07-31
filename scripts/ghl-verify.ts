@@ -30,6 +30,33 @@
  * targets the location you name rather than whatever the app is configured for.
  * They will appear in the shell's process list and history.
  *
+ * Scopes the Private Integration Token needs. GHL answers an out-of-scope call
+ * with 401 — the same status as a bad token — so grant these before running or
+ * the results are indistinguishable from an auth failure.
+ *
+ * [doc] is confirmed by the endpoint's API reference page; the rest follow
+ * GHL's naming convention and are a guess. If the Private Integrations UI
+ * spells one differently, the UI is right.
+ *
+ *   --read-only needs:
+ *     locations.readonly                 GET /locations/{id}
+ *     locations/customFields.readonly    GET /locations/{id}/customFields
+ *     users.readonly                     GET /users/
+ *     opportunities.readonly       [doc] GET /opportunities/pipelines
+ *
+ *   a full run adds:
+ *     contacts.readonly                  GET /contacts/{id}, GET .../tasks
+ *     contacts.write               [doc] POST/PUT/DELETE contacts, tags, tasks
+ *     opportunities.write          [doc] POST/PUT/DELETE /opportunities/
+ *
+ * contacts.write covers more than the name suggests: Create Contact, Create
+ * Task, and the contact-tag endpoints all list it, so tasks need no scope of
+ * their own. locations/tags.write is NOT needed — that governs creating tag
+ * definitions at location level, which this path never does.
+ *
+ * Each result names the scope its endpoint requires, and the summary lists any
+ * that came back 401, so a wrong guess above is self-correcting on first run.
+ *
  * Logs land in scripts/ghl-verify-logs/, which is gitignored — they contain
  * staff user IDs and emails.
  */
@@ -104,6 +131,56 @@ const created = {
   opportunityIds: [] as string[],
 };
 
+/**
+ * The scope each endpoint requires, per the GHL API reference.
+ *
+ * A Private Integration Token carries a fixed set of scopes chosen when it is
+ * issued, and GHL answers a call outside them with 401 — the same status as a
+ * bad token — so a scope gap and an auth failure are indistinguishable from the
+ * response alone. Naming the scope next to every result is what makes them
+ * tellable apart: a 401 on one endpoint with 200s elsewhere is a missing scope,
+ * while 401 everywhere is the token.
+ */
+function scopeFor(method: string, path: string): string {
+  const isWrite = method !== 'GET';
+  const route = path.split('?')[0];
+
+  if (route.startsWith('/locations/')) {
+    if (route.includes('/customFields'))
+      return 'locations/customFields.readonly';
+    if (route.includes('/tags')) {
+      return isWrite ? 'locations/tags.write' : 'locations/tags.readonly';
+    }
+    return 'locations.readonly';
+  }
+  if (route.startsWith('/users')) return 'users.readonly';
+  if (route.startsWith('/opportunities')) {
+    return isWrite ? 'opportunities.write' : 'opportunities.readonly';
+  }
+  // Tasks and contact tags both live under /contacts and share its scopes.
+  if (route.startsWith('/contacts')) {
+    return isWrite ? 'contacts.write' : 'contacts.readonly';
+  }
+  return 'unknown';
+}
+
+/**
+ * Every 401 seen, and every route that ever succeeded.
+ *
+ * A 401 does not imply a scope gap: GHL also answers 401 when an endpoint
+ * rejects the Version header, so the same route can 401 under `v3` and return
+ * 200 under `2021-07-28`. Attributing those to scopes sends you to the wrong
+ * settings page. A 401 only means "missing scope" if that route never
+ * succeeded under any version.
+ */
+const unauthorized: Array<{
+  method: string;
+  route: string;
+  scope: string;
+  version: string;
+}> = [];
+const succeeded = new Set<string>();
+
 async function call(
   method: string,
   path: string,
@@ -126,6 +203,16 @@ async function call(
     parsed = raw ? JSON.parse(raw) : null;
   } catch {
     parsed = raw;
+  }
+  const route = path.split('?')[0];
+  if (res.ok) succeeded.add(`${method} ${route}`);
+  if (res.status === 401) {
+    unauthorized.push({
+      method,
+      route,
+      scope: scopeFor(method, path),
+      version,
+    });
   }
   return { status: res.status, ok: res.ok, body: parsed, raw };
 }
@@ -157,11 +244,22 @@ async function confirm(prompt: string): Promise<boolean> {
   return answer.trim().toLowerCase().startsWith('y');
 }
 
+/** Step titles are "METHOD /path", so the scope falls out of the title. */
+function scopeForTitle(title: string): string {
+  const m = title.match(/^([A-Z]+)\s+(\S+)/);
+  return m ? scopeFor(m[1], m[2]) : 'unknown';
+}
+
 function record(r: StepResult): void {
   results.push(r);
   // Plain-text marks: the pre-commit emoji screen rejects U+2600-U+27BF, which
   // is where check and cross glyphs live.
   console.log(`  [${r.verdict.padEnd(4)}] ${r.id}  ${r.detail}`);
+  // Name the scope on failure only — on success it is noise, but on a 401 it is
+  // the single most useful thing the run can tell you.
+  if (r.verdict === 'FAIL') {
+    console.log(`           requires scope: ${scopeForTitle(r.title)}`);
+  }
 }
 
 function summarize(body: unknown): string {
@@ -169,6 +267,58 @@ function summarize(body: unknown): string {
   if (typeof body === 'string') return body.slice(0, 200);
   const json = JSON.stringify(body);
   return json.length > 400 ? `${json.slice(0, 400)}…` : json;
+}
+
+/**
+ * Mirrors GhlApiError.isNotFound in lib/ghl.ts. GHL signals a missing contact
+ * with 400 and "not found" in the body rather than a 404, so both clients have
+ * to agree on that test or the probe passes something the app would throw on.
+ */
+function looksNotFound(a: Attempt): boolean {
+  if (a.status === 404) return true;
+  if (a.status !== 400) return false;
+  return /not found/i.test(a.raw);
+}
+
+/** Records this run created and could not remove. Reported loudly at the end. */
+const leaked: string[] = [];
+
+/**
+ * Whether a task still exists, checked two ways.
+ *
+ * Observed 2026-07-31: after a delete the task list stopped returning the task
+ * while the dashboard still showed it, completed and green-checked. A list scan
+ * alone therefore reports "confirmed gone" for a record a human can still see,
+ * which is worse than not checking at all — it launders a leak into a PASS.
+ * The direct task read is authoritative here and the list is a cross-check;
+ * either one finding it counts as present.
+ *
+ * Anything unreadable counts as present. Warning about a record that is
+ * actually gone costs a glance; staying quiet about one that is not costs
+ * manual cleanup nobody knows to do.
+ */
+async function taskStillExists(
+  contactId: string,
+  taskId: string
+): Promise<{ present: boolean; how: string }> {
+  const direct = await call(
+    'GET',
+    `/contacts/${contactId}/tasks/${taskId}`,
+    '2021-07-28'
+  );
+  if (direct.ok) return { present: true, how: 'GET task returned 200' };
+  if (!looksNotFound(direct)) {
+    return { present: true, how: `unverifiable (GET task ${direct.status})` };
+  }
+
+  const list = await call('GET', `/contacts/${contactId}/tasks`, '2021-07-28');
+  if (!list.ok) {
+    return { present: true, how: `unverifiable (list ${list.status})` };
+  }
+  const tasks = (list.body as { tasks?: Array<{ id?: string }> })?.tasks ?? [];
+  return tasks.some((t) => t.id === taskId)
+    ? { present: true, how: 'absent from GET task but still in the task list' }
+    : { present: false, how: 'absent from both the task read and the list' };
 }
 
 /** Top-level keys of a response object — the shape a spec cares about. */
@@ -299,10 +449,10 @@ async function main(): Promise<void> {
   const contactBody = {
     firstName: 'Test',
     lastName: `Contact ${runId}`,
-    name: `Test Contact ${runId}`,
+    name: `GChriss Test Contact ${runId}`,
     email: testEmail,
     locationId: LOCATION_ID,
-    source: 'pana.social contact-us probe',
+    source: 'pana.social testing',
     tags: ['unverified', 'source:contact-us', 'inquiry:general'],
   };
 
@@ -668,8 +818,9 @@ async function main(): Promise<void> {
   }
 
   // --- Stale-ID reconciliation -------------------------------------------
-  // The merge story depends on a deleted/merged contact returning 404 rather
-  // than some other status. Probed with a well-formed but nonexistent ID.
+  // The merge story depends on being able to recognise a contact that no longer
+  // resolves. GHL answers 400 with "not found" rather than 404, so the check is
+  // status-plus-message; see GhlApiError.isNotFound.
   const ghost = await call(
     'GET',
     '/contacts/ZZZZprobe000000ZZZZ',
@@ -678,12 +829,32 @@ async function main(): Promise<void> {
   record({
     id: 'contact.staleId',
     title: 'GET /contacts/{unknown-id}',
-    verdict: ghost.status === 404 ? 'PASS' : 'FAIL',
-    detail: `${ghost.status} — resolveContactId() re-resolves only on 404`,
+    verdict: looksNotFound(ghost) ? 'PASS' : 'FAIL',
+    detail: `${ghost.status} — synthetic ID; may be rejected as malformed rather than missing`,
     observed: { status: ghost.status, body: summarize(ghost.body) },
   });
 
   await teardown();
+
+  // The authoritative version of the same question: a well-formed ID that GHL
+  // itself issued and we then deleted. This is what a merged-away contact looks
+  // like, and it is the status resolveContactId() has to key on.
+  const deletedId = created.contactIds[0];
+  if (!KEEP && deletedId) {
+    const gone = await call('GET', `/contacts/${deletedId}`, '2021-07-28');
+    record({
+      id: 'contact.deletedId',
+      title: 'GET /contacts/{deleted-id}',
+      verdict: looksNotFound(gone) ? 'PASS' : 'FAIL',
+      detail: `${gone.status} — real deleted ID; this is the merge/stale case`,
+      observed: {
+        status: gone.status,
+        matchesIsNotFound: looksNotFound(gone),
+        body: summarize(gone.body),
+      },
+    });
+  }
+
   await finish();
 }
 
@@ -704,35 +875,81 @@ async function teardown(): Promise<void> {
   console.log('\nTeardown');
   for (const id of created.opportunityIds) {
     const res = await call('DELETE', `/opportunities/${id}`, '2021-07-28');
+    const gone = looksNotFound(
+      await call('GET', `/opportunities/${id}`, '2021-07-28')
+    );
+    if (!gone) leaked.push(`opportunity ${id}`);
     record({
       id: 'teardown.opportunity',
       title: 'DELETE /opportunities/{id}',
-      verdict: res.ok ? 'PASS' : 'FAIL',
-      detail: `${res.status} — ${id}`,
+      verdict: gone ? 'PASS' : 'FAIL',
+      detail: `${res.status} — ${id}${gone ? '' : ' — STILL PRESENT after delete'}`,
     });
   }
+  // Task deletes are verified by reading the task back, not by the status code:
+  // observed 2026-07-31, the endpoint answers 200 while leaving the task in
+  // place, and deleting the contact does not cascade to it. Verification has to
+  // happen here, while the contact still exists to be read.
   for (const { contactId, taskId } of created.tasks) {
-    const res = await call(
+    // The probe completes this task earlier to prove the sync round trip, and a
+    // completed task survived deletion while still showing in the dashboard.
+    // Clearing the flag first removes that as a variable, so a task that
+    // survives is a delete failure rather than a completed-state quirk.
+    await call(
+      'PUT',
+      `/contacts/${contactId}/tasks/${taskId}/completed`,
+      '2021-07-28',
+      { completed: false }
+    );
+
+    let res = await call(
       'DELETE',
       `/contacts/${contactId}/tasks/${taskId}`,
       '2021-07-28'
     );
+    let usedVersion = '2021-07-28';
+    let check = await taskStillExists(contactId, taskId);
+
+    // The task was created under v3; try the same version before giving up.
+    if (check.present) {
+      res = await call(
+        'DELETE',
+        `/contacts/${contactId}/tasks/${taskId}`,
+        'v3'
+      );
+      usedVersion = 'v3';
+      check = await taskStillExists(contactId, taskId);
+    }
+
+    const present = check.present;
+    if (present) leaked.push(`task ${taskId} on contact ${contactId}`);
     record({
       id: 'teardown.task',
       title: 'DELETE /contacts/{id}/tasks/{taskId}',
-      verdict: res.ok ? 'PASS' : 'FAIL',
-      detail: `${res.status} — ${taskId}`,
+      verdict: present ? 'FAIL' : 'PASS',
+      detail: present
+        ? `${res.status} under both versions but task ${taskId} IS STILL PRESENT (${check.how}) — delete it by hand`
+        : `${res.status} via Version:${usedVersion} — ${taskId} gone (${check.how})`,
+      observed: {
+        deletedUnderVersion: present ? null : usedVersion,
+        verifiedBy: check.how,
+        uncompletedFirst: true,
+      },
     });
   }
-  // Contacts last: deleting a contact may cascade its tasks, and we want the
-  // task deletes measured on their own.
+  // Contacts last, because the task check above needs the contact alive to read
+  // its tasks. Contact deletion does NOT cascade to tasks.
   for (const id of created.contactIds) {
     const res = await call('DELETE', `/contacts/${id}`, '2021-07-28');
+    const gone = looksNotFound(
+      await call('GET', `/contacts/${id}`, '2021-07-28')
+    );
+    if (!gone) leaked.push(`contact ${id}`);
     record({
       id: 'teardown.contact',
       title: 'DELETE /contacts/{id}',
-      verdict: res.ok ? 'PASS' : 'FAIL',
-      detail: `${res.status} — ${id}`,
+      verdict: gone ? 'PASS' : 'FAIL',
+      detail: `${res.status} — ${id}${gone ? ' confirmed gone' : ' — STILL PRESENT after delete'}`,
     });
   }
 }
@@ -746,11 +963,38 @@ async function finish(): Promise<void> {
 
   mkdirSync(LOG_DIR, { recursive: true });
 
+  // Scopes the run actually exercised, and the subset that came back 401.
+  const scopesExercised = [
+    ...new Set(results.map((r) => scopeForTitle(r.title))),
+  ]
+    .filter((s) => s !== 'unknown')
+    .sort();
+  // Split the 401s: a route that later succeeded under a different Version was
+  // refusing the header, not the token. Only the rest are scope candidates.
+  const versionRejections = unauthorized.filter((u) =>
+    succeeded.has(`${u.method} ${u.route}`)
+  );
+  const scopeRejections = unauthorized.filter(
+    (u) => !succeeded.has(`${u.method} ${u.route}`)
+  );
+  const scopesMissing = [
+    ...new Set(scopeRejections.map((u) => u.scope)),
+  ].sort();
+
   const jsonPath = join(LOG_DIR, `${runId}.json`);
   writeFileSync(
     jsonPath,
     JSON.stringify(
-      { runId, locationId: LOCATION_ID, at: new Date().toISOString(), results },
+      {
+        runId,
+        locationId: LOCATION_ID,
+        at: new Date().toISOString(),
+        scopesExercised,
+        scopesMissing,
+        unauthorized,
+        leaked,
+        results,
+      },
       null,
       2
     )
@@ -763,11 +1007,57 @@ async function finish(): Promise<void> {
     `Run at: ${new Date().toISOString()}  `,
     `Result: **${pass} pass, ${fail} fail, ${skip} skipped**`,
     '',
-    '| Step | Endpoint | Verdict | Detail |',
-    '| --- | --- | --- | --- |',
+    ...(leaked.length
+      ? [
+          '## Cleanup required',
+          '',
+          'These records were created by this run and could not be deleted via',
+          'the API. Remove them by hand in the GHL dashboard:',
+          '',
+          ...leaked.map((l) => `- ${l}`),
+          '',
+        ]
+      : []),
+    '## Scopes',
+    '',
+    `Exercised by this run: ${scopesExercised.map((s) => `\`${s}\``).join(', ') || 'none'}`,
+    '',
+    ...(scopesMissing.length
+      ? [
+          `**Rejected with 401 and never succeeded — likely missing scopes:**`,
+          '',
+          ...scopeRejections.map(
+            (u) => `- \`${u.scope}\` — \`${u.method} ${u.route}\``
+          ),
+          '',
+          'A Private Integration Token carries the scopes selected when it was',
+          'issued. Add them in GHL: Settings -> Private Integrations -> edit the',
+          'integration -> re-copy the token if it is re-issued.',
+          '',
+          'If *every* call returned 401, the token itself is wrong (expired,',
+          'revoked, or an Agency token where a Sub-Account token is required)',
+          'rather than under-scoped.',
+          '',
+        ]
+      : ['No scope gaps: every scope this run needed was granted.', '']),
+    ...(versionRejections.length
+      ? [
+          '**401s caused by the Version header, not by scopes.** These routes',
+          'succeeded under another version, so the token is fine and the header',
+          'is what was refused:',
+          '',
+          ...versionRejections.map(
+            (u) =>
+              `- \`${u.method} ${u.route}\` rejects \`Version: ${u.version}\``
+          ),
+          '',
+        ]
+      : []),
+    '| Step | Endpoint | Scope | Verdict | Detail |',
+    '| --- | --- | --- | --- | --- |',
     ...results.map(
       (r) =>
-        `| \`${r.id}\` | \`${r.title}\` | ${r.verdict} | ${r.detail.replace(/\|/g, '\\|')} |`
+        `| \`${r.id}\` | \`${r.title}\` | \`${scopeForTitle(r.title)}\` | ${r.verdict} | ${r.detail.replace(/\|/g, '\\|')} |`
     ),
     '',
     '## Observed',
@@ -787,7 +1077,43 @@ async function finish(): Promise<void> {
   writeFileSync(mdPath, md);
 
   console.log(`\n${pass} pass, ${fail} fail, ${skip} skipped`);
-  console.log(`log: ${mdPath}`);
+
+  if (scopesMissing.length) {
+    // Every call 401ing points at the token, not the scope list — worth saying
+    // outright, because adding scopes will not fix a revoked or wrong-type token.
+    const everythingFailed = succeeded.size === 0;
+    console.log(
+      `\n401 on ${scopeRejections.length} endpoint(s) that never succeeded. ${
+        everythingFailed
+          ? 'Nothing succeeded — suspect the token itself (expired, revoked,\n' +
+            'or an Agency token where a Sub-Account token is required) before the scopes.'
+          : 'Other calls succeeded, so this is a scope gap, not a bad token.'
+      }`
+    );
+    console.log('\nScopes to add (Settings -> Private Integrations):');
+    for (const u of scopeRejections) {
+      console.log(`  ${u.scope.padEnd(34)} ${u.method} ${u.route}`);
+    }
+  }
+
+  if (versionRejections.length) {
+    console.log(
+      '\nVersion-header 401s (NOT scope gaps — these routes worked under another version):'
+    );
+    for (const u of versionRejections) {
+      console.log(`  ${u.method} ${u.route} rejects Version: ${u.version}`);
+    }
+  }
+
+  if (leaked.length) {
+    console.log(
+      `\nCLEANUP REQUIRED — ${leaked.length} record(s) this run created could not` +
+        '\nbe deleted via the API. Remove them by hand in the GHL dashboard:'
+    );
+    for (const l of leaked) console.log(`  ${l}`);
+  }
+
+  console.log(`\nlog: ${mdPath}`);
   if (fail > 0) process.exitCode = 1;
 }
 

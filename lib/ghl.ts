@@ -17,9 +17,14 @@ const GHL_API_VERSION = '2021-07-28';
 // request bodies, while upsert still documents 2021-04-15/2021-07-28. The
 // version is therefore per-request rather than a client-wide constant.
 //
-// UNVERIFIED: which value each endpoint actually enforces has not been tested
-// against the live account — the docs and the deployed API have diverged
-// before. scripts/ghl-verify.ts probes both spellings per endpoint.
+// Verified against the live location 2026-07-31 (scripts/ghl-verify.ts):
+//   accepts v3 — POST /contacts/, POST /contacts/{id}/tasks,
+//                POST /opportunities/, GET /opportunities/pipelines,
+//                GET /locations/{id}, GET /locations/{id}/customFields
+//   rejects v3 — GET /users/ answers 401 under v3 and 200 under 2021-07-28,
+//                which is why getUsers() takes the default version. Note a
+//                version rejection is a 401, indistinguishable from a scope
+//                failure by status alone.
 const GHL_API_VERSION_V3 = 'v3';
 
 export interface GhlContactFields {
@@ -161,6 +166,23 @@ export class GhlApiError extends Error {
       return null;
     }
   }
+
+  /**
+   * Whether this error means "that record does not exist".
+   *
+   * Observed 2026-07-31 against the live location: reading an unknown contact
+   * returns **400**, not 404, with `{"error":"Contact with id X not found"}`.
+   * Matching on status alone would treat a merged-away contact as a hard
+   * failure and never re-resolve it, so the message is part of the test.
+   *
+   * Deliberately narrow: a 400 without "not found" is a malformed request and
+   * must keep throwing rather than be mistaken for a missing record.
+   */
+  get isNotFound(): boolean {
+    if (this.status === 404) return true;
+    if (this.status !== 400) return false;
+    return /not found/i.test(this.body);
+  }
 }
 
 export class GhlClient {
@@ -278,8 +300,10 @@ export class GhlClient {
    * absorbed contact's ID, so a 404 means re-resolve by email rather than
    * fail. Returns the live ID, or null if no contact matches the email.
    *
-   * Only a 404 triggers re-resolution — a 401 or 5xx propagates, so a
-   * transport failure is never mistaken for a merged-away contact.
+   * Only a missing record triggers re-resolution — a 401 or 5xx propagates, so
+   * a transport failure is never mistaken for a merged-away contact. Note GHL
+   * signals "no such contact" with a 400 carrying "not found", not a 404; see
+   * GhlApiError.isNotFound.
    */
   async resolveContactId(
     cachedId: string | null,
@@ -290,7 +314,7 @@ export class GhlClient {
         const contact = await this.getContactById(cachedId);
         return contact.id;
       } catch (err) {
-        if (!(err instanceof GhlApiError) || err.status !== 404) throw err;
+        if (!(err instanceof GhlApiError) || !err.isNotFound) throw err;
       }
     }
     const found = await this.findByEmail(email);
@@ -365,7 +389,14 @@ export class GhlClient {
     );
   }
 
-  /** Delete a task. Used by the purge job to unwind unworked test records. */
+  /**
+   * Delete a task.
+   *
+   * Observed 2026-07-31: this answers 200 while leaving the task in place, and
+   * deleting the owning contact does not cascade to it either. Do not treat a
+   * resolved promise as proof the task is gone — re-read `getTasks` if it
+   * matters. No app path depends on this today; it exists for cleanup tooling.
+   */
   async deleteTask(contactId: string, taskId: string): Promise<void> {
     await this.request<void>(
       'DELETE',
