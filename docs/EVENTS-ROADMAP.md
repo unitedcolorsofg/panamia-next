@@ -24,7 +24,7 @@ Coracle, …) while remaining fully usable by people who have never heard of Nos
 **Guiding principle for what to crosspost:** Crosspost public, static artifacts.
 Don't Nostr-ify private, interactive infrastructure unless it's end-to-end
 encrypted. (Articles and events qualify; live, PII-bearing flows like mentoring
-do not — see `panamia.club/docs/MENTORING-ROADMAP.md`.)
+do not — see `panamia-next/docs/MENTORING-ROADMAP.md`.)
 
 ## v1 (this release)
 
@@ -146,7 +146,7 @@ kind-31923 listings, its Durable Object fires a detached, fail-open
 - **Co-organizers** (`event_organizers`), **photos** (`event_photos`,
   `/e/[slug]/photos`), **organizer notes** (`event_notes`).
 - **Cloudflare streaming** (`stream_status`, `cf_stream_*`) for live events.
-- Richer fields deferred from panamia.club: `age_restriction`, `photo_policy`,
+- Richer fields deferred from pana.social: `age_restriction`, `photo_policy`,
   `dresscode`, `panamia_co_organizer`, `tos_accepted_at`.
 
 ## Verification (run on Cloudflare after deploy)

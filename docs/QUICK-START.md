@@ -41,8 +41,8 @@ These are required for specific features:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/panamiaclub/panamia.club.git
-cd panamia.club
+git clone https://github.com/unitedcolorsofg/panamia-next.git
+cd panamia-next
 ```
 
 ### 2. Install Dependencies
@@ -310,7 +310,7 @@ See [FLOSS-ALTERNATIVES.md](./FLOSS-ALTERNATIVES.md) for technology choices and 
 ## Project Structure
 
 ```
-panamia.club/
+panamia-next/
 ├── app/                      # App Router (API routes + pages)
 │   ├── about-us/            # About page
 │   ├── account/             # User account settings
@@ -371,4 +371,4 @@ panamia.club/
 
 - **Environment Variables**: [Contact us](https://pana.social/form/contact-us/) for a developer ENV file
 - **Documentation**: See the [docs/](.) folder
-- **Issues**: [GitHub Issues](https://github.com/panamiaclub/panamia.club/issues)
+- **Issues**: [GitHub Issues](https://github.com/unitedcolorsofg/panamia-next/issues)

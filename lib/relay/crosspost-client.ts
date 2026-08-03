@@ -35,7 +35,7 @@ export function getRelay(env?: RelayEnv): void {
 
 // Pana articles are a multi-author publishing model, not single-author: a
 // first author, accepted co-authors, and an approved reviewer ("reviewed
-// by"). Mirrors panamia.club's articles.{authorId, coAuthors, reviewedBy}.
+// by"). Mirrors pana.social's articles.{authorId, coAuthors, reviewedBy}.
 // Each contributor with an enrolled Nostr key becomes a ["p", ...] tag, and
 // all are named in the article's byline footer.
 export type ContributorRole = 'author' | 'coauthor' | 'reviewer';
