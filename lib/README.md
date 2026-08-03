@@ -77,14 +77,22 @@ Reusable client-side query functions (React Query mutations/queries):
 
 Server-side only functions (not for client):
 
-| File             | Description                      |
-| ---------------- | -------------------------------- |
-| `user.ts`        | User operations (create, update) |
-| `profile.ts`     | Profile operations               |
-| `directory.ts`   | Directory data fetching          |
-| `interaction.ts` | Track user interactions          |
-| `admin.ts`       | Admin operations                 |
-| `admin-auth.ts`  | Admin authentication helpers     |
+| File                | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `user.ts`           | User operations (create, update)                  |
+| `profile.ts`        | Profile operations                                |
+| `directory.ts`      | Directory data fetching                           |
+| `interaction.ts`    | Track user interactions                           |
+| `admin.ts`          | Admin operations                                  |
+| `admin-auth.ts`     | Admin authentication helpers                      |
+| `contact-notify.ts` | Staff notification for Contact Us submissions     |
+| `relay-reports.ts`  | NIP-56 abuse report helpers + admin report emails |
+
+`contact-notify.ts` and `relay-reports.ts` are the only two fan-outs to every
+`ADMIN_EMAILS` entry; everything else that mails an admin goes to the first
+entry alone via `sendTemplateEmail`'s fallback. Both are best-effort by
+contract — they never throw, because a failed notification must not fail the
+request that triggered it.
 
 ## Validations (`validations/`)
 
@@ -121,6 +129,20 @@ Cloudflare R2 integration for file uploads:
 - `parseMastodonUrl(url)` - Extract instance and post ID
 - `isValidMastodonUrl(url)` - Validate URL format
 - `fetchArticleComments(url)` - Get replies as comments
+
+### Contact Us (`contact-categories.ts`, `contact-routing.ts`)
+
+- `contact-categories.ts` — the categories offered on `/form/contact-us`,
+  derived from the `contact_submission_category` DB enum rather than repeated,
+  plus admin-facing English labels
+- `contact-routing.ts` — who is notified about a submission: category maps to a
+  role, the role maps to an address, and unauthenticated `press` additionally
+  fans out to every admin
+
+Role addresses are hardcoded in `contact-routing.ts` on purpose — they are
+aliases on our own domain, so re-pointing one is a mail-alias edit with no
+deploy. Call sites ask for a role, never an address. See
+[docs/CONTACT-ROADMAP.md](../docs/CONTACT-ROADMAP.md).
 
 ### Notifications (`notifications.ts`)
 

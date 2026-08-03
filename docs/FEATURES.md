@@ -104,6 +104,24 @@ The notification system is designed to be [ActivityPub-compatible](https://www.w
 
 See [NOTIFICATIONS-ROADMAP.md](./NOTIFICATIONS-ROADMAP.md) for implementation details.
 
+### CRM Integration (`analytics`)
+
+Marketing contacts and inquiry handling live in GoHighLevel (GHL), reached
+through `lib/ghl.ts` and the sync jobs in the CRM bridge. What exists today:
+
+- the privacy portal at `/api/crm/*`, which lets a signed-in member read,
+  manage per-channel marketing preferences for, or delete their own GHL contact
+  record
+- newsletter and contact sync jobs, plus membership tags written by the Stripe
+  relay
+- Contact Us staff notifications, routed by category (`lib/contact-routing.ts`)
+
+Contact Us submissions do **not** yet create GHL records — the app queue at
+`/account/admin/contactus` remains the only system of record for inquiries.
+
+See [CRM-ROADMAP.md](./CRM-ROADMAP.md) for the broader integration and
+[CONTACT-ROADMAP.md](./CONTACT-ROADMAP.md) for the inquiry path specifically.
+
 ---
 
 ## Business Onboarding

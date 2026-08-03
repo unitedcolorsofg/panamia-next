@@ -533,7 +533,7 @@ transition is reversible if they were premature.
 
 ## Phased Rollout
 
-### Phase 1 — Role-address notifications — SHIPPED
+### Phase 1 — Role-address notifications (complete)
 
 Category-routed staff notification with `Reply-To`, replacing the
 `ADMIN_EMAILS[0]` fallback for Contact Us. All-admin fan-out for unauthenticated
