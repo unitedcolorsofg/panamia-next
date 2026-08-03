@@ -43,6 +43,7 @@ import { RotateKeysSection } from '@/components/relay/RotateKeysSection';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -916,6 +917,10 @@ export default function UserEditPage() {
                             <dd>{ghlContact.source}</dd>
                           </div>
                         )}
+                        {/* Tags are internal marketing segmentation and not
+                            meaningful to the account holder, so they are
+                            suppressed from display. Kept here because the API
+                            still returns them and we may surface them again.
                         {ghlContact.tags && ghlContact.tags.length > 0 && (
                           <div className="flex justify-between gap-4">
                             <dt className="text-muted-foreground">Tags</dt>
@@ -924,6 +929,7 @@ export default function UserEditPage() {
                             </dd>
                           </div>
                         )}
+                        */}
                       </dl>
                       {/* Per-channel state, each independently toggleable. GHL
                           tracks these separately, so collapsing them into one
@@ -931,7 +937,7 @@ export default function UserEditPage() {
                           disabled on some channels and not others. */}
                       <div className="space-y-1 border-t pt-4">
                         <p className="text-muted-foreground mb-2 text-xs">
-                          Enable or disable individual channels, or use the
+                          Switch individual channels on or off, or use the
                           buttons below to change them all at once.
                         </p>
                         {DND_CHANNELS.map(({ key, label }) => {
@@ -942,27 +948,50 @@ export default function UserEditPage() {
                               key={key}
                               className="flex items-center justify-between gap-4 py-1"
                             >
-                              <span className="text-muted-foreground text-sm">
+                              <span
+                                className="text-muted-foreground text-sm"
+                                id={`dnd-${key}-label`}
+                              >
                                 {label}
                               </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">
-                                  {suppressed ? 'Disabled' : 'Enabled'}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
+                              <div className="flex items-center gap-3">
+                                {ghlActionLoading === `dnd-${key}` && (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                )}
+                                <RadioGroup
+                                  aria-labelledby={`dnd-${key}-label`}
+                                  className="flex items-center gap-3"
                                   disabled={!!ghlActionLoading}
-                                  aria-label={`${suppressed ? 'Enable' : 'Disable'} ${label}`}
-                                  onClick={() =>
-                                    handleGhlChannelToggle(key, !suppressed)
+                                  value={suppressed ? 'off' : 'on'}
+                                  onValueChange={(value) =>
+                                    handleGhlChannelToggle(key, value === 'off')
                                   }
                                 >
-                                  {ghlActionLoading === `dnd-${key}` && (
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                  )}
-                                  {suppressed ? 'Enable' : 'Disable'}
-                                </Button>
+                                  <div className="flex items-center gap-1.5">
+                                    <RadioGroupItem
+                                      value="on"
+                                      id={`dnd-${key}-on`}
+                                    />
+                                    <Label
+                                      htmlFor={`dnd-${key}-on`}
+                                      className="text-sm font-normal"
+                                    >
+                                      On
+                                    </Label>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <RadioGroupItem
+                                      value="off"
+                                      id={`dnd-${key}-off`}
+                                    />
+                                    <Label
+                                      htmlFor={`dnd-${key}-off`}
+                                      className="text-sm font-normal"
+                                    >
+                                      Off
+                                    </Label>
+                                  </div>
+                                </RadioGroup>
                               </div>
                             </div>
                           );
