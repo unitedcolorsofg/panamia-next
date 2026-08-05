@@ -73,10 +73,33 @@ array or JSONL), `<name>.jsonl`, or `<name>.bson` (needs `npm i -D bson`).
 - `users.json` → `users` (the app-level collection, not `nextauth_*`)
 - `profiles.json` → `profiles`
 - legacy `profiles.slug` → `users.screenname`, so old `/p/<slug>` URLs keep working
+- a placeholder `users` row per unclaimed profile (see below)
 - images (BunnyCDN → Cloudflare R2)
 
 Sessions, accounts and newsletter signups are deliberately not migrated; the
 script header explains why for each.
+
+**Screennames** are truncated on a word boundary to fit the 24-character limit,
+and collisions take a `-2`, `-3` suffix, rather than being dropped — a clipped
+URL beats an unreachable profile, and renaming later is a supported flow. Only
+reserved words and slugs that clean up to nothing are refused, under
+`screennameRejects`; every clip is listed under `screennameTruncations`.
+
+**Placeholder users.** `screenname` lives on `users`, and `/p/[user]` resolves
+by walking `users.screenname → profiles.userId`, so a profile with no account
+behind it has no public URL at all — the overwhelming majority of legacy
+listings. The final row phase mints one inert user per unclaimed profile:
+`emailVerified` false and no `accounts` row, so there is no credential and no
+way to sign in as one. When the real owner arrives, better-auth's magic-link
+flow looks a user up by email before creating one, so they are signed into that
+row and land already owning their listing.
+
+Two things follow from this. `auth.ts` `claimProfileForUser()` finds nothing
+left to claim for these users, so its HighLevel lookup leans on a
+first-ever-session check instead. And `profiles.userId` is `ON DELETE CASCADE`,
+so undoing a run means clearing `profiles.user_id` **first** — deleting the
+users directly takes the listings with them. The report's `placeholders[]`
+records every profile/user id pair.
 
 **Merging.** `--merge` only ever fills columns the existing row left empty, and
 `false` counts as a value so live flags are never flipped on. The one exception
