@@ -1,25 +1,36 @@
 import { Suspense } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Metadata } from 'next';
 import { DirectorySearchContent } from './_components/search-content';
+import { SearchFallback } from './_components/search-fallback';
 
-function SearchFallback() {
-  return (
-    <main className="container mx-auto max-w-6xl px-4 py-8">
-      <div className="space-y-6">
-        <section className="text-center">
-          <h1 className="text-4xl font-bold">Pana Mia Directory</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Explore South Florida locals and communities
-          </p>
-        </section>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
-  );
+/**
+ * Directory search, query form: /directory/search and /directory/search/?q=dj
+ *
+ * The path form in ./[q] is canonical — the form and every filter/page control
+ * navigate there. This route stays for the bare browse view and for the ?q=
+ * links already in the wild, and points search engines at the path form so the
+ * two spellings of one search do not split.
+ */
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const raw = params.q;
+  const term = (Array.isArray(raw) ? raw[0] : (raw ?? '')).trim();
+
+  return {
+    title: term ? `${term} | Pana Mia Directory` : 'Directory | Pana Mia',
+    description: 'Explore South Florida locals and communities on Pana Mia.',
+    alternates: {
+      canonical: term
+        ? `/directory/search/${encodeURIComponent(term)}`
+        : '/directory/search',
+    },
+  };
 }
 
 export default function DirectorySearchPage() {

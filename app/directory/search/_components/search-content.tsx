@@ -15,10 +15,27 @@ import { SearchResultCard } from './search-result-card';
 import { SearchFilters } from './search-filters';
 import { SearchPagination } from './search-pagination';
 
-function getSearchParams(searchParams: URLSearchParams) {
+/**
+ * Build the canonical path for a search term.
+ *
+ * The term is a single path segment, so it has to be encoded — slashes in a
+ * term like "dj/producer" would otherwise split it into two segments, and a
+ * bare space would end up in a malformed URL. An empty term falls back to the
+ * bare /directory/search, which renders the browse view.
+ */
+export function searchPath(term: string): string {
+  const trimmed = term.trim();
+  return trimmed
+    ? `/directory/search/${encodeURIComponent(trimmed)}`
+    : '/directory/search';
+}
+
+function getSearchParams(searchParams: URLSearchParams, pathTerm?: string) {
   const pageNum = forceInt(searchParams.get('p') || '', 1);
   const pageLimit = forceInt(searchParams.get('l') || '', 20);
-  const searchTerm = searchParams.get('q') || '';
+  // A term in the path wins over ?q=. Both forms stay readable so existing
+  // links and bookmarks keep working; the path form is the canonical one.
+  const searchTerm = pathTerm || searchParams.get('q') || '';
   const random = forceInt(searchParams.get('random') || '', 0);
   const geolat = searchParams.get('geolat') || null;
   const geolng = searchParams.get('geolng') || null;
@@ -45,21 +62,42 @@ function getSearchParams(searchParams: URLSearchParams) {
   };
 }
 
-export function DirectorySearchContent() {
+interface DirectorySearchContentProps {
+  /** Search term taken from the /directory/search/<term> path segment. */
+  initialTerm?: string;
+}
+
+export function DirectorySearchContent({
+  initialTerm,
+}: DirectorySearchContentProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
 
-  const params = getSearchParams(searchParams || new URLSearchParams());
+  const params = getSearchParams(
+    searchParams || new URLSearchParams(),
+    initialTerm
+  );
   const [searchInput, setSearchInput] = useState(params.searchTerm);
 
   const { data: searchData, isLoading } = useSearch(params);
 
+  /**
+   * Filters and pagination stay in the query string — only the term lives in
+   * the path — so every navigation rebuilds the term's path and carries the
+   * rest across as params. `q` is dropped on the way: keeping it would leave
+   * two copies of the term in one URL, free to disagree.
+   */
+  const pushSearch = (term: string, nextParams: URLSearchParams) => {
+    nextParams.delete('q');
+    const qs = nextParams.toString();
+    router.push(`${searchPath(term)}${qs ? `?${qs}` : ''}`);
+  };
+
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const qs = new URLSearchParams();
-    qs.append('q', searchInput);
-    router.push(`/directory/search/?${qs}`);
+    // A new term resets pagination; stale filters would silently narrow it.
+    pushSearch(searchInput, new URLSearchParams());
   };
 
   const handleApplyFilters = (filters: {
@@ -78,13 +116,13 @@ export function DirectorySearchContent() {
     newParams.set('lang', filters.languages);
     newParams.set('free', filters.freeOnly.toString());
     newParams.set('p', '1'); // Reset to page 1 when filtering
-    router.push(`/directory/search/?${newParams}`);
+    pushSearch(params.searchTerm, newParams);
   };
 
   const handlePageChange = (newPage: number) => {
     const newParams = new URLSearchParams(searchParams?.toString() || '');
     newParams.set('p', newPage.toString());
-    router.push(`/directory/search/?${newParams}`);
+    pushSearch(params.searchTerm, newParams);
   };
 
   const calculateDistance = (lat: number, lng: number) => {
