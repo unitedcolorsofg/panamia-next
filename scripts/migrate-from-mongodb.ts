@@ -36,9 +36,17 @@
  *
  * The legacy `profiles.slug` becomes `users.screenname`, which is what drives
  * the public /p/[user] route today, so old profile URLs keep resolving. Slugs
- * that fail validateScreenname() or collide are reported and left unset;
- * unclaimed profiles have no user row, so those slugs are dropped and the
- * screenname gets picked after auto-claim.
+ * over the 24-char limit are truncated on a word boundary and collisions get a
+ * -2, -3 suffix, rather than being dropped: a clipped URL beats an unreachable
+ * profile, and changing a screenname afterwards is a supported flow. Only a
+ * reserved word or an empty result is refused outright.
+ *
+ * Because screenname lives on `users` and /p/[user] resolves through
+ * users.screenname -> profiles.userId, a profile with no account behind it has
+ * no public URL at all — the overwhelming majority of legacy listings (689 of
+ * 749 on the 2026-08 import). The final row phase therefore mints an inert
+ * placeholder user per unclaimed profile so it stays publicly viewable; see
+ * createPlaceholderUsers() for what "inert" buys and what it costs.
  *
  * Images move from BunnyCDN to R2 in the same run. Two traps, both verified
  * against live data: the pull zone hotlinks on Referer (see LEGACY_CDN_REFERER),
@@ -63,13 +71,13 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createId } from '@paralleldrive/cuid2';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import { config as loadDotenv } from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import * as schema from '../lib/schema';
-import { validateScreenname } from '../lib/screenname';
+import { validateScreenname, RESERVED_SCREENNAMES } from '../lib/screenname';
 import type {
   ProfileDescriptions,
   PronounsInterface,
@@ -81,7 +89,7 @@ import type {
 type DB = PostgresJsDatabase<typeof schema>;
 type Json = Record<string, unknown>;
 
-const { users, profiles } = schema;
+const { users, profiles, screennameHistory } = schema;
 
 /** Hosts we are migrating away from. BunnyCDN is deprecated in the new design. */
 const LEGACY_CDN_PATTERNS = ['b-cdn.net', 'bunnycdn'];
@@ -660,6 +668,18 @@ interface Report {
   }[];
   /** Legacy slugs that could not become a screenname, with the reason. */
   screennameRejects: { email: string; slug: string; reason: string }[];
+  /** Slugs clipped to fit the 24-char limit, or suffixed past a collision. */
+  screennameTruncations: { slug: string; screenname: string }[];
+  /** User rows minted for profiles that had no account behind them. */
+  placeholders: {
+    profileId: string;
+    userId: string;
+    email: string;
+    legacySlug: string | null;
+    screenname: string | null;
+    truncated: boolean;
+    reason?: string;
+  }[];
   /** Every attempted BunnyCDN -> R2 transfer. Failures list the source URL. */
   images: ImageResult[];
   /** users.following, unmappable until ActivityPub actors exist. */
@@ -679,11 +699,131 @@ function emptyReport(args: MigrationArgs): Report {
     idMap: { users: {}, profiles: {} },
     merged: [],
     screennameRejects: [],
+    screennameTruncations: [],
+    placeholders: [],
     images: [],
     follows: [],
     privilegedUsers: [],
     skipped: [],
   };
+}
+
+// =============================================================================
+// Screennames
+// =============================================================================
+
+const SCREENNAME_MAX = 24;
+const SCREENNAME_MIN = 3;
+
+/**
+ * Trim a legacy slug down to something validateScreenname() accepts.
+ *
+ * Cuts at the last separator inside the limit so the result ends on a whole
+ * word ("100-women-who-care-miami-beach" -> "100-women-who-care"), falling back
+ * to a hard cut when the first word is itself too long. Returns null when
+ * nothing usable survives.
+ */
+function truncateSlug(slug: string): string | null {
+  let s = slug
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '');
+
+  if (s.length > SCREENNAME_MAX) {
+    const cut = s.slice(0, SCREENNAME_MAX);
+    const lastBreak = Math.max(cut.lastIndexOf('-'), cut.lastIndexOf('_'));
+    s = lastBreak >= SCREENNAME_MIN ? cut.slice(0, lastBreak) : cut;
+  }
+
+  s = s.replace(/^[_-]+/, '').replace(/[_-]+$/, '');
+  return s.length >= SCREENNAME_MIN ? s : null;
+}
+
+/**
+ * Turn a legacy slug into a free screenname, or explain why it cannot.
+ *
+ * Over-length slugs are truncated rather than dropped: a slightly clipped URL
+ * beats an unreachable profile, and changing a screenname afterwards is a
+ * supported flow. Collisions get -2, -3, ... with the stem shortened so the
+ * suffixed result still fits.
+ *
+ * `taken` holds every lowercased name already spoken for — live screennames,
+ * retired ones from screenname_history, and earlier picks in this run — and is
+ * updated in place. It must be seeded from the target database before use.
+ */
+function deriveScreenname(
+  slug: string,
+  taken: Set<string>
+): { screenname: string | null; truncated: boolean; reason?: string } {
+  const base = truncateSlug(slug);
+  if (!base) {
+    return {
+      screenname: null,
+      truncated: false,
+      reason: 'nothing usable left after cleaning the slug',
+    };
+  }
+
+  // Reserved words are refused outright rather than suffixed: "admin-2" reads
+  // as official too, which is the thing the reserved list exists to prevent.
+  if (RESERVED_SCREENNAMES.includes(base)) {
+    return {
+      screenname: null,
+      truncated: false,
+      reason: `"${base}" is a reserved screenname`,
+    };
+  }
+
+  const free = (candidate: string) =>
+    validateScreenname(candidate).valid && !taken.has(candidate.toLowerCase());
+
+  if (free(base)) {
+    taken.add(base.toLowerCase());
+    return { screenname: base, truncated: base !== slug.trim().toLowerCase() };
+  }
+
+  for (let n = 2; n <= 999; n++) {
+    const suffix = `-${n}`;
+    const stem = base
+      .slice(0, SCREENNAME_MAX - suffix.length)
+      .replace(/[_-]+$/, '');
+    if (stem.length < SCREENNAME_MIN) break;
+    const candidate = `${stem}${suffix}`;
+    if (free(candidate)) {
+      taken.add(candidate.toLowerCase());
+      return { screenname: candidate, truncated: true };
+    }
+  }
+
+  return {
+    screenname: null,
+    truncated: false,
+    reason: `no free variant of "${base}"`,
+  };
+}
+
+/**
+ * Seed the taken-name set from the target database.
+ *
+ * screenname_history matters as much as users: isScreennameAvailable() refuses
+ * a name someone else retired, so handing one out here would create a row the
+ * app itself considers invalid.
+ */
+async function loadTakenScreennames(db: DB | null): Promise<Set<string>> {
+  const taken = new Set<string>();
+  if (!db) return taken;
+
+  for (const row of await db
+    .select({ screenname: users.screenname })
+    .from(users)) {
+    if (row.screenname) taken.add(row.screenname.toLowerCase());
+  }
+  for (const row of await db
+    .select({ screenname: screennameHistory.screenname })
+    .from(screennameHistory)) {
+    if (row.screenname) taken.add(row.screenname.toLowerCase());
+  }
+  return taken;
 }
 
 // =============================================================================
@@ -693,6 +833,8 @@ function emptyReport(args: MigrationArgs): Report {
 interface UserMaps {
   /** Lowercased email -> new cuid, so profiles can be linked. */
   byEmail: Map<string, string>;
+  /** Every screenname spoken for, lowercased; reused by the placeholder phase. */
+  takenScreennames: Set<string>;
 }
 
 async function migrateUsers(
@@ -708,7 +850,9 @@ async function migrateUsers(
   console.log('='.repeat(60));
 
   const byEmail = new Map<string, string>();
-  const takenScreennames = new Set<string>();
+  // Seeded from the target DB so a re-run cannot hand out a name that already
+  // exists there; deriveScreenname() adds each pick as it goes.
+  const takenScreennames = await loadTakenScreennames(db);
   let written = 0;
   let skipped = 0;
   let merged = 0;
@@ -741,41 +885,36 @@ async function migrateUsers(
 
     // The legacy profile slug is the same identifier the public /p/[user] route
     // now resolves through users.screenname, so carrying it over keeps old
-    // profile URLs alive. Anything that fails validation is left unset rather
-    // than mangled — the user can pick a screenname on first sign-in.
+    // profile URLs alive.
+    //
+    // The name has to be picked here, before the row is built, but the row may
+    // still be skipped further down (already present, nothing to merge). Any
+    // such exit calls releaseScreenname() so the reservation does not linger
+    // and push the next legitimate claimant onto a "-2" variant.
     let screenname: string | null = null;
+    let truncated = false;
     const slug = slugByEmail.get(addr);
     if (slug) {
-      const candidate = slug.toLowerCase();
-      const validation = validateScreenname(candidate);
-      if (!validation.valid) {
+      const derived = deriveScreenname(slug, takenScreennames);
+      screenname = derived.screenname;
+      truncated = derived.truncated;
+      if (!screenname) {
         report.screennameRejects.push({
           email: addr,
           slug,
-          reason: validation.error ?? 'invalid',
+          reason: derived.reason ?? 'invalid',
         });
-      } else if (takenScreennames.has(candidate)) {
-        report.screennameRejects.push({
-          email: addr,
-          slug,
-          reason: 'collides with another migrated screenname',
-        });
-      } else if (
-        db &&
-        (await db.query.users.findFirst({
-          where: (u, { eq: equals }) => equals(u.screenname, candidate),
-          columns: { id: true },
-        }))
-      ) {
-        report.screennameRejects.push({
-          email: addr,
-          slug,
-          reason: 'already taken in target database',
-        });
-      } else {
-        screenname = candidate;
       }
     }
+    const releaseScreenname = () => {
+      if (screenname) takenScreennames.delete(screenname.toLowerCase());
+    };
+    /** Record the truncation only once the row it belongs to actually lands. */
+    const recordTruncation = () => {
+      if (screenname && truncated && slug) {
+        report.screennameTruncations.push({ slug, screenname });
+      }
+    };
 
     const id = createId();
     const now = new Date();
@@ -831,6 +970,7 @@ async function migrateUsers(
         });
         if (!existing) {
           skipped++;
+          releaseScreenname();
           report.skipped.push({
             collection: 'users',
             legacyId,
@@ -843,10 +983,10 @@ async function migrateUsers(
         // Link profiles to the row that actually exists, merged or not.
         byEmail.set(addr, existing.id);
         if (legacyId) report.idMap.users[legacyId] = existing.id;
-        if (existing.screenname) takenScreennames.add(existing.screenname);
 
         if (!merge) {
           skipped++;
+          releaseScreenname();
           report.skipped.push({
             collection: 'users',
             legacyId,
@@ -863,16 +1003,13 @@ async function migrateUsers(
         );
         const olderUser = earlierCreatedAt(existing.createdAt, row.createdAt);
         if (olderUser) patch.createdAt = olderUser;
-        // A screenname taken from the legacy slug may collide with some other
-        // account; drop it rather than fail the update.
-        if (
-          typeof patch.screenname === 'string' &&
-          takenScreennames.has(patch.screenname)
-        ) {
-          delete patch.screenname;
-        }
+        // No collision check needed on patch.screenname: deriveScreenname()
+        // already cleared it against the target DB and this run's picks, and
+        // reserved it in `takenScreennames` — re-testing here would match that
+        // very reservation and throw the name away.
         if (Object.keys(patch).length === 0) {
           skipped++;
+          releaseScreenname();
           report.skipped.push({
             collection: 'users',
             legacyId,
@@ -884,8 +1021,10 @@ async function migrateUsers(
 
         await db.update(users).set(patch).where(eq(users.id, existing.id));
         if (typeof patch.screenname === 'string') {
-          takenScreennames.add(patch.screenname);
           named++;
+          recordTruncation();
+        } else {
+          releaseScreenname();
         }
         merged++;
         report.merged.push({
@@ -902,8 +1041,8 @@ async function migrateUsers(
     byEmail.set(addr, id);
     if (legacyId) report.idMap.users[legacyId] = id;
     if (screenname) {
-      takenScreennames.add(screenname);
       named++;
+      recordTruncation();
     }
     written++;
   }
@@ -914,6 +1053,9 @@ async function migrateUsers(
   );
   console.log(
     `  screennames carried over from legacy slugs: ${named}` +
+      (report.screennameTruncations.length > 0
+        ? ` (${report.screennameTruncations.length} truncated to fit)`
+        : '') +
       (report.screennameRejects.length > 0
         ? `, ${report.screennameRejects.length} rejected (see report)`
         : '')
@@ -931,7 +1073,7 @@ async function migrateUsers(
     );
   }
 
-  return { byEmail };
+  return { byEmail, takenScreennames };
 }
 
 // =============================================================================
@@ -1166,6 +1308,182 @@ async function migrateProfiles(
   );
 
   return imageRows;
+}
+
+// =============================================================================
+// Placeholder users for unclaimed profiles
+// =============================================================================
+
+/**
+ * Give every remaining unclaimed profile a user row, and so a public URL.
+ *
+ * Most legacy listings have no account behind them — 689 of 749 on the 2026-08
+ * import. `screenname` lives on `users`, and getPublicProfile() resolves
+ * /p/[user] by walking users.screenname -> profiles.userId, so an unclaimed
+ * profile is unreachable and the directory renders its card pointing at the
+ * literal "/p/null". Unclaimed profiles are meant to be publicly viewable, so
+ * this mints one placeholder user per orphan profile, carries the legacy slug
+ * over as the screenname, and links the two.
+ *
+ * The rows are inert, not accounts: emailVerified is false and no `accounts`
+ * row is written, so there is no credential and no way to sign in as one. When
+ * the real owner arrives, better-auth's magic-link flow looks a user up by
+ * email before it creates one, so they are signed into this row and land
+ * already owning their listing — the deferred auto-claim becomes instant.
+ *
+ * Two consequences worth keeping in mind:
+ *   - auth.ts claimProfileForUser() finds nothing left to claim for these
+ *     users, so its GHL lookup leans on the first-ever-session check instead.
+ *   - profiles.userId is ON DELETE CASCADE. Undoing this means clearing
+ *     profiles.user_id first; deleting the users directly takes the listings
+ *     with them. The report's placeholders[] holds every id pair.
+ */
+async function createPlaceholderUsers(
+  db: DB | null,
+  /** Legacy profile slug per email — the source of each screenname. */
+  slugByEmail: Map<string, string>,
+  takenScreennames: Set<string>,
+  report: Report
+): Promise<void> {
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE: placeholder users for unclaimed profiles');
+  console.log('='.repeat(60));
+
+  // Pass 1: users that exist but never got a screenname — the rejects from the
+  // users phase, plus anyone left unnamed by an earlier run. Same rule, so both
+  // cohorts end up consistent.
+  let filled = 0;
+  if (db) {
+    const nameless = await db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(isNull(users.screenname));
+
+    for (const user of nameless) {
+      const slug = slugByEmail.get(user.email.toLowerCase());
+      if (!slug) continue; // no listing to name them after; they pick their own
+
+      const derived = deriveScreenname(slug, takenScreennames);
+      if (!derived.screenname) continue;
+
+      await db
+        .update(users)
+        .set({ screenname: derived.screenname })
+        .where(eq(users.id, user.id));
+      filled++;
+      if (derived.truncated) {
+        report.screennameTruncations.push({
+          slug,
+          screenname: derived.screenname,
+        });
+      }
+    }
+  }
+
+  // Pass 2: a user row per unclaimed profile.
+  const unclaimed = db
+    ? await db
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          name: profiles.name,
+          createdAt: profiles.createdAt,
+        })
+        .from(profiles)
+        .where(isNull(profiles.userId))
+    : [];
+
+  let written = 0;
+  let skipped = 0;
+  let named = 0;
+
+  for (const profile of unclaimed) {
+    if (!db) break;
+    const addr = profile.email.toLowerCase().trim();
+
+    // users.email is unique, so an existing row means this profile should have
+    // been linked rather than duplicated. Report instead of throwing.
+    const clash = await db.query.users.findFirst({
+      where: (u, { sql: raw }) => raw`lower(${u.email}) = ${addr}`,
+      columns: { id: true },
+    });
+    if (clash) {
+      skipped++;
+      report.skipped.push({
+        collection: 'placeholders',
+        legacyId: null,
+        identifier: addr,
+        reason: `a user row already exists for this email (${clash.id})`,
+      });
+      continue;
+    }
+
+    const slug = slugByEmail.get(addr) ?? null;
+    const derived = slug
+      ? deriveScreenname(slug, takenScreennames)
+      : {
+          screenname: null,
+          truncated: false,
+          reason: 'no legacy slug for this email',
+        };
+
+    const userId = createId();
+    await db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        id: userId,
+        email: profile.email,
+        // No credential and no accounts row: the real owner must still prove
+        // the address before this row becomes reachable.
+        emailVerified: false,
+        // users.name is a single column, so a business name has nothing to be
+        // split into. auth() blanks it for privacy and the UI reads
+        // profiles.name, making this near-cosmetic.
+        name: profile.name?.trim() || null,
+        screenname: derived.screenname,
+        createdAt: profile.createdAt,
+      });
+      await tx
+        .update(profiles)
+        .set({ userId })
+        .where(eq(profiles.id, profile.id));
+    });
+
+    report.placeholders.push({
+      profileId: profile.id,
+      userId,
+      email: profile.email,
+      legacySlug: slug,
+      screenname: derived.screenname,
+      truncated: derived.truncated,
+      reason: derived.reason,
+    });
+
+    written++;
+    if (derived.screenname) {
+      named++;
+      if (derived.truncated) {
+        report.screennameTruncations.push({
+          slug: slug as string,
+          screenname: derived.screenname,
+        });
+      }
+    }
+  }
+
+  report.counts.placeholders = { read: unclaimed.length, written, skipped };
+  if (!db) {
+    console.log(
+      '  dry run — unclaimed profiles are counted against the target'
+    );
+    console.log('  database only, so nothing is reported here');
+    return;
+  }
+  console.log(
+    `  ${unclaimed.length} unclaimed profile(s); created ${written} user row(s), skipped ${skipped}`
+  );
+  console.log(
+    `  screennames: ${named} from legacy slugs, ${filled} backfilled onto existing users`
+  );
 }
 
 // =============================================================================
@@ -1550,7 +1868,10 @@ async function main() {
             args.merge,
             report
           )
-        : { byEmail: new Map<string, string>() };
+        : {
+            byEmail: new Map<string, string>(),
+            takenScreennames: await loadTakenScreennames(db),
+          };
 
       if (profilesFile) {
         mappedRows = await migrateProfiles(
@@ -1561,6 +1882,15 @@ async function main() {
           report
         );
       }
+
+      // Runs last of the row phases: it works off whatever profiles are still
+      // unlinked in the target, so profiles must already be written.
+      await createPlaceholderUsers(
+        db,
+        slugByEmail,
+        userMaps.takenScreennames,
+        report
+      );
     }
 
     if (!args.skipImages) {

@@ -10,7 +10,7 @@ import {
   verification,
   profiles,
 } from '@/lib/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import { GhlClient } from '@/lib/ghl';
 
@@ -646,7 +646,8 @@ async function claimProfileForUser(
    * The lookup is gated on a missing ghlContactId, which never gets filled if
    * GHL simply has no contact for that address — so an ungated retry would hit
    * the API on every single sign-in. Account creation is rare enough to always
-   * try; the per-session path only tries when it just claimed a profile.
+   * try; the per-session path only tries when it just claimed a profile, or on
+   * the user's first-ever session (see the session-count check below).
    */
   alwaysLinkGhl: boolean
 ): Promise<void> {
@@ -671,7 +672,22 @@ async function claimProfileForUser(
       console.log('Profile claimed successfully');
     }
 
-    if (!unclaimedProfile && !alwaysLinkGhl) return;
+    // Nothing claimed and not an account-creation path — normally a returning
+    // user, so stop before the GHL call. The exception is a backfilled
+    // placeholder (scripts/backfill-unclaimed-users.ts), whose profile arrives
+    // pre-linked: the claim above finds nothing on the owner's very first
+    // sign-in, which would otherwise skip their GHL link forever. A first-ever
+    // session is that moment, and only that moment, so the hot path for
+    // returning users is untouched.
+    if (!unclaimedProfile && !alwaysLinkGhl) {
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(sessions)
+        .where(eq(sessions.userId, userId));
+      // The session that triggered this hook is already written, so a genuine
+      // first sign-in reads as exactly one.
+      if (Number(total) > 1) return;
+    }
 
     // GHL signup claim — link GHL contact ID at registration (Phase 3).
     // Best-effort: never blocks the sign-in.

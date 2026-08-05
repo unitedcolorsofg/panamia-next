@@ -27,17 +27,32 @@ export function SearchResultCard({
   isMentor,
 }: SearchResultCardProps) {
   const primaryImage = profile.images?.primaryCDN || '/img/bg_coconut_blue.jpg';
+  // /p/[user] resolves through users.screenname, so a profile without one has
+  // no page to link to. Everything below degrades to plain, unlinked content
+  // rather than pointing at the literal "/p/null".
+  const profileHref = profile.screenname ? `/p/${profile.screenname}` : null;
+
+  const image = (
+    <img
+      src={primaryImage}
+      alt={profile.name as string}
+      className="h-full w-full object-cover"
+    />
+  );
+  const heading = <h3 className="text-xl font-bold">{profile.name}</h3>;
 
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-col md:flex-row">
         {/* Profile Image */}
         <div className="relative h-48 w-full md:h-auto md:w-48">
-          <img
-            src={primaryImage}
-            alt={profile.name as string}
-            className="h-full w-full object-cover"
-          />
+          {profileHref ? (
+            <Link href={profileHref} className="block h-full w-full">
+              {image}
+            </Link>
+          ) : (
+            image
+          )}
           {isMentor && (
             <Badge className="absolute top-2 right-2 bg-blue-600 text-white">
               Mentor
@@ -49,7 +64,13 @@ export function SearchResultCard({
         <CardContent className="flex flex-1 flex-col gap-3 p-6">
           {/* Name */}
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold">{profile.name}</h3>
+            {profileHref ? (
+              <Link href={profileHref} className="hover:underline">
+                {heading}
+              </Link>
+            ) : (
+              heading
+            )}
           </div>
 
           {/* Five Words */}
@@ -81,12 +102,14 @@ export function SearchResultCard({
 
           {/* Actions */}
           <div className="mt-auto flex flex-wrap gap-2">
-            <Button variant="default" asChild>
-              <Link href={`/p/${profile.screenname}`}>
-                <User className="h-4 w-4" />
-                View Profile
-              </Link>
-            </Button>
+            {profileHref && (
+              <Button variant="default" asChild>
+                <Link href={profileHref}>
+                  <User className="h-4 w-4" />
+                  View Profile
+                </Link>
+              </Button>
+            )}
             {profile.screenname && (
               <DirectoryFollowButton
                 screenname={profile.screenname as string}
