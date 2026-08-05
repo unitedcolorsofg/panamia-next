@@ -44,39 +44,62 @@ npx tsx scripts/delete-user.ts user@example.com
 
 ### `migrate-from-mongodb.ts`
 
-One-time migration script for copying data from MongoDB to PostgreSQL,
-including migration of images from external CDNs to Cloudflare R2:
+One-time migration from the legacy MongoDB export to PostgreSQL, moving every
+BunnyCDN image into Cloudflare R2 on the way. It reads local dump files — there
+is no live MongoDB connection.
 
 ```bash
-# Full migration (data + images)
-npx tsx scripts/migrate-from-mongodb.ts \
-  --mongodb "mongodb+srv://..." \
-  --postgres "postgres://..."
+# Preview: parses, maps and reports without writing. Reads no credentials.
+npx tsx scripts/migrate-from-mongodb.ts --input ./mongodump/test --dry-run
 
-# Preview without writing
-npx tsx scripts/migrate-from-mongodb.ts --dry-run ...
+# Full migration (rows + images)
+npx tsx scripts/migrate-from-mongodb.ts --input ./mongodump/test
 
-# Skip image migration
-npx tsx scripts/migrate-from-mongodb.ts --skip-images ...
+# Rows only, leaving images on BunnyCDN for a later pass
+npx tsx scripts/migrate-from-mongodb.ts --input ./mongodump/test --skip-images
 
-# Only migrate images (after data migration)
-npx tsx scripts/migrate-from-mongodb.ts \
-  --postgres "postgres://..." \
-  --images-only
+# The follow-up image pass (only touches rows still on a legacy CDN)
+npx tsx scripts/migrate-from-mongodb.ts --images-only
+
+# Fill empty columns on rows that already exist, instead of skipping them
+npx tsx scripts/migrate-from-mongodb.ts --input ./mongodump/test --merge
 ```
+
+**Input files** — per collection, first match wins: `<name>.json` (extended-JSON
+array or JSONL), `<name>.jsonl`, or `<name>.bson` (needs `npm i -D bson`).
 
 **What gets migrated:**
 
-- users (nextauth_users → users)
-- accounts (nextauth_accounts → accounts)
-- sessions (nextauth_sessions → sessions)
-- profiles (profiles → profiles)
-- images (BunnyCDN/external → Cloudflare R2)
+- `users.json` → `users` (the app-level collection, not `nextauth_*`)
+- `profiles.json` → `profiles`
+- legacy `profiles.slug` → `users.screenname`, so old `/p/<slug>` URLs keep working
+- images (BunnyCDN → Cloudflare R2)
+
+Sessions, accounts and newsletter signups are deliberately not migrated; the
+script header explains why for each.
+
+**Merging.** `--merge` only ever fills columns the existing row left empty, and
+`false` counts as a value so live flags are never flipped on. The one exception
+is `createdAt`, where the older timestamp wins — that is the real join date.
+Columns where both sides hold different values are left alone and recorded under
+`merged[].conflicts` in the report.
+
+**The report matters.** Every run writes `migration-report-<timestamp>.json`
+next to the input. A failed image transfer clears the image reference rather
+than leaving a pointer at a CDN being switched off, so that report is the only
+surviving record of those source URLs. Keep it.
 
 **Requirements:**
 
-- `mongodb` npm package (install with `npm install mongodb`)
-- R2 credentials env vars (for image migration): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+- R2 credentials for the image pass, read from `.env.local` or the shell:
+  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`,
+  `R2_PUBLIC_URL`. `--skip-images` needs none of them.
+- A Postgres URL via `--postgres`, `$POSTGRES_DIRECT_URL`, or `$POSTGRES_URL`.
+  Prefer the direct (unpooled) URL: postgres.js uses prepared statements, which
+  Supabase's transaction-mode pooler rejects.
+- The target database must already have the Drizzle migrations applied. Note
+  that `0014_lockdown_public_schema_api` expects Supabase's `anon`,
+  `authenticated` and `service_role` roles to exist.
 
 ### `reset-test-db.ts`
 
