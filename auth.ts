@@ -614,6 +614,102 @@ async function enrichUserFields(
   };
 }
 
+/**
+ * Attach an unclaimed directory listing to the account that just signed in, and
+ * link its GoHighLevel contact.
+ *
+ * A profile is created unclaimed whenever the listing predates the account —
+ * legacy rows imported from MongoDB, or a listing added on someone's behalf.
+ * The only join key is the email address.
+ *
+ * Called from two hooks, because neither covers every sign-in on its own:
+ *   - account.create.after — OAuth, which is the only flow that writes an
+ *     `account` row.
+ *   - session.create.after — everything, including magic links. better-auth's
+ *     magic-link flow goes findUserByEmail -> createUser -> createSession and
+ *     never touches `account`, so an account-only hook silently skips the
+ *     passwordless majority and leaves their listing orphaned.
+ *
+ * Idempotent and cheap to repeat: once claimed, the `userId IS NULL` filter
+ * stops matching, so a returning user costs one indexed lookup per sign-in.
+ * See `alwaysLinkGhl` for why the GHL call is kept off that hot path.
+ *
+ * Best-effort throughout — a failure here must never block a sign-in.
+ */
+async function claimProfileForUser(
+  userId: string,
+  /** Where the claim was triggered from; for logs only. */
+  source: string,
+  /**
+   * Attempt the GHL lookup even when nothing was claimed.
+   *
+   * The lookup is gated on a missing ghlContactId, which never gets filled if
+   * GHL simply has no contact for that address — so an ungated retry would hit
+   * the API on every single sign-in. Account creation is rare enough to always
+   * try; the per-session path only tries when it just claimed a profile.
+   */
+  alwaysLinkGhl: boolean
+): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { email: true },
+    });
+    if (!user?.email) return;
+    const email = user.email.toLowerCase();
+
+    const unclaimedProfile = await db.query.profiles.findFirst({
+      where: and(eq(profiles.email, email), isNull(profiles.userId)),
+    });
+
+    if (unclaimedProfile) {
+      console.log('Auto-claiming profile for user:', email, 'via:', source);
+      await db
+        .update(profiles)
+        .set({ userId })
+        .where(eq(profiles.id, unclaimedProfile.id));
+      console.log('Profile claimed successfully');
+    }
+
+    if (!unclaimedProfile && !alwaysLinkGhl) return;
+
+    // GHL signup claim — link GHL contact ID at registration (Phase 3).
+    // Best-effort: never blocks the sign-in.
+    try {
+      // Resolve which profile to link (the just-claimed one, or an
+      // already-claimed profile for users signing in via a new provider).
+      const profileToLink =
+        unclaimedProfile ??
+        (await db.query.profiles.findFirst({
+          where: eq(profiles.userId, userId),
+          columns: { id: true, ghlContactId: true, ghlOptedOut: true },
+        }));
+
+      if (
+        profileToLink &&
+        !profileToLink.ghlContactId &&
+        !profileToLink.ghlOptedOut
+      ) {
+        const ghl = GhlClient.create();
+        if (ghl) {
+          const contact = await ghl.findByEmail(email);
+          if (contact?.id) {
+            await db
+              .update(profiles)
+              .set({ ghlContactId: contact.id })
+              .where(eq(profiles.id, profileToLink.id));
+            console.log('GHL contact linked:', contact.id);
+          }
+        }
+      }
+    } catch (ghlError) {
+      console.error('Error linking GHL contact (non-fatal):', ghlError);
+    }
+  } catch (error) {
+    console.error('Error auto-claiming profile:', error);
+  }
+}
+
 type BetterAuthInstance = ReturnType<typeof betterAuth>;
 export type BetterAuthServer = BetterAuthInstance;
 let _betterAuthInstance: BetterAuthInstance | null = null;
@@ -781,79 +877,20 @@ function getBetterAuth(): BetterAuthInstance {
             }
           },
           after: async (account) => {
-            // Auto-claim an unclaimed profile for trusted providers
+            // OAuth sign-in: claim as soon as the provider link is written, so
+            // the listing is attached before the session is handed back.
             if (!account.userId) return;
-            try {
-              const user = await db.query.users.findFirst({
-                where: eq(users.id, account.userId),
-              });
-              if (!user?.email) return;
-
-              const unclaimedProfile = await db.query.profiles.findFirst({
-                where: and(
-                  eq(profiles.email, user.email.toLowerCase()),
-                  isNull(profiles.userId)
-                ),
-              });
-
-              if (unclaimedProfile) {
-                console.log(
-                  'Auto-claiming profile for user:',
-                  user.email,
-                  'from provider:',
-                  account.providerId
-                );
-                await db
-                  .update(profiles)
-                  .set({ userId: account.userId })
-                  .where(eq(profiles.id, unclaimedProfile.id));
-                console.log('Profile claimed successfully');
-              }
-
-              // GHL signup claim — link GHL contact ID at registration (Phase 3)
-              // Best-effort: never blocks account creation.
-              try {
-                // Resolve which profile to link (the just-claimed one, or an
-                // already-claimed profile for users signing in via a new provider).
-                const profileToLink =
-                  unclaimedProfile ??
-                  (await db.query.profiles.findFirst({
-                    where: eq(profiles.userId, account.userId),
-                    columns: {
-                      id: true,
-                      ghlContactId: true,
-                      ghlOptedOut: true,
-                    },
-                  }));
-
-                if (
-                  profileToLink &&
-                  !profileToLink.ghlContactId &&
-                  !profileToLink.ghlOptedOut
-                ) {
-                  const ghl = GhlClient.create();
-                  if (ghl) {
-                    const contact = await ghl.findByEmail(
-                      user.email.toLowerCase()
-                    );
-                    if (contact?.id) {
-                      await db
-                        .update(profiles)
-                        .set({ ghlContactId: contact.id })
-                        .where(eq(profiles.id, profileToLink.id));
-                      console.log('GHL contact linked:', contact.id);
-                    }
-                  }
-                }
-              } catch (ghlError) {
-                console.error(
-                  'Error linking GHL contact (non-fatal):',
-                  ghlError
-                );
-              }
-            } catch (error) {
-              console.error('Error auto-claiming profile:', error);
-            }
+            await claimProfileForUser(account.userId, account.providerId, true);
+          },
+        },
+      },
+      session: {
+        create: {
+          after: async (session) => {
+            // Every sign-in creates a session, so this is the path that covers
+            // magic links — the account hook above never fires for them.
+            if (!session.userId) return;
+            await claimProfileForUser(session.userId, 'session', false);
           },
         },
       },
