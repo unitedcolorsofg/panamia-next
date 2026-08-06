@@ -67,5 +67,10 @@
     "dark": "Dark",
     "adaptive": "Adaptive",
     "flowerPower": "Flower Power"
+  },
+  "search": {
+    "searchFor": "Search the directory for “{{term}}”",
+    "resultsAvailable_one": "{{count}} suggestion available",
+    "resultsAvailable_other": "{{count}} suggestions available"
   }
 }

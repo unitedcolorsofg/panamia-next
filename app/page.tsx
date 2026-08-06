@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -20,14 +18,9 @@ import {
 } from '@/components/ui/accordion';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Search,
-  Calendar,
-  MessageCircle,
-  FileText,
-  Loader2,
-} from 'lucide-react';
+import { Calendar, MessageCircle, FileText, Loader2 } from 'lucide-react';
 import ArticleCard from '@/components/ArticleCard';
+import { DirectorySuggest } from '@/components/directory-suggest';
 
 interface Article {
   _id: string;
@@ -55,9 +48,7 @@ const FAQ_ANCHORS: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const router = useRouter();
   const { t } = useTranslation('home');
-  const [searchQuery, setSearchQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState('');
@@ -97,13 +88,6 @@ export default function HomePage() {
     window.addEventListener('hashchange', openFromHash);
     return () => window.removeEventListener('hashchange', openFromHash);
   }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/directory/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -146,26 +130,14 @@ export default function HomePage() {
                 {t('hero.subheadline')}
               </p>
 
-              <form onSubmit={handleSearch} className="mx-auto max-w-2xl">
-                <label htmlFor="search" className="sr-only">
-                  {t('hero.searchLabel')}
-                </label>
-                <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
-                  <Input
-                    id="search"
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('hero.searchPlaceholder')}
-                    className="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
-                    aria-label={t('hero.searchAriaLabel')}
-                  />
-                  <Button type="submit" size="lg" className="px-8">
-                    <Search className="mr-2 h-5 w-5" aria-hidden="true" />
-                    {t('hero.searchButton')}
-                  </Button>
-                </div>
-              </form>
+              <DirectorySuggest
+                className="mx-auto max-w-2xl"
+                label={t('hero.searchLabel')}
+                placeholder={t('hero.searchPlaceholder')}
+                ariaLabel={t('hero.searchAriaLabel')}
+                buttonLabel={t('hero.searchButton')}
+                inputClassName="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
+              />
             </div>
           </div>
         </div>

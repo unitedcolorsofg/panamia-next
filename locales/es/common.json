@@ -67,5 +67,10 @@
     "dark": "Oscuro",
     "adaptive": "Adaptable",
     "flowerPower": "Poder Floral"
+  },
+  "search": {
+    "searchFor": "Buscar “{{term}}” en el directorio",
+    "resultsAvailable_one": "{{count}} sugerencia disponible",
+    "resultsAvailable_other": "{{count}} sugerencias disponibles"
   }
 }
