@@ -55,6 +55,12 @@
  * that fails after retries clears the image reference instead of leaving a
  * pointer at a CDN being switched off — the owner re-uploads.
  *
+ * Legacy `profiles.active` gates every public listing query, and the old
+ * directory left 37 submissions unactioned behind it, some for over two years.
+ * That queue was worked in 2026-08: everything in it is approved on import
+ * except the spam listed in REJECTED_ON_REVIEW. See the autoApprove block in
+ * the profiles phase for why the legacy `declined` stamps do not decide this.
+ *
  * Deliberately NOT migrated:
  *   - nextauth_users: the auth-side mirror of `users`. The only field it adds is
  *     emailVerified, which we intentionally reset (see the users phase), so it
@@ -101,6 +107,14 @@ const LEGACY_CDN_PATTERNS = ['b-cdn.net', 'bunnycdn'];
  * unreachable, so this migration wants to run while it still holds.
  */
 const LEGACY_CDN_REFERER = 'https://www.panamia.club/';
+/**
+ * Legacy submissions the 2026-08 queue review left rejected.
+ *
+ * Only spam qualifies — this one is a numeric @qq.com address whose name and
+ * five-words are keyboard mash. Everything else pending was approved, so
+ * keeping the list explicit is what stops a re-import from publishing it.
+ */
+const REJECTED_ON_REVIEW = new Set(['2752662525@qq.com']);
 const IMAGE_CONCURRENCY = 4;
 const IMAGE_ATTEMPTS = 3;
 
@@ -670,6 +684,8 @@ interface Report {
   screennameRejects: { email: string; slug: string; reason: string }[];
   /** Slugs clipped to fit the 24-char limit, or suffixed past a collision. */
   screennameTruncations: { slug: string; screenname: string }[];
+  /** Pending submissions activated on import; see the autoApprove comment. */
+  autoApproved: { email: string; name: string }[];
   /** User rows minted for profiles that had no account behind them. */
   placeholders: {
     profileId: string;
@@ -700,6 +716,7 @@ function emptyReport(args: MigrationArgs): Report {
     merged: [],
     screennameRejects: [],
     screennameTruncations: [],
+    autoApproved: [],
     placeholders: [],
     images: [],
     follows: [],
@@ -1162,24 +1179,65 @@ async function migrateProfiles(
       (v) => v !== undefined
     );
 
-    // Legacy `status` carried both the submission timestamp and the one-time
-    // access token used by the old edit-my-profile links. The token is dead
-    // weight under better-auth, so only the timestamps come across.
+    // Legacy `status` carried the review timestamps plus the one-time access
+    // token used by the old edit-my-profile links. The token is dead weight
+    // under better-auth, so only the timestamps come across.
+    //
+    // `declined` has to be among them: it is the only thing separating a
+    // submission somebody rejected from one nobody ever got to, and the
+    // auto-approval below depends on telling those apart.
     const legacyStatus = jsonOrNull(doc.status);
-    const status = legacyStatus
-      ? {
-          submitted: legacyStatus.submitted
-            ? date(legacyStatus.submitted, now).toISOString()
-            : undefined,
-          approved: legacyStatus.approved
-            ? date(legacyStatus.approved, now).toISOString()
-            : undefined,
-          published: legacyStatus.published
-            ? date(legacyStatus.published, now).toISOString()
-            : undefined,
-          notes: str(legacyStatus.notes) ?? undefined,
-        }
-      : null;
+    const declinedAt =
+      legacyStatus && legacyStatus.declined
+        ? date(legacyStatus.declined, now).toISOString()
+        : undefined;
+    const approvedAt =
+      legacyStatus && legacyStatus.approved
+        ? date(legacyStatus.approved, now).toISOString()
+        : undefined;
+
+    /**
+     * Clear the legacy review backlog on import.
+     *
+     * The old directory left 37 submissions sitting unactioned for as long as
+     * two and a half years — invisible, because `active` gates every public
+     * listing query. That queue was worked in 2026-08 and every entry approved
+     * except the spam in REJECTED_ON_REVIEW, so an import reproduces that
+     * outcome rather than recreating a backlog nobody is tending.
+     *
+     * Note this deliberately overrides two of the legacy `declined` stamps: one
+     * was a plausible business declined 164 seconds after it was submitted,
+     * which read as a misclick, and the other was reversed by an approval two
+     * minutes later. `declined` is still carried across for the record — it is
+     * just no longer what decides visibility.
+     *
+     * An approval stamp is only added where none exists, so genuine review
+     * dates survive.
+     */
+    const autoApprove =
+      doc.active !== true && !approvedAt && !REJECTED_ON_REVIEW.has(addr);
+    const status =
+      legacyStatus || autoApprove
+        ? {
+            submitted: legacyStatus?.submitted
+              ? date(legacyStatus.submitted, now).toISOString()
+              : undefined,
+            approved:
+              approvedAt ?? (autoApprove ? now.toISOString() : undefined),
+            declined: declinedAt,
+            published: legacyStatus?.published
+              ? date(legacyStatus.published, now).toISOString()
+              : undefined,
+            notes: str(legacyStatus?.notes) ?? undefined,
+          }
+        : null;
+
+    if (autoApprove) {
+      report.autoApproved.push({
+        email: addr,
+        name: str(doc.name) ?? 'Unknown',
+      });
+    }
 
     const row = {
       id: createId(),
@@ -1191,7 +1249,7 @@ async function migrateProfiles(
       primaryImageId: str(images.primary),
       primaryImageCdn: str(images.primaryCDN),
       ...mapAddress(doc.primary_address),
-      active: doc.active === true,
+      active: doc.active === true || autoApprove,
       locallyBased: str(doc.locally_based),
       descriptions: hasDescriptions ? (descriptions as unknown as Json) : null,
       socials: jsonOrNull(doc.socials as ProfileSocialsInterface),
@@ -1306,6 +1364,12 @@ async function migrateProfiles(
   console.log(
     `  read ${docs.length}, mapped ${written} (${linked} linked to a user), merged ${merged}, skipped ${skipped}`
   );
+  if (report.autoApproved.length > 0) {
+    console.log(
+      `  note: ${report.autoApproved.length} pending submission(s) approved on import;` +
+        ` REJECTED_ON_REVIEW stays inactive (see report.autoApproved)`
+    );
+  }
 
   return imageRows;
 }

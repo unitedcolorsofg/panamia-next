@@ -79,6 +79,14 @@ array or JSONL), `<name>.jsonl`, or `<name>.bson` (needs `npm i -D bson`).
 Sessions, accounts and newsletter signups are deliberately not migrated; the
 script header explains why for each.
 
+**The legacy review queue.** `profiles.active` gates every public listing
+query, and the old directory left 37 submissions unactioned behind it — some
+for over two years. That queue was worked in 2026-08, so the import approves
+every pending submission except the spam in `REJECTED_ON_REVIEW`, stamping
+`status.approved` only where none exists. Legacy `status.declined` timestamps
+are carried across for the record but no longer decide visibility; two of them
+were a misclick and a reversal. Approvals are listed under `autoApproved`.
+
 **Screennames** are truncated on a word boundary to fit the 24-character limit,
 and collisions take a `-2`, `-3` suffix, rather than being dropped — a clipped
 URL beats an unreachable profile, and renaming later is a supported flow. Only
