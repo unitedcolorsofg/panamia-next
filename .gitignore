@@ -78,3 +78,6 @@ external/panamia-next-crm-bridge/node_modules/
 external/panamia-next-crm-bridge/worker.js
 external/panamia-next-crm-bridge/.dev.vars
 external/panamia-next-crm-bridge/.wrangler/
+
+# vinext dev server state
+.vinext/

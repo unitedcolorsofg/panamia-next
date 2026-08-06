@@ -15,6 +15,7 @@
     "app/api/venues": "events",
     "app/p": "profiles",
     "app/directory": "profiles",
+    "app/api/directory": "profiles",
     "app/directorio": "profiles",
     "app/api/profile": "profiles",
     "app/d": "profiles",
