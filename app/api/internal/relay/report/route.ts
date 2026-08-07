@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { relayReports } from '@/lib/schema';
 import { notifyAdminsOfReport } from '@/lib/server/relay-reports';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // NIP-56 abuse-report endpoint. Receives kind 1984 reports forwarded from
 // relay.pana.social and records them for the admin moderation console.
@@ -61,6 +62,11 @@ function truncateWords(s: string, maxWords: number): string {
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ReportResponse>> {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   let body: Partial<ReportRequest>;
   try {
     body = (await request.json()) as Partial<ReportRequest>;

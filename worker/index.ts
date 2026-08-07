@@ -16,6 +16,7 @@ import { getDb } from '../lib/db';
 import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
+import { setInternalAuthToken } from '../lib/server/internal-auth';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -59,6 +60,9 @@ export default {
     getEmail(env);
     getStorage(env);
     getRelay(env);
+    // Shared secret for app/api/internal/* — the bearer fallback for a caller
+    // that reaches those routes over HTTP rather than the Service Binding.
+    setInternalAuthToken(env);
     const url = new URL(request.url);
 
     // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object

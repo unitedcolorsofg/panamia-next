@@ -8,6 +8,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import { LEAVE_DEBOUNCE_SECONDS } from '@/lib/relay/group-maturation';
 import { matureAndSettle } from '@/lib/relay/group-lifecycle';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // NIP-29 advisory endpoint. Receives kind 9021 (join request) and kind 9022
 // (leave request) events forwarded from relay.pana.social and applies the
@@ -92,6 +93,11 @@ const isValidGroupId = (s: string): boolean =>
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<AdvisoryResponse>> {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   let body: Partial<AdvisoryRequest>;
   try {
     body = (await request.json()) as Partial<AdvisoryRequest>;

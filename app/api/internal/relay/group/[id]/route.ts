@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { relayGroups, relayGroupMembers } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { matureAndSettle } from '@/lib/relay/group-lifecycle';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // Full group state for NIP-29 metadata emission. Called by panamia-nosflare
 // when it needs to materialize a fresh signed kind 39000/39001/39002.
@@ -15,9 +16,14 @@ import { matureAndSettle } from '@/lib/relay/group-lifecycle';
 // 404 for unknown group ids — the relay treats this as "no metadata to emit",
 // not an error.
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   const { id } = await params;
 
   if (!id || id.length > 128 || !/^[a-zA-Z0-9_.\-:]+$/.test(id)) {

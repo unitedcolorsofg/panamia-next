@@ -5,6 +5,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 import { npubFromHex } from '@/lib/nostr/keys';
 import type { RsvpStatus } from '@/lib/schema';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // Events two-way sync, phase 2 (inbound). Receives a NIP-52 RSVP (kind 31925)
 // forwarded from relay.pana.social and applies it to the authoritative
@@ -54,6 +55,11 @@ function mapStatus(status: string | null): RsvpStatus | null {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   let body: Partial<RsvpRequest>;
   try {
     body = (await request.json()) as Partial<RsvpRequest>;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // Canonical Nostr metadata fields for a managed pubkey. nosflare calls this
 // when validating a kind 0 publish: panamia owns the user's display name
@@ -20,6 +21,11 @@ import { eq } from 'drizzle-orm';
 const NIP05_DOMAIN = 'pana.social';
 
 export async function GET(request: NextRequest) {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   const pubkey = request.nextUrl.searchParams.get('pubkey')?.toLowerCase();
   if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) {
     return NextResponse.json({ error: 'invalid pubkey' }, { status: 400 });

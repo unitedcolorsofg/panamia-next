@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { relayGroupMembers } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { maturedLeaveExists } from '@/lib/relay/group-maturation';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // Membership gate for relay.pana.social. A pubkey is allowed to publish iff
 // it appears in relay_group_members for at least one group. This collapses
@@ -20,6 +21,11 @@ import { maturedLeaveExists } from '@/lib/relay/group-maturation';
 // HTTP-level auth is enforced here. Caller is panamia-nosflare's
 // hasPaidForRelay() in external/nosflare/src/relay-worker.ts.
 export async function GET(request: NextRequest) {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   const pubkey = request.nextUrl.searchParams.get('pubkey');
 
   if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) {

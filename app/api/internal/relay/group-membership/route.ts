@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { relayGroupMembers } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { maturedLeaveExists } from '@/lib/relay/group-maturation';
+import { denyPublicRequest } from '@/lib/server/internal-auth';
 
 // Per-pubkey group roster. Returns the set of NIP-29 group_ids the user
 // belongs to, for nosflare to stash on the WebSocket session after NIP-42
@@ -13,6 +14,11 @@ import { maturedLeaveExists } from '@/lib/relay/group-maturation';
 // allowed on the relay but currently belongs to no groups) — the caller
 // distinguishes this from a transport error by status 200 + groups: [].
 export async function GET(request: NextRequest) {
+  // Refuse anything arriving from the public edge — see
+  // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
+  const denied = denyPublicRequest(request);
+  if (denied) return denied;
+
   const pubkey = request.nextUrl.searchParams.get('pubkey');
 
   if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) {
