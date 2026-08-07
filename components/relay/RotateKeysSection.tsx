@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import axios from 'axios';
 // Named import — see components/relay/EnrollSection.tsx for the CJS interop note.
 import { QRCode } from 'react-qr-code';
@@ -498,9 +499,15 @@ function RotateDialog({
                     <span>
                       <strong>Never share your nsec with anyone.</strong> No
                       Pana MIA admin will ever ask for it, and sharing it is
-                      against our Terms of Service. It&rsquo;s your password and
-                      your identity in one — anyone who has it can post as you
-                      and read your messages.
+                      against our{' '}
+                      <Link
+                        href="/legal/terms/modules/resilience"
+                        className="underline"
+                      >
+                        Terms of Service
+                      </Link>
+                      . It&rsquo;s your password and your identity in one —
+                      anyone who has it can post as you and read your messages.
                     </span>
                   </div>
                 </div>

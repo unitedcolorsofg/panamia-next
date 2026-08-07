@@ -1,15 +1,12 @@
 // Server component — static educational copy. No client JS needed; the
 // dynamic bits (key generation + enrollment) live in EnrollSection.
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 
 export function IntroSection() {
   return (
     <section className="prose prose-sm dark:prose-invert mb-12 max-w-none space-y-8 leading-relaxed">
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          TODO: Move the majority of this page copy into the new modular privacy
-          and T&C framework.
-        </h2>
         <h2 className="text-xl font-semibold">What is a relay?</h2>
         <p>
           Pana MIA offers a community{' '}
@@ -70,6 +67,18 @@ export function IntroSection() {
           with defined user-conduct standards of expectation. Participants who
           do not abide by these standards will be kicked off our relay, along
           with their messages and content.
+        </p>
+        <p>
+          Those standards, key custody, and what we can and cannot delete are
+          spelled out in the{' '}
+          <Link href="/legal/terms/modules/resilience" className="underline">
+            Resilience Network terms
+          </Link>{' '}
+          and the{' '}
+          <Link href="/legal/privacy" className="underline">
+            privacy policy
+          </Link>
+          .
         </p>
       </div>
 
