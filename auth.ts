@@ -13,6 +13,7 @@ import {
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import { GhlClient } from '@/lib/ghl';
+import { describeDbError } from '@/lib/server/db-error';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -708,7 +709,16 @@ async function claimProfileForUser(
       ) {
         const ghl = GhlClient.create();
         if (ghl) {
+          // Bracketing breadcrumbs. lib/ghl.ts issues fetch() with no
+          // AbortSignal, so a stalled upstream never settles and the whole
+          // request hangs with no error to catch — a "start" with no matching
+          // "done" for the same ray id identifies that immediately.
+          console.log('[auth] GHL lookup start', { userId, source });
           const contact = await ghl.findByEmail(email);
+          console.log('[auth] GHL lookup done', {
+            userId,
+            found: Boolean(contact?.id),
+          });
           if (contact?.id) {
             await db
               .update(profiles)
@@ -926,6 +936,11 @@ export async function auth(): Promise<AppSession | null> {
       headers: await headers(),
     });
     if (!session) return null;
+    // Breadcrumb: this is the last line before enrichUserFields issues its own
+    // query. A request that logs this and then produces no response at all
+    // stalled after the session read, which narrows a hang to the profile
+    // query (or to whatever the caller does next) rather than to better-auth.
+    console.log('[auth] session resolved', { userId: session.user.id });
 
     const extras = await enrichUserFields(session.user.id, session.user.email);
 
@@ -941,7 +956,12 @@ export async function auth(): Promise<AppSession | null> {
       },
       expires: session.session.expiresAt.toISOString(),
     };
-  } catch {
+  } catch (error) {
+    // Returning null here is indistinguishable from "not signed in", so an
+    // auth-path failure used to present as a silent sign-out with nothing in
+    // the logs. Callers still get null — the behavior is unchanged — but the
+    // reason is now recoverable.
+    console.error('[auth] session resolution failed', describeDbError(error));
     return null;
   }
 }

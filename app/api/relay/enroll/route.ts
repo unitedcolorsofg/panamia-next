@@ -5,6 +5,7 @@ import { profiles, relayGroupMembers } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { getProfileReadiness } from '@/lib/relay/profile-readiness';
 import { verifyByoProof } from '@/lib/nostr/byo-proof';
+import { describeDbError, isUniqueViolation } from '@/lib/server/db-error';
 import type { NostrEvent } from '@/lib/nostr/sign';
 
 // Self-enroll a Nostr pubkey into the panamia relay groups AND link it to
@@ -131,18 +132,44 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (err: unknown) {
-    // Unique-constraint on profiles.nostr_pubkey: another profile owns it.
-    const message = err instanceof Error ? err.message : String(err);
-    if (/profiles_nostr_pubkey_unique|duplicate key/i.test(message)) {
+    // Log before classifying. Everything that isn't a unique violation used to
+    // rethrow unlogged, which surfaced as a bare 500 with a minified stack and
+    // no way to tell a foreign-key violation from a statement timeout.
+    const details = describeDbError(err);
+    console.error('[enroll] transaction failed', {
+      userId,
+      profileId: profile.id,
+      groups: AUTO_ENROLL_GROUPS,
+      ...details,
+    });
+
+    if (
+      isUniqueViolation(err) ||
+      /profiles_nostr_pubkey_unique/i.test(details.message)
+    ) {
       return NextResponse.json(
         { error: 'this pubkey is already claimed by another profile' },
         { status: 409 }
       );
     }
+
+    // A missing relay_groups row is a deployment problem, not a user error:
+    // relay_group_members.group_id is a foreign key, so enrolling into a group
+    // that was never provisioned fails here for every member equally. Answer
+    // with something the UI can explain rather than a generic 500.
+    if (details.code === '23503') {
+      return NextResponse.json(
+        {
+          error: 'relay_group_missing',
+          detail:
+            'The enrollment groups are not provisioned on this environment.',
+        },
+        { status: 503 }
+      );
+    }
+
     throw err;
   }
 
   return NextResponse.json({ ok: true, groups: AUTO_ENROLL_GROUPS });
 }
-
-export const maxDuration = 5;

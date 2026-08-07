@@ -225,6 +225,13 @@
       "when": 1786752000000,
       "tag": "0031_relay_group_self_service",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786838400000,
+      "tag": "0032_seed_system_relay_groups",
+      "breakpoints": true
     }
   ]
 }
