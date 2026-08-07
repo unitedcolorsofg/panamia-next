@@ -209,6 +209,31 @@
           }
         },
         {
+          "name": "relay_group_invites",
+          "label": "Relay Group Invitations",
+          "module": "resilience",
+          "data": [
+            "group_id",
+            "invited_member",
+            "inviting_member",
+            "sent_at",
+            "expires_at"
+          ],
+          "source": "user_action",
+          "purpose": "group_invitations",
+          "retention": "until_answered_or_expired",
+          "note": "An invitation names both members involved, so it is visible to the person who sent it and the person who received it. Answering it — either way — deletes the record; an unanswered invitation expires after 30 days. Declining leaves nothing behind but a notification to the sender: there is no list of members who said no.",
+          "display": {
+            "icon": "user-plus",
+            "source": "Your recorded choices",
+            "purpose": "Group invitations",
+            "retention": "Until answered or 30 days",
+            "sharedWith": "The member you invited",
+            "prose": "Group invitations you have sent or received (which group, who invited whom, and when it expires)",
+            "blurb": "Pending invitations to community messaging groups. Deleted as soon as you answer."
+          }
+        },
+        {
           "name": "other_member_data",
           "label": "Other Member Data",
           "data": [

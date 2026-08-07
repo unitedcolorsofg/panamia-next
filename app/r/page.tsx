@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IntroSection } from '@/components/relay/IntroSection';
 import { EnrollSection } from '@/components/relay/EnrollSection';
+import { GroupsCallout } from '@/components/relay/GroupsCallout';
 import { RotateKeysSection } from '@/components/relay/RotateKeysSection';
 import { ImportInstructions } from '@/components/relay/ImportInstructions';
 import { FaqSection } from '@/components/relay/FaqSection';
@@ -24,6 +25,7 @@ export default async function ResiliencePage() {
 
         <IntroSection />
         <EnrollSection />
+        <GroupsCallout />
         {/* Self-gates: renders only for already-enrolled members. */}
         <div className="mb-10">
           <RotateKeysSection context="page" />

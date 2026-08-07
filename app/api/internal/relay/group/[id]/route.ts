@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { relayGroups, relayGroupMembers } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { matureGroupLeaves } from '@/lib/relay/group-maturation';
+import { matureAndSettle } from '@/lib/relay/group-lifecycle';
 
 // Full group state for NIP-29 metadata emission. Called by panamia-nosflare
 // when it needs to materialize a fresh signed kind 39000/39001/39002.
@@ -24,7 +24,10 @@ export async function GET(
     return NextResponse.json({ error: 'invalid group id' }, { status: 400 });
   }
 
-  await matureGroupLeaves(db, id);
+  // Maturation may empty a member-created group's roster, which deletes the
+  // group outright — the 404 below is then the correct answer, and is how the
+  // relay learns to stop emitting metadata for it.
+  await matureAndSettle(db, id);
 
   const [group] = await db
     .select()

@@ -308,13 +308,24 @@ This subsection is design-only; the actual clause drafting belongs in `PRIVACY-R
 
 ### Authority model: panamia is sole source of truth
 
-**No member admins.** All group state changes — creation, deletion, membership add/remove, metadata edits — originate exclusively from the panamia relay (the panamia-next service, via Service Binding to nosflare). This materially simplifies the design:
+**No member admins _at the relay_.** All group state changes — creation, deletion, membership add/remove, metadata edits — reach nosflare exclusively from the panamia-next service via Service Binding. This materially simplifies the design:
 
 - Client-published moderation kinds (9000, 9001, 9002, 9005, 9007, 9008, 9009) are **rejected** by nosflare regardless of author. No role-based write authorization is needed.
 - Client-published 9021 / 9022 (join/leave requests) are accepted but treated as **advisory signals** to panamia, not as relay state changes. Membership only changes when panamia pushes the change.
 - Kind 39001 (admin list) is emitted with the relay's own pubkey as the sole admin, since panamia speaks through the relay.
 
 Panamia pushes membership and metadata changes to nosflare via a dedicated internal endpoint; nosflare regenerates the affected 39000/39001/39002 replaceable events under its own keypair.
+
+**Members drive those changes through panamia** (`/r/groups`, added 2026-08-07). A member creates a group, sets it invite-only or open to all panas, invites by screenname, edits its name and description, and leaves — but every one of those is a write to panamia's tables, which the relay then reads. The relay's posture is unchanged: it still rejects every client-published moderation kind, still treats 9021/9022 as advisory, and still lists only its own pubkey in kind 39001. There is no relay-visible role and no NIP-29 role event (kind 39003 stays unused).
+
+Panamia-side, the group creator holds two permissions — metadata edits, and invites to an invite-only group — recorded in `relay_groups.created_by` as a pubkey. This is deliberately **not** surfaced as an "owner" or "admin" role in the UI; members see the affordances, not a title. When the holder leaves, it passes silently to the longest-tenured remaining member, so a live group always has someone able to edit it. `created_by IS NULL` marks the hand-provisioned groups (`panamia-test`, `panamia-public`), which members cannot edit.
+
+Two lifecycle rules live in `lib/relay/group-lifecycle.ts`, both applied after `matureGroupLeaves`, since maturation is what actually empties a roster:
+
+- A group whose last member has left is deleted. Hand-provisioned groups are exempt — an empty one is a group nobody has joined yet.
+- Creator rights are reassigned as described above.
+
+Because leaves go through the 24h debounce, a group dissolves a day after its last member clicks leave, not immediately — the web path and the kind-9022 path deliberately share that timer so the relay's roster view never diverges from panamia's.
 
 ### Identity model
 

@@ -228,7 +228,8 @@ export type NotificationContext =
   | 'follow'
   | 'message'
   | 'system'
-  | 'event';
+  | 'event'
+  | 'group';
 
 export interface NotificationInterface {
   _id: string;
@@ -240,7 +241,7 @@ export interface NotificationInterface {
   actorScreenname?: string;
   actorName?: string;
   objectType?:
-    'article' | 'profile' | 'session' | 'comment' | 'event' | 'venue';
+    'article' | 'profile' | 'session' | 'comment' | 'event' | 'venue' | 'group';
   objectTitle?: string;
   objectUrl?: string;
   message?: string;

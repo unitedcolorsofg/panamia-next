@@ -33,12 +33,7 @@ export interface CreateNotificationParams {
   context: NotificationContext;
   objectId?: string; // MongoDB ObjectId as string (article, session, etc.)
   objectType?:
-    | 'article'
-    | 'profile'
-    | 'session'
-    | 'comment'
-    | 'event'
-    | 'venue';
+    'article' | 'profile' | 'session' | 'comment' | 'event' | 'venue' | 'group';
   objectTitle?: string;
   objectUrl?: string;
   message?: string; // Personal message (invitation text)
@@ -325,6 +320,18 @@ export function getNotificationMessage(notif: {
 
     case 'system':
       return notif.message || 'System notification';
+
+    case 'group':
+      if (notif.type === 'Invite') {
+        return `${actor} invited you to the group "${object}"`;
+      }
+      if (notif.type === 'Accept') {
+        return `${actor} joined "${object}"`;
+      }
+      if (notif.type === 'Reject') {
+        return `${actor} declined your invitation to "${object}"`;
+      }
+      break;
 
     case 'event':
       if (notif.type === 'Invite') {

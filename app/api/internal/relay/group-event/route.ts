@@ -6,10 +6,8 @@ import {
   relayGroupJoinPending,
 } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import {
-  matureGroupLeaves,
-  LEAVE_DEBOUNCE_SECONDS,
-} from '@/lib/relay/group-maturation';
+import { LEAVE_DEBOUNCE_SECONDS } from '@/lib/relay/group-maturation';
+import { matureAndSettle } from '@/lib/relay/group-lifecycle';
 
 // NIP-29 advisory endpoint. Receives kind 9021 (join request) and kind 9022
 // (leave request) events forwarded from relay.pana.social and applies the
@@ -133,7 +131,14 @@ export async function POST(
 
   // Mature any expired pending leaves for this group before evaluating the
   // advisory — ensures membership checks below see post-maturation state.
-  await matureGroupLeaves(db, group_id);
+  //
+  // Maturation can also delete the group: a member-created group whose last
+  // member's leave just matured is gone. Both handlers below would then fail
+  // on the group_id foreign key, so answer the advisory directly instead.
+  const settled = await matureAndSettle(db, group_id);
+  if (settled.deleted) {
+    return NextResponse.json({ accepted: false, reason: 'group-not-found' });
+  }
 
   if (kind === 9022) {
     return handleLeave(group_id, pubkey);

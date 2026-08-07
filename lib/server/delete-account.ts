@@ -39,7 +39,9 @@ import {
   relayGroupMembers,
   relayGroupJoinPending,
   relayGroupLeavePending,
+  relayGroupInvites,
 } from '@/lib/schema';
+import { applyDepartureRules } from '@/lib/relay/group-lifecycle';
 import { createId } from '@paralleldrive/cuid2';
 import { deleteFile } from '@/lib/blob/api';
 import { revokeAllOAuthTokens } from '@/lib/oauth-revoke';
@@ -864,6 +866,14 @@ export async function deleteAccount(
     if (profile?.nostrPubkey) {
       const pubkey = profile.nostrPubkey;
 
+      // Capture the roster before it goes away: once the membership rows are
+      // gone there is no way to find which groups this account was in, and
+      // each of them needs the departure rules applied afterward.
+      const memberOf = await db
+        .select({ groupId: relayGroupMembers.groupId })
+        .from(relayGroupMembers)
+        .where(eq(relayGroupMembers.pubkey, pubkey));
+
       await safeDelete(
         'relayGroupMembers',
         () =>
@@ -896,7 +906,47 @@ export async function deleteAccount(
         deletedTables,
         warnings
       );
+
+      // Deleting the membership rows is a departure like any other: a group
+      // this account created passes to its longest-tenured remaining member,
+      // and a group left with nobody in it is removed. Without this, a
+      // member-created group would outlive its only member as an empty shell
+      // whose created_by points at a pubkey no account owns any more.
+      //
+      // Best-effort per group: one failure here must not abort a deletion
+      // request that has already removed the account's other data.
+      for (const { groupId } of memberOf) {
+        try {
+          await applyDepartureRules(db, groupId);
+        } catch (err) {
+          warnings.push(
+            `relay group lifecycle for ${groupId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
+      }
     }
+
+    // Invitations this account sent or received. Cascaded by the users FK when
+    // the row is deleted, but the account may be anonymized rather than
+    // hard-deleted, so clear them explicitly: an invitation from an account
+    // that no longer exists is not answerable.
+    await safeDelete(
+      'relayGroupInvites',
+      () =>
+        db
+          .delete(relayGroupInvites)
+          .where(
+            or(
+              eq(relayGroupInvites.invitedUserId, userId),
+              eq(relayGroupInvites.invitedByUserId, userId)
+            )
+          )
+          .returning({ id: relayGroupInvites.id }),
+      deletedTables,
+      warnings
+    );
 
     // -------------------------------------------------------------------
     // 14. Delete profile

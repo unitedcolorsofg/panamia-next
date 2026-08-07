@@ -58,6 +58,8 @@ export const notificationContext = pgEnum('notification_context', [
   'message',
   'system',
   'event',
+  // Group invitations and their answers — see app/api/relay/groups.
+  'group',
 ]);
 
 export const notificationObjectType = pgEnum('notification_object_type', [
@@ -67,6 +69,7 @@ export const notificationObjectType = pgEnum('notification_object_type', [
   'comment',
   'event',
   'venue',
+  'group',
 ]);
 
 export const ccLicense = pgEnum('cc_license', [
@@ -256,6 +259,15 @@ export const relayReportStatus = pgEnum('relay_report_status', [
 // Provenance of a profile's nostr_pubkey: 'issued' = generated client-side
 // via the /r flow; 'byo' = uploaded by the user after acknowledging the
 // cross-relay correlation disclosure. See docs/RESILIENCE-ROADMAP.md.
+// How a member-created group admits people. 'open' groups are listed on
+// /r/groups/browse and joinable in one click; 'invite_only' groups are
+// reachable only through a relay_group_invites row. `discoverable` is derived
+// from this at write time — see lib/relay/group-lifecycle.ts.
+export const relayGroupJoinPolicy = pgEnum('relay_group_join_policy', [
+  'invite_only',
+  'open',
+]);
+
 export const nostrPubkeySource = pgEnum('nostr_pubkey_source', [
   'issued',
   'byo',
@@ -291,6 +303,8 @@ export type VenueStatus = (typeof venueStatus.enumValues)[number];
 export type ParkingOptions = (typeof parkingOptions.enumValues)[number];
 export type RelayReportStatus = (typeof relayReportStatus.enumValues)[number];
 export type NostrPubkeySource = (typeof nostrPubkeySource.enumValues)[number];
+export type RelayGroupJoinPolicy =
+  (typeof relayGroupJoinPolicy.enumValues)[number];
 export type VenueType = (typeof venueType.enumValues)[number];
 export type VenueEnvironment = (typeof venueEnvironment.enumValues)[number];
 export type VenueUsage = (typeof venueUsage.enumValues)[number];
@@ -1718,7 +1732,18 @@ export const relayGroups = pgTable(
     about: text('about'),
     picture: text('picture'),
     // Discoverable groups have their kind 39000 metadata emitted publicly.
+    // Derived from joinPolicy on every write (open => discoverable) so the
+    // /r/groups/browse listing and the relay's public metadata agree.
     discoverable: boolean('discoverable').notNull().default(true),
+    // Hex pubkey of the member holding creator rights (metadata edits and
+    // invites), reassigned to the longest-tenured member when that person
+    // leaves. NULL means panamia provisioned the group by hand — which also
+    // exempts it from delete-when-empty. Pubkey rather than a profile id so it
+    // matches relayGroupMembers and the pubkey-keyed account-deletion sweep.
+    createdBy: text('created_by'),
+    joinPolicy: relayGroupJoinPolicy('join_policy')
+      .notNull()
+      .default('invite_only'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -1730,6 +1755,45 @@ export const relayGroups = pgTable(
   (table) => ({
     discoverableIdx: index('relay_groups_discoverable_idx').on(
       table.discoverable
+    ),
+    createdByIdx: index('relay_groups_created_by_idx').on(table.createdBy),
+  })
+);
+
+// Outstanding invitations to a group. Keyed by users.id, not pubkey: the
+// invite is delivered to a Pana account through the notifications table, and
+// the invitee may not have enrolled a Nostr key yet when it is sent. Accepting
+// requires enrollment; the row is deleted on accept, decline, or expiry.
+export const relayGroupInvites = pgTable(
+  'relay_group_invites',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => relayGroups.groupId, { onDelete: 'cascade' }),
+    invitedUserId: text('invited_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    invitedByUserId: text('invited_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('relay_group_invites_pk').on(
+      table.groupId,
+      table.invitedUserId
+    ),
+    invitedUserIdx: index('relay_group_invites_invited_user_id_idx').on(
+      table.invitedUserId
+    ),
+    expiresAtIdx: index('relay_group_invites_expires_at_idx').on(
+      table.expiresAt
     ),
   })
 );

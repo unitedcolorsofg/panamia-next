@@ -99,6 +99,7 @@ export const inventory: Record<TableExport, Classification> = {
   relayGroupMembers: ['relay_group_membership'],
   relayGroupJoinPending: ['relay_pending_requests'],
   relayGroupLeavePending: ['relay_pending_requests'],
+  relayGroupInvites: ['relay_group_invites'],
   relayReports: ['relay_abuse_reports'],
 
   // --- Compliance records (retained after account deletion by design) ---
