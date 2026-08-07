@@ -45,5 +45,3 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ deleted: true }, { status: 500 });
   }
 }
-
-export const maxDuration = 5;

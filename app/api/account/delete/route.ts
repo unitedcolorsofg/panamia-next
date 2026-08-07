@@ -71,5 +71,3 @@ export async function POST(request: NextRequest) {
     warnings: result.warnings,
   });
 }
-
-export const maxDuration = 30;

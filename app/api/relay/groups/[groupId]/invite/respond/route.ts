@@ -129,5 +129,3 @@ export async function POST(
 
   return NextResponse.json({ ok: true, joined: true });
 }
-
-export const maxDuration = 5;

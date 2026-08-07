@@ -43,5 +43,3 @@ export async function GET(_request: NextRequest) {
     });
   }
 }
-
-export const maxDuration = 5;

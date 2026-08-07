@@ -154,5 +154,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, groups: DEFAULT_GROUPS, rotated: true });
 }
-
-export const maxDuration = 5;

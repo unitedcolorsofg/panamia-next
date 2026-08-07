@@ -19,5 +19,3 @@ export async function GET() {
 
   return NextResponse.json({ enrolled: pubkey !== null, groups });
 }
-
-export const maxDuration = 5;

@@ -183,5 +183,3 @@ function formatUserResponse(user: User) {
     updatedAt: user.updatedAt,
   };
 }
-
-export const maxDuration = 5;

@@ -176,5 +176,3 @@ export async function POST(
     expiresAt,
   });
 }
-
-export const maxDuration = 5;

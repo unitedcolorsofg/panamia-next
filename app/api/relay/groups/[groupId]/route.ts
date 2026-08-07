@@ -150,5 +150,3 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true });
 }
-
-export const maxDuration = 5;

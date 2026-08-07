@@ -65,5 +65,3 @@ export async function GET(request: NextRequest) {
     { headers: cacheHeaders }
   );
 }
-
-export const maxDuration = 5;

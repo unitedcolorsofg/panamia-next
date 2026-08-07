@@ -216,5 +216,3 @@ function transformProfile(
       : undefined,
   };
 }
-
-export const maxDuration = 10;

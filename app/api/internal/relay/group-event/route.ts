@@ -238,5 +238,3 @@ async function handleJoin(
     return NextResponse.json({ accepted: true, status: 'pending' });
   });
 }
-
-export const maxDuration = 5;

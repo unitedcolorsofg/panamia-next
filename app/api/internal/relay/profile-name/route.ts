@@ -46,5 +46,3 @@ export async function GET(request: NextRequest) {
     nip05: `${name}@${NIP05_DOMAIN}`,
   });
 }
-
-export const maxDuration = 5;

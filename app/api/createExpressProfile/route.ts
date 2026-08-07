@@ -149,5 +149,3 @@ export async function POST(request: NextRequest) {
     { status: 200 }
   );
 }
-
-export const maxDuration = 5;

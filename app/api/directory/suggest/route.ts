@@ -103,5 +103,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, data: [] }, { status: 500 });
   }
 }
-
-export const maxDuration = 5;

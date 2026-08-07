@@ -86,5 +86,3 @@ export async function POST(
     gracePeriodSeconds: LEAVE_DEBOUNCE_SECONDS,
   });
 }
-
-export const maxDuration = 5;

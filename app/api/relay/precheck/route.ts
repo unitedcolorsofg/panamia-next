@@ -26,5 +26,3 @@ export async function GET() {
     enrolledPubkey: profile?.nostrPubkey ?? null,
   });
 }
-
-export const maxDuration = 5;

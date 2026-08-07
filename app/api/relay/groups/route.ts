@@ -127,5 +127,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true, groupId }, { status: 201 });
 }
-
-export const maxDuration = 5;

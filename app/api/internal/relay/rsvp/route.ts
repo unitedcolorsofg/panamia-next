@@ -208,5 +208,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 }
-
-export const maxDuration = 10;

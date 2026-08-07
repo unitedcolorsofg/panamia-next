@@ -29,5 +29,3 @@ export async function GET(request: NextRequest) {
     error: available ? undefined : 'This screenname is already taken',
   });
 }
-
-export const maxDuration = 5;

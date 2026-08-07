@@ -40,5 +40,3 @@ export async function GET() {
     picture: snapshot.profile.primaryImageCdn,
   });
 }
-
-export const maxDuration = 5;

@@ -42,5 +42,3 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ allowed: row !== undefined });
 }
-
-export const maxDuration = 5;

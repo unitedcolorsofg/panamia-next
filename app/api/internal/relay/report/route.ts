@@ -181,5 +181,3 @@ export async function POST(
 
   return NextResponse.json({ stored: true });
 }
-
-export const maxDuration = 10;

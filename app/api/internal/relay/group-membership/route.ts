@@ -37,5 +37,3 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ groups: rows.map((r) => r.groupId) });
 }
-
-export const maxDuration = 5;
