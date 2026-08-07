@@ -32,20 +32,32 @@
 --   DELETE FROM "relay_groups" WHERE "group_id" IN ('panamia-test', 'panamia-public');
 -- =============================================================================
 
-INSERT INTO "relay_groups" ("group_id", "name", "about", "join_policy", "discoverable")
+-- created_at / updated_at are NOT NULL with NO database default (0023 declared
+-- them bare). Drizzle fills them from $defaultFn() in application code, which a
+-- raw INSERT never invokes — omitting them raises 23502 and fails the whole
+-- migration step. Any future hand-written INSERT into a Drizzle-defined table
+-- has to supply them explicitly for the same reason.
+INSERT INTO "relay_groups" (
+  "group_id", "name", "about", "join_policy", "discoverable",
+  "created_at", "updated_at"
+)
 VALUES
   (
     'panamia-test',
     'Pana MIA Community',
     'The community group chat for Pana MIA members. Read-gated at the relay, not end-to-end encrypted.',
     'invite_only',
-    false
+    false,
+    now(),
+    now()
   ),
   (
     'panamia-public',
     'Pana MIA Public',
     'The public Pana MIA group, bridged to the fediverse.',
     'open',
-    true
+    true,
+    now(),
+    now()
   )
 ON CONFLICT ("group_id") DO NOTHING;
