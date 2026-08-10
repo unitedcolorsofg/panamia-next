@@ -121,17 +121,31 @@ export function RotateKeysSection({
   }
 
   // ----- enrolled: intro + launcher + dialog -----------------------------
+  // The emphasis carries the two labels, not the items under them. Bolding the
+  // items instead scattered the emphasis across both lists and made it hard to
+  // tell which side of the split you were reading.
   const intro = (
-    <p className="text-muted-foreground text-sm">
-      Rotating generates a brand-new key and moves your{' '}
-      <strong>@pana.social handle</strong>, your Pana profile, and your{' '}
-      <strong>group access</strong> to it. What stays with your old key:{' '}
-      <strong>existing followers</strong> (they&rsquo;ll need to re-follow),{' '}
-      <strong>authorship of past posts</strong>, and{' '}
-      <strong>old encrypted DMs</strong> (keep your old key to read them).
-      It&rsquo;s a fresh start at the key level with your Pana identity carried
-      across — not a full migration.
-    </p>
+    <div className="text-muted-foreground space-y-2 text-sm">
+      <p>
+        Rotating generates a brand-new key. It&rsquo;s a fresh start at the key
+        level with your Pana identity carried across — not a full migration.
+      </p>
+      <p>
+        <strong>What moves to the new key:</strong> your @pana.social handle,
+        your Pana profile, and your group access.
+      </p>
+      <p>
+        <strong>What stays with your old key:</strong> existing followers
+        (they&rsquo;ll need to re-follow), authorship of past posts, and old
+        encrypted DMs — keep the old key if you want to read those.
+      </p>
+      <p>
+        Your old key still works as a Nostr identity anywhere else, so you can
+        load it in a client to read that history. It loses access to the Pana
+        relay, though: group access moves with the rotation, and the relay
+        admits only keys that belong to a group.
+      </p>
+    </div>
   );
 
   const launcher = (
@@ -390,14 +404,19 @@ function RotateDialog({
               </div>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-900/80 dark:text-amber-200/80">
                 <li>
-                  Moves to the new key: your <code>@pana.social</code> handle,
-                  Pana profile, and group access.
+                  <strong>Moves to the new key:</strong> your{' '}
+                  <code>@pana.social</code> handle, Pana profile, and group
+                  access.
                 </li>
                 <li>
-                  Stays with the old key: existing followers, authorship of past
-                  posts, and old encrypted DMs.
+                  <strong>Stays with the old key:</strong> existing followers,
+                  authorship of past posts, and old encrypted DMs.
                 </li>
                 <li>Keep your old key to read DMs you already received.</li>
+                <li>
+                  The old key keeps working elsewhere on Nostr, but loses access
+                  to the Pana relay once rotated.
+                </li>
               </ul>
             </div>
 
