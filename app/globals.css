@@ -25,7 +25,46 @@
   --color-pana-orange: #ff8100;
   --color-pana-navy: #181c3d;
 
-  /* Shadcn/ui color tokens */
+  /* Shadcn/ui color tokens.
+     ------------------------------------------------------------------------
+     KNOWN BUG, NOT FIXED HERE. These are bare HSL triples, but Tailwind v4
+     emits `.bg-background { background-color: var(--color-background) }`
+     verbatim — so the declaration resolves to `background-color: 0 0% 100%`,
+     which is not a valid CSS color and the browser drops it. Every bg-, text-
+     and border- utility built on these tokens therefore paints nothing.
+
+     That is the root cause of the transparent modal panels: DialogOverlay's
+     `bg-black/80` is a real color and dims the page, while DialogContent's
+     `bg-background` is discarded, leaving unreadable text over the dimmed
+     background. The `!important` block at the bottom of this file exists to
+     patch the same root cause for inputs, buttons, popovers and cards.
+
+     The body element escapes it by setting `hsl(var(--background))` directly
+     (see the base layer below), which is why the page has a background at all.
+
+     Investigated 2026-08-10. The fix is to make these complete colors that
+     reference the runtime vars, e.g.
+         --color-background: hsl(var(--background));
+     which also preserves dark mode, since `.dark` redefines --background and
+     the utility follows it through the cascade.
+
+     Measured with that fix applied, reading computed styles on / in both
+     themes (production build, next-themes class toggling):
+       WORKS       bg-background / bg-card / bg-popover / bg-muted and their
+                   foregrounds resolve opaque and invert correctly under .dark
+                   (light: rgb(255,255,255) on rgb(2,8,23) text;
+                    dark:  rgb(2,8,23) on rgb(248,250,252) text)
+       DOES NOT    outline buttons go white-on-white in light mode once the
+                   !important block below is also removed. Cause is in
+                   components/ui/button.tsx, not here: the outline variant sets
+                   a background but no foreground, so its text inherits white
+                   from the dark header. Needs `text-foreground` on that
+                   variant before the workarounds can go.
+       NOT TESTED  dialogs and dropdowns in situ (they need an authenticated
+                   session to open), every page other than the home page, and
+                   a reported "sun icon not visible in light mode" that did not
+                   reproduce — measured rgb(2,8,23) at 16x16 on white.
+     ------------------------------------------------------------------------ */
   --color-background: 0 0% 100%;
   --color-foreground: 222.2 84% 4.9%;
   --color-card: 0 0% 100%;
@@ -143,6 +182,29 @@
 }
 
 /* Fix transparency issues - placed outside @layer for higher specificity */
+
+/* These 21 !important declarations are a workaround for the invalid-color bug
+   documented in the @theme block above, not for a styling gap. Each one
+   hardcodes a literal (white, black, or a duplicated HSL) to stand in for a
+   token utility that never paints.
+   ---------------------------------------------------------------------------
+   Removal was attempted and reverted on 2026-08-10:
+     WORKS       removing them is visually correct in BOTH themes once the
+                 @theme tokens are valid — surfaces stay opaque and legible,
+                 and dark mode flips properly (.dark is reliably present, since
+                 @custom-variant binds `dark:` to the class and next-themes
+                 sets it on <html>)
+     DOES NOT    removing them WITHOUT also fixing components/ui/button.tsx
+                 leaves outline buttons white-on-white in light mode — the
+                 `color: black !important` rule below is what currently hides
+                 that defect
+     NOT TESTED  modals, dropdowns, admin tables, and every page other than
+                 the home page
+   Two cautions if this is revisited: `[data-radix-popper-content-wrapper] > *`
+   forces a background on ALL popper content, tooltips included; and
+   `button[class*='bg-primary']` overrides any variant that legitimately sets a
+   different background. Prefer fixing the token or the variant over adding
+   another !important here. */
 
 /* Only fix input backgrounds, not all buttons */
 input:not([type='submit']):not([type='button']):not([type='reset']),

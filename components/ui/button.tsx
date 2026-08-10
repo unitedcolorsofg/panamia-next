@@ -12,6 +12,17 @@ const buttonVariants = cva(
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        // This variant sets a background but no foreground, so its text
+        // inherits — and on a dark ancestor (the header) that means white text.
+        // It looks fine today only because app/globals.css force-sets
+        // `color: black !important` on outline buttons, one of the workarounds
+        // documented there.
+        //   NOT TESTED / DOES NOT WORK: dropping that workaround without
+        //   adding `text-foreground` here renders these buttons white-on-white
+        //   in light mode. Verified 2026-08-10; adding `text-foreground` fixed
+        //   it in both themes (light rgb(2,8,23), dark rgb(248,250,252)).
+        // Left as-is deliberately — changing it in isolation has no effect
+        // while the !important rule wins, and the pair should move together.
         outline:
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         secondary:
