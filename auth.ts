@@ -709,10 +709,11 @@ async function claimProfileForUser(
       ) {
         const ghl = GhlClient.create();
         if (ghl) {
-          // Bracketing breadcrumbs. lib/ghl.ts issues fetch() with no
-          // AbortSignal, so a stalled upstream never settles and the whole
-          // request hangs with no error to catch — a "start" with no matching
-          // "done" for the same ray id identifies that immediately.
+          // Bracketing breadcrumbs. lib/ghl.ts now aborts at GHL_TIMEOUT_MS,
+          // so a stalled upstream reaches the catch below as a
+          // GhlTimeoutError instead of hanging the request forever; these
+          // still bracket the call so a slow-but-alive GHL is visible in the
+          // logs as the gap between "start" and "done".
           console.log('[auth] GHL lookup start', { userId, source });
           const contact = await ghl.findByEmail(email);
           console.log('[auth] GHL lookup done', {

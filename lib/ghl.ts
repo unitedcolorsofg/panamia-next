@@ -27,6 +27,47 @@ const GHL_API_VERSION = '2021-07-28';
 //                failure by status alone.
 const GHL_API_VERSION_V3 = 'v3';
 
+/**
+ * How long a single GHL call may run before it is abandoned.
+ *
+ * Without a bound, a GHL that accepts the connection and never answers leaves
+ * an unsettled promise, and the Workers runtime kills the whole request with
+ * "your Worker's code had hung and would never generate a response" — observed
+ * in production 2026-08-07 on GET /api/getProfile (ray a2776034e8199aa6), which
+ * reaches this client through the sign-in profile-claim hook in auth.ts. A
+ * try/catch cannot rescue a promise that never settles; only an abort can.
+ *
+ * 5s is a deliberate over-estimate rather than a measured percentile. Sampled
+ * round-trips to services.leadconnectorhq.com sit around 120–530ms, so 5s
+ * leaves roughly an order of magnitude of headroom for a slow-but-alive API
+ * while still failing well inside a page load: /api/getProfile is fetched by
+ * components/MainHeader.tsx on every page, so the ceiling has to be a delay a
+ * visitor can sit through, not just short of the platform's own limit.
+ */
+const GHL_TIMEOUT_MS = 5_000;
+
+/**
+ * A GHL call that was abandoned at GHL_TIMEOUT_MS.
+ *
+ * Distinct from GhlApiError because there is no status and no body — nothing
+ * came back. Callers that already degrade gracefully on GhlApiError need no
+ * change; this simply makes the logged cause read as a timeout on a named
+ * endpoint rather than a bare "TimeoutError: The operation was aborted".
+ */
+export class GhlTimeoutError extends Error {
+  readonly method: string;
+  readonly path: string;
+  readonly timeoutMs: number;
+
+  constructor(method: string, path: string, timeoutMs: number) {
+    super(`GHL API timeout after ${timeoutMs}ms — ${method} ${path}`);
+    this.name = 'GhlTimeoutError';
+    this.method = method;
+    this.path = path;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 export interface GhlContactFields {
   firstName?: string;
   lastName?: string;
@@ -228,19 +269,38 @@ export class GhlClient {
     body?: unknown,
     version: string = GHL_API_VERSION
   ): Promise<T> {
-    const res = await fetch(`${GHL_API_BASE}${path}`, {
-      method,
-      headers: this.headers(version),
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      throw new GhlApiError(res.status, method, path, detail);
+    // The signal stays attached to the response body, so the deadline covers
+    // the body read as well as the connect/headers phase — a GHL that sends
+    // headers and then stalls mid-body is bounded too. Reading the body is
+    // therefore inside the try, not after it.
+    try {
+      const res = await fetch(`${GHL_API_BASE}${path}`, {
+        method,
+        headers: this.headers(version),
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(GHL_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new GhlApiError(res.status, method, path, detail);
+      }
+      if (res.status === 204) return undefined as T;
+      const text = await res.text();
+      if (!text) return undefined as T;
+      return JSON.parse(text) as T;
+    } catch (err) {
+      if (err instanceof GhlApiError) throw err;
+      // workerd raises DOMException "TimeoutError" for AbortSignal.timeout and
+      // "AbortError" for a manual abort; Node raises AbortError for both on
+      // some versions. Match on either so the mapping holds in dev and prod.
+      if (
+        err instanceof Error &&
+        (err.name === 'TimeoutError' || err.name === 'AbortError')
+      ) {
+        throw new GhlTimeoutError(method, path, GHL_TIMEOUT_MS);
+      }
+      throw err;
     }
-    if (res.status === 204) return undefined as T;
-    const text = await res.text();
-    if (!text) return undefined as T;
-    return JSON.parse(text) as T;
   }
 
   /** Get a contact by ID. */

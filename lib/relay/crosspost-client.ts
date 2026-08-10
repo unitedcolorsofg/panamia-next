@@ -27,6 +27,69 @@ let cachedRelay: RelayBinding | null = null;
 let cachedToken: string | null = null;
 let cachedHttpUrl: string | null = null;
 
+/**
+ * How long a relay call may run before it is abandoned.
+ *
+ * Same failure this bounds in lib/ghl.ts: an upstream that accepts the request
+ * and never answers leaves an unsettled promise, and workerd kills the whole
+ * request with "your Worker's code had hung and would never generate a
+ * response". Applied to the Service-Binding path as well as the HTTP fallback
+ * — a binding is a call into another Worker, which can hang just as an origin
+ * can.
+ *
+ * 15s rather than the 5s used for GHL, and likewise a guess with headroom
+ * rather than a measured bound. A crosspost is not a lookup: the relay signs
+ * the event and fans it out to several Nostr relays before answering, so its
+ * honest worst case is seconds. These calls also sit behind an explicit
+ * publish action where a visible pause is tolerable, not behind a header fetch
+ * on every page.
+ */
+const RELAY_TIMEOUT_MS = 15_000;
+
+/**
+ * Runs a relay call under RELAY_TIMEOUT_MS, over the Service Binding when one
+ * is bound and plain HTTP otherwise, and reports an abort as a plain Error
+ * naming the endpoint. Callers already treat a rejection as "crosspost did not
+ * happen", so a timeout needs no new handling — it just must not be silent.
+ *
+ * The signal stays attached to the returned body, so a stall part-way through
+ * reading it is bounded as well; that one rejects as the runtime's own
+ * AbortError rather than the message below, since it happens after this
+ * function has returned. Bounded either way, which is the point.
+ */
+async function relayFetch(
+  label: string,
+  bindingUrl: string,
+  httpUrl: string,
+  init: { method: string; headers: Record<string, string>; body: string }
+): Promise<Response> {
+  const signal = AbortSignal.timeout(RELAY_TIMEOUT_MS);
+  try {
+    return cachedRelay
+      ? await cachedRelay.fetch(bindingUrl, { ...init, signal })
+      : await fetch(httpUrl, { ...init, signal });
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      (err.name === 'TimeoutError' || err.name === 'AbortError')
+    ) {
+      throw new Error(
+        `${label} timed out after ${RELAY_TIMEOUT_MS}ms — relay did not respond`
+      );
+    }
+    throw err;
+  }
+}
+
+/** Strips a trailing `/internal/...` path so a base URL can be rebuilt from it. */
+function relayBase(): string {
+  return (
+    cachedHttpUrl?.replace(/\/internal\/.*$/, '') ??
+    process.env.RELAY_INTERNAL_URL?.replace(/\/internal\/.*$/, '') ??
+    'https://relay.pana.social'
+  );
+}
+
 export function getRelay(env?: RelayEnv): void {
   if (env?.RELAY) cachedRelay = env.RELAY;
   if (env?.CROSSPOST_AUTH_TOKEN) cachedToken = env.CROSSPOST_AUTH_TOKEN;
@@ -87,20 +150,15 @@ export async function crosspostArticle(
     'X-Crosspost-Auth': token,
   };
 
-  let response: Response;
-  if (cachedRelay) {
-    // Service binding: any URL works, the binding routes to the relay worker.
-    response = await cachedRelay.fetch(
-      'https://internal/internal/articles/crosspost',
-      { method: 'POST', headers, body }
-    );
-  } else {
-    const url =
-      cachedHttpUrl ??
+  // Service binding: any URL works, the binding routes to the relay worker.
+  const response = await relayFetch(
+    'article crosspost',
+    'https://internal/internal/articles/crosspost',
+    cachedHttpUrl ??
       process.env.RELAY_INTERNAL_URL ??
-      'https://relay.pana.social/internal/articles/crosspost';
-    response = await fetch(url, { method: 'POST', headers, body });
-  }
+      'https://relay.pana.social/internal/articles/crosspost',
+    { method: 'POST', headers, body }
+  );
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -158,23 +216,12 @@ export async function crosspostEvent(
     'X-Crosspost-Auth': token,
   };
 
-  let response: Response;
-  if (cachedRelay) {
-    response = await cachedRelay.fetch(
-      'https://internal/internal/events/crosspost',
-      { method: 'POST', headers, body }
-    );
-  } else {
-    const base =
-      cachedHttpUrl?.replace(/\/internal\/.*$/, '') ??
-      process.env.RELAY_INTERNAL_URL?.replace(/\/internal\/.*$/, '') ??
-      'https://relay.pana.social';
-    response = await fetch(`${base}/internal/events/crosspost`, {
-      method: 'POST',
-      headers,
-      body,
-    });
-  }
+  const response = await relayFetch(
+    'event crosspost',
+    'https://internal/internal/events/crosspost',
+    `${relayBase()}/internal/events/crosspost`,
+    { method: 'POST', headers, body }
+  );
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -209,23 +256,12 @@ export async function removeRelayEvents(
     'X-Crosspost-Auth': token,
   };
 
-  let response: Response;
-  if (cachedRelay) {
-    response = await cachedRelay.fetch(
-      'https://internal/internal/events/remove',
-      { method: 'POST', headers, body }
-    );
-  } else {
-    const base =
-      cachedHttpUrl?.replace(/\/internal\/.*$/, '') ??
-      process.env.RELAY_INTERNAL_URL?.replace(/\/internal\/.*$/, '') ??
-      'https://relay.pana.social';
-    response = await fetch(`${base}/internal/events/remove`, {
-      method: 'POST',
-      headers,
-      body,
-    });
-  }
+  const response = await relayFetch(
+    'event removal',
+    'https://internal/internal/events/remove',
+    `${relayBase()}/internal/events/remove`,
+    { method: 'POST', headers, body }
+  );
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
