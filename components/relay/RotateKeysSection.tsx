@@ -121,6 +121,19 @@ export function RotateKeysSection({
   }
 
   // ----- enrolled: intro + launcher + dialog -----------------------------
+  // Two lengths of the same explanation. The confirm dialog repeats the full
+  // moves/stays breakdown before anything happens, so Advanced Settings only
+  // needs enough to decide whether to open it — the long version there put the
+  // same text on screen twice. /r keeps the long version: it is the page that
+  // teaches the concept, and a member may never open the dialog at all.
+  const introBrief = (
+    <p className="text-muted-foreground text-sm">
+      Generates a brand-new key and moves your @pana.social handle, your Pana
+      profile, and your group access to it. What stays behind with your old key
+      is listed before you confirm.
+    </p>
+  );
+
   // The emphasis carries the two labels, not the items under them. Bolding the
   // items instead scattered the emphasis across both lists and made it hard to
   // tell which side of the split you were reading.
@@ -167,7 +180,7 @@ export function RotateKeysSection({
   if (context === 'inline') {
     return (
       <div className="space-y-4 pt-2">
-        {intro}
+        {introBrief}
         {launcher}
       </div>
     );
