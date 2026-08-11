@@ -127,8 +127,7 @@ const TOTAL = DATA.reduce(
  * Direct label for bars that cross the break.
  *
  * Only these carry a number: below the break the axis is at full resolution and
- * reads on its own, so labelling every bar would just be noise. April also gets
- * a rocket to mark it as the outlier the break exists for.
+ * reads on its own, so labelling every bar would just be noise.
  */
 function overBreakLabel() {
   // Recharts types x/y/width as `string | number`, so coerce rather than
@@ -152,25 +151,17 @@ function overBreakLabel() {
     const y = Number(props.y ?? 0);
     const width = Number(props.width ?? 0);
     const cx = x + width / 2;
-    const isPeak = real === MAX;
     return (
-      <g>
-        {isPeak && (
-          <text x={cx} y={y - 22} textAnchor="middle" fontSize={17}>
-            {'\u{1F680}'}
-          </text>
-        )}
-        <text
-          x={cx}
-          y={y - 7}
-          textAnchor="middle"
-          fill={INK.label}
-          fontSize={11}
-          fontWeight={600}
-        >
-          {real.toLocaleString('en-US')}
-        </text>
-      </g>
+      <text
+        x={cx}
+        y={y - 7}
+        textAnchor="middle"
+        fill={INK.label}
+        fontSize={11}
+        fontWeight={600}
+      >
+        {real.toLocaleString('en-US')}
+      </text>
     );
   };
 }
@@ -278,22 +269,22 @@ export default function EventsAttendanceChart() {
           </BarChart>
         </ResponsiveContainer>
 
-        {/* Break marks on the axis, at the band drawn by ReferenceArea above.
-            Geometry is fixed because the chart height and margins are fixed:
-            plot area runs from 36px to 420-8-32(legend)-24(x labels). */}
+        {/* Break marks on the axis. Geometry is fixed because the chart height
+            and margins are: the plot runs from 36px to
+            420 - 8 - 32 (legend) - 24 (x labels). */}
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute left-[30px] w-[40px]"
+          className="pointer-events-none absolute left-[34px] w-[26px]"
           style={{
             top: `${36 + (1 - (BREAK + GAP / 2) / DOMAIN_MAX) * 316}px`,
           }}
-          height="30"
-          viewBox="0 0 40 30"
+          height="20"
+          viewBox="0 0 26 20"
         >
           <path
-            d="M3 24 L21 5 M17 24 L35 5"
-            stroke={INK.axis}
-            strokeWidth="3"
+            d="M2 16 L13 4 M11 16 L22 4"
+            stroke={INK.label}
+            strokeWidth="2"
             strokeLinecap="round"
             fill="none"
           />
