@@ -58,6 +58,31 @@ function SearchInput() {
 }
 ```
 
+### `use-reveal-on-view.ts`
+
+Gate a mount-triggered animation on the element first scrolling into view.
+Written for the Impact Report charts: Recharts animates on mount, so a chart
+below the fold would otherwise play its whole entrance off-screen.
+
+```tsx
+import { useRevealOnView } from '@/hooks/use-reveal-on-view';
+
+function Chart() {
+  const { ref, revealed, reducedMotion } = useRevealOnView<HTMLDivElement>();
+
+  // Reserve the height so the reveal does not shift the page.
+  return (
+    <div ref={ref} style={{ minHeight: 420 }}>
+      {revealed && <Bar isAnimationActive={!reducedMotion} />}
+    </div>
+  );
+}
+```
+
+`reducedMotion` is separate from `revealed` because a visitor who asked for
+reduced motion still needs the content immediately — just without the
+animation. It reveals at once and skips the observer entirely.
+
 ### `useButtonEvasion.ts`
 
 Flower Power effect - makes buttons evade cursor (fun/brand feature):

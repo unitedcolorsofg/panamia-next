@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useRevealOnView } from '@/hooks/use-reveal-on-view';
 
 /**
  * 2025 event attendance, by month and county.
@@ -213,82 +214,101 @@ function ChartTooltip({
   );
 }
 
+/** Entrance timing. Series are staggered so the counties arrive in order. */
+const BAR_ANIMATION_MS = 750;
+const BAR_STAGGER_MS = 130;
+
 export default function EventsAttendanceChart() {
+  const { ref, revealed, reducedMotion } = useRevealOnView<HTMLDivElement>();
+
   return (
     <figure className="my-8">
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={420}>
-          <BarChart
-            data={CHART_DATA}
-            margin={{ top: 36, right: 8, bottom: 8, left: 8 }}
-            barGap={2}
-          >
-            <CartesianGrid vertical={false} stroke={INK.grid} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: INK.axis, fontSize: 12 }}
-            />
-            <YAxis
-              type="number"
-              domain={[0, DOMAIN_MAX]}
-              ticks={TICK_POSITIONS}
-              tickFormatter={tickLabel}
-              tickLine={false}
-              axisLine={false}
-              width={48}
-              tick={{ fill: INK.axis, fontSize: 12 }}
-            />
-            {/* No band is drawn across the plot: the bars run continuously and
+      {/* The height is reserved whether or not the chart has mounted, so the
+          reveal cannot shift the page under someone mid-scroll. */}
+      <div ref={ref} className="relative" style={{ minHeight: 420 }}>
+        {revealed && (
+          <ResponsiveContainer width="100%" height={420}>
+            <BarChart
+              data={CHART_DATA}
+              margin={{ top: 36, right: 8, bottom: 8, left: 8 }}
+              barGap={2}
+            >
+              <CartesianGrid vertical={false} stroke={INK.grid} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: INK.axis, fontSize: 12 }}
+              />
+              <YAxis
+                type="number"
+                domain={[0, DOMAIN_MAX]}
+                ticks={TICK_POSITIONS}
+                tickFormatter={tickLabel}
+                tickLine={false}
+                axisLine={false}
+                width={48}
+                tick={{ fill: INK.axis, fontSize: 12 }}
+              />
+              {/* No band is drawn across the plot: the bars run continuously and
                 the break is carried by the axis marks and the caption alone. */}
-            <Tooltip
-              content={<ChartTooltip />}
-              cursor={{ fill: INK.cursor, fillOpacity: 0.4 }}
-            />
-            <Legend
-              verticalAlign="top"
-              height={32}
-              iconType="circle"
-              formatter={(value) => (
-                <span style={{ color: INK.axis, fontSize: 14 }}>{value}</span>
-              )}
-            />
-            {COUNTIES.map(({ key, label, color }) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                name={label}
-                fill={color}
-                maxBarSize={24}
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList dataKey={`${key}Real`} content={overBreakLabel()} />
-              </Bar>
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <Tooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: INK.cursor, fillOpacity: 0.4 }}
+              />
+              <Legend
+                verticalAlign="top"
+                height={32}
+                iconType="circle"
+                formatter={(value) => (
+                  <span style={{ color: INK.axis, fontSize: 14 }}>{value}</span>
+                )}
+              />
+              {COUNTIES.map(({ key, label, color }, seriesIndex) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  name={label}
+                  fill={color}
+                  maxBarSize={24}
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={!reducedMotion}
+                  animationBegin={seriesIndex * BAR_STAGGER_MS}
+                  animationDuration={BAR_ANIMATION_MS}
+                  animationEasing="ease-out"
+                >
+                  <LabelList
+                    dataKey={`${key}Real`}
+                    content={overBreakLabel()}
+                  />
+                </Bar>
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
 
         {/* Break marks on the axis. Geometry is fixed because the chart height
             and margins are: the plot runs from 36px to
             420 - 8 - 32 (legend) - 24 (x labels). */}
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute left-[34px] w-[26px]"
-          style={{
-            top: `${36 + (1 - (BREAK + GAP / 2) / DOMAIN_MAX) * 316}px`,
-          }}
-          height="20"
-          viewBox="0 0 26 20"
-        >
-          <path
-            d="M2 16 L13 4 M11 16 L22 4"
-            stroke={INK.label}
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </svg>
+        {revealed && (
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[34px] w-[26px]"
+            style={{
+              top: `${36 + (1 - (BREAK + GAP / 2) / DOMAIN_MAX) * 316}px`,
+            }}
+            height="20"
+            viewBox="0 0 26 20"
+          >
+            <path
+              d="M2 16 L13 4 M11 16 L22 4"
+              stroke={INK.label}
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
+        )}
       </div>
 
       <figcaption className="text-muted-foreground mt-3 text-sm">

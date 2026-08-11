@@ -1,6 +1,7 @@
 'use client';
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { useRevealOnView } from '@/hooks/use-reveal-on-view';
 
 /**
  * Share of 2025 events by county, transcribed from the GHL "Impact Report"
@@ -49,35 +50,49 @@ function ChartTooltip({
   );
 }
 
+/** How long the wedge takes to sweep the full circle. */
+const SWEEP_MS = 1100;
+
 export default function EventsPerCountyChart() {
+  const { ref, revealed, reducedMotion } = useRevealOnView<HTMLDivElement>();
+
   return (
     <figure className="my-8">
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-        <ResponsiveContainer
-          width="100%"
-          height={280}
-          className="max-w-[320px]"
-        >
-          <PieChart>
-            <Pie
-              data={COUNTIES as unknown as Array<Record<string, unknown>>}
-              dataKey="share"
-              nameKey="label"
-              cx="50%"
-              cy="50%"
-              outerRadius={110}
-              startAngle={90}
-              endAngle={-270}
-              stroke="hsl(var(--background))"
-              strokeWidth={2}
-            >
-              {COUNTIES.map((county) => (
-                <Cell key={county.label} fill={county.color} />
-              ))}
-            </Pie>
-            <Tooltip content={<ChartTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+      <div
+        ref={ref}
+        className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center"
+      >
+        {/* Height reserved so the reveal does not shift the page. */}
+        <div className="w-full max-w-[320px]" style={{ minHeight: 280 }}>
+          {revealed && (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={COUNTIES as unknown as Array<Record<string, unknown>>}
+                  dataKey="share"
+                  nameKey="label"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={110}
+                  // Clockwise from twelve o'clock, so the sweep starts from a
+                  // sliver at the top and opens out into the full circle.
+                  startAngle={90}
+                  endAngle={-270}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={SWEEP_MS}
+                  animationEasing="ease-out"
+                >
+                  {COUNTIES.map((county) => (
+                    <Cell key={county.label} fill={county.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<ChartTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
 
         {/* Legend doubles as the direct-label channel, so identity never rests
             on colour alone. */}
