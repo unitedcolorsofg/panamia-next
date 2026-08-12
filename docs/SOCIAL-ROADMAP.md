@@ -478,7 +478,7 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - `lib/federation/wrappers/timeline.ts` — `notExpiredFilter` on all timeline queries
 - `app/updates/page.tsx` — Relocated from `/account/notifications/`
 
-**TODO**: Hard delete of expired DMs and their R2 attachments — tracked in Phase 11 (moved there when the project migrated off Vercel onto Cloudflare Workers).
+**TODO**: Hard delete of expired DMs and their R2 attachments — tracked in Phase 11.
 
 ### Phase 5: Article Announcements
 
@@ -631,7 +631,7 @@ Today `ensureRemoteActor()` in `lib/federation/wrappers/remote-actor.ts` refresh
 
 - [ ] Hard delete for `expiresAt`-past statuses and their R2 attachments
 
-Phase 4C originally planned a Vercel Pro cron for this, but the project is now on Cloudflare Workers. Options: a Cloudflare Cron Trigger on a dedicated worker, or an alarm on a housekeeping DO that sweeps expired rows and deletes the R2 objects. Query-side filtering already hides expired DMs (`notExpired()` in `timeline.ts`), so this is purely storage hygiene.
+Options: a Cloudflare Cron Trigger on a dedicated worker, or an alarm on a housekeeping DO that sweeps expired rows and deletes the R2 objects. Query-side filtering already hides expired DMs (`notExpired()` in `timeline.ts`), so this is purely storage hygiene.
 
 ## Directory Structure
 

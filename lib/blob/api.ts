@@ -1,8 +1,6 @@
 /**
  * R2 Object Storage API
  *
- * Replaces Vercel Blob with Cloudflare R2.
- *
  * In CF Workers (prod + vinext/wrangler dev): uses the native R2Bucket binding
  * primed by worker/index.ts — no credentials needed at runtime.
  *
@@ -98,7 +96,7 @@ export const uploadFile = async (
  */
 export const deleteFile = async (url: string): Promise<boolean> => {
   try {
-    // Skip files not owned by our R2 bucket (old BunnyCDN / Vercel Blob URLs)
+    // Skip files not owned by our R2 bucket
     if (!R2_PUBLIC_URL || !url.startsWith(R2_PUBLIC_URL)) {
       console.log(`R2:DELETE:SKIP - Not an R2 URL: ${url}`);
       return true;

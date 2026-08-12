@@ -719,7 +719,6 @@ pana.social                         social.pana.social
 - activities.next handles all ActivityPub complexity
 - Pana MIA remains focused on core features
 - Shared authentication via SSO
-- Proven Vercel deployment
 
 **Option B: Native ActivityPub**
 

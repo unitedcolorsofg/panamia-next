@@ -190,7 +190,7 @@ if [ -n "$STAGED_DIRS" ]; then
   for dir in $STAGED_DIRS; do
     # Skip root, node_modules, .git, etc.
     case "$dir" in
-      .|node_modules*|.git*|.next*|.vercel*|public/*)
+      .|node_modules*|.git*|.next*|public/*)
         continue
         ;;
       # Exceptions: these folders intentionally have no README.
