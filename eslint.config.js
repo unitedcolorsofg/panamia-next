@@ -9,6 +9,7 @@ export default [
     ignores: [
       'external/**',
       '.yarn/**',
+      '.next/**',
       'dist/**',
       'node_modules/**',
       'scripts/relay-*.ts',
