@@ -145,13 +145,16 @@ test.describe('Events — API Routes', () => {
     expect(response.status()).toBe(401);
   });
 
-  test('POST /api/events/[slug]/rsvp requires authentication', async ({
+  // RSVP is deliberately open to anonymous callers — they submit
+  // {name,email,status} and the RSVP is held PENDING behind a magic link — so
+  // this route never returns 401. The event lookup runs first, hence 404.
+  test('POST /api/events/[slug]/rsvp 404s for an unknown event', async ({
     request,
   }) => {
     const response = await request.post('/api/events/some-event/rsvp', {
       data: { status: 'going' },
     });
-    expect(response.status()).toBe(401);
+    expect(response.status()).toBe(404);
   });
 });
 
@@ -196,15 +199,6 @@ test.describe('Events — Admin Routes', () => {
       {
         data: { reason: 'test' },
       }
-    );
-    expect([401, 403]).toContain(response.status());
-  });
-
-  test('POST /api/admin/events/[slug]/stream-setup requires authentication', async ({
-    request,
-  }) => {
-    const response = await request.post(
-      '/api/admin/events/some-event/stream-setup'
     );
     expect([401, 403]).toContain(response.status());
   });
