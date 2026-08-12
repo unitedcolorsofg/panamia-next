@@ -34,7 +34,10 @@ interface Env {
     ): Promise<unknown>;
     delete(keys: string | string[]): Promise<void>;
   };
-  IMAGES: {
+  // Optional: the "images" binding in wrangler.jsonc is currently commented
+  // out, so this is undefined at runtime. Typed optional so the call site is
+  // forced to guard rather than throwing on every image request.
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: {
@@ -83,17 +86,24 @@ export default {
     // /_vinext/image alias — matching only one path 404s the other.
     if (isImageOptimizationPath(url.pathname)) {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+      const images = env.IMAGES;
       return handleImageOptimization(
         request,
         {
           fetchAsset: (path) =>
             env.ASSETS.fetch(new Request(new URL(path, request.url))),
-          transformImage: async (body, { width, format, quality }) => {
-            const result = await env.IMAGES.input(body)
-              .transform(width > 0 ? { width } : {})
-              .output({ format, quality });
-            return result.response();
-          },
+          // Omitted when the binding is absent: handleImageOptimization then
+          // serves the source image through its passthrough path directly,
+          // instead of throwing once per request and logging the failure.
+          transformImage: images
+            ? async (body, { width, format, quality }) => {
+                const result = await images
+                  .input(body)
+                  .transform(width > 0 ? { width } : {})
+                  .output({ format, quality });
+                return result.response();
+              }
+            : undefined,
         },
         allowedWidths
       );
