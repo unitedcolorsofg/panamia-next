@@ -3966,6 +3966,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vinext/types@npm:^1.0.0-beta.2":
+  version: 1.0.0-beta.2
+  resolution: "@vinext/types@npm:1.0.0-beta.2"
+  checksum: 10c0/ed4070e86b875cb261609ee4dc8a82af9d8b50ae2c56daf8f25562030ac426187f2bf171a7fdfffa679f5cf89a1aed3488f24143daabb7456a37d6b5c1ea1e6e
+  languageName: node
+  linkType: hard
+
 "@vitejs/plugin-react@npm:^6.0.5":
   version: 6.0.5
   resolution: "@vitejs/plugin-react@npm:6.0.5"
@@ -7717,7 +7724,7 @@ __metadata:
     tailwind-merge: "npm:^3.6.0"
     tailwindcss: "npm:4.3.3"
     typescript: "npm:^6.0.3"
-    vinext: "npm:0.2.1"
+    vinext: "npm:1.0.0-beta.5"
     vite: "npm:8.2.1"
     wrangler: "npm:4.122.0"
     ws: "npm:8.21.3"
@@ -9389,12 +9396,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vinext@npm:0.2.1":
-  version: 0.2.1
-  resolution: "vinext@npm:0.2.1"
+"vinext@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "vinext@npm:1.0.0-beta.5"
   dependencies:
     "@unpic/react": "npm:^1.0.2"
     "@vercel/og": "npm:^0.8.6"
+    "@vinext/types": "npm:^1.0.0-beta.2"
     image-size: "npm:2.0.2"
     ipaddr.js: "npm:^2.1.0"
     magic-string: "npm:^0.30.21"
@@ -9407,8 +9415,7 @@ __metadata:
     react: ^19.2.6
     react-dom: ^19.2.6
     react-server-dom-webpack: ^19.2.6
-    vite: ^7.0.0 || ^8.0.0
-    vite-tsconfig-paths: ^6.1.1
+    vite: ^8.0.0
   peerDependenciesMeta:
     "@mdx-js/rollup":
       optional: true
@@ -9416,11 +9423,9 @@ __metadata:
       optional: true
     react-server-dom-webpack:
       optional: true
-    vite-tsconfig-paths:
-      optional: true
   bin:
     vinext: dist/cli.js
-  checksum: 10c0/3e9fc53625129fd830067fd949e62b6ca2bfd2cd8e5995d37253826f295571b6ad960960b18034d5249df7744551f6daed1d3b5d1a281882ed755304f710cc0b
+  checksum: 10c0/f0a1ed5f4f1a346750ece77f26578617e4ad85a2ed916ad48624cb77c919f5d4f7ffc635d5d10f2accb7a0b1fad9770cd91db4b17886b01c89b3605bff7d4f16
   languageName: node
   linkType: hard
 

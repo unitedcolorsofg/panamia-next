@@ -1,4 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
+import fs from 'fs';
 import path from 'path';
 import vinext from 'vinext';
 import { defineConfig, type Plugin } from 'vite';
@@ -26,6 +27,32 @@ const fixAtAliasPlugin: Plugin = {
     if (typeof id === 'string' && id.startsWith('//')) {
       return this.resolve(path.resolve(_projectRoot, id.slice(2)));
     }
+  },
+};
+
+// Workaround for vinext 1.0.0-beta.5: vinext turns the tsconfig "next" path mapping
+// (-> lib/shims/next-root) into a Vite alias, and Vite string aliases match by PREFIX.
+// So "next/headers.js" — which better-auth imports with an explicit .js extension —
+// resolves to lib/shims/next-root/headers.js, which does not exist, and the build
+// fails with UNLOADABLE_DEPENDENCY. The resolve.alias entries below used to win this
+// race under vinext 0.2.x but no longer do, so intercept in a pre-plugin instead.
+// Only redirects when a matching vinext shim actually exists, so unrelated "next/*.js"
+// specifiers fall through to normal resolution untouched.
+const fixNextExtensionImportsPlugin: Plugin = {
+  name: 'fix-next-extension-imports',
+  enforce: 'pre',
+  resolveId(id) {
+    if (typeof id !== 'string') return;
+    // Match both the raw specifier and the form vite:alias has already rewritten
+    // (next-root is a file, not a directory, so these paths never exist on disk).
+    const match =
+      /^next\/(.+)\.js$/.exec(id) ??
+      /[\\/]lib[\\/]shims[\\/]next-root[\\/](.+)\.js$/.exec(id);
+    if (!match) return;
+    const shim = path.resolve(
+      `./node_modules/vinext/dist/shims/${match[1]}.js`
+    );
+    if (fs.existsSync(shim)) return this.resolve(shim);
   },
 };
 
@@ -78,6 +105,14 @@ export default defineConfig({
   build: {
     rollupOptions: {},
   },
+  optimizeDeps: {
+    // better-auth/next-js imports "next/headers.js" (explicit .js extension).
+    // Vite's dependency pre-bundler runs its own resolution and never calls user
+    // resolveId hooks, so fixNextExtensionImportsPlugin cannot rescue it there and
+    // `vinext dev` dies during dep optimization. Excluding it from pre-bundling
+    // routes the import through the normal plugin pipeline, where the fix applies.
+    exclude: ['better-auth/next-js'],
+  },
   resolve: {
     alias: {
       // @opentelemetry/api is an optional instrumentation dep (e.g. in better-auth)
@@ -102,6 +137,7 @@ export default defineConfig({
   },
   plugins: [
     fixAtAliasPlugin,
+    fixNextExtensionImportsPlugin,
     fixNoonDateLibPlugin,
     vinext(),
     cloudflare({

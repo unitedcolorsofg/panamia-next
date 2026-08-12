@@ -15,6 +15,16 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
+  /*
+   * The suite runs against `vinext dev` (see webServer below), not a production
+   * build, so the first request to each route pays an on-demand compile. Under
+   * vinext 1.0.0-beta.5 that cold-start cost exceeds Playwright's defaults —
+   * routes resolve correctly, just not within 30s/5s. Raised rather than papered
+   * over with retries so a genuine hang still fails instead of being retried away.
+   */
+  timeout: 90 * 1000,
+  expect: { timeout: 30 * 1000 },
+
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
 

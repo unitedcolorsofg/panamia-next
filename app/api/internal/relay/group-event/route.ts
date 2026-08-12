@@ -95,7 +95,7 @@ export async function POST(
 ): Promise<NextResponse<AdvisoryResponse>> {
   // Refuse anything arriving from the public edge — see
   // lib/server/internal-auth.ts. The relay's Service Binding is unaffected.
-  const denied = denyPublicRequest(request);
+  const denied = denyPublicRequest<AdvisoryResponse>(request);
   if (denied) return denied;
 
   let body: Partial<AdvisoryRequest>;

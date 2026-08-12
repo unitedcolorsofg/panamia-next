@@ -64,7 +64,14 @@ function tokenMatches(presented: string, expected: string): boolean {
 // 404 rather than 401/403 on purpose: an unauthenticated caller learns nothing
 // about whether the path exists, and there is no credential for them to go and
 // fetch. The relay never sees this — it does not arrive through the edge.
-export function denyPublicRequest(request: NextRequest): NextResponse | null {
+// Generic in the body type so callers that declare a narrow
+// `Promise<NextResponse<Foo>>` return type can return the denial directly.
+// vinext's NextResponse carries a phantom `_Body` parameter that is compared
+// invariantly (the class has a private member), so a bare `NextResponse` here
+// would be `NextResponse<unknown>` and fail to assign at those call sites.
+export function denyPublicRequest<Body = unknown>(
+  request: NextRequest
+): NextResponse<Body> | null {
   const edgeHeader = PUBLIC_EDGE_HEADERS.find((h) => request.headers.has(h));
 
   if (!edgeHeader) return null;
@@ -80,5 +87,12 @@ export function denyPublicRequest(request: NextRequest): NextResponse | null {
     presentedToken: token ? 'invalid' : 'none',
   });
 
-  return NextResponse.json({ error: 'not found' }, { status: 404 });
+  // The 404 body is deliberately not the caller's success shape; the cast only
+  // satisfies the phantom `_Body` parameter described above.
+  return NextResponse.json(
+    { error: 'not found' },
+    {
+      status: 404,
+    }
+  ) as NextResponse<Body>;
 }
