@@ -110,13 +110,24 @@ export default function ImpactContent() {
           <p className="leading-relaxed">{t('filmfest.body2')}</p>
           <p className="leading-relaxed">{t('filmfest.body3')}</p>
 
-          <Image
-            src="/img/impact/filmfest-collab.webp"
-            alt={t('alt.filmfestCollab')}
-            width={1200}
-            height={513}
-            className="h-auto w-full rounded-xl"
-          />
+          {/* Split from one composite so the second photo can drop away on
+              phones, where two side-by-side shots are too small to read. */}
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-center">
+            <Image
+              src="/img/impact/filmfest-collab-left.webp"
+              alt={t('alt.filmfestCollabLeft')}
+              width={551}
+              height={501}
+              className="h-auto w-full"
+            />
+            <Image
+              src="/img/impact/filmfest-collab-right.webp"
+              alt={t('alt.filmfestCollabRight')}
+              width={585}
+              height={510}
+              className="hidden h-auto w-full sm:block"
+            />
+          </div>
 
           <p className="leading-relaxed">{t('filmfest.body4')}</p>
           <p className="text-muted-foreground leading-relaxed font-medium">
@@ -143,13 +154,23 @@ export default function ImpactContent() {
         <h2 className="text-3xl font-bold">{t('culture.title')}</h2>
         <h3 className="text-xl font-semibold">{t('culture.subtitle')}</h3>
         <p className="leading-relaxed">{t('culture.body')}</p>
-        <Image
-          src="/img/impact/culture-zines.webp"
-          alt={t('alt.cultureZines')}
-          width={1200}
-          height={535}
-          className="h-auto w-full rounded-xl"
-        />
+        {/* See the filmfest pair above — same mobile treatment. */}
+        <div className="grid gap-4 sm:grid-cols-2 sm:items-center">
+          <Image
+            src="/img/impact/culture-zines-left.webp"
+            alt={t('alt.cultureZinesLeft')}
+            width={471}
+            height={506}
+            className="h-auto w-full"
+          />
+          <Image
+            src="/img/impact/culture-zines-right.webp"
+            alt={t('alt.cultureZinesRight')}
+            width={669}
+            height={467}
+            className="hidden h-auto w-full sm:block"
+          />
+        </div>
       </section>
 
       {/* Heatwave Visions */}
