@@ -36,7 +36,7 @@
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
-    "@hookform/resolvers": "^5.7.1",
+    "@hookform/resolvers": "^5.8.0",
     "@noble/curves": "^2.3.0",
     "@noble/hashes": "^2.3.0",
     "@paralleldrive/cuid2": "^3.3.0",
@@ -61,7 +61,7 @@
     "@typescript-eslint/parser": "8.67.0",
     "aws4fetch": "^1.0.20",
     "axios": "^1.19.0",
-    "better-auth": "^1.6.27",
+    "better-auth": "^1.6.28",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -94,10 +94,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.1109.0",
-    "@cloudflare/vite-plugin": "1.52.0",
-    "@commitlint/cli": "21.2.1",
-    "@commitlint/config-conventional": "^21.2.0",
+    "@aws-sdk/client-s3": "3.1110.0",
+    "@cloudflare/vite-plugin": "1.52.1",
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@playwright/test": "^1.62.1",
     "@types/node": "26.2.0",
     "@types/react": "^19.2.18",
@@ -116,7 +116,7 @@
     "typescript": "^6.0.3",
     "vinext": "1.0.0-beta.5",
     "vite": "8.2.1",
-    "wrangler": "4.122.0",
+    "wrangler": "4.123.0",
     "ws": "8.21.3"
   },
   "resolutions": {
