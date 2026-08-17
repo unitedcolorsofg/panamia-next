@@ -45,9 +45,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:3.1109.0":
-  version: 3.1109.0
-  resolution: "@aws-sdk/client-s3@npm:3.1109.0"
+"@aws-sdk/client-s3@npm:3.1110.0":
+  version: 3.1110.0
+  resolution: "@aws-sdk/client-s3@npm:3.1110.0"
   dependencies:
     "@aws-sdk/checksums": "npm:^3.1000.27"
     "@aws-sdk/core": "npm:^3.977.7"
@@ -60,7 +60,7 @@ __metadata:
     "@smithy/node-http-handler": "npm:^4.9.13"
     "@smithy/types": "npm:^4.16.1"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/efdbf09b7d04a2f42329cf57b39e135c90ee1d3de17625969c4ffe0420ce3c7d6960f2c795f7372c9d6783186a110974860014e9b502db28e1bd93712dd5c239
+  checksum: 10c0/f0d55f8046b480373986de8ea724afe706e5c95ed25629ee22b5eb5b0ee7254ef9c0631166d864497c6bf9474842cc3b210552ddb8f72990123775d7e100af7c
   languageName: node
   linkType: hard
 
@@ -312,9 +312,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@better-auth/core@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/core@npm:1.6.27"
+"@better-auth/core@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/core@npm:1.6.28"
   dependencies:
     "@opentelemetry/semantic-conventions": "npm:^1.39.0"
     "@standard-schema/spec": "npm:^1.1.0"
@@ -333,67 +333,67 @@ __metadata:
       optional: true
     "@opentelemetry/api":
       optional: true
-  checksum: 10c0/c6a04b391185105646f5f3ab503c4b4c829312b4b406e5ffa8deae09136c56942d55b2a79e46e7ed61412afdd71f851003d58ba1de9982280fd7d0612368ee57
+  checksum: 10c0/d8c2801ff220c9e95e889561a5fc68c61a91014e4618f7c21622896f7b92bd17869bcafb83d1f862929c18c2999678be0c0da37020378ca48f016f1f6cfd2301
   languageName: node
   linkType: hard
 
-"@better-auth/drizzle-adapter@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/drizzle-adapter@npm:1.6.27"
+"@better-auth/drizzle-adapter@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/drizzle-adapter@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
     drizzle-orm: ^0.45.2
   peerDependenciesMeta:
     drizzle-orm:
       optional: true
-  checksum: 10c0/e5c4c4a1376056d53bf3cffb4005ead060a2bc1516372366c945c8cc605934f4e83b8a6b51543eb706e65e16dae8b9deab2a355ca8f639a6c199efe3405dc587
+  checksum: 10c0/342826b4b6a87e61d11b9a761b2bcd62be5cc38e0f213493d640e492573eaea9bc22286bd7c9002a69c47a0d07aa16febf94bcd76f4211bea9b4e1359664a143
   languageName: node
   linkType: hard
 
-"@better-auth/kysely-adapter@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/kysely-adapter@npm:1.6.27"
+"@better-auth/kysely-adapter@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/kysely-adapter@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
     kysely: ^0.28.17 || ^0.29.0
   peerDependenciesMeta:
     kysely:
       optional: true
-  checksum: 10c0/578c525cc6c6fd4e7f75e2b691183697ad45f4ffaf89c86cbc90502d500640459f9d9a5833feb908f582e366cfec87dfd9d3643a034df594f8d49606e221623b
+  checksum: 10c0/49e85fc689cabd407e31b512a8c181294b89529d3f89752a92b0e9283dd8fcc58971bc6ffdd2555924a9579403073f4b865c6ca48822dc9250a7501b8040fe2e
   languageName: node
   linkType: hard
 
-"@better-auth/memory-adapter@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/memory-adapter@npm:1.6.27"
+"@better-auth/memory-adapter@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/memory-adapter@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
-  checksum: 10c0/36f452d265e3eeb16aef976bc5cae731c3b7c35ae3e4d60df13e088558f5aceeb65c2a48814757c05befd03e49d65bf6154ce6c84e752a931ed48366b4b27bb1
+  checksum: 10c0/867624eeb6f02ebef44d96178e31197b481f45feb9b448690308c97e6de97acd16a0f22b3f52277d73f3748d3402355e4f6ac63a9092700300a5862a626eb876
   languageName: node
   linkType: hard
 
-"@better-auth/mongo-adapter@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/mongo-adapter@npm:1.6.27"
+"@better-auth/mongo-adapter@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/mongo-adapter@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
     mongodb: ^6.0.0 || ^7.0.0
   peerDependenciesMeta:
     mongodb:
       optional: true
-  checksum: 10c0/0ff509a8379a7c66a33880654291116293e338fd57ddf230d62886af73223a884ff66c60a221fa7db510f97ee029aab52e96fab94545b75542897cb02e1b08e6
+  checksum: 10c0/792b857fca575319f9259cee5168ec59cbd9c96c06eb4b933bf150384331c0d8e5c52ffbfb1daaa3a8a5c36f0815741cdca6150a4c2bad8e548e6227302dfa7b
   languageName: node
   linkType: hard
 
-"@better-auth/prisma-adapter@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/prisma-adapter@npm:1.6.27"
+"@better-auth/prisma-adapter@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/prisma-adapter@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
     "@prisma/client": ^5.0.0 || ^6.0.0 || ^7.0.0
     prisma: ^5.0.0 || ^6.0.0 || ^7.0.0
@@ -402,18 +402,18 @@ __metadata:
       optional: true
     prisma:
       optional: true
-  checksum: 10c0/b1a6f6c851b91f4c9043213fef311d2ee48e9a3b54e7dd9f3aa0b1d1627022b8b334c979c91c54dc65719d5aa2610635276e313884fb5294b071abd2b1165032
+  checksum: 10c0/81706e1812cdf71a23d28a9628530c37f03df1ca2dd6fdedf8479a89c9cf9b569f22ea7b2ded7a6bb48cc7a9db0d6ddfd015ae752df40092548a31171c871398
   languageName: node
   linkType: hard
 
-"@better-auth/telemetry@npm:1.6.27":
-  version: 1.6.27
-  resolution: "@better-auth/telemetry@npm:1.6.27"
+"@better-auth/telemetry@npm:1.6.28":
+  version: 1.6.28
+  resolution: "@better-auth/telemetry@npm:1.6.28"
   peerDependencies:
-    "@better-auth/core": ^1.6.27
+    "@better-auth/core": ^1.6.28
     "@better-auth/utils": 0.4.2
     "@better-fetch/fetch": 1.3.1
-  checksum: 10c0/cdfdb03c567953e18d2e0d2f2dfa273a89bdc236d154f80e522d22cbc030662ce0e96d8817d6b33a3563c9853fd2ac22d3d6e203de6dc60c79e8bb8f4b6ad932
+  checksum: 10c0/18bb09ed7d43275e2085999c3d72fc3a12541c0021b308b0989644c4142b11e3e56efd1d589b827df6cbd0e65afdc372957d2f63e21482629b798ce5d37f222b
   languageName: node
   linkType: hard
 
@@ -462,22 +462,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cloudflare/vite-plugin@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@cloudflare/vite-plugin@npm:1.52.0"
+"@cloudflare/vite-plugin@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@cloudflare/vite-plugin@npm:1.52.1"
   dependencies:
     "@cloudflare/unenv-preset": "npm:2.16.1"
-    miniflare: "npm:5.20260811.0-alpha"
+    miniflare: "npm:5.20260811.1-alpha"
     unenv: "npm:2.0.0-rc.24"
     workerd: "npm:1.20260811.1"
-    wrangler: "npm:4.122.0"
+    wrangler: "npm:4.123.0"
     ws: "npm:8.21.0"
   peerDependencies:
     vite: ^6.1.0 || ^7.0.0 || ^8.0.0
-    wrangler: ^4.122.0
+    wrangler: ^4.123.0
   bin:
     cf-vite: bin/cf-vite
-  checksum: 10c0/b6df9ec5b2f952fbef68111d8b84b8d43dbf6e6089db94692ed141dbb5a96416334ae30cbde3cf3a2a382a655ffae22fb88d313dcbe35d94723255417311e09a
+  checksum: 10c0/0ebf64226a70d7d53eb1427bdcd18106f17864f2c86f4e6bca478215ef65d6cdeb9d6b5e77268cf46bf719dcc3bb39b2f9431ca718f75606fbd8ccfa60bbffef
   languageName: node
   linkType: hard
 
@@ -516,31 +516,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/cli@npm:21.2.1":
-  version: 21.2.1
-  resolution: "@commitlint/cli@npm:21.2.1"
+"@commitlint/cli@npm:21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/cli@npm:21.2.2"
   dependencies:
-    "@commitlint/config-conventional": "npm:^21.2.0"
-    "@commitlint/format": "npm:^21.2.0"
-    "@commitlint/lint": "npm:^21.2.0"
-    "@commitlint/load": "npm:^21.2.0"
+    "@commitlint/config-conventional": "npm:^21.2.2"
+    "@commitlint/format": "npm:^21.2.2"
+    "@commitlint/lint": "npm:^21.2.2"
+    "@commitlint/load": "npm:^21.2.2"
     "@commitlint/read": "npm:^21.2.1"
     "@commitlint/types": "npm:^21.2.0"
     tinyexec: "npm:^1.0.0"
     yargs: "npm:^18.0.0"
   bin:
     commitlint: cli.js
-  checksum: 10c0/fdf47a00c6cb134caba32ced096547d7148b9dec3be93414266b7e4693b0a9c48434a84e857a416c89339d9c8a93a850dfc9e3b8b5b1b322456f6fa734eb5343
+  checksum: 10c0/fb57c853f5c4dcd4d5f70fb681e41661b39efc30f938256984974617665ad745879ac41227e8f0aca4fc4f951fdf79d8e2650cd76966b6e18e5299a7e8d2d6a3
   languageName: node
   linkType: hard
 
-"@commitlint/config-conventional@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/config-conventional@npm:21.2.0"
+"@commitlint/config-conventional@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/config-conventional@npm:21.2.2"
   dependencies:
     "@commitlint/types": "npm:^21.2.0"
     conventional-changelog-conventionalcommits: "npm:^10.0.0"
-  checksum: 10c0/4d091563201c6f5f1033bb9ed8a7c22ac3453ae585cc2f3331e85ffc71ac485392a1e230322365697e5ebf0047153b8826cb732aec5eda167ede15f32c3a0260
+  checksum: 10c0/f99a51875953b7779a7e585be10c7fe3653c962833bbf29eff1f7696b3013bd7aca484613e79659bd9f7c8e03bdf6a410c22b41df1189e5bd24a10086071bff0
   languageName: node
   linkType: hard
 
@@ -571,52 +571,52 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/format@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/format@npm:21.2.0"
+"@commitlint/format@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/format@npm:21.2.2"
   dependencies:
     "@commitlint/types": "npm:^21.2.0"
     picocolors: "npm:^1.1.1"
-  checksum: 10c0/8d1722e5f92cd20a96fd03d09400ba80661c7172024773b6fd50f19556bf39f7a14ffc0f82963ffc12b4825ecc676c1e5130e61a709dd7284bbf65cc5d7a6f25
+  checksum: 10c0/ba741ce7d250995169a0b3c14748d8352206bb9fb4411aa11c6f54523a47f7c7c8644b5e06e4bba8f91541ca7bd4862ebcda71d082993e87b2f5ed814ecd3b9c
   languageName: node
   linkType: hard
 
-"@commitlint/is-ignored@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/is-ignored@npm:21.2.0"
+"@commitlint/is-ignored@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/is-ignored@npm:21.2.2"
   dependencies:
     "@commitlint/types": "npm:^21.2.0"
     semver: "npm:^7.6.0"
-  checksum: 10c0/a547e99ec1abb9cdb8e854b021f1884486707bb391f57ffa706fd66b003271d72122b0e62319be0cf5b83d619212286b28a6a528f9be2a8438d2840f63a2e9b6
+  checksum: 10c0/478ae6a0ff6e9be2513bf4817d8ea560848454552c0ba7bed281bfac779776402bf2a7e5cb25d7bb2c33dcaa54b29c70b85dccf219fc53b0ade04197cb19fa8a
   languageName: node
   linkType: hard
 
-"@commitlint/lint@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/lint@npm:21.2.0"
+"@commitlint/lint@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/lint@npm:21.2.2"
   dependencies:
-    "@commitlint/is-ignored": "npm:^21.2.0"
-    "@commitlint/parse": "npm:^21.2.0"
-    "@commitlint/rules": "npm:^21.2.0"
+    "@commitlint/is-ignored": "npm:^21.2.2"
+    "@commitlint/parse": "npm:^21.2.2"
+    "@commitlint/rules": "npm:^21.2.2"
     "@commitlint/types": "npm:^21.2.0"
-  checksum: 10c0/a0810af7ab0c12166c5cae9a6c663764f8b5ba7c49e6e2f368da9864d55c7d48cb09373c132ffc503b517e0d7c7bdc07b6b9ce5f8a3d409448c49e1534a50ee3
+  checksum: 10c0/c9a1f14e2d49f42d5e2680185fd21962536d308745016d57897d68f8ea52c570ae41e6f0150b63c691c376dd729e0fb677097a0be28742a33cee7a70481d4d96
   languageName: node
   linkType: hard
 
-"@commitlint/load@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/load@npm:21.2.0"
+"@commitlint/load@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/load@npm:21.2.2"
   dependencies:
     "@commitlint/config-validator": "npm:^21.2.0"
     "@commitlint/execute-rule": "npm:^21.0.1"
-    "@commitlint/resolve-extends": "npm:^21.2.0"
+    "@commitlint/resolve-extends": "npm:^21.2.2"
     "@commitlint/types": "npm:^21.2.0"
     cosmiconfig: "npm:^9.0.1"
     cosmiconfig-typescript-loader: "npm:^6.1.0"
     es-toolkit: "npm:^1.46.0"
     is-plain-obj: "npm:^4.1.0"
     picocolors: "npm:^1.1.1"
-  checksum: 10c0/e39080f3495ef4d2dc5e80d00e362d902e7ce487e3eed178a68098902f536f9fd68a2b061d879a1a6a487cfc1600f0cf019169d179925d226fedb661a7eefe59
+  checksum: 10c0/62ffdc1bcd5593baff0d8c5b592b41ab594ea08c7e1e4fee970ae63e2787232cdcf8e0a1c77ba922ec2adedca0b0017cc4d51d67b13208f477b80da4f36c3317
   languageName: node
   linkType: hard
 
@@ -627,14 +627,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/parse@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/parse@npm:21.2.0"
+"@commitlint/parse@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/parse@npm:21.2.2"
   dependencies:
     "@commitlint/types": "npm:^21.2.0"
     conventional-changelog-angular: "npm:^9.0.0"
     conventional-commits-parser: "npm:^7.0.0"
-  checksum: 10c0/0d109d9d08b4f94e4be93934f2619b17d245f72f3f473c9298554ef4479fd9129624c11e5822a7d173a06ea558ed2858ff3ca3e2cb2a7f84043a271e03d802f2
+  checksum: 10c0/823a10e695beca526a7eec02e79635c9f4095c74984d21e2543de001ad335c5389512f1e634daa11da5bd76964d042d0a4af5390f62276ccaa150783dbd40a78
   languageName: node
   linkType: hard
 
@@ -650,28 +650,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/resolve-extends@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/resolve-extends@npm:21.2.0"
+"@commitlint/resolve-extends@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/resolve-extends@npm:21.2.2"
   dependencies:
     "@commitlint/config-validator": "npm:^21.2.0"
     "@commitlint/types": "npm:^21.2.0"
     es-toolkit: "npm:^1.46.0"
     global-directory: "npm:^5.0.0"
     resolve-from: "npm:^5.0.0"
-  checksum: 10c0/2267b98f36c7c5168b1768ce8a0b4a753bccf09731f010ce73cc171acb685759ca2feaef77c7e53f2914d728c496f7813b2d8e05e5f7423f6ce3ebb050b834dc
+  checksum: 10c0/0b6b39eabf21dc790b8c418e800a23e9d5ffeb73103552a8a0ba46bf3de5847727e10bbf2975acdf5f9cd620e96847892dd1fb656919148b644082368a6de8b5
   languageName: node
   linkType: hard
 
-"@commitlint/rules@npm:^21.2.0":
-  version: 21.2.0
-  resolution: "@commitlint/rules@npm:21.2.0"
+"@commitlint/rules@npm:^21.2.2":
+  version: 21.2.2
+  resolution: "@commitlint/rules@npm:21.2.2"
   dependencies:
     "@commitlint/ensure": "npm:^21.2.0"
     "@commitlint/message": "npm:^21.2.0"
     "@commitlint/to-lines": "npm:^21.0.1"
     "@commitlint/types": "npm:^21.2.0"
-  checksum: 10c0/9c77cbbdeba1c4a49e3d1b86eda45be958ad6b305d6499853b9e0e39c21fb53812d74cf6d33375fef427a592c43d18ac09d13bb43b94cc09ff1c3246b7027eab
+  checksum: 10c0/5b1ddf0f455f334640b22bb22adef3f472988083bd677a2a53a942287efcb71891ea40592f69ac32f1ad30bacbedc8d7916b45a8c53c536bd2d53c2a28e161b8
   languageName: node
   linkType: hard
 
@@ -1669,9 +1669,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^5.7.1":
-  version: 5.7.1
-  resolution: "@hookform/resolvers@npm:5.7.1"
+"@hookform/resolvers@npm:^5.8.0":
+  version: 5.8.0
+  resolution: "@hookform/resolvers@npm:5.8.0"
   dependencies:
     "@standard-schema/utils": "npm:^0.3.0"
   peerDependencies:
@@ -1697,7 +1697,7 @@ __metadata:
     superstruct: ">=0.12.0"
     typanion: ^3.3.2
     valibot: ">=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc"
-    vest: ">=3.0.0"
+    vest: ">=6.0.0"
     yup: ^1.0.0
     zod: ^3.25.0 || ^4.0.0
   peerDependenciesMeta:
@@ -1749,7 +1749,7 @@ __metadata:
       optional: true
     zod:
       optional: true
-  checksum: 10c0/a1e9608ca62488ad80883e421e2cf973e87668864993f490af6ea286c270530f04584a4f1b88159eee2a8207a52c92efeca363ddd6ea86b029d902a135101cdb
+  checksum: 10c0/5beb3e028bfb0e30e26918c11bcb6226f64294a4e11563868b24fee3e5d5ff6641d93d4ff905d28732d7e4fcc69df9004115fba411d452c6eae388a807c3fafe
   languageName: node
   linkType: hard
 
@@ -4182,17 +4182,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"better-auth@npm:^1.6.27":
-  version: 1.6.27
-  resolution: "better-auth@npm:1.6.27"
+"better-auth@npm:^1.6.28":
+  version: 1.6.28
+  resolution: "better-auth@npm:1.6.28"
   dependencies:
-    "@better-auth/core": "npm:1.6.27"
-    "@better-auth/drizzle-adapter": "npm:1.6.27"
-    "@better-auth/kysely-adapter": "npm:1.6.27"
-    "@better-auth/memory-adapter": "npm:1.6.27"
-    "@better-auth/mongo-adapter": "npm:1.6.27"
-    "@better-auth/prisma-adapter": "npm:1.6.27"
-    "@better-auth/telemetry": "npm:1.6.27"
+    "@better-auth/core": "npm:1.6.28"
+    "@better-auth/drizzle-adapter": "npm:1.6.28"
+    "@better-auth/kysely-adapter": "npm:1.6.28"
+    "@better-auth/memory-adapter": "npm:1.6.28"
+    "@better-auth/mongo-adapter": "npm:1.6.28"
+    "@better-auth/prisma-adapter": "npm:1.6.28"
+    "@better-auth/telemetry": "npm:1.6.28"
     "@better-auth/utils": "npm:0.4.2"
     "@better-fetch/fetch": "npm:1.3.1"
     "@noble/ciphers": "npm:^2.1.1"
@@ -4262,7 +4262,7 @@ __metadata:
       optional: true
     vue:
       optional: true
-  checksum: 10c0/82a5ac1e2276bb54dbc2d4bab999a141df8255c67dad14c999e1c78857815fb7ca2088ba91f879a3d19eeb92cde5a0875ba76a48d8e26bb73ef2ad7df2f51377
+  checksum: 10c0/59d9156615f85b61cb82c7dfd859da2ab7e2608feb7577f6871c78fffc112f8c2c26f139d57ba7c691a6eefdcee87e9420a909f3300b723b13793999dd1fd189
   languageName: node
   linkType: hard
 
@@ -7325,9 +7325,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"miniflare@npm:5.20260811.0-alpha":
-  version: 5.20260811.0-alpha
-  resolution: "miniflare@npm:5.20260811.0-alpha"
+"miniflare@npm:5.20260811.1-alpha":
+  version: 5.20260811.1-alpha
+  resolution: "miniflare@npm:5.20260811.1-alpha"
   dependencies:
     "@cspotcode/source-map-support": "npm:0.8.1"
     sharp: "npm:0.35.2"
@@ -7335,7 +7335,7 @@ __metadata:
     workerd: "npm:1.20260811.1"
     ws: "npm:8.21.0"
     youch: "npm:4.1.0-beta.10"
-  checksum: 10c0/ca65d4f89f916d3c70276e2a965a28b25ef3e9fea635a37527d19f281a72a359d7facd1467a2dc218a4d9044befa6804d51d833eb47633aefb29a9a929140a3b
+  checksum: 10c0/f3ed9b13fad4e0b555bfbfe7e085ae8548270447f2a1561dfb79181615c851025c5766c941a8f8fa7fe0233670f507f7bc24359c787b98f1af90ba8c3770e5b6
   languageName: node
   linkType: hard
 
@@ -7648,13 +7648,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "panamia@workspace:."
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.1109.0"
-    "@cloudflare/vite-plugin": "npm:1.52.0"
-    "@commitlint/cli": "npm:21.2.1"
-    "@commitlint/config-conventional": "npm:^21.2.0"
+    "@aws-sdk/client-s3": "npm:3.1110.0"
+    "@cloudflare/vite-plugin": "npm:1.52.1"
+    "@commitlint/cli": "npm:21.2.2"
+    "@commitlint/config-conventional": "npm:^21.2.2"
     "@ffmpeg/ffmpeg": "npm:^0.12.15"
     "@ffmpeg/util": "npm:^0.12.2"
-    "@hookform/resolvers": "npm:^5.7.1"
+    "@hookform/resolvers": "npm:^5.8.0"
     "@noble/curves": "npm:^2.3.0"
     "@noble/hashes": "npm:^2.3.0"
     "@paralleldrive/cuid2": "npm:^3.3.0"
@@ -7687,7 +7687,7 @@ __metadata:
     "@vitejs/plugin-rsc": "npm:0.5.34"
     aws4fetch: "npm:^1.0.20"
     axios: "npm:^1.19.0"
-    better-auth: "npm:^1.6.27"
+    better-auth: "npm:^1.6.28"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     date-fns: "npm:^4.4.0"
@@ -7726,7 +7726,7 @@ __metadata:
     typescript: "npm:^6.0.3"
     vinext: "npm:1.0.0-beta.5"
     vite: "npm:8.2.1"
-    wrangler: "npm:4.122.0"
+    wrangler: "npm:4.123.0"
     ws: "npm:8.21.3"
     yjs: "npm:^13.6.32"
     zod: "npm:^4.4.3"
@@ -9625,16 +9625,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wrangler@npm:4.122.0":
-  version: 4.122.0
-  resolution: "wrangler@npm:4.122.0"
+"wrangler@npm:4.123.0":
+  version: 4.123.0
+  resolution: "wrangler@npm:4.123.0"
   dependencies:
     "@cloudflare/kv-asset-handler": "npm:0.5.0"
     "@cloudflare/unenv-preset": "npm:2.16.1"
     blake3-wasm: "npm:2.1.5"
     esbuild: "npm:0.28.1"
     fsevents: "npm:2.3.3"
-    miniflare: "npm:5.20260811.0-alpha"
+    miniflare: "npm:5.20260811.1-alpha"
     path-to-regexp: "npm:6.3.0"
     unenv: "npm:2.0.0-rc.24"
     workerd: "npm:1.20260811.1"
@@ -9650,7 +9650,7 @@ __metadata:
     cf-wrangler: bin/cf-wrangler.js
     wrangler: bin/wrangler.js
     wrangler2: bin/wrangler.js
-  checksum: 10c0/e7d323b8b773b01124069f928c95c1bdd3b8ce8304a91ec50e4fd4dad9f73fe609836f1ff59c54cc4fe91a6921089ae842a408d46d40286942134dc9410d9fe2
+  checksum: 10c0/2afcf3f9ba539d9288ea72975695e55ae9e7dc69eae5dff8be5aba00896c79f47ba086f582fba394a9e60e04ed26862478799bd6d8ec7dc75353575cd025b6a5
   languageName: node
   linkType: hard
 
