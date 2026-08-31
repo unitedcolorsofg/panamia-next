@@ -114,7 +114,7 @@
     "prettier-plugin-tailwindcss": "0.8.1",
     "react-server-dom-webpack": "^19.2.8",
     "typescript": "^6.0.3",
-    "vinext": "1.0.0-beta.5",
+    "vinext": "1.0.0-beta.8",
     "vite": "8.2.2",
     "wrangler": "4.127.0",
     "ws": "8.21.3"
