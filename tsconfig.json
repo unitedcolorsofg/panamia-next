@@ -36,14 +36,15 @@
       "next/script": ["./node_modules/vinext/dist/shims/script"],
       "next/router": ["./node_modules/vinext/dist/shims/router"],
       "next/og": ["./node_modules/vinext/dist/shims/og"],
-      // Not imported by app code, but vinext's own router shim does
-      // `import("next/error")` — without this the bare "next" prefix alias below
-      // swallows it into lib/shims/next-root/error and the build fails.
-      "next/error": ["./node_modules/vinext/dist/shims/error"],
       "next/font/google": ["./node_modules/vinext/dist/shims/font-google"],
       "next/font/local": ["./node_modules/vinext/dist/shims/font-local"],
-      "next/dist/shared/lib/constants": ["./lib/shims/next-constants"],
-      "next": ["./lib/shims/next-root"]
+      "next/dist/shared/lib/constants": ["./lib/shims/next-constants"]
+      // No bare "next" entry on purpose. vinext turns every paths entry into a
+      // Vite alias and Vite string aliases match by PREFIX, so mapping "next"
+      // captured every next/* specifier not mapped individually above and
+      // rewrote it to a nonexistent lib/shims/next-root/* path. vinext's own
+      // shim map resolves those correctly on its own. Types for bare
+      // `import ... from 'next'` now come from types/next.d.ts.
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

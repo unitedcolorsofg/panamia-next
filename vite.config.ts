@@ -30,30 +30,24 @@ const fixAtAliasPlugin: Plugin = {
   },
 };
 
-// Workaround for vinext 1.0.0-beta.5+: vinext turns the tsconfig "next" path mapping
-// (-> lib/shims/next-root) into a Vite alias, and Vite string aliases match by PREFIX.
-// So "next/headers.js" — which better-auth imports with an explicit .js extension —
-// resolves to lib/shims/next-root/headers.js, which does not exist, and the build
-// fails with UNLOADABLE_DEPENDENCY. The resolve.alias entries below used to win this
-// race under vinext 0.2.x but no longer do, so intercept in a pre-plugin instead.
+// better-auth imports "next/headers.js" with an explicit .js extension. vinext's
+// tsconfig-derived aliases are keyed on the extensionless specifier ("next/headers"),
+// so the suffixed form falls through to node resolution and fails — there is no real
+// `next` package installed. Redirect it to the matching vinext shim.
 //
-// The same prefix alias also swallows bare "next/<name>" specifiers that vinext's own
-// shims use internally but tsconfig.json does not map — beta.8's router.js added a
-// dynamic import("next/error") — so the extension is optional here.
+// This has to be a plugin rather than a resolve.alias entry for the general case:
+// vinext's own aliases take precedence over user resolve.alias, as the "next" prefix
+// mapping removed from tsconfig.json demonstrated. (Vite's dependency optimizer is a
+// third path that honors neither — see optimizeDeps.exclude below.)
 //
-// Only redirects when a matching vinext shim actually exists, so unrelated "next/*"
-// specifiers (e.g. "next/font/google", "next/dist/shared/lib/constants") fall through
-// to normal resolution untouched.
+// Only redirects when a matching vinext shim actually exists, so unrelated "next/*.js"
+// specifiers fall through to normal resolution untouched.
 const fixNextExtensionImportsPlugin: Plugin = {
   name: 'fix-next-extension-imports',
   enforce: 'pre',
   resolveId(id) {
     if (typeof id !== 'string') return;
-    // Match both the raw specifier and the form vite:alias has already rewritten
-    // (next-root is a file, not a directory, so these paths never exist on disk).
-    const match =
-      /^next\/(.+)\.js$/.exec(id) ??
-      /[\\/]lib[\\/]shims[\\/]next-root[\\/](.+?)(?:\.js)?$/.exec(id);
+    const match = /^next\/(.+)\.js$/.exec(id);
     if (!match) return;
     const shimDir = path.resolve('./node_modules/vinext/dist/shims');
     // Some shims ship a react-server variant (next/error, next/navigation, ...);
