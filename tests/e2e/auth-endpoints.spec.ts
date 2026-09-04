@@ -22,22 +22,27 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('better-auth API mount', () => {
-  test('GET /api/auth/session answers for an anonymous caller', async ({
+  // The session endpoint is /get-session. /session is the next-auth spelling and
+  // better-call answers it with the same bare 404 it gives any unrouted path, so
+  // getting this wrong tests nothing but the router's 404 branch.
+  test('GET /api/auth/get-session answers for an anonymous caller', async ({
     request,
   }) => {
-    const res = await request.get('/api/auth/session');
+    const res = await request.get('/api/auth/get-session');
 
     // 200 with a null session, not a 404. This is the assertion that would have
     // caught vinext#2158 in CI instead of by hand.
     expect(res.status()).toBe(200);
   });
 
-  test('GET /api/auth/session/ is not 404 with a trailing slash', async ({
+  test('GET /api/auth/get-session/ is not 404 with a trailing slash', async ({
     request,
   }) => {
     // maxRedirects:0 so a framework-level 308 to the slash-free URL is visible
     // as a 308 rather than being followed into a 200 that proves nothing.
-    const res = await request.get('/api/auth/session/', { maxRedirects: 0 });
+    const res = await request.get('/api/auth/get-session/', {
+      maxRedirects: 0,
+    });
 
     // Either mechanism is fine — better-auth's advanced.skipTrailingSlashes
     // routing both spellings to one endpoint (200), or the framework
