@@ -36,6 +36,10 @@
       "next/script": ["./node_modules/vinext/dist/shims/script"],
       "next/router": ["./node_modules/vinext/dist/shims/router"],
       "next/og": ["./node_modules/vinext/dist/shims/og"],
+      // Not imported by app code, but vinext's own router shim does
+      // `import("next/error")` — without this the bare "next" prefix alias below
+      // swallows it into lib/shims/next-root/error and the build fails.
+      "next/error": ["./node_modules/vinext/dist/shims/error"],
       "next/font/google": ["./node_modules/vinext/dist/shims/font-google"],
       "next/font/local": ["./node_modules/vinext/dist/shims/font-local"],
       "next/dist/shared/lib/constants": ["./lib/shims/next-constants"],

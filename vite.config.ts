@@ -30,14 +30,20 @@ const fixAtAliasPlugin: Plugin = {
   },
 };
 
-// Workaround for vinext 1.0.0-beta.5: vinext turns the tsconfig "next" path mapping
+// Workaround for vinext 1.0.0-beta.5+: vinext turns the tsconfig "next" path mapping
 // (-> lib/shims/next-root) into a Vite alias, and Vite string aliases match by PREFIX.
 // So "next/headers.js" — which better-auth imports with an explicit .js extension —
 // resolves to lib/shims/next-root/headers.js, which does not exist, and the build
 // fails with UNLOADABLE_DEPENDENCY. The resolve.alias entries below used to win this
 // race under vinext 0.2.x but no longer do, so intercept in a pre-plugin instead.
-// Only redirects when a matching vinext shim actually exists, so unrelated "next/*.js"
-// specifiers fall through to normal resolution untouched.
+//
+// The same prefix alias also swallows bare "next/<name>" specifiers that vinext's own
+// shims use internally but tsconfig.json does not map — beta.8's router.js added a
+// dynamic import("next/error") — so the extension is optional here.
+//
+// Only redirects when a matching vinext shim actually exists, so unrelated "next/*"
+// specifiers (e.g. "next/font/google", "next/dist/shared/lib/constants") fall through
+// to normal resolution untouched.
 const fixNextExtensionImportsPlugin: Plugin = {
   name: 'fix-next-extension-imports',
   enforce: 'pre',
@@ -47,12 +53,19 @@ const fixNextExtensionImportsPlugin: Plugin = {
     // (next-root is a file, not a directory, so these paths never exist on disk).
     const match =
       /^next\/(.+)\.js$/.exec(id) ??
-      /[\\/]lib[\\/]shims[\\/]next-root[\\/](.+)\.js$/.exec(id);
+      /[\\/]lib[\\/]shims[\\/]next-root[\\/](.+?)(?:\.js)?$/.exec(id);
     if (!match) return;
-    const shim = path.resolve(
-      `./node_modules/vinext/dist/shims/${match[1]}.js`
-    );
-    if (fs.existsSync(shim)) return this.resolve(shim);
+    const shimDir = path.resolve('./node_modules/vinext/dist/shims');
+    // Some shims ship a react-server variant (next/error, next/navigation, ...);
+    // pick it in the RSC environment the way vinext's own export conditions would.
+    const candidates =
+      this.environment?.name === 'rsc'
+        ? [`${match[1]}.react-server.js`, `${match[1]}.js`]
+        : [`${match[1]}.js`];
+    for (const candidate of candidates) {
+      const shim = path.join(shimDir, candidate);
+      if (fs.existsSync(shim)) return this.resolve(shim);
+    }
   },
 };
 
