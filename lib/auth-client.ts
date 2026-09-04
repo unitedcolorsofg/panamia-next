@@ -9,20 +9,18 @@
  */
 
 import { createAuthClient } from 'better-auth/react';
+// better-auth 1.7 folded generic OAuth into the core social provider surface,
+// so genericOAuthClient() is gone — wikimedia/mastodon go through
+// authClient.signIn.social() like google/apple.
 import {
   magicLinkClient,
-  genericOAuthClient,
   customSessionClient,
 } from 'better-auth/client/plugins';
 import { useMemo } from 'react';
 import type { AppSession, BetterAuthServer } from '@/auth';
 
 export const authClient = createAuthClient({
-  plugins: [
-    magicLinkClient(),
-    genericOAuthClient(),
-    customSessionClient<BetterAuthServer>(),
-  ],
+  plugins: [magicLinkClient(), customSessionClient<BetterAuthServer>()],
 });
 
 // ── useSession ───────────────────────────────────────────────────────────────

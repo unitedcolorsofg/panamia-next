@@ -761,15 +761,20 @@ function getBetterAuth(): BetterAuthInstance {
       // which matches our sessionsRelations / accountsRelations relation key.
       usePlural: false,
     }),
-    // Use Drizzle's relational API (single JOIN query) for session lookups.
-    // Without this, the adapter falls back to two separate queries (sessions SELECT +
-    // users SELECT via handleFallbackJoin) which hangs in CF Workers with max:1.
-    experimental: { joins: true },
-    // vinext #2158: vinext 0.1.1+ may hand the [...all] catch-all handler a path
-    // with a trailing slash; better-auth rejects it under default trailing-slash
-    // validation, 404ing every auth endpoint. Skipping that validation is the
-    // maintainer-suggested workaround.
-    advanced: { skipTrailingSlashes: true },
+    advanced: {
+      // vinext #2158: vinext 0.1.1+ may hand the [...all] catch-all handler a path
+      // with a trailing slash; better-auth rejects it under default trailing-slash
+      // validation, 404ing every auth endpoint. Skipping that validation is the
+      // maintainer-suggested workaround.
+      skipTrailingSlashes: true,
+      database: {
+        // Use Drizzle's relational API (single JOIN query) for session lookups.
+        // Without this, the adapter falls back to two separate queries (sessions
+        // SELECT + users SELECT via handleFallbackJoin) which hangs in CF Workers
+        // with max:1. Was `experimental: { joins: true }` before better-auth 1.7.
+        joins: true,
+      },
+    },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
@@ -829,8 +834,13 @@ function getBetterAuth(): BetterAuthInstance {
             userInfoUrl:
               'https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile',
             scopes: ['identify', 'email'],
+            // better-auth 1.7 moved provider identity out of mapProfileToUser
+            // (OAuthMappedUser declares `id?: never`) and into accountSubject,
+            // which feeds the account's (issuer, accountId) key. The built-in
+            // default reads profile.id for non-OIDC providers; Wikimedia's
+            // /resource/profile returns the stable id as `sub`.
+            accountSubject: ({ profile }) => String(profile.sub ?? profile.id),
             mapProfileToUser: (profile: Record<string, unknown>) => ({
-              id: String(profile.sub || profile.id),
               email: (profile.email as string) || undefined,
               name:
                 (profile.realname as string) || (profile.username as string),
@@ -852,8 +862,11 @@ function getBetterAuth(): BetterAuthInstance {
               ? `${process.env.MASTODON_INSTANCE}/api/v1/accounts/verify_credentials`
               : 'https://mastodon.social/api/v1/accounts/verify_credentials',
             scopes: ['read:accounts'],
+            // verify_credentials returns the account id as `id`, which is also
+            // better-auth 1.7's default subject for a non-OIDC provider; stated
+            // explicitly so the account key does not depend on that default.
+            accountSubject: ({ profile }) => String(profile.id),
             mapProfileToUser: (profile: Record<string, unknown>) => ({
-              id: String(profile.id),
               email: (profile.email as string) || undefined,
               name:
                 (profile.display_name as string) ||

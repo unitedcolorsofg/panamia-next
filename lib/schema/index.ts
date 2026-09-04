@@ -354,6 +354,12 @@ export const accounts = pgTable(
       .$defaultFn(() => createId()),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
+    // better-auth 1.7: account identity is (issuer, accountId). providerId still
+    // names the configured connection; issuer names the identity namespace it
+    // authenticates against — a real protocol issuer for OIDC providers
+    // ("https://accounts.google.com") or a synthetic "local:oauth:<provider>"
+    // for providers without one. See lib/auth-issuer.ts.
+    issuer: text('issuer').notNull(),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -373,6 +379,11 @@ export const accounts = pgTable(
   (table) => ({
     providerAccountUnique: uniqueIndex('accounts_provider_account_unique').on(
       table.providerId,
+      table.accountId
+    ),
+    // The identity better-auth 1.7 looks accounts up by.
+    issuerAccountUnique: uniqueIndex('accounts_issuer_account_unique').on(
+      table.issuer,
       table.accountId
     ),
   })
