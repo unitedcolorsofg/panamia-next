@@ -45,6 +45,12 @@ export const searchParamsToString = (params: SearchInterface) => {
   if (params.pageLimit !== 20) {
     qs.append('limit', params.pageLimit.toString());
   }
+  if (params.filterLocations) {
+    qs.append('floc', params.filterLocations);
+  }
+  if (params.filterCategories) {
+    qs.append('fcat', params.filterCategories);
+  }
   if (params.mentorsOnly) {
     qs.append('mentors', 'true');
   }

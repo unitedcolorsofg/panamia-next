@@ -42,39 +42,28 @@ export const getSearch = async ({
 }: SearchInterface) => {
   console.log('getSearch');
 
-  // Random profiles
-  if (random > 0) {
-    // PostgreSQL doesn't have $sample, so we use a workaround
-    // Get all active profiles and shuffle in memory (for small datasets)
-    const allProfiles = await db.query.profiles.findMany({
-      where: eq(profiles.active, true),
-      with: { user: { columns: { screenname: true } } },
-    });
+  const isBrowse = !searchTerm;
 
-    // Shuffle and take pageLimit
-    const shuffled = allProfiles
-      .sort(() => Math.random() - 0.5)
-      .slice(0, pageLimit);
-
-    // Transform to expected format
-    const data = shuffled.map((p) => transformProfile(p));
-    return { success: true, data };
+  // Browse mode only makes sense with a random seed; without one there is
+  // nothing to show.
+  if (isBrowse && random <= 0) {
+    return { success: false, data: [] };
   }
 
+  // Get all active profiles and filter in memory for complex conditions
+  const allProfiles = await db.query.profiles.findMany({
+    where: eq(profiles.active, true),
+    with: { user: { columns: { screenname: true } } },
+    orderBy: (p, { asc }) => [asc(p.name)],
+  });
+
+  let filtered = allProfiles;
+
+  // Filter by search term (name, descriptions)
   if (searchTerm) {
-    const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
-
-    // Get all active profiles and filter in memory for complex conditions
-    const allProfiles = await db.query.profiles.findMany({
-      where: eq(profiles.active, true),
-      with: { user: { columns: { screenname: true } } },
-      orderBy: (p, { asc }) => [asc(p.name)],
-    });
-
-    // Filter by search term (name, descriptions)
-    let filtered = allProfiles.filter((p) => {
+    const searchLower = searchTerm.toLowerCase();
+    filtered = filtered.filter((p) => {
       const descriptions = p.descriptions as ProfileDescriptions | null;
-      const searchLower = searchTerm.toLowerCase();
 
       // Search in name
       if (p.name.toLowerCase().includes(searchLower)) return true;
@@ -90,54 +79,73 @@ export const getSearch = async ({
 
       return false;
     });
+  }
 
-    // Filter by location (counties)
-    if (filterLocations) {
-      const locs = filterLocations.split('+');
-      filtered = filtered.filter((p) => {
-        const counties = p.counties as Record<string, boolean> | null;
-        if (!counties) return false;
-        return locs.some((loc) => counties[loc] === true);
-      });
-    }
+  // Filter by location (counties)
+  if (filterLocations) {
+    const locs = filterLocations.split('+').filter(Boolean);
+    filtered = filtered.filter((p) => {
+      const counties = p.counties as Record<string, boolean> | null;
+      if (!counties) return false;
+      return locs.some((loc) => counties[loc] === true);
+    });
+  }
 
-    // Filter by categories
-    if (filterCategories) {
-      const cats = filterCategories.split('+');
-      filtered = filtered.filter((p) => {
-        const categories = p.categories as Record<string, boolean> | null;
-        if (!categories) return false;
-        return cats.some((cat) => categories[cat] === true);
-      });
-    }
+  // Filter by categories
+  if (filterCategories) {
+    const cats = filterCategories.split('+').filter(Boolean);
+    filtered = filtered.filter((p) => {
+      const categories = p.categories as Record<string, boolean> | null;
+      if (!categories) return false;
+      return cats.some((cat) => categories[cat] === true);
+    });
+  }
 
-    // Filter by mentoring
-    if (mentorsOnly || expertise || languages || freeOnly) {
-      filtered = filtered.filter((p) => {
-        const mentoring = p.mentoring as ProfileMentoring | null;
-        if (!mentoring?.enabled) return false;
+  // Filter by mentoring
+  if (mentorsOnly || expertise || languages || freeOnly) {
+    filtered = filtered.filter((p) => {
+      const mentoring = p.mentoring as ProfileMentoring | null;
+      if (!mentoring?.enabled) return false;
 
-        if (expertise && !mentoring.expertise?.includes(expertise))
-          return false;
-        if (languages && !mentoring.languages?.includes(languages))
-          return false;
-        if (freeOnly && (mentoring.hourlyRate ?? 0) > 0) return false;
+      if (expertise && !mentoring.expertise?.includes(expertise)) return false;
+      if (languages && !mentoring.languages?.includes(languages)) return false;
+      if (freeOnly && (mentoring.hourlyRate ?? 0) > 0) return false;
 
-        return true;
-      });
-    }
+      return true;
+    });
+  }
 
-    // Paginate
-    const paginated = filtered.slice(skip, skip + pageLimit);
-
-    // Transform to expected format
-    const data = paginated.map((p) => transformProfile(p));
-
+  // Browse: a random sample of whatever survived the filters. Filters are
+  // applied first so that browsing with filters narrows the sample rather
+  // than ignoring it.
+  if (isBrowse) {
+    const data = shuffle(filtered)
+      .slice(0, pageLimit)
+      .map((p) => transformProfile(p));
     return { success: true, data };
   }
 
-  return { success: false, data: [] };
+  // Paginate
+  const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
+  const data = filtered
+    .slice(skip, skip + pageLimit)
+    .map((p) => transformProfile(p));
+
+  return { success: true, data };
 };
+
+/**
+ * Fisher-Yates on a copy. `.sort(() => Math.random() - 0.5)` is both
+ * statistically biased and mutates the array it is given.
+ */
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 /**
  * Transform Drizzle profile to expected output format
