@@ -108,10 +108,10 @@ npx drizzle-kit migrate
 ### Start Development Server
 
 ```bash
-yarn dev:vinext
+yarn dev
 ```
 
-Open **http://localhost:3001** in your browser.
+Open **http://localhost:3000** in your browser.
 
 The dev server includes:
 
@@ -158,7 +158,7 @@ Tests run automatically on every `git push` via GitHub Actions CI (`.github/work
 
 #### Local Prerequisites
 
-Before running tests locally, ensure `.dev.vars` exists with your DB and auth secrets:
+Before running tests locally, ensure `.env.local` exists with your DB and auth secrets — `vinext dev` loads it directly (its startup banner reads `Using secrets defined in .env.local`):
 
 ```
 POSTGRES_URL=postgresql://...
@@ -167,7 +167,7 @@ BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_HOST_URL=http://localhost:3000
 ```
 
-The playwright config starts the dev server automatically via `yarn dev` (legacy Node.js server on port 3000).
+The playwright config starts the dev server automatically via `yarn dev:http` (`vinext dev --hostname 0.0.0.0`, port 3000).
 
 #### Run Tests
 
