@@ -16,7 +16,7 @@ import {
   magicLinkClient,
   customSessionClient,
 } from 'better-auth/client/plugins';
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import type { AppSession, BetterAuthServer } from '@/auth';
 
 export const authClient = createAuthClient({
@@ -30,12 +30,38 @@ export const authClient = createAuthClient({
 // callers that pass `session` (or `session.user`) into a useEffect dep array
 // don't re-fire on every render. Without this, any setState in the consumer
 // triggers a render → new object literal → effect refires → setState → loop.
+//
+// Hydration safety: the server cannot fetch the session, so SSR always renders
+// the 'loading' branch. On the client better-auth's store may settle before
+// React hydrates — when it does, the hydration render disagrees with the server
+// HTML and React discards the tree ("Hydration failed..."). Whether that races
+// is timing-dependent, so it surfaces intermittently and more often when
+// /api/auth/get-session responds instantly. Reporting 'loading' until hydration
+// finishes keeps the server render and the hydration render identical.
+
+const emptySubscribe = () => () => {};
+
+// False during SSR and during the hydration render, true on every render after.
+// Uses useSyncExternalStore rather than a mount effect because React is
+// required to call getServerSnapshot for the hydration render itself, which is
+// exactly the render that has to match the server.
+function useIsHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
 
 export function useSession(): {
   data: AppSession | null;
   status: 'loading' | 'authenticated' | 'unauthenticated';
 } {
   const { data, isPending } = authClient.useSession();
+  const isHydrated = useIsHydrated();
+
+  // Treat the pre-hydration render as loading so it matches the server output.
+  const pending = isPending || !isHydrated;
 
   // data.user is extended by customSession (server-side) with enriched fields
   const u = data?.user as
@@ -64,7 +90,7 @@ export function useSession(): {
     : 0;
 
   return useMemo(() => {
-    if (isPending) {
+    if (pending) {
       return { data: null, status: 'loading' as const };
     }
     if (!userId) {
@@ -90,7 +116,7 @@ export function useSession(): {
       status: 'authenticated' as const,
     };
   }, [
-    isPending,
+    pending,
     userId,
     userEmail,
     emailVerified,
