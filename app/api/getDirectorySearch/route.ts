@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
   const geolat = forceString(searchParams.get('geolat') || undefined, '');
   const geolng = forceString(searchParams.get('geolng') || undefined, '');
   const resultsView = forceString(searchParams.get('v') || undefined, '');
+  const mentorsOnly = searchParams.get('mentors') === 'true';
+  const expertise = forceString(searchParams.get('expertise') || undefined, '');
+  const languages = forceString(searchParams.get('lang') || undefined, '');
+  const freeOnly = searchParams.get('free') === 'true';
 
   let random = paramRandom;
   if (searchTerm.length == 0 && random == 0) {
@@ -45,6 +49,10 @@ export async function GET(request: NextRequest) {
     geolat,
     geolng,
     resultsView,
+    mentorsOnly,
+    expertise,
+    languages,
+    freeOnly,
   };
 
   // Public, anonymous directory data — cacheable at the edge (Workers Cache).
