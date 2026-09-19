@@ -354,12 +354,6 @@ export const accounts = pgTable(
       .$defaultFn(() => createId()),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
-    // better-auth 1.7: account identity is (issuer, accountId). providerId still
-    // names the configured connection; issuer names the identity namespace it
-    // authenticates against — a real protocol issuer for OIDC providers
-    // ("https://accounts.google.com") or a synthetic "local:oauth:<provider>"
-    // for providers without one. See lib/auth-issuer.ts.
-    issuer: text('issuer').notNull(),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -373,17 +367,19 @@ export const accounts = pgTable(
       withTimezone: true,
     }),
     scope: text('scope'),
+    // Declared by better-auth's account model and required to exist, but never
+    // written: emailAndPassword is not configured in auth.ts, so sign-in is
+    // magic-link and OAuth only. See 0034_account_issuer_rollback.
+    password: text('password'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   },
   (table) => ({
+    // The identity better-auth 1.7.4 looks accounts up by. 1.7.0-1.7.2 keyed on
+    // (issuer, accountId) instead; that model was withdrawn, along with the
+    // issuer column, in 0034.
     providerAccountUnique: uniqueIndex('accounts_provider_account_unique').on(
       table.providerId,
-      table.accountId
-    ),
-    // The identity better-auth 1.7 looks accounts up by.
-    issuerAccountUnique: uniqueIndex('accounts_issuer_account_unique').on(
-      table.issuer,
       table.accountId
     ),
   })

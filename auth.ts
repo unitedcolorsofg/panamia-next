@@ -836,9 +836,9 @@ function getBetterAuth(): BetterAuthInstance {
             scopes: ['identify', 'email'],
             // better-auth 1.7 moved provider identity out of mapProfileToUser
             // (OAuthMappedUser declares `id?: never`) and into accountSubject,
-            // which feeds the account's (issuer, accountId) key. The built-in
-            // default reads profile.id for non-OIDC providers; Wikimedia's
-            // /resource/profile returns the stable id as `sub`.
+            // which feeds the account's (providerId, accountId) key. The
+            // built-in default reads profile.id for non-OIDC providers;
+            // Wikimedia's /resource/profile returns the stable id as `sub`.
             accountSubject: ({ profile }) => String(profile.sub ?? profile.id),
             mapProfileToUser: (profile: Record<string, unknown>) => ({
               email: (profile.email as string) || undefined,
