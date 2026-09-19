@@ -129,10 +129,13 @@ fi
 
 # Validate new migrations with the validation script
 if [ -n "$STAGED_MIGRATIONS" ]; then
-  if [ -x "scripts/validate-migrations.sh" ]; then
-    ./scripts/validate-migrations.sh --staged || exit 1
+  if [ -f "scripts/validate-migrations.sh" ]; then
+    # Invoke through sh rather than relying on the script's #!/bin/bash
+    # shebang: Git for Windows ships sh.exe but not always bash.exe, where
+    # executing it directly fails with "required file not found".
+    sh scripts/validate-migrations.sh --staged || exit 1
   else
-    echo "Warning: scripts/validate-migrations.sh not found or not executable"
+    echo "Warning: scripts/validate-migrations.sh not found"
   fi
 else
   echo "No new migrations to validate"
@@ -346,7 +349,9 @@ WRANGLER_TRIGGER=$(git diff --cached --name-only --diff-filter=ACM \
 if [ -n "$WRANGLER_TRIGGER" ]; then
   echo ""
   echo "Checking wrangler.jsonc vars sync..."
-  npm run --silent env:wrangler || exit 1
+  # Direct tsx, not "npm run": npm's shim resolves through bash, which the
+  # bundled Git for Windows does not ship. See the lint-staged note below.
+  tsx scripts/env-check.ts wrangler || exit 1
 fi
 
 # =============================================================================
@@ -452,7 +457,7 @@ INVENTORY_TRIGGER=$(git diff --cached --name-only --diff-filter=ACM \
 if [ -n "$INVENTORY_TRIGGER" ]; then
   echo ""
   echo "Checking privacy data inventory against the schema..."
-  npm run --silent check:privacy-schema || exit 1
+  tsx scripts/check-data-inventory.ts || exit 1
 fi
 
 # Run linting

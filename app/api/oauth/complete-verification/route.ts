@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { oAuthVerifications, users, accounts, profiles } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import { accountIssuerFor } from '@/lib/auth-issuer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,9 +42,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, provider, providerAccountId } = verification;
-    // Must match what better-auth would write for this provider, or the next
-    // sign-in keys off a different issuer and links a second account row.
-    const issuer = accountIssuerFor(provider);
 
     // Check if user already exists with this email
     let userId: string;
@@ -56,10 +52,11 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       userId = existingUser.id;
 
-      // Check if account link already exists
+      // Must match the key better-auth writes for this provider, or the next
+      // sign-in looks up a different row and links a second account.
       const existingAccount = await db.query.accounts.findFirst({
         where: and(
-          eq(accounts.issuer, issuer),
+          eq(accounts.providerId, provider),
           eq(accounts.accountId, providerAccountId)
         ),
       });
@@ -70,7 +67,6 @@ export async function POST(request: NextRequest) {
         await db.insert(accounts).values({
           userId,
           providerId: provider,
-          issuer,
           accountId: providerAccountId,
           createdAt: now,
           updatedAt: now,
@@ -92,7 +88,6 @@ export async function POST(request: NextRequest) {
       await db.insert(accounts).values({
         userId,
         providerId: provider,
-        issuer,
         accountId: providerAccountId,
         createdAt: now,
         updatedAt: now,

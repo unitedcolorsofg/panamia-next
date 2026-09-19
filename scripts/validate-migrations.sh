@@ -98,6 +98,17 @@ done
 echo ""
 echo "Checking _journal.json timestamp ordering..."
 
+# Windows/minimal environments may have no Python, or only the Microsoft Store
+# stub that exits nonzero without running anything. Probe by executing a no-op
+# rather than trusting command -v, the same way .husky/pre-commit does.
+PYTHON=""
+for candidate in python3 python py; do
+  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "" >/dev/null 2>&1; then
+    PYTHON="$candidate"
+    break
+  fi
+done
+
 JOURNAL_FILE="drizzle/meta/_journal.json"
 
 if [ "$STAGED_ONLY" = true ]; then
@@ -109,7 +120,9 @@ else
   JOURNAL_CONTENT=$(cat "$JOURNAL_FILE" 2>/dev/null) || JOURNAL_CONTENT=""
 fi
 
-if [ -n "$JOURNAL_CONTENT" ]; then
+if [ -z "$PYTHON" ]; then
+  echo "  Skipping timestamp check (no working Python interpreter found)"
+elif [ -n "$JOURNAL_CONTENT" ]; then
   # Write JSON to a temp file (pipe + heredoc can't share stdin with python3 -).
   _TMPJSON=$(mktemp /tmp/journal_XXXXXX.json)
   _TMPPY=$(mktemp /tmp/check_journal_XXXXXX.py)
@@ -146,7 +159,7 @@ for entry in entries:
 
 sys.exit(errors)
 PYEOF
-  python3 "$_TMPPY" "$_TMPJSON"
+  "$PYTHON" "$_TMPPY" "$_TMPJSON"
   JOURNAL_EXIT=$?
   rm -f "$_TMPJSON" "$_TMPPY"
   if [ $JOURNAL_EXIT -ne 0 ]; then
@@ -164,11 +177,15 @@ fi
 
 echo "Checking _journal.json completeness..."
 
-if [ "$STAGED_ONLY" = true ]; then
+if [ -z "$PYTHON" ]; then
+  # Without Python the tag list comes back empty, which would report every
+  # migration as missing. Skip rather than emit false errors.
+  echo "  Skipping completeness check (no working Python interpreter found)"
+elif [ "$STAGED_ONLY" = true ]; then
   # In staged mode: check that every staged .sql migration also has a
   # corresponding entry in the staged (or working-tree) _journal.json.
   JOURNAL_TAGS=$(git show ":$JOURNAL_FILE" 2>/dev/null \
-    | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e['tag']) for e in d.get('entries',[])]" 2>/dev/null || true)
+    | "$PYTHON" -c "import json,sys; d=json.load(sys.stdin); [print(e['tag']) for e in d.get('entries',[])]" 2>/dev/null || true)
 
   for filename in $MIGRATIONS_TO_CHECK; do
     tag="${filename%.sql}"
@@ -183,7 +200,7 @@ else
   # In full mode: every .sql file in drizzle/ must appear in the journal.
   ALL_SQL=$(ls -1 "$MIGRATIONS_DIR" 2>/dev/null \
     | grep -E "^[0-9]{4}_[a-z][a-z0-9_]*\.sql$" || true)
-  JOURNAL_TAGS=$(python3 -c "
+  JOURNAL_TAGS=$("$PYTHON" -c "
 import json, sys
 with open('$JOURNAL_FILE') as f:
     d = json.load(f)
