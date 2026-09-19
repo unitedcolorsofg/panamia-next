@@ -69,7 +69,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(apiResponse, { headers: cacheHeaders });
   }
   return NextResponse.json(
-    { success: true, data: [], pagination: {} },
+    {
+      success: true,
+      data: [],
+      pagination: { page: pageNum, limit: pageLimit, total: 0, totalPages: 0 },
+    },
     { headers: cacheHeaders }
   );
 }

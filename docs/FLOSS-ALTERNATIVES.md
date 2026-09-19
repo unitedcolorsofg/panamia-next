@@ -212,7 +212,7 @@ Search functionality uses PostgreSQL's built-in full-text search capabilities vi
 
 - **Multi-field search**: Searches across name, tags, details, background via ILIKE
 - **Filtering**: Location, category, and mentoring filters via JSONB queries
-- **API endpoint**: `/api/directory` provides search and filtering
+- **API endpoint**: `/api/getDirectorySearch` provides search and filtering; `/api/directory/suggest` backs the typeahead
 
 **Future Enhancements (if needed):**
 

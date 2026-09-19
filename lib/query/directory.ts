@@ -32,9 +32,26 @@ export interface SearchResultsInterface {
   };
   primary_address?: { city?: string };
   socials: Record<string, unknown>;
-  meta: unknown;
-  paginationToken: unknown;
 }
+
+export interface SearchPaginationInterface {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SearchResponseInterface {
+  success: boolean;
+  data: SearchResultsInterface[];
+  pagination: SearchPaginationInterface;
+}
+
+const emptyResponse: SearchResponseInterface = {
+  success: false,
+  data: [],
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+};
 
 export const searchParamsToString = (params: SearchInterface) => {
   const qs = new URLSearchParams();
@@ -69,26 +86,27 @@ export const searchParamsToString = (params: SearchInterface) => {
 export const directorySearchKey = 'directorySearch';
 
 export async function fetchSearch(query: SearchInterface) {
-  console.log('fetchSearch');
   const response = await axios
-    .get(`/api/getDirectorySearch?${searchParamsToString(query)}`, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
+    .get<SearchResponseInterface>(
+      `/api/getDirectorySearch?${searchParamsToString(query)}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      }
+    )
     .catch((error: Error) => {
       console.log(error.name, error.message);
     });
   if (response) {
-    return response.data.data;
+    return response.data;
   }
-  console.log('NO RESPONSE');
-  return { data: { message: '' } };
+  return emptyResponse;
 }
 
 export const useSearch = (filters: SearchInterface) => {
-  return useQuery<SearchResultsInterface[], Error>({
+  return useQuery<SearchResponseInterface, Error>({
     queryKey: [directorySearchKey, filters],
     queryFn: () => fetchSearch(filters),
   });
