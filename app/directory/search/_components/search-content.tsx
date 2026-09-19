@@ -66,7 +66,8 @@ export function DirectorySearchContent({
   );
   const [searchInput, setSearchInput] = useState(params.searchTerm);
 
-  const { data: searchData, isLoading } = useSearch(params);
+  const { data: searchResult, isLoading } = useSearch(params);
+  const results = searchResult?.data ?? [];
 
   /**
    * Filters and pagination stay in the query string — only the term lives in
@@ -118,12 +119,8 @@ export function DirectorySearchContent({
     return 0;
   };
 
-  const totalResults =
-    (searchData?.[0]?.meta as { count?: { total?: number } } | undefined)?.count
-      ?.total || 0;
-  const totalPages = totalResults
-    ? Math.ceil(totalResults / params.pageLimit)
-    : 1;
+  const totalResults = searchResult?.pagination?.total ?? 0;
+  const totalPages = searchResult?.pagination?.totalPages ?? 1;
 
   const selectedLocations = params.filterLocations
     ? params.filterLocations.split('+').filter(Boolean)
@@ -208,9 +205,9 @@ export function DirectorySearchContent({
         )}
 
         {/* Search Results */}
-        {!isLoading && searchData && searchData.length > 0 && (
+        {!isLoading && results.length > 0 && (
           <div className="space-y-4">
-            {searchData.map((profile) => {
+            {results.map((profile) => {
               const lat = profile.geo?.coordinates?.[1];
               const lng = profile.geo?.coordinates?.[0];
               const distance =
@@ -241,19 +238,16 @@ export function DirectorySearchContent({
         )}
 
         {/* No Results */}
-        {!isLoading &&
-          searchData &&
-          searchData.length === 0 &&
-          params.searchTerm.length > 0 && (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-gray-600 dark:text-gray-400">
-                  No results found. Try a different search term or adjust your
-                  filters.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+        {!isLoading && results.length === 0 && params.searchTerm.length > 0 && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                No results found. Try a different search term or adjust your
+                filters.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Signup CTA */}
         <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">

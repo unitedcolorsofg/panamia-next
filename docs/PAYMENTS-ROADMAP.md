@@ -816,10 +816,10 @@ rotation re-seed path referenced in Risk 13.
 
 ### Note 5. Session rate rename scope
 
-`profiles.mentoring.hourlyRate` becomes `sessionRate` across 14 call sites:
+`profiles.mentoring.hourlyRate` becomes `sessionRate` across 13 call sites:
 `lib/interfaces.ts:86`, `lib/validations/mentoring-profile.ts:13`,
-`lib/profile.ts:79`, `lib/server/directory.ts:124,175`,
-`app/api/directory/route.ts:214`, `app/api/mentoring/discover/route.ts:46`,
+`lib/profile.ts:79`, `lib/server/directory.ts:116,208`,
+`app/api/mentoring/discover/route.ts:46`,
 `app/api/mentoring/profile/route.ts:24,56`, `app/m/profile/page.tsx:81`,
 `app/m/profile/edit/page.tsx:33`,
 `app/m/profile/edit/_components/profile-form.tsx:47,259,265`,

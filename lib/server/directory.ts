@@ -47,7 +47,11 @@ export const getSearch = async ({
   // Browse mode only makes sense with a random seed; without one there is
   // nothing to show.
   if (isBrowse && random <= 0) {
-    return { success: false, data: [] };
+    return {
+      success: false,
+      data: [],
+      pagination: { page: 1, limit: pageLimit, total: 0, totalPages: 0 },
+    };
   }
 
   // Get all active profiles and filter in memory for complex conditions
@@ -122,16 +126,37 @@ export const getSearch = async ({
     const data = shuffle(filtered)
       .slice(0, pageLimit)
       .map((p) => transformProfile(p));
-    return { success: true, data };
+    // A random sample has no further pages: walking to page 2 would reshuffle
+    // and repeat profiles, so browse always reports a single page.
+    return {
+      success: true,
+      data,
+      pagination: {
+        page: 1,
+        limit: pageLimit,
+        total: data.length,
+        totalPages: 1,
+      },
+    };
   }
 
   // Paginate
+  const total = filtered.length;
   const skip = pageNum > 1 ? (pageNum - 1) * pageLimit : 0;
   const data = filtered
     .slice(skip, skip + pageLimit)
     .map((p) => transformProfile(p));
 
-  return { success: true, data };
+  return {
+    success: true,
+    data,
+    pagination: {
+      page: pageNum,
+      limit: pageLimit,
+      total,
+      totalPages: Math.ceil(total / pageLimit),
+    },
+  };
 };
 
 /**
