@@ -195,7 +195,7 @@ export default function LinksPage() {
         <div className="mt-6 text-center">
           <Button
             size="lg"
-            className="bg-green-600 text-lg hover:bg-green-700"
+            className="bg-green-600 text-lg text-white hover:bg-green-700"
             asChild
           >
             <Link

@@ -747,7 +747,7 @@ export default function UserEditPage() {
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleConfirmScreennameChange}
-                    className="bg-amber-600 hover:bg-amber-700"
+                    className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     Confirm Change
                   </AlertDialogAction>

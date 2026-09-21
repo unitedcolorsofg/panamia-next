@@ -329,7 +329,7 @@ export default function DeleteAccountForm() {
                       Cancel
                     </Button>
                     <Button
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 text-white hover:bg-red-700"
                       onClick={goNext}
                       disabled={
                         preflightLoading ||
@@ -401,7 +401,7 @@ export default function DeleteAccountForm() {
                       Cancel
                     </Button>
                     <Button
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 text-white hover:bg-red-700"
                       onClick={goNext}
                     >
                       Continue
@@ -442,7 +442,7 @@ export default function DeleteAccountForm() {
                       Cancel
                     </Button>
                     <Button
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 text-white hover:bg-red-700"
                       onClick={goNext}
                     >
                       Continue
@@ -480,7 +480,7 @@ export default function DeleteAccountForm() {
                       Cancel
                     </Button>
                     <Button
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 text-white hover:bg-red-700"
                       onClick={goNext}
                       disabled={
                         confirmEmail.toLowerCase() !==
