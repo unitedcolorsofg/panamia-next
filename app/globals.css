@@ -296,3 +296,44 @@
   background-color: var(--color-pana-butter);
   color: var(--color-pana-ink);
 }
+
+/* Auth pages. Cream matches the masthead directly above it, with the same two
+   washes as the hero at lower opacity so the card stays the focal point.
+
+   Deliberately not min-height: 100vh — this renders between a sticky masthead
+   and the footer, so a full viewport height pushes the card below the fold and
+   forces a scroll on every sign-in. The min-height below is the viewport less
+   the masthead, which is what actually centres the card on screen. */
+.auth-surface {
+  position: relative;
+  min-height: calc(100vh - 4.5rem);
+  background-color: var(--color-pana-cream);
+  background-image:
+    radial-gradient(
+      48rem 32rem at 8% -12%,
+      rgb(246 240 153 / 0.42),
+      transparent 62%
+    ),
+    radial-gradient(
+      42rem 30rem at 96% 108%,
+      rgb(242 132 68 / 0.28),
+      transparent 64%
+    );
+}
+
+/* Cream is a light surface, so the dark theme has to take it back over —
+   otherwise the washes sit on near-white and the card loses all separation. */
+.dark .auth-surface {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(
+      48rem 32rem at 8% -12%,
+      rgb(242 132 68 / 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      42rem 30rem at 96% 108%,
+      rgb(48 62 140 / 0.3),
+      transparent 64%
+    );
+}
