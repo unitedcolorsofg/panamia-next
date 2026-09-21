@@ -12,7 +12,7 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
-import { getDb } from '../lib/db';
+import { getDb, runWithDb } from '../lib/db';
 import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
@@ -58,8 +58,9 @@ interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // Prime the db and R2 caches with CF bindings before any application code runs.
-    // All subsequent getDb() / getStorage() calls return the cached instances.
-    getDb(env);
+    // The db instance is bound to this request via runWithDb() below, so concurrent
+    // requests never share a postgres.js socket.
+    const dbInstance = getDb(env);
     getEmail(env);
     getStorage(env);
     getRelay(env);
@@ -109,7 +110,8 @@ export default {
       );
     }
 
-    // Delegate everything else to vinext
-    return handler.fetch(request);
+    // Delegate everything else to vinext, inside this request's db scope so the
+    // `db` proxy resolves to the client created for this request.
+    return runWithDb(dbInstance, () => handler.fetch(request));
   },
 };
