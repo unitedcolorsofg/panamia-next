@@ -207,6 +207,137 @@
   text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------------------
+   Design refresh: centered masthead.
+
+   The logo is centered with a `1fr auto 1fr` grid. Worth knowing before you
+   touch it: a `1fr` column cannot shrink below its content's min-content width,
+   so as soon as one side outgrows its fair share the column expands and the
+   logo drifts by half the excess. Every centering regression here has been
+   that. Fix it by shrinking the side content (hide a label, shorten a word) —
+   never by changing the grid. `minmax(0, 1fr)` makes it worse, not better.
+   --------------------------------------------------------------------------- */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--color-pana-cream);
+  border-bottom: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.mastheadInner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.mastheadLeft {
+  justify-self: start;
+}
+
+.mastheadLogo {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mastheadLogo img {
+  height: 34px;
+  width: auto;
+}
+
+.mastheadRight {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-pana-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease;
+}
+
+.menuButton:hover {
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+/* Flame pill. Ink text, not cream — cream on flame is 2.42:1 and fails. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.cta:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+/* Borderless text action so the right column stays narrow enough to keep the
+   logo centered. */
+.login {
+  padding: 0.5rem 0.25rem;
+  color: var(--color-pana-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.login:hover {
+  color: var(--color-pana-burnt);
+  text-decoration: underline;
+}
+
+/* Below this width the right column outgrows its 1fr share and pushes the logo
+   off centre. Both the menu word and the login link are mirrored inside the
+   drawer, so nothing becomes unreachable. */
+@media (max-width: 559px) {
+  .menuLabel,
+  .login {
+    display: none;
+  }
+}
+
+.drawerCta {
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+.drawerLogin {
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  border: 2px solid rgb(253 248 240 / 0.3);
+  border-radius: 9999px;
+  color: var(--color-pana-cream);
+  font-weight: 800;
+}
+
 @media only screen and (min-width: 600px) {
   .burger {
     order: 4;

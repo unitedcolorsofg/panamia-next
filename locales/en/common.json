@@ -30,7 +30,9 @@
     "signOut": "Sign Out",
     "becomeAPana": "Become a Pana",
     "signUp": "Sign Up",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
   },
   "footer": {
     "panaMia": "PanaMia",

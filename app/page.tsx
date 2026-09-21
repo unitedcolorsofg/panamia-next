@@ -92,13 +92,13 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section with Search */}
-      <section className="home-hero-banner relative bg-cover bg-center py-8 text-center md:py-12">
+      <section className="home-hero-banner relative py-8 text-center md:py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-[90vw] space-y-8">
             {/* Logo */}
             <div className="py-8 md:py-12">
               <Image
-                src="/logos/pana_logo_long_pink.png"
+                src="/logos/pana_logo_long_white.png"
                 alt="Pana Mia"
                 width={600}
                 height={150}
@@ -109,24 +109,10 @@ export default function HomePage() {
 
             {/* Search Section */}
             <div className="py-8">
-              <h1
-                className="mb-4 text-4xl font-bold md:text-5xl"
-                style={{
-                  color: 'white',
-                  textShadow:
-                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-                }}
-              >
+              <h1 className="hero-headline mb-4 text-4xl md:text-5xl">
                 {t('hero.headline')}
               </h1>
-              <p
-                className="mb-6 text-2xl md:text-3xl"
-                style={{
-                  color: 'white',
-                  textShadow:
-                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-                }}
-              >
+              <p className="hero-subheadline mb-6 text-2xl md:text-3xl">
                 {t('hero.subheadline')}
               </p>
 
@@ -136,7 +122,7 @@ export default function HomePage() {
                 placeholder={t('hero.searchPlaceholder')}
                 ariaLabel={t('hero.searchAriaLabel')}
                 buttonLabel={t('hero.searchButton')}
-                inputClassName="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
+                inputClassName="h-12 min-w-[33vw] rounded-full border-2 text-lg"
               />
             </div>
           </div>
@@ -191,10 +177,10 @@ export default function HomePage() {
                 />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{t('articles.title')}</h2>
-                <p className="text-muted-foreground text-sm">
+                <span className="section-eyebrow mb-1">
                   {t('articles.subtitle')}
-                </p>
+                </span>
+                <h2 className="text-2xl">{t('articles.title')}</h2>
               </div>
             </div>
             <Button variant="outline" asChild>
@@ -242,20 +228,23 @@ export default function HomePage() {
       </section>
 
       {/* About Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
+      <section className="surface-indigo py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl space-y-6 text-center">
-            <div className="bg-pana-blue/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+            <div className="bg-pana-butter/20 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
               <MessageCircle
-                className="text-pana-blue h-8 w-8"
+                className="text-pana-butter h-8 w-8"
                 aria-hidden="true"
               />
             </div>
-            <h2 className="text-3xl font-bold">{t('about.title')}</h2>
-            <p className="text-muted-foreground text-xl">
+            <h2 className="text-3xl">{t('about.title')}</h2>
+            {/* Indigo is the only surface that carries cream text — see the
+                contrast rule in globals.css. `text-muted-foreground` would be
+                near-invisible here. */}
+            <p className="text-pana-butter text-xl font-semibold">
               {t('about.tagline')}
             </p>
-            <p className="text-lg">{t('about.body')}</p>
+            <p className="text-lg text-white/85">{t('about.body')}</p>
           </div>
         </div>
       </section>
@@ -264,9 +253,7 @@ export default function HomePage() {
       <section className="bg-muted/30 py-16 md:py-24" id="home-faq">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
-            <h2 className="mb-8 text-center text-3xl font-bold">
-              {t('faq.title')}
-            </h2>
+            <h2 className="mb-8 text-center text-3xl">{t('faq.title')}</h2>
 
             <Accordion
               type="single"

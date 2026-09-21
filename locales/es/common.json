@@ -30,7 +30,9 @@
     "signOut": "Cerrar Sesión",
     "becomeAPana": "Únete como Pana",
     "signUp": "Registrarse",
-    "signIn": "Iniciar Sesión"
+    "signIn": "Iniciar Sesión",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú"
   },
   "footer": {
     "panaMia": "PanaMia",
