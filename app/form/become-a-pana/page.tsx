@@ -81,6 +81,10 @@ function BecomeAPanaForm() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [locallyBased, setLocallyBased] = useState('');
+  // Drives users.accountType on submit. Only the two listable types are
+  // offered: submitting this form *is* the act of asking to be listed.
+  // Staying 'personal' means simply not filling it out.
+  const [accountTypeChoice, setAccountTypeChoice] = useState('small_business');
   const [details, setDetails] = useState('');
   const [background] = useState('');
   const [socialsWebsite, setSocialsWebsite] = useState('');
@@ -165,6 +169,7 @@ function BecomeAPanaForm() {
         {
           email: email,
           name: name,
+          account_type: accountTypeChoice,
           locally_based: locallyBased,
           details: details,
           background: background,
@@ -427,6 +432,42 @@ function BecomeAPanaForm() {
               {activePage === 2 && (
                 <div ref={page2Ref}>
                   <form onSubmit={submitPage2} className="space-y-6">
+                    <div className="space-y-4">
+                      <Label className="text-lg font-bold">
+                        {/* i18n: t('page2.accountTypeQuestion') */}
+                        What kind of listing are you creating? *
+                      </Label>
+                      <p className="text-muted-foreground text-sm">
+                        {/* i18n: t('page2.accountTypeNote') */}
+                        This is what places you in the directory. Members who
+                        only want to search the directory and use Pana Social
+                        don&apos;t need to fill out this form at all.
+                      </p>
+                      <RadioGroup
+                        value={accountTypeChoice}
+                        onValueChange={setAccountTypeChoice}
+                        required
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="small_business"
+                            id="account-business"
+                          />
+                          <Label htmlFor="account-business">
+                            {/* i18n: t('page2.accountTypeBusiness') */}A
+                            business, project, or organization
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="hybrid" id="account-hybrid" />
+                          <Label htmlFor="account-hybrid">
+                            {/* i18n: t('page2.accountTypeHybrid') */}
+                            Both — I&apos;m listing my work and keeping a
+                            personal presence
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
                     <div className="space-y-4">
                       <Label className="text-lg font-bold">
                         {/* i18n: t('page2.question') */}

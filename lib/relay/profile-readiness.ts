@@ -1,9 +1,14 @@
 // Shared "is this user allowed to use the Resilience module" gate.
 //
-// Resilience requires a completed become-a-pana profile AND a screenname
-// (the immutable handle that doubles as the NIP-05 local part and the
-// kind-0 `name`). We surface a structured `missing` list so the client can
-// link the user to the right page for each gap.
+// Resilience requires a profile row AND a screenname (the immutable handle
+// that doubles as the NIP-05 local part and the kind-0 `name`). We surface a
+// structured `missing` list so the client can link the user to the right page
+// for each gap.
+//
+// Membership tier is deliberately NOT checked here. The authoritative paid
+// gate lives in the relay membership check (`active` + `membershipLevel`,
+// see docs/RESILIENCE-ROADMAP.md). This gate answers a narrower question:
+// does the account have enough identity to publish a coherent kind 0?
 import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
@@ -24,16 +29,14 @@ export interface ReadinessSnapshot {
   } | null;
 }
 
-interface Descriptions {
-  details?: string;
-  fiveWords?: string;
-}
-
-// `locallyBased` is set only by /form/become-a-pana, so its presence is the
-// cleanest signal that the multi-page form was actually submitted (vs. a
-// blank profile row created by some other flow). We additionally require
-// descriptions.details + descriptions.fiveWords, which are the form's
-// "tell us about yourself" required fields.
+// A profile row plus a name is all the kind 0 seed actually needs: /api/relay/
+// profile-seed derives `name` from the screenname and treats `about` and
+// `picture` as optional. Requiring become-a-pana fields here (locallyBased,
+// descriptions.details, descriptions.fiveWords) made this gate STRICTER than
+// the relay's own membership check, so a paid member could satisfy
+// /api/internal/relay/check and still be refused by the /r UI. Those fields
+// describe a directory listing, not readiness to federate — consumer accounts
+// legitimately have none of them.
 export async function getProfileReadiness(
   userId: string
 ): Promise<ReadinessSnapshot> {
@@ -45,7 +48,6 @@ export async function getProfileReadiness(
         columns: {
           id: true,
           name: true,
-          locallyBased: true,
           descriptions: true,
           primaryImageCdn: true,
         },
@@ -55,13 +57,7 @@ export async function getProfileReadiness(
 
   const missing: ReadinessGap[] = [];
   const profile = row?.profile;
-  const descriptions = profile?.descriptions as Descriptions | null | undefined;
-  const profileComplete =
-    !!profile &&
-    !!profile.name?.trim() &&
-    !!profile.locallyBased?.trim() &&
-    !!descriptions?.details?.trim() &&
-    !!descriptions?.fiveWords?.trim();
+  const profileComplete = !!profile && !!profile.name?.trim();
   if (!profileComplete) missing.push('profile');
   if (!row?.screenname?.trim()) missing.push('screenname');
 

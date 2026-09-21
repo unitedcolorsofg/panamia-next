@@ -3,11 +3,12 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import {
   users,
+  profiles,
   screennameHistory,
   socialStatuses,
   socialActors,
 } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
 
 // Rate limit: once per 90 days (~3 months)
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     columns: { screenname: true, lastScreennameChange: true },
     with: {
       profile: {
-        columns: {},
+        columns: { id: true },
         with: { socialActor: { columns: { id: true } } },
       },
     },
@@ -129,6 +130,43 @@ export async function POST(request: NextRequest) {
     })
     .where(eq(users.id, session.user.id))
     .returning({ screenname: users.screenname });
+
+  // Every personal account gets a profile here. A profile is the platform's
+  // social identity — social_actors references profiles, so without one a user
+  // can browse but can never post, follow, or be followed.
+  //
+  // Screenname assignment is the earliest point this is possible:
+  // profiles.name is NOT NULL while users.name is nullable (magic-link signups
+  // often have no name), and the screenname supplies a guaranteed fallback.
+  //
+  // This does NOT put anyone in the directory. Directory and sitemap listing is
+  // filtered on users.accountType, which defaults to 'personal'; only
+  // small_business and hybrid are published.
+  if (!currentUser?.profile) {
+    // An unclaimed profile may already exist for this email — a listing created
+    // before the account existed. auth.ts claims those at sign-in, but re-check
+    // here so we can never trip the unique constraint on profiles.email.
+    const unclaimed = await db.query.profiles.findFirst({
+      where: and(eq(profiles.email, email), isNull(profiles.userId)),
+      columns: { id: true },
+    });
+
+    if (unclaimed) {
+      await db
+        .update(profiles)
+        .set({ userId: session.user.id })
+        .where(eq(profiles.id, unclaimed.id));
+    } else {
+      await db.insert(profiles).values({
+        userId: session.user.id,
+        email,
+        name: session.user.name?.trim() || newScreenname,
+        // Consistent with createExpressProfile: self-created profiles are
+        // active immediately. Visibility is governed by accountType, not this.
+        active: true,
+      });
+    }
+  }
 
   // Sync screenname to SocialActor if one exists
   const socialActorId = currentUser?.profile?.socialActor?.id;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, asc, eq, isNotNull, or, sql, SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, or, sql, SQL } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 /**
  * Directory autocomplete — the typeahead behind the search box.
@@ -76,6 +77,8 @@ export async function GET(request: NextRequest) {
         and(
           eq(profiles.active, true),
           isNotNull(users.screenname),
+          // Personal accounts search the directory; they don't appear in it.
+          inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES),
           or(matches(profiles.name), matches(fiveWords), matches(tags))
         )
       )

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
+import { profiles, users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { ProfileDescriptions } from '@/lib/interfaces';
 import { createUniqueString } from '@/lib/standardized';
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   const {
     name,
     email,
+    account_type,
     locally_based,
     details,
     background,
@@ -78,11 +79,25 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const normalizedEmail = email.toString().toLowerCase();
+
+  // Submitting this form is the act of asking to be listed, so an absent or
+  // unrecognized value falls back to the ordinary listing type rather than
+  // leaving the account invisible after it just asked to be seen.
+  const listingType: 'small_business' | 'hybrid' =
+    account_type === 'hybrid' ? 'hybrid' : 'small_business';
+
+  // Every signed-in user already has a profile — it is created when they claim
+  // a screenname — so this form upgrades that record rather than inserting a
+  // second one. profiles.userId is UNIQUE and would reject the insert.
   const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.email, email.toString().toLowerCase()),
+    where: eq(profiles.email, normalizedEmail),
+    columns: { id: true, userId: true },
   });
 
-  if (existingProfile) {
+  // A row owned by somebody else is still a hard conflict: profiles.email is
+  // UNIQUE, and the address belongs to whoever claimed it first.
+  if (existingProfile && existingProfile.userId !== session.user.id) {
     return NextResponse.json(
       { error: 'This email is already being used for a profile.' },
       { status: 400 }
@@ -116,21 +131,40 @@ export async function POST(request: NextRequest) {
     access: createUniqueString(),
   };
 
+  const profileValues = {
+    name: name,
+    email: normalizedEmail,
+    active: true, // Self-created profiles are active immediately
+    status: status as Record<string, unknown>,
+    locallyBased: locally_based || null,
+    descriptions: descriptions as unknown as ProfileDescriptions,
+    socials: socials || null,
+    phoneNumber: phone_number || null,
+    whatsappCommunity: whatsapp_community || false,
+    pronouns: pronounsStr,
+    affiliate: affiliate || null,
+  };
+
   try {
-    await db.insert(profiles).values({
-      userId: session.user.id,
-      name: name,
-      email: email.toString().toLowerCase(),
-      active: true, // Self-created profiles are active immediately
-      status: status as Record<string, unknown>,
-      locallyBased: locally_based || null,
-      descriptions: descriptions as unknown as ProfileDescriptions,
-      socials: socials || null,
-      phoneNumber: phone_number || null,
-      whatsappCommunity: whatsapp_community || false,
-      pronouns: pronounsStr,
-      affiliate: affiliate || null,
-    });
+    if (existingProfile) {
+      await db
+        .update(profiles)
+        .set(profileValues)
+        .where(eq(profiles.id, existingProfile.id));
+    } else {
+      // Accounts that predate profile-on-screenname still need one created.
+      await db
+        .insert(profiles)
+        .values({ ...profileValues, userId: session.user.id });
+    }
+
+    // The account type is what actually publishes the listing — the directory,
+    // suggestions, and sitemap all filter on it. Without this the profile is
+    // saved but never appears anywhere.
+    await db
+      .update(users)
+      .set({ accountType: listingType })
+      .where(eq(users.id, session.user.id));
   } catch (error) {
     console.error('Database error saving profile:', error);
     return NextResponse.json(

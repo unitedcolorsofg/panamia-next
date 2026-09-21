@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { articles, profiles, users } from '@/lib/schema';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 type SitemapEntry = {
   url: string;
@@ -42,7 +43,16 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
       .select({ screenname: users.screenname, updatedAt: profiles.updatedAt })
       .from(users)
       .innerJoin(profiles, eq(profiles.userId, users.id))
-      .where(and(isNotNull(users.screenname), eq(profiles.active, true))),
+      .where(
+        and(
+          isNotNull(users.screenname),
+          eq(profiles.active, true),
+          // Members are not listings. Every signed-in user has an active
+          // profile now, so without this the sitemap would publish every
+          // personal account to search engines.
+          inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+        )
+      ),
   ]);
 
   const articleRoutes: SitemapEntry[] = publishedArticles.map((a) => ({

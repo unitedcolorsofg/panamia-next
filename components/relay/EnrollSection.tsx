@@ -46,9 +46,9 @@ const GAP_COPY: Record<
 > = {
   profile: {
     label:
-      'Finish the “Become a Pana” intake form so we have your name, neighborhood, and project details.',
+      'Set up your Pana profile so we have a display name to publish with your handle.',
     href: '/form/become-a-pana',
-    cta: 'Open the intake form',
+    cta: 'Set up your profile',
   },
   screenname: {
     label:

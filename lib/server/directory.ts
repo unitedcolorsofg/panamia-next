@@ -1,7 +1,8 @@
 // Directory search utilities (migrated from MongoDB Atlas Search to PostgreSQL)
 import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { profiles, users } from '@/lib/schema';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 
 interface SearchInterface {
@@ -54,9 +55,27 @@ export const getSearch = async ({
     };
   }
 
-  // Get all active profiles and filter in memory for complex conditions
+  // Get all listable profiles and filter in memory for complex conditions
   const allProfiles = await db.query.profiles.findMany({
-    where: eq(profiles.active, true),
+    where: and(
+      eq(profiles.active, true),
+      // Every signed-in user now has an active profile, so `active` alone no
+      // longer distinguishes a listing from a member. Narrow by account type in
+      // SQL rather than in the in-memory passes below, which would otherwise
+      // scan every personal account on each search.
+      or(
+        // Unclaimed legacy listings predate accounts entirely — they have no
+        // user to carry an account type, but they are listings by definition.
+        isNull(profiles.userId),
+        inArray(
+          profiles.userId,
+          db
+            .select({ id: users.id })
+            .from(users)
+            .where(inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES))
+        )
+      )
+    ),
     with: { user: { columns: { screenname: true } } },
     orderBy: (p, { asc }) => [asc(p.name)],
   });
