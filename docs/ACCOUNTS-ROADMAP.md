@@ -287,6 +287,28 @@ Three details differ from the table above:
 `scripts/backfill-profiles.ts` closes the _Existing profile-less users_ gap
 below. It defaults to a dry run; pass `--apply` to write.
 
+### Driving users to the creation point
+
+Hanging profile creation off screenname assignment only works if new accounts
+actually reach that route. They did not: `ScreennamePrompt` was rendered in
+exactly one place, `app/a/new/page.tsx`, so a user who signed in and never
+wrote an article never claimed a screenname and therefore never got a profile
+or social access.
+
+`components/ScreennameGate.tsx` closes that. It is mounted once in
+`app/layout.tsx` and, for any authenticated user without a screenname, surfaces
+the prompt. It lives in the layout rather than on `/signin` because sign-in
+arrives through several doors — magic-link callback, OAuth callback, and
+pre-existing accounts that never had a screenname — each landing on an
+arbitrary `callbackUrl`. The layout is the only place that catches all of them.
+
+It is deliberately **skippable**. `SCREENNAME_COOLDOWN_DAYS = 90` in the set
+route makes claiming a screenname a 90-day-locked decision, so trapping a
+first-time visitor behind a modal to force one is worse than asking again
+later. Dismissal is stored in `sessionStorage` keyed by user id, so signing out
+and back in as someone else re-prompts. Fetch failures are swallowed — this is
+a nudge, not a gate, and the user cannot act on the error.
+
 ### Explicitly unchanged
 
 - **`lib/federation/gates.ts`** — no edits. Consumers get a profile, so they

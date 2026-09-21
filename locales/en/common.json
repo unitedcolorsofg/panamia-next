@@ -34,6 +34,10 @@
     "menu": "Menu",
     "closeMenu": "Close menu"
   },
+  "onboarding": {
+    "screennameTitle": "Pick your screenname",
+    "screennameDescription": "This is how you'll show up across Pana MIA — on your profile, on anything you post, and anywhere people find you. You can skip for now, but you'll need one before you can post or follow."
+  },
   "footer": {
     "panaMia": "PanaMia",
     "panaVizion": "PanaVizión",

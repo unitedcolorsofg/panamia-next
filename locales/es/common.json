@@ -34,6 +34,10 @@
     "menu": "Menú",
     "closeMenu": "Cerrar menú"
   },
+  "onboarding": {
+    "screennameTitle": "Elige tu nombre de usuario",
+    "screennameDescription": "Así aparecerás en Pana MIA: en tu perfil, en lo que publiques y dondequiera que te encuentren. Puedes omitirlo por ahora, pero lo necesitarás antes de publicar o seguir a alguien."
+  },
   "footer": {
     "panaMia": "PanaMia",
     "panaVizion": "PanaVizión",

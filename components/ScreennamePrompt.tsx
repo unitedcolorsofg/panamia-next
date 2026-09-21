@@ -146,7 +146,7 @@ export default function ScreennamePrompt({
               />
               <div className="absolute top-1/2 right-3 -translate-y-1/2">
                 {status === 'checking' && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                 )}
                 {status === 'available' && (
                   <Check className="h-4 w-4 text-green-500" />
@@ -156,14 +156,14 @@ export default function ScreennamePrompt({
                 )}
               </div>
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <p className="text-sm text-gray-500">
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            <p className="text-muted-foreground text-sm">
               3-24 characters. Letters, numbers, underscores, and hyphens only.
             </p>
           </div>
 
-          <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-pana-butter/60 dark:bg-pana-indigo rounded-lg p-3">
+            <p className="text-pana-ink dark:text-pana-cream text-sm">
               Your screenname and name (if set) will be publicly displayed. Your
               email address remains private.
             </p>
@@ -180,6 +180,7 @@ export default function ScreennamePrompt({
           </Button>
           <Button
             onClick={handleSubmit}
+            className="bg-pana-flame text-pana-ink hover:bg-pana-burnt font-extrabold"
             disabled={status !== 'available' || isSubmitting}
           >
             {isSubmitting ? (

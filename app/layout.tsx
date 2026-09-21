@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvider';
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
+import ScreennameGate from '@/components/ScreennameGate';
 
 export const metadata: Metadata = {
   title: 'Pana Mia',
@@ -58,6 +59,7 @@ export default async function RootLayout({
               <MainHeader isProductionSite={isProductionSite} />
               <div id="layout-main">{children}</div>
               <MainFooter />
+              <ScreennameGate />
             </Providers>
           </FlowerPowerProvider>
         </ThemeProvider>
