@@ -176,10 +176,22 @@ const PREFIX_NAME_BOOST = 100;
  *     expression exactly, or the index is skipped.
  *
  * The threshold is 0.5 rather than pg_trgm's default 0.6 because 0.6 drops
- * real typos: "bisayne yoga" -> "Biscayne Bay Yoga" scores 0.58. Across the
- * sample the worst true match scored 0.58 and the best non-match 0.18, so
- * anything in roughly 0.3-0.55 works; 0.5 sits high in that gap because
- * false positives get likelier as the directory grows. Retune with evidence.
+ * real typos: "bisayne yoga" -> "Biscayne Bay Yoga" scores 0.58. Re-measured
+ * against a 20k-name corpus, 0.6 loses "bohemain" and "bisayne yoga"
+ * outright, so the cost of the default is a silent miss rather than a wrong
+ * match. 0.5 held up; it was calibrated on 15 rows and survived 20k.
+ *
+ * What does degrade at scale is precision, and it tracks how many businesses
+ * share the misspelled word rather than the size of the table. A distinctive
+ * word still lands the target near the top: "wynwod print" is 2nd of 12.
+ * A generic one buries it: "kitchn" is 34th of 375, because word_similarity
+ * scores every "<something> Kitchen" name identically and the tiebreak is
+ * then arbitrary. That is tolerable, because it returns the same set the
+ * corrected spelling would have -- the failure mode is a broad list, not a
+ * confident wrong answer. Reordering does not rescue it: ranking by
+ * whole-string similarity, or by shortest name, was measured and moves the
+ * generic case further down (34th -> 69th) while only helping cases that
+ * already worked.
  */
 const TRIGRAM_THRESHOLD = 0.5;
 const TRIGRAM_LIMIT = 50;

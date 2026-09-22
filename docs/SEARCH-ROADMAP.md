@@ -318,8 +318,42 @@ realistic typos:
 | `zzzqqq`           | _(none)_          | 0.00              |
 
 Worst true match 0.58, best non-match 0.18 — anything in roughly 0.3–0.55 works. The default 0.6
-would have silently dropped both `bisayne yoga` and `bohemain`. 0.5 sits high in the gap because
-false positives get likelier as the directory grows; retune with evidence, not by feel.
+would have silently dropped both `bisayne yoga` and `bohemain`.
+
+**Re-measured at 20k rows, because a 12-name corpus proves nothing about a threshold.** The
+concern was that the 0.18–0.58 gap is measured at its narrowest point and that false positives
+would climb with volume. What actually happens is the opposite — raising to 0.6 loses real
+targets entirely, so the default's risk is a silent miss:
+
+| Query          | at 0.5    | at 0.6     |
+| -------------- | --------- | ---------- |
+| `bohemain`     | found     | **missed** |
+| `bisayne yoga` | found     | **missed** |
+| `sazon criolo` | 1st of 1  | 1st of 1   |
+| `wynwod print` | 2nd of 12 | 2nd of 12  |
+
+**Precision, not the threshold, is what degrades — and it tracks word reuse rather than table
+size.** Against 20k names at 0.5:
+
+| Query          | Target rank | Matches | Why                                     |
+| -------------- | ----------- | ------- | --------------------------------------- |
+| `sazon criolo` | 1st         | 1       | distinctive, accented                   |
+| `bisayne yoga` | 2nd         | 3       | distinctive place name                  |
+| `wynwod print` | 2nd         | 12      | distinctive place name                  |
+| `kitchn`       | **34th**    | 375     | 375 names contain "Kitchen"; scores tie |
+
+`word_similarity` scores by the single best-matching word, so every `<something> Kitchen` ties at
+0.71 and the tiebreak is arbitrary. This is acceptable: a one-word typo of a generic noun returns
+the same set the corrected spelling would, so it degrades to a broad list rather than a confident
+wrong answer. Three orderings were tried — `word_similarity` alone, whole-string `similarity`
+first, and shortest-name tiebreak — and none fixed it; shortest-name pushed `kitchn` from 34th to
+69th while only improving cases that already ranked 1st or 2nd.
+
+> One caveat on the synthetic corpus: it draws from 40 adjectives and 60 nouns, so **456 of its
+> 20,000 names contain "Bohemian"** — about 2.3% of the directory sharing one adjective, which no
+> real directory does. Treat the distinctive-word rows as representative and the `bohemain` row as
+> an artifact of that reuse. The `kitchn` row is realistic: a real directory of that size genuinely
+> does have hundreds of businesses with "Kitchen" in the name.
 
 **The operator form is not optional.** `word_similarity(q, col) >= 0.5` reads identically to
 `col %> q` and cannot use the GIN index. At 20k rows:
@@ -509,10 +543,12 @@ term) is untouched — it computes no ranking and still shuffles.
    Recommended (**still awaiting sign-off**): `max-age=0, s-maxage=300`, which keeps the CDN win
    without the stale client.
 
-3. **Threshold tuning is data-dependent.** `word_similarity_threshold = 0.5` scored well on the
-   samples above, but the dev database has only 15 active profiles and **one** with categories.
-   Re-tune against production volume before trusting Phase 2, and set it per-transaction rather
-   than globally.
+3. **Threshold tuning is data-dependent — now tested at volume.** `word_similarity_threshold = 0.5`
+   was calibrated against 15 active profiles, then re-measured against a synthetic 20k-name corpus
+   (see Phase 2). It held: 0.6 loses real targets, 0.5 does not. What degrades instead is the rank
+   of the intended business when many listings share the misspelled word, which is a property of
+   the name distribution rather than of the threshold. Worth re-checking against real data once the
+   directory is materially larger, but there is no longer an untested number here.
 
 4. **`english` + `spanish` double-indexing inflates the vector.** Acceptable and correct for a
    bilingual community, but it roughly doubles vector size versus a single config.
