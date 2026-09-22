@@ -1,4 +1,19 @@
 {
+  "identity": {
+    "account": "Account",
+    "actingAs": "Acting as",
+    "backToYou": "Back to you",
+    "business": "Business",
+    "inactive": "Draft",
+    "listBusiness": "List your business",
+    "listBusinessHint": "Add a shop, studio or service",
+    "manager": "Manager",
+    "owner": "Owner",
+    "settings": "Account settings",
+    "switchAccount": "Switch account",
+    "you": "You",
+    "yourProfile": "Your profile"
+  },
   "nav": {
     "jumpTo": "Jump To",
     "explore": "Explore",

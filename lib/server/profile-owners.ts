@@ -79,6 +79,7 @@ export async function listAdministeredProfiles(userId: string) {
       id: profiles.id,
       name: profiles.name,
       email: profiles.email,
+      screenname: profiles.screenname,
       active: profiles.active,
       primaryImageCdn: profiles.primaryImageCdn,
       isPersonal: sql<boolean>`(${profiles.userId} = ${userId})`,

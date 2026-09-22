@@ -47,6 +47,9 @@ import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
 import { ThemeToggle } from './theme-toggle';
+import { IdentityProvider } from './account/identity-provider';
+import { IdentityMenu } from './account/identity-menu';
+import { ActingAsBar } from './account/acting-as-bar';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
 
@@ -300,215 +303,228 @@ export default function MainHeader({
   };
 
   return (
-    <header className={styles.header}>
-      {/* Ambient unread cues: browser-tab count + desktop notifications */}
-      <NotificationAlerts />
-      {/* CTA bar: newsletter for unauthenticated, profile completion for authenticated without profile */}
-      {status !== 'loading' && !session && (
-        <div id="call-to-action-bar">
-          <CallToActionBar isProductionSite={isProductionSite} />
-        </div>
-      )}
-      {status !== 'loading' && session && hasProfile === false && (
-        <div id="call-to-action-bar">
-          <CallToActionBar
-            variant="complete-profile"
-            isProductionSite={isProductionSite}
-          />
-        </div>
-      )}
-      {/* Centered masthead: menu (left) · logo (center) · actions (right) */}
-      <div className={styles.masthead}>
-        <div className={styles.mastheadInner}>
-          <div className={styles.mastheadLeft}>
-            <button
-              type="button"
-              className={styles.menuButton}
-              onClick={() => setDrawerOpen(true)}
-              aria-expanded={drawerOpen}
-              aria-haspopup="dialog"
-            >
-              <span className={styles.bars} aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className={styles.menuLabel}>{t('nav.menu')}</span>
-            </button>
+    <IdentityProvider enabled={status !== 'loading' && !!session}>
+      <header className={styles.header}>
+        {/* Ambient unread cues: browser-tab count + desktop notifications */}
+        <NotificationAlerts />
+        {/* CTA bar: newsletter for unauthenticated, profile completion for authenticated without profile */}
+        {status !== 'loading' && !session && (
+          <div id="call-to-action-bar">
+            <CallToActionBar isProductionSite={isProductionSite} />
           </div>
-
-          <Link href="/" className={styles.mastheadLogo} aria-label="Pana Mia">
-            <Image
-              src="/logos/pana_logo_long_orange.png"
-              alt="Pana Mia"
-              width={600}
-              height={150}
-              priority
+        )}
+        {status !== 'loading' && session && hasProfile === false && (
+          <div id="call-to-action-bar">
+            <CallToActionBar
+              variant="complete-profile"
+              isProductionSite={isProductionSite}
             />
-          </Link>
-
-          <div className={styles.mastheadRight}>
-            {/* Unauthenticated users: Become a Pana + Sign In */}
-            {status !== 'loading' && !session && (
-              <>
-                <Link href="/form/become-a-pana" className={styles.cta}>
-                  <span className="hidden md:inline">
-                    {t('nav.becomeAPana')}
-                  </span>
-                  <span className="md:hidden">{t('nav.signUp')}</span>
-                </Link>
-                <Link href="/signin" className={styles.login}>
-                  {t('nav.signIn')}
-                </Link>
-              </>
-            )}
-
-            {/* Authenticated users: Show Jump To dropdown */}
-            {status !== 'loading' && session && (
-              <DropdownMenu
-                onOpenChange={(open) => {
-                  if (!open) setActiveSection(null);
-                }}
+          </div>
+        )}
+        {/* Centered masthead: menu (left) · logo (center) · actions (right) */}
+        <div className={styles.masthead}>
+          <div className={styles.mastheadInner}>
+            <div className={styles.mastheadLeft}>
+              <button
+                type="button"
+                className={styles.menuButton}
+                onClick={() => setDrawerOpen(true)}
+                aria-expanded={drawerOpen}
+                aria-haspopup="dialog"
               >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="default"
-                    variant="outline"
-                    data-no-wobble="true"
-                    className={cn(
-                      'relative',
-                      hasUnread && 'border-pink-400 dark:border-pink-500'
-                    )}
-                  >
-                    {t('nav.jumpTo')}
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                    {hasUnread && (
-                      <span
-                        className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 animate-pulse items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-medium text-white"
-                        aria-label={`${unreadCount} unread updates`}
-                      >
-                        {unreadLabel}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {/* Pinned primary destinations — always visible, no collapse. */}
-                  <DropdownMenuLabel>{t('nav.explore')}</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
-                    <Link href="/" className="flex cursor-pointer items-center">
-                      <Home className="mr-2 h-4 w-4" />
-                      {t('nav.home')}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/updates"
-                      onClick={requestDesktopPermission}
+                <span className={styles.bars} aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className={styles.menuLabel}>{t('nav.menu')}</span>
+              </button>
+            </div>
+
+            <Link
+              href="/"
+              className={styles.mastheadLogo}
+              aria-label="Pana Mia"
+            >
+              <Image
+                src="/logos/pana_logo_long_orange.png"
+                alt="Pana Mia"
+                width={600}
+                height={150}
+                priority
+              />
+            </Link>
+
+            <div className={styles.mastheadRight}>
+              {/* Unauthenticated users: Become a Pana + Sign In */}
+              {status !== 'loading' && !session && (
+                <>
+                  <Link href="/form/become-a-pana" className={styles.cta}>
+                    <span className="hidden md:inline">
+                      {t('nav.becomeAPana')}
+                    </span>
+                    <span className="md:hidden">{t('nav.signUp')}</span>
+                  </Link>
+                  <Link href="/signin" className={styles.login}>
+                    {t('nav.signIn')}
+                  </Link>
+                </>
+              )}
+
+              {/* Authenticated users: Show Jump To dropdown */}
+              {status !== 'loading' && session && (
+                <DropdownMenu
+                  onOpenChange={(open) => {
+                    if (!open) setActiveSection(null);
+                  }}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="default"
+                      variant="outline"
+                      data-no-wobble="true"
                       className={cn(
-                        'flex cursor-pointer items-center',
-                        hasUnread &&
-                          'font-medium text-pink-600 dark:text-pink-400'
+                        'relative',
+                        hasUnread && 'border-pink-400 dark:border-pink-500'
                       )}
                     >
-                      <Bell
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          hasUnread && 'animate-pulse text-pink-500'
-                        )}
-                      />
-                      {t('nav.updates')}
+                      {t('nav.jumpTo')}
+                      <ChevronDown className="ml-2 h-4 w-4" />
                       {hasUnread && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1.5 text-xs font-medium text-white">
+                        <span
+                          className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 animate-pulse items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-medium text-white"
+                          aria-label={`${unreadCount} unread updates`}
+                        >
                           {unreadLabel}
                         </span>
                       )}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/timeline"
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {/* Pinned primary destinations — always visible, no collapse. */}
+                    <DropdownMenuLabel>{t('nav.explore')}</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/"
+                        className="flex cursor-pointer items-center"
+                      >
+                        <Home className="mr-2 h-4 w-4" />
+                        {t('nav.home')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/updates"
+                        onClick={requestDesktopPermission}
+                        className={cn(
+                          'flex cursor-pointer items-center',
+                          hasUnread &&
+                            'font-medium text-pink-600 dark:text-pink-400'
+                        )}
+                      >
+                        <Bell
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            hasUnread && 'animate-pulse text-pink-500'
+                          )}
+                        />
+                        {t('nav.updates')}
+                        {hasUnread && (
+                          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1.5 text-xs font-medium text-white">
+                            {unreadLabel}
+                          </span>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/timeline"
+                        className="flex cursor-pointer items-center"
+                      >
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        {t('nav.timelinePosts')}
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {/* Collapsible module sections — hover to expand (desktop),
+                  tap the row to expand (mobile). */}
+                    {NAV_SECTIONS.map((section) => (
+                      <Fragment key={section.key}>
+                        <DropdownMenuSeparator />
+                        {renderSection(section)}
+                      </Fragment>
+                    ))}
+
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/account/admin/users"
+                            className="flex cursor-pointer items-center"
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            {t('nav.adminPanel')}
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
                       className="flex cursor-pointer items-center"
                     >
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      {t('nav.timelinePosts')}
-                    </Link>
-                  </DropdownMenuItem>
-
-                  {/* Collapsible module sections — hover to expand (desktop),
-                  tap the row to expand (mobile). */}
-                  {NAV_SECTIONS.map((section) => (
-                    <Fragment key={section.key}>
-                      <DropdownMenuSeparator />
-                      {renderSection(section)}
-                    </Fragment>
-                  ))}
-
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/account/admin/users"
-                          className="flex cursor-pointer items-center"
-                        >
-                          <Shield className="mr-2 h-4 w-4" />
-                          {t('nav.adminPanel')}
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleSignOut}
-                    className="flex cursor-pointer items-center"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t('nav.signOut')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <ThemeToggle />
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {t('nav.signOut')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <IdentityMenu />
+              <ThemeToggle />
+            </div>
           </div>
-        </div>
-      </div>
 
-      <NavDrawer
-        open={drawerOpen}
-        onClose={closeDrawer}
-        items={drawerItems}
-        title={t('nav.menu')}
-        closeLabel={t('nav.closeMenu')}
-        footer={
-          status !== 'loading' && !session ? (
-            <>
-              <Link
-                href="/form/become-a-pana"
-                className={styles.drawerCta}
-                onClick={closeDrawer}
-              >
-                {t('nav.becomeAPana')}
-              </Link>
-              {/* Mirrors the masthead sign-in link, which is hidden on narrow
+          {/* Sits inside the sticky masthead so the reminder travels with it. */}
+          <ActingAsBar />
+        </div>
+
+        <NavDrawer
+          open={drawerOpen}
+          onClose={closeDrawer}
+          items={drawerItems}
+          title={t('nav.menu')}
+          closeLabel={t('nav.closeMenu')}
+          footer={
+            status !== 'loading' && !session ? (
+              <>
+                <Link
+                  href="/form/become-a-pana"
+                  className={styles.drawerCta}
+                  onClick={closeDrawer}
+                >
+                  {t('nav.becomeAPana')}
+                </Link>
+                {/* Mirrors the masthead sign-in link, which is hidden on narrow
                   viewports to keep the logo centered. */}
-              <p className={styles.drawerLogin}>
-                <Trans
-                  i18nKey="nav.alreadyAPana"
-                  t={t}
-                  components={{
-                    a: <Link href="/signin" onClick={closeDrawer} />,
-                  }}
-                />
-              </p>
+                <p className={styles.drawerLogin}>
+                  <Trans
+                    i18nKey="nav.alreadyAPana"
+                    t={t}
+                    components={{
+                      a: <Link href="/signin" onClick={closeDrawer} />,
+                    }}
+                  />
+                </p>
+                <p className={styles.drawerMeta}>{t('nav.regions')}</p>
+              </>
+            ) : (
               <p className={styles.drawerMeta}>{t('nav.regions')}</p>
-            </>
-          ) : (
-            <p className={styles.drawerMeta}>{t('nav.regions')}</p>
-          )
-        }
-      />
-    </header>
+            )
+          }
+        />
+      </header>
+    </IdentityProvider>
   );
 }

@@ -17,7 +17,6 @@ import {
 import Link from 'next/link';
 
 import PageMeta from '@/components/PageMeta';
-import { ProfileSwitcher } from '@/components/account/profile-switcher';
 import { ProfileInterface } from '@/lib/interfaces';
 import { displayPronouns, standardizeDateTime } from '@/lib/standardized';
 import Status401_Unauthorized from '@/components/Page/Status401_Unauthorized';
@@ -105,8 +104,6 @@ export default function AccountProfileEdit() {
       <PageMeta title="Edit Profile" desc="" />
 
       <h2 className="mb-8 text-3xl font-bold">Your Pana Profile</h2>
-
-      <ProfileSwitcher />
 
       {/* Profile Status */}
       <Card className="mb-6">
