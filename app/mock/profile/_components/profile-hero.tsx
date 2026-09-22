@@ -65,10 +65,14 @@ export function ProfileHero({
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               <span className="profile-handle">@{profile.handle}</span>
               <span className="identity-pill">{profile.pronouns}</span>
+              {/* The check sits on the county because that is the part that is
+                  actually verified — residency is confirmed from billing zip,
+                  not self-reported. Neighborhoods below are self-declared and
+                  deliberately carry no check. */}
               {profile.verified && (
                 <span className="identity-pill" data-tone="verified">
                   <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  Locally based
+                  {profile.county}
                 </span>
               )}
             </div>
@@ -93,7 +97,7 @@ export function ProfileHero({
           <div className="text-pana-ink/60 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-bold">
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-4 w-4" aria-hidden="true" />
-              {profile.location}
+              {profile.neighborhoods.join(' · ')}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="h-4 w-4" aria-hidden="true" />

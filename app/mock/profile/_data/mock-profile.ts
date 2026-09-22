@@ -96,11 +96,23 @@ export interface MockProfile {
   /** socialActors.headerUrl */
   cover: string;
   coverAlt: string;
-  /** profiles.addressLocality + addressRegion */
-  location: string;
+  /* Personal profiles deliberately have NO street address. Per the become-a-pana
+     rebuild notes, addressLine1/addressLocality/addressRegion/lat/lng are
+     collected for small_business and hybrid only — name + address is a
+     notifiable PII combination under FIPA, so a person's location is expressed
+     at neighborhood and county granularity instead. */
+
+  /** profiles.counties — CountyInterface booleans; 'miami_dade' here. Derived
+      from profiles.verifiedZipCode (GoHighLevel billing data, never user
+      input), which is why this is the value that carries the verified check. */
+  county: string;
+  /** profiles.neighborhoods — self-declared multi-select of predefined South
+      Florida neighborhood keys. Users may belong to more than one. Unverified,
+      so it renders as plain meta rather than a checked badge. */
+  neighborhoods: string[];
   /** users.createdAt */
   joined: string;
-  /** profiles.verification — a claimed, locally based member. */
+  /** profiles.verification — residency confirmed via verifiedZipCode. */
   verified: boolean;
   stats: MockStat[];
   /** profiles.tags */
@@ -116,7 +128,8 @@ export const MOCK_PROFILE: MockProfile = {
   avatar: '/img/about/claribel_avila.jpg',
   cover: '/img/impact/hero-mixer.webp',
   coverAlt: 'Panas gathered around a table at a Pana Mia community mixer',
-  location: 'Little Haiti, Miami',
+  county: 'Miami-Dade County',
+  neighborhoods: ['Little Haiti', 'Buena Vista'],
   joined: 'Joined March 2023',
   verified: true,
   tags: ['risograph', 'zines', 'printmaking', 'workshops', 'bilingual'],
@@ -338,7 +351,7 @@ export const RESERVED_MODULES: ReservedModule[] = [
   {
     title: 'Badges & verification',
     description:
-      'Locally based, founding member, group admin, and Gente dePana standing.',
+      'Verified county, founding member, group admin, and Gente dePana standing.',
   },
   {
     title: 'Collections',
