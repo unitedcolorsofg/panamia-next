@@ -67,6 +67,11 @@ export const inventory: Record<TableExport, Classification> = {
     'crm', // ghl_contact_id
     'visible_profile_info',
   ],
+  // Which listings a person administers. Opaque ids only, but the association
+  // itself is personal data — it says which businesses this human runs — so it
+  // is classified rather than waved through as a join table. Cascades on user
+  // delete, so it leaves with the account.
+  profileOwners: ['account'],
 
   // --- Notifications / preferences ---
   notifications: ['notifications'],

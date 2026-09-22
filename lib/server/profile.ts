@@ -1,3 +1,7 @@
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -173,7 +177,10 @@ export const ensureProfile = async (userId: string, email?: string) => {
     const unclaimedProfile = await db.query.profiles.findFirst({
       where: and(
         eq(profiles.email, email.toLowerCase()),
-        isNull(profiles.userId)
+        isNull(profiles.userId),
+        // Same exclusion as auth.ts: an unclaimed *business* listing must not
+        // become this user's personal profile. See lib/server/profile-owners.ts.
+        notBusinessListing
       ),
     });
 
@@ -183,6 +190,8 @@ export const ensureProfile = async (userId: string, email?: string) => {
         .set({ userId })
         .where(eq(profiles.id, unclaimedProfile.id))
         .returning();
+
+      await addProfileOwner(unclaimedProfile.id, userId);
 
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { sendTemplateEmail } from '@/lib/email';
 import { createUniqueString } from '@/lib/standardized';
+import { BUSINESS_INTAKE_SOURCE } from '@/lib/server/profile-owners';
 import type { ProfileDescriptions } from '@/lib/interfaces';
 
 /**
@@ -181,6 +182,11 @@ export async function POST(request: NextRequest) {
       status: {
         submitted: new Date().toISOString(),
         access: createUniqueString(),
+        // Marks this row as a business listing rather than a personal profile
+        // waiting for its owner. Implicit auto-claim at sign-in skips it so
+        // that claiming a business never overwrites someone's own identity —
+        // see lib/server/profile-owners.ts.
+        source: BUSINESS_INTAKE_SOURCE,
       },
     });
 

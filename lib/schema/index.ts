@@ -273,6 +273,14 @@ export const nostrPubkeySource = pgEnum('nostr_pubkey_source', [
   'byo',
 ]);
 
+// Ordered by power: owner can transfer or delete the listing, admin can manage
+// content and other editors, editor can only edit the listing itself.
+export const profileOwnerRole = pgEnum('profile_owner_role', [
+  'owner',
+  'admin',
+  'editor',
+]);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -537,6 +545,12 @@ export const profiles = pgTable(
     // auto-claim) or tombstoned (userId nulled on account deletion to keep the
     // profile for attribution while severing the cascade FK). Postgres treats
     // NULLs as distinct, so the unique constraint still allows many such rows.
+    //
+    // This is the human's OWN identity profile, and stays 1:1 — it is not the
+    // general "who can edit this listing" link. Business listings created
+    // through /form/list-your-business leave this NULL permanently and are
+    // administered through profileOwners instead, which is what allows one
+    // person to run several of them. See drizzle/0035_profile_owners.sql.
     userId: text('user_id')
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -609,6 +623,49 @@ export const profiles = pgTable(
   (table) => ({
     activeIdx: index('profiles_active_idx').on(table.active),
     nostrPubkeyIdx: index('profiles_nostr_pubkey_idx').on(table.nostrPubkey),
+  })
+);
+
+// =============================================================================
+// Profile owners
+// =============================================================================
+
+/**
+ * Who is allowed to administer a profile.
+ *
+ * Separate from profiles.userId, which answers a different question ("whose
+ * identity is this?") and remains 1:1. This table answers "who runs this?" and
+ * is many-to-many, so one person can run several businesses and a business can
+ * have co-owners without sharing a password.
+ *
+ * Every profile with a userId was backfilled with an 'owner' row, so permission
+ * checks can read this table alone rather than branching on which link exists.
+ * A business listing is "unclaimed" precisely when it has no rows here.
+ */
+export const profileOwners = pgTable(
+  'profile_owners',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: profileOwnerRole('role').notNull().default('owner'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    profileUserUnique: uniqueIndex('profile_owners_profile_user_unique').on(
+      table.profileId,
+      table.userId
+    ),
+    userIdx: index('profile_owners_user_idx').on(table.userId),
+    profileIdx: index('profile_owners_profile_idx').on(table.profileId),
   })
 );
 
@@ -1491,6 +1548,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   articleAnnouncements: many(articleAnnouncements),
   screennameHistory: many(screennameHistory),
   consentReceipts: many(consentReceipts),
+  profilesOwned: many(profileOwners),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -1532,9 +1590,21 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
     fields: [profiles.id],
     references: [socialActors.profileId],
   }),
+  owners: many(profileOwners),
   venuesOperated: many(venues),
   eventsHosted: many(events),
   eventAttendeeRows: many(eventAttendees),
+}));
+
+export const profileOwnersRelations = relations(profileOwners, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [profileOwners.profileId],
+    references: [profiles.id],
+  }),
+  user: one(users, {
+    fields: [profileOwners.userId],
+    references: [users.id],
+  }),
 }));
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
