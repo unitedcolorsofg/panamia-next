@@ -1,32 +1,71 @@
 #!/bin/sh
 
 # =============================================================================
-# Auto-pull if >3 hours since last check
+# Upstream freshness check
 # =============================================================================
+# This is deliberately a FETCH, not a "pull --rebase".
+#
+# This block runs in the middle of a commit. A rebase here rewrites the branch
+# underneath whatever you are doing: on 2026-09-22 it replayed five commits
+# onto a new base and silently discarded a merge commit, mid-session, while
+# two agents were working the same branch. The previous version also ran
+# "git stash --keep-index" / "git stash pop" around the pull with "|| true" on
+# both, so a conflicting pop was swallowed and your work was left sitting in a
+# stash while the commit proceeded as if nothing had happened.
+#
+# A fetch only updates remote-tracking refs. It never touches HEAD, the index
+# or the working tree, so there is nothing to stash and nothing to strand.
+# You still learn you are behind - you just choose when to act on it.
 
-# Resolve via git rather than hardcoding ".git/": in a worktree .git is a file
-# pointing at the real gitdir, so ".git/.last-pull-check" fails with
-# "Not a directory". --git-path works in both layouts.
 TIMESTAMP_FILE="$(git rev-parse --git-path .last-pull-check)"
 INTERVAL=10800  # 3 hours in seconds
 
 now=$(date +%s)
 
 if [ -f "$TIMESTAMP_FILE" ]; then
-  last_check=$(cat "$TIMESTAMP_FILE")
+  last_check=$(cat "$TIMESTAMP_FILE" 2>/dev/null || echo 0)
 else
   last_check=0
 fi
 
+# A truncated or garbled timestamp file must not crash the commit.
+case "$last_check" in
+  '' | *[!0-9]*) last_check=0 ;;
+esac
+
 elapsed=$((now - last_check))
 
 if [ "$elapsed" -ge "$INTERVAL" ]; then
-  echo "$now" > "$TIMESTAMP_FILE"
-  # Stash staged changes, pull, then restore
-  echo "Auto-pulling (last check was >3 hours ago)..."
-  git stash --quiet --keep-index 2>/dev/null || true
-  git pull --rebase --quiet 2>/dev/null || true
-  git stash pop --quiet 2>/dev/null || true
+  echo ""
+  echo "Checking for upstream changes (last check was >3 hours ago)..."
+
+  # Bound the network wait so an offline or credential-less commit cannot hang:
+  # GIT_TERMINAL_PROMPT=0 stops it blocking on a credential prompt, and the
+  # low-speed knobs cap a stalled https transfer at ~15s.
+  if GIT_TERMINAL_PROMPT=0 \
+     GIT_HTTP_LOW_SPEED_LIMIT=1000 \
+     GIT_HTTP_LOW_SPEED_TIME=15 \
+     git fetch --quiet origin 2>/dev/null; then
+    echo "$now" > "$TIMESTAMP_FILE"
+
+    upstream="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
+    if [ -n "$upstream" ]; then
+      behind="$(git rev-list --count "HEAD..$upstream" 2>/dev/null || echo 0)"
+      if [ "$behind" -gt 0 ]; then
+        echo "  Behind $upstream by $behind commit(s)."
+        echo "  Run 'git pull --rebase' yourself at a clean stopping point."
+      else
+        echo "  Up to date with $upstream."
+      fi
+    else
+      echo "  No upstream set for this branch - nothing to compare."
+    fi
+  else
+    # Report rather than swallow. Still stamp the file so an offline session
+    # does not re-attempt (and re-wait) on every single commit.
+    echo "$now" > "$TIMESTAMP_FILE"
+    echo "  Could not reach origin - skipped (will retry in 3h)."
+  fi
 fi
 
 # =============================================================================
