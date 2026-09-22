@@ -260,7 +260,7 @@ export function DirectorySearchContent({
               Florida community.
             </p>
             <Button asChild>
-              <Link href="/form/become-a-pana">
+              <Link href="/form/list-your-business">
                 Sign up to see your business listed!
               </Link>
             </Button>

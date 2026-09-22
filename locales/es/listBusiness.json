@@ -1,0 +1,59 @@
+{
+  "eyebrow": "Listado gratis",
+  "title": "Registra tu negocio",
+  "intro1": "Pana MIA es un directorio de creadores, tiendas, artistas y pequeños negocios independientes del sur de la Florida. Aparecer en el directorio es gratis.",
+  "intro2": "Cuéntanos lo básico — toma como un minuto. Todavía no necesitas crear una cuenta.",
+  "howItWorks": "Cómo funciona",
+  "step1Title": "Nos cuentas que existes",
+  "step1Body": "Seis preguntas rápidas. Nada más.",
+  "step2Title": "Le echamos un vistazo",
+  "step2Body": "Una persona real revisa cada solicitud para que el directorio siga siendo local y auténtico.",
+  "step3Title": "Reclamas tu perfil",
+  "step3Body": "Cuando estés publicado, te enviamos un enlace para reclamarlo y completar el resto.",
+
+  "formTitle": "Tu negocio",
+  "formDesc": "Solo los campos con asterisco son obligatorios. Puedes agregar todo lo demás después de reclamar tu perfil.",
+
+  "nameLabel": "Nombre del negocio",
+  "namePlaceholder": "Café Las Olas",
+
+  "emailLabel": "Correo electrónico",
+  "emailPlaceholder": "hola@tunegocio.com",
+  "emailNote": "Usa el correo con el que quieres reclamar este perfil — ahí te enviaremos el enlace.",
+
+  "fiveWordsLabel": "¿A qué te dedicas?",
+  "fiveWordsPlaceholder": "Café cubano y pastelitos",
+  "fiveWordsNote": "En pocas palabras. Esto es lo primero que la gente ve en el directorio.",
+
+  "linksTitle": "¿Dónde te encontramos?",
+  "linksNote": "Agrega al menos uno para que podamos confirmar que eres un negocio local real.",
+  "instagramLabel": "Instagram",
+  "instagramPlaceholder": "@tunegocio",
+  "websiteLabel": "Sitio web",
+  "websitePlaceholder": "tunegocio.com",
+
+  "detailsLabel": "¿Algo más? (opcional)",
+  "detailsPlaceholder": "Cuéntanos un poco más sobre lo que haces, dónde estás, o qué te hace especial.",
+
+  "phoneLabel": "Teléfono (opcional)",
+  "phonePlaceholder": "(305) 555-0123",
+  "phoneNote": "Solo lo usa nuestro equipo si necesitamos contactarte. Nunca se muestra públicamente.",
+
+  "turnstileBlocked": "No se pudo cargar la verificación. Actualiza la página e inténtalo de nuevo.",
+  "turnstileNote": "Protegido por Cloudflare Turnstile. Sin rastreo, sin cookies.",
+
+  "submitButton": "Enviar solicitud",
+  "sending": "Enviando...",
+
+  "successTitle": "¡Listo — gracias!",
+  "successBody": "Recibimos tu solicitud y enviamos una confirmación a {{email}}.",
+  "successNextTitle": "Qué sigue",
+  "successNext1": "Nuestro equipo revisa tu solicitud, normalmente en unos pocos días.",
+  "successNext2": "Una vez aprobada, tu negocio aparece en el directorio.",
+  "successNext3": "Te enviaremos un enlace para reclamarlo y agregar fotos, horarios y más.",
+  "successAnother": "Registrar otro negocio",
+  "successHome": "Volver al inicio",
+
+  "alreadyListed": "¿Ya tienes un perfil?",
+  "signInLink": "Inicia sesión para administrarlo"
+}
