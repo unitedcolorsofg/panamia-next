@@ -14,11 +14,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { LINK_ICON, LINK_TITLE } from './link-icons';
 import { usePanaGate } from './pana-gate';
-import type { BusinessProfile } from '../_data';
+import {
+  distanceInMiles,
+  formatDistance,
+  type BusinessProfile,
+  type Coords,
+} from '../_data';
 
 interface ProfileHeroProps {
   profile: BusinessProfile;
   certified: boolean;
+  /** Null until the viewer shares their location. */
+  viewerCoords: Coords | null;
+  onShareLocation: () => void;
 }
 
 /**
@@ -34,7 +42,12 @@ interface ProfileHeroProps {
  * vouches for the business to other panas. Collapsing them into one heart
  * would lose that distinction.
  */
-export function ProfileHero({ profile, certified }: ProfileHeroProps) {
+export function ProfileHero({
+  profile,
+  certified,
+  viewerCoords,
+  onShareLocation,
+}: ProfileHeroProps) {
   // Mock-only optimistic state so the counts respond to a click. The real page
   // would take these from the viewer's own save/recommend rows.
   const [saved, setSaved] = useState(false);
@@ -97,9 +110,38 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
               {profile.tagline}
             </p>
 
-            <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold opacity-75">
-              <MapPin className="h-4 w-4" aria-hidden="true" />
-              {profile.city}, {profile.county} County
+            {/* Distance sits with the location because it answers the same
+                question, but it is not dimmed with it: "how far" is the
+                sharper signal of the two in a directory people open to find
+                something nearby. */}
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
+              <span className="flex items-center gap-1.5 opacity-75">
+                <MapPin className="h-4 w-4" aria-hidden="true" />
+                {profile.city}, {profile.county} County
+              </span>
+
+              <span className="opacity-40" aria-hidden="true">
+                &middot;
+              </span>
+
+              {viewerCoords ? (
+                <span className="bizprofile-distance">
+                  {formatDistance(
+                    distanceInMiles(viewerCoords, profile.coords)
+                  )}
+                </span>
+              ) : (
+                // Most first-time visitors are in this state, so it has to be
+                // an offer rather than a blank. The live page would open the
+                // browser's location prompt here.
+                <button
+                  type="button"
+                  className="bizprofile-distance-ask"
+                  onClick={onShareLocation}
+                >
+                  How far is this from me?
+                </button>
+              )}
             </p>
           </div>
         </div>

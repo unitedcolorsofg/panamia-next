@@ -14,7 +14,7 @@ import {
   ProfileClaimPrompt,
   ProfileUpdates,
 } from './_components/profile-updates';
-import { businessProfileMock } from './_data';
+import { businessProfileMock, MOCK_VIEWER_COORDS } from './_data';
 
 /**
  * Design mock for the directory's business profile page.
@@ -41,6 +41,9 @@ export default function BusinessProfileMockPage() {
     certified: true,
     claimed: true,
     owner: false,
+    // Off by default: a first-time visitor has not been asked yet, so the
+    // prompt state is the one that needs to look right.
+    locationShared: false,
     // Defaults to signed out because that is what most directory traffic is,
     // and it is the state the signup gate exists for.
     viewer: 'anon',
@@ -69,7 +72,14 @@ export default function BusinessProfileMockPage() {
       <MockControls state={state} onChange={setState} />
 
       <main>
-        <ProfileHero profile={profile} certified={state.certified} />
+        <ProfileHero
+          profile={profile}
+          certified={state.certified}
+          viewerCoords={state.locationShared ? MOCK_VIEWER_COORDS : null}
+          onShareLocation={() =>
+            setState((current) => ({ ...current, locationShared: true }))
+          }
+        />
 
         {/* The badge in the hero is a claim the visitor has no way to evaluate
             on its own, so the page says once, plainly, what it means and who

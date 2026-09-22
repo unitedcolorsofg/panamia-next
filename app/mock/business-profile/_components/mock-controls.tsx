@@ -7,6 +7,7 @@ export interface MockState {
   certified: boolean;
   claimed: boolean;
   owner: boolean;
+  locationShared: boolean;
   viewer: ViewerKind;
 }
 
@@ -15,7 +16,7 @@ interface MockControlsProps {
   onChange: (next: MockState) => void;
 }
 
-type BooleanKey = 'certified' | 'claimed' | 'owner';
+type BooleanKey = 'certified' | 'claimed' | 'owner' | 'locationShared';
 
 const TOGGLES: { key: BooleanKey; label: string; hint: string }[] = [
   {
@@ -32,6 +33,11 @@ const TOGGLES: { key: BooleanKey; label: string; hint: string }[] = [
     key: 'owner',
     label: 'Viewing as owner',
     hint: 'Shows the photo upload tools',
+  },
+  {
+    key: 'locationShared',
+    label: 'Location shared',
+    hint: 'Shows distance instead of the prompt',
   },
 ];
 

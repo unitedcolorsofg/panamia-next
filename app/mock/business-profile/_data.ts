@@ -60,6 +60,11 @@ export interface GalleryImage {
   alt: string;
 }
 
+export interface Coords {
+  lat: number;
+  lng: number;
+}
+
 export interface BusinessProfile {
   slug: string;
   name: string;
@@ -71,6 +76,12 @@ export interface BusinessProfile {
   categories: string[];
   city: string;
   county: string;
+  /**
+   * Where the business actually is. Distance is computed from this against
+   * the viewer's own position rather than stored, because "how far away" is
+   * a fact about a pair of people, not a property of the business.
+   */
+  coords: Coords;
   /** Set by Pana Mia staff, never by the business. Null when not certified. */
   certification: {
     certifiedOn: string;
@@ -106,6 +117,7 @@ export const businessProfileMock: BusinessProfile = {
   categories: ['Food & Drink', 'Catering', 'Pop-Ups'],
   city: 'Little Haiti',
   county: 'Miami-Dade',
+  coords: { lat: 25.8237, lng: -80.1918 },
 
   certification: {
     certifiedOn: 'March 2025',
@@ -317,3 +329,44 @@ export const EVENT_ROLE_LABEL: Record<EventRole, string> = {
   vendor: 'Vendor',
   partner: 'Partner',
 };
+
+/**
+ * Stands in for the viewer's real position, which the live page would get
+ * from the browser's geolocation prompt or a saved home neighbourhood.
+ * Wynwood, so the demo distance is the short walk-or-short-drive kind the
+ * directory is actually for.
+ */
+export const MOCK_VIEWER_COORDS: Coords = { lat: 25.801, lng: -80.199 };
+
+const EARTH_RADIUS_MILES = 3958.8;
+
+/** Great-circle distance. Deterministic, so it is hydration-safe. */
+export function distanceInMiles(from: Coords, to: Coords): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(to.lat - from.lat);
+  const dLng = toRad(to.lng - from.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(from.lat)) *
+      Math.cos(toRad(to.lat)) *
+      Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_MILES * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Round to the precision the number actually carries.
+ *
+ * A distance derived from a neighbourhood centroid is not accurate to three
+ * decimals, and printing "1.634 miles away" claims a precision the directory
+ * does not have. Close by gets one decimal because the difference between
+ * half a mile and two miles decides whether you walk; past ten miles the
+ * decimal stops meaning anything.
+ */
+export function formatDistance(miles: number): string {
+  if (miles < 0.1) return 'less than 0.1 miles away';
+  if (miles < 10) {
+    const rounded = Math.round(miles * 10) / 10;
+    return `${rounded} ${rounded === 1 ? 'mile' : 'miles'} away`;
+  }
+  return `${Math.round(miles)} miles away`;
+}

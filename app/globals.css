@@ -1574,3 +1574,39 @@ button.bizprofile-update-action:hover {
 .bizprofile-update-action[data-static='true'] {
   cursor: default;
 }
+
+/* "1.6 miles away". Indigo and undimmed so it separates from the muted
+   city/county line it sits beside — in a directory people open to find
+   something nearby, distance is the sharper of the two facts. */
+.bizprofile-distance {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+}
+
+.dark .bizprofile-distance {
+  color: var(--color-pana-butter);
+}
+
+/* Shown before the viewer has shared a location, which is where most first
+   visits start. Styled as an offer rather than a disabled placeholder. */
+.bizprofile-distance-ask {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-distance-ask:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-distance-ask {
+  color: var(--color-pana-butter);
+}
+
+.dark .bizprofile-distance-ask:hover {
+  color: var(--color-pana-flame);
+}
