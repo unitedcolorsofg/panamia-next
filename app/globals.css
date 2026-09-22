@@ -420,11 +420,16 @@
   transform: none;
 }
 
+/* Fade only — the 34px lift is the part that reduced-motion users are asking
+   us to drop, not the reveal itself. */
 @media (prefers-reduced-motion: reduce) {
   [data-rv-ready] [data-rv] {
-    opacity: 1;
     transform: none;
-    transition: none;
+    transition: opacity 0.45s ease;
+  }
+
+  [data-rv-ready] [data-rv].rv-in {
+    transform: none;
   }
 }
 

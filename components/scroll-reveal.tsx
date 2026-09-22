@@ -20,16 +20,16 @@ import { useEffect } from 'react';
  *    not fire and the section would stay stranded. The homepage is full of
  *    anchor links (#directory, #home-faq), so this matters here.
  *
+ * Under `prefers-reduced-motion` the reveal still runs, but the stylesheet
+ * drops the 34px lift so it is a pure cross-fade. Movement is what that
+ * setting asks us to remove; skipping the effect outright is a heavier
+ * response than the request.
+ *
  * Elements are re-queried each sweep so sections that mount later (the async
  * article and featured-pana rails) are still picked up.
  */
 export default function ScrollReveal() {
   useEffect(() => {
-    const reduced = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
-    if (reduced) return;
-
     const root = document.documentElement;
     root.setAttribute('data-rv-ready', '');
 

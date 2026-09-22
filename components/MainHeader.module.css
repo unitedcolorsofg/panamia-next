@@ -316,9 +316,14 @@
   transform: translateY(-6.5px) rotate(-45deg);
 }
 
+/* Halved, not removed: an in-place rotation of a 22px bar is not the kind of
+   travel reduced-motion guards against, and this is the click's only
+   confirmation. */
 @media (prefers-reduced-motion: reduce) {
   .bars i {
-    transition: none;
+    transition:
+      transform 0.2s ease,
+      opacity 0.15s ease;
   }
 }
 

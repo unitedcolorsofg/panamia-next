@@ -169,19 +169,64 @@
   padding-top: clamp(24px, 3vw, 34px);
 }
 
+/* Reduced motion means less *movement*, not no feedback — WCAG 2.3.3 is about
+   travel (sliding, parallax), not cross-fades. So the slide is dropped and the
+   panel fades in place; switching the transition off entirely made the drawer
+   appear between frames, which reads as a glitch rather than a deliberate
+   accommodation. */
 @media (prefers-reduced-motion: reduce) {
-  .scrim,
-  .scrimOpen,
-  .panel,
-  .panelOpen,
-  .link,
-  .panelOpen .link,
-  .arrow,
-  .close {
-    transition: none;
+  .scrim {
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0.25s;
   }
-  .link {
+
+  .scrimOpen {
+    transition:
+      opacity 0.25s ease,
+      visibility 0s;
+  }
+
+  .panel {
+    transform: none;
+    opacity: 0;
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+
+  .panelOpen {
+    transform: none;
     opacity: 1;
+    transition:
+      opacity 0.25s ease,
+      visibility 0s;
+  }
+
+  /* The panel carries the fade, so the links ride along rather than
+     compounding a second opacity curve on top of it. */
+  .link,
+  .panelOpen .link {
+    opacity: 1;
+    transform: none;
+    transition: color 0.3s ease;
+  }
+
+  .arrow,
+  .link:hover .arrow,
+  .link:focus-visible .arrow {
+    transform: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .close {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .close:hover {
     transform: none;
   }
 }
