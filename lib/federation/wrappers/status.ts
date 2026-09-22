@@ -12,8 +12,9 @@ import {
   socialActors,
   socialAttachments,
   socialLikes,
+  PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
-import type { SocialStatus, SocialActor } from '@/lib/schema';
+import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
@@ -36,7 +37,7 @@ export type CreateStatusResult =
   | { success: false; error: string; gateResult?: GateResult };
 
 export type StatusWithActor = SocialStatus & {
-  actor: SocialActor;
+  actor: PublicSocialActor;
 };
 
 /**
@@ -304,7 +305,7 @@ export async function getStatus(
   return (
     (await db.query.socialStatuses.findFirst({
       where: eq(socialStatuses.id, statusId),
-      with: { actor: true },
+      with: { actor: { columns: PUBLIC_ACTOR_COLUMNS } },
     })) ?? null
   );
 }
@@ -318,7 +319,7 @@ export async function getStatusByUri(
   return (
     (await db.query.socialStatuses.findFirst({
       where: eq(socialStatuses.uri, uri),
-      with: { actor: true },
+      with: { actor: { columns: PUBLIC_ACTOR_COLUMNS } },
     })) ?? null
   );
 }
@@ -377,7 +378,7 @@ export async function getStatusReplies(
         cursor ? gt(s.id, cursor) : undefined,
         sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`
       ),
-    with: { actor: true, attachments: true },
+    with: { actor: { columns: PUBLIC_ACTOR_COLUMNS }, attachments: true },
     orderBy: (s, { asc }) => [asc(s.published), asc(s.id)],
     limit: limit + 1,
   });

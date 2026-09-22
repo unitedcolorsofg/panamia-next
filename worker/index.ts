@@ -12,7 +12,7 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
-import { getDb } from '../lib/db';
+import { runWithDb } from '../lib/db';
 import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
@@ -58,89 +58,94 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // Prime the db and R2 caches with CF bindings before any application code runs.
-    // All subsequent getDb() / getStorage() calls return the cached instances.
-    getDb(env);
+    // Prime the R2/email/relay caches with CF bindings before any application
+    // code runs. These hold plain binding objects, which are safe to reuse.
     getEmail(env);
     getStorage(env);
     getRelay(env);
     // Shared secret for app/api/internal/* — the bearer fallback for a caller
     // that reaches those routes over HTTP rather than the Service Binding.
     setInternalAuthToken(env);
-    const url = new URL(request.url);
 
-    // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
-    if (url.pathname.startsWith('/ws/signaling/')) {
-      const roomId = url.pathname.split('/')[3];
-      if (!roomId) {
-        return new Response('Room ID required', { status: 400 });
-      }
-      const id = env.SIGNALING_ROOM.idFromName(roomId);
-      const stub = env.SIGNALING_ROOM.get(id);
-      return stub.fetch(request);
-    }
+    // The DB client is the exception: postgres.js sockets belong to the request
+    // that opened them, so it is scoped to this request rather than shared.
+    // Everything downstream must run inside this callback for `db` to resolve.
+    return runWithDb(env, async () => {
+      const url = new URL(request.url);
 
-    // Image optimization via Cloudflare Images binding.
-    // The parseImageParams validation inside handleImageOptimization
-    // normalizes backslashes and validates the origin hasn't changed.
-    // Match both /_next/image (emitted by the next/image shim) and the
-    // /_vinext/image alias — matching only one path 404s the other.
-    if (isImageOptimizationPath(url.pathname)) {
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      const images = env.IMAGES;
-      return handleImageOptimization(
-        request,
-        {
-          fetchAsset: (path) =>
-            env.ASSETS.fetch(new Request(new URL(path, request.url))),
-          // Omitted when the binding is absent: handleImageOptimization then
-          // serves the source image through its passthrough path directly,
-          // instead of throwing once per request and logging the failure.
-          transformImage: images
-            ? async (body, { width, format, quality }) => {
-                const result = await images
-                  .input(body)
-                  .transform(width > 0 ? { width } : {})
-                  .output({ format, quality });
-                return result.response();
-              }
-            : undefined,
-        },
-        allowedWidths
-      );
-    }
-
-    // Panaverse host routing: a surface hostname serves that surface's front
-    // door. Only the root path is touched — every other route stays reachable
-    // from every hostname, so /api, /.well-known, and shared pages behave
-    // identically no matter which surface a request arrives on.
-    //
-    // A redirect rather than a rewrite: vinext has no middleware-rewrite
-    // signalling, so serving /s under the URL "/" would leave the client router
-    // fetching RSC payloads for the wrong path. The end state is moving these
-    // routes into a route group so the surface root is genuinely "/".
-    const surface = resolveSurface(url.hostname);
-    if (url.pathname === '/' && surface.rootPath !== '/') {
-      const target = new URL(url.toString());
-      target.pathname = surface.rootPath;
-
-      // Visitors who type the fediverse identity domain get handed to the real
-      // UI host; that domain stays a thin identity endpoint serving WebFinger
-      // and actor JSON, which pass through untouched above.
-      const canonicalHost = hostnameFor(surface);
-      if (
-        url.hostname !== canonicalHost &&
-        !url.hostname.endsWith('.localhost')
-      ) {
-        target.protocol = 'https:';
-        target.hostname = canonicalHost;
-        target.port = '';
+      // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
+      if (url.pathname.startsWith('/ws/signaling/')) {
+        const roomId = url.pathname.split('/')[3];
+        if (!roomId) {
+          return new Response('Room ID required', { status: 400 });
+        }
+        const id = env.SIGNALING_ROOM.idFromName(roomId);
+        const stub = env.SIGNALING_ROOM.get(id);
+        return stub.fetch(request);
       }
 
-      return Response.redirect(target.toString(), 307);
-    }
+      // Image optimization via Cloudflare Images binding.
+      // The parseImageParams validation inside handleImageOptimization
+      // normalizes backslashes and validates the origin hasn't changed.
+      // Match both /_next/image (emitted by the next/image shim) and the
+      // /_vinext/image alias — matching only one path 404s the other.
+      if (isImageOptimizationPath(url.pathname)) {
+        const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+        const images = env.IMAGES;
+        return handleImageOptimization(
+          request,
+          {
+            fetchAsset: (path) =>
+              env.ASSETS.fetch(new Request(new URL(path, request.url))),
+            // Omitted when the binding is absent: handleImageOptimization then
+            // serves the source image through its passthrough path directly,
+            // instead of throwing once per request and logging the failure.
+            transformImage: images
+              ? async (body, { width, format, quality }) => {
+                  const result = await images
+                    .input(body)
+                    .transform(width > 0 ? { width } : {})
+                    .output({ format, quality });
+                  return result.response();
+                }
+              : undefined,
+          },
+          allowedWidths
+        );
+      }
 
-    // Delegate everything else to vinext
-    return handler.fetch(request);
+      // Panaverse host routing: a surface hostname serves that surface's front
+      // door. Only the root path is touched — every other route stays reachable
+      // from every hostname, so /api, /.well-known, and shared pages behave
+      // identically no matter which surface a request arrives on.
+      //
+      // A redirect rather than a rewrite: vinext has no middleware-rewrite
+      // signalling, so serving /s under the URL "/" would leave the client
+      // router fetching RSC payloads for the wrong path. The end state is
+      // moving these routes into a route group so the surface root is "/".
+      const surface = resolveSurface(url.hostname);
+      if (url.pathname === '/' && surface.rootPath !== '/') {
+        const target = new URL(url.toString());
+        target.pathname = surface.rootPath;
+
+        // Visitors who type the fediverse identity domain get handed to the
+        // real UI host; that domain stays a thin identity endpoint serving
+        // WebFinger and actor JSON, which pass through untouched above.
+        const canonicalHost = hostnameFor(surface);
+        if (
+          url.hostname !== canonicalHost &&
+          !url.hostname.endsWith('.localhost')
+        ) {
+          target.protocol = 'https:';
+          target.hostname = canonicalHost;
+          target.port = '';
+        }
+
+        return Response.redirect(target.toString(), 307);
+      }
+
+      // Delegate everything else to vinext
+      return handler.fetch(request);
+    });
   },
 };

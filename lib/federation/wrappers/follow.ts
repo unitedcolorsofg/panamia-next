@@ -7,9 +7,13 @@
  */
 
 import { db } from '@/lib/db';
-import { socialFollows, socialActors } from '@/lib/schema';
-import type { SocialFollow, SocialActor } from '@/lib/schema';
-import { and, eq, sql, desc } from 'drizzle-orm';
+import {
+  socialFollows,
+  socialActors,
+  PUBLIC_ACTOR_COLUMNS,
+} from '@/lib/schema';
+import type { SocialFollow, PublicSocialActor } from '@/lib/schema';
+import { and, eq, sql, desc, getTableColumns } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { canFollow, GateResult } from '../gates';
 import { socialConfig } from '../index';
@@ -18,7 +22,7 @@ export type FollowResult =
   | { success: true; follow: SocialFollow }
   | { success: false; error: string; gateResult?: GateResult };
 
-export type ActorWithFollowInfo = SocialActor & {
+export type ActorWithFollowInfo = PublicSocialActor & {
   isFollowing?: boolean;
   isFollowedBy?: boolean;
 };
@@ -185,7 +189,7 @@ export async function getFollowers(
   actorId: string,
   cursor?: string,
   limit: number = 20
-): Promise<{ actors: SocialActor[]; nextCursor: string | null }> {
+): Promise<{ actors: PublicSocialActor[]; nextCursor: string | null }> {
   const follows = await db.query.socialFollows.findMany({
     where: (f, { and, eq, lt }) =>
       and(
@@ -193,7 +197,7 @@ export async function getFollowers(
         eq(f.status, 'accepted'),
         cursor ? lt(f.id, cursor) : undefined
       ),
-    with: { actor: true },
+    with: { actor: { columns: PUBLIC_ACTOR_COLUMNS } },
     orderBy: [desc(socialFollows.acceptedAt), desc(socialFollows.id)],
     limit: limit + 1,
   });
@@ -215,7 +219,7 @@ export async function getFollowing(
   actorId: string,
   cursor?: string,
   limit: number = 20
-): Promise<{ actors: SocialActor[]; nextCursor: string | null }> {
+): Promise<{ actors: PublicSocialActor[]; nextCursor: string | null }> {
   const follows = await db.query.socialFollows.findMany({
     where: (f, { and, eq, lt }) =>
       and(
@@ -223,7 +227,7 @@ export async function getFollowing(
         eq(f.status, 'accepted'),
         cursor ? lt(f.id, cursor) : undefined
       ),
-    with: { targetActor: true },
+    with: { targetActor: { columns: PUBLIC_ACTOR_COLUMNS } },
     orderBy: [desc(socialFollows.acceptedAt), desc(socialFollows.id)],
     limit: limit + 1,
   });
@@ -315,13 +319,20 @@ export async function countMutualFollows(actorId: string): Promise<number> {
 /**
  * The Panas themselves. Callers gate this on the viewer being signed in; the
  * count above is the part that stays public.
+ *
+ * This is a join rather than a relational query, so it cannot use
+ * PUBLIC_ACTOR_COLUMNS -- the signing key is dropped from the projection
+ * instead, so it is never read out of the database at all.
  */
 export async function listMutualFollows(
   actorId: string,
   limit = 24
-): Promise<SocialActor[]> {
+): Promise<PublicSocialActor[]> {
+  const { privateKey: _privateKey, ...publicActorColumns } =
+    getTableColumns(socialActors);
+
   const rows = await db
-    .select({ actor: socialActors })
+    .select({ actor: publicActorColumns })
     .from(socialFollows)
     .innerJoin(reciprocal, mutualFollowJoin())
     .innerJoin(socialActors, eq(socialActors.id, socialFollows.targetActorId))

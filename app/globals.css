@@ -459,6 +459,15 @@
   color: var(--color-pana-cream);
 }
 
+/* .section-eyebrow hard-codes indigo, so on the indigo surface it renders
+   invisible — identical foreground and background. Callers try to correct this
+   with text-pana-butter, but that utility sits in @layer utilities and an
+   unlayered rule always wins the cascade, so the override has to live here
+   next to the surface that causes it. ::before inherits via currentColor. */
+.surface-indigo .section-eyebrow {
+  color: var(--color-pana-butter);
+}
+
 .surface-butter {
   background-color: var(--color-pana-butter);
   color: var(--color-pana-ink);
@@ -887,6 +896,838 @@
   .media-frame:hover img {
     transform: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Business profile (directory listing page)
+   ---------------------------------------------------------------------------
+   The profile is the one page in the directory a visitor lands on from a
+   search result, so it has to carry the brand without turning into a second
+   homepage. It reuses the editorial surfaces above rather than inventing new
+   ones: cream for the read, butter-2 for the events rail, indigo for the
+   social updates.
+
+   Everything here is prefixed `bizprofile-` because these are page-specific
+   compositions, not reusable primitives. A rule that turns out to be reusable
+   should be promoted up into the sections above rather than aliased here.
+   --------------------------------------------------------------------------- */
+
+.bizprofile-cover {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-pana-indigo);
+  /* `width: 100%` is load-bearing. Without it the box is auto-width, and on a
+     narrow viewport `min-height` back-solves through `aspect-ratio` into a
+     width far wider than the screen (190px x 16/5 = 608px), which is what
+     produced horizontal page scroll on mobile. Pinning the width makes the
+     ratio resolve height-from-width instead, the direction we actually want. */
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  min-height: 190px;
+}
+
+.bizprofile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The logo overlaps the cover's lower edge, so the bottom third of the photo
+   is always behind type or the logo plate. The scrim keeps both legible
+   regardless of what the business uploaded. */
+.bizprofile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.1) 0%,
+    rgb(17 13 13 / 0) 42%,
+    rgb(255 247 236 / 0.35) 78%,
+    var(--color-pana-cream) 100%
+  );
+}
+
+.dark .bizprofile-cover::after {
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.25) 0%,
+    rgb(17 13 13 / 0) 42%,
+    hsl(var(--background) / 0.45) 78%,
+    hsl(var(--background)) 100%
+  );
+}
+
+/* A white plate rather than a circular avatar: business logos are wordmarks as
+   often as they are marks, and a circle crops the former into nonsense. */
+.bizprofile-logo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 1.5rem;
+  background-color: #fff;
+  box-shadow:
+    0 0 0 5px var(--color-pana-cream),
+    0 18px 40px rgb(17 13 13 / 0.18);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dark .bizprofile-logo {
+  box-shadow:
+    0 0 0 5px hsl(var(--background)),
+    0 18px 40px rgb(0 0 0 / 0.5);
+}
+
+.bizprofile-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .bizprofile-logo {
+    width: 11rem;
+    height: 11rem;
+  }
+}
+
+.bizprofile-name {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.9rem, 4.2vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+/* Pana Certified. Indigo-on-butter so it reads as an award from the
+   organisation rather than as one more category tag — the tags beside it are
+   cream pills, and the contrast is the point. */
+.bizprofile-certified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+  border: 2px solid var(--color-pana-indigo);
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bizprofile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bizprofile-stat-figure {
+  font-weight: 900;
+  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.bizprofile-stat-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.bizprofile-avatarstack {
+  display: flex;
+  align-items: center;
+}
+
+.bizprofile-avatarstack > * {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid var(--color-pana-cream);
+  margin-left: -0.6rem;
+}
+
+.bizprofile-avatarstack > *:first-child {
+  margin-left: 0;
+}
+
+.dark .bizprofile-avatarstack > * {
+  border-color: hsl(var(--background));
+}
+
+/* External links. Outlined rather than filled so a business with nine links
+   does not turn the header into a wall of solid colour. */
+.bizprofile-linkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 2px solid rgb(17 13 13 / 0.18);
+  background-color: #fff;
+  color: var(--color-pana-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-linkchip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-pana-flame);
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-linkchip {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .bizprofile-linkchip:hover {
+  background-color: hsl(var(--accent));
+}
+
+.bizprofile-card {
+  background-color: #fff;
+  border-radius: 1.625rem;
+  border: 2px solid rgb(17 13 13 / 0.08);
+  box-shadow: 0 10px 30px rgb(17 13 13 / 0.06);
+}
+
+.dark .bizprofile-card {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow: none;
+}
+
+/* Event date chip. Flame block, ink type — the same pairing the ticker uses,
+   so the calendar reads as brand furniture rather than a system control. */
+.bizprofile-datechip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.bizprofile-datechip .chip-month {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bizprofile-datechip .chip-day {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-top: 0.15rem;
+}
+
+.bizprofile-rolepill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The upload affordance in the gallery. Dashed, not filled, so it never
+   competes with an actual photograph for attention. */
+.bizprofile-addphoto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
+  border-radius: 1.25rem;
+  border: 2px dashed rgb(17 13 13 / 0.28);
+  background-color: rgb(255 255 255 / 0.55);
+  color: var(--color-pana-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-addphoto:hover {
+  border-color: var(--color-pana-flame);
+  background-color: #fff;
+}
+
+.dark .bizprofile-addphoto {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+/* Sits under the upload tile and explains the three-photo limit. Lower
+   contrast and sentence case on purpose: the tile is the instruction, this is
+   the footnote, and matching their weight would make the reader pick. */
+.bizprofile-addphoto-hint {
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(17 13 13 / 0.68);
+}
+
+.dark .bizprofile-addphoto-hint {
+  color: hsl(var(--muted-foreground));
+}
+
+.bizprofile-gallery-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-gallery-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bizprofile-gallery-tile:hover img {
+  transform: scale(1.05);
+}
+
+/* Social updates sit on indigo, so this card is a translucent lift off that
+   surface rather than a white panel — a white card here would punch a hole in
+   the only dark run on the page. */
+.bizprofile-update {
+  border-radius: 1.375rem;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background-color: rgb(255 255 255 / 0.07);
+  padding: 1.5rem;
+}
+
+.bizprofile-update-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+button.bizprofile-update-action:hover {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   The live updates feed on a business profile.
+
+   The posts come from components/social, which /s renders too, so they carry
+   the neutral shadcn card look by default. That look punches white holes in
+   the one dark run on the profile page. Rather than thread a variant prop down
+   through PostList into PostCard — and have every future social component need
+   the same prop — the surface is corrected here, scoped to this section only,
+   so /s is untouched.
+
+   These are unlayered like the rest of the .bizprofile- rules, which is what
+   lets them beat the Tailwind utilities sitting on the components themselves.
+   --------------------------------------------------------------------------- */
+.bizprofile-updates .bg-card {
+  background-color: rgb(255 255 255 / 0.07);
+  border-color: rgb(255 255 255 / 0.16);
+  border-radius: 1.375rem;
+  color: var(--color-pana-cream);
+  box-shadow: none;
+}
+
+/* Secondary type inside the cards: handles, timestamps, empty states. */
+.bizprofile-updates .text-muted-foreground {
+  color: rgb(255 255 255 / 0.65);
+}
+
+/* The tab strip. bg-muted is a near-white pill that reads as a light control
+   stranded on a dark band. */
+.bizprofile-updates .bg-muted {
+  background-color: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* Radix sets data-state="active" on the tab *panel* as well as the tab, so
+   this has to name the role or it paints the whole feed butter. */
+.bizprofile-updates [role='tab'][data-state='active'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+/* Links inside posts pick up the page's default ink-on-light colour, which is
+   near-invisible here. */
+.bizprofile-updates a:not([class*='bg-']) {
+  color: var(--color-pana-butter);
+}
+
+/* Buttons. shadcn's primary is near-black slate and its outline variant is a
+   solid white pill — both read as system chrome dropped onto a brand band.
+   Matched to the buttons the claim prompt uses on this same surface. */
+.bizprofile-updates button.bg-primary {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+.bizprofile-updates button.bg-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.bizprofile-updates button.bg-background {
+  background-color: transparent;
+  border-color: rgb(255 255 255 / 0.4);
+  color: var(--color-pana-cream);
+  font-weight: 700;
+}
+
+.bizprofile-updates button.bg-background:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+}
+
+/* Reply/like/share. Their hover inverts to dark-on-light by default, which
+   flashes a white chip on the dark band. */
+.bizprofile-updates [role='tabpanel'] button:hover {
+  background-color: rgb(255 255 255 / 0.12);
+  color: var(--color-pana-butter);
+}
+
+/* The mock's own state switcher. Not part of the design — it is scaffolding so
+   the claimed/unclaimed and certified/uncertified variants can be reviewed
+   without four separate routes, and it goes away with the mock. */
+.bizprofile-mockbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mocktoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.bizprofile-mocktoggle[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  border-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-linkchip,
+  .bizprofile-gallery-tile img {
+    transition: none;
+  }
+
+  .bizprofile-linkchip:hover {
+    transform: none;
+  }
+
+  .bizprofile-gallery-tile:hover img {
+    transform: none;
+  }
+}
+
+/* Section headings inside the profile. A step down from `.section-display`,
+   which is sized for the homepage's full-bleed statements and overpowers a
+   page that is mostly read rather than scanned. Defined as its own class
+   rather than a Tailwind override so it does not depend on which of the two
+   rules wins the cascade. */
+.bizprofile-h2 {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+/* The event card's cover. Same hover behaviour as a gallery tile but square at
+   the top, because it sits flush inside a card that already has the corners.
+   Declared here rather than as a `rounded-none` utility on the tile: the
+   `bizprofile-` rules are unlayered, so they beat Tailwind's utility layer no
+   matter how specific the utility is. */
+.bizprofile-eventcover {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-eventcover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.group:hover .bizprofile-eventcover img {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-eventcover img {
+    transition: none;
+  }
+
+  .group:hover .bizprofile-eventcover img {
+    transform: none;
+  }
+}
+
+/* Larger than a comment avatar because it is doing real work here: this row is
+   the page's proof that other panas stand behind the business. */
+.bizprofile-avatarstack > * {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.75rem;
+}
+
+/* The bio column. Same rhythm as `.section-lede` but without its 46ch cap —
+   that limit is tuned for a homepage statement sitting beside artwork, and
+   here it strands the paragraph at half the width of its own column. */
+.bizprofile-bio {
+  font-size: clamp(1rem, 1.24vw, 1.1875rem);
+  line-height: 1.65;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Full-width upload zone: it sits on its own implicit grid row, and the
+   13rem auto-row height would leave a canyon of dashed nothing. */
+.bizprofile-addphoto {
+  height: 7.5rem;
+  align-self: start;
+  flex-direction: row;
+  gap: 0.625rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Signup gate dialog
+   -------------------------------------------------------------------------- */
+
+/* Overrides the shadcn DialogContent defaults (grid, thin border, sm radius).
+   These rules are unlayered and so win over the component's utilities without
+   needing `!important`. */
+.bizprofile-gate {
+  display: block;
+  max-width: 34rem;
+  padding: 1.75rem;
+  border: 2px solid var(--color-pana-ink);
+  border-radius: 1.5rem;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 24px 60px rgb(17 13 13 / 0.28);
+}
+
+.dark .bizprofile-gate {
+  border-color: rgb(255 255 255 / 0.22);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-gate-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bizprofile-gate-logo {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.bizprofile-gate-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.25rem;
+}
+
+.bizprofile-gate-biz {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bizprofile-gate-title {
+  margin-top: 0.625rem;
+  font-size: clamp(1.625rem, 3.4vw, 2.125rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.bizprofile-gate-reason {
+  margin-top: 0.875rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: rgb(17 13 13 / 0.78);
+}
+
+.dark .bizprofile-gate-reason {
+  color: rgb(255 247 236 / 0.82);
+}
+
+.bizprofile-gate-list {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-gate-list {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.bizprofile-gate-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.bizprofile-gate-list svg {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-gate-list svg {
+  color: var(--color-pana-butter);
+}
+
+/* A text link, not a third button. Dismissing has to stay clearly secondary to
+   signing up without becoming hard to find — the page behind it still works. */
+.bizprofile-gate-dismiss {
+  display: block;
+  width: 100%;
+  margin-top: 1.125rem;
+  padding: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.5);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-ink);
+}
+
+.dark .bizprofile-gate-dismiss {
+  color: rgb(255 247 236 / 0.55);
+}
+
+.dark .bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-cream);
+}
+
+/* One-of-three viewer picker in the mock bar. Segmented rather than three
+   separate pills so it reads as mutually exclusive at a glance. */
+/* On a phone the three viewer options are wider than the bar. Let the
+   segmented control scroll rather than clipping the last option. */
+.bizprofile-mockseg {
+  display: inline-flex;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background-color: rgb(255 255 255 / 0.06);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bizprofile-mockseg::-webkit-scrollbar {
+  display: none;
+}
+
+.bizprofile-mockseg > button {
+  flex: none;
+}
+
+.bizprofile-mockseg > button {
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 247 236 / 0.7);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bizprofile-mockseg > button:hover {
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mockseg > button[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. */
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. Scoped to `button` on purpose — a
+   business-only account gets these same counts as static spans, and those
+   must not carry a cursor or a hover. */
+button.bizprofile-update-action {
+  cursor: pointer;
+  border-radius: 999px;
+  margin: -0.25rem -0.5rem;
+  padding: 0.25rem 0.5rem;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+}
+
+button.bizprofile-update-action:hover {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+/* Pressed state is full opacity plus a filled glyph. Setting `color` here
+   would be a no-op: it already matches the base. */
+.bizprofile-update-action[data-on='true'] {
+  opacity: 1;
+}
+
+.bizprofile-update-action[data-on='true'] svg {
+  fill: currentColor;
+}
+
+/* Stands in for Save/Recommend when a business-only account is viewing, so the
+   missing controls read as "not for this account type" rather than as a bug. */
+.bizprofile-hero-note {
+  margin-top: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.65);
+}
+
+.bizprofile-hero-note a {
+  color: var(--color-pana-indigo);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bizprofile-hero-note a:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-hero-note {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Same counts, no affordance. The interactive rules are scoped to `button`,
+   so a static span needs only its spacing back. */
+.bizprofile-update-action[data-static='true'] {
+  cursor: default;
+}
+
+/* "1.6 miles away". Indigo and undimmed so it separates from the muted
+   city/county line it sits beside — in a directory people open to find
+   something nearby, distance is the sharper of the two facts. */
+.bizprofile-distance {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+}
+
+.dark .bizprofile-distance {
+  color: var(--color-pana-butter);
+}
+
+/* Shown before the viewer has shared a location, which is where most first
+   visits start. Styled as an offer rather than a disabled placeholder. */
+.bizprofile-distance-ask {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-distance-ask:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-distance-ask {
+  color: var(--color-pana-butter);
+}
+
+.dark .bizprofile-distance-ask:hover {
+  color: var(--color-pana-flame);
 }
 
 /* ==========================================================================
@@ -2197,4 +3038,1041 @@
   .panaverse-nav a {
     transition: none;
   }
+}
+
+/* ==========================================================================
+   Directory search
+   The results page a pana lands on after searching from the homepage hero.
+   Design mock at /mock/directory; moves to app/directory/search when signed
+   off. Unlayered on purpose — these rules sit beside Tailwind utilities on the
+   same elements and need to win without !important, same as .bizprofile-*.
+   ========================================================================== */
+
+/* --- Search band ------------------------------------------------------- */
+
+.dirsearch-band {
+  padding-block: clamp(2rem, 5vw, 3.25rem) clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.dirsearch-title {
+  margin-top: 0.85rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+/* The searched term is the one word on the page the visitor typed, so it gets
+   the accent rather than the sentence around it. */
+.dirsearch-title em {
+  font-style: normal;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-count {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.dirsearch-count strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-searchrow {
+  margin-top: 1.35rem;
+  max-width: 44rem;
+}
+
+.dirsearch-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.05rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.22);
+}
+
+.dirsearch-pill input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding-block: 0.55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.dirsearch-pill input:focus {
+  outline: none;
+}
+
+/* Safari paints its own clear affordance inside type="search", which lands on
+   top of the submit button at this size. */
+.dirsearch-pill input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dirsearch-pill button {
+  flex: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-pill button:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-locbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  margin-top: 0.95rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.dirsearch-locbar strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-locshare {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-pana-butter);
+  color: var(--color-pana-butter);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dirsearch-locshare:hover {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-locchange {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+}
+
+.dirsearch-locchange:hover {
+  opacity: 1;
+}
+
+/* --- Filter bar --------------------------------------------------------- */
+
+/* Sticky because refining is iterative: you scroll, you see too much food,
+   you want to cut it to Broward without scrolling back up. */
+.dirsearch-filters {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-block: 0.7rem 0.6rem;
+  background-color: var(--color-pana-cream);
+  border-bottom: 2px solid rgb(48 62 140 / 0.12);
+  box-shadow: 0 8px 20px rgb(17 13 13 / 0.05);
+}
+
+/* The mock bar is itself sticky at top: 0, so on the mock route the filter bar
+   has to stack beneath it rather than slide behind it — otherwise the first
+   chip row is permanently hidden. Scoped to the sibling pairing so the shipped
+   page, which has no mock bar, still pins to the very top. */
+.bizprofile-mockbar ~ .dirsearch-filters {
+  top: 3.7rem;
+}
+
+.dirsearch-filterrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.dirsearch-filterlabel {
+  flex: none;
+  width: 4.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+/* Horizontal scroll rather than wrapping: eleven categories wrapped to three
+   lines pushes the first result below the fold on a phone, and the whole
+   point of putting filters on the page was to keep results visible. */
+.dirsearch-chiprow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 0.15rem;
+}
+
+.dirsearch-chiprow::-webkit-scrollbar {
+  display: none;
+}
+
+.dirsearch-chip {
+  flex: none;
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-chip:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-chip[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.dirsearch-chipdivide {
+  flex: none;
+  width: 2px;
+  height: 1.25rem;
+  margin-inline: 0.3rem;
+  background-color: rgb(48 62 140 / 0.18);
+}
+
+.dirsearch-filterfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding-top: 0.5rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.dirsearch-sort select {
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.dirsearch-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-clear:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dirsearch-viewtoggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dirsearch-viewtoggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-viewtoggle button[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Results ------------------------------------------------------------ */
+
+.dirsearch-results {
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(2.5rem, 6vw, 4rem);
+}
+
+/* One column, not a grid of tiles. Each result carries a cover, a logo, a
+   location, counts, and an event — a three-across grid either truncates all
+   of that or produces tiles too tall to compare. A single column also keeps
+   every card's signals on the same vertical line, which is what makes a list
+   scannable rather than merely dense. */
+.dirsearch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* position: relative anchors the stretched link on the business name, which
+   is what makes the whole card a click target without nesting the Save button
+   inside an anchor. Save and Claim lift themselves back above it. */
+.dirsearch-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: #fff;
+  border: 2px solid rgb(48 62 140 / 0.1);
+  box-shadow: 0 10px 26px rgb(17 13 13 / 0.06);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dirsearch-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(48 62 140 / 0.24);
+  box-shadow: 0 18px 38px rgb(17 13 13 / 0.11);
+}
+
+.dirsearch-card-media {
+  position: relative;
+  flex: none;
+  height: 10rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dirsearch-card-cert {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+}
+
+.dirsearch-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem 1.05rem;
+}
+
+.dirsearch-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.dirsearch-card-logo {
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 2px solid var(--color-pana-cream);
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.12);
+}
+
+/* Business logos are wordmarks as often as they are marks; `cover` crops
+   them to an unreadable slice. `contain` keeps the whole logo legible. */
+.dirsearch-card-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.dirsearch-card-name {
+  font-family: var(--font-montserrat);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-name a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.dirsearch-card-tagline {
+  margin-top: 0.12rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-card-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-pana-indigo);
+}
+
+/* Distance is the one number on the card that decides whether someone goes,
+   so it is the one number that gets a chip. */
+.dirsearch-card-distance {
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.dirsearch-card-distance-off {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-style: italic;
+  opacity: 0.45;
+}
+
+.dirsearch-card-blurb {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: rgb(17 13 13 / 0.72);
+}
+
+.dirsearch-card-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dirsearch-card-cats li {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background-color: rgb(48 62 140 / 0.07);
+  color: var(--color-pana-indigo);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dirsearch-card-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.7rem;
+  background-color: rgb(217 98 54 / 0.09);
+  color: var(--color-pana-burnt);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.dirsearch-card-event strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-event span {
+  opacity: 0.85;
+}
+
+.dirsearch-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-card-signals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  min-width: 0;
+}
+
+/* Faces before numbers. "14 recommend" is a statistic; four overlapping
+   photographs of neighbours is the thing that makes it feel like a place
+   people you might know actually go. */
+.dirsearch-card-avatars {
+  display: inline-flex;
+}
+
+.dirsearch-card-avatars img {
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  background-color: var(--color-pana-butter);
+}
+
+.dirsearch-card-avatars img + img {
+  margin-left: -0.55rem;
+}
+
+.dirsearch-card-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.62);
+}
+
+.dirsearch-card-counts strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-counts i {
+  font-style: normal;
+  opacity: 0.35;
+}
+
+.dirsearch-card-active {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-card-actions {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.dirsearch-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.25);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-save:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-save[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition: background-color 0.16s ease;
+}
+
+.dirsearch-view:hover {
+  background-color: var(--color-pana-red);
+}
+
+.dirsearch-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  border: 2px dashed rgb(48 62 140 / 0.35);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-claim:hover {
+  background-color: rgb(48 62 140 / 0.07);
+}
+
+/* The card goes horizontal once there is room for the cover to sit beside the
+   text without squeezing either. Below this it stacks, which is also the only
+   arrangement where a 10rem cover is worth its vertical cost. */
+@media (min-width: 40rem) {
+  .dirsearch-card {
+    flex-direction: row;
+  }
+
+  .dirsearch-card-media {
+    width: 15rem;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+/* --- Map view ----------------------------------------------------------- */
+
+.dirsearch-maplayout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.dirsearch-maplist-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .dirsearch-maplayout {
+    grid-template-columns: 20rem 1fr;
+    align-items: start;
+  }
+
+  .dirsearch-maplist {
+    max-height: 34rem;
+    overflow-y: auto;
+  }
+}
+
+.dirsearch-maplist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dirsearch-maprow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.8rem;
+  border: 2px solid transparent;
+  text-align: left;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-maprow:hover {
+  background-color: rgb(48 62 140 / 0.06);
+}
+
+.dirsearch-maprow[data-on='true'] {
+  background-color: #fff;
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow img {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-maprow-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-maprow-name svg {
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow-meta {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-mapoffmap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.7rem;
+  background-color: rgb(48 62 140 / 0.06);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-map {
+  position: relative;
+  height: clamp(22rem, 55vh, 34rem);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  background:
+    radial-gradient(
+      circle at 78% 62%,
+      rgb(74 179 234 / 0.35) 0%,
+      transparent 42%
+    ),
+    linear-gradient(160deg, #eef3e6 0%, #e4ecdd 100%);
+}
+
+.dirsearch-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(48 62 140 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(48 62 140 / 0.06) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+}
+
+.dirsearch-map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-map-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dirsearch-map-pin:hover {
+  transform: translate(-50%, -100%) scale(1.1);
+}
+
+.dirsearch-map-pin[data-on='true'] {
+  z-index: 3;
+  border-color: var(--color-pana-burnt);
+  transform: translate(-50%, -100%) scale(1.18);
+}
+
+.dirsearch-map-you {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.dirsearch-map-youdot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background-color: var(--color-pana-blue);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0.45rem rgb(74 179 234 / 0.25);
+}
+
+/* The "you" marker sits among the pins, so its label needs its own
+   background — plain text collides with whatever logo is underneath. */
+.dirsearch-map-youlabel {
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-pana-indigo);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.92);
+  box-shadow: 0 2px 6px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card {
+  position: absolute;
+  z-index: 4;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.9rem;
+  background-color: #fff;
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card img {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-map-card-name {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-map-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-map-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-map-note {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.38);
+}
+
+/* --- Empty state -------------------------------------------------------- */
+
+.dirsearch-empty {
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4rem);
+  text-align: center;
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty > svg {
+  margin-inline: auto;
+  opacity: 0.35;
+}
+
+.dirsearch-empty-title {
+  margin-top: 1rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-empty-title em {
+  font-style: normal;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-lede {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.dirsearch-empty-primary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-secondary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.28);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-secondary:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty-or {
+  margin-top: 2rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-empty-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.dirsearch-empty-cats button {
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-empty-cats button:hover {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Tail CTA ----------------------------------------------------------- */
+
+.dirsearch-tail {
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.dirsearch-tail .section-display {
+  margin-top: 0.75rem;
+}
+
+.dirsearch-tail .section-lede {
+  margin-top: 0.75rem;
+  max-width: 38rem;
+}
+
+.dirsearch-tail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.dirsearch-tail-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 1rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-tail-primary:hover {
+  background-color: var(--color-pana-burnt);
 }

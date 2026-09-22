@@ -219,6 +219,11 @@ function transformProfile(
       city: p.addressLocality,
     },
     geo: p.geo,
+    // Carried into search results so a card can suppress "x miles away". An
+    // online-only business has no location to visit, and its address on file
+    // is typically the owner's home — measuring a distance to it is both
+    // wrong and a privacy leak.
+    online_only: p.onlineOnly === true,
     mentoring: mentoring
       ? {
           enabled: mentoring.enabled,

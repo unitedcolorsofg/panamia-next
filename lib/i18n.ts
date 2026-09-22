@@ -24,6 +24,8 @@ import esSubmitVenue from '@/locales/es/submitVenue.json';
 import enListBusiness from '@/locales/en/listBusiness.json';
 import esListBusiness from '@/locales/es/listBusiness.json';
 import enImpact from '@/locales/en/impact.json';
+import enProfile from '@/locales/en/profile.json';
+import esProfile from '@/locales/es/profile.json';
 // NOTE: the Spanish impact report is an untranslated mirror of the English
 // copy — it keeps the namespace whole so nothing renders blank, and is meant to
 // be replaced by a real translation.
@@ -47,6 +49,7 @@ i18n
         submitVenue: enSubmitVenue,
         listBusiness: enListBusiness,
         impact: enImpact,
+        profile: enProfile,
       },
       es: {
         common: es,
@@ -61,6 +64,7 @@ i18n
         submitVenue: esSubmitVenue,
         listBusiness: esListBusiness,
         impact: esImpact,
+        profile: esProfile,
       },
     },
     fallbackLng: 'en',

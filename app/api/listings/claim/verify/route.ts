@@ -5,6 +5,7 @@ import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { consumeClaimToken } from '@/lib/server/listing-claim';
 import { addProfileOwner, isProfileClaimed } from '@/lib/server/profile-owners';
+import { createActorForProfile } from '@/lib/federation';
 
 /**
  * Redeem a claim token.
@@ -13,6 +14,9 @@ import { addProfileOwner, isProfileClaimed } from '@/lib/server/profile-owners';
  * profiles.userId: claiming a business must not overwrite the claimant's own
  * identity profile, and leaving userId null is what allows the same human to
  * claim a second listing later.
+ *
+ * Also provisions the listing's social actor so its Updates section works from
+ * the moment it is claimed.
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -85,6 +89,33 @@ export async function POST(request: NextRequest) {
     }
 
     await addProfileOwner(profile.id, session.user.id, 'owner');
+
+    // Give the listing its social actor now. Without one the profile's Updates
+    // section is permanently empty, and the only way to fix that is to act as
+    // the business and find the opt-in on /s -- which nothing points the owner
+    // towards. Claiming is the consent signal, and the row federates nothing
+    // until the owner actually posts.
+    //
+    // Deliberately isolated from the outer catch: ownership is already
+    // committed by this point, so letting an actor failure surface as a 500
+    // would tell the owner the claim failed and send them back into a retry
+    // that can only 409. A listing with no handle simply gets no actor.
+    try {
+      const actorResult = await createActorForProfile(profile.id);
+      if (!actorResult.success) {
+        console.warn(
+          '[listings/claim/verify] no actor for profile %s: %s',
+          profile.id,
+          actorResult.error
+        );
+      }
+    } catch (actorError) {
+      console.error(
+        '[listings/claim/verify] actor creation failed for profile %s',
+        profile.id,
+        actorError
+      );
+    }
 
     return NextResponse.json({
       success: true,

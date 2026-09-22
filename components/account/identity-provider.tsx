@@ -37,6 +37,28 @@ interface IdentityState {
 
 const IdentityContext = createContext<IdentityState | null>(null);
 
+/** A 401 means "signed out", which is an answer, not a failure worth retrying. */
+function isDefinitive(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 401;
+}
+
+async function fetchIdentities(attempt = 0): Promise<{
+  identities: Identity[];
+  activeId: string | null;
+}> {
+  try {
+    const res = await axios.get('/api/profile/switch');
+    return {
+      identities: res.data?.data ?? [],
+      activeId: res.data?.activeProfileId ?? null,
+    };
+  } catch (err) {
+    if (attempt >= 2 || isDefinitive(err)) throw err;
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    return fetchIdentities(attempt + 1);
+  }
+}
+
 /**
  * Shared "acting as" state for the whole shell.
  *
@@ -47,6 +69,11 @@ const IdentityContext = createContext<IdentityState | null>(null);
  * Deliberately silent on failure: if the list can't be loaded the switcher
  * simply doesn't appear, which is much better than blocking the header on a
  * request that is irrelevant to most page views.
+ *
+ * That silence is only acceptable because the fetch retries first. Giving up on
+ * the first error made a brief blip look identical to "this account has nothing
+ * to switch between", so the switcher would vanish from the masthead until the
+ * next full page load happened to succeed.
  */
 export function IdentityProvider({
   enabled,
@@ -73,12 +100,11 @@ export function IdentityProvider({
     let cancelled = false;
     setLoading(true);
 
-    axios
-      .get('/api/profile/switch')
-      .then((res) => {
+    fetchIdentities()
+      .then(({ identities: list, activeId: active }) => {
         if (cancelled) return;
-        setIdentities(res.data?.data ?? []);
-        setActiveId(res.data?.activeProfileId ?? null);
+        setIdentities(list);
+        setActiveId(active);
       })
       .catch(() => {
         if (!cancelled) setIdentities([]);

@@ -31,6 +31,8 @@ export interface SearchResultsInterface {
     primaryCDN: string;
   };
   primary_address?: { city?: string };
+  /** True when the business has nowhere to visit, so distance does not apply. */
+  online_only?: boolean;
   socials: Record<string, unknown>;
 }
 
