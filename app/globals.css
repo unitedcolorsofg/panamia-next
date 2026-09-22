@@ -1595,3 +1595,492 @@
     transform: none;
   }
 }
+
+/* ==========================================================================
+   PANAVERSE CHROME
+   The shared frame that lets panamia.club and social.panamia.club read as one
+   organisation even though the browser says they are two origins. See
+   /mock/panaverse.
+
+   Every accent below resolves through a single `--surface-tone` pair set by a
+   `data-tone` attribute, so adding a surface is one registry entry plus one
+   pair of declarations — never a new component.
+   ========================================================================== */
+
+.browser-frame [data-tone='indigo'] {
+  --surface-tone: var(--color-pana-indigo);
+  --surface-tone-soft: rgb(48 62 140 / 0.1);
+}
+
+.browser-frame [data-tone='burnt'] {
+  --surface-tone: var(--color-pana-burnt);
+  --surface-tone-soft: rgb(217 98 54 / 0.12);
+}
+
+.browser-frame [data-tone='flame'] {
+  --surface-tone: var(--color-pana-flame);
+  --surface-tone-soft: rgb(242 132 68 / 0.14);
+}
+
+.browser-frame [data-tone='blue'] {
+  --surface-tone: var(--color-pana-blue);
+  --surface-tone-soft: rgb(74 179 234 / 0.16);
+}
+
+.browser-frame [data-tone='red'] {
+  --surface-tone: var(--color-pana-red);
+  --surface-tone-soft: rgb(217 78 65 / 0.12);
+}
+
+/* A browser window drawn around the mock. The address bar is part of the
+   design under review rather than decoration: the switcher exists to survive
+   the URL changing, and a mock with no URL cannot show whether it does. */
+.browser-frame {
+  overflow: hidden;
+  border: 3px solid var(--color-pana-ink);
+  border-radius: 1.25rem;
+  background-color: #ffffff;
+  box-shadow: 0 22px 50px rgb(17 13 13 / 0.16);
+}
+
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 2px solid rgb(17 13 13 / 0.12);
+  background-color: var(--color-pana-butter-2);
+}
+
+.browser-dots {
+  display: flex;
+  flex: none;
+  gap: 0.3125rem;
+}
+
+.browser-dots i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background-color: rgb(17 13 13 / 0.18);
+}
+
+.browser-url {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  gap: 0.4375rem;
+  min-width: 0;
+  max-width: 30rem;
+  flex: 1;
+  padding: 0.3125rem 0.75rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  border-radius: 999px;
+  background-color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.75);
+}
+
+.browser-url strong {
+  font-weight: 900;
+}
+
+/* Tall enough that the open switcher panel is never clipped by the frame's
+   `overflow: hidden`. A real browser window is this tall anyway, so sizing to
+   fit the panel also makes the simulation more honest. */
+.browser-viewport {
+  min-height: 40rem;
+  background-color: var(--color-pana-cream);
+}
+
+/* The masthead every surface carries. The wordmark, switcher, and avatar stay
+   constant; only the accent rule and the nav change. A surface that also swapped
+   the wordmark would be announcing itself as a different product. */
+.panaverse-masthead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.125rem;
+  border-bottom: 3px solid var(--surface-tone, var(--color-pana-indigo));
+  background-color: #ffffff;
+}
+
+.panaverse-wordmark {
+  font-size: 1.0625rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--color-pana-indigo);
+}
+
+.panaverse-wordmark span {
+  color: var(--color-pana-burnt);
+}
+
+.panaverse-sep {
+  width: 2px;
+  height: 1.125rem;
+  border-radius: 1px;
+  background-color: rgb(17 13 13 / 0.15);
+}
+
+/* The surface name hangs off the wordmark instead of replacing it — small,
+   uppercase, tone-coloured, so it reads as a room inside Pana Mia. */
+.panaverse-surface-name {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+.panaverse-nav {
+  display: none;
+  align-items: center;
+  gap: 1.125rem;
+}
+
+.panaverse-nav a {
+  font-size: 0.78125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.6);
+  transition: color 0.2s ease;
+}
+
+.panaverse-nav a[data-active='true'] {
+  color: var(--color-pana-ink);
+}
+
+.panaverse-nav a:hover {
+  color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+@media (min-width: 768px) {
+  .panaverse-nav {
+    display: flex;
+  }
+}
+
+/* On a phone the pill already names the surface, so the masthead suffix is
+   duplicate information — drop it rather than let it run under the switcher. */
+@media (max-width: 479px) {
+  .panaverse-sep,
+  .panaverse-surface-name {
+    display: none;
+  }
+}
+
+/* Small avatar for chrome. Distinct from `.profile-avatar`, which is a 9.5rem
+   header element with a negative margin and would tear the masthead apart. */
+.chrome-avatar {
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-pana-butter);
+}
+
+/* ---- The switcher ------------------------------------------------------- */
+
+/* Static, so the panel below anchors to `.panaverse-masthead` rather than to
+   the pill. Anchoring to the pill overflows the frame on a phone, where the
+   panel is wider than the distance from the pill to the left edge. */
+.surface-switcher {
+  position: static;
+}
+
+.surface-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.625rem 0.3125rem 0.5rem;
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.surface-pill:hover {
+  border-color: var(--surface-tone, var(--color-pana-indigo));
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-pill-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.surface-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background-color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+/* Right edge lines up with the avatar, which is the masthead's own padding —
+   so the panel reads as hanging off the chrome rather than off one control.
+   Width is capped against the masthead so it can never outgrow the frame. */
+.surface-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 1.125rem;
+  z-index: 30;
+  width: min(21rem, calc(100% - 2.25rem));
+  padding: 0.875rem;
+  border: 2px solid var(--color-pana-ink);
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 18px 44px rgb(17 13 13 / 0.22);
+}
+
+/* Identity sits above the destinations, not beside them. The panel's argument
+   is "same you, different room", and a list of links with an avatar tucked in
+   the corner makes the opposite argument. */
+.surface-panel-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-bottom: 0.75rem;
+}
+
+.surface-identity-name {
+  font-size: 0.9375rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.surface-identity-handle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-pana-burnt);
+}
+
+/* The sentence the panel exists to make believable. On butter so it reads as
+   a statement of fact rather than as helper text. */
+.surface-panel-note {
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.625rem;
+  background-color: var(--color-pana-butter-2);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(17 13 13 / 0.7);
+}
+
+.surface-panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid rgb(17 13 13 / 0.1);
+}
+
+.surface-panel-label {
+  margin-bottom: 0.125rem;
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.surface-option {
+  display: flex;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem;
+  border: 2px solid transparent;
+  border-radius: 0.875rem;
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.surface-option:hover {
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-option[data-current='true'] {
+  border-color: var(--surface-tone, var(--color-pana-indigo));
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-option-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.surface-option-name {
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.surface-option-blurb {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgb(17 13 13 / 0.65);
+}
+
+/* The hostname, shown rather than hidden. A member who can see that Pana
+   Social lives at a different address is not surprised when the URL bar
+   changes; one who cannot has simply been redirected somewhere. */
+.surface-host {
+  display: block;
+  margin-top: 0.3125rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.surface-here {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  margin-left: auto;
+  flex: none;
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+/* Rooms: one line, no hostname, because they do not have one. The visual gap
+   between this and `.surface-option` is the honest signal that these live
+   inside the main site rather than behind a front door of their own. */
+.surface-room {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.625rem;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.surface-room:hover {
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-room-name {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.surface-room-blurb {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.5);
+}
+
+/* One settings page for the whole panaverse. Per-surface settings would mean
+   remembering which room you changed your email in. */
+.surface-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5625rem 0.625rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  transition: border-color 0.2s ease;
+}
+
+.surface-panel-footer:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+/* ---- Page body under the masthead --------------------------------------- */
+
+/* Deliberately low fidelity. The surfaces themselves are designed in
+   /mock/feed and /mock/profile; redrawing them here would invite review of
+   the content instead of the chrome. */
+.panaverse-body {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem 1.125rem 2rem;
+}
+
+.panaverse-body-title {
+  margin-top: 0.25rem;
+  font-size: clamp(1.375rem, 2.6vw, 1.875rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.panaverse-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.panaverse-skeleton span {
+  height: 3.75rem;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #ffffff;
+}
+
+.panaverse-skeleton-rail {
+  display: none;
+  width: 12rem;
+  flex: none;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding-top: 2.5rem;
+}
+
+.panaverse-skeleton-rail span {
+  height: 4.5rem;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  border-radius: 0.875rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+@media (min-width: 768px) {
+  .panaverse-skeleton-rail {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-pill,
+  .surface-pill:hover,
+  .surface-option,
+  .surface-room,
+  .surface-panel-footer,
+  .panaverse-nav a {
+    transition: none;
+  }
+}

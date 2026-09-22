@@ -9,10 +9,11 @@ design, written in the real design system so the argument is honest: if a
 layout only works with invented spacing or colours that are not in
 `app/globals.css`, that shows up here rather than in review.
 
-| Route           | Description                                         |
-| --------------- | --------------------------------------------------- |
-| `/mock/profile` | Personal profile page (pana page) redesign          |
-| `/mock/feed`    | Pana Social feed redesign, including the empty feed |
+| Route             | Description                                            |
+| ----------------- | ------------------------------------------------------ |
+| `/mock/profile`   | Personal profile page (pana page) redesign             |
+| `/mock/feed`      | Pana Social feed redesign, including the empty feed    |
+| `/mock/panaverse` | Panaverse chrome: masthead, surface switcher, identity |
 
 ## Conventions
 
