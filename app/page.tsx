@@ -57,6 +57,10 @@ const FAQ_ANCHORS: Record<string, string> = {
 // out of the JSX so the markup below stays a single readable loop.
 const PILLARS = ['gather', 'connect', 'celebrate'] as const;
 
+/* The impact figures, in the mock's order. Labels only — the values stay unset
+   until there is a counts endpoint to fill them. */
+const IMPACT_STATS = ['panas', 'events', 'partners'] as const;
+
 export default function HomePage() {
   const { t } = useTranslation('home');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -124,15 +128,16 @@ export default function HomePage() {
     return () => window.removeEventListener('hashchange', openFromHash);
   }, []);
 
-  const tickerPhrases = t('ticker')
-    .split('·')
-    .map((phrase) => phrase.trim())
-    .filter(Boolean);
-
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Hero Section with Search */}
-      <section className="home-hero-banner relative py-8 text-center md:py-12">
+      {/* Hero Section with Search. The scalloped trim sits on this section's top
+          edge, biting up into the masthead — the mock's opening gesture. Its
+          colour matches the masthead rather than the cream token so the notches
+          land seamlessly. */}
+      <section
+        className="home-hero-banner scallop relative py-8 text-center md:py-12"
+        style={{ '--scallop': '#ffffff' } as CSSProperties}
+      >
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-[90vw] space-y-8">
             {/* Logo */}
@@ -169,21 +174,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Marquee strip. The phrase list is rendered twice because the track
-          animates by exactly half its width — one copy scrolls off while its
-          duplicate scrolls in, so the loop has no visible seam. */}
-      <section className="surface-cream py-6">
+      {/* Marquee strip. In the mock this band sits on the same flame field as
+          the directory below it, so the two read as one orange run. The
+          category list is rendered twice because the track animates by exactly
+          half its width — one copy scrolls off while its duplicate scrolls in,
+          so the loop has no visible seam.
+
+          It lists the real directory categories rather than brand slogans: the
+          masthead already carries "Shop Local / Eat Local", and repeating that
+          here wasted the strip on copy the user had just read. */}
+      <section className="bg-pana-flame text-pana-ink py-6">
         <div className="ticker" aria-hidden="true">
           <div className="ticker-track">
             {[0, 1].map((copy) => (
               <div key={copy} className="flex">
-                {tickerPhrases.map((phrase, index) => (
-                  <span
-                    key={`${copy}-${index}`}
-                    className="px-6 text-sm font-extrabold tracking-[0.1em] whitespace-nowrap uppercase"
-                  >
-                    {phrase}
-                    <span className="text-pana-indigo px-6">✳</span>
+                {profileCategoryList.map((category) => (
+                  <span key={`${copy}-${category.value}`}>
+                    {category.desc} <i>◆</i>
                   </span>
                 ))}
               </div>
@@ -193,12 +200,10 @@ export default function HomePage() {
       </section>
 
       {/* Find Your People — the directory index. Every row is a real category
-          filter, so each one lands on a populated browse result. */}
-      <section
-        id="directory"
-        className="surface-citrus scallop py-16 md:py-24"
-        style={{ '--scallop': 'var(--color-pana-cream)' } as CSSProperties}
-      >
+          filter, so each one lands on a populated browse result. The scallop
+          lives on the hero above rather than here, because the ticker and this
+          section share one continuous flame field. */}
+      <section id="directory" className="surface-citrus py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="mb-10 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
             <div>
@@ -209,7 +214,10 @@ export default function HomePage() {
                 <Trans
                   i18nKey="directory.title"
                   t={t}
-                  components={{ em: <em className="not-italic" /> }}
+                  components={{
+                    br: <br />,
+                    em: <em className="display-accent" />,
+                  }}
                 />
               </h2>
               <p className="section-lede mt-5">{t('directory.lede')}</p>
@@ -252,7 +260,13 @@ export default function HomePage() {
               <span className="section-eyebrow text-pana-butter">
                 {t('about.eyebrow')}
               </span>
-              <h2 className="section-display mt-4">{t('about.title')}</h2>
+              <h2 className="section-display mt-4">
+                <Trans
+                  i18nKey="about.title"
+                  t={t}
+                  components={{ br: <br /> }}
+                />
+              </h2>
               {/* Indigo is the only surface that carries cream text — see the
                   contrast rule in globals.css. `text-muted-foreground` would
                   be near-invisible here. */}
@@ -332,13 +346,13 @@ export default function HomePage() {
       {featured.length > 0 && (
         <section
           id="collective"
-          className="surface-butter-2 citrus-host py-16 md:py-24"
+          className="surface-butter citrus-host py-16 md:py-24"
         >
           <span
             className="citrus citrus-deco right"
             style={
               {
-                '--cz': '22rem',
+                '--cz': '23.75rem',
                 '--cz-rim': 'var(--color-pana-flame)',
                 '--cz-seg': 'rgb(242 132 68 / 0.45)',
                 '--cz-core': 'var(--color-pana-butter-2)',
@@ -353,7 +367,10 @@ export default function HomePage() {
                 <Trans
                   i18nKey="collective.title"
                   t={t}
-                  components={{ em: <em className="not-italic" /> }}
+                  components={{
+                    br: <br />,
+                    em: <em className="display-accent" />,
+                  }}
                 />
               </h2>
               <p className="section-lede mt-5">{t('collective.lede')}</p>
@@ -413,7 +430,7 @@ export default function HomePage() {
           className="citrus citrus-deco left"
           style={
             {
-              '--cz': '20rem',
+              '--cz': '18.75rem',
               '--cz-rim': 'rgb(255 247 236 / 0.6)',
               '--cz-seg': 'rgb(255 247 236 / 0.35)',
               '--cz-core': 'var(--color-pana-red)',
@@ -436,7 +453,13 @@ export default function HomePage() {
               <span className="section-eyebrow text-pana-ink/80">
                 {t('events.badge')}
               </span>
-              <h2 className="section-display mt-4">{t('events.title')}</h2>
+              <h2 className="section-display mt-4">
+                <Trans
+                  i18nKey="events.title"
+                  t={t}
+                  components={{ br: <br /> }}
+                />
+              </h2>
               <p className="section-lede mt-5">{t('events.description')}</p>
               <Button
                 size="lg"
@@ -462,7 +485,10 @@ export default function HomePage() {
                 <Trans
                   i18nKey="articles.title"
                   t={t}
-                  components={{ em: <em className="not-italic" /> }}
+                  components={{
+                    br: <br />,
+                    em: <em className="display-accent" />,
+                  }}
                 />
               </h2>
               <p className="section-lede mt-5">{t('articles.subtitle')}</p>
@@ -517,8 +543,52 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Culture, On The Record — the mock's impact band. The three figures are
+          deliberately unset: there is no counts endpoint yet, and the mock's
+          412/38/11 were invented. The em dashes hold the exact slots the real
+          numbers will take, so wiring them up later costs no layout change. */}
+      <section
+        id="impact"
+        className="surface-citrus scallop py-16 md:py-24"
+        style={{ '--scallop': 'var(--color-pana-cream)' } as CSSProperties}
+      >
+        <div className="container mx-auto px-4">
+          <span className="section-eyebrow text-pana-ink/80">
+            {t('impact.eyebrow')}
+          </span>
+          <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <h2 className="section-display">
+                <Trans
+                  i18nKey="impact.title"
+                  t={t}
+                  components={{ br: <br /> }}
+                />
+              </h2>
+              <p className="section-lede mt-6">{t('impact.lede')}</p>
+              <span className="coming-soon text-pana-ink/75 mt-7">
+                {t('comingSoon')}
+              </span>
+            </div>
+
+            <dl className="grid grid-cols-3 gap-5">
+              {IMPACT_STATS.map((stat) => (
+                <div key={stat}>
+                  <dd className="stat-figure" data-pending="true">
+                    &mdash;
+                  </dd>
+                  <dt className="section-eyebrow text-pana-ink/70 mt-2 block">
+                    {t(`impact.${stat}`)}
+                  </dt>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
-      <section className="surface-butter-2 py-16 md:py-24" id="home-faq">
+      <section className="surface-butter py-16 md:py-24" id="home-faq">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <span className="section-eyebrow">{t('faq.eyebrow')}</span>
@@ -629,12 +699,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Closing statement. The design mock ends on a newsletter capture, but
-          there is no public subscribe endpoint on the site — /api/crm/contact/
-          subscribe re-subscribes an already-authenticated contact in the CRM.
-          Rather than ship an input that silently discards an address, this
-          closes on the same statement with the two real destinations behind
-          it. */}
+      {/* Closing statement and newsletter. The mock ends on a newsletter
+          capture; it is present here in its designed position but disabled,
+          with the two real destinations (join, browse) carrying the section
+          until a public subscribe endpoint exists. */}
       <section className="surface-indigo py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -668,6 +736,42 @@ export default function HomePage() {
                 >
                   <Link href="/directory/search">{t('closing.ctaBrowse')}</Link>
                 </Button>
+              </div>
+
+              {/* The mock's newsletter capture. Shown in its designed position
+                  but disabled, because there is no public subscribe endpoint
+                  yet — /api/crm/contact/subscribe only re-subscribes an
+                  already-authenticated contact. A live input here would accept
+                  an address and silently drop it. */}
+              <div className="mt-10 border-t border-white/20 pt-8">
+                <span className="section-eyebrow text-pana-butter">
+                  {t('newsletter.eyebrow')}
+                </span>
+                <p className="section-lede mt-4 text-white/85">
+                  {t('newsletter.lede')}
+                </p>
+                <div className="mt-5 flex max-w-lg flex-wrap items-center gap-3">
+                  <input
+                    type="email"
+                    disabled
+                    aria-describedby="newsletter-status"
+                    placeholder={t('newsletter.placeholder')}
+                    className="text-pana-cream min-w-0 flex-1 rounded-full border-2 border-white/25 bg-white/5 px-5 py-3 font-semibold placeholder:text-white/45 disabled:cursor-not-allowed"
+                  />
+                  <Button
+                    size="lg"
+                    disabled
+                    className="bg-pana-butter text-pana-ink rounded-full font-extrabold"
+                  >
+                    {t('newsletter.cta')}
+                  </Button>
+                </div>
+                <span
+                  id="newsletter-status"
+                  className="coming-soon text-pana-butter mt-4"
+                >
+                  {t('comingSoon')}
+                </span>
               </div>
             </div>
           </div>
