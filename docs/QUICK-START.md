@@ -148,6 +148,32 @@ fix(auth): resolve OAuth callback redirect
 
 See [FEATURES.md](./FEATURES.md) for available scopes.
 
+### Line Endings
+
+This repo pins LF through `.gitattributes`. If your worktree was created **before** that file landed, git does not re-materialize files it is not otherwise touching, so they keep their original CRLF endings while the index correctly holds LF.
+
+Nothing looks wrong. `git status` reports a clean tree, because the committed content is already correct — the staleness exists only on disk. The symptom shows up somewhere else entirely: `prettier --check` fails on files you never touched.
+
+Diagnose it with the one instrument that distinguishes index from working tree:
+
+```bash
+git ls-files --eol | grep 'i/lf.*w/crlf' | wc -l
+```
+
+A non-zero count means the working tree is stale. Re-materialize it from the index:
+
+```bash
+# WARNING: discards uncommitted changes. Commit or stash first.
+git rm --cached -r --quiet .
+git reset --hard --quiet
+```
+
+This creates no commit and changes nothing git tracks; it only rewrites the files on disk. Untracked and ignored paths, including `.husky/_`, are left alone.
+
+Verified on a worktree carrying 1683 stale files: the count drops to 0, `HEAD` is unchanged, the tree stays clean, and repo-wide `prettier --check .` goes from failing to passing.
+
+Each worktree is affected independently, and a worktree created after `.gitattributes` never sees this at all — which is why it is easy to miss when it does happen.
+
 ---
 
 ## Testing
