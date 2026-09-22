@@ -1,0 +1,59 @@
+{
+  "eyebrow": "Free listing",
+  "title": "List your business",
+  "intro1": "Pana MIA is a directory of South Florida's independent makers, shops, artists and small businesses. Getting listed is free.",
+  "intro2": "Tell us the basics — it takes about a minute. No account needed yet.",
+  "howItWorks": "How it works",
+  "step1Title": "You tell us you exist",
+  "step1Body": "Six quick questions. That's it.",
+  "step2Title": "We take a look",
+  "step2Body": "A real person reviews every submission so the directory stays local and legit.",
+  "step3Title": "You claim your listing",
+  "step3Body": "Once you're live, we email you a link to claim it and fill out the rest.",
+
+  "formTitle": "Your business",
+  "formDesc": "Only the starred fields are required. You can add everything else after you claim your listing.",
+
+  "nameLabel": "Business name",
+  "namePlaceholder": "Café Las Olas",
+
+  "emailLabel": "Email",
+  "emailPlaceholder": "hello@yourbusiness.com",
+  "emailNote": "Use the address you want to claim this listing with — we'll send the claim link here.",
+
+  "fiveWordsLabel": "What do you do?",
+  "fiveWordsPlaceholder": "Cuban coffee and pastelitos",
+  "fiveWordsNote": "A few words. This is what people see first in the directory.",
+
+  "linksTitle": "Where can we find you?",
+  "linksNote": "Add at least one so we can confirm you're a real local business.",
+  "instagramLabel": "Instagram",
+  "instagramPlaceholder": "@yourbusiness",
+  "websiteLabel": "Website",
+  "websitePlaceholder": "yourbusiness.com",
+
+  "detailsLabel": "Anything else? (optional)",
+  "detailsPlaceholder": "Tell us a bit more about what you make, where you're based, or what makes you you.",
+
+  "phoneLabel": "Phone (optional)",
+  "phonePlaceholder": "(305) 555-0123",
+  "phoneNote": "Only used by our team if we need to reach you. Never shown publicly.",
+
+  "turnstileBlocked": "Verification could not load. Please refresh the page and try again.",
+  "turnstileNote": "Protected by Cloudflare Turnstile. No tracking, no cookies.",
+
+  "submitButton": "Submit listing",
+  "sending": "Sending...",
+
+  "successTitle": "Got it — thank you!",
+  "successBody": "We've received your listing and sent a confirmation to {{email}}.",
+  "successNextTitle": "What happens next",
+  "successNext1": "Our team reviews your submission, usually within a few days.",
+  "successNext2": "Once approved, your listing goes live in the directory.",
+  "successNext3": "We'll email you a link to claim it and add photos, hours and more.",
+  "successAnother": "Submit another business",
+  "successHome": "Back to home",
+
+  "alreadyListed": "Already have a listing?",
+  "signInLink": "Sign in to manage it"
+}

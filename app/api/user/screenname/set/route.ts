@@ -10,6 +10,10 @@ import {
 } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 
 // Rate limit: once per 90 days (~3 months)
 const SCREENNAME_COOLDOWN_DAYS = 90;
@@ -146,8 +150,16 @@ export async function POST(request: NextRequest) {
     // An unclaimed profile may already exist for this email — a listing created
     // before the account existed. auth.ts claims those at sign-in, but re-check
     // here so we can never trip the unique constraint on profiles.email.
+    //
+    // Business listings are excluded: absorbing one would make this human *be*
+    // the business and burn their single identity slot. They are administered
+    // through profileOwners instead. See lib/server/profile-owners.ts.
     const unclaimed = await db.query.profiles.findFirst({
-      where: and(eq(profiles.email, email), isNull(profiles.userId)),
+      where: and(
+        eq(profiles.email, email),
+        isNull(profiles.userId),
+        notBusinessListing
+      ),
       columns: { id: true },
     });
 
@@ -156,6 +168,7 @@ export async function POST(request: NextRequest) {
         .update(profiles)
         .set({ userId: session.user.id })
         .where(eq(profiles.id, unclaimed.id));
+      await addProfileOwner(unclaimed.id, session.user.id);
     } else {
       await db.insert(profiles).values({
         userId: session.user.id,
@@ -167,6 +180,16 @@ export async function POST(request: NextRequest) {
       });
     }
   }
+
+  // Mirror the handle onto the profile. Resolvers (webfinger, nostr.json, the
+  // actor endpoint) read profiles.screenname, so leaving this stale would make
+  // @name resolve to the old identity. Covers both branches above: userId is
+  // set by now whether the profile was just claimed, just created, or already
+  // existed.
+  await db
+    .update(profiles)
+    .set({ screenname: newScreenname })
+    .where(eq(profiles.userId, session.user.id));
 
   // Sync screenname to SocialActor if one exists
   const socialActorId = currentUser?.profile?.socialActor?.id;

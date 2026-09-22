@@ -21,6 +21,8 @@ import enSignin from '@/locales/en/signin.json';
 import esSignin from '@/locales/es/signin.json';
 import enSubmitVenue from '@/locales/en/submitVenue.json';
 import esSubmitVenue from '@/locales/es/submitVenue.json';
+import enListBusiness from '@/locales/en/listBusiness.json';
+import esListBusiness from '@/locales/es/listBusiness.json';
 import enImpact from '@/locales/en/impact.json';
 // NOTE: the Spanish impact report is an untranslated mirror of the English
 // copy — it keeps the namespace whole so nothing renders blank, and is meant to
@@ -43,6 +45,7 @@ i18n
         jointeam: enJointeam,
         signin: enSignin,
         submitVenue: enSubmitVenue,
+        listBusiness: enListBusiness,
         impact: enImpact,
       },
       es: {
@@ -56,6 +59,7 @@ i18n
         jointeam: esJointeam,
         signin: esSignin,
         submitVenue: esSubmitVenue,
+        listBusiness: esListBusiness,
         impact: esImpact,
       },
     },

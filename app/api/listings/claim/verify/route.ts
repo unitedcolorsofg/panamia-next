@@ -1,0 +1,101 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { consumeClaimToken } from '@/lib/server/listing-claim';
+import { addProfileOwner, isProfileClaimed } from '@/lib/server/profile-owners';
+
+/**
+ * Redeem a claim token.
+ *
+ * Grants ownership through profile_owners and deliberately does NOT touch
+ * profiles.userId: claiming a business must not overwrite the claimant's own
+ * identity profile, and leaving userId null is what allows the same human to
+ * claim a second listing later.
+ */
+export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'Sign in to finish claiming this listing.' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = (await request.json().catch(() => null)) as {
+      token?: string;
+    } | null;
+
+    const token = body?.token?.trim();
+    if (!token) {
+      return NextResponse.json(
+        { error: 'That link is missing its token.' },
+        { status: 400 }
+      );
+    }
+
+    const target = await consumeClaimToken(token);
+    if (!target) {
+      return NextResponse.json(
+        {
+          error:
+            'This link has expired or already been used. Request a new one from the listing.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // The token is bound to the account that requested it. Opening the email
+    // while signed in as someone else must not hand them the business.
+    if (target.userId !== session.user.id) {
+      return NextResponse.json(
+        {
+          error:
+            'This link was issued to a different account. Sign in with the account that requested it.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.id, target.profileId),
+      columns: { id: true, name: true },
+    });
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'That listing no longer exists.' },
+        { status: 404 }
+      );
+    }
+
+    // Re-checked after redemption rather than before, because two people can
+    // hold valid tokens for the same listing at once; whoever confirms first
+    // wins and the loser gets told, instead of silently becoming a co-owner.
+    if (await isProfileClaimed(profile.id)) {
+      return NextResponse.json(
+        {
+          error:
+            'Someone else claimed this listing first. Contact us at hola@pana.social if that is wrong.',
+        },
+        { status: 409 }
+      );
+    }
+
+    await addProfileOwner(profile.id, session.user.id, 'owner');
+
+    return NextResponse.json({
+      success: true,
+      profileId: profile.id,
+      businessName: profile.name,
+    });
+  } catch (error) {
+    console.error('[listings/claim/verify] failed', error);
+    return NextResponse.json(
+      { error: 'Could not complete the claim. Please try again.' },
+      { status: 500 }
+    );
+  }
+}

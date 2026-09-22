@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { getActiveProfile } from '@/lib/server/active-profile';
 
 const VALID_LICENSES = ['cc-0', 'cc-by-4', 'cc-by-sa-4'] as const;
 type CcLicense = (typeof VALID_LICENSES)[number];
@@ -26,9 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
+  const existingProfile = await getActiveProfile(session.user.id);
 
   if (!existingProfile) {
     return NextResponse.json({

@@ -1,6 +1,10 @@
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import {
   ProfileDescriptions,
   ProfileMentoring,
@@ -104,9 +108,24 @@ function transformToLegacyFormat(
  * Returns profile in legacy format for page components
  */
 export const getPublicProfile = async (handle: string) => {
-  // Query via user (screenname is on User, not Profile)
+  // Resolve profile-first. Business listings own their handle directly and have
+  // no linked user, so a users-only lookup would 404 them. Personal profiles
+  // are found the same way because screenname/set mirrors the handle onto the
+  // profile; the users fallback below covers rows predating that mirror.
+  const profile = await db.query.profiles.findFirst({
+    where: sql`lower(${profiles.screenname}) = lower(${handle})`,
+    with: { user: { columns: { screenname: true } } },
+  });
+
+  if (profile) {
+    return transformToLegacyFormat({
+      ...profile,
+      user: { screenname: profile.screenname ?? profile.user?.screenname },
+    });
+  }
+
   const user = await db.query.users.findFirst({
-    where: eq(users.screenname, handle),
+    where: sql`lower(${users.screenname}) = lower(${handle})`,
     with: { profile: true },
   });
 
@@ -173,7 +192,10 @@ export const ensureProfile = async (userId: string, email?: string) => {
     const unclaimedProfile = await db.query.profiles.findFirst({
       where: and(
         eq(profiles.email, email.toLowerCase()),
-        isNull(profiles.userId)
+        isNull(profiles.userId),
+        // Same exclusion as auth.ts: an unclaimed *business* listing must not
+        // become this user's personal profile. See lib/server/profile-owners.ts.
+        notBusinessListing
       ),
     });
 
@@ -183,6 +205,8 @@ export const ensureProfile = async (userId: string, email?: string) => {
         .set({ userId })
         .where(eq(profiles.id, unclaimedProfile.id))
         .returning();
+
+      await addProfileOwner(unclaimedProfile.id, userId);
 
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
