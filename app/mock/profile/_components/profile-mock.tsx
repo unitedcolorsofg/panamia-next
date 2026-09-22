@@ -25,8 +25,9 @@ import { GroupCard, ReservedSlot } from './group-cards';
    leads with the figure the profile is proudest of. */
 const TAB_ORDER: ProfileTab[] = ['posts', 'panas', 'following', 'groups'];
 
-/* Labels and counts come off the same stats the rail renders, so the two
-   controls can never disagree about how many Panas someone has. */
+/* Counts come off the same stats the rail renders, so the two controls can
+   never disagree about how many Panas someone has. Labels are allowed to
+   differ: the rail describes a quantity, a tab names a section. */
 const TABS: TabDef[] = TAB_ORDER.map((id) => {
   const stat = MOCK_PROFILE.stats.find((entry) => entry.tab === id);
   if (!stat) {
@@ -34,7 +35,7 @@ const TABS: TabDef[] = TAB_ORDER.map((id) => {
   }
   return {
     id,
-    label: stat.label,
+    label: stat.tabLabel ?? stat.label,
     icon: PROFILE_TAB_ICONS[id],
     count: stat.value,
   };

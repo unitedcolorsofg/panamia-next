@@ -18,7 +18,14 @@ export type ProfileTab = 'posts' | 'panas' | 'following' | 'groups';
 export interface MockStat {
   /** Tab this figure opens, so the rail doubles as navigation. */
   tab: ProfileTab;
+  /* The rail describes quantities about a person, so a bare noun inherits the
+     possessive reading from its neighbours: "37 Businesses" sitting beside
+     "216 Posts" and "6 Groups" reads as businesses she owns. Labels here can
+     take a verb to break that frame. */
   label: string;
+  /** Tab labels name a section rather than describe a quantity, so they can
+      stay shorter than the rail. Falls back to `label`. */
+  tabLabel?: string;
   value: number;
 }
 
@@ -137,7 +144,12 @@ export const MOCK_PROFILE: MockProfile = {
     /* Panas is the count of mutual follows, not followers. One-way followers
        are MOCK_FOLLOWERS_ONLY_COUNT and are deliberately excluded here. */
     { tab: 'panas', label: 'Panas', value: 1284 },
-    { tab: 'following', label: 'Businesses', value: 37 },
+    {
+      tab: 'following',
+      label: 'Businesses followed',
+      tabLabel: 'Businesses',
+      value: 37,
+    },
     { tab: 'posts', label: 'Posts', value: 216 },
     { tab: 'groups', label: 'Groups', value: 6 },
   ],
