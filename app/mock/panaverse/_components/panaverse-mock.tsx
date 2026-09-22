@@ -8,6 +8,7 @@ import { ArrowRight, Globe, Lock, Sparkles } from 'lucide-react';
 import {
   MOCK_MEMBER,
   SHARED_ROOMS,
+  SURFACE_LOGO,
   SURFACE_NAV,
   SURFACE_TONE,
   type MockSurface,
@@ -150,10 +151,11 @@ function BrowserFrame({
 
 /* The masthead each surface carries.
  *
- * What is constant: the wordmark, the switcher, the avatar. What changes: the
- * surface name beside the wordmark, the nav, and the accent colour. That split
- * is the whole design — constant enough to read as one organisation, different
- * enough that a timeline does not carry a directory nav. */
+ * What is constant: the switcher, the avatar, and the lettering — every surface
+ * flies a mark from the same hand-drawn family, in the same orange. What
+ * changes: which mark, the nav, and the accent rule. That split is the whole
+ * design — constant enough to read as one organisation, different enough that a
+ * timeline does not carry a directory nav. */
 function SurfaceMasthead({
   surfaces,
   current,
@@ -163,25 +165,27 @@ function SurfaceMasthead({
   current: MockSurface;
   onSelect: (id: string) => void;
 }) {
+  const logo = SURFACE_LOGO[current.id] ?? SURFACE_LOGO.www;
+
   return (
     <div className="panaverse-masthead" data-tone={SURFACE_TONE[current.id]}>
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="panaverse-wordmark">
-          Pana<span>Mia</span>
-        </span>
-
-        {/* The surface name hangs off the wordmark rather than replacing it.
-            "Pana Mia · Social" says one organisation with a room; a standalone
-            "Pana Social" logo would say a second product. */}
-        {current.id !== 'www' && (
-          <>
-            <span className="panaverse-sep" aria-hidden="true" />
-            <span className="panaverse-surface-name">
-              {current.name.replace(/^Pana\s+/, '')}
-            </span>
-          </>
-        )}
-      </div>
+      {/* Each surface flies its own real lockup rather than a shared wordmark
+          with the surface name bolted on. An earlier draft did the latter,
+          arguing a standalone "Pana Social" mark would read as a second
+          product — but the panas have already drawn one, and it does not,
+          because it is the same hand-lettering in the same orange as the Pana
+          Mia Club mark, right down to the star dotting the `i`. The
+          letterforms carry the continuity the text separator stood in for. */}
+      {/* No `priority`: the mark swaps when you change surfaces, so preloading
+          it just warns about a preload that goes unused. */}
+      <Image
+        src={logo.src}
+        alt={logo.alt}
+        width={logo.width}
+        height={logo.height}
+        sizes="160px"
+        className="panaverse-logo"
+      />
 
       <nav className="panaverse-nav" aria-label={`${current.name} navigation`}>
         {SURFACE_NAV[current.id]?.map((item, index) => (

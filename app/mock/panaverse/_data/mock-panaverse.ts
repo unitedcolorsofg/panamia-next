@@ -36,10 +36,47 @@ export interface MockSurface {
 
 /** Presentation metadata, keyed by PanaverseSurface.id. Kept out of the
  *  registry because the Worker has no use for a colour, and the registry
- *  should stay the smallest thing that can route a request. */
+ *  should stay the smallest thing that can route a request.
+ *
+ *  These accents are wayfinding, not branding. The live Pana Social mark and
+ *  the Pana Mia Club mark are the same orange, drawn in the same hand-lettered
+ *  family — the panas deliberately do not use colour to tell their offerings
+ *  apart. So the logo stays orange on every surface, and the accent rule
+ *  (border, active nav, pill hover) is the only thing answering "which room am
+ *  I in".
+ *
+ *  `social` is flame rather than burnt because that is the orange the real
+ *  logo is drawn in; burnt was a guess made before the live mark was in hand. */
 export const SURFACE_TONE: Record<string, SurfaceTone> = {
   www: 'indigo',
-  social: 'burnt',
+  social: 'flame',
+};
+
+/** The real wordmark each surface flies, with intrinsic dimensions so
+ *  next/image can reserve space without a layout shift. */
+export interface SurfaceLogo {
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+
+/** Pana Social's mark is lifted from the live instance at
+ *  panamiaclub.ap.social and downscaled to match the 800px-wide convention the
+ *  existing logos in public/logos/ already use. */
+export const SURFACE_LOGO: Record<string, SurfaceLogo> = {
+  www: {
+    src: '/logos/pana_logo_long_orange.png',
+    width: 800,
+    height: 135,
+    alt: 'Pana Mia Club',
+  },
+  social: {
+    src: '/logos/pana_social_long_orange.png',
+    width: 800,
+    height: 120,
+    alt: 'Pana Social',
+  },
 };
 
 /** What each surface is for, in the second person. The registry taglines are

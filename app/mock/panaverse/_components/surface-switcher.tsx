@@ -70,6 +70,11 @@ export function SurfaceSwitcher({
         data-tone={SURFACE_TONE[current.id]}
         aria-expanded={open}
         aria-haspopup="menu"
+        /* Named explicitly because the visible label is hidden below 480px to
+           keep the masthead from overflowing. Without this the button would
+           lose its accessible name at exactly the width where the surrounding
+           context is thinnest. */
+        aria-label={`Switch surface, currently ${current.name}`}
         onClick={() => setOpen((value) => !value)}
       >
         <span className="surface-dot" aria-hidden="true" />
@@ -124,7 +129,7 @@ export function SurfaceSwitcher({
                     setOpen(false);
                   }}
                 >
-                  <span className="surface-dot mt-1.5" aria-hidden="true" />
+                  <span className="surface-dot mt-1" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="surface-option-head">
                       <span className="surface-option-name">

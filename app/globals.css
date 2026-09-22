@@ -1695,9 +1695,8 @@
   background-color: var(--color-pana-cream);
 }
 
-/* The masthead every surface carries. The wordmark, switcher, and avatar stay
-   constant; only the accent rule and the nav change. A surface that also swapped
-   the wordmark would be announcing itself as a different product. */
+/* The masthead every surface carries. The switcher, avatar, and lettering
+   family stay constant; the mark, the accent rule, and the nav change. */
 .panaverse-masthead {
   position: relative;
   display: flex;
@@ -1708,34 +1707,14 @@
   background-color: #ffffff;
 }
 
-.panaverse-wordmark {
-  font-size: 1.0625rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-  color: var(--color-pana-indigo);
-}
-
-.panaverse-wordmark span {
-  color: var(--color-pana-burnt);
-}
-
-.panaverse-sep {
-  width: 2px;
-  height: 1.125rem;
-  border-radius: 1px;
-  background-color: rgb(17 13 13 / 0.15);
-}
-
-/* The surface name hangs off the wordmark instead of replacing it — small,
-   uppercase, tone-coloured, so it reads as a room inside Pana Mia. */
-.panaverse-surface-name {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  white-space: nowrap;
-  color: var(--surface-tone, var(--color-pana-indigo));
+/* The real lockup for whichever surface is in view. Height is pinned and width
+   follows, so two marks with different aspect ratios share an optical
+   baseline. Never recoloured per surface — the shared orange is precisely what
+   makes the two marks read as siblings rather than as two products. */
+.panaverse-logo {
+  height: 1.375rem;
+  width: auto;
+  flex: none;
 }
 
 .panaverse-nav {
@@ -1769,8 +1748,16 @@
 /* On a phone the pill already names the surface, so the masthead suffix is
    duplicate information — drop it rather than let it run under the switcher. */
 @media (max-width: 479px) {
-  .panaverse-sep,
-  .panaverse-surface-name {
+  .panaverse-logo {
+    height: 1.125rem;
+  }
+
+  /* The logo already names the surface, so the pill's label is the redundant
+     element at this width — and the most expendable ~70px in the masthead.
+     Without this the longer "Pana Social" lockup pushes the avatar past the
+     frame edge. The star and chevron still read as "switch surfaces", and the
+     button keeps its name via aria-label. */
+  .surface-pill-name {
     display: none;
   }
 }
@@ -1819,12 +1806,28 @@
   white-space: nowrap;
 }
 
+/* The star that dots the `i` in both the Pana Mia Club and Pana Social
+   wordmarks, reused as the surface indicator. A plain circle was the first
+   draft, but the star is already the motif the two marks share, so it does
+   continuity work for free. Sized up from 0.5rem because a five-point
+   clip-path much below 12px reads as a smudge rather than a star. */
 .surface-dot {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.75rem;
+  height: 0.75rem;
   flex: none;
-  border-radius: 50%;
   background-color: var(--surface-tone, var(--color-pana-indigo));
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
 }
 
 /* Right edge lines up with the avatar, which is the masthead's own padding —
