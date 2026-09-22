@@ -18,9 +18,12 @@
 
 import { db } from '@/lib/db';
 import { profiles, profileSignals } from '@/lib/schema';
-import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { getActiveProfileId } from './active-profile';
-import { canAdministerProfile } from './profile-owners';
+import {
+  canAdministerProfile,
+  listAdministeredProfiles,
+} from './profile-owners';
 
 export type ProfileSignalKind = 'save' | 'recommend';
 
@@ -164,10 +167,84 @@ export async function getViewerSignalState(
   };
 }
 
+/** Per-listing viewer state, without the public counts. */
+export interface ViewerListingState {
+  saved: boolean;
+  recommended: boolean;
+  isOwner: boolean;
+}
+
+export interface ViewerSignalStates {
+  /**
+   * Whether this account may signal at all. Viewer-global, not per listing:
+   * the rule is about which hat the person is wearing, so it has the same
+   * answer for every card on the page.
+   */
+  maySignal: boolean;
+  listings: Record<string, ViewerListingState>;
+}
+
+/**
+ * This viewer's state across a whole page of listings.
+ *
+ * The per-listing endpoint is correct but does not scale to search: twenty
+ * results would mean twenty round trips before a single Save button could
+ * render, and every one of them would re-ask the same viewer-global question.
+ * Three queries total here, regardless of page size.
+ *
+ * Counts are deliberately absent. They are public and shared, so they ride
+ * along with the edge-cached search payload; mixing them into a per-viewer
+ * response would mean fetching the same numbers twice.
+ */
+export async function getViewerSignalStates(
+  userId: string,
+  profileIds: string[]
+): Promise<ViewerSignalStates> {
+  if (profileIds.length === 0) {
+    return { maySignal: await maySignal(userId), listings: {} };
+  }
+
+  const [mine, allowed, administered] = await Promise.all([
+    db
+      .select({
+        profileId: profileSignals.profileId,
+        kind: profileSignals.kind,
+      })
+      .from(profileSignals)
+      .where(
+        and(
+          inArray(profileSignals.profileId, profileIds),
+          eq(profileSignals.userId, userId)
+        )
+      ),
+    maySignal(userId),
+    listAdministeredProfiles(userId),
+  ]);
+
+  const ownedIds = new Set(administered.map((row) => row.id));
+
+  const listings: Record<string, ViewerListingState> = {};
+  for (const id of profileIds) {
+    listings[id] = {
+      saved: false,
+      recommended: false,
+      isOwner: ownedIds.has(id),
+    };
+  }
+
+  for (const row of mine) {
+    const entry = listings[row.profileId];
+    if (!entry) continue;
+    if (row.kind === 'save') entry.saved = true;
+    if (row.kind === 'recommend') entry.recommended = true;
+  }
+
+  return { maySignal: allowed, listings };
+}
+
 /**
  * Why a signal was refused.
  *
- * Two different rules, kept apart because they need different words. Acting
  * as a business is about the hat and applies to every listing on the site;
  * owning this one is about this page only, and the same person may signal
  * freely everywhere else.

@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forceInt, forceString } from '@/lib/standardized';
-import { getSearch } from '@/lib/server/directory';
+import { getSearch, isDirectorySort } from '@/lib/server/directory';
+
+/**
+ * Coarsen a coordinate before it is used.
+ *
+ * Two decimal places is about a kilometre, which is more than enough to say
+ * "3 mi away" and not enough to say where somebody lives. It also bounds the
+ * edge-cache key: full precision would make every visitor's URL unique, so the
+ * cache would never hit and every raw location would end up in a CDN log.
+ */
+function coarsen(value: string): string {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || value.trim() === '') return '';
+  return parsed.toFixed(2);
+}
 
 export async function GET(request: NextRequest) {
   const searchParams =
@@ -26,9 +40,19 @@ export async function GET(request: NextRequest) {
     searchParams.get('fcat') || undefined,
     ''
   );
-  const geolat = forceString(searchParams.get('geolat') || undefined, '');
-  const geolng = forceString(searchParams.get('geolng') || undefined, '');
+  const geolat = coarsen(
+    forceString(searchParams.get('geolat') || undefined, '')
+  );
+  const geolng = coarsen(
+    forceString(searchParams.get('geolng') || undefined, '')
+  );
   const resultsView = forceString(searchParams.get('v') || undefined, '');
+  const sortParam = searchParams.get('sort');
+  // An unrecognised sort falls back to relevance rather than erroring: it
+  // arrives from a URL somebody may have edited or a link from an older build.
+  const sort = isDirectorySort(sortParam) ? sortParam : 'relevance';
+  const certifiedOnly = searchParams.get('certified') === 'true';
+  const withEventsOnly = searchParams.get('events') === 'true';
   const mentorsOnly = searchParams.get('mentors') === 'true';
   const expertise = forceString(searchParams.get('expertise') || undefined, '');
   const languages = forceString(searchParams.get('lang') || undefined, '');
@@ -49,6 +73,9 @@ export async function GET(request: NextRequest) {
     geolat,
     geolng,
     resultsView,
+    sort,
+    certifiedOnly,
+    withEventsOnly,
     mentorsOnly,
     expertise,
     languages,

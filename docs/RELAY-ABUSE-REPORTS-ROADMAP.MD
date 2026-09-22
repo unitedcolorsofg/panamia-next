@@ -3,8 +3,8 @@
 This document outlines the plan for surfacing NIP-56 abuse reports (kind `1984`)
 published to `relay.pana.social` inside Pana's admin console, so a moderator can
 act on them. It follows the forward-to-pana pattern established for NIP-29
-roster advisories in commit `cb67d26` (*"forward NIP-29 advisories to pana with
-24h leave debounce"*), but inverts the failure model — see
+roster advisories in commit `cb67d26` (_"forward NIP-29 advisories to pana with
+24h leave debounce"_), but inverts the failure model — see
 [§ Why reports diverge from advisories](#why-reports-diverge-from-advisories).
 
 Scope is deliberately narrow: **forward reports → store → show in admin
@@ -48,7 +48,7 @@ Kind `1984` has **no special handling today**, and — importantly — it is
   report from a non-member is rejected at `durable-object.ts:1097` with
   `"restricted: not a panamia member"` — it is never stored or broadcast.
 - It is **not** in `ADVISORY_KINDS`, so the interception block at
-  `durable-object.ts:1183` does not touch it. A report from a *member* falls
+  `durable-object.ts:1183` does not touch it. A report from a _member_ falls
   through to the normal path — `processEvent(event, session.id, this.env)` at
   `durable-object.ts:1240` — which verifies, persists to the relay D1 store, and
   broadcasts to subscribers.
@@ -69,7 +69,7 @@ The advisory forward (`forwardAdvisoryToPana`, `relay-worker.ts:453`, invoked at
 - The relay blocks on pana's decision before sending `OK`.
 - If pana is unreachable, the advisory is **rejected** and the roster freezes.
 
-That is correct for advisories because they are *control-plane* — they mutate the
+That is correct for advisories because they are _control-plane_ — they mutate the
 group roster and pana is the source of truth.
 
 Reports are the opposite. A NIP-56 report is **informational and public**; it
@@ -81,13 +81,13 @@ gates nothing. Copying the advisory model literally would be wrong in two ways:
 
 So the report path must be **fire-and-forget and fail-open**:
 
-| Aspect            | NIP-29 advisory (existing)          | NIP-56 report (this roadmap)        |
-| ----------------- | ----------------------------------- | ----------------------------------- |
-| Relay intercepts? | Yes — suppresses normal persist     | **No** — report still persists+broadcasts |
-| Forward timing    | Synchronous, before `OK`            | **After** `processEvent` succeeds   |
-| On pana down      | Reject event, freeze roster         | **Ignore** — report already stored on relay |
-| Pana's role       | Source of truth (decides)           | Mirror / moderation inbox (records) |
-| Return value used | Yes — decision drives `OK`/republish | No — forward is best-effort         |
+| Aspect            | NIP-29 advisory (existing)           | NIP-56 report (this roadmap)                |
+| ----------------- | ------------------------------------ | ------------------------------------------- |
+| Relay intercepts? | Yes — suppresses normal persist      | **No** — report still persists+broadcasts   |
+| Forward timing    | Synchronous, before `OK`             | **After** `processEvent` succeeds           |
+| On pana down      | Reject event, freeze roster          | **Ignore** — report already stored on relay |
+| Pana's role       | Source of truth (decides)            | Mirror / moderation inbox (records)         |
+| Return value used | Yes — decision drives `OK`/republish | No — forward is best-effort                 |
 
 ---
 
@@ -138,7 +138,7 @@ Constraints on the carve-out:
 - **Only the membership gate is bypassed.** Signature verification, the
   allowed-kinds check (`1984` is already listed), `containsBlockedContent`, and
   the tag allowlist (`durable-object.ts:1105`–`1132`) still apply. We are
-  loosening *who* may report, not skipping event sanity.
+  loosening _who_ may report, not skipping event sanity.
 - **Unauthenticated publish must work.** NIP-42 AUTH is not required to file a
   report; the only AUTH-related check that fires is the
   "authenticated pubkey must match event pubkey" rule (`durable-object.ts:1050`),
@@ -267,22 +267,22 @@ Mirror `app/api/internal/relay/group-event/route.ts`:
 Follow the drizzle `pgTable` conventions used by `relayGroupMembers`
 (`lib/schema/index.ts:~`). Proposed columns:
 
-| Column             | Type                          | Notes                                  |
-| ------------------ | ----------------------------- | -------------------------------------- |
-| `id`               | pk                            | serial / uuid per house convention     |
-| `event_id`         | text notNull                  | the kind 1984 event id                 |
-| `reporter_pubkey`  | text notNull                  | hex x-only pubkey (no FK; see members) |
-| `target_pubkey`    | text                          | reported account, nullable             |
-| `target_event_id`  | text                          | reported note, nullable                |
-| `report_type`      | enum or text                  | NIP-56 type; consider a `pgEnum`       |
-| `content`          | text                          | freeform reporter context              |
-| `reported_at`      | timestamp(tz) notNull         | from `event.created_at`                |
-| `received_at`      | timestamp(tz) notNull default | server insert time                     |
-| `status`           | enum default `'open'`         | `open` / `actioned` / `dismissed`      |
+| Column            | Type                          | Notes                                  |
+| ----------------- | ----------------------------- | -------------------------------------- |
+| `id`              | pk                            | serial / uuid per house convention     |
+| `event_id`        | text notNull                  | the kind 1984 event id                 |
+| `reporter_pubkey` | text notNull                  | hex x-only pubkey (no FK; see members) |
+| `target_pubkey`   | text                          | reported account, nullable             |
+| `target_event_id` | text                          | reported note, nullable                |
+| `report_type`     | enum or text                  | NIP-56 type; consider a `pgEnum`       |
+| `content`         | text                          | freeform reporter context              |
+| `reported_at`     | timestamp(tz) notNull         | from `event.created_at`                |
+| `received_at`     | timestamp(tz) notNull default | server insert time                     |
+| `status`          | enum default `'open'`         | `open` / `actioned` / `dismissed`      |
 
 - **Dedup index** on `(reporter_pubkey, target_pubkey, report_type)` with
   `onConflictDoNothing` (or `DO UPDATE SET reported_at = excluded.reported_at`).
-  This is a *readability* measure for the queue, not an abuse control — per the
+  This is a _readability_ measure for the queue, not an abuse control — per the
   out-of-scope decision, we are not trying to stop floods, just to avoid one
   reporter showing up 500 times for the same target.
 - No FK from `*_pubkey` to `profiles` — consistent with the existing
@@ -317,8 +317,8 @@ podcasts,contactus}/page.tsx`). Minimum viable:
 - **Phase 2 — Action (sketch only).** Wire an admin action to NIP-29 moderation:
   a "kick" that emits the kind `9000`/`9001` the relay already republishes on
   roster changes (see `republishGroupStateAfterRosterChange` in
-  `durable-object.ts`). This closes the loop from *report* → *moderator decision*
-  → *roster/relay effect*. Requires deciding scope (per-group vs relay-wide ban)
+  `durable-object.ts`). This closes the loop from _report_ → _moderator decision_
+  → _roster/relay effect_. Requires deciding scope (per-group vs relay-wide ban)
   and is intentionally deferred.
 
 ---

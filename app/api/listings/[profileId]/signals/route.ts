@@ -124,9 +124,7 @@ export async function POST(
     success: true,
     data: {
       ...result.counts,
-      ...(body.kind === 'save'
-        ? { saved: body.on }
-        : { recommended: body.on }),
+      ...(body.kind === 'save' ? { saved: body.on } : { recommended: body.on }),
     },
   });
 }

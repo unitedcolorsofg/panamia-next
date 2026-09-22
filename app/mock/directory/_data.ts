@@ -435,7 +435,10 @@ export function runQuery(
       ) {
         return false;
       }
-      if (query.counties.length > 0 && !query.counties.includes(result.county)) {
+      if (
+        query.counties.length > 0 &&
+        !query.counties.includes(result.county)
+      ) {
         return false;
       }
       if (query.certifiedOnly && !result.certified) return false;

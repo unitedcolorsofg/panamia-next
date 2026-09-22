@@ -162,9 +162,7 @@ export function PersonalHero({
               onClick={() => onSelectTab(stat.tab)}
             >
               <span className="stat-rail-value">
-                {stat.value === null
-                  ? '—'
-                  : stat.value.toLocaleString('en-US')}
+                {stat.value === null ? '—' : stat.value.toLocaleString('en-US')}
               </span>
               <span className="stat-rail-label">{stat.label}</span>
             </button>

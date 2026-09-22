@@ -37,9 +37,12 @@ const OWN_POSTS = [
 
 const OTHERS_POSTS: Record<string, string> = {
   pana2: 'New batch of pantry staples went up today. The guava is back.',
-  pana3: 'Teaching a beginners screenprinting class next month. Six spots, no experience needed.',
-  pana4: 'Shot a wedding in Little Haiti this weekend. The light at that hour is unreal.',
-  pana5: 'Looking for a shared studio space in Broward if anyone has a corner going spare.',
+  pana3:
+    'Teaching a beginners screenprinting class next month. Six spots, no experience needed.',
+  pana4:
+    'Shot a wedding in Little Haiti this weekend. The light at that hour is unreal.',
+  pana5:
+    'Looking for a shared studio space in Broward if anyone has a corner going spare.',
 };
 
 function line(label: string, value: string | number): void {
@@ -68,14 +71,19 @@ async function main(): Promise<void> {
   // left pending instead of accepted. Importing before dotenv has run would
   // quietly seed follows that never surface as Panas, so this is deferred
   // until after config() above.
-  const [{ db }, schema, { createActorForProfile }, { createFollow }, { createStatus }] =
-    await Promise.all([
-      import('../lib/db'),
-      import('../lib/schema'),
-      import('../lib/federation/wrappers/actor'),
-      import('../lib/federation/wrappers/follow'),
-      import('../lib/federation/wrappers/status'),
-    ]);
+  const [
+    { db },
+    schema,
+    { createActorForProfile },
+    { createFollow },
+    { createStatus },
+  ] = await Promise.all([
+    import('../lib/db'),
+    import('../lib/schema'),
+    import('../lib/federation/wrappers/actor'),
+    import('../lib/federation/wrappers/follow'),
+    import('../lib/federation/wrappers/status'),
+  ]);
   const { eq } = await import('drizzle-orm');
 
   console.log('Database:', target);
@@ -149,7 +157,13 @@ async function main(): Promise<void> {
     console.log(`  [skip] @${HANDLE} already has posts`);
   } else {
     for (const content of OWN_POSTS) {
-      const result = await createStatus(meActorId, content, undefined, undefined, 'public');
+      const result = await createStatus(
+        meActorId,
+        content,
+        undefined,
+        undefined,
+        'public'
+      );
       if (result.success) posted++;
       else console.log(`  [skip] ${result.error}`);
     }
@@ -162,7 +176,13 @@ async function main(): Promise<void> {
       where: eq(schema.socialStatuses.actorId, theirs),
     });
     if (had) continue;
-    const result = await createStatus(theirs, content, undefined, undefined, 'public');
+    const result = await createStatus(
+      theirs,
+      content,
+      undefined,
+      undefined,
+      'public'
+    );
     if (result.success) posted++;
   }
   line('written', posted);
