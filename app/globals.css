@@ -1730,7 +1730,6 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-flame);
 }
 
-
 /* ==========================================================================
    Personal profile
    Shared by the public profile on the website and the profile surface inside
@@ -3081,4 +3080,122 @@ button.bizprofile-update-action:hover {
 
 .dirsearch-tail-primary:hover {
   background-color: var(--color-pana-burnt);
+}
+
+/* --- Live-page additions ------------------------------------------------ */
+
+/* Pins on real tiles. Distinct from .dirsearch-map-pin because pigeon-maps
+   positions its own overlay wrapper — a pin that also positions itself would
+   fight it and land in the wrong place. */
+.dirsearch-pin {
+  position: relative;
+  display: block;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-pin img {
+  width: 100%;
+  height: 100%;
+  /* Never `cover`. Cropping a logo to a circle turns wordmarks into
+     fragments — "rtist" instead of Artist. */
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dirsearch-pin:hover {
+  transform: scale(1.1);
+}
+
+.dirsearch-pin[data-on='true'] {
+  z-index: 3;
+  border-color: var(--color-pana-burnt);
+  transform: scale(1.18);
+}
+
+/* Tiles paint their own background; the mock's illustrative gradient would
+   show through the seams while they load. */
+.dirsearch-map:has(.pigeon-tiles) {
+  background: var(--color-pana-butter-2);
+}
+
+/* Shaped like the card it stands in for, so the list does not jump when
+   results arrive. A spinner would say "something is happening"; this says
+   "results are coming, and roughly this many". */
+.dirsearch-skeleton {
+  height: 11.5rem;
+  border-radius: 1.25rem;
+  border: 2px solid rgb(48 62 140 / 0.08);
+  background: linear-gradient(
+    100deg,
+    rgb(48 62 140 / 0.05) 30%,
+    rgb(48 62 140 / 0.11) 50%,
+    rgb(48 62 140 / 0.05) 70%
+  );
+  background-size: 220% 100%;
+  animation: dirsearch-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes dirsearch-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dirsearch-skeleton {
+    animation: none;
+  }
+}
+
+.dirsearch-cta {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  max-width: 58rem;
+  margin-inline: auto;
+  padding-block: clamp(1rem, 3vw, 1.5rem) clamp(3rem, 7vw, 5rem);
+}
+
+@media (min-width: 48rem) {
+  .dirsearch-cta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dirsearch-cta > div {
+  padding: 1.35rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 2px dashed rgb(48 62 140 / 0.22);
+  background-color: rgb(48 62 140 / 0.04);
+}
+
+.dirsearch-cta h2 {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-cta p {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.62);
+}
+
+.dirsearch-cta .link-arrow {
+  margin-top: 0.9rem;
+  display: inline-flex;
 }
