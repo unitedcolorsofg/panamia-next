@@ -554,6 +554,16 @@ export const profiles = pgTable(
     userId: text('user_id')
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // The handle, in a namespace shared flat with users.screenname: /p/:handle
+    // and acct:handle@domain resolve humans and businesses through the same
+    // path, so the two can never hold the same name at once. Uniqueness here is
+    // case-insensitive (profiles_screenname_lower_unique); the cross-table
+    // check against users + screenname_history lives in lib/screenname.ts.
+    //
+    // Nullable because a listing has no handle until somebody claims it and
+    // picks one. This is what lets a business have a federated actor without
+    // being attached to a user — see drizzle/0036_profile_screenname.sql.
+    screenname: text('screenname'),
     email: text('email').notNull().unique(),
     name: text('name').notNull(),
     phoneNumber: text('phone_number'),

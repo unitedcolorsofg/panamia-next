@@ -4,7 +4,7 @@ import {
 } from '@/lib/server/profile-owners';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import {
   ProfileDescriptions,
   ProfileMentoring,
@@ -108,9 +108,24 @@ function transformToLegacyFormat(
  * Returns profile in legacy format for page components
  */
 export const getPublicProfile = async (handle: string) => {
-  // Query via user (screenname is on User, not Profile)
+  // Resolve profile-first. Business listings own their handle directly and have
+  // no linked user, so a users-only lookup would 404 them. Personal profiles
+  // are found the same way because screenname/set mirrors the handle onto the
+  // profile; the users fallback below covers rows predating that mirror.
+  const profile = await db.query.profiles.findFirst({
+    where: sql`lower(${profiles.screenname}) = lower(${handle})`,
+    with: { user: { columns: { screenname: true } } },
+  });
+
+  if (profile) {
+    return transformToLegacyFormat({
+      ...profile,
+      user: { screenname: profile.screenname ?? profile.user?.screenname },
+    });
+  }
+
   const user = await db.query.users.findFirst({
-    where: eq(users.screenname, handle),
+    where: sql`lower(${users.screenname}) = lower(${handle})`,
     with: { profile: true },
   });
 

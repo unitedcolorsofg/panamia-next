@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { getActiveProfile } from '@/lib/server/active-profile';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -18,10 +19,8 @@ export async function POST(request: NextRequest) {
 
   const { discount_code, discount_percentage, discount_details } = body;
 
-  // Find user's profile
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
+  // The profile being acted as - their own, or a business listing they administer
+  const existingProfile = await getActiveProfile(session.user.id);
 
   if (!existingProfile) {
     return NextResponse.json({

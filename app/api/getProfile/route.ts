@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { ensureProfile } from '@/lib/server/profile';
+import { getActiveProfileId } from '@/lib/server/active-profile';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(_request: NextRequest) {
   const session = await auth();
@@ -10,6 +14,19 @@ export async function GET(_request: NextRequest) {
       { error: 'No user session available' },
       { status: 401 }
     );
+  }
+
+  // If they've switched to a business listing they administer, serve that
+  // instead. getActiveProfileId re-validates ownership, so an edited cookie
+  // can't pull someone else's listing.
+  const activeId = await getActiveProfileId(session.user.id);
+  if (activeId) {
+    const active = await db.query.profiles.findFirst({
+      where: eq(profiles.id, activeId),
+    });
+    if (active) {
+      return NextResponse.json({ success: true, data: active });
+    }
   }
 
   // Breadcrumb pair around the profile read. This route hung in production
