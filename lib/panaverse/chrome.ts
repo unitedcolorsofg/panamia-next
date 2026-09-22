@@ -12,6 +12,12 @@
  * which is why it lives beside the surface registry rather than inside a route.
  */
 
+import {
+  DEFAULT_SURFACE,
+  surfaceForPath,
+  type PanaverseSurface,
+} from './surfaces';
+
 /**
  * Route prefixes that render standalone. A prefix matches the path itself and
  * anything beneath it, so `/signin` also covers a future `/signin/verify`.
@@ -50,4 +56,41 @@ export function wearsOwnChrome(pathname: string | null | undefined): boolean {
   return STANDALONE_ROUTES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );
+}
+
+/**
+ * Is this surface serving a route that belongs to a different one?
+ *
+ * Every route stays reachable from every hostname — that is a deliberate
+ * property of the registry, not an oversight, because one deploy serves the
+ * whole panaverse. The consequence is that social.panamia.club/directory/search
+ * renders the main site's directory, and until now it rendered it with no
+ * header, no footer and no link home: the root layout withheld main-site chrome
+ * on surface hostnames, and Pana Social had none of its own to put there. A
+ * member who followed a directory link out of the feed simply arrived nowhere.
+ *
+ * Redirecting to the main site would also have closed the hole, and is the
+ * cheaper fix, but it answers a member asking to see the directory by moving
+ * them to a different hostname — which is precisely the "these are two separate
+ * products" message the panaverse switcher exists to dispel. So the surface
+ * keeps the member and frames the borrowed page instead.
+ *
+ * Three exclusions, each for a different reason:
+ *   - The main site already has chrome of its own; this is only for surfaces
+ *     that would otherwise render bare.
+ *   - Doorways (`wearsOwnChrome`) frame themselves on every surface by design.
+ *   - The surface's own routes are its home turf, not a borrowed room.
+ *
+ * An unknown path returns false rather than true. The pathname is absent only
+ * when the request did not come through the Worker, and in that case leaving
+ * the page exactly as it renders today is the safer failure.
+ */
+export function wearsGuestChrome(
+  surface: PanaverseSurface,
+  pathname: string | null | undefined
+): boolean {
+  if (!pathname) return false;
+  if (surface.id === DEFAULT_SURFACE.id) return false;
+  if (wearsOwnChrome(pathname)) return false;
+  return surfaceForPath(normalisePath(pathname)).id !== surface.id;
 }

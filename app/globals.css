@@ -2534,27 +2534,34 @@ button.bizprofile-update-action:hover {
    pair of declarations — never a new component.
    ========================================================================== */
 
-.browser-frame [data-tone='indigo'] {
+/* Scoped to nothing in particular on purpose. These were originally written
+   under `.browser-frame`, where the only thing wearing a tone was a masthead
+   drawn inside the mock's simulated browser window. Real surface chrome ships
+   now and needs the same tokens outside that frame, and duplicating the pairs
+   would be the first step towards the mock and the real chrome disagreeing
+   about what colour Pana Social is. Custom properties only take effect where
+   something reads them, so widening the selector changes nothing else. */
+[data-tone='indigo'] {
   --surface-tone: var(--color-pana-indigo);
   --surface-tone-soft: rgb(48 62 140 / 0.1);
 }
 
-.browser-frame [data-tone='burnt'] {
+[data-tone='burnt'] {
   --surface-tone: var(--color-pana-burnt);
   --surface-tone-soft: rgb(217 98 54 / 0.12);
 }
 
-.browser-frame [data-tone='flame'] {
+[data-tone='flame'] {
   --surface-tone: var(--color-pana-flame);
   --surface-tone-soft: rgb(242 132 68 / 0.14);
 }
 
-.browser-frame [data-tone='blue'] {
+[data-tone='blue'] {
   --surface-tone: var(--color-pana-blue);
   --surface-tone-soft: rgb(74 179 234 / 0.16);
 }
 
-.browser-frame [data-tone='red'] {
+[data-tone='red'] {
   --surface-tone: var(--color-pana-red);
   --surface-tone-soft: rgb(217 78 65 / 0.12);
 }
@@ -2696,6 +2703,55 @@ button.bizprofile-update-action:hover {
 
 .panaverse-nav a:hover {
   color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+/* The bar a surface wears over a page borrowed from another surface — see
+   components/panaverse/SurfaceGuestHeader.tsx. Slimmer than a real masthead
+   and carrying no nav, because it frames someone else's page rather than
+   fronting this one. The tone rule still reads as the surface's, which is the
+   point: the member can see at a glance they have not left Pana Social. */
+.panaverse-guest {
+  padding-block: 0.5rem;
+}
+
+.panaverse-guest-home {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+/* Context rather than a control, so it is the first thing dropped when the
+   bar runs out of room — below 640px the mark and the link are what have to
+   survive. */
+.panaverse-guest-note {
+  display: none;
+  min-width: 0;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.panaverse-guest-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  font-size: 0.78125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--surface-tone, var(--color-pana-indigo));
+  transition: opacity 0.2s ease;
+}
+
+.panaverse-guest-link:hover {
+  opacity: 0.75;
+}
+
+@media (min-width: 640px) {
+  .panaverse-guest-note {
+    display: block;
+  }
 }
 
 @media (min-width: 768px) {

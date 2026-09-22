@@ -8,9 +8,18 @@ import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvid
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 import ScreennameGate from '@/components/ScreennameGate';
-import { resolveSurface } from '@/lib/panaverse/surfaces';
+import {
+  resolveSurface,
+  originForFrom,
+  surfaceForPath,
+} from '@/lib/panaverse/surfaces';
 import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
-import { PATHNAME_HEADER, wearsOwnChrome } from '@/lib/panaverse/chrome';
+import {
+  PATHNAME_HEADER,
+  wearsGuestChrome,
+  wearsOwnChrome,
+} from '@/lib/panaverse/chrome';
+import { SurfaceGuestHeader } from '@/components/panaverse/SurfaceGuestHeader';
 
 /**
  * Title and description for any page that does not set its own.
@@ -28,10 +37,50 @@ import { PATHNAME_HEADER, wearsOwnChrome } from '@/lib/panaverse/chrome';
  * site byte-identical.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const surface = resolveSurface((await headers()).get('host'));
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('host');
+  const surface = resolveSurface(host);
+  const pathname = requestHeaders.get(PATHNAME_HEADER);
+
+  /* A page a surface is borrowing points its canonical at the surface that
+   * owns it.
+   *
+   * Every route answers on every hostname, so the directory genuinely returns
+   * 200 on both panamia.club and social.panamia.club. To a crawler that is two
+   * URLs with identical content competing for the same ranking, and the
+   * directory is the main site's most valuable page — exactly the wrong thing
+   * to split. A redirect would have settled it by definition; keeping the
+   * member on their surface means saying which copy is the original instead.
+   *
+   * Gated on the same predicate as the chrome, so the two cannot disagree: if
+   * a page is framed as borrowed, it is also declared as borrowed. */
+  const owner = wearsGuestChrome(surface, pathname)
+    ? surfaceForPath(pathname as string)
+    : null;
+
   return {
     title: surface.name,
     description: SURFACE_DESCRIPTION[surface.id],
+    ...(owner && pathname
+      ? {
+          /* Both halves are load-bearing, and the second is the one that
+           * actually covers the directory.
+           *
+           * `canonical` handles pages that declare none of their own. But page
+           * metadata beats layout metadata, and the directory sets its own —
+           * relative, as `/directory/search`. A relative canonical resolves
+           * against `metadataBase`, falling back to the host being served, so
+           * on social.panamia.club it would resolve to social's own origin and
+           * cheerfully declare the borrowed copy the original. Pointing
+           * `metadataBase` at the owning surface fixes every relative URL a
+           * borrowed page emits, including ones written before this existed,
+           * without editing the pages themselves. */
+          metadataBase: new URL(originForFrom(owner, host)),
+          alternates: {
+            canonical: `${originForFrom(owner, host)}${pathname}`,
+          },
+        }
+      : {}),
   };
 }
 
@@ -70,6 +119,14 @@ export default async function RootLayout({
   const standalone = wearsOwnChrome(requestHeaders.get(PATHNAME_HEADER));
   const wearsMainChrome = surface.id === 'www' && !standalone;
 
+  /* Pages this surface is borrowing from another one get a slim bar instead.
+   * See lib/panaverse/chrome.ts — the short version is that every route
+   * answers on every hostname, so without this the main site's directory
+   * rendered on social.panamia.club with no chrome at all and no way back to
+   * the feed. */
+  const pathname = requestHeaders.get(PATHNAME_HEADER);
+  const guest = wearsGuestChrome(surface, pathname);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -107,6 +164,14 @@ export default async function RootLayout({
             <Providers>
               {wearsMainChrome && (
                 <MainHeader isProductionSite={isProductionSite} />
+              )}
+              {guest && pathname && (
+                <SurfaceGuestHeader
+                  surface={surface}
+                  host={host}
+                  pathname={pathname}
+                  owner={surfaceForPath(pathname)}
+                />
               )}
               <div id="layout-main">{children}</div>
               {wearsMainChrome && <MainFooter />}

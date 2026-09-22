@@ -22,13 +22,12 @@ import { MOCK_VIEWER } from '../feed/_data/mock-feed';
 import {
   SURFACE_BLURB as REAL_SURFACE_BLURB,
   SURFACE_MARK,
+  SURFACE_TONE as REAL_SURFACE_TONE,
   type SurfaceMark,
+  type SurfaceTone,
 } from '@/lib/panaverse/branding';
 
-/** Which colour a surface carries through its chrome. Values are token names
- *  from app/globals.css, not raw hex, so a surface cannot introduce a colour
- *  that is not already in the palette. */
-export type SurfaceTone = 'indigo' | 'burnt' | 'flame' | 'blue' | 'red';
+export type { SurfaceTone };
 
 /** A surface as the switcher needs to render it. Mirrors PanaverseSurface
  *  from lib/panaverse/surfaces.ts, flattened for the client. */
@@ -43,23 +42,11 @@ export interface MockSurface {
   rootPath: string;
 }
 
-/** Presentation metadata, keyed by PanaverseSurface.id. Kept out of the
- *  registry because the Worker has no use for a colour, and the registry
- *  should stay the smallest thing that can route a request.
- *
- *  These accents are wayfinding, not branding. The live Pana Social mark and
- *  the Pana Mia Club mark are the same orange, drawn in the same hand-lettered
- *  family — the panas deliberately do not use colour to tell their offerings
- *  apart. So the logo stays orange on every surface, and the accent rule
- *  (border, active nav, pill hover) is the only thing answering "which room am
- *  I in".
- *
- *  `social` is flame rather than burnt because that is the orange the real
- *  logo is drawn in; burnt was a guess made before the live mark was in hand. */
-export const SURFACE_TONE: Record<string, SurfaceTone> = {
-  www: 'indigo',
-  social: 'flame',
-};
+/** Presentation metadata, keyed by PanaverseSurface.id. Re-exported from the
+ *  shipping source rather than copied, so a mock cannot show an accent the
+ *  real chrome has stopped using. Widened to Record<string, …> because the
+ *  mock surfaces carry a plain string id. */
+export const SURFACE_TONE: Record<string, SurfaceTone> = REAL_SURFACE_TONE;
 
 /** The real wordmark each surface flies. Re-exported from the shipping source
  *  rather than copied, so a mock masthead cannot show a mark the real one has

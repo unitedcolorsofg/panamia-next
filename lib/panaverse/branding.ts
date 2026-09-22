@@ -65,3 +65,25 @@ export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
   social:
     'The Pana Mia community timeline — post, reply, and follow Panas across the fediverse.',
 };
+
+/** Which colour a surface carries through its chrome. Values are token names
+ *  from app/globals.css, not raw hex, so a surface cannot introduce a colour
+ *  that is not already in the palette. */
+export type SurfaceTone = 'indigo' | 'burnt' | 'flame' | 'blue' | 'red';
+
+/**
+ * The accent each surface carries.
+ *
+ * Wayfinding, not branding. Both live marks are the same orange in the same
+ * hand-lettered family — the panas deliberately do not use colour to tell
+ * their offerings apart — so the logo never recolours, and the accent rule
+ * (border, active nav, pill hover) is the only thing answering "which room am
+ * I in".
+ *
+ * `social` is flame rather than burnt because that is the orange the real logo
+ * is drawn in; burnt was a guess made before the live mark was in hand.
+ */
+export const SURFACE_TONE: Record<SurfaceId, SurfaceTone> = {
+  www: 'indigo',
+  social: 'flame',
+};
