@@ -97,21 +97,24 @@ export async function POST(
     );
   }
 
-  const counts = await setProfileSignal(
+  const result = await setProfileSignal(
     session.user.id,
     profileId,
     body.kind,
     body.on
   );
 
-  // null means maySignal refused: they are acting as a business listing. The
-  // UI hides these controls for businesses, but enforcement must not depend on
-  // a component remembering to hide a button.
-  if (!counts) {
+  // The UI hides these controls for businesses and for a listing's own
+  // owners, but enforcement must not depend on a component remembering to
+  // hide a button.
+  if (!result.ok) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Switch to your personal profile to save or recommend',
+        error:
+          result.reason === 'own-listing'
+            ? 'You cannot save or recommend a listing you manage'
+            : 'Switch to your personal profile to save or recommend',
       },
       { status: 403 }
     );
@@ -120,7 +123,7 @@ export async function POST(
   return NextResponse.json({
     success: true,
     data: {
-      ...counts,
+      ...result.counts,
       ...(body.kind === 'save'
         ? { saved: body.on }
         : { recommended: body.on }),

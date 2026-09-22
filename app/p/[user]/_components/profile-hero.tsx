@@ -40,7 +40,8 @@ export function ProfileHero({
   recommenderAvatars: string[];
 }) {
   const { t } = useTranslation('profile');
-  const { showsPanaActions, signals, toggleSignal } = useProfileViewer();
+  const { showsPanaActions, signals, toggleSignal, isOwner } =
+    useProfileViewer();
   const location = useViewerLocation();
   const [shared, setShared] = useState(false);
 
@@ -255,8 +256,14 @@ export function ProfileHero({
             <div className="flex flex-wrap gap-3">
               {/* Save and Recommend are absent, not disabled, for a
                   business-only account. See `showsPanaActions`. Share stays:
-                  it costs nothing and sends people to the business. */}
-              {showsPanaActions && (
+                  it costs nothing and sends people to the business.
+
+                  They are absent for the listing's own owners too. These two
+                  numbers are the only evidence a visitor has that other
+                  people rate this business, so the one person with an
+                  interest in inflating them is the one person who should not
+                  be able to. */}
+              {showsPanaActions && !isOwner && (
                 <>
                   <Button
                     size="lg"
@@ -316,6 +323,12 @@ export function ProfileHero({
                   {t('hero.businessNoteLink')}
                 </Link>
               </p>
+            )}
+
+            {/* Same reasoning for owners, who would otherwise be left
+                wondering where the buttons went on their own page. */}
+            {showsPanaActions && isOwner && (
+              <p className="bizprofile-hero-note">{t('hero.ownerNote')}</p>
             )}
           </div>
         </div>

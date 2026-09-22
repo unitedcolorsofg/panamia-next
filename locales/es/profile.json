@@ -16,6 +16,7 @@
     "noLinksYet": "Este negocio todavía no ha agregado enlaces.",
     "businessNote": "Guardar y recomendar requieren una cuenta pana.",
     "businessNoteLink": "Crea una",
+    "ownerNote": "Este es tu perfil. Los guardados y las recomendaciones vienen de otros panas.",
     "distanceAsk": "¿A qué distancia está de mí?",
     "distanceNear": "a menos de 0.1 millas",
     "distance_one": "a {{count}} milla",

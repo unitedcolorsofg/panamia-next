@@ -165,22 +165,46 @@ export async function getViewerSignalState(
 }
 
 /**
+ * Why a signal was refused.
+ *
+ * Two different rules, kept apart because they need different words. Acting
+ * as a business is about the hat and applies to every listing on the site;
+ * owning this one is about this page only, and the same person may signal
+ * freely everywhere else.
+ */
+export type SignalRefusal = 'acting-as-business' | 'own-listing';
+
+export type SetSignalResult =
+  | { ok: true; counts: ProfileSignalCounts }
+  | { ok: false; reason: SignalRefusal };
+
+/**
  * Turn a signal on or off.
  *
  * Idempotent in both directions — the unique index absorbs a repeated "on" and
  * a repeated "off" deletes nothing — so a double tap on a slow connection can
  * never double-count, and the client may retry freely.
  *
- * Returns null when the user is not allowed to signal, which the caller should
- * surface as 403 rather than pretending the write happened.
+ * Refuses when the caller administers the listing. Saves and recommends are
+ * meant to read as other people vouching for a business, so counting the
+ * owner's own tap inflates the only numbers a visitor has to judge by, and
+ * does it in the one direction the owner benefits from. The UI hides the
+ * buttons on your own listing; this is what makes that a rule rather than a
+ * suggestion.
  */
 export async function setProfileSignal(
   userId: string,
   profileId: string,
   kind: ProfileSignalKind,
   on: boolean
-): Promise<ProfileSignalCounts | null> {
-  if (!(await maySignal(userId))) return null;
+): Promise<SetSignalResult> {
+  const [allowed, owns] = await Promise.all([
+    maySignal(userId),
+    canAdministerProfile(userId, profileId),
+  ]);
+
+  if (!allowed) return { ok: false, reason: 'acting-as-business' };
+  if (owns) return { ok: false, reason: 'own-listing' };
 
   if (on) {
     await db
@@ -205,5 +229,5 @@ export async function setProfileSignal(
       );
   }
 
-  return getProfileSignalCounts(profileId);
+  return { ok: true, counts: await getProfileSignalCounts(profileId) };
 }
