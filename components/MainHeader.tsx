@@ -34,7 +34,6 @@ import {
   Gift,
   Radio,
   LogOut,
-  Menu,
   PenLine,
   FileText,
   LayoutGrid,
@@ -329,7 +328,11 @@ export default function MainHeader({
               aria-expanded={drawerOpen}
               aria-haspopup="dialog"
             >
-              <Menu className="h-4 w-4" aria-hidden="true" />
+              <span className={styles.bars} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
               <span className={styles.menuLabel}>{t('nav.menu')}</span>
             </button>
           </div>

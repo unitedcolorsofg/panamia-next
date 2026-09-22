@@ -255,24 +255,71 @@
   gap: 0.5rem;
 }
 
+/* Borderless on purpose: the outlined CTA beside it is the loud element, and a
+   second outlined pill next to it reads as a matching twin rather than a
+   quieter control. */
 .menuButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  border: 2px solid rgb(17 13 13 / 0.15);
-  border-radius: 9999px;
+  gap: 11px;
+  padding: 8px 4px;
+  border: 0;
   background: transparent;
   color: var(--color-pana-ink);
-  font-size: 0.8125rem;
+  font-size: 13.5px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .menuButton:hover {
-  background-color: rgb(17 13 13 / 0.06);
+  color: var(--color-pana-flame);
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+  width: 22px;
+}
+
+.bars i {
+  display: block;
+  height: 2.5px;
+  border-radius: 2px;
+  background-color: currentColor;
+  transform-origin: center;
+  transition:
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease;
+}
+
+/* Short middle bar — the asymmetry is what makes the closed state read as a
+   menu rather than an equals sign. */
+.bars i:nth-child(2) {
+  width: 70%;
+  justify-self: start;
+}
+
+/* Bars morph into an X while the drawer is open, so the toggle confirms the
+   click even before the panel has finished sliding. */
+.menuButton[aria-expanded='true'] .bars i:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.menuButton[aria-expanded='true'] .bars i:nth-child(2) {
+  opacity: 0;
+}
+
+.menuButton[aria-expanded='true'] .bars i:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars i {
+    transition: none;
+  }
 }
 
 /* Flame pill. Ink text, not cream — cream on flame is 2.42:1 and fails. */
