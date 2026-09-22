@@ -341,14 +341,19 @@ export const useStatusReplies = (
   });
 };
 
+// `enabled` lets callers skip the request for signed-out viewers: this endpoint
+// is session-scoped and answers 401 with no session, so firing it anonymously
+// only produces console noise.
 export const useFollows = (
   type: 'following' | 'followers',
   cursor?: string,
-  limit: number = 20
+  limit: number = 20,
+  enabled: boolean = true
 ) => {
   return useQuery<ActorsResponse | undefined, Error>({
     queryKey: [socialQueryKey, 'follows', type, cursor, limit],
     queryFn: () => fetchFollows(type, cursor, limit),
+    enabled,
   });
 };
 

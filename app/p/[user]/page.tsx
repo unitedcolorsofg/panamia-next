@@ -7,6 +7,7 @@ import {
 } from '@/lib/server/profile-signals';
 import { getUpcomingEventsForHost } from '@/lib/event';
 import { isProfileClaimed } from '@/lib/server/profile-owners';
+import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { ProfileViewer } from './_components/profile-viewer';
 import { ProfileHero } from './_components/profile-hero';
 import { ProfileAbout } from './_components/profile-about';
@@ -83,12 +84,14 @@ export default async function ProfilePage({ params }: PageProps) {
 
   // Independent reads, so they go in parallel rather than stacking four round
   // trips onto a page that is meant to be cached and fast.
-  const [counts, recommenderAvatars, upcoming, claimed] = await Promise.all([
-    getProfileSignalCounts(profile.id),
-    getRecommenderAvatars(profile.id),
-    getUpcomingEventsForHost(profile.id),
-    isProfileClaimed(profile.id),
-  ]);
+  const [counts, recommenderAvatars, upcoming, claimed, socialActor] =
+    await Promise.all([
+      getProfileSignalCounts(profile.id),
+      getRecommenderAvatars(profile.id),
+      getUpcomingEventsForHost(profile.id),
+      isProfileClaimed(profile.id),
+      getActorByScreenname(user),
+    ]);
 
   const events: ProfileEvent[] = upcoming.map((event) => ({
     id: event.id,
@@ -153,13 +156,21 @@ export default async function ProfilePage({ params }: PageProps) {
         ) : null}
 
         {/* An unclaimed listing has nobody posting updates, so it gets the
-            claim invitation in that slot instead of an empty feed. */}
+            claim invitation in that slot instead of an empty feed.
+
+            Claiming a listing does not provision a Pana Social actor, so a
+            claimed listing can still have no feed to show. Checking for the
+            actor here keeps that case from rendering an empty padded band
+            (SocialSection itself renders null) and avoids mounting the
+            client component just to have it fetch a 404. */}
         {claimed ? (
-          <section className="surface-cream py-16 md:py-24">
-            <div className="container mx-auto max-w-3xl px-4">
-              <SocialSection handle={user} />
-            </div>
-          </section>
+          socialActor ? (
+            <section className="surface-cream py-16 md:py-24">
+              <div className="container mx-auto max-w-3xl px-4">
+                <SocialSection handle={user} />
+              </div>
+            </section>
+          ) : null
         ) : (
           <ClaimListingCta profileId={profile.id} />
         )}

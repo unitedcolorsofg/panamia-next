@@ -32,8 +32,20 @@ export function SocialSection({ handle }: { handle: string }) {
 
   const { data: actorData, isLoading: actorLoading } = useActor(handle);
   const { data: postsData, isLoading: postsLoading } = useActorPosts(handle);
-  const { data: followingData } = useFollows('following');
-  const { data: followersData } = useFollows('followers');
+  // Both lists are only ever shown to a signed-in owner, so skip the fetch
+  // entirely for signed-out visitors instead of firing two certain 401s.
+  const { data: followingData } = useFollows(
+    'following',
+    undefined,
+    20,
+    isAuthenticated
+  );
+  const { data: followersData } = useFollows(
+    'followers',
+    undefined,
+    20,
+    isAuthenticated
+  );
 
   // Don't render anything if still loading or no actor
   if (actorLoading) {
