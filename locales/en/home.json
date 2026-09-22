@@ -1,11 +1,12 @@
 {
   "hero": {
-    "headline": "The Future is Local",
-    "subheadline": "Search South Florida's First Local Directory",
+    "headline": "The Future<br/>Is <em>Local</em>",
+    "subheadline": "South Florida's first local directory — a living archive of the creatives, entrepreneurs and small businesses who make this place what it is.",
     "searchPlaceholder": "Search by name, category, products",
     "searchLabel": "Search directory",
     "searchAriaLabel": "Search the directory",
-    "searchButton": "Search"
+    "searchButton": "Search",
+    "meta": "Scroll ↓ · Explore the directory"
   },
   "comingSoon": "Coming soon",
   "directory": {

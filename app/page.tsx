@@ -15,7 +15,7 @@ import Image from 'next/image';
 import { ArrowRight, FileText, Loader2 } from 'lucide-react';
 import ArticleCard from '@/components/ArticleCard';
 import { DirectorySuggest } from '@/components/directory-suggest';
-import { profileCategoryList } from '@/lib/lists';
+import { countyList, profileCategoryList } from '@/lib/lists';
 
 interface Article {
   _id: string;
@@ -130,45 +130,72 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Hero Section with Search. The scalloped trim sits on this section's top
-          edge, biting up into the masthead — the mock's opening gesture. Its
-          colour matches the masthead rather than the cream token so the notches
-          land seamlessly. */}
+      {/* Hero. A full-bleed photo under an orange multiply wash and an ink
+          scrim — the mock's opening. The scallop bites up into the masthead,
+          and its colour matches the masthead rather than the cream token so
+          the notches land seamlessly. */}
       <section
-        className="home-hero-banner scallop relative py-8 text-center md:py-12"
+        className="home-hero-banner scallop"
         style={{ '--scallop': '#ffffff' } as CSSProperties}
       >
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-[90vw] space-y-8">
-            {/* Logo */}
-            <div className="py-8 md:py-12">
-              <Image
-                src="/logos/pana_logo_long_white.png"
-                alt="Pana Mia"
-                width={600}
-                height={150}
-                className="flower-power-logo mx-auto h-auto max-w-full"
-                priority
-              />
-            </div>
+        <div className="home-hero-photo" aria-hidden="true">
+          <Image
+            src="/img/home/bg_main_hero.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+        <div className="home-hero-grain" aria-hidden="true" />
 
-            {/* Search Section */}
-            <div className="py-8">
-              <h1 className="hero-headline mb-4 text-4xl md:text-5xl">
-                {t('hero.headline')}
-              </h1>
-              <p className="hero-subheadline mb-6 text-2xl md:text-3xl">
-                {t('hero.subheadline')}
-              </p>
+        <div className="relative z-10 container mx-auto px-4">
+          <Image
+            src="/logos/pana_logo_long_white.png"
+            alt="Pana Mia"
+            width={600}
+            height={150}
+            className="flower-power-logo mx-auto mb-8 h-auto w-full max-w-[min(26rem,70vw)] md:mb-10"
+            priority
+          />
 
-              <DirectorySuggest
-                className="mx-auto max-w-2xl"
-                label={t('hero.searchLabel')}
-                placeholder={t('hero.searchPlaceholder')}
-                ariaLabel={t('hero.searchAriaLabel')}
-                buttonLabel={t('hero.searchButton')}
-                inputClassName="h-12 min-w-[33vw] rounded-full border-2 text-lg"
-              />
+          <h1 className="hero-headline">
+            <Trans
+              i18nKey="hero.headline"
+              t={t}
+              components={{ br: <br />, em: <em className="accent-word" /> }}
+            />
+          </h1>
+
+          <div className="mx-auto mt-4 max-w-[760px]">
+            <p className="hero-subheadline">{t('hero.subheadline')}</p>
+
+            <DirectorySuggest
+              layout="pill"
+              className="mt-[18px]"
+              label={t('hero.searchLabel')}
+              placeholder={t('hero.searchPlaceholder')}
+              ariaLabel={t('hero.searchAriaLabel')}
+              buttonLabel={t('hero.searchButton')}
+              inputClassName="text-pana-ink h-auto border-0 bg-transparent px-[26px] py-[18px] text-[16.5px] font-semibold shadow-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)] focus-visible:ring-0 md:text-[16.5px]"
+            />
+
+            <div className="hero-meta">
+              <div className="flex flex-wrap justify-center gap-3">
+                {/* Reversed so the list opens on Miami-Dade, as in the mock —
+                    `countyList` is ordered north to south. */}
+                {[...countyList].reverse().map((county) => (
+                  <Link
+                    key={county.value}
+                    href={`/directory/search?floc=${county.value}`}
+                    className="tagpill"
+                  >
+                    {county.desc}
+                  </Link>
+                ))}
+              </div>
+              <div className="hero-meta-note">{t('hero.meta')}</div>
             </div>
           </div>
         </div>

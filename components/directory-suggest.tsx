@@ -27,6 +27,12 @@ interface DirectorySuggestProps {
   /** Applied to the <form>, so callers keep control of width and placement. */
   className?: string;
   inputClassName?: string;
+  /**
+   * `stacked` (default) puts the button beside the input as its own control.
+   * `pill` merges the two into a single rounded bar, as the homepage hero
+   * does — the button sits inside the input's surface rather than next to it.
+   */
+  layout?: 'stacked' | 'pill';
 }
 
 // Matches the API's floor. Below it we never open the list at all.
@@ -57,6 +63,7 @@ export function DirectorySuggest({
   buttonLabel,
   className,
   inputClassName,
+  layout = 'stacked',
 }: DirectorySuggestProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
@@ -232,7 +239,13 @@ export function DirectorySuggest({
       <label htmlFor="directory-suggest-input" className="sr-only">
         {label}
       </label>
-      <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
+      <div
+        className={
+          layout === 'pill'
+            ? 'directory-suggest-pill'
+            : 'flex flex-col items-center justify-center gap-4 md:flex-row'
+        }
+      >
         <div className="relative w-full">
           <Input
             id="directory-suggest-input"
@@ -354,8 +367,18 @@ export function DirectorySuggest({
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="px-8">
-          <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+        <Button
+          type="submit"
+          size="lg"
+          className={
+            layout === 'pill' ? 'directory-suggest-pill-button' : 'px-8'
+          }
+        >
+          {/* The pill layout is text-only, as in the mock — the bar itself
+              already reads as a search field. */}
+          {layout === 'stacked' && (
+            <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+          )}
           {buttonLabel}
         </Button>
       </div>
