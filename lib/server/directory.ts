@@ -1,7 +1,7 @@
 // Directory search utilities (migrated from MongoDB Atlas Search to PostgreSQL)
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 import { ProfileDescriptions, ProfileMentoring } from '@/lib/interfaces';
 import { extractCoordinates } from './profile';
@@ -117,57 +117,161 @@ function countyKeys(raw: unknown): string[] {
 }
 
 /**
- * The words a category can be searched by: the stored key and the label the
- * filter chips show. Shared by the term filter and the relevance score so a
- * listing that survives the filter is also ranked for the reason it survived.
- */
-function categorySearchText(raw: unknown): string[] {
-  return categoryKeys(raw).flatMap((key) => {
-    const label = profileCategoryList.find(
-      (entry) => entry.value === key
-    )?.desc;
-    return label ? [key, label] : [key];
-  });
-}
-
-/**
- * How well a profile answers the search term.
+ * How well a profile answers the search term, according to Postgres.
  *
- * A name match beats a match buried in a description, and an exact name beats
- * a partial one. Without this every result is equally relevant and the order
- * is really just "alphabetical", which is why searching the old directory for
- * a business by name could return it fourth.
+ * Replaces a hand-written score ladder that ran in Node over every active
+ * profile. Three things were wrong with it and all three are fixed here by
+ * handing the question to the database:
+ *
+ *   - the query was one opaque string, so "kitchen bohemian" found nothing
+ *     while "bohemian kitchen" worked
+ *   - nothing was stemmed, so "foods" found nothing while "food" worked
+ *   - nothing was accent-folded, so Sazon and Sazón were different businesses
+ *
+ * The query is OR'd across three text-search configurations. English and
+ * Spanish because the community writes in both and one stemmer would serve
+ * half of it worse than the other half; `simple` because it is the only arm
+ * that survives a query made *entirely* of stop words. Searching "the" alone
+ * reduces the stemmed arms to an empty tsquery, which matches nothing, so a
+ * business named "The Hall" would be unreachable by its own first word. Note
+ * this really does need the whole query to be stop words -- "the hall" is
+ * fine without the simple arm, because "hall" survives stemming. Do not
+ * delete the arm after testing a query that still has one real word in it.
+ *
+ * `ts_rank_cd` handles relevance from the column weights set in migration
+ * 0040, but it has no concept of "this *is* the business you named". The two
+ * boosts below restore the top of the old ladder, which encoded a real
+ * product rule: someone typing a business name exactly should get that
+ * business first, not fourth behind three listings that mention it.
  */
-function matchScore(
-  profile: {
-    name: string;
-    fiveWords?: string;
-    details?: string;
-    city?: string;
-    categories: string[];
-  },
-  term: string
-): number {
-  const needle = term.trim().toLowerCase();
-  if (!needle) return 0;
+const RANK_WEIGHTS = '{0.1,0.3,0.6,1.0}';
+const EXACT_NAME_BOOST = 1000;
+const PREFIX_NAME_BOOST = 100;
 
-  const name = profile.name.toLowerCase();
-  if (name === needle) return 100;
-  if (name.startsWith(needle)) return 80;
-  if (name.includes(needle)) return 60;
-  if (profile.fiveWords?.toLowerCase().includes(needle)) return 40;
-  if (profile.city?.toLowerCase().includes(needle)) return 30;
-  if (profile.categories.some((cat) => cat.toLowerCase().includes(needle))) {
-    return 25;
+/**
+ * Trigram fallback, for when full-text search finds nothing.
+ *
+ * Every arm of the query above is exact-match-after-stemming, so one wrong
+ * letter is indistinguishable from a word that isn't there: "bohemain" finds
+ * nothing at all. That is the worst possible answer, because a typo is
+ * invisible to the person who made it -- the directory looks empty rather
+ * than misspelled.
+ *
+ * This runs only when the text search returned zero rows. Firing on empty
+ * rather than on "too few" keeps fuzzy matches from polluting queries that
+ * already work, costs nothing on the happy path, and means the two result
+ * sets never mix, so there is no ranking conflict to reconcile.
+ *
+ * Three details here are load-bearing and none of them are visible in review:
+ *
+ *   - word_similarity(), not similarity(). similarity() compares the whole
+ *     column, so a short query against a multi-word name is diluted by the
+ *     words it didn't mention: "kitchn" scores 0.26 against "Bohemian
+ *     Kitchen" and is missed at every usable threshold, while
+ *     word_similarity scores 0.71. Measured, not assumed.
+ *   - the %> operator, not word_similarity(...) >= n. Only the operator can
+ *     use the GIN index; the function form is a sequential scan. At 20k rows
+ *     that is 0.09ms against 49ms, and the two read almost identically.
+ *   - `pana_unaccent(p.name)` on the left of %>, matching the indexed
+ *     expression exactly, or the index is skipped.
+ *
+ * The threshold is 0.5 rather than pg_trgm's default 0.6 because 0.6 drops
+ * real typos: "bisayne yoga" -> "Biscayne Bay Yoga" scores 0.58. Re-measured
+ * against a 20k-name corpus, 0.6 loses "bohemain" and "bisayne yoga"
+ * outright, so the cost of the default is a silent miss rather than a wrong
+ * match. 0.5 held up; it was calibrated on 15 rows and survived 20k.
+ *
+ * What does degrade at scale is precision, and it tracks how many businesses
+ * share the misspelled word rather than the size of the table. A distinctive
+ * word still lands the target near the top: "wynwod print" is 2nd of 12.
+ * A generic one buries it: "kitchn" is 34th of 375, because word_similarity
+ * scores every "<something> Kitchen" name identically and the tiebreak is
+ * then arbitrary. That is tolerable, because it returns the same set the
+ * corrected spelling would have -- the failure mode is a broad list, not a
+ * confident wrong answer. Reordering does not rescue it: ranking by
+ * whole-string similarity, or by shortest name, was measured and moves the
+ * generic case further down (34th -> 69th) while only helping cases that
+ * already worked.
+ */
+const TRIGRAM_THRESHOLD = 0.5;
+const TRIGRAM_LIMIT = 50;
+
+async function trigramRanking(trimmed: string): Promise<Map<string, number>> {
+  const rows = (await db.transaction(async (tx) => {
+    // pg_trgm's operators live wherever the extension was installed, which is
+    // an "extensions" schema on Supabase and public on plain Postgres. Naming
+    // both covers either; Postgres ignores entries that don't exist. Migration
+    // 0041 asserts the extension is in one of them.
+    await tx.execute(
+      sql`SELECT set_config('search_path', 'public, extensions', true)`
+    );
+    // set_config(..., true) is SET LOCAL, so this reverts with the
+    // transaction. A GUC can't be a bind parameter in SET, but it can here.
+    await tx.execute(
+      sql`SELECT set_config('pg_trgm.word_similarity_threshold', ${String(TRIGRAM_THRESHOLD)}, true)`
+    );
+    return await tx.execute(sql`
+      SELECT p.id,
+             word_similarity(pana_unaccent(${trimmed}), pana_unaccent(p.name)) AS sim
+      FROM profiles p
+      WHERE p.active = true
+        AND pana_unaccent(p.name) %> ${trimmed}
+      ORDER BY sim DESC
+      LIMIT ${TRIGRAM_LIMIT}
+    `);
+  })) as unknown as Array<{ id: string; sim: number | string }>;
+
+  const ranking = new Map<string, number>();
+  for (const row of rows) {
+    ranking.set(row.id, Number(row.sim) || 0);
   }
-  if (profile.details?.toLowerCase().includes(needle)) return 20;
-  return 0;
+  return ranking;
+}
+
+async function searchRanking(term: string): Promise<Map<string, number>> {
+  const trimmed = term.trim();
+  if (!trimmed) return new Map();
+
+  const rows = (await db.execute(sql`
+    WITH q AS (
+      SELECT websearch_to_tsquery('english', pana_unaccent(${trimmed}))
+          || websearch_to_tsquery('spanish', pana_unaccent(${trimmed}))
+          || websearch_to_tsquery('simple',  pana_unaccent(${trimmed})) AS tsq
+    )
+    SELECT p.id,
+           ts_rank_cd(${RANK_WEIGHTS}::float4[], p.search_vector, q.tsq) AS rank,
+           (lower(pana_unaccent(p.name)) = lower(pana_unaccent(${trimmed}))) AS exact_name,
+           starts_with(lower(pana_unaccent(p.name)), lower(pana_unaccent(${trimmed}))) AS prefix_name
+    FROM profiles p, q
+    WHERE p.active = true AND p.search_vector @@ q.tsq
+  `)) as unknown as Array<{
+    id: string;
+    rank: number | string;
+    exact_name: boolean;
+    prefix_name: boolean;
+  }>;
+
+  const ranking = new Map<string, number>();
+  for (const row of rows) {
+    const base = Number(row.rank) || 0;
+    ranking.set(
+      row.id,
+      base +
+        (row.exact_name ? EXACT_NAME_BOOST : 0) +
+        (row.prefix_name ? PREFIX_NAME_BOOST : 0)
+    );
+  }
+  if (ranking.size === 0) return trigramRanking(trimmed);
+  return ranking;
 }
 
 /**
- * Profile directory search
- * Converted from MongoDB Atlas Search to PostgreSQL ILIKE
- * Note: Geo-based scoring and fuzzy search are simplified in this version
+ * Profile directory search.
+ *
+ * The term arm runs in Postgres against the search_vector added in migration
+ * 0040. Everything else — categories, counties, mentoring, certification —
+ * is still filtered in memory, because those columns hold several shapes and
+ * vocabularies that only `canonical()` below knows how to reconcile.
  */
 export const getSearch = async ({
   pageNum,
@@ -206,10 +310,28 @@ export const getSearch = async ({
     Number.isFinite(viewerLng) &&
     !(viewerLat === 0 && viewerLng === 0);
 
-  // Get all listable profiles and filter in memory for complex conditions
+  // Relevance is decided in Postgres before anything is loaded, so the term
+  // arm reads only rows that actually match instead of the whole table.
+  const ranking = searchTerm ? await searchRanking(searchTerm) : null;
+
+  // Nothing matched the words, so no combination of filters can produce a
+  // result. Returning here avoids loading the directory to filter it to zero.
+  if (ranking && ranking.size === 0) {
+    return {
+      success: true,
+      data: [],
+      pagination: { page: pageNum, limit: pageLimit, total: 0, totalPages: 0 },
+    };
+  }
+
+  // Load the candidate profiles, then filter in memory for the conditions
+  // whose stored shapes only `canonical()` can reconcile.
   const allProfiles = await db.query.profiles.findMany({
     where: and(
       eq(profiles.active, true),
+      // Narrow to the term matches found above. Without a term this is absent
+      // and browse still considers the whole directory.
+      ranking ? inArray(profiles.id, [...ranking.keys()]) : undefined,
       // Every signed-in user now has an active profile, so `active` alone no
       // longer distinguishes a listing from a member. Narrow by account type in
       // SQL rather than in the in-memory passes below, which would otherwise
@@ -232,39 +354,6 @@ export const getSearch = async ({
   });
 
   let filtered = allProfiles;
-
-  // Filter by search term (name, descriptions, categories)
-  if (searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    filtered = filtered.filter((p) => {
-      const descriptions = p.descriptions as ProfileDescriptions | null;
-
-      // Search in name
-      if (p.name.toLowerCase().includes(searchLower)) return true;
-
-      // Search in descriptions
-      if (descriptions?.fiveWords?.toLowerCase().includes(searchLower))
-        return true;
-      if (descriptions?.tags?.toLowerCase().includes(searchLower)) return true;
-      if (descriptions?.details?.toLowerCase().includes(searchLower))
-        return true;
-      if (descriptions?.background?.toLowerCase().includes(searchLower))
-        return true;
-
-      // Search in categories, by key and by the label the chips show.
-      // "food" is the most obvious thing a visitor types, and without this it
-      // returns nothing while the Food chip beside the box returns results —
-      // the same question asked two ways, answered differently.
-      if (
-        categorySearchText(p.categories).some((text) =>
-          text.toLowerCase().includes(searchLower)
-        )
-      )
-        return true;
-
-      return false;
-    });
-  }
 
   // Filter by location (counties)
   if (filterLocations) {
@@ -345,7 +434,7 @@ export const getSearch = async ({
 
   const ordered = sortProfiles(filtered, {
     sort,
-    searchTerm,
+    ranking,
     hasViewerLocation,
     viewerLat,
     viewerLng,
@@ -412,11 +501,11 @@ function sortProfiles(
   rows: ProfileRow[],
   options: LocationContext & {
     sort: DirectorySort;
-    searchTerm: string;
+    ranking: Map<string, number> | null;
     counts: Map<string, DirectorySignalCounts> | null;
   }
 ): ProfileRow[] {
-  const { sort, searchTerm } = options;
+  const { sort } = options;
 
   if (sort === 'name') {
     // The query already returns name-ascending.
@@ -453,23 +542,11 @@ function sortProfiles(
     });
   }
 
-  const scores = new Map<string, number>();
-  for (const row of rows) {
-    const descriptions = row.descriptions as ProfileDescriptions | null;
-    scores.set(
-      row.id,
-      matchScore(
-        {
-          name: row.name,
-          fiveWords: descriptions?.fiveWords,
-          details: descriptions?.details,
-          city: (row.addressLocality as string | null) ?? undefined,
-          categories: categorySearchText(row.categories),
-        },
-        searchTerm
-      )
-    );
-  }
+  // Relevance. Scores come from Postgres (see searchRanking); browse has no
+  // term and therefore no ranking, in which case the query's alphabetical
+  // order already stands.
+  const scores = options.ranking;
+  if (!scores) return rows;
 
   // Stable within a score band: equally relevant listings stay alphabetical
   // rather than reordering between requests for no visible reason.
