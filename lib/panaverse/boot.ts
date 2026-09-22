@@ -7,7 +7,10 @@
  * something that many modules pull in just to ask "which surface is this".
  */
 
-import { getConfiguredFederationDomain } from '@/lib/federation/domain';
+import {
+  DEFAULT_FEDERATION_DOMAIN,
+  getConfiguredFederationDomain,
+} from '@/lib/federation/domain';
 import { getRootDomain } from './surfaces';
 
 /**
@@ -18,6 +21,18 @@ import { getRootDomain } from './surfaces';
  * NODE_ENV=production for every deploy including previews, so keying off it
  * would take down *.workers.dev previews for a variable that only matters once
  * real identities are being minted.
+ *
+ * Covers two domains, not one. The surface root (panamia.club) is the obvious
+ * case, but the fediverse identity domain is served too — it is the
+ * BETTER_AUTH_URL origin, and handles live on it permanently — and it is not a
+ * subdomain of the surface root, so a root-only test never sees it. That is the
+ * one host where an unset variable would infer the identity domain while
+ * minting is most likely.
+ *
+ * Matched against the hardcoded DEFAULT_FEDERATION_DOMAIN rather than
+ * `getConfiguredFederationDomain()` on purpose: the configured value is null in
+ * exactly the situation this guard exists for, so testing against it would be
+ * circular and the check would stay silent on the host it most needs to catch.
  */
 function isPublicPanaverseHost(host: string, rootDomain: string): boolean {
   const hostname = host.trim().toLowerCase().replace(/:\d+$/, '');
@@ -26,11 +41,23 @@ function isPublicPanaverseHost(host: string, rootDomain: string): boolean {
   if (hostname === '127.0.0.1' || hostname === '[::1]') return false;
   if (hostname.endsWith('.workers.dev')) return false;
 
-  const root = rootDomain.trim().toLowerCase().replace(/:\d+$/, '');
-  return hostname === root || hostname.endsWith(`.${root}`);
+  const isUnder = (domain: string) => {
+    const base = domain.trim().toLowerCase().replace(/:\d+$/, '');
+    if (!base) return false;
+    return hostname === base || hostname.endsWith(`.${base}`);
+  };
+
+  return isUnder(rootDomain) || isUnder(DEFAULT_FEDERATION_DOMAIN);
 }
 
-/** Cleared config is checked once per isolate; there is nothing to re-read. */
+/**
+ * Cleared config is checked once per isolate; there is nothing to re-read.
+ *
+ * Only the public-host success path memoises. A non-public host returns before
+ * this is set, because one isolate can serve several hosts and "not public" is
+ * a property of the request, not the deployment — so dev and preview traffic
+ * re-runs the (cheap) host parse every time rather than caching a negative.
+ */
 let verified = false;
 
 /**
