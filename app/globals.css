@@ -888,3 +888,460 @@
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Business profile (directory listing page)
+   ---------------------------------------------------------------------------
+   The profile is the one page in the directory a visitor lands on from a
+   search result, so it has to carry the brand without turning into a second
+   homepage. It reuses the editorial surfaces above rather than inventing new
+   ones: cream for the read, butter-2 for the events rail, indigo for the
+   social updates.
+
+   Everything here is prefixed `bizprofile-` because these are page-specific
+   compositions, not reusable primitives. A rule that turns out to be reusable
+   should be promoted up into the sections above rather than aliased here.
+   --------------------------------------------------------------------------- */
+
+.bizprofile-cover {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-pana-indigo);
+  /* `width: 100%` is load-bearing. Without it the box is auto-width, and on a
+     narrow viewport `min-height` back-solves through `aspect-ratio` into a
+     width far wider than the screen (190px x 16/5 = 608px), which is what
+     produced horizontal page scroll on mobile. Pinning the width makes the
+     ratio resolve height-from-width instead, the direction we actually want. */
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  min-height: 190px;
+}
+
+.bizprofile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The logo overlaps the cover's lower edge, so the bottom third of the photo
+   is always behind type or the logo plate. The scrim keeps both legible
+   regardless of what the business uploaded. */
+.bizprofile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.1) 0%,
+    rgb(17 13 13 / 0) 42%,
+    rgb(255 247 236 / 0.35) 78%,
+    var(--color-pana-cream) 100%
+  );
+}
+
+.dark .bizprofile-cover::after {
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.25) 0%,
+    rgb(17 13 13 / 0) 42%,
+    hsl(var(--background) / 0.45) 78%,
+    hsl(var(--background)) 100%
+  );
+}
+
+/* A white plate rather than a circular avatar: business logos are wordmarks as
+   often as they are marks, and a circle crops the former into nonsense. */
+.bizprofile-logo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 1.5rem;
+  background-color: #fff;
+  box-shadow:
+    0 0 0 5px var(--color-pana-cream),
+    0 18px 40px rgb(17 13 13 / 0.18);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dark .bizprofile-logo {
+  box-shadow:
+    0 0 0 5px hsl(var(--background)),
+    0 18px 40px rgb(0 0 0 / 0.5);
+}
+
+.bizprofile-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .bizprofile-logo {
+    width: 11rem;
+    height: 11rem;
+  }
+}
+
+.bizprofile-name {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.9rem, 4.2vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+/* Pana Certified. Indigo-on-butter so it reads as an award from the
+   organisation rather than as one more category tag — the tags beside it are
+   cream pills, and the contrast is the point. */
+.bizprofile-certified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+  border: 2px solid var(--color-pana-indigo);
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bizprofile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bizprofile-stat-figure {
+  font-weight: 900;
+  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.bizprofile-stat-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.bizprofile-avatarstack {
+  display: flex;
+  align-items: center;
+}
+
+.bizprofile-avatarstack > * {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid var(--color-pana-cream);
+  margin-left: -0.6rem;
+}
+
+.bizprofile-avatarstack > *:first-child {
+  margin-left: 0;
+}
+
+.dark .bizprofile-avatarstack > * {
+  border-color: hsl(var(--background));
+}
+
+/* External links. Outlined rather than filled so a business with nine links
+   does not turn the header into a wall of solid colour. */
+.bizprofile-linkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 2px solid rgb(17 13 13 / 0.18);
+  background-color: #fff;
+  color: var(--color-pana-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-linkchip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-pana-flame);
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-linkchip {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .bizprofile-linkchip:hover {
+  background-color: hsl(var(--accent));
+}
+
+.bizprofile-card {
+  background-color: #fff;
+  border-radius: 1.625rem;
+  border: 2px solid rgb(17 13 13 / 0.08);
+  box-shadow: 0 10px 30px rgb(17 13 13 / 0.06);
+}
+
+.dark .bizprofile-card {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow: none;
+}
+
+/* Event date chip. Flame block, ink type — the same pairing the ticker uses,
+   so the calendar reads as brand furniture rather than a system control. */
+.bizprofile-datechip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.bizprofile-datechip .chip-month {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bizprofile-datechip .chip-day {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-top: 0.15rem;
+}
+
+.bizprofile-rolepill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The upload affordance in the gallery. Dashed, not filled, so it never
+   competes with an actual photograph for attention. */
+.bizprofile-addphoto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
+  border-radius: 1.25rem;
+  border: 2px dashed rgb(17 13 13 / 0.28);
+  background-color: rgb(255 255 255 / 0.55);
+  color: var(--color-pana-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-addphoto:hover {
+  border-color: var(--color-pana-flame);
+  background-color: #fff;
+}
+
+.dark .bizprofile-addphoto {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.bizprofile-gallery-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-gallery-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bizprofile-gallery-tile:hover img {
+  transform: scale(1.05);
+}
+
+/* Social updates sit on indigo, so this card is a translucent lift off that
+   surface rather than a white panel — a white card here would punch a hole in
+   the only dark run on the page. */
+.bizprofile-update {
+  border-radius: 1.375rem;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background-color: rgb(255 255 255 / 0.07);
+  padding: 1.5rem;
+}
+
+.bizprofile-update-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.bizprofile-update-action:hover {
+  opacity: 1;
+}
+
+/* The mock's own state switcher. Not part of the design — it is scaffolding so
+   the claimed/unclaimed and certified/uncertified variants can be reviewed
+   without four separate routes, and it goes away with the mock. */
+.bizprofile-mockbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mocktoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.bizprofile-mocktoggle[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  border-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-linkchip,
+  .bizprofile-gallery-tile img {
+    transition: none;
+  }
+
+  .bizprofile-linkchip:hover {
+    transform: none;
+  }
+
+  .bizprofile-gallery-tile:hover img {
+    transform: none;
+  }
+}
+
+/* Section headings inside the profile. A step down from `.section-display`,
+   which is sized for the homepage's full-bleed statements and overpowers a
+   page that is mostly read rather than scanned. Defined as its own class
+   rather than a Tailwind override so it does not depend on which of the two
+   rules wins the cascade. */
+.bizprofile-h2 {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+/* The event card's cover. Same hover behaviour as a gallery tile but square at
+   the top, because it sits flush inside a card that already has the corners.
+   Declared here rather than as a `rounded-none` utility on the tile: the
+   `bizprofile-` rules are unlayered, so they beat Tailwind's utility layer no
+   matter how specific the utility is. */
+.bizprofile-eventcover {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-eventcover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.group:hover .bizprofile-eventcover img {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-eventcover img {
+    transition: none;
+  }
+
+  .group:hover .bizprofile-eventcover img {
+    transform: none;
+  }
+}
+
+/* Larger than a comment avatar because it is doing real work here: this row is
+   the page's proof that other panas stand behind the business. */
+.bizprofile-avatarstack > * {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.75rem;
+}
+
+/* The bio column. Same rhythm as `.section-lede` but without its 46ch cap —
+   that limit is tuned for a homepage statement sitting beside artwork, and
+   here it strands the paragraph at half the width of its own column. */
+.bizprofile-bio {
+  font-size: clamp(1rem, 1.24vw, 1.1875rem);
+  line-height: 1.65;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Full-width upload zone: it sits on its own implicit grid row, and the
+   13rem auto-row height would leave a canyon of dashed nothing. */
+.bizprofile-addphoto {
+  height: 7.5rem;
+  align-self: start;
+  flex-direction: row;
+  gap: 0.625rem;
+}
