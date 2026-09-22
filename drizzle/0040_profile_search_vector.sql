@@ -1,5 +1,37 @@
 -- Migration: 0040_profile_search_vector
 -- Purpose: Give the directory a real search index.
+-- Ticket: N/A
+-- Reversible: Yes
+--
+-- Dependencies: profiles, and the unaccent extension. The schema that unaccent
+--               lives in is resolved at migration time rather than assumed:
+--               managed Postgres (Supabase) conventionally puts extensions in
+--               an "extensions" schema, and CREATE EXTENSION IF NOT EXISTS is
+--               a no-op against an install that already exists elsewhere, so a
+--               hardcoded public. would fail on the intended target. If the
+--               extension is absent entirely the migration raises rather than
+--               creating something subtly wrong.
+-- Data Migration: None required. search_vector is GENERATED ALWAYS ... STORED,
+--                 so Postgres populates every existing row during the ALTER and
+--                 keeps it in step on every write afterwards. No backfill
+--                 script, and no trigger that can drift out of sync.
+--
+-- Note: ALTER TABLE ... ADD COLUMN ... GENERATED rewrites the table and holds
+--       ACCESS EXCLUSIVE for the duration. At the directory's current size this
+--       is a non-event, but it should still go out during a quiet window.
+--
+-- Rollback:
+--   DROP INDEX IF EXISTS "profiles_search_vector_idx";
+--   ALTER TABLE "profiles" DROP COLUMN IF EXISTS "search_vector";
+--   DROP FUNCTION IF EXISTS pana_jsonb_flags(jsonb);
+--   DROP FUNCTION IF EXISTS pana_unaccent(text);
+--   -- Leave the extension in place; dropping it is not required to revert and
+--   -- other work may since depend on it.
+--   -- DROP EXTENSION IF EXISTS unaccent;
+--
+-- =============================================================================
+-- Rationale
+-- =============================================================================
 --
 --          Until now "search" meant loading every active profile into Node and
 --          running String.includes() of the whole query against a handful of
@@ -49,32 +81,19 @@
 --          data at rest is still worth doing for exact filter-chip matching,
 --          but it is explicitly not a prerequisite for search and is not done
 --          here.
--- Ticket: N/A
--- Reversible: Yes
 --
--- Dependencies: profiles. Requires the unaccent extension to be installable by
---               the migrating role. On managed Postgres (Supabase) extensions
---               conventionally live in an "extensions" schema rather than
---               public -- if that is the case on the target, the schema
---               qualifiers below must be changed to match, including the
---               regdictionary literal inside pana_unaccent.
--- Data Migration: None required. search_vector is GENERATED ALWAYS ... STORED,
---                 so Postgres populates every existing row during the ALTER and
---                 keeps it in step on every write afterwards. No backfill
---                 script, and no trigger that can drift out of sync.
+--          Staleness applies to BOTH helpers, and Postgres will not warn you.
+--          search_vector is STORED, so it is computed on write and never
+--          recomputed on read. CREATE OR REPLACE on either function is
+--          permitted even while a generated column depends on it (verified),
+--          and existing rows keep their old vectors while new writes use the
+--          new logic -- a silently split corpus. Changing the flattening or
+--          unaccent logic later therefore requires forcing a rewrite of every
+--          row, not just replacing the function:
 --
--- Note: ALTER TABLE ... ADD COLUMN ... GENERATED rewrites the table and holds
---       ACCESS EXCLUSIVE for the duration. At the directory's current size this
---       is a non-event, but it should still go out during a quiet window.
---
--- Rollback:
---   DROP INDEX IF EXISTS "profiles_search_vector_idx";
---   ALTER TABLE "profiles" DROP COLUMN IF EXISTS "search_vector";
---   DROP FUNCTION IF EXISTS pana_jsonb_flags(jsonb);
---   DROP FUNCTION IF EXISTS pana_unaccent(text);
---   -- Leave the extension in place; dropping it is not required to revert and
---   -- other work may since depend on it.
---   -- DROP EXTENSION IF EXISTS unaccent;
+--            ALTER TABLE "profiles" ALTER COLUMN "search_vector"
+--              DROP EXPRESSION;   -- then re-add, or:
+--            UPDATE "profiles" SET "id" = "id";  -- cheap full rewrite
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -84,9 +103,39 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 -- expression index. Naming the dictionary explicitly makes the call
 -- reproducible and lets us declare the wrapper IMMUTABLE. See the header for
 -- the REINDEX caveat this buys.
-CREATE OR REPLACE FUNCTION pana_unaccent(text) RETURNS text
-  LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
-  AS $$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $$;
+--
+-- The schema is resolved at migration time rather than hardcoded. Managed
+-- Postgres (Supabase) conventionally installs extensions into an "extensions"
+-- schema, and CREATE EXTENSION IF NOT EXISTS will NOT relocate one that is
+-- already installed elsewhere -- it is simply a no-op. A hardcoded public.
+-- therefore fails on exactly the deployment target this is written for, and
+-- fails twice: once on the function call, and once on the regdictionary
+-- literal, which is easy to miss because it is inside a string.
+DO $do$
+DECLARE
+  dict_schema text;
+BEGIN
+  SELECT n.nspname INTO dict_schema
+  FROM pg_ts_dict d
+  JOIN pg_namespace n ON n.oid = d.dictnamespace
+  WHERE d.dictname = 'unaccent'
+  LIMIT 1;
+
+  IF dict_schema IS NULL THEN
+    RAISE EXCEPTION
+      'unaccent dictionary not found. The unaccent extension must be installed '
+      'and visible before this migration runs.';
+  END IF;
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION pana_unaccent(text) RETURNS text
+       LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+       AS $f$ SELECT %I.unaccent(%L::regdictionary, $1) $f$',
+    dict_schema,
+    quote_ident(dict_schema) || '.unaccent'
+  );
+END
+$do$;
 --> statement-breakpoint
 
 -- Flatten a category-style JSONB column to whitespace-joined text, accepting

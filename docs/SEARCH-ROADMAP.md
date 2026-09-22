@@ -253,8 +253,16 @@ Delivered by `drizzle/0040_profile_search_vector.sql` and `lib/server/directory.
   it on ordinary profile reads
 
 The query is OR'd across `english`, `spanish` **and** `simple`. The `simple` arm is not redundant:
-it is the only one that survives a query made entirely of stop words, where the stemmed arms reduce
-to an empty tsquery and would return an empty directory for a search like "the hall".
+it is the only one that survives a query made **entirely** of stop words. Searching `the` alone
+reduces the stemmed arms to an empty tsquery, so a business named _The Hall_ would be unreachable
+by its own first word. This needs the whole query to be stop words — `the hall` matches fine
+without the simple arm, because `hall` survives stemming. Measured against a _The Hall_ row:
+
+| Query      | `english` only | `english ‖ simple` |
+| ---------- | -------------- | ------------------ |
+| `the hall` | 1              | 1                  |
+| `the`      | **0**          | 1                  |
+| `hall`     | 1              | 1                  |
 
 **Verified against the live API** with four seeded listings covering every stored category shape
 and vocabulary (removed afterwards):

@@ -131,9 +131,12 @@ function countyKeys(raw: unknown): string[] {
  * The query is OR'd across three text-search configurations. English and
  * Spanish because the community writes in both and one stemmer would serve
  * half of it worse than the other half; `simple` because it is the only arm
- * that survives a query made entirely of stop words, where the stemmed arms
- * reduce to nothing and would otherwise return an empty directory for a
- * search like "the hall".
+ * that survives a query made *entirely* of stop words. Searching "the" alone
+ * reduces the stemmed arms to an empty tsquery, which matches nothing, so a
+ * business named "The Hall" would be unreachable by its own first word. Note
+ * this really does need the whole query to be stop words -- "the hall" is
+ * fine without the simple arm, because "hall" survives stemming. Do not
+ * delete the arm after testing a query that still has one real word in it.
  *
  * `ts_rank_cd` handles relevance from the column weights set in migration
  * 0040, but it has no concept of "this *is* the business you named". The two
