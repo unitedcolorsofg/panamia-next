@@ -1183,6 +1183,24 @@
   color: hsl(var(--card-foreground));
 }
 
+/* Sits under the upload tile and explains the three-photo limit. Lower
+   contrast and sentence case on purpose: the tile is the instruction, this is
+   the footnote, and matching their weight would make the reader pick. */
+.bizprofile-addphoto-hint {
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(17 13 13 / 0.68);
+}
+
+.dark .bizprofile-addphoto-hint {
+  color: hsl(var(--muted-foreground));
+}
+
 .bizprofile-gallery-tile {
   position: relative;
   overflow: hidden;

@@ -12,12 +12,15 @@ import {
 } from '@/lib/interfaces';
 
 export interface LegacyProfile {
+  id: string;
   name: string;
   details: string | undefined;
   five_words: string | undefined;
   background: string | undefined;
   tags: string | undefined;
   phone_number: unknown;
+  /** Set by Pana Mia staff; null means not certified. */
+  panaCertifiedAt: Date | null;
   primary_address: {
     name: string | undefined;
     street1: string | undefined;
@@ -37,6 +40,44 @@ export interface LegacyProfile {
   mentoring: ProfileMentoring | null;
   socials: ProfileSocialsInterface | null;
   [key: string]: unknown;
+}
+
+/**
+ * Pull [lng, lat] out of a profile row.
+ *
+ * address_lat/address_lng are authoritative — they are what the address
+ * geocoder writes. The geo JSONB column is read only as a fallback for rows
+ * imported before those columns existed.
+ *
+ * Both are validated rather than trusted: numeric columns arrive from the
+ * driver as strings, and a half-populated row (lat set, lng NULL) would
+ * otherwise produce a point at the equator.
+ */
+function extractCoordinates(
+  profile: Record<string, unknown>
+): [number, number] | null {
+  const lat = Number(profile.addressLat);
+  const lng = Number(profile.addressLng);
+
+  if (
+    profile.addressLat != null &&
+    profile.addressLng != null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng)
+  ) {
+    return [lng, lat];
+  }
+
+  const geo = profile.geo as { coordinates?: unknown } | null;
+  const legacy = Array.isArray(geo?.coordinates) ? geo.coordinates : null;
+  if (legacy && legacy.length >= 2) {
+    const [legacyLng, legacyLat] = [Number(legacy[0]), Number(legacy[1])];
+    if (Number.isFinite(legacyLng) && Number.isFinite(legacyLat)) {
+      return [legacyLng, legacyLat];
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -64,7 +105,9 @@ function transformToLegacyFormat(
   return {
     ...profile,
     // Explicit typed fields (cast from Record<string, unknown>)
+    id: profile.id as string,
     name: profile.name as string,
+    panaCertifiedAt: (profile.panaCertifiedAt as Date | null) ?? null,
     // Legacy field mappings
     details: descriptions?.details,
     five_words: descriptions?.fiveWords,
@@ -88,14 +131,14 @@ function transformToLegacyFormat(
       gallery2CDN: profile.gallery2Cdn as string | undefined,
       gallery3CDN: profile.gallery3Cdn as string | undefined,
     },
-    // Legacy geo format (combine lat/lng into GeoJSON-like structure)
-    geo:
-      profile.geoLat && profile.geoLng
-        ? {
-            type: 'Point',
-            coordinates: [Number(profile.geoLng), Number(profile.geoLat)],
-          }
-        : null,
+    // Legacy geo format. Reads the authoritative address_lat/address_lng
+    // columns; the previous implementation referenced geoLat/geoLng, which are
+    // not columns on this table, so geo was unconditionally null and the map
+    // and distance never rendered.
+    geo: (() => {
+      const coordinates = extractCoordinates(profile);
+      return coordinates ? { type: 'Point', coordinates } : null;
+    })(),
     // Mentoring stays as-is (JSONB)
     mentoring: mentoring,
     // Socials stays as-is (JSONB)

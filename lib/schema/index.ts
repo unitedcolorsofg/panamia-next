@@ -281,6 +281,24 @@ export const profileOwnerRole = pgEnum('profile_owner_role', [
   'editor',
 ]);
 
+/**
+ * What a pana expressed about a listing in the directory.
+ *
+ * 'save' is a private bookmark — "remember this for me". 'recommend' is a
+ * public vouch — "I stand behind this". They share a table because they have
+ * the same shape and the same uniqueness rule, but they are NOT interchangeable
+ * and the query layer treats them differently: recommenders may be listed,
+ * savers are only ever counted. See lib/server/profile-signals.ts.
+ *
+ * Deliberately distinct from social_follows, which is a federated ActivityPub
+ * relationship meaning "deliver their posts to me" and can come from a remote
+ * server. Saving is local, private, and says nothing about subscription.
+ */
+export const profileSignalKind = pgEnum('profile_signal_kind', [
+  'save',
+  'recommend',
+]);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -583,6 +601,15 @@ export const profiles = pgTable(
     addressGooglePlaceId: text('address_google_place_id'),
     addressHours: text('address_hours'),
     active: boolean('active').notNull().default(false),
+    /**
+     * When Pana Mia certified this listing, or NULL if it has not been.
+     *
+     * A timestamp rather than a boolean because the interesting questions are
+     * "since when?" and "certify the ones granted before X" — a boolean throws
+     * that away and cannot answer either. Set by Pana Mia staff only; nothing
+     * in the member-facing app writes this.
+     */
+    panaCertifiedAt: timestamp('pana_certified_at', { withTimezone: true }),
     locallyBased: text('locally_based'),
     membershipLevel: membershipLevel('membership_level')
       .notNull()
@@ -676,6 +703,57 @@ export const profileOwners = pgTable(
     ),
     userIdx: index('profile_owners_user_idx').on(table.userId),
     profileIdx: index('profile_owners_profile_idx').on(table.profileId),
+  })
+);
+
+// =============================================================================
+// Profile signals (directory saves and recommendations)
+// =============================================================================
+
+/**
+ * A pana's saves and recommendations of directory listings.
+ *
+ * Keyed to userId, not profileId, because this belongs to the *person*, not to
+ * whichever profile they are currently acting as. Someone who claims a business
+ * on Monday should still have the saves they made on Sunday, and switching hats
+ * must not silently re-attribute their recommendations to a business.
+ *
+ * That choice also makes the product rule enforceable: only a human acting as
+ * themselves may save or recommend. A business cannot recommend anyone, because
+ * a business is never the subject here — see lib/server/profile-signals.ts.
+ */
+export const profileSignals = pgTable(
+  'profile_signals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: profileSignalKind('kind').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    // One save and one recommend per person per listing. Saving twice is the
+    // same as saving once, so the toggle endpoints can be safely retried.
+    profileUserKindUnique: uniqueIndex('profile_signals_profile_user_kind')
+      .on(table.profileId, table.userId, table.kind),
+    // "How many panas saved this?" — the counts on the profile page.
+    profileKindIdx: index('profile_signals_profile_kind_idx').on(
+      table.profileId,
+      table.kind
+    ),
+    // "What have I saved?" — the member's own saved-listings view.
+    userKindIdx: index('profile_signals_user_kind_idx').on(
+      table.userId,
+      table.kind
+    ),
   })
 );
 
@@ -1601,9 +1679,21 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
     references: [socialActors.profileId],
   }),
   owners: many(profileOwners),
+  signals: many(profileSignals),
   venuesOperated: many(venues),
   eventsHosted: many(events),
   eventAttendeeRows: many(eventAttendees),
+}));
+
+export const profileSignalsRelations = relations(profileSignals, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [profileSignals.profileId],
+    references: [profiles.id],
+  }),
+  user: one(users, {
+    fields: [profileSignals.userId],
+    references: [users.id],
+  }),
 }));
 
 export const profileOwnersRelations = relations(profileOwners, ({ one }) => ({

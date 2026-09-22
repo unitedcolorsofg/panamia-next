@@ -25,6 +25,7 @@ import {
   intakeForms,
   emailMigrations,
   interactions,
+  profileSignals,
   socialActors,
   socialStatuses,
   socialFollows,
@@ -674,6 +675,22 @@ export async function deleteAccount(
           .delete(interactions)
           .where(eq(interactions.email, user.email))
           .returning({ id: interactions.id }),
+      deletedTables,
+      warnings
+    );
+
+    // Saves and recommendations this person made. Deleted explicitly rather
+    // than left to the users FK cascade, because an anonymized account keeps
+    // its users row — and a recommendation is a public statement attributed to
+    // a named human. Leaving it behind would keep vouching for a business on
+    // behalf of someone who asked to be forgotten.
+    await safeDelete(
+      'profileSignals',
+      () =>
+        db
+          .delete(profileSignals)
+          .where(eq(profileSignals.userId, userId))
+          .returning({ id: profileSignals.id }),
       deletedTables,
       warnings
     );
