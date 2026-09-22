@@ -8,8 +8,8 @@
  */
 
 import { db } from '@/lib/db';
-import { socialActors, profiles } from '@/lib/schema';
-import type { Profile, SocialActor } from '@/lib/schema';
+import { socialActors, profiles, toPublicActor } from '@/lib/schema';
+import type { Profile, SocialActor, PublicSocialActor } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
 import { canCreateSocialActor, GateResult } from '../gates';
@@ -23,7 +23,7 @@ import {
 } from '../index';
 
 export type CreateActorResult =
-  | { success: true; actor: SocialActor }
+  | { success: true; actor: PublicSocialActor }
   | { success: false; error: string; gateResult?: GateResult };
 
 /**
@@ -67,7 +67,7 @@ export async function createActorForProfile(
 
   // Check if already has an actor
   if (profile.socialActor) {
-    return { success: true, actor: profile.socialActor };
+    return { success: true, actor: toPublicActor(profile.socialActor) };
   }
 
   // Generate keypair
@@ -97,7 +97,7 @@ export async function createActorForProfile(
     })
     .returning();
 
-  return { success: true, actor };
+  return { success: true, actor: toPublicActor(actor) };
 }
 
 /**

@@ -1137,6 +1137,49 @@ export const socialActors = pgTable(
   })
 );
 
+/**
+ * Every column on social_actors that is safe to serialize to a client.
+ *
+ * This table holds `privateKey`, the key a local actor signs its
+ * ActivityPub activities with. Leaking it lets anyone forge posts,
+ * follows and deletes as that actor, and remote servers will verify the
+ * signatures as genuine, so it must never reach an HTTP response.
+ *
+ * Relational queries that join the actor onto something public --
+ * statuses, timelines, follow lists -- must pass this as `columns`.
+ * A bare `with: { actor: true }` selects every column and will hand the
+ * signing key to whoever asked.
+ *
+ * This is an allowlist rather than `{ privateKey: false }` on purpose.
+ * Adding a column here is a step someone can forget either way, but
+ * forgetting an allowlist entry drops a field from an API response,
+ * which is a visible bug. Forgetting to exclude from a denylist
+ * publishes a new secret, which is silent. Prefer the loud failure.
+ */
+export const PUBLIC_ACTOR_COLUMNS = {
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  username: true,
+  domain: true,
+  profileId: true,
+  uri: true,
+  inboxUrl: true,
+  outboxUrl: true,
+  followersUrl: true,
+  followingUrl: true,
+  sharedInboxUrl: true,
+  publicKey: true,
+  name: true,
+  summary: true,
+  iconUrl: true,
+  headerUrl: true,
+  followingCount: true,
+  followersCount: true,
+  statusCount: true,
+  manuallyApprovesFollowers: true,
+} as const;
+
 export const socialStatuses = pgTable(
   'social_statuses',
   {
@@ -2135,6 +2178,29 @@ export type Interaction = typeof interactions.$inferSelect;
 export type MentorSession = typeof mentorSessions.$inferSelect;
 export type IntakeForm = typeof intakeForms.$inferSelect;
 export type SocialActor = typeof socialActors.$inferSelect;
+
+/**
+ * A social actor with the signing key stripped, as returned by any query
+ * that selects PUBLIC_ACTOR_COLUMNS. Use this in the return types of
+ * anything a client can reach so a full SocialActor cannot be assigned
+ * into a public response by mistake.
+ */
+export type PublicSocialActor = Omit<SocialActor, 'privateKey'>;
+
+/**
+ * Strip the signing key off an actor row.
+ *
+ * For the paths that cannot use PUBLIC_ACTOR_COLUMNS because they need the
+ * whole row first -- creating an actor returns the key it just generated --
+ * call this before the value reaches a response.
+ */
+export function toPublicActor<T extends { privateKey?: string | null }>(
+  actor: T
+): Omit<T, 'privateKey'> {
+  const rest = { ...actor };
+  delete (rest as { privateKey?: string | null }).privateKey;
+  return rest;
+}
 export type SocialStatus = typeof socialStatuses.$inferSelect;
 export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;

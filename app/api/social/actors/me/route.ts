@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createActorForProfile, canCreateSocialActor } from '@/lib/federation';
+import { toPublicActor } from '@/lib/schema';
 import {
   getActiveProfile,
   getActiveProfileId,
@@ -48,7 +49,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     data: {
-      actor: profile.socialActor,
+      actor: profile.socialActor ? toPublicActor(profile.socialActor) : null,
       eligible: gateResult.allowed,
       reason: gateResult.reason,
       // Include screenname so UI can show what the social username will be.

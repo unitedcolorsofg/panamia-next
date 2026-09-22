@@ -14,8 +14,9 @@ import {
   socialFollows,
   socialActors,
   socialLikes,
+  PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
-import type { SocialStatus, SocialActor } from '@/lib/schema';
+import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
 import { and, eq, sql, or, type SQL } from 'drizzle-orm';
 import { socialConfig } from '../index';
 
@@ -41,7 +42,7 @@ function jsonbArrayContains(
 }
 
 export type StatusWithActorAndLike = SocialStatus & {
-  actor: SocialActor;
+  actor: PublicSocialActor;
   liked: boolean;
 };
 
@@ -103,7 +104,7 @@ export async function getHomeTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -146,7 +147,7 @@ export async function getActorPosts(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       ...(viewerActorId && {
         likes: {
@@ -190,7 +191,7 @@ export async function getPublicTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       ...(viewerActorId && {
         likes: {
@@ -251,7 +252,7 @@ export async function getReceivedDirectMessages(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -292,7 +293,7 @@ export async function getSentDirectMessages(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -350,7 +351,7 @@ export async function getAtMeTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -383,7 +384,7 @@ export async function getStatusWithLikeStatus(
   const row = await db.query.socialStatuses.findFirst({
     where: eq(socialStatuses.id, statusId),
     with: {
-      actor: true,
+      actor: { columns: PUBLIC_ACTOR_COLUMNS },
       attachments: true,
       ...(viewerActorId && {
         likes: {
