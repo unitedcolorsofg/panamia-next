@@ -148,6 +148,74 @@ const RANK_WEIGHTS = '{0.1,0.3,0.6,1.0}';
 const EXACT_NAME_BOOST = 1000;
 const PREFIX_NAME_BOOST = 100;
 
+/**
+ * Trigram fallback, for when full-text search finds nothing.
+ *
+ * Every arm of the query above is exact-match-after-stemming, so one wrong
+ * letter is indistinguishable from a word that isn't there: "bohemain" finds
+ * nothing at all. That is the worst possible answer, because a typo is
+ * invisible to the person who made it -- the directory looks empty rather
+ * than misspelled.
+ *
+ * This runs only when the text search returned zero rows. Firing on empty
+ * rather than on "too few" keeps fuzzy matches from polluting queries that
+ * already work, costs nothing on the happy path, and means the two result
+ * sets never mix, so there is no ranking conflict to reconcile.
+ *
+ * Three details here are load-bearing and none of them are visible in review:
+ *
+ *   - word_similarity(), not similarity(). similarity() compares the whole
+ *     column, so a short query against a multi-word name is diluted by the
+ *     words it didn't mention: "kitchn" scores 0.26 against "Bohemian
+ *     Kitchen" and is missed at every usable threshold, while
+ *     word_similarity scores 0.71. Measured, not assumed.
+ *   - the %> operator, not word_similarity(...) >= n. Only the operator can
+ *     use the GIN index; the function form is a sequential scan. At 20k rows
+ *     that is 0.09ms against 49ms, and the two read almost identically.
+ *   - `pana_unaccent(p.name)` on the left of %>, matching the indexed
+ *     expression exactly, or the index is skipped.
+ *
+ * The threshold is 0.5 rather than pg_trgm's default 0.6 because 0.6 drops
+ * real typos: "bisayne yoga" -> "Biscayne Bay Yoga" scores 0.58. Across the
+ * sample the worst true match scored 0.58 and the best non-match 0.18, so
+ * anything in roughly 0.3-0.55 works; 0.5 sits high in that gap because
+ * false positives get likelier as the directory grows. Retune with evidence.
+ */
+const TRIGRAM_THRESHOLD = 0.5;
+const TRIGRAM_LIMIT = 50;
+
+async function trigramRanking(trimmed: string): Promise<Map<string, number>> {
+  const rows = (await db.transaction(async (tx) => {
+    // pg_trgm's operators live wherever the extension was installed, which is
+    // an "extensions" schema on Supabase and public on plain Postgres. Naming
+    // both covers either; Postgres ignores entries that don't exist. Migration
+    // 0041 asserts the extension is in one of them.
+    await tx.execute(
+      sql`SELECT set_config('search_path', 'public, extensions', true)`
+    );
+    // set_config(..., true) is SET LOCAL, so this reverts with the
+    // transaction. A GUC can't be a bind parameter in SET, but it can here.
+    await tx.execute(
+      sql`SELECT set_config('pg_trgm.word_similarity_threshold', ${String(TRIGRAM_THRESHOLD)}, true)`
+    );
+    return await tx.execute(sql`
+      SELECT p.id,
+             word_similarity(pana_unaccent(${trimmed}), pana_unaccent(p.name)) AS sim
+      FROM profiles p
+      WHERE p.active = true
+        AND pana_unaccent(p.name) %> ${trimmed}
+      ORDER BY sim DESC
+      LIMIT ${TRIGRAM_LIMIT}
+    `);
+  })) as unknown as Array<{ id: string; sim: number | string }>;
+
+  const ranking = new Map<string, number>();
+  for (const row of rows) {
+    ranking.set(row.id, Number(row.sim) || 0);
+  }
+  return ranking;
+}
+
 async function searchRanking(term: string): Promise<Map<string, number>> {
   const trimmed = term.trim();
   if (!trimmed) return new Map();
@@ -181,6 +249,7 @@ async function searchRanking(term: string): Promise<Map<string, number>> {
         (row.prefix_name ? PREFIX_NAME_BOOST : 0)
     );
   }
+  if (ranking.size === 0) return trigramRanking(trimmed);
   return ranking;
 }
 

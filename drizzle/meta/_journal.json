@@ -288,6 +288,13 @@
       "when": 1787529600000,
       "tag": "0040_profile_search_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1787616000000,
+      "tag": "0041_profile_name_trigram",
+      "breakpoints": true
     }
   ]
 }

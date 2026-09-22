@@ -1,8 +1,9 @@
 # Directory Search — Design & Roadmap
 
-> **STATUS**: **Phase 1 is implemented** — migration `0040_profile_search_vector.sql` ships a
-> stored `tsvector` and the directory term search now runs in Postgres. Phases 2–4 are still
-> proposals.
+> **STATUS**: **Phases 1 and 2 are implemented** — migration `0040_profile_search_vector.sql`
+> ships a stored `tsvector` and the directory term search now runs in Postgres;
+> `0041_profile_name_trigram.sql` adds a trigram fallback so a typo in a business name no longer
+> returns an empty directory. Phases 3–4 are still proposals.
 >
 > Before this, the directory search was a **substring scan in Node memory**, not a search engine:
 > it could not handle word order, typos, plurals, or accents. Measured results from the live API
@@ -153,6 +154,10 @@ $$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $$;
 This matters disproportionately for Pana Mia: the directory is full of bilingual and Spanish
 business names. Without it, `Sazón` and `Sazon` are different words.
 
+> **`public.` above is illustrative only — do not copy it into a migration.** On Supabase the
+> extension conventionally lives in an `extensions` schema, and `CREATE EXTENSION IF NOT EXISTS`
+> will not move it. Migration `0040` resolves the schema at run time instead; see its body below.
+
 > **Caveat**: marking this IMMUTABLE is a controlled lie. If the `unaccent` dictionary is ever
 > modified, dependent indexes silently go stale and must be `REINDEX`ed. This is standard practice
 > and safe as long as we never edit the dictionary.
@@ -205,6 +210,17 @@ string and falls under the threshold.
 
 `word_similarity()` and its `<%` operator compare the query against the **best-matching word**
 inside the value, which is exactly the semantics a search box needs. Switching operators fixed it.
+
+Measured side by side (scores against `Bohemian Kitchen` and `Calle Ocho Cigars`):
+
+| Query      | `similarity` | `word_similarity` |
+| ---------- | ------------ | ----------------- |
+| `kitchn`   | 0.26 ✗       | **0.71** ✓        |
+| `cigards`  | 0.25 ✗       | **0.63** ✓        |
+| `ventanta` | 0.37 ✗       | **0.75** ✓        |
+
+`similarity` misses all three at _every_ usable threshold — not a tuning problem, a wrong-function
+problem.
 
 This is the single most important implementation detail in this document; using `%` here looks
 correct, passes review, and quietly does not work.
@@ -280,11 +296,48 @@ and vocabulary (removed afterwards):
 Term and chip agree across all three vocabularies: `q=food` and `fcat=food` each return the same
 four listings, spanning `{"food":true}`, `["food"]` and `["Food & Drink"]`.
 
-### Phase 2 — Typo tolerance _(high perceived quality)_
+### Phase 2 — Typo tolerance ✅ **shipped** (migration `0041`)
 
-- Enable `pg_trgm`, add the GIN trigram index on `pana_unaccent(name)`
-- Add a fallback arm: when the FTS arm returns few or no rows, `UNION` in `<%` matches ranked
-  strictly **below** every exact match, so typo results never outrank real ones
+Shipped as specified, with three details that only surfaced once it was built and measured.
+
+**It fires only when full-text search returns _zero_ rows**, not "few" rows. That avoids inventing
+a threshold for what "few" means, keeps fuzzy matches from polluting queries that already work,
+and costs nothing on the happy path. Because the two result sets never mix, the planned `UNION`
+with a below-exact ranking was unnecessary — there is no ranking conflict to resolve.
+
+**The threshold is 0.5, not pg_trgm's default 0.6.** Measured against a 12-name corpus with
+realistic typos:
+
+| Query              | Intended match    | `word_similarity` |
+| ------------------ | ----------------- | ----------------- |
+| `bohemian kitchne` | Bohemian Kitchen  | 0.82              |
+| `kitchn`           | Bohemian Kitchen  | 0.71              |
+| `bohemain`         | Bohemian Kitchen  | 0.56              |
+| `bisayne yoga`     | Biscayne Bay Yoga | **0.58**          |
+| `restaurant`       | _(none)_          | 0.18              |
+| `zzzqqq`           | _(none)_          | 0.00              |
+
+Worst true match 0.58, best non-match 0.18 — anything in roughly 0.3–0.55 works. The default 0.6
+would have silently dropped both `bisayne yoga` and `bohemain`. 0.5 sits high in the gap because
+false positives get likelier as the directory grows; retune with evidence, not by feel.
+
+**The operator form is not optional.** `word_similarity(q, col) >= 0.5` reads identically to
+`col %> q` and cannot use the GIN index. At 20k rows:
+
+| Form                                    | Plan              | Time        |
+| --------------------------------------- | ----------------- | ----------- |
+| `pana_unaccent(name) %> 'bohemain'`     | Bitmap Index Scan | **0.09 ms** |
+| `word_similarity('bohemain', …) >= 0.5` | Seq Scan          | 49.5 ms     |
+
+The operator reads its cutoff from `pg_trgm.word_similarity_threshold`, which is why the query runs
+in a transaction with `set_config(…, true)` (`SET LOCAL`) — a GUC cannot be a bind parameter in
+`SET`, but it can in `set_config`. The indexed expression must be written exactly as indexed
+(`pana_unaccent(name)`, left-hand side) or the index is skipped.
+
+> **`pg_trgm` has the same schema trap as `unaccent`, in three places.** An unqualified
+> `gin_trgm_ops` fails at migration time; `word_similarity()` and `%>` each fail separately at
+> runtime. `0041` resolves the schema for the index and asserts the extension is in `public` or
+> `extensions`, matching the `search_path` the application sets. Verified against both layouts.
 
 ### Phase 3 — Move the remaining filters into SQL _(scale)_
 
@@ -323,9 +376,27 @@ Abridged body (see the file for the full header and rationale):
 CREATE EXTENSION IF NOT EXISTS unaccent;
 --> statement-breakpoint
 
-CREATE OR REPLACE FUNCTION pana_unaccent(text) RETURNS text
-LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS
-$$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $$;
+-- The schema unaccent lives in is resolved here, not assumed: CREATE EXTENSION
+-- IF NOT EXISTS will not relocate an existing install, and Supabase
+-- conventionally uses an "extensions" schema. A hardcoded public. fails twice
+-- on such a target -- and the 'public.unaccent'::regdictionary *string* fails
+-- first, reporting a missing text search dictionary rather than a missing
+-- function, which sends you looking in the wrong place.
+DO $do$
+DECLARE dict_schema text;
+BEGIN
+  SELECT n.nspname INTO dict_schema
+  FROM pg_ts_dict d JOIN pg_namespace n ON n.oid = d.dictnamespace
+  WHERE d.dictname = 'unaccent' LIMIT 1;
+  IF dict_schema IS NULL THEN
+    RAISE EXCEPTION 'unaccent is not installed.';
+  END IF;
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION pana_unaccent(text) RETURNS text
+       LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+       AS $f$ SELECT %I.unaccent(%L::regdictionary, $1) $f$',
+    dict_schema, quote_ident(dict_schema) || '.unaccent');
+END $do$;
 --> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION pana_jsonb_flags(j jsonb) RETURNS text
@@ -355,19 +426,44 @@ CREATE INDEX IF NOT EXISTS profiles_search_vector_idx
   ON profiles USING GIN (search_vector);
 ```
 
-Phase 2 adds `pg_trgm` plus:
+Phase 2 ships this as migration `0041_profile_name_trigram.sql`:
 
 ```sql
-CREATE INDEX IF NOT EXISTS profiles_name_trgm_idx
-  ON profiles USING GIN (pana_unaccent(name) gin_trgm_ops);
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+--> statement-breakpoint
+
+-- The opclass must be schema-qualified for the same reason pana_unaccent is:
+-- an unqualified gin_trgm_ops fails outright with 'operator class
+-- "gin_trgm_ops" does not exist for access method "gin"' when pg_trgm lives
+-- anywhere but public. The assertion keeps this migration honest with the
+-- search_path that searchRanking() sets at query time.
+DO $do$
+DECLARE trgm_schema text;
+BEGIN
+  SELECT n.nspname INTO trgm_schema
+  FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace
+  WHERE e.extname = 'pg_trgm' LIMIT 1;
+  IF trgm_schema IS NULL THEN
+    RAISE EXCEPTION 'pg_trgm is not installed.';
+  END IF;
+  IF trgm_schema NOT IN ('public', 'extensions') THEN
+    RAISE EXCEPTION 'pg_trgm is in schema "%", which is not on the '
+      'application search_path.', trgm_schema;
+  END IF;
+  EXECUTE format(
+    'CREATE INDEX IF NOT EXISTS profiles_name_trgm_idx '
+    'ON profiles USING GIN (pana_unaccent(name) %I.gin_trgm_ops)',
+    trgm_schema);
+END $do$;
 ```
 
-**Rollback** drops the two indexes, the column, the two functions, and (optionally) the extensions,
-in that order. All are additive, so rollback is clean — no data is lost.
+**Rollback** drops the three indexes, the column, the two functions, and (optionally) the
+extensions, in that order. All are additive, so rollback is clean — no data is lost.
 
 > **Deployment note**: on managed Postgres (Supabase), extensions are conventionally installed into
-> an `extensions` schema rather than `public`. Confirm the target's `search_path` before applying;
-> the `regdictionary` literal inside `pana_unaccent` must be schema-qualified to match.
+> an `extensions` schema rather than `public`. Both `0040` and `0041` now resolve this themselves
+> and raise a clear error if the extension is missing or somewhere unexpected, so no manual
+> `search_path` check is needed before applying. Verified against both layouts.
 >
 > `ALTER TABLE ... ADD COLUMN ... GENERATED ALWAYS` rewrites the table and takes an `ACCESS
 EXCLUSIVE` lock. At current directory size this is a non-event, but it should still go out during
@@ -386,6 +482,11 @@ All in `lib/server/directory.ts`. **Done in Phase 1:**
 | `matchScore()` ladder                 | `ts_rank_cd` + exact/prefix name boosts                                |
 | `categorySearchText()`                | removed — categories sit in the vector at weight C                     |
 | alphabetical tiebreak                 | kept — still needed for equal ranks                                    |
+
+**Added in Phase 2:** `trigramRanking()`, called by `searchRanking()` only when the full-text map
+comes back empty. It runs in a transaction so it can `SET LOCAL` both the `search_path` and
+`pg_trgm.word_similarity_threshold`. Nothing else in the file changed — the caller cannot tell
+which arm produced the ids.
 
 `canonical()`, `jsonKeys()`, `categoryKeys()` and `countyKeys()` stay exactly as they are until
 Phase 3; they still drive the filter chips.
