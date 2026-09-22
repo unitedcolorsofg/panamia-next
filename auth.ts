@@ -13,6 +13,10 @@ import {
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import { GhlClient } from '@/lib/ghl';
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
 
 // Custom email templates for magic link authentication
@@ -661,7 +665,16 @@ async function claimProfileForUser(
     const email = user.email.toLowerCase();
 
     const unclaimedProfile = await db.query.profiles.findFirst({
-      where: and(eq(profiles.email, email), isNull(profiles.userId)),
+      where: and(
+        eq(profiles.email, email),
+        isNull(profiles.userId),
+        // Business listings from /form/list-your-business are deliberately
+        // excluded: attaching one here would make this human *be* the
+        // business and consume their single profiles.userId slot. They are
+        // claimed explicitly instead, which grants ownership without
+        // overwriting identity. See lib/server/profile-owners.ts.
+        notBusinessListing
+      ),
     });
 
     if (unclaimedProfile) {
@@ -670,6 +683,9 @@ async function claimProfileForUser(
         .update(profiles)
         .set({ userId })
         .where(eq(profiles.id, unclaimedProfile.id));
+      // Keep the ownership table in step with the identity link so permission
+      // checks have one consistent answer.
+      await addProfileOwner(unclaimedProfile.id, userId);
       console.log('Profile claimed successfully');
     }
 

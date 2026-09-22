@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, User } from 'lucide-react';
+import { MapPin, Store, User } from 'lucide-react';
 import Link from 'next/link';
 import { SearchResultsInterface } from '@/lib/query/directory';
 import { DirectoryFollowButton } from './directory-follow-button';
@@ -114,6 +114,17 @@ export function SearchResultCard({
               <DirectoryFollowButton
                 screenname={profile.screenname as string}
               />
+            )}
+            {/* An unclaimed listing has no owner and so no screenname. This is
+                the only entry point into the claim flow, since these listings
+                have no profile page of their own to host a CTA. */}
+            {!profile.screenname && (
+              <Button variant="outline" asChild>
+                <Link href={`/listings/claim/start?id=${profile._id}`}>
+                  <Store className="h-4 w-4" />
+                  Is this your business?
+                </Link>
+              </Button>
             )}
           </div>
         </CardContent>

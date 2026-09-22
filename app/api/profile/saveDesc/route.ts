@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { getActiveProfile } from '@/lib/server/active-profile';
 // slugify removed - unused
 import { ProfileDescriptions } from '@/lib/interfaces';
 
@@ -20,10 +21,8 @@ export async function POST(request: NextRequest) {
 
   const { name, five_words, details, background, tags } = body;
 
-  // Find user's profile
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
+  // The profile being acted as - their own, or a business listing they administer
+  const existingProfile = await getActiveProfile(session.user.id);
 
   if (!existingProfile) {
     return NextResponse.json({

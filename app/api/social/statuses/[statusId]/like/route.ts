@@ -5,9 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { likeStatus, unlikeStatus } from '@/lib/federation';
 
 export async function POST(
@@ -25,10 +23,7 @@ export async function POST(
   const { statusId } = await params;
 
   // Get user's actor
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-    with: { socialActor: true },
-  });
+  const profile = await getActiveProfileWithActor(session.user.id);
 
   if (!profile?.socialActor) {
     return NextResponse.json(
@@ -67,10 +62,7 @@ export async function DELETE(
   const { statusId } = await params;
 
   // Get user's actor
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-    with: { socialActor: true },
-  });
+  const profile = await getActiveProfileWithActor(session.user.id);
 
   if (!profile?.socialActor) {
     return NextResponse.json(

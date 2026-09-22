@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { users, screennameHistory } from '@/lib/schema';
+import { users, profiles, screennameHistory } from '@/lib/schema';
 import { and, eq, ne, sql } from 'drizzle-orm';
 
 // Reserved screennames that cannot be used
@@ -115,11 +115,29 @@ export function validateScreenname(name: string): ScreennameValidationResult {
 /**
  * Checks if a screenname is available in the database.
  * Uses case-insensitive comparison.
- * Also checks screenname history to prevent claiming old names.
+ *
+ * The namespace is FLAT and spans three tables, because /p/:handle and
+ * acct:handle@domain resolve humans and businesses through the same path:
+ *
+ *   - `users.screenname`      — handles held by people
+ *   - `profiles.screenname`   — handles held by profiles, including business
+ *                               listings that have no user at all
+ *   - `screennameHistory`     — retired handles, kept so federation 410-Gone
+ *                               tombstones stay truthful and nobody can
+ *                               impersonate a former identity
+ *
+ * Missing any one of them would let a business take a handle a person already
+ * answers to (or vice versa), and the resolvers would then disagree about who
+ * `@name` is.
+ *
+ * `excludeEmail` lets a human keep their own name during a rename;
+ * `excludeProfileId` does the same for a listing, which is needed separately
+ * because a business listing's email is the business's, not the owner's.
  */
 export async function isScreennameAvailable(
   name: string,
-  excludeEmail?: string
+  excludeEmail?: string,
+  excludeProfileId?: string
 ): Promise<boolean> {
   // PostgreSQL case-insensitive search - check current users
   const conditions = [
@@ -132,6 +150,24 @@ export async function isScreennameAvailable(
   });
 
   if (existingUser) return false;
+
+  // Check profiles — a claimed business listing holds its handle here and has
+  // no users row to be found above.
+  const profileConditions = [
+    sql`lower(${profiles.screenname}) = lower(${name})`,
+    ...(excludeProfileId ? [ne(profiles.id, excludeProfileId)] : []),
+    // A person's own profile mirrors their handle, so a plain user rename must
+    // not collide with itself.
+    ...(excludeEmail
+      ? [sql`lower(${profiles.email}) != lower(${excludeEmail})`]
+      : []),
+  ];
+
+  const existingProfile = await db.query.profiles.findFirst({
+    where: and(...profileConditions),
+  });
+
+  if (existingProfile) return false;
 
   // Check screenname history (cannot claim others' old names)
   // Allow user to reclaim their OWN old screenname
@@ -166,14 +202,19 @@ export async function isScreennameAvailable(
  */
 export async function validateScreennameFull(
   name: string,
-  excludeEmail?: string
+  excludeEmail?: string,
+  excludeProfileId?: string
 ): Promise<ScreennameValidationResult> {
   const formatResult = validateScreenname(name);
   if (!formatResult.valid) {
     return formatResult;
   }
 
-  const available = await isScreennameAvailable(name, excludeEmail);
+  const available = await isScreennameAvailable(
+    name,
+    excludeEmail,
+    excludeProfileId
+  );
   if (!available) {
     return { valid: false, error: 'This screenname is already taken' };
   }
