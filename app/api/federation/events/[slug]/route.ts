@@ -39,6 +39,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Federated identity, not a web origin: this mints the AS2 `id` for the
+    // event, which remote servers store permanently. It must track the
+    // federation domain and must NOT follow the web surface at cutover.
+    // See docs/DOMAINS.md.
     const baseUrl = 'https://pana.social';
     const hostScreenname = event.host?.user?.screenname;
 

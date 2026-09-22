@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 
+// Live web origin for this app — not a stale federation value to "correct".
+// Never find-and-replace `pana.social`; most occurrences are federated
+// identity and repointing those is permanent. See docs/DOMAINS.md.
 const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {
