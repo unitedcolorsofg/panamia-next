@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, BadgeCheck } from 'lucide-react';
 import ScrollReveal from '@/components/scroll-reveal';
 import { MockControls, type MockState } from './_components/mock-controls';
+import { PanaGateProvider } from './_components/pana-gate';
 import { ProfileHero } from './_components/profile-hero';
 import { ProfileAbout } from './_components/profile-about';
 import { ProfileGallery } from './_components/profile-gallery';
@@ -40,6 +41,9 @@ export default function BusinessProfileMockPage() {
     certified: true,
     claimed: true,
     owner: false,
+    // Defaults to signed out because that is what most directory traffic is,
+    // and it is the state the signup gate exists for.
+    viewer: 'anon',
   });
 
   const profile = useMemo(
@@ -57,7 +61,11 @@ export default function BusinessProfileMockPage() {
   const isOwner = state.claimed && state.owner;
 
   return (
-    <>
+    <PanaGateProvider
+      viewer={state.viewer}
+      businessName={profile.name}
+      businessLogo={profile.logo}
+    >
       <MockControls state={state} onChange={setState} />
 
       <main>
@@ -120,6 +128,6 @@ export default function BusinessProfileMockPage() {
       </main>
 
       <ScrollReveal />
-    </>
+    </PanaGateProvider>
   );
 }

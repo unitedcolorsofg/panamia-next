@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LINK_ICON, LINK_TITLE } from './link-icons';
+import { usePanaGate } from './pana-gate';
 import type { BusinessProfile } from '../_data';
 
 interface ProfileHeroProps {
@@ -37,6 +38,7 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
   // would take these from the viewer's own save/recommend rows.
   const [saved, setSaved] = useState(false);
   const [recommended, setRecommended] = useState(false);
+  const { requirePana } = usePanaGate();
 
   const savedCount = profile.savedCount + (saved ? 1 : 0);
   const recommendedCount = profile.recommendedCount + (recommended ? 1 : 0);
@@ -143,7 +145,10 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
           <div className="flex flex-wrap gap-3">
             <Button
               size="lg"
-              onClick={() => setSaved((value) => !value)}
+              onClick={() => {
+                if (!requirePana('save')) return;
+                setSaved((value) => !value);
+              }}
               aria-pressed={saved}
               className={
                 saved
@@ -162,7 +167,10 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
             <Button
               size="lg"
               variant="outline"
-              onClick={() => setRecommended((value) => !value)}
+              onClick={() => {
+                if (!requirePana('recommend')) return;
+                setRecommended((value) => !value);
+              }}
               aria-pressed={recommended}
               className={
                 recommended

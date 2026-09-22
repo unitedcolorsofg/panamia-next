@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -9,7 +12,12 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatRelativeDays, type BusinessProfile } from '../_data';
+import { usePanaGate } from './pana-gate';
+import {
+  formatRelativeDays,
+  type BusinessProfile,
+  type BusinessUpdate,
+} from '../_data';
 
 interface ProfileUpdatesProps {
   profile: BusinessProfile;
@@ -101,24 +109,71 @@ export function ProfileUpdates({ profile }: ProfileUpdatesProps) {
               )}
 
               <div className="mt-auto flex items-center gap-5 pt-6">
-                <span className="bizprofile-update-action">
-                  <Heart className="h-4 w-4" aria-hidden="true" />
-                  {update.likes}
-                </span>
-                <span className="bizprofile-update-action">
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  {update.replies}
-                </span>
-                <span className="bizprofile-update-action">
-                  <Repeat2 className="h-4 w-4" aria-hidden="true" />
-                  {update.boosts}
-                </span>
+                <UpdateActions update={update} />
               </div>
             </li>
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+/**
+ * Like, reply and boost on a single update.
+ *
+ * These were static counts in the first pass, which quietly misrepresented the
+ * page: a feed that shows engagement numbers but cannot be engaged with is a
+ * screenshot. They are real buttons now, which is also what gives the signup
+ * gate somewhere to attach on this section.
+ */
+function UpdateActions({ update }: { update: BusinessUpdate }) {
+  const { requirePana } = usePanaGate();
+  const [liked, setLiked] = useState(false);
+  const [boosted, setBoosted] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        className="bizprofile-update-action"
+        data-on={liked}
+        aria-pressed={liked}
+        aria-label={`Like this update (${update.likes + (liked ? 1 : 0)} likes)`}
+        onClick={() => {
+          if (!requirePana('react')) return;
+          setLiked((value) => !value);
+        }}
+      >
+        <Heart className="h-4 w-4" aria-hidden="true" />
+        {update.likes + (liked ? 1 : 0)}
+      </button>
+
+      <button
+        type="button"
+        className="bizprofile-update-action"
+        aria-label={`Reply to this update (${update.replies} replies)`}
+        onClick={() => requirePana('reply')}
+      >
+        <MessageCircle className="h-4 w-4" aria-hidden="true" />
+        {update.replies}
+      </button>
+
+      <button
+        type="button"
+        className="bizprofile-update-action"
+        data-on={boosted}
+        aria-pressed={boosted}
+        aria-label={`Boost this update (${update.boosts + (boosted ? 1 : 0)} boosts)`}
+        onClick={() => {
+          if (!requirePana('boost')) return;
+          setBoosted((value) => !value);
+        }}
+      >
+        <Repeat2 className="h-4 w-4" aria-hidden="true" />
+        {update.boosts + (boosted ? 1 : 0)}
+      </button>
+    </>
   );
 }
 

@@ -1345,3 +1345,196 @@
   flex-direction: row;
   gap: 0.625rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Signup gate dialog
+   -------------------------------------------------------------------------- */
+
+/* Overrides the shadcn DialogContent defaults (grid, thin border, sm radius).
+   These rules are unlayered and so win over the component's utilities without
+   needing `!important`. */
+.bizprofile-gate {
+  display: block;
+  max-width: 34rem;
+  padding: 1.75rem;
+  border: 2px solid var(--color-pana-ink);
+  border-radius: 1.5rem;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 24px 60px rgb(17 13 13 / 0.28);
+}
+
+.dark .bizprofile-gate {
+  border-color: rgb(255 255 255 / 0.22);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-gate-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bizprofile-gate-logo {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.bizprofile-gate-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.25rem;
+}
+
+.bizprofile-gate-biz {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bizprofile-gate-title {
+  margin-top: 0.625rem;
+  font-size: clamp(1.625rem, 3.4vw, 2.125rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.bizprofile-gate-reason {
+  margin-top: 0.875rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: rgb(17 13 13 / 0.78);
+}
+
+.dark .bizprofile-gate-reason {
+  color: rgb(255 247 236 / 0.82);
+}
+
+.bizprofile-gate-list {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-gate-list {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.bizprofile-gate-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.bizprofile-gate-list svg {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-gate-list svg {
+  color: var(--color-pana-butter);
+}
+
+/* A text link, not a third button. Dismissing has to stay clearly secondary to
+   signing up without becoming hard to find — the page behind it still works. */
+.bizprofile-gate-dismiss {
+  display: block;
+  width: 100%;
+  margin-top: 1.125rem;
+  padding: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.5);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-ink);
+}
+
+.dark .bizprofile-gate-dismiss {
+  color: rgb(255 247 236 / 0.55);
+}
+
+.dark .bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-cream);
+}
+
+/* One-of-three viewer picker in the mock bar. Segmented rather than three
+   separate pills so it reads as mutually exclusive at a glance. */
+.bizprofile-mockseg {
+  display: inline-flex;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+.bizprofile-mockseg > button {
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 247 236 / 0.7);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bizprofile-mockseg > button:hover {
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mockseg > button[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. */
+.bizprofile-update-action {
+  cursor: pointer;
+  border-radius: 999px;
+  margin: -0.25rem -0.5rem;
+  padding: 0.25rem 0.5rem;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.bizprofile-update-action:hover {
+  color: var(--color-pana-butter);
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.bizprofile-update-action[data-on='true'] {
+  color: var(--color-pana-butter);
+}
+
+.bizprofile-update-action[data-on='true'] svg {
+  fill: currentColor;
+}

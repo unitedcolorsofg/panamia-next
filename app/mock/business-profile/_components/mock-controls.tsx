@@ -1,11 +1,13 @@
 'use client';
 
 import { FlaskConical } from 'lucide-react';
+import type { ViewerKind } from './pana-gate';
 
 export interface MockState {
   certified: boolean;
   claimed: boolean;
   owner: boolean;
+  viewer: ViewerKind;
 }
 
 interface MockControlsProps {
@@ -13,7 +15,9 @@ interface MockControlsProps {
   onChange: (next: MockState) => void;
 }
 
-const TOGGLES: { key: keyof MockState; label: string; hint: string }[] = [
+type BooleanKey = 'certified' | 'claimed' | 'owner';
+
+const TOGGLES: { key: BooleanKey; label: string; hint: string }[] = [
   {
     key: 'certified',
     label: 'Pana Certified',
@@ -28,6 +32,24 @@ const TOGGLES: { key: keyof MockState; label: string; hint: string }[] = [
     key: 'owner',
     label: 'Viewing as owner',
     hint: 'Shows the photo upload tools',
+  },
+];
+
+const VIEWERS: { key: ViewerKind; label: string; hint: string }[] = [
+  {
+    key: 'anon',
+    label: 'Signed out',
+    hint: 'Gated actions prompt for signup',
+  },
+  {
+    key: 'business',
+    label: 'Business account',
+    hint: 'Signed in, but with no pana profile behind it',
+  },
+  {
+    key: 'pana',
+    label: 'Pana',
+    hint: 'Everything works',
   },
 ];
 
@@ -68,6 +90,30 @@ export function MockControls({ state, onChange }: MockControlsProps) {
               {toggle.label}
             </button>
           ))}
+        </div>
+
+        {/* Viewer identity is a separate control because it is not a property
+            of the listing — it is who is looking at it. Same reason it reads
+            as one-of-three rather than three checkboxes: you cannot be signed
+            out and signed in at once. */}
+        <div className="flex items-center gap-2">
+          <span className="text-[0.6875rem] font-extrabold tracking-wider uppercase opacity-55">
+            Viewing as
+          </span>
+          <div className="bizprofile-mockseg">
+            {VIEWERS.map((viewer) => (
+              <button
+                key={viewer.key}
+                type="button"
+                data-on={state.viewer === viewer.key}
+                aria-pressed={state.viewer === viewer.key}
+                title={viewer.hint}
+                onClick={() => onChange({ ...state, viewer: viewer.key })}
+              >
+                {viewer.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <span className="ml-auto hidden text-xs font-semibold opacity-55 lg:inline">
