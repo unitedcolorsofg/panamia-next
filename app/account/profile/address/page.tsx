@@ -27,6 +27,24 @@ export default function AccountProfileAddress() {
   const [gettingCoords, setGettingCoords] = useState(false);
   const { t } = useTranslation('toast');
 
+  // /api/getProfile returns the raw Drizzle row, which carries flat
+  // addressLine1/addressLocality/... columns rather than the nested
+  // primary_address shape this form was written against. Reading only the
+  // nested shape left every field blank no matter what was stored, and saving
+  // then wrote those blanks back over the real address. Prefer the flat
+  // columns and fall back to the legacy shape for callers that send it.
+  const saved = profile?.primary_address;
+  const address = {
+    street1: profile?.addressLine1 ?? saved?.street1 ?? '',
+    street2: profile?.addressLine2 ?? saved?.street2 ?? '',
+    city: profile?.addressLocality ?? saved?.city ?? '',
+    state: profile?.addressRegion ?? saved?.state ?? '',
+    zipcode: profile?.addressPostalCode ?? saved?.zipcode ?? '',
+    hours: profile?.addressHours ?? saved?.hours ?? '',
+    lat: profile?.addressLat ?? saved?.lat ?? '',
+    lng: profile?.addressLng ?? saved?.lng ?? '',
+  };
+
   const clickSetCoordsFromAddress = async () => {
     setGettingCoords(true);
     const form = document.getElementById('address_form') as HTMLFormElement;
@@ -104,6 +122,7 @@ export default function AccountProfileAddress() {
         broward: formData.get('county_broward') ? true : false,
         miami_dade: formData.get('county_miamidade') ? true : false,
       },
+      online_only: formData.get('online_only') ? true : false,
     };
 
     mutation.mutate(updates);
@@ -160,13 +179,43 @@ export default function AccountProfileAddress() {
               require patrons to visit a set address.
             </div>
 
+            {/* Declared rather than inferred from a blank address. Leaving the
+                address empty is ambiguous — it also describes a storefront
+                that has not finished onboarding — and only this checkbox says
+                "there is nowhere to visit" clearly enough to hide distance
+                without hiding it from businesses that simply have not entered
+                an address yet. */}
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="online_only"
+                name="online_only"
+                defaultChecked={
+                  // /api/getProfile returns the raw Drizzle row (camelCase),
+                  // while other profile endpoints return the legacy mapped
+                  // shape. Accept either so the box reflects the saved value
+                  // whichever one fed this page.
+                  profile.onlineOnly === true || profile.online_only === true
+                }
+              />
+              <div className="space-y-1">
+                <Label htmlFor="online_only">
+                  This business operates online only
+                </Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your profile will show &ldquo;Online business&rdquo; instead
+                  of how far away you are, and panas will not be given
+                  directions to your address.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="street1">Street 1</Label>
               <Input
                 id="street1"
                 name="street1"
                 type="text"
-                defaultValue={profile.primary_address?.street1}
+                defaultValue={address.street1}
                 placeholder="123 Main Street"
               />
             </div>
@@ -177,7 +226,7 @@ export default function AccountProfileAddress() {
                 id="street2"
                 name="street2"
                 type="text"
-                defaultValue={profile.primary_address?.street2}
+                defaultValue={address.street2}
                 placeholder="Suite 100 (optional)"
               />
             </div>
@@ -188,7 +237,7 @@ export default function AccountProfileAddress() {
                 id="city"
                 name="city"
                 type="text"
-                defaultValue={profile.primary_address?.city}
+                defaultValue={address.city}
                 placeholder="Miami"
               />
             </div>
@@ -199,7 +248,7 @@ export default function AccountProfileAddress() {
                 id="state"
                 name="state"
                 type="text"
-                defaultValue={profile.primary_address?.state}
+                defaultValue={address.state}
                 placeholder="FL"
               />
             </div>
@@ -210,7 +259,7 @@ export default function AccountProfileAddress() {
                 id="zipcode"
                 name="zipcode"
                 type="text"
-                defaultValue={profile.primary_address?.zipcode}
+                defaultValue={address.zipcode}
                 placeholder="33101"
               />
             </div>
@@ -222,7 +271,7 @@ export default function AccountProfileAddress() {
                 name="hours"
                 rows={4}
                 maxLength={500}
-                defaultValue={profile.primary_address?.hours}
+                defaultValue={address.hours}
                 placeholder="Mon-Fri: 9am-5pm"
               />
             </div>
@@ -253,7 +302,7 @@ export default function AccountProfileAddress() {
                     id="geo_lat"
                     name="lat"
                     type="text"
-                    defaultValue={profile.primary_address?.lat}
+                    defaultValue={address.lat}
                     placeholder="26.122582"
                   />
                   <p className="text-sm text-gray-500">Example: 26.122582</p>
@@ -265,7 +314,7 @@ export default function AccountProfileAddress() {
                     id="geo_lng"
                     name="lng"
                     type="text"
-                    defaultValue={profile.primary_address?.lng}
+                    defaultValue={address.lng}
                     placeholder="-80.137139"
                   />
                   <p className="text-sm text-gray-500">Example: -80.137139</p>

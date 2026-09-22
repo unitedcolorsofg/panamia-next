@@ -129,6 +129,14 @@ export interface ProfileInterface {
   /** Hex x-only Nostr pubkey, set once the profile completes relay enrollment. */
   nostrPubkey?: string;
   active?: boolean;
+  /**
+   * True when the business has no location to visit. Suppresses distance on
+   * the public profile and in directory search. Owner-set; never inferred
+   * from a missing address.
+   */
+  online_only?: boolean;
+  /** Drizzle/raw schema name — present when the API returns the unmapped row. */
+  onlineOnly?: boolean;
   status?: ProfileStatusInterface;
   locally_based: string;
   details: string;
@@ -146,6 +154,19 @@ export interface ProfileInterface {
   counties: CountyInterface;
   categories: CategoryInterface;
   primary_address: AddressInterface;
+  /**
+   * Flat address columns as they come back from /api/getProfile, which returns
+   * the raw Drizzle row rather than the nested `primary_address` shape. Both
+   * are declared because different profile endpoints return different shapes.
+   */
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  addressLocality?: string | null;
+  addressRegion?: string | null;
+  addressPostalCode?: string | null;
+  addressHours?: string | null;
+  addressLat?: string | null;
+  addressLng?: string | null;
   gentedepana: ProfileGenteDePanaInterface;
   geo: object;
   locations: [];
