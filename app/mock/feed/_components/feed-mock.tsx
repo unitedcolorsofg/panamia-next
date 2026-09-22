@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ArrowUp, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUp, Lock, Sparkles } from 'lucide-react';
 import {
   FEED_FILTERS,
   MOCK_VIEWER,
@@ -11,6 +12,8 @@ import {
   type FeedFilter,
   type FeedState,
 } from '../_data/mock-feed';
+import type { MockSurface } from '../../_data/panaverse';
+import { SurfaceMasthead } from '../../_components/surface-masthead';
 import { FeedComposer } from './feed-composer';
 import { FeedPostCard } from './feed-post-card';
 import { FeedRail } from './feed-rail';
@@ -21,30 +24,61 @@ import {
   SuggestionsModule,
 } from './feed-modules';
 
-/* Design mock for the Pana Social feed.
+/* Design mock for the Pana Social feed, rendered as Pana Social.
  *
- * Deliberately NOT an app shell. The production feed is an embedded product
- * with its own left-hand navigation — Community, Explore, My Feed, Jams — which
- * is how you end up with a Pana Mia member looking at a page that has no Pana
- * Mia on it. This renders inside the site masthead and footer instead, so the
- * feed is a page of panamia.club rather than a different website wearing the
- * logo.
+ * An earlier draft of this file argued the opposite, and said so at the top:
+ * the feed was deliberately not an app shell, because an embedded product with
+ * its own navigation is how you end up with a Pana Mia member looking at a
+ * page that has no Pana Mia on it. That was the right call while the feed was
+ * a section of panamia.club.
+ *
+ * It stopped being the right call the moment Pana Social got its own front
+ * door at social.panamia.club and its own drawn mark. Wearing the main site's
+ * scallop header and demoting "Pana Social" to an eyebrow no longer reads as
+ * continuity — it reads as the social product never having arrived. The
+ * continuity now lives where it should: in the lettering, the palette, and the
+ * switcher, all of which survive the hostname change on their own.
+ *
+ * So this is full bleed and sticky, with no page wrapper around it. The only
+ * non-product element is the mock toolbar above the masthead, which is styled
+ * as developer chrome precisely so nothing else has to be.
  *
  * Two columns on desktop: the timeline, and a rail of context that stacks
- * beneath it on mobile. State lives here because the filter rail drives the
- * column, and the mock's state switcher drives both. */
-export function FeedMock() {
+ * beneath it on mobile. */
+export function FeedMock({ surfaces }: { surfaces: MockSurface[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<FeedFilter>('panas');
   const [state, setState] = useState<FeedState>('populated');
 
   const posts = postsForFilter(filter);
   const activeFilter = FEED_FILTERS.find((entry) => entry.id === filter);
 
+  /* This page IS Pana Social, so the surface is pinned rather than stateful.
+     Choosing another surface in the switcher means leaving, which in the real
+     product is a cross-origin navigation — here it lands on the panaverse mock,
+     the one place the crossing itself is the thing on display. */
+  const current =
+    surfaces.find((surface) => surface.id === 'social') ?? surfaces[0];
+
   return (
     <main className="surface-cream min-h-screen pb-20">
-      <FeedHeader state={state} onSelectState={setState} />
+      <MockToolbar
+        state={state}
+        onSelectState={setState}
+        hostname={current.hostname}
+      />
 
-      <div className="container mx-auto max-w-6xl px-4">
+      <SurfaceMasthead
+        surfaces={surfaces}
+        current={current}
+        onSelect={(id) => {
+          if (id !== current.id) router.push('/mock/panaverse');
+        }}
+        sticky
+        contained
+      />
+
+      <div className="container mx-auto max-w-6xl px-4 pt-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
           <div className="min-w-0">
             <FeedComposer state={state} />
@@ -127,9 +161,9 @@ export function FeedMock() {
 
         <p className="border-pana-ink/10 text-pana-ink/55 mt-14 border-t pt-6 text-[13px] font-bold">
           Design mock at <code>/mock/feed</code> with hardcoded data. This is
-          the Pana Social timeline rendered as a page of Pana Mia — inside the
-          site masthead and footer, with no second navigation. It shares its
-          card, tab, and stat primitives with the personal profile at{' '}
+          Pana Social as its own surface — its own mark, its own nav, its own
+          hostname — sharing card, tab, and stat primitives with the personal
+          profile at{' '}
           <Link href="/mock/profile" className="link-arrow text-pana-indigo">
             /mock/profile
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -172,67 +206,62 @@ function withModules(cards: ReactNode[]): ReactNode[] {
   return out;
 }
 
-/* Header band. Echoes the homepage: eyebrow, display heading with the italic
-   second line in the counterweight colour, then a lede. The scallop bites into
-   the white masthead directly above it, the same way the homepage hero does. */
-function FeedHeader({
+/* The only part of this page that is not the design under review.
+ *
+ * It sits above the masthead rather than inside the surface, and is styled as
+ * developer chrome — dark, small, monospaced host — so that everything below
+ * it can be judged as the product without a "mock" badge floating in the
+ * middle of it. It scrolls away; the masthead does not.
+ *
+ * The hostname is here for a reason. The whole claim of this design is that
+ * Pana Social reads as its own place, and the address bar is the thing that
+ * makes a subdomain feel like one. Naming it in the toolbar keeps that claim
+ * visible without drawing a fake browser around the page — which would put the
+ * surface back inside a rectangle on someone else's page, the exact framing
+ * this redesign exists to escape. */
+function MockToolbar({
   state,
   onSelectState,
+  hostname,
 }: {
   state: FeedState;
   onSelectState: (state: FeedState) => void;
+  hostname: string;
 }) {
   return (
-    <header
-      className="scallop pt-12 pb-8"
-      style={{ '--scallop': '#ffffff' } as CSSProperties}
-    >
-      <div className="container mx-auto max-w-6xl px-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-          <div className="min-w-0">
-            <span className="section-eyebrow">Pana Social</span>
-            <h1 className="section-display mt-3 text-[clamp(2.25rem,5vw,3.5rem)]">
-              My feed
-              <br />
-              <span className="display-accent">de mi gente</span>
-            </h1>
-            <p className="section-lede text-pana-ink/70 mt-3">
-              Everything your Panas are making, asking, and showing up to this
-              week — from {MOCK_VIEWER.panas.toLocaleString('en-US')} people who
-              follow you back.
-            </p>
-          </div>
+    <div className="mock-toolbar">
+      <span className="mock-toolbar-badge">
+        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+        Mock
+      </span>
 
-          {/* Mock-only control. Styled as developer chrome on purpose so it is
-              never mistaken for part of the design under review. */}
-          <div className="flex flex-none items-center gap-2">
-            <span
-              className="text-pana-indigo inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase"
-              aria-hidden="true"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Mock
-            </span>
-            <div className="mock-switch">
-              <button
-                type="button"
-                data-active={state === 'populated'}
-                onClick={() => onSelectState('populated')}
-              >
-                Active feed
-              </button>
-              <button
-                type="button"
-                data-active={state === 'empty'}
-                onClick={() => onSelectState('empty')}
-              >
-                New Pana
-              </button>
-            </div>
-          </div>
-        </div>
+      <span className="mock-toolbar-host">
+        <Lock className="h-3 w-3 flex-none" aria-hidden="true" />
+        {hostname}
+      </span>
+
+      <div className="mock-switch ml-auto">
+        <button
+          type="button"
+          data-active={state === 'populated'}
+          onClick={() => onSelectState('populated')}
+        >
+          Active feed
+        </button>
+        <button
+          type="button"
+          data-active={state === 'empty'}
+          onClick={() => onSelectState('empty')}
+        >
+          New Pana
+        </button>
       </div>
-    </header>
+
+      <Link href="/mock/panaverse" className="mock-toolbar-link">
+        Panaverse chrome
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </Link>
+    </div>
   );
 }
 

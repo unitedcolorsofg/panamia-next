@@ -15,6 +15,22 @@ layout only works with invented spacing or colours that are not in
 | `/mock/feed`      | Pana Social feed redesign, including the empty feed    |
 | `/mock/panaverse` | Panaverse chrome: masthead, surface switcher, identity |
 
+## Viewing the Pana Social surface
+
+`/mock/feed` mocks a page of `social.panamia.club`, not a page of
+`panamia.club`. The root layout picks its chrome from the request hostname via
+`resolveSurface`, so the hostname you use decides what you see:
+
+```
+http://localhost:3002/mock/feed          → Pana Mia masthead wraps the mock
+http://social.localhost:3002/mock/feed   → Pana Social, standalone
+```
+
+Use the second one when reviewing the feed. Browsers route `*.localhost` to
+the loopback address with no hosts-file entry, and `resolveSurface` maps
+`social.localhost` exactly the way it maps `social.panamia.club`, so this
+exercises the real production rule rather than a preview-only shortcut.
+
 ## Conventions
 
 - **`_data/`** holds all fixtures and their types. Fields are annotated with
@@ -23,6 +39,10 @@ layout only works with invented spacing or colours that are not in
   mechanical rather than interpretive.
 - **`_components/`** holds the mock's components. Leading `_` keeps both
   folders out of the router.
+- **`app/mock/_data/` and `app/mock/_components/`** hold the pieces more than
+  one mock needs — the surface registry fixtures, the masthead, the surface
+  switcher, the browser frame. A mock-specific folder stays inside that mock;
+  it only moves up when a second mock imports it.
 - **Shared primitives** live in `app/globals.css` and are deliberately reused
   across mocks. A post card looks the same on the profile and in the feed
   because it is literally the same `.profile-card`.

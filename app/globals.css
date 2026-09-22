@@ -1582,6 +1582,85 @@
   color: var(--color-pana-cream);
 }
 
+/* ---- Mock toolbar ------------------------------------------------------- */
+
+/* A strip of developer chrome above a full-bleed mock.
+ *
+ * It exists so the surface below it needs no mock furniture of its own. A
+ * "Mock" badge sitting inside a masthead is a badge in the design; a dark bar
+ * above the masthead is plainly not part of the product, which means
+ * everything under it can be judged as if it shipped.
+ *
+ * Deliberately not sticky. The masthead pins and this scrolls away, so within
+ * one scroll the reviewer is looking at nothing but the surface. */
+.mock-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1.125rem;
+  background-color: var(--color-pana-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: rgb(255 247 236 / 0.75);
+}
+
+.mock-toolbar-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-pana-butter);
+}
+
+/* The hostname, set as an address rather than as prose. This is the claim the
+   whole redesign rests on — that social.panamia.club is its own place — so it
+   is stated once, in the chrome, instead of drawing a fake browser window
+   around the page and putting the surface back inside a rectangle. */
+.mock-toolbar-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border: 1px solid rgb(255 247 236 / 0.25);
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  color: rgb(255 247 236 / 0.9);
+}
+
+.mock-toolbar-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(255 247 236 / 0.7);
+  transition: color 0.2s ease;
+}
+
+.mock-toolbar-link:hover {
+  color: var(--color-pana-butter);
+}
+
+/* The switch is indigo-on-light by default, which disappears on the ink bar. */
+.mock-toolbar .mock-switch {
+  border-color: rgb(255 247 236 / 0.25);
+  background-color: rgb(255 247 236 / 0.08);
+}
+
+.mock-toolbar .mock-switch button {
+  color: rgb(255 247 236 / 0.75);
+}
+
+.mock-toolbar .mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .feed-composer,
   .feed-new-pill,
@@ -1705,6 +1784,38 @@
   padding: 0.75rem 1.125rem;
   border-bottom: 3px solid var(--surface-tone, var(--color-pana-indigo));
   background-color: #ffffff;
+}
+
+/* Full-bleed mode. Inside the browser frame the masthead has nothing to stick
+   to, but as the real header of Pana Social it has to survive a scrolling
+   timeline — a masthead that scrolls away takes the surface's identity with
+   it, which on a long feed is most of the session. Above the switcher panel's
+   own z-index so the panel stays inside the header's stacking context. */
+.panaverse-masthead[data-sticky='true'] {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* Full bleed, the bar spans the viewport but its contents must line up with
+   the column beneath it, so the horizontal padding moves to the inner element
+   and the edge padding is dropped. */
+.panaverse-masthead[data-contained='true'] {
+  padding-inline: 0;
+}
+
+/* Positioned so `.surface-panel` — which anchors to the nearest positioned
+   ancestor, `.surface-switcher` being deliberately static — hangs off the
+   centred column rather than the viewport edge. Without this the panel opens
+   flush to the right of the screen while the pill that opened it sits several
+   hundred pixels inboard. */
+.panaverse-masthead-inner {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
 }
 
 /* The real lockup for whichever surface is in view. Height is pinned and width

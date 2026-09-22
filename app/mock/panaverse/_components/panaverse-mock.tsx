@@ -2,18 +2,15 @@
 
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Globe, Lock, Sparkles } from 'lucide-react';
 import {
   MOCK_MEMBER,
   SHARED_ROOMS,
-  SURFACE_LOGO,
-  SURFACE_NAV,
-  SURFACE_TONE,
   type MockSurface,
-} from '../_data/mock-panaverse';
-import { SurfaceSwitcher } from './surface-switcher';
+} from '../../_data/panaverse';
+import { BrowserFrame } from '../../_components/browser-frame';
+import { SurfaceMasthead } from '../../_components/surface-masthead';
 
 /* Design mock for the panaverse chrome.
  *
@@ -113,103 +110,6 @@ export function PanaverseMock({ surfaces }: { surfaces: MockSurface[] }) {
         </p>
       </div>
     </main>
-  );
-}
-
-/* A browser window drawn around the mock. Not decoration: the switcher's whole
-   job is to survive an origin change, so the address bar is part of the thing
-   being reviewed. */
-function BrowserFrame({
-  hostname,
-  path,
-  children,
-}: {
-  hostname: string;
-  path: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="browser-frame mt-8">
-      <div className="browser-bar">
-        <span className="browser-dots" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="browser-url">
-          <Lock className="h-3 w-3 flex-none" aria-hidden="true" />
-          <span className="truncate">
-            <strong>{hostname}</strong>
-            <span className="text-pana-ink/40">{path === '/' ? '' : path}</span>
-          </span>
-        </span>
-      </div>
-      <div className="browser-viewport">{children}</div>
-    </div>
-  );
-}
-
-/* The masthead each surface carries.
- *
- * What is constant: the switcher, the avatar, and the lettering — every surface
- * flies a mark from the same hand-drawn family, in the same orange. What
- * changes: which mark, the nav, and the accent rule. That split is the whole
- * design — constant enough to read as one organisation, different enough that a
- * timeline does not carry a directory nav. */
-function SurfaceMasthead({
-  surfaces,
-  current,
-  onSelect,
-}: {
-  surfaces: MockSurface[];
-  current: MockSurface;
-  onSelect: (id: string) => void;
-}) {
-  const logo = SURFACE_LOGO[current.id] ?? SURFACE_LOGO.www;
-
-  return (
-    <div className="panaverse-masthead" data-tone={SURFACE_TONE[current.id]}>
-      {/* Each surface flies its own real lockup rather than a shared wordmark
-          with the surface name bolted on. An earlier draft did the latter,
-          arguing a standalone "Pana Social" mark would read as a second
-          product — but the panas have already drawn one, and it does not,
-          because it is the same hand-lettering in the same orange as the Pana
-          Mia Club mark, right down to the star dotting the `i`. The
-          letterforms carry the continuity the text separator stood in for. */}
-      {/* No `priority`: the mark swaps when you change surfaces, so preloading
-          it just warns about a preload that goes unused. */}
-      <Image
-        src={logo.src}
-        alt={logo.alt}
-        width={logo.width}
-        height={logo.height}
-        sizes="160px"
-        className="panaverse-logo"
-      />
-
-      <nav className="panaverse-nav" aria-label={`${current.name} navigation`}>
-        {SURFACE_NAV[current.id]?.map((item, index) => (
-          <a key={item} href="#" data-active={index === 0}>
-            {item}
-          </a>
-        ))}
-      </nav>
-
-      <div className="ml-auto flex flex-none items-center gap-2">
-        <SurfaceSwitcher
-          surfaces={surfaces}
-          currentId={current.id}
-          onSelect={onSelect}
-        />
-        <Image
-          src={MOCK_MEMBER.avatar}
-          alt={MOCK_MEMBER.name}
-          width={32}
-          height={32}
-          className="chrome-avatar h-8 w-8 flex-none"
-        />
-      </div>
-    </div>
   );
 }
 

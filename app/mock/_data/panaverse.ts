@@ -1,4 +1,8 @@
-/* Fixture data for the panaverse switcher mock at /mock/panaverse.
+/* Presentation metadata for the panaverse chrome, shared by every mock that
+ * wears it — /mock/panaverse compares the surfaces, /mock/feed lives inside
+ * one. It sits at app/mock/_data rather than under a single route because the
+ * moment two mocks describe the same masthead from two files, they drift, and
+ * a switcher that disagrees with itself is worse than no switcher.
  *
  * Unlike the other mocks, the surfaces here are NOT invented. The live ones
  * come straight out of `lib/panaverse/surfaces.ts` — the same registry the
@@ -14,7 +18,7 @@
  * entry, not a rewrite.
  */
 
-import { MOCK_VIEWER } from '../../feed/_data/mock-feed';
+import { MOCK_VIEWER } from '../feed/_data/mock-feed';
 
 /** Which colour a surface carries through its chrome. Values are token names
  *  from app/globals.css, not raw hex, so a surface cannot introduce a colour

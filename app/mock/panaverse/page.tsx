@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SURFACES, hostnameFor } from '@/lib/panaverse/surfaces';
 import { PanaverseMock } from './_components/panaverse-mock';
-import type { MockSurface } from './_data/mock-panaverse';
+import type { MockSurface } from '../_data/panaverse';
 
 /* Design mock for the PANAVERSE CHROME — the masthead, the surface switcher,
    and the identity block that have to hold Pana Mia together once Pana Social

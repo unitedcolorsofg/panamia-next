@@ -9,7 +9,7 @@ import {
   SURFACE_BLURB,
   SURFACE_TONE,
   type MockSurface,
-} from '../_data/mock-panaverse';
+} from '../_data/panaverse';
 
 /* The panaverse switcher.
  *
