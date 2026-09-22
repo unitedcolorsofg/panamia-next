@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPublicProfile } from '@/lib/server/profile';
+import { getPublicProfile, isPersonalProfile } from '@/lib/server/profile';
+import { buildPersonalProfileView } from '@/lib/server/personal-profile';
+import { PersonalProfile } from './_components/personal/personal-profile';
 import { ProfileHeader } from './_components/profile-header';
 import { ProfileSocials } from './_components/profile-socials';
 import { ProfileLocation } from './_components/profile-location';
@@ -61,6 +63,14 @@ export default async function ProfilePage({ params }: PageProps) {
 
   if (!profile) {
     notFound();
+  }
+
+  /* Personal accounts get the Pana Social profile: posts, Panas, groups, and
+     no storefront chrome. Business and legacy directory listings keep the
+     layout below untouched. */
+  if (isPersonalProfile(profile)) {
+    const view = await buildPersonalProfileView(user, profile);
+    return <PersonalProfile profile={view} />;
   }
 
   const hasSocials = Boolean(

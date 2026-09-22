@@ -321,6 +321,80 @@ export const useActorPosts = (
   });
 };
 
+export interface PanaSummary {
+  id: string;
+  username: string;
+  domain: string;
+  name: string | null;
+  summary: string | null;
+  iconUrl: string | null;
+}
+
+export interface PanasResponse {
+  count: number;
+  // False for signed-out viewers: the count is public, the list is not.
+  canSeeList: boolean;
+  actors: PanaSummary[];
+}
+
+export interface ProfileGroupSummary {
+  groupId: string;
+  name: string;
+  about: string | null;
+  picture: string | null;
+  memberCount: number;
+}
+
+export interface ProfileGroupsResponse {
+  groups: ProfileGroupSummary[];
+}
+
+async function fetchPanas(username: string): Promise<PanasResponse | undefined> {
+  const response = await axios
+    .get(`/api/social/actors/${username}/panas`)
+    .catch((error: Error) => {
+      console.log(error.name, error.message);
+    });
+
+  if (response?.data?.success) {
+    return response.data.data;
+  }
+  return undefined;
+}
+
+async function fetchProfileGroups(
+  username: string
+): Promise<ProfileGroupsResponse | undefined> {
+  const response = await axios
+    .get(`/api/social/actors/${username}/groups`)
+    .catch((error: Error) => {
+      console.log(error.name, error.message);
+    });
+
+  if (response?.data?.success) {
+    return response.data.data;
+  }
+  return undefined;
+}
+
+/** Panas (mutual follows) for a handle. Count public, list gated server-side. */
+export const usePanas = (username: string) => {
+  return useQuery<PanasResponse | undefined, Error>({
+    queryKey: [socialQueryKey, 'actor', username, 'panas'],
+    queryFn: () => fetchPanas(username),
+    enabled: !!username,
+  });
+};
+
+/** Discoverable groups for a handle. */
+export const useProfileGroups = (username: string) => {
+  return useQuery<ProfileGroupsResponse | undefined, Error>({
+    queryKey: [socialQueryKey, 'actor', username, 'groups'],
+    queryFn: () => fetchProfileGroups(username),
+    enabled: !!username,
+  });
+};
+
 export const useStatus = (statusId: string) => {
   return useQuery<{ status: SocialStatusDisplay } | undefined, Error>({
     queryKey: [socialQueryKey, 'status', statusId],

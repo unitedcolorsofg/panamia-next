@@ -1,9 +1,11 @@
 import {
   addProfileOwner,
   notBusinessListing,
+  BUSINESS_INTAKE_SOURCE,
 } from '@/lib/server/profile-owners';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
+import type { AccountType } from '@/lib/schema';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import {
   ProfileDescriptions,
@@ -36,6 +38,9 @@ export interface LegacyProfile {
   geo: { type: string; coordinates: number[] } | null;
   mentoring: ProfileMentoring | null;
   socials: ProfileSocialsInterface | null;
+  // The owning account's type, when this profile is somebody's identity.
+  // Null for an unclaimed business listing, which has no linked user.
+  accountType: AccountType | null;
   [key: string]: unknown;
 }
 
@@ -56,6 +61,7 @@ function transformToLegacyFormat(
   profile: Record<string, unknown> & {
     descriptions?: unknown;
     mentoring?: unknown;
+    accountType?: AccountType | null;
   }
 ): LegacyProfile {
   const descriptions = profile.descriptions as ProfileDescriptions | null;
@@ -100,6 +106,7 @@ function transformToLegacyFormat(
     mentoring: mentoring,
     // Socials stays as-is (JSONB)
     socials: profile.socials as ProfileSocialsInterface | null,
+    accountType: profile.accountType ?? null,
   };
 }
 
@@ -114,13 +121,14 @@ export const getPublicProfile = async (handle: string) => {
   // profile; the users fallback below covers rows predating that mirror.
   const profile = await db.query.profiles.findFirst({
     where: sql`lower(${profiles.screenname}) = lower(${handle})`,
-    with: { user: { columns: { screenname: true } } },
+    with: { user: { columns: { screenname: true, accountType: true } } },
   });
 
   if (profile) {
     return transformToLegacyFormat({
       ...profile,
       user: { screenname: profile.screenname ?? profile.user?.screenname },
+      accountType: profile.user?.accountType ?? null,
     });
   }
 
@@ -134,8 +142,35 @@ export const getPublicProfile = async (handle: string) => {
   return transformToLegacyFormat({
     ...user.profile,
     user: { screenname: user.screenname },
+    accountType: user.accountType ?? null,
   });
-};
+}
+
+/**
+ * Is this handle a person, or a business listing?
+ *
+ * The personal profile and the directory listing are two different designs, so
+ * /p/[user] has to pick one. The test is deliberately conservative: it answers
+ * "personal" only on positive evidence, and everything it is unsure about
+ * keeps the existing layout. Rendering a business as if it were a person is
+ * the more visible and more embarrassing failure, so ambiguity resolves away
+ * from the new design rather than into it.
+ *
+ * Two things disqualify a profile:
+ *
+ *   - status.source marks it as created by the public business intake form.
+ *     Such a row has no linked user at all, so there is no person to render.
+ *   - the owning account opted into the directory by choosing small_business
+ *     or hybrid. The row is otherwise identical to a personal one; the account
+ *     type is the only thing that distinguishes "Ana" from "Ana's bakery".
+ */
+export function isPersonalProfile(profile: LegacyProfile): boolean {
+  const status = profile.status as { source?: string } | null | undefined;
+
+  if (status?.source === BUSINESS_INTAKE_SOURCE) return false;
+
+  return profile.accountType === 'personal';
+}
 
 /**
  * Get profile by PostgreSQL user ID (cuid format)

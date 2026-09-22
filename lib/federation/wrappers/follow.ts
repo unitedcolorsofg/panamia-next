@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { socialFollows, socialActors } from '@/lib/schema';
 import type { SocialFollow, SocialActor } from '@/lib/schema';
 import { and, eq, sql, desc } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { canFollow, GateResult } from '../gates';
 import { socialConfig } from '../index';
 
@@ -267,4 +268,66 @@ export async function getFollowRelationship(
     isFollowing: following?.status === 'accepted',
     isFollowedBy: followedBy?.status === 'accepted',
   };
+}
+
+/**
+ * Panas — mutual follows.
+ *
+ * A Pana is a connection both people opted into: A follows B and B follows A,
+ * both accepted. That bilateral consent is what makes the *count* safe to show
+ * to everyone while a raw follower list is not — nobody lands in someone's
+ * Panas without having followed back themselves.
+ *
+ * The reciprocal row is found with a self-join rather than by intersecting two
+ * result sets in JS, so the database does the set work and the count stays a
+ * single round trip no matter how large either side is.
+ */
+const reciprocal = alias(socialFollows, 'reciprocal');
+
+function mutualFollowJoin() {
+  return and(
+    eq(reciprocal.actorId, socialFollows.targetActorId),
+    eq(reciprocal.targetActorId, socialFollows.actorId),
+    eq(reciprocal.status, 'accepted')
+  );
+}
+
+function outgoingAccepted(actorId: string) {
+  return and(
+    eq(socialFollows.actorId, actorId),
+    eq(socialFollows.status, 'accepted')
+  );
+}
+
+/**
+ * How many Panas this actor has. Public — see the note above on why.
+ */
+export async function countMutualFollows(actorId: string): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)` })
+    .from(socialFollows)
+    .innerJoin(reciprocal, mutualFollowJoin())
+    .where(outgoingAccepted(actorId));
+
+  return Number(row?.total ?? 0);
+}
+
+/**
+ * The Panas themselves. Callers gate this on the viewer being signed in; the
+ * count above is the part that stays public.
+ */
+export async function listMutualFollows(
+  actorId: string,
+  limit = 24
+): Promise<SocialActor[]> {
+  const rows = await db
+    .select({ actor: socialActors })
+    .from(socialFollows)
+    .innerJoin(reciprocal, mutualFollowJoin())
+    .innerJoin(socialActors, eq(socialActors.id, socialFollows.targetActorId))
+    .where(outgoingAccepted(actorId))
+    .orderBy(desc(socialFollows.acceptedAt), desc(socialFollows.id))
+    .limit(limit);
+
+  return rows.map((r) => r.actor);
 }
