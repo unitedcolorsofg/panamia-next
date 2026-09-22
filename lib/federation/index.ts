@@ -28,25 +28,14 @@ export {
   getRemotePublicKey,
   resolveSignaturePublicKey,
 } from './wrappers/remote-actor';
+export { getFederationDomain, DEFAULT_FEDERATION_DOMAIN } from './domain';
 
-/**
- * Get the domain from NEXT_PUBLIC_HOST_URL
- * Falls back to 'pana.social' if not set
- */
-function getDomain(): string {
-  const hostUrl = process.env.NEXT_PUBLIC_HOST_URL;
-  if (!hostUrl) return 'pana.social';
-
-  try {
-    const url = new URL(hostUrl);
-    return url.hostname;
-  } catch {
-    return 'pana.social';
-  }
-}
+import { getFederationDomain } from './domain';
 
 export const socialConfig = {
-  domain: getDomain(),
+  // The identity domain, NOT the UI host. See lib/federation/domain.ts for why
+  // these are separate and what breaks if this value ever changes.
+  domain: getFederationDomain(),
 
   // Optional instance metadata (shown to remote ActivityPub servers)
   instanceName: process.env.SOCIAL_INSTANCE_NAME || 'Pana Mia Club',

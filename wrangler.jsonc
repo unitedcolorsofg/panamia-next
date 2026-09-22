@@ -100,6 +100,10 @@
 		"EMAIL_ENV": "PROD",
 		"EMAIL_SENDER_ADDRESS": "hola@pana.social",
 		"EMAIL_SENDER_NAME": "Pana MIA Testing Environment",
+		// Pinned identity domain. This is what makes @user@pana.social handles
+		// stable if/when the UI moves to another hostname. Do not change it once
+		// actors have federated — see lib/federation/domain.ts.
+		"FEDERATION_DOMAIN": "pana.social",
 		"R2_BUCKET_NAME": "panamia-media",
 		"R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",
 		"GHL_WORKFLOW_TEST_ID": "6682f160-e9a3-4aff-9f5d-099bd9c3e951"

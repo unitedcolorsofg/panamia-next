@@ -98,6 +98,22 @@ export const envConfig: Record<string, EnvVarConfig> = {
     defaultValue: 'http://localhost:3000',
   },
 
+  FEDERATION_DOMAIN: {
+    description:
+      'Canonical fediverse identity domain — the domain in @user@domain handles ' +
+      'and the origin of every ActivityPub actor/status/follow URI this instance ' +
+      'mints. Remote servers store those URIs as permanent keys, so this is ' +
+      'effectively write-once: changing it after an actor has federated orphans ' +
+      'it, and the Move migration that repairs it carries followers but NOT posts. ' +
+      'Kept separate from NEXT_PUBLIC_HOST_URL so the UI can move to a dedicated ' +
+      'social hostname without re-minting identities. Whatever host serves the app, ' +
+      'THIS domain must answer /.well-known/webfinger and serve /p/[user] as ' +
+      'ActivityPub JSON. Defaults to the NEXT_PUBLIC_HOST_URL hostname.',
+    location: 'VAR',
+    required: false,
+    example: 'pana.social',
+  },
+
   // =============================================================================
   // ADMIN
   // =============================================================================

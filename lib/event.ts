@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { events } from '@/lib/schema';
 import { and, asc, desc, eq, gte } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
+import { getFederationDomain } from '@/lib/federation/domain';
 import type { Event, EventStatus } from '@/lib/schema';
 
 export function generateSlug(title: string): string {
@@ -40,14 +41,7 @@ export async function generateUniqueSlug(title: string): Promise<string> {
  * duplicate on re-import. Generated once at create time and stored on the row.
  */
 export function buildIcalUid(): string {
-  const host = process.env.NEXT_PUBLIC_HOST_URL ?? 'pana.social';
-  let domain = 'pana.social';
-  try {
-    domain = new URL(host).host || domain;
-  } catch {
-    // host wasn't a full URL — fall back to the default domain.
-  }
-  return `${createId()}@${domain}`;
+  return `${createId()}@${getFederationDomain()}`;
 }
 
 export function isPublishable(eventDoc: {
