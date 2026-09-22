@@ -50,7 +50,7 @@ export default async function RootLayout({
       <body className="font-sans">
         <ThemeProvider
           attribute="class"
-          defaultTheme="flower-power"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
