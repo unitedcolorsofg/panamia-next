@@ -8,6 +8,7 @@ import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvid
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 import ScreennameGate from '@/components/ScreennameGate';
+import { resolveSurface } from '@/lib/panaverse/surfaces';
 
 export const metadata: Metadata = {
   title: 'Pana Mia',
@@ -21,6 +22,25 @@ export default async function RootLayout({
 }) {
   const host = (await headers()).get('host') ?? '';
   const isProductionSite = host.includes('panamia.club');
+
+  /* Which panaverse surface is serving this request.
+   *
+   * The Worker already routes hostnames — social.panamia.club sends `/` to the
+   * social front door — but the layout did not know surfaces existed, so every
+   * host got the Pana Mia Club masthead and footer. That is the single reason
+   * Pana Social still read as a section of the main site rather than a place of
+   * its own: a member crossed an origin and landed under the same header.
+   *
+   * Surfaces other than the main site bring their own chrome, so the shared
+   * layout stays out of their way. It still provides everything that is
+   * genuinely global — fonts, theme, providers, the screenname gate — because
+   * those are properties of the account, not of the room it is being used in.
+   *
+   * Exercise this locally at social.localhost:3002; `resolveSurface` maps
+   * *.localhost the same way it maps *.panamia.club. */
+  const surface = resolveSurface(host);
+  const wearsMainChrome = surface.id === 'www';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -56,9 +76,11 @@ export default async function RootLayout({
         >
           <FlowerPowerProvider>
             <Providers>
-              <MainHeader isProductionSite={isProductionSite} />
+              {wearsMainChrome && (
+                <MainHeader isProductionSite={isProductionSite} />
+              )}
               <div id="layout-main">{children}</div>
-              <MainFooter />
+              {wearsMainChrome && <MainFooter />}
               <ScreennameGate />
             </Providers>
           </FlowerPowerProvider>
