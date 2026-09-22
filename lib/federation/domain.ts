@@ -32,13 +32,28 @@ export const DEFAULT_FEDERATION_DOMAIN = 'pana.social';
  * variable keep the exact identity they already had.
  */
 export function getFederationDomain(): string {
-  const explicit = process.env.FEDERATION_DOMAIN?.trim();
-  if (explicit) {
-    // Accept either a bare hostname or a full URL, and keep any explicit port
-    // (local federation testing depends on it).
-    return explicit.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-  }
+  return getConfiguredFederationDomain() ?? inheritedFederationDomain();
+}
 
+/**
+ * The federation domain only when it was configured deliberately.
+ *
+ * The difference matters to anything that treats the federation domain as a
+ * *distinct* front door. When `FEDERATION_DOMAIN` is unset we inherit the UI
+ * host, so the "identity domain" is the very host already serving the main
+ * site — routing it anywhere else would take the main site down with it. A
+ * caller that needs "a domain that exists purely for identity" must ask for
+ * the configured value and accept null, not take the inherited fallback.
+ */
+export function getConfiguredFederationDomain(): string | null {
+  const explicit = process.env.FEDERATION_DOMAIN?.trim();
+  if (!explicit) return null;
+  // Accept either a bare hostname or a full URL, and keep any explicit port
+  // (local federation testing depends on it).
+  return explicit.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+}
+
+function inheritedFederationDomain(): string {
   const hostUrl = process.env.NEXT_PUBLIC_HOST_URL;
   if (!hostUrl) return DEFAULT_FEDERATION_DOMAIN;
 

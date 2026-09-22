@@ -12,7 +12,7 @@
  * Dependency-free on purpose: the Worker entry, auth config, and UI all read it.
  */
 
-import { getFederationDomain } from '@/lib/federation/domain';
+import { getConfiguredFederationDomain } from '@/lib/federation/domain';
 
 export type SurfaceId = 'www' | 'social';
 
@@ -99,13 +99,19 @@ export function originFor(
  * on it permanently (see lib/federation/domain.ts), so visitors who type it
  * should get Pana Social rather than the main site.
  *
+ * Only a *deliberately configured* federation domain counts. When
+ * FEDERATION_DOMAIN is unset the domain is inherited from the UI host, which
+ * means the "alias" would be the exact hostname already serving the main site
+ * — aliasing it to Pana Social strips the main site of its chrome on the apex.
+ * An unconfigured environment therefore has no aliases at all.
+ *
  * Note these are NOT cookie-sharing hosts. A session cookie scoped to the root
  * domain cannot cover a different registrable domain, so an alias host is for
  * federation and redirects, not for signed-in browsing.
  */
 function aliasHostsFor(surface: PanaverseSurface): string[] {
   if (surface.id !== 'social') return [];
-  const federation = getFederationDomain();
+  const federation = getConfiguredFederationDomain();
   return federation ? [federation] : [];
 }
 
@@ -132,12 +138,8 @@ export function resolveSurface(
   const host = normaliseHostname(hostname);
   const root = normaliseHostname(rootDomain);
 
-  for (const surface of SURFACES) {
-    if (aliasHostsFor(surface).some((a) => normaliseHostname(a) === host)) {
-      return surface;
-    }
-  }
-
+  // A real surface hostname always wins over an alias. Otherwise pinning
+  // FEDERATION_DOMAIN to the root domain would hand the apex to Pana Social.
   if (host === root) return DEFAULT_SURFACE;
 
   const suffix = `.${root}`;
@@ -147,9 +149,19 @@ export function resolveSurface(
       ? host.slice(0, -'.localhost'.length)
       : null;
 
-  if (!label) return DEFAULT_SURFACE;
+  if (label) {
+    const bySubdomain = SURFACES.find((s) => s.subdomain === label);
+    if (bySubdomain) return bySubdomain;
+    return DEFAULT_SURFACE;
+  }
 
-  return SURFACES.find((s) => s.subdomain === label) ?? DEFAULT_SURFACE;
+  for (const surface of SURFACES) {
+    if (aliasHostsFor(surface).some((a) => normaliseHostname(a) === host)) {
+      return surface;
+    }
+  }
+
+  return DEFAULT_SURFACE;
 }
 
 /** The surface a path belongs to, for the switcher's active state. */
