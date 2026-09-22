@@ -497,6 +497,13 @@
     );
 }
 
+/* A standalone auth page has no masthead above it, so it owns the whole
+   viewport — the subtraction above compensates for chrome that is not there.
+   Sign-in is the only such page today; see lib/panaverse/chrome.ts. */
+.auth-surface[data-standalone='true'] {
+  min-height: 100vh;
+}
+
 /* Cream is a light surface, so the dark theme has to take it back over —
    otherwise the washes sit on near-white and the card loses all separation. */
 .dark .auth-surface {

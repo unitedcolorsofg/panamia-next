@@ -9,6 +9,7 @@ import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 import ScreennameGate from '@/components/ScreennameGate';
 import { resolveSurface } from '@/lib/panaverse/surfaces';
+import { PATHNAME_HEADER, wearsOwnChrome } from '@/lib/panaverse/chrome';
 
 export const metadata: Metadata = {
   title: 'Pana Mia',
@@ -20,7 +21,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const host = (await headers()).get('host') ?? '';
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('host') ?? '';
   const isProductionSite = host.includes('panamia.club');
 
   /* Which panaverse surface is serving this request.
@@ -39,7 +41,15 @@ export default async function RootLayout({
    * Exercise this locally at social.localhost:3002; `resolveSurface` maps
    * *.localhost the same way it maps *.panamia.club. */
   const surface = resolveSurface(host);
-  const wearsMainChrome = surface.id === 'www';
+
+  /* A few routes are doorways rather than rooms and frame themselves on every
+   * surface — see lib/panaverse/chrome.ts. Sign-in is the one that exists
+   * today: it used to render the Pana Mia wordmark in the masthead and then
+   * again above the card, and on a surface hostname it rendered with nothing
+   * at all. The path comes from the Worker because the runtime hands the
+   * server renderer a Host header but no pathname. */
+  const standalone = wearsOwnChrome(requestHeaders.get(PATHNAME_HEADER));
+  const wearsMainChrome = surface.id === 'www' && !standalone;
 
   return (
     <html lang="en" suppressHydrationWarning>

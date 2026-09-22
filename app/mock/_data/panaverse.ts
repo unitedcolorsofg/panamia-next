@@ -19,6 +19,11 @@
  */
 
 import { MOCK_VIEWER } from '../feed/_data/mock-feed';
+import {
+  SURFACE_BLURB as REAL_SURFACE_BLURB,
+  SURFACE_MARK,
+  type SurfaceMark,
+} from '@/lib/panaverse/branding';
 
 /** Which colour a surface carries through its chrome. Values are token names
  *  from app/globals.css, not raw hex, so a surface cannot introduce a colour
@@ -56,40 +61,18 @@ export const SURFACE_TONE: Record<string, SurfaceTone> = {
   social: 'flame',
 };
 
-/** The real wordmark each surface flies, with intrinsic dimensions so
- *  next/image can reserve space without a layout shift. */
-export interface SurfaceLogo {
-  src: string;
-  width: number;
-  height: number;
-  alt: string;
-}
+/** The real wordmark each surface flies. Re-exported from the shipping source
+ *  rather than copied, so a mock masthead cannot show a mark the real one has
+ *  stopped using. Widened to Record<string, …> because the mock surfaces carry
+ *  a plain string id. */
+export type SurfaceLogo = SurfaceMark;
 
-/** Pana Social's mark is lifted from the live instance at
- *  panamiaclub.ap.social and downscaled to match the 800px-wide convention the
- *  existing logos in public/logos/ already use. */
-export const SURFACE_LOGO: Record<string, SurfaceLogo> = {
-  www: {
-    src: '/logos/pana_logo_long_orange.png',
-    width: 800,
-    height: 135,
-    alt: 'Pana Mia Club',
-  },
-  social: {
-    src: '/logos/pana_social_long_orange.png',
-    width: 800,
-    height: 120,
-    alt: 'Pana Social',
-  },
-};
+export const SURFACE_LOGO: Record<string, SurfaceLogo> = SURFACE_MARK;
 
 /** What each surface is for, in the second person. The registry taglines are
  *  written for a developer reading the file; these are written for a member
  *  deciding where to click. */
-export const SURFACE_BLURB: Record<string, string> = {
-  www: 'Find Panas, browse the directory, and see what the org is up to.',
-  social: 'Post, reply, and read what your Panas are making this week.',
-};
+export const SURFACE_BLURB: Record<string, string> = REAL_SURFACE_BLURB;
 
 /** The masthead nav each surface carries. Different per surface on purpose:
  *  a shared nav listing every route in the panaverse is how you end up with a

@@ -18,6 +18,7 @@ import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
+import { PATHNAME_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -144,8 +145,16 @@ export default {
         return Response.redirect(target.toString(), 307);
       }
 
-      // Delegate everything else to vinext
-      return handler.fetch(request);
+      // Delegate everything else to vinext, telling the server renderer which
+      // path it is about to serve. The runtime hands it Host but not the path,
+      // so without this the root layout cannot tell a doorway like /signin from
+      // an ordinary page (see lib/panaverse/chrome.ts).
+      //
+      // `set`, never `append`: clients can send this header too, and a spoofed
+      // value would let anyone strip the chrome off any page.
+      const routed = new Request(request);
+      routed.headers.set(PATHNAME_HEADER, url.pathname);
+      return handler.fetch(routed);
     });
   },
 };

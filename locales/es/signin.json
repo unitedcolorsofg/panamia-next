@@ -2,9 +2,12 @@
   "adCopyBecomeAPana": "Empieza por iniciar sesión. Así vinculamos este dispositivo con tu identidad digital, para que el perfil que construyas sea tuyo. A partir de ahí, hacerte Pana consiste en una serie de preguntas sobre ti y tu trabajo y, al final, una suscripción que mantiene el directorio en marcha. ¿No sabes bien a qué te estás sumando?",
   "adCopyBecomeAPanaLink": "¿Qué <em>es</em> un Pana?",
   "adCopyDefault": "Bienvenido de vuelta, Pana. Inicia sesión para gestionar tu perfil, compartir en qué estás trabajando y continuar donde lo dejaste.",
+  "adCopyDefault_social": "Bienvenido de vuelta, Pana. Inicia sesión para publicar, responder y ponerte al día con lo que están creando tus Panas.",
   "eyebrow": "Iniciar sesión",
   "welcomeTitle": "Bienvenido a Pana MIA",
   "welcomeDesc": "Únete al directorio de la comunidad creativa del Sur de la Florida. Conéctate con artistas locales, creadores y líderes culturales.",
+  "welcomeTitle_social": "Bienvenido a Pana Social",
+  "welcomeDesc_social": "La línea de tiempo de la comunidad Pana. Publica, responde y mantente al día con lo que crean los demás.",
   "continueGoogle": "Continuar con Google",
   "continueApple": "Continuar con Apple",
   "continueWikimedia": "Continuar con Wikimedia",
@@ -22,5 +25,9 @@
   "needHelp": "¿Necesitas ayuda?",
   "contactUs": "Contáctanos",
   "turnstileError": "Verificación no está configurada. Por favor, contacta al soporte.",
-  "loading": "Cargando..."
+  "loading": "Cargando...",
+  "privacyLink": "Política de Privacidad",
+  "footerNavLabel": "Enlaces del sitio",
+  "goToMain": "Ir a {{main}}",
+  "partOfPanaverse": "{{surface}} es parte de {{main}}. Una sola cuenta Pana sirve para ambos."
 }

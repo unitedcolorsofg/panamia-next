@@ -94,6 +94,47 @@ export function originFor(
 }
 
 /**
+ * The origin of `target` as reached from the host currently being served.
+ *
+ * `originFor` always points at the configured root domain, which is right in
+ * production and wrong everywhere else: on social.localhost:3002 it would send
+ * a member to https://panamia.club — the live site — for what should be a link
+ * across the hall. This swaps the surface label on the host in hand instead,
+ * keeping scheme and port, so cross-surface links behave in dev and in prod
+ * without a branch at every call site.
+ *
+ * Hosts that are not under the root domain — alias hosts like the fediverse
+ * identity domain, and *.workers.dev previews — have no sibling to swap to, so
+ * they fall back to the canonical origin.
+ */
+export function originForFrom(
+  target: PanaverseSurface,
+  currentHost: string | null | undefined,
+  rootDomain = getRootDomain()
+): string {
+  if (!currentHost) return originFor(target, rootDomain);
+
+  const hostname = normaliseHostname(currentHost);
+  const root = normaliseHostname(rootDomain);
+  const port = currentHost.trim().match(/:(\d+)$/)?.[1] ?? '';
+
+  const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost');
+  const isUnderRoot = hostname === root || hostname.endsWith(`.${root}`);
+  if (!isLocal && !isUnderRoot) return originFor(target, rootDomain);
+
+  // Strip the label the current surface occupies, leaving the base the
+  // panaverse hangs off: "social.localhost" -> "localhost".
+  const current = resolveSurface(hostname, rootDomain);
+  const base =
+    current.subdomain && hostname.startsWith(`${current.subdomain}.`)
+      ? hostname.slice(current.subdomain.length + 1)
+      : hostname;
+
+  const host = target.subdomain ? `${target.subdomain}.${base}` : base;
+  return `${isLocal ? 'http' : 'https'}://${host}${port ? `:${port}` : ''}`;
+}
+
+/**
  * Hostnames that should land on a surface without being subdomains of the root
  * domain. The fediverse identity domain is the case that matters: handles live
  * on it permanently (see lib/federation/domain.ts), so visitors who type it
