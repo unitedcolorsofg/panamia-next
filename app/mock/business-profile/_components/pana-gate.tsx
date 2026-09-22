@@ -41,6 +41,20 @@ export type ViewerKind = 'anon' | 'business' | 'pana';
  */
 export type GateAction = 'save' | 'recommend' | 'react' | 'reply' | 'boost';
 
+/**
+ * Who the blocked action was about.
+ *
+ * The dialog names and pictures the business, because by the time it opens it
+ * has covered the page and the pitch only lands if you still remember what you
+ * were about to do and for whom. A profile page has one business and sets this
+ * once on the provider; the directory has a screenful, so it names the subject
+ * at the call site instead.
+ */
+export interface GateSubject {
+  name: string;
+  logo: string;
+}
+
 const ACTION_EYEBROW: Record<GateAction, string> = {
   save: 'To save this business',
   recommend: 'To recommend this business',
@@ -85,8 +99,11 @@ interface PanaGateValue {
    * signup dialog when they may not, so callers read as a plain guard:
    *
    *   if (!requirePana('save')) return;
+   *
+   * `subject` overrides the provider's default for callers that have more than
+   * one business on screen.
    */
-  requirePana: (action: GateAction) => boolean;
+  requirePana: (action: GateAction, subject?: GateSubject) => boolean;
 }
 
 const PanaGateContext = createContext<PanaGateValue | null>(null);
@@ -101,6 +118,7 @@ export function usePanaGate(): PanaGateValue {
 
 interface PanaGateProviderProps {
   viewer: ViewerKind;
+  /** Fallback subject, used when a caller does not name one. */
   businessName: string;
   businessLogo: string;
   children: ReactNode;
@@ -112,11 +130,19 @@ export function PanaGateProvider({
   businessLogo,
   children,
 }: PanaGateProviderProps) {
-  const [blockedAction, setBlockedAction] = useState<GateAction | null>(null);
+  const [blocked, setBlocked] = useState<{
+    action: GateAction;
+    subject: GateSubject;
+  } | null>(null);
   const isPana = viewer === 'pana';
 
+  const defaultSubject = useMemo(
+    () => ({ name: businessName, logo: businessLogo }),
+    [businessName, businessLogo]
+  );
+
   const requirePana = useCallback(
-    (action: GateAction) => {
+    (action: GateAction, subject?: GateSubject) => {
       if (viewer === 'pana') {
         return true;
       }
@@ -125,10 +151,10 @@ export function PanaGateProvider({
       // enforcement should not depend on a component remembering to hide a
       // button. If that slips, this still refuses rather than silently
       // writing.
-      setBlockedAction(action);
+      setBlocked({ action, subject: subject ?? defaultSubject });
       return false;
     },
-    [viewer]
+    [viewer, defaultSubject]
   );
 
   const value = useMemo(
@@ -145,11 +171,10 @@ export function PanaGateProvider({
     <PanaGateContext.Provider value={value}>
       {children}
       <SignupDialog
-        action={blockedAction}
+        action={blocked?.action ?? null}
+        subject={blocked?.subject ?? defaultSubject}
         viewer={viewer}
-        businessName={businessName}
-        businessLogo={businessLogo}
-        onClose={() => setBlockedAction(null)}
+        onClose={() => setBlocked(null)}
       />
     </PanaGateContext.Provider>
   );
@@ -157,9 +182,8 @@ export function PanaGateProvider({
 
 interface SignupDialogProps {
   action: GateAction | null;
+  subject: GateSubject;
   viewer: ViewerKind;
-  businessName: string;
-  businessLogo: string;
   onClose: () => void;
 }
 
@@ -179,21 +203,24 @@ interface SignupDialogProps {
  *    covered, and the signup is only persuasive if you remember what you were
  *    about to do and for whom.
  */
-function SignupDialog({
-  action,
-  viewer,
-  businessName,
-  businessLogo,
-  onClose,
-}: SignupDialogProps) {
-  // Keep the last action around while the dialog animates out, otherwise the
-  // copy blanks for the duration of the close transition.
-  const [lastAction, setLastAction] = useState<GateAction>('save');
-  if (action && action !== lastAction) {
-    setLastAction(action);
+function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
+  // Keep the last action *and* subject around while the dialog animates out,
+  // otherwise the copy blanks for the duration of the close transition — and in
+  // the directory, where the subject changes per card, the logo would flip to
+  // a different business on the way out.
+  const [last, setLast] = useState<{
+    action: GateAction;
+    subject: GateSubject;
+  }>({ action: 'save', subject });
+  if (
+    action &&
+    (action !== last.action || subject.name !== last.subject.name)
+  ) {
+    setLast({ action, subject });
   }
 
-  const resolved = action ?? lastAction;
+  const resolved = action ?? last.action;
+  const shown = action ? subject : last.subject;
   // Pairs with the backstop in `requirePana`. A business account should no
   // longer be able to open this dialog at all, but if one does, it must not
   // be told to "sign up" when it is already signed in.
@@ -205,14 +232,14 @@ function SignupDialog({
         <div className="bizprofile-gate-head">
           <span className="bizprofile-gate-logo">
             <Image
-              src={businessLogo}
+              src={shown.logo}
               alt=""
               width={44}
               height={44}
               aria-hidden="true"
             />
           </span>
-          <span className="bizprofile-gate-biz">{businessName}</span>
+          <span className="bizprofile-gate-biz">{shown.name}</span>
         </div>
 
         <span className="section-eyebrow mt-6">{ACTION_EYEBROW[resolved]}</span>

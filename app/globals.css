@@ -1588,12 +1588,25 @@ button.bizprofile-update-action:hover {
 
 /* One-of-three viewer picker in the mock bar. Segmented rather than three
    separate pills so it reads as mutually exclusive at a glance. */
+/* On a phone the three viewer options are wider than the bar. Let the
+   segmented control scroll rather than clipping the last option. */
 .bizprofile-mockseg {
   display: inline-flex;
   padding: 0.1875rem;
   border-radius: 999px;
   border: 1px solid rgb(255 255 255 / 0.22);
   background-color: rgb(255 255 255 / 0.06);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bizprofile-mockseg::-webkit-scrollbar {
+  display: none;
+}
+
+.bizprofile-mockseg > button {
+  flex: none;
 }
 
 .bizprofile-mockseg > button {
@@ -2031,4 +2044,1041 @@ button.bizprofile-update-action:hover {
     transition: none;
     transform: none;
   }
+}
+
+/* ==========================================================================
+   Directory search
+   The results page a pana lands on after searching from the homepage hero.
+   Design mock at /mock/directory; moves to app/directory/search when signed
+   off. Unlayered on purpose — these rules sit beside Tailwind utilities on the
+   same elements and need to win without !important, same as .bizprofile-*.
+   ========================================================================== */
+
+/* --- Search band ------------------------------------------------------- */
+
+.dirsearch-band {
+  padding-block: clamp(2rem, 5vw, 3.25rem) clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.dirsearch-title {
+  margin-top: 0.85rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+/* The searched term is the one word on the page the visitor typed, so it gets
+   the accent rather than the sentence around it. */
+.dirsearch-title em {
+  font-style: normal;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-count {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.dirsearch-count strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-searchrow {
+  margin-top: 1.35rem;
+  max-width: 44rem;
+}
+
+.dirsearch-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.05rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.22);
+}
+
+.dirsearch-pill input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding-block: 0.55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.dirsearch-pill input:focus {
+  outline: none;
+}
+
+/* Safari paints its own clear affordance inside type="search", which lands on
+   top of the submit button at this size. */
+.dirsearch-pill input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dirsearch-pill button {
+  flex: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-pill button:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-locbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  margin-top: 0.95rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.dirsearch-locbar strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-locshare {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-pana-butter);
+  color: var(--color-pana-butter);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dirsearch-locshare:hover {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-locchange {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+}
+
+.dirsearch-locchange:hover {
+  opacity: 1;
+}
+
+/* --- Filter bar --------------------------------------------------------- */
+
+/* Sticky because refining is iterative: you scroll, you see too much food,
+   you want to cut it to Broward without scrolling back up. */
+.dirsearch-filters {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-block: 0.7rem 0.6rem;
+  background-color: var(--color-pana-cream);
+  border-bottom: 2px solid rgb(48 62 140 / 0.12);
+  box-shadow: 0 8px 20px rgb(17 13 13 / 0.05);
+}
+
+/* The mock bar is itself sticky at top: 0, so on the mock route the filter bar
+   has to stack beneath it rather than slide behind it — otherwise the first
+   chip row is permanently hidden. Scoped to the sibling pairing so the shipped
+   page, which has no mock bar, still pins to the very top. */
+.bizprofile-mockbar ~ .dirsearch-filters {
+  top: 3.7rem;
+}
+
+.dirsearch-filterrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.dirsearch-filterlabel {
+  flex: none;
+  width: 4.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+/* Horizontal scroll rather than wrapping: eleven categories wrapped to three
+   lines pushes the first result below the fold on a phone, and the whole
+   point of putting filters on the page was to keep results visible. */
+.dirsearch-chiprow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 0.15rem;
+}
+
+.dirsearch-chiprow::-webkit-scrollbar {
+  display: none;
+}
+
+.dirsearch-chip {
+  flex: none;
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-chip:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-chip[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.dirsearch-chipdivide {
+  flex: none;
+  width: 2px;
+  height: 1.25rem;
+  margin-inline: 0.3rem;
+  background-color: rgb(48 62 140 / 0.18);
+}
+
+.dirsearch-filterfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding-top: 0.5rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.dirsearch-sort select {
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.dirsearch-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-clear:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dirsearch-viewtoggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dirsearch-viewtoggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-viewtoggle button[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Results ------------------------------------------------------------ */
+
+.dirsearch-results {
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(2.5rem, 6vw, 4rem);
+}
+
+/* One column, not a grid of tiles. Each result carries a cover, a logo, a
+   location, counts, and an event — a three-across grid either truncates all
+   of that or produces tiles too tall to compare. A single column also keeps
+   every card's signals on the same vertical line, which is what makes a list
+   scannable rather than merely dense. */
+.dirsearch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* position: relative anchors the stretched link on the business name, which
+   is what makes the whole card a click target without nesting the Save button
+   inside an anchor. Save and Claim lift themselves back above it. */
+.dirsearch-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: #fff;
+  border: 2px solid rgb(48 62 140 / 0.1);
+  box-shadow: 0 10px 26px rgb(17 13 13 / 0.06);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dirsearch-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(48 62 140 / 0.24);
+  box-shadow: 0 18px 38px rgb(17 13 13 / 0.11);
+}
+
+.dirsearch-card-media {
+  position: relative;
+  flex: none;
+  height: 10rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dirsearch-card-cert {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+}
+
+.dirsearch-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem 1.05rem;
+}
+
+.dirsearch-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.dirsearch-card-logo {
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 2px solid var(--color-pana-cream);
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.12);
+}
+
+/* Business logos are wordmarks as often as they are marks; `cover` crops
+   them to an unreadable slice. `contain` keeps the whole logo legible. */
+.dirsearch-card-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.dirsearch-card-name {
+  font-family: var(--font-montserrat);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-name a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.dirsearch-card-tagline {
+  margin-top: 0.12rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-card-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-pana-indigo);
+}
+
+/* Distance is the one number on the card that decides whether someone goes,
+   so it is the one number that gets a chip. */
+.dirsearch-card-distance {
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.dirsearch-card-distance-off {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-style: italic;
+  opacity: 0.45;
+}
+
+.dirsearch-card-blurb {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: rgb(17 13 13 / 0.72);
+}
+
+.dirsearch-card-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dirsearch-card-cats li {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background-color: rgb(48 62 140 / 0.07);
+  color: var(--color-pana-indigo);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dirsearch-card-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.7rem;
+  background-color: rgb(217 98 54 / 0.09);
+  color: var(--color-pana-burnt);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.dirsearch-card-event strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-event span {
+  opacity: 0.85;
+}
+
+.dirsearch-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-card-signals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  min-width: 0;
+}
+
+/* Faces before numbers. "14 recommend" is a statistic; four overlapping
+   photographs of neighbours is the thing that makes it feel like a place
+   people you might know actually go. */
+.dirsearch-card-avatars {
+  display: inline-flex;
+}
+
+.dirsearch-card-avatars img {
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  background-color: var(--color-pana-butter);
+}
+
+.dirsearch-card-avatars img + img {
+  margin-left: -0.55rem;
+}
+
+.dirsearch-card-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.62);
+}
+
+.dirsearch-card-counts strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-counts i {
+  font-style: normal;
+  opacity: 0.35;
+}
+
+.dirsearch-card-active {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-card-actions {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.dirsearch-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.25);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-save:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-save[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition: background-color 0.16s ease;
+}
+
+.dirsearch-view:hover {
+  background-color: var(--color-pana-red);
+}
+
+.dirsearch-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  border: 2px dashed rgb(48 62 140 / 0.35);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-claim:hover {
+  background-color: rgb(48 62 140 / 0.07);
+}
+
+/* The card goes horizontal once there is room for the cover to sit beside the
+   text without squeezing either. Below this it stacks, which is also the only
+   arrangement where a 10rem cover is worth its vertical cost. */
+@media (min-width: 40rem) {
+  .dirsearch-card {
+    flex-direction: row;
+  }
+
+  .dirsearch-card-media {
+    width: 15rem;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+/* --- Map view ----------------------------------------------------------- */
+
+.dirsearch-maplayout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.dirsearch-maplist-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .dirsearch-maplayout {
+    grid-template-columns: 20rem 1fr;
+    align-items: start;
+  }
+
+  .dirsearch-maplist {
+    max-height: 34rem;
+    overflow-y: auto;
+  }
+}
+
+.dirsearch-maplist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dirsearch-maprow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.8rem;
+  border: 2px solid transparent;
+  text-align: left;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-maprow:hover {
+  background-color: rgb(48 62 140 / 0.06);
+}
+
+.dirsearch-maprow[data-on='true'] {
+  background-color: #fff;
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow img {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-maprow-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-maprow-name svg {
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow-meta {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-mapoffmap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.7rem;
+  background-color: rgb(48 62 140 / 0.06);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-map {
+  position: relative;
+  height: clamp(22rem, 55vh, 34rem);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  background:
+    radial-gradient(
+      circle at 78% 62%,
+      rgb(74 179 234 / 0.35) 0%,
+      transparent 42%
+    ),
+    linear-gradient(160deg, #eef3e6 0%, #e4ecdd 100%);
+}
+
+.dirsearch-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(48 62 140 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(48 62 140 / 0.06) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+}
+
+.dirsearch-map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-map-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dirsearch-map-pin:hover {
+  transform: translate(-50%, -100%) scale(1.1);
+}
+
+.dirsearch-map-pin[data-on='true'] {
+  z-index: 3;
+  border-color: var(--color-pana-burnt);
+  transform: translate(-50%, -100%) scale(1.18);
+}
+
+.dirsearch-map-you {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.dirsearch-map-youdot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background-color: var(--color-pana-blue);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0.45rem rgb(74 179 234 / 0.25);
+}
+
+/* The "you" marker sits among the pins, so its label needs its own
+   background — plain text collides with whatever logo is underneath. */
+.dirsearch-map-youlabel {
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-pana-indigo);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.92);
+  box-shadow: 0 2px 6px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card {
+  position: absolute;
+  z-index: 4;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.9rem;
+  background-color: #fff;
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card img {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-map-card-name {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-map-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-map-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-map-note {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.38);
+}
+
+/* --- Empty state -------------------------------------------------------- */
+
+.dirsearch-empty {
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4rem);
+  text-align: center;
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty > svg {
+  margin-inline: auto;
+  opacity: 0.35;
+}
+
+.dirsearch-empty-title {
+  margin-top: 1rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-empty-title em {
+  font-style: normal;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-lede {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.dirsearch-empty-primary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-secondary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.28);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-secondary:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty-or {
+  margin-top: 2rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-empty-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.dirsearch-empty-cats button {
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-empty-cats button:hover {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Tail CTA ----------------------------------------------------------- */
+
+.dirsearch-tail {
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.dirsearch-tail .section-display {
+  margin-top: 0.75rem;
+}
+
+.dirsearch-tail .section-lede {
+  margin-top: 0.75rem;
+  max-width: 38rem;
+}
+
+.dirsearch-tail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.dirsearch-tail-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 1rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-tail-primary:hover {
+  background-color: var(--color-pana-burnt);
 }
