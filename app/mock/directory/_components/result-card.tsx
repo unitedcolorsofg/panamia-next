@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, Bookmark, CalendarDays, Globe, MapPin, Store } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeCheck,
+  Bookmark,
+  CalendarDays,
+  Globe,
+  MapPin,
+  Store,
+} from 'lucide-react';
 import { usePanaGate } from '../../business-profile/_components/pana-gate';
 import {
   CATEGORY_LABEL,
@@ -72,7 +80,13 @@ export function ResultCard({ entry, locationShared }: ResultCardProps) {
       <div className="dirsearch-card-body">
         <div className="dirsearch-card-head">
           <span className="dirsearch-card-logo">
-            <Image src={result.logo} alt="" width={52} height={52} aria-hidden="true" />
+            <Image
+              src={result.logo}
+              alt=""
+              width={52}
+              height={52}
+              aria-hidden="true"
+            />
           </span>
 
           <div className="min-w-0 flex-1">

@@ -28,8 +28,7 @@ interface Activity {
   type: string;
   actor: string;
   object:
-    | string
-    | { id?: string; type?: string; actor?: string; object?: string };
+    string | { id?: string; type?: string; actor?: string; object?: string };
 }
 
 /**

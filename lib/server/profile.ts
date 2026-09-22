@@ -203,7 +203,7 @@ export const getPublicProfile = async (handle: string) => {
     user: { screenname: user.screenname },
     accountType: user.accountType ?? null,
   });
-}
+};
 
 /**
  * Is this handle a person, or a business listing?

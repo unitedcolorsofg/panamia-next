@@ -5,11 +5,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Loader2, Lock, Pencil } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
-import {
-  useActor,
-  useActorPosts,
-  usePanas,
-} from '@/lib/query/social';
+import { useActor, useActorPosts, usePanas } from '@/lib/query/social';
 import {
   PostList,
   FollowButton,
@@ -28,11 +24,7 @@ import type { PersonalTab, StatDef, TabDef } from './types';
  * must stay session-free on the server. Everything social is fetched here on
  * the client instead, which is also what lets the Panas list vary by viewer
  * without splitting the cache. */
-export function PersonalProfile({
-  profile,
-}: {
-  profile: PersonalProfileView;
-}) {
+export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
   const [activeTab, setActiveTab] = useState<PersonalTab>('posts');
   const { status: authStatus } = useSession();
   const isAuthenticated = authStatus === 'authenticated';

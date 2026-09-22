@@ -50,42 +50,42 @@ export function MapPanel({
     <div className="dirsearch-maplayout">
       <div className="dirsearch-maplist-col">
         <div className="dirsearch-maplist">
-        {mappable.map((entry) => {
-          const { result, distance } = entry;
-          const on = result.id === selected?.result.id;
-          return (
-            <button
-              key={result.id}
-              type="button"
-              className="dirsearch-maprow"
-              data-on={on}
-              onClick={() => setSelectedId(result.id)}
-            >
-              <Image
-                src={result.logo}
-                alt=""
-                width={40}
-                height={40}
-                aria-hidden="true"
-              />
-              <span className="min-w-0 flex-1 text-left">
-                <span className="dirsearch-maprow-name">
-                  {result.name}
-                  {result.certified && (
-                    <BadgeCheck
-                      className="h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                  )}
+          {mappable.map((entry) => {
+            const { result, distance } = entry;
+            const on = result.id === selected?.result.id;
+            return (
+              <button
+                key={result.id}
+                type="button"
+                className="dirsearch-maprow"
+                data-on={on}
+                onClick={() => setSelectedId(result.id)}
+              >
+                <Image
+                  src={result.logo}
+                  alt=""
+                  width={40}
+                  height={40}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="dirsearch-maprow-name">
+                    {result.name}
+                    {result.certified && (
+                      <BadgeCheck
+                        className="h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </span>
+                  <span className="dirsearch-maprow-meta">
+                    {result.city}
+                    {distance !== null && ` · ${formatDistance(distance)}`}
+                  </span>
                 </span>
-                <span className="dirsearch-maprow-meta">
-                  {result.city}
-                  {distance !== null && ` · ${formatDistance(distance)}`}
-                </span>
-              </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
         </div>
 
         {/* Online-only businesses match the search but cannot be plotted.

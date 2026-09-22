@@ -58,9 +58,12 @@ export default function AccountProfileAddress() {
       zipcode: formData.get('zipcode'),
     };
 
-    if (
-      !(address.street1 && address.city && address.state && address.zipcode)
-    ) {
+    if (!(
+      address.street1 &&
+      address.city &&
+      address.state &&
+      address.zipcode
+    )) {
       toast({
         title: t('missingFields'),
         description: t('missingFieldsDesc'),

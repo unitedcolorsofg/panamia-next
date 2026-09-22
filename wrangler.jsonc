@@ -1,125 +1,122 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "panamia-next",
-	"main": "worker/index.ts",
-	"compatibility_date": "2026-02-24",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"global_fetch_strictly_public"
-	],
-	"assets": {
-		"directory": "dist/client",
-		"binding": "ASSETS"
-	},
-	// Workers Cache: regional tiered cache in front of the Worker.
-	// https://blog.cloudflare.com/workers-cache/
-	//
-	// A 200 with no Cache-Control is cacheable under a default TTL, and the
-	// cache key ignores cookies (Cloudflare does not honour Vary: Cookie at the
-	// edge). Anything session-scoped must therefore say no-store itself, or it
-	// will be served to anonymous visitors:
-	//  - proxy.ts — any request carrying a better-auth session cookie
-	//  - app/api/auth/[...all]/route.ts — every auth response
-	//
-	// Anonymous requests carry no cookie, so public routes still cache.
-	"cache": {
-		"enabled": true
-	},
-	// Hyperdrive binding for Supabase PostgreSQL access from Workers
-	// https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
-	"hyperdrive": [
-		{
-			"binding": "HYPERDRIVE",
-			"id": "985dd5bf59c84a799dc3eac9122facaf",
-			// localConnectionString satisfies wrangler's local-emulation check only;
-			// the real Hyperdrive service is used in production.
-			"localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-		}
-	],
-	// R2 object storage for media uploads (profile images, social audio/video)
-	// Create bucket: wrangler r2 bucket create panamia-media
-	// Enable public access in the Cloudflare dashboard to get R2_PUBLIC_URL.
-	"r2_buckets": [
-		{
-			"binding": "R2_BUCKET",
-			"bucket_name": "panamia-media",
-			"preview_bucket_name": "panamia-media-preview"
-		}
-	],
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "panamia-next",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+  },
+  // Workers Cache: regional tiered cache in front of the Worker.
+  // https://blog.cloudflare.com/workers-cache/
+  //
+  // A 200 with no Cache-Control is cacheable under a default TTL, and the
+  // cache key ignores cookies (Cloudflare does not honour Vary: Cookie at the
+  // edge). Anything session-scoped must therefore say no-store itself, or it
+  // will be served to anonymous visitors:
+  //  - proxy.ts — any request carrying a better-auth session cookie
+  //  - app/api/auth/[...all]/route.ts — every auth response
+  //
+  // Anonymous requests carry no cookie, so public routes still cache.
+  "cache": {
+    "enabled": true,
+  },
+  // Hyperdrive binding for Supabase PostgreSQL access from Workers
+  // https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "985dd5bf59c84a799dc3eac9122facaf",
+      // localConnectionString satisfies wrangler's local-emulation check only;
+      // the real Hyperdrive service is used in production.
+      "localConnectionString": "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+    },
+  ],
+  // R2 object storage for media uploads (profile images, social audio/video)
+  // Create bucket: wrangler r2 bucket create panamia-media
+  // Enable public access in the Cloudflare dashboard to get R2_PUBLIC_URL.
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "panamia-media",
+      "preview_bucket_name": "panamia-media-preview",
+    },
+  ],
 
-	// Durable Objects for WebSocket-based real-time features (signaling, chat)
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "SIGNALING_ROOM",
-				"class_name": "SignalingRoom"
-			}
-		]
-	},
-	// DO migration: free plan requires new_sqlite_classes (not new_classes)
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": ["SignalingRoom"]
-		}
-	],
+  // Durable Objects for WebSocket-based real-time features (signaling, chat)
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SIGNALING_ROOM",
+        "class_name": "SignalingRoom",
+      },
+    ],
+  },
+  // DO migration: free plan requires new_sqlite_classes (not new_classes)
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SignalingRoom"],
+    },
+  ],
 
-	// Cloudflare Email Sending (public beta)
-	// https://developers.cloudflare.com/email-service/
-	"send_email": [{ "name": "EMAIL" }],
+  // Cloudflare Email Sending (public beta)
+  // https://developers.cloudflare.com/email-service/
+  "send_email": [{ "name": "EMAIL" }],
 
-	// Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
-	// "images": { "binding": "IMAGES" }
+  // Deferred: Cloudflare image optimization (enable IMAGES binding when ready)
+  // "images": { "binding": "IMAGES" }
 
-	// Service binding to the panamia-nosflare relay Worker. Used by the article
-	// publish path (POST /api/articles/[slug]/publish) and event publish to
-	// forward kind-30023 / kind-31923 events to the relay's /internal/* endpoints,
-	// which sign with the shared relay key and fan out to NOSTR_*_CROSSPOST_LIST.
-	// Optional: crosspost is best-effort; when unbound the client falls back to
-	// RELAY_INTERNAL_URL (see lib/relay/crosspost-client.ts). The reverse binding
-	// (PANAMIA → here) lives in the panamia-nosflare repo's wrangler config.
-	"services": [{ "binding": "RELAY", "service": "panamia-nosflare" }],
+  // Service binding to the panamia-nosflare relay Worker. Used by the article
+  // publish path (POST /api/articles/[slug]/publish) and event publish to
+  // forward kind-30023 / kind-31923 events to the relay's /internal/* endpoints,
+  // which sign with the shared relay key and fan out to NOSTR_*_CROSSPOST_LIST.
+  // Optional: crosspost is best-effort; when unbound the client falls back to
+  // RELAY_INTERNAL_URL (see lib/relay/crosspost-client.ts). The reverse binding
+  // (PANAMIA → here) lives in the panamia-nosflare repo's wrangler config.
+  "services": [{ "binding": "RELAY", "service": "panamia-nosflare" }],
 
-	// Runtime env vars. Declare non-sensitive runtime vars here so they survive
-	// CF Workers Builds deploys — dashboard-set plaintext vars get wiped on each
-	// deploy unless they're in this file or promoted to secrets.
-	//
-	// Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
-	// NEXT_PUBLIC_* and explicitly build-baked vars (e.g. TURNSTILE_SITE_KEY,
-	// EMAIL_SENDER_*) belong in CF dashboard Build variables, NOT here —
-	// they're inlined at build time.
-	//
-	// The values below are PRODUCTION CF Workers values. They are intentionally
-	// distinct from .env.local — that file is for local-dev values only. Most
-	// vars here will differ from your .env.local (e.g. BETTER_AUTH_URL points
-	// to the deployed worker, EMAIL_ENV is "PROD" not "DEV"). `npm run env:check`
-	// only enforces that the *keys* match envConfig, never the values.
-	// See .env.local.example.
-	"vars": {
-		"BETTER_AUTH_URL": "https://pana.social",
-		"EMAIL_ENV": "PROD",
-		"EMAIL_SENDER_ADDRESS": "hola@pana.social",
-		"EMAIL_SENDER_NAME": "Pana MIA Testing Environment",
-		// Pinned identity domain. This is what makes @user@pana.social handles
-		// stable if/when the UI moves to another hostname. Do not change it once
-		// actors have federated — see lib/federation/domain.ts.
-		"FEDERATION_DOMAIN": "pana.social",
-		// Registrable domain the panaverse surfaces hang off — see
-		// lib/panaverse/surfaces.ts. Hosts that don't match a surface (previews,
-		// localhost) fall back to the main site with every route reachable.
-		"PANAVERSE_ROOT_DOMAIN": "panamia.club",
-		// PANAVERSE_COOKIE_DOMAIN is deliberately unset. Setting it to
-		// ".panamia.club" shares one session across the surfaces, but re-scopes
-		// existing cookies and signs everyone out once — do it as part of
-		// launching social.panamia.club, not before.
-		"R2_BUCKET_NAME": "panamia-media",
-		"R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",
-		"GHL_WORKFLOW_TEST_ID": "6682f160-e9a3-4aff-9f5d-099bd9c3e951"
-	},
+  // Runtime env vars. Declare non-sensitive runtime vars here so they survive
+  // CF Workers Builds deploys — dashboard-set plaintext vars get wiped on each
+  // deploy unless they're in this file or promoted to secrets.
+  //
+  // Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
+  // NEXT_PUBLIC_* and explicitly build-baked vars (e.g. TURNSTILE_SITE_KEY,
+  // EMAIL_SENDER_*) belong in CF dashboard Build variables, NOT here —
+  // they're inlined at build time.
+  //
+  // The values below are PRODUCTION CF Workers values. They are intentionally
+  // distinct from .env.local — that file is for local-dev values only. Most
+  // vars here will differ from your .env.local (e.g. BETTER_AUTH_URL points
+  // to the deployed worker, EMAIL_ENV is "PROD" not "DEV"). `npm run env:check`
+  // only enforces that the *keys* match envConfig, never the values.
+  // See .env.local.example.
+  "vars": {
+    "BETTER_AUTH_URL": "https://pana.social",
+    "EMAIL_ENV": "PROD",
+    "EMAIL_SENDER_ADDRESS": "hola@pana.social",
+    "EMAIL_SENDER_NAME": "Pana MIA Testing Environment",
+    // Pinned identity domain. This is what makes @user@pana.social handles
+    // stable if/when the UI moves to another hostname. Do not change it once
+    // actors have federated — see lib/federation/domain.ts.
+    "FEDERATION_DOMAIN": "pana.social",
+    // Registrable domain the panaverse surfaces hang off — see
+    // lib/panaverse/surfaces.ts. Hosts that don't match a surface (previews,
+    // localhost) fall back to the main site with every route reachable.
+    "PANAVERSE_ROOT_DOMAIN": "panamia.club",
+    // PANAVERSE_COOKIE_DOMAIN is deliberately unset. Setting it to
+    // ".panamia.club" shares one session across the surfaces, but re-scopes
+    // existing cookies and signs everyone out once — do it as part of
+    // launching social.panamia.club, not before.
+    "R2_BUCKET_NAME": "panamia-media",
+    "R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",
+    "GHL_WORKFLOW_TEST_ID": "6682f160-e9a3-4aff-9f5d-099bd9c3e951",
+  },
 
-	// Capture Worker exceptions in Cloudflare dashboard → Workers & Pages → Observability
-	"observability": {
-		"enabled": true,
-		"head_sampling_rate": 1
-	}
+  // Capture Worker exceptions in Cloudflare dashboard → Workers & Pages → Observability
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
 }

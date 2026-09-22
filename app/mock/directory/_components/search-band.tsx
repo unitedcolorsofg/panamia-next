@@ -88,7 +88,10 @@ export function SearchBand({
             Search the Pana Mia directory
           </label>
           <div className="dirsearch-pill">
-            <Search className="h-5 w-5 shrink-0 opacity-45" aria-hidden="true" />
+            <Search
+              className="h-5 w-5 shrink-0 opacity-45"
+              aria-hidden="true"
+            />
             <input
               id="dirsearch-input"
               type="search"
