@@ -1,3 +1,10 @@
+-- Migration: 0039_drop_owner_self_signals
+-- Purpose: Remove saves and recommendations that people left on their own
+--          listings, so the only social proof on a profile comes from others.
+-- Ticket: N/A
+-- Reversible: No - the rows are deleted outright and are not copied anywhere
+--             first, so re-running backwards cannot restore them.
+--
 -- Remove saves and recommendations that people left on their own listings.
 --
 -- Saves and recommends exist to tell a visitor what OTHER panas think of a
