@@ -1,11 +1,12 @@
 # Directory Search — Design & Roadmap
 
-> **STATUS**: The directory search is currently a **substring scan in Node memory**, not a search
-> engine. It cannot handle word order, typos, plurals, or accents. This document specifies the
-> replacement using native PostgreSQL full-text search and trigram matching.
+> **STATUS**: **Phase 1 is implemented** — migration `0040_profile_search_vector.sql` ships a
+> stored `tsvector` and the directory term search now runs in Postgres. Phases 2–4 are still
+> proposals.
 >
-> Every SQL claim below was **prototyped against the dev database** (PostgreSQL 16.10) inside a
-> rolled-back transaction. Measured results are quoted inline.
+> Before this, the directory search was a **substring scan in Node memory**, not a search engine:
+> it could not handle word order, typos, plurals, or accents. Measured results from the live API
+> are quoted throughout.
 
 ## Table of Contents
 
@@ -49,7 +50,7 @@ The required extensions are already available on the database — they are simpl
 
 ---
 
-## How Search Works Today
+## How Search Worked Before Phase 1
 
 All of it lives in `lib/server/directory.ts`. There are two hand-rolled stages and the database
 does no searching at all.
@@ -238,16 +239,38 @@ Full prototype applied and rolled back against the dev database:
 
 Each phase is independently shippable and independently revertible.
 
-### Phase 1 — Full-text search _(core value, low risk)_
+### Phase 1 — Full-text search ✅ **shipped**
 
-- Enable `unaccent`, add `pana_unaccent` and `pana_jsonb_flags`
-- Add the `search_vector` generated column and its GIN index
-- In `getSearch()`, when a term is present, filter in SQL with
-  `search_vector @@ websearch_to_tsquery(...)` and rank with `ts_rank_cd`
-- Retire `matchScore()` for the term path; leave `nearest` / `recommended` / `name` untouched
+Delivered by `drizzle/0040_profile_search_vector.sql` and `lib/server/directory.ts`:
 
-Fixes word order, stemming and accents, and removes the full-table read from the most common path.
-`websearch_to_tsquery` also gives panas quoted phrases and `-exclusion` for free.
+- `unaccent` enabled; `pana_unaccent` and `pana_jsonb_flags` added as IMMUTABLE helpers
+- `profiles.search_vector` generated column + `profiles_search_vector_idx` GIN index
+- `getSearch()` resolves the term in SQL via `websearch_to_tsquery` before loading anything, and
+  short-circuits to an empty result when nothing matches
+- `matchScore()` and `categorySearchText()` deleted; ranking is `ts_rank_cd` plus two boosts that
+  preserve the old ladder's top rungs (exact name `+1000`, name prefix `+100`)
+- `search_vector` is deliberately **not** mapped in `lib/schema/index.ts`, so Drizzle never selects
+  it on ordinary profile reads
+
+The query is OR'd across `english`, `spanish` **and** `simple`. The `simple` arm is not redundant:
+it is the only one that survives a query made entirely of stop words, where the stemmed arms reduce
+to an empty tsquery and would return an empty directory for a search like "the hall".
+
+**Verified against the live API** with four seeded listings covering every stored category shape
+and vocabulary (removed afterwards):
+
+| Query              | Before | After                                                                                    |
+| ------------------ | ------ | ---------------------------------------------------------------------------------------- |
+| `kitchen`          | —      | `Kitchen` › `Kitchen Sink Cafe` › `Bohemian Kitchen` — exact, then prefix, then contains |
+| `kitchen bohemian` | ❌ 0   | ✅ Bohemian Kitchen                                                                      |
+| `criollo sazon`    | ❌ 0   | ✅ Sazon Criollo                                                                         |
+| `foods`            | ❌ 0   | ✅ Bohemian Kitchen                                                                      |
+| `sazón` / `sazon`  | ❌     | ✅ both find Sazon Criollo                                                               |
+| `arepas`           | ❌ 0   | ✅ Sazon Criollo (Spanish stemming, weight D)                                            |
+| `zzzqqq`           | 0      | ✅ 0 — no false positives                                                                |
+
+Term and chip agree across all three vocabularies: `q=food` and `fcat=food` each return the same
+four listings, spanning `{"food":true}`, `["food"]` and `["Food & Drink"]`.
 
 ### Phase 2 — Typo tolerance _(high perceived quality)_
 
@@ -281,10 +304,12 @@ Follow `drizzle/TEMPLATE.sql` for the header block and `drizzle/0037_profile_sig
 house style: prose rationale, `--> statement-breakpoint` between statements, `IF NOT EXISTS`
 everywhere, a comment above every index, and a real `Rollback:` section.
 
-The latest migration is `0039_drop_owner_self_signals.sql`, so this becomes
-`0040_profile_search_vector.sql`.
+The latest migration is `0039_drop_owner_self_signals.sql`, so this became
+`0040_profile_search_vector.sql` — **written and applied**. Hand-written migrations also need an
+entry in `drizzle/meta/_journal.json`; `drizzle-kit migrate` ignores files that are not listed
+there, so a migration without one silently never runs.
 
-Sketch of the body (header omitted):
+Abridged body (see the file for the full header and rationale):
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -344,20 +369,22 @@ EXCLUSIVE` lock. At current directory size this is a non-event, but it should st
 
 ## Application Changes
 
-All in `lib/server/directory.ts`:
+All in `lib/server/directory.ts`. **Done in Phase 1:**
 
-| Today                                 | After                                              |
-| ------------------------------------- | -------------------------------------------------- |
-| `findMany` loads every active profile | `WHERE search_vector @@ websearch_to_tsquery(...)` |
-| JS `String.includes()` term filter    | removed for the term path                          |
-| `matchScore()` ladder                 | `ts_rank_cd` with the weight array `{D,C,B,A}`     |
-| alphabetical tiebreak                 | keep — still needed for equal ranks                |
+| Before                                | After                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `findMany` loads every active profile | `searchRanking()` resolves ids in SQL, then `inArray` narrows the load |
+| JS `String.includes()` term filter    | removed                                                                |
+| `matchScore()` ladder                 | `ts_rank_cd` + exact/prefix name boosts                                |
+| `categorySearchText()`                | removed — categories sit in the vector at weight C                     |
+| alphabetical tiebreak                 | kept — still needed for equal ranks                                    |
 
 `canonical()`, `jsonKeys()`, `categoryKeys()` and `countyKeys()` stay exactly as they are until
 Phase 3; they still drive the filter chips.
 
 Unchanged: every URL parameter, the `nearest` / `recommended` / `name` sorts, pagination, the map
-view, and the rule that **nothing viewer-specific may enter the cached response**.
+view, and the rule that **nothing viewer-specific may enter the cached response**. Browse mode (no
+term) is untouched — it computes no ranking and still shuffles.
 
 ---
 

@@ -621,6 +621,15 @@ export const profiles = pgTable(
      * see drizzle/0038_profile_online_only.sql.
      */
     onlineOnly: boolean('online_only').notNull().default(false),
+    /*
+     * Not mapped here on purpose: profiles.search_vector.
+     *
+     * Migration 0040 adds a GENERATED ALWAYS tsvector column that backs the
+     * directory term search. It is deliberately absent from this schema so
+     * Drizzle never selects it — the vector is large, useless to the
+     * application, and would ride along on every profile read. lib/server/
+     * directory.ts queries it through raw SQL instead.
+     */
     locallyBased: text('locally_based'),
     membershipLevel: membershipLevel('membership_level')
       .notNull()
@@ -753,8 +762,11 @@ export const profileSignals = pgTable(
   (table) => ({
     // One save and one recommend per person per listing. Saving twice is the
     // same as saving once, so the toggle endpoints can be safely retried.
-    profileUserKindUnique: uniqueIndex('profile_signals_profile_user_kind')
-      .on(table.profileId, table.userId, table.kind),
+    profileUserKindUnique: uniqueIndex('profile_signals_profile_user_kind').on(
+      table.profileId,
+      table.userId,
+      table.kind
+    ),
     // "How many panas saved this?" — the counts on the profile page.
     profileKindIdx: index('profile_signals_profile_kind_idx').on(
       table.profileId,

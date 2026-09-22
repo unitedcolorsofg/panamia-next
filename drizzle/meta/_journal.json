@@ -281,6 +281,13 @@
       "when": 1787443200000,
       "tag": "0039_drop_owner_self_signals",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1787529600000,
+      "tag": "0040_profile_search_vector",
+      "breakpoints": true
     }
   ]
 }
