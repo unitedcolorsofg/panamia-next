@@ -18,6 +18,7 @@ import {
   notBusinessListing,
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
+import { SURFACES, originFor } from '@/lib/panaverse/surfaces';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -760,6 +761,15 @@ let _betterAuthInstance: BetterAuthInstance | null = null;
 function getBetterAuth(): BetterAuthInstance {
   if (_betterAuthInstance) return _betterAuthInstance;
 
+  // Panaverse surfaces (panamia.club, social.panamia.club, …) are subdomains of
+  // one registrable domain, so one session can cover all of them. Opt-in: with
+  // the var unset the cookie stays host-only, exactly as every existing session
+  // was issued. Setting it re-scopes cookies, which signs current users out once.
+  //
+  // This cannot reach the fediverse identity domain — a different registrable
+  // domain needs a real OAuth handoff, not a shared cookie.
+  const panaverseCookieDomain = process.env.PANAVERSE_COOKIE_DOMAIN?.trim();
+
   _betterAuthInstance = betterAuth<BetterAuthOptions>({
     database: drizzleAdapter(db, {
       provider: 'pg',
@@ -790,6 +800,14 @@ function getBetterAuth(): BetterAuthInstance {
         // with max:1. Was `experimental: { joins: true }` before better-auth 1.7.
         joins: true,
       },
+      ...(panaverseCookieDomain
+        ? {
+            crossSubDomainCookies: {
+              enabled: true,
+              domain: panaverseCookieDomain,
+            },
+          }
+        : {}),
     },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
@@ -801,6 +819,9 @@ function getBetterAuth(): BetterAuthInstance {
     trustedOrigins: [
       process.env.NEXT_PUBLIC_HOST_URL,
       process.env.BETTER_AUTH_URL,
+      // Every surface signs in against this one auth instance, so each surface
+      // origin has to be trusted or its sign-in requests get rejected.
+      ...SURFACES.map((surface) => originFor(surface)),
       'http://localhost:3000',
       'http://localhost:3001',
     ].filter(Boolean) as string[],

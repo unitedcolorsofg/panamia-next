@@ -17,6 +17,7 @@ import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
+import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -107,6 +108,36 @@ export default {
         },
         allowedWidths
       );
+    }
+
+    // Panaverse host routing: a surface hostname serves that surface's front
+    // door. Only the root path is touched — every other route stays reachable
+    // from every hostname, so /api, /.well-known, and shared pages behave
+    // identically no matter which surface a request arrives on.
+    //
+    // A redirect rather than a rewrite: vinext has no middleware-rewrite
+    // signalling, so serving /s under the URL "/" would leave the client router
+    // fetching RSC payloads for the wrong path. The end state is moving these
+    // routes into a route group so the surface root is genuinely "/".
+    const surface = resolveSurface(url.hostname);
+    if (url.pathname === '/' && surface.rootPath !== '/') {
+      const target = new URL(url.toString());
+      target.pathname = surface.rootPath;
+
+      // Visitors who type the fediverse identity domain get handed to the real
+      // UI host; that domain stays a thin identity endpoint serving WebFinger
+      // and actor JSON, which pass through untouched above.
+      const canonicalHost = hostnameFor(surface);
+      if (
+        url.hostname !== canonicalHost &&
+        !url.hostname.endsWith('.localhost')
+      ) {
+        target.protocol = 'https:';
+        target.hostname = canonicalHost;
+        target.port = '';
+      }
+
+      return Response.redirect(target.toString(), 307);
     }
 
     // Delegate everything else to vinext
