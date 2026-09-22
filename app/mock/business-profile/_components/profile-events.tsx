@@ -48,7 +48,9 @@ export function ProfileEvents({ profile }: ProfileEventsProps) {
         {events.length === 0 ? (
           <div className="bizprofile-card flex flex-col items-center gap-3 px-6 py-16 text-center">
             <CalendarDays className="h-8 w-8 opacity-40" aria-hidden="true" />
-            <p className="text-lg font-extrabold">Nothing on the calendar yet</p>
+            <p className="text-lg font-extrabold">
+              Nothing on the calendar yet
+            </p>
             <p className="section-lede">
               Save {profile.name} and we will let you know the moment they add
               something.

@@ -71,6 +71,16 @@ interface PanaGateValue {
   viewer: ViewerKind;
   isPana: boolean;
   /**
+   * Whether pana-only controls should be rendered at all.
+   *
+   * This is not the same question as "may they act". A signed-out visitor
+   * still sees Save and Recommend, because clicking one is how they find out
+   * the account is worth having — the gate is the pitch. A business-only
+   * account never can, no matter how many times it asks, so showing it a
+   * button that always refuses is just a trap with a nice label on it.
+   */
+  showsPanaActions: boolean;
+  /**
    * Returns `true` when the viewer may proceed. Returns `false` and opens the
    * signup dialog when they may not, so callers read as a plain guard:
    *
@@ -110,6 +120,11 @@ export function PanaGateProvider({
       if (viewer === 'pana') {
         return true;
       }
+      // Reached by signed-out visitors, and kept as a backstop for business
+      // accounts: the UI no longer renders anything they could click, but
+      // enforcement should not depend on a component remembering to hide a
+      // button. If that slips, this still refuses rather than silently
+      // writing.
       setBlockedAction(action);
       return false;
     },
@@ -117,7 +132,12 @@ export function PanaGateProvider({
   );
 
   const value = useMemo(
-    () => ({ viewer, isPana, requirePana }),
+    () => ({
+      viewer,
+      isPana,
+      showsPanaActions: viewer !== 'business',
+      requirePana,
+    }),
     [viewer, isPana, requirePana]
   );
 
@@ -174,6 +194,9 @@ function SignupDialog({
   }
 
   const resolved = action ?? lastAction;
+  // Pairs with the backstop in `requirePana`. A business account should no
+  // longer be able to open this dialog at all, but if one does, it must not
+  // be told to "sign up" when it is already signed in.
   const signedInAsBusiness = viewer === 'business';
 
   return (
@@ -192,9 +215,7 @@ function SignupDialog({
           <span className="bizprofile-gate-biz">{businessName}</span>
         </div>
 
-        <span className="section-eyebrow mt-6">
-          {ACTION_EYEBROW[resolved]}
-        </span>
+        <span className="section-eyebrow mt-6">{ACTION_EYEBROW[resolved]}</span>
 
         <DialogTitle className="bizprofile-gate-title">
           {signedInAsBusiness

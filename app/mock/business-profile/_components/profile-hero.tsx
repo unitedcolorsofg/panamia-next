@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   BadgeCheck,
   Bookmark,
@@ -38,7 +39,7 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
   // would take these from the viewer's own save/recommend rows.
   const [saved, setSaved] = useState(false);
   const [recommended, setRecommended] = useState(false);
-  const { requirePana } = usePanaGate();
+  const { requirePana, showsPanaActions } = usePanaGate();
 
   const savedCount = profile.savedCount + (saved ? 1 : 0);
   const recommendedCount = profile.recommendedCount + (recommended ? 1 : 0);
@@ -142,54 +143,73 @@ export function ProfileHero({ profile, certified }: ProfileHeroProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              onClick={() => {
-                if (!requirePana('save')) return;
-                setSaved((value) => !value);
-              }}
-              aria-pressed={saved}
-              className={
-                saved
-                  ? 'bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full font-extrabold'
-                  : 'bg-pana-flame text-pana-ink hover:bg-pana-burnt rounded-full font-extrabold'
-              }
-            >
-              {saved ? (
-                <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Bookmark className="h-4 w-4" aria-hidden="true" />
+          <div>
+            <div className="flex flex-wrap gap-3">
+              {/* Save and Recommend are absent, not disabled, for a
+                  business-only account. See `showsPanaActions`. Share stays:
+                  it costs nothing and sends people to the business. */}
+              {showsPanaActions && (
+                <>
+                  <Button
+                    size="lg"
+                    onClick={() => {
+                      if (!requirePana('save')) return;
+                      setSaved((value) => !value);
+                    }}
+                    aria-pressed={saved}
+                    className={
+                      saved
+                        ? 'bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full font-extrabold'
+                        : 'bg-pana-flame text-pana-ink hover:bg-pana-burnt rounded-full font-extrabold'
+                    }
+                  >
+                    {saved ? (
+                      <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Bookmark className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {saved ? 'Saved' : 'Save'}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => {
+                      if (!requirePana('recommend')) return;
+                      setRecommended((value) => !value);
+                    }}
+                    aria-pressed={recommended}
+                    className={
+                      recommended
+                        ? 'border-pana-indigo bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full border-2 font-extrabold'
+                        : 'border-pana-ink/25 text-pana-ink hover:bg-pana-butter-2 rounded-full border-2 bg-white font-extrabold'
+                    }
+                  >
+                    <ThumbsUp className="h-4 w-4" aria-hidden="true" />
+                    {recommended ? 'Recommended' : 'Recommend'}
+                  </Button>
+                </>
               )}
-              {saved ? 'Saved' : 'Save'}
-            </Button>
 
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => {
-                if (!requirePana('recommend')) return;
-                setRecommended((value) => !value);
-              }}
-              aria-pressed={recommended}
-              className={
-                recommended
-                  ? 'border-pana-indigo bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full border-2 font-extrabold'
-                  : 'border-pana-ink/25 text-pana-ink hover:bg-pana-butter-2 rounded-full border-2 bg-white font-extrabold'
-              }
-            >
-              <ThumbsUp className="h-4 w-4" aria-hidden="true" />
-              {recommended ? 'Recommended' : 'Recommend'}
-            </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-pana-ink/25 text-pana-ink hover:bg-pana-butter-2 rounded-full border-2 bg-white font-extrabold"
+              >
+                <Share2 className="h-4 w-4" aria-hidden="true" />
+                Share
+              </Button>
+            </div>
 
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-pana-ink/25 text-pana-ink hover:bg-pana-butter-2 rounded-full border-2 bg-white font-extrabold"
-            >
-              <Share2 className="h-4 w-4" aria-hidden="true" />
-              Share
-            </Button>
+            {/* Hiding the controls with no explanation is how "unavailable"
+                gets mistaken for "broken". One quiet line is enough to say
+                which account type is missing and where to get one. */}
+            {!showsPanaActions && (
+              <p className="bizprofile-hero-note">
+                Saving and recommending come from a pana account.{' '}
+                <Link href="/form/become-a-pana">Add one</Link>
+              </p>
+            )}
           </div>
         </div>
 

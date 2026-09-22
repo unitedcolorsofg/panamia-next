@@ -1222,7 +1222,7 @@
   transition: opacity 0.2s ease;
 }
 
-.bizprofile-update-action:hover {
+button.bizprofile-update-action:hover {
   opacity: 1;
 }
 
@@ -1516,25 +1516,61 @@
 /* The update actions became buttons when the signup gate needed somewhere to
    attach, so they need the affordances a span did not: a hit area, a hover,
    and a pressed state for like/boost. */
-.bizprofile-update-action {
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. Scoped to `button` on purpose — a
+   business-only account gets these same counts as static spans, and those
+   must not carry a cursor or a hover. */
+button.bizprofile-update-action {
   cursor: pointer;
   border-radius: 999px;
   margin: -0.25rem -0.5rem;
   padding: 0.25rem 0.5rem;
   transition:
-    color 0.15s ease,
+    opacity 0.15s ease,
     background-color 0.15s ease;
 }
 
-.bizprofile-update-action:hover {
-  color: var(--color-pana-butter);
+button.bizprofile-update-action:hover {
   background-color: rgb(255 255 255 / 0.08);
 }
 
+/* Pressed state is full opacity plus a filled glyph. Setting `color` here
+   would be a no-op: it already matches the base. */
 .bizprofile-update-action[data-on='true'] {
-  color: var(--color-pana-butter);
+  opacity: 1;
 }
 
 .bizprofile-update-action[data-on='true'] svg {
   fill: currentColor;
+}
+
+/* Stands in for Save/Recommend when a business-only account is viewing, so the
+   missing controls read as "not for this account type" rather than as a bug. */
+.bizprofile-hero-note {
+  margin-top: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.65);
+}
+
+.bizprofile-hero-note a {
+  color: var(--color-pana-indigo);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bizprofile-hero-note a:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-hero-note {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Same counts, no affordance. The interactive rules are scoped to `button`,
+   so a static span needs only its spacing back. */
+.bizprofile-update-action[data-static='true'] {
+  cursor: default;
 }

@@ -64,7 +64,10 @@ export function ProfileGallery({ profile, isOwner }: ProfileGalleryProps) {
           // Spans the full grid width rather than taking a single cell. With five
           // photos the grid is already full, so a one-cell tile would start a
           // lonely third row and read like a sixth photo failed to load.
-          <button type="button" className="bizprofile-addphoto col-span-2 md:col-span-4">
+          <button
+            type="button"
+            className="bizprofile-addphoto col-span-2 md:col-span-4"
+          >
             <ImagePlus className="h-6 w-6" aria-hidden="true" />
             Add photos
           </button>

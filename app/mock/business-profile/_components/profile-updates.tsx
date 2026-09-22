@@ -128,9 +128,32 @@ export function ProfileUpdates({ profile }: ProfileUpdatesProps) {
  * gate somewhere to attach on this section.
  */
 function UpdateActions({ update }: { update: BusinessUpdate }) {
-  const { requirePana } = usePanaGate();
+  const { requirePana, showsPanaActions } = usePanaGate();
   const [liked, setLiked] = useState(false);
   const [boosted, setBoosted] = useState(false);
+
+  // A business-only account cannot react, reply or boost, so it gets the
+  // figures without the affordance. The counts are information as much as
+  // they are buttons — hiding them outright would tell the viewer less about
+  // how this update landed, which is not what they are being denied.
+  if (!showsPanaActions) {
+    return (
+      <>
+        <span className="bizprofile-update-action" data-static="true">
+          <Heart className="h-4 w-4" aria-hidden="true" />
+          {update.likes}
+        </span>
+        <span className="bizprofile-update-action" data-static="true">
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          {update.replies}
+        </span>
+        <span className="bizprofile-update-action" data-static="true">
+          <Repeat2 className="h-4 w-4" aria-hidden="true" />
+          {update.boosts}
+        </span>
+      </>
+    );
+  }
 
   return (
     <>
