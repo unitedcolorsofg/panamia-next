@@ -108,6 +108,7 @@ See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.
 | [Articles Roadmap](./docs/ARTICLE-ROADMAP.md)  | Community articles implementation plan |
 | [Social Roadmap](./docs/SOCIAL-ROADMAP.md)     | Social timeline & federation plan      |
 | [Mentoring Guide](./docs/MENTORING-ROADMAP.md) | Peer mentoring guide & roadmap         |
+| [Search Roadmap](./docs/SEARCH-ROADMAP.md)     | Directory search design & roadmap      |
 | [Contributing](./docs/CONTRIBUTING.md)         | How to contribute                      |
 | [Security](./docs/SECURITY_AUDIT.md)           | Security architecture                  |
 
