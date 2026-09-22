@@ -211,7 +211,7 @@ function PanasPanel({
   name,
   handle,
 }: {
-  data?: { count: number; canSeeList: boolean; actors: unknown[] };
+  data?: { count: number; canSeeList: boolean; actors: unknown[] } | null;
   isLoading: boolean;
   name: string;
   handle: string;

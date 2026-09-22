@@ -49,92 +49,81 @@ interface RepliesResponse {
 // Fetch Functions
 // ============================================================================
 
-async function fetchMyActor(): Promise<MyActorResponse | undefined> {
-  const response = await axios
-    .get('/api/social/actors/me')
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
+/**
+ * Fetches a social API envelope and unwraps its `data`.
+ *
+ * The distinction that matters here is absence versus failure. A 401, 403, or
+ * 404 is a definitive answer — there is no actor, or none this viewer may see —
+ * so it resolves to null and the caller renders an empty state. Anything else
+ * is a genuine failure and throws, so React Query reports `isError` and retries
+ * instead of pretending the data is simply empty.
+ *
+ * Returning `undefined` is not an option. React Query rejects it outright
+ * ("Query data cannot be undefined") and the query never settles, so the caller
+ * spins forever. That is exactly what stranded personal profiles belonging to
+ * accounts that never enrolled in Pana Social, whose actor legitimately 404s.
+ */
+async function getSocialData<T>(url: string): Promise<T | null> {
+  try {
+    const response = await axios.get(url);
 
-  if (response?.data?.success) {
-    return response.data.data;
+    if (response.data?.success) {
+      return (response.data.data ?? null) as T | null;
+    }
+
+    throw new Error(response.data?.error ?? `Request to ${url} failed`);
+  } catch (error) {
+    const status = axios.isAxiosError(error)
+      ? error.response?.status
+      : undefined;
+
+    if (status === 401 || status === 403 || status === 404) {
+      return null;
+    }
+
+    throw error;
   }
-  return undefined;
+}
+
+async function fetchMyActor(): Promise<MyActorResponse | null> {
+  return getSocialData('/api/social/actors/me');
 }
 
 async function fetchTimeline(
   cursor?: string,
   limit: number = 20
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/timeline?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/timeline?${params.toString()}`);
 }
 
 async function fetchPublicTimeline(
   cursor?: string,
   limit: number = 20
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/statuses?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/statuses?${params.toString()}`);
 }
 
 async function fetchMyPosts(
   cursor?: string,
   limit: number = 20
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/actors/me/posts?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/actors/me/posts?${params.toString()}`);
 }
 
-async function fetchActor(
-  username: string
-): Promise<ActorResponse | undefined> {
-  const response = await axios
-    .get(`/api/social/actors/${encodeURIComponent(username)}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+async function fetchActor(username: string): Promise<ActorResponse | null> {
+  return getSocialData(`/api/social/actors/${encodeURIComponent(username)}`);
 }
 
 async function fetchActorPosts(
@@ -142,122 +131,70 @@ async function fetchActorPosts(
   cursor?: string,
   limit: number = 20,
   includeReplies: boolean = false
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
   if (includeReplies) params.set('replies', 'true');
 
-  const response = await axios
-    .get(
-      `/api/social/actors/${encodeURIComponent(username)}/posts?${params.toString()}`
-    )
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(
+    `/api/social/actors/${encodeURIComponent(username)}/posts?${params.toString()}`
+  );
 }
 
 async function fetchStatus(
   statusId: string
-): Promise<{ status: SocialStatusDisplay } | undefined> {
-  const response = await axios
-    .get(`/api/social/statuses/${statusId}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+): Promise<{ status: SocialStatusDisplay } | null> {
+  return getSocialData(`/api/social/statuses/${statusId}`);
 }
 
 async function fetchStatusReplies(
   statusId: string,
   cursor?: string,
   limit: number = 20
-): Promise<RepliesResponse | undefined> {
+): Promise<RepliesResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/statuses/${statusId}/replies?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(
+    `/api/social/statuses/${statusId}/replies?${params.toString()}`
+  );
 }
 
 async function fetchFollows(
   type: 'following' | 'followers',
   cursor?: string,
   limit: number = 20
-): Promise<ActorsResponse | undefined> {
+): Promise<ActorsResponse | null> {
   const params = new URLSearchParams();
   params.set('type', type);
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/follows?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/follows?${params.toString()}`);
 }
 
 async function fetchInboxMessages(
   cursor?: string,
   limit: number = 20
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/messages/inbox?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/messages/inbox?${params.toString()}`);
 }
 
 async function fetchSentMessages(
   cursor?: string,
   limit: number = 20
-): Promise<TimelineResponse | undefined> {
+): Promise<TimelineResponse | null> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
   params.set('limit', limit.toString());
 
-  const response = await axios
-    .get(`/api/social/messages/sent?${params.toString()}`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+  return getSocialData(`/api/social/messages/sent?${params.toString()}`);
 }
 
 // ============================================================================
@@ -265,35 +202,35 @@ async function fetchSentMessages(
 // ============================================================================
 
 export const useMyActor = () => {
-  return useQuery<MyActorResponse | undefined, Error>({
+  return useQuery<MyActorResponse | null, Error>({
     queryKey: [socialQueryKey, 'me'],
     queryFn: () => fetchMyActor(),
   });
 };
 
 export const useTimeline = (cursor?: string, limit: number = 20) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [socialQueryKey, 'timeline', 'home', cursor, limit],
     queryFn: () => fetchTimeline(cursor, limit),
   });
 };
 
 export const usePublicTimeline = (cursor?: string, limit: number = 20) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [socialQueryKey, 'timeline', 'public', cursor, limit],
     queryFn: () => fetchPublicTimeline(cursor, limit),
   });
 };
 
 export const useMyPosts = (cursor?: string, limit: number = 20) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [socialQueryKey, 'me', 'posts', cursor, limit],
     queryFn: () => fetchMyPosts(cursor, limit),
   });
 };
 
 export const useActor = (username: string) => {
-  return useQuery<ActorResponse | undefined, Error>({
+  return useQuery<ActorResponse | null, Error>({
     queryKey: [socialQueryKey, 'actor', username],
     queryFn: () => fetchActor(username),
     enabled: !!username,
@@ -306,7 +243,7 @@ export const useActorPosts = (
   limit: number = 20,
   includeReplies: boolean = false
 ) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [
       socialQueryKey,
       'actor',
@@ -349,37 +286,19 @@ export interface ProfileGroupsResponse {
   groups: ProfileGroupSummary[];
 }
 
-async function fetchPanas(username: string): Promise<PanasResponse | undefined> {
-  const response = await axios
-    .get(`/api/social/actors/${username}/panas`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+async function fetchPanas(username: string): Promise<PanasResponse | null> {
+  return getSocialData(`/api/social/actors/${username}/panas`);
 }
 
 async function fetchProfileGroups(
   username: string
-): Promise<ProfileGroupsResponse | undefined> {
-  const response = await axios
-    .get(`/api/social/actors/${username}/groups`)
-    .catch((error: Error) => {
-      console.log(error.name, error.message);
-    });
-
-  if (response?.data?.success) {
-    return response.data.data;
-  }
-  return undefined;
+): Promise<ProfileGroupsResponse | null> {
+  return getSocialData(`/api/social/actors/${username}/groups`);
 }
 
 /** Panas (mutual follows) for a handle. Count public, list gated server-side. */
 export const usePanas = (username: string) => {
-  return useQuery<PanasResponse | undefined, Error>({
+  return useQuery<PanasResponse | null, Error>({
     queryKey: [socialQueryKey, 'actor', username, 'panas'],
     queryFn: () => fetchPanas(username),
     enabled: !!username,
@@ -388,7 +307,7 @@ export const usePanas = (username: string) => {
 
 /** Discoverable groups for a handle. */
 export const useProfileGroups = (username: string) => {
-  return useQuery<ProfileGroupsResponse | undefined, Error>({
+  return useQuery<ProfileGroupsResponse | null, Error>({
     queryKey: [socialQueryKey, 'actor', username, 'groups'],
     queryFn: () => fetchProfileGroups(username),
     enabled: !!username,
@@ -396,7 +315,7 @@ export const useProfileGroups = (username: string) => {
 };
 
 export const useStatus = (statusId: string) => {
-  return useQuery<{ status: SocialStatusDisplay } | undefined, Error>({
+  return useQuery<{ status: SocialStatusDisplay } | null, Error>({
     queryKey: [socialQueryKey, 'status', statusId],
     queryFn: () => fetchStatus(statusId),
     enabled: !!statusId,
@@ -408,7 +327,7 @@ export const useStatusReplies = (
   cursor?: string,
   limit: number = 20
 ) => {
-  return useQuery<RepliesResponse | undefined, Error>({
+  return useQuery<RepliesResponse | null, Error>({
     queryKey: [socialQueryKey, 'status', statusId, 'replies', cursor, limit],
     queryFn: () => fetchStatusReplies(statusId, cursor, limit),
     enabled: !!statusId,
@@ -420,21 +339,21 @@ export const useFollows = (
   cursor?: string,
   limit: number = 20
 ) => {
-  return useQuery<ActorsResponse | undefined, Error>({
+  return useQuery<ActorsResponse | null, Error>({
     queryKey: [socialQueryKey, 'follows', type, cursor, limit],
     queryFn: () => fetchFollows(type, cursor, limit),
   });
 };
 
 export const useInboxMessages = (cursor?: string, limit: number = 20) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [socialQueryKey, 'messages', 'inbox', cursor, limit],
     queryFn: () => fetchInboxMessages(cursor, limit),
   });
 };
 
 export const useSentMessages = (cursor?: string, limit: number = 20) => {
-  return useQuery<TimelineResponse | undefined, Error>({
+  return useQuery<TimelineResponse | null, Error>({
     queryKey: [socialQueryKey, 'messages', 'sent', cursor, limit],
     queryFn: () => fetchSentMessages(cursor, limit),
   });
