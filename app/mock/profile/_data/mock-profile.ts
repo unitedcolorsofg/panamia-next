@@ -1,10 +1,16 @@
 /* Fixture data for the personal profile mock at /mock/profile.
  *
+ * A personal profile IS a Pana Social profile: posts, Panas, groups. It is not
+ * a directory listing — the schema already draws that line, since
+ * DIRECTORY_ACCOUNT_TYPES is ['small_business', 'hybrid'] and 'personal' is
+ * deliberately excluded from the directory. Business listings get their own
+ * design, so nothing here models galleries, categories, or storefront details.
+ *
  * Deliberately hardcoded and deliberately not localized: this route exists to
- * agree on the *shape* of a person's profile across the website and Pana
- * Social before any of it is wired to `profiles`, `socialActors`,
- * `socialFollows`, or `relayGroups`. Every field below is annotated with the
- * column it is standing in for, so the swap to real data is mechanical.
+ * agree on the *shape* of a person's profile before any of it is wired to
+ * `profiles`, `socialActors`, `socialFollows`, or `relayGroups`. Every field
+ * below is annotated with the column it is standing in for, so the swap to
+ * real data is mechanical.
  */
 
 export type ProfileTab = 'posts' | 'panas' | 'following' | 'groups';

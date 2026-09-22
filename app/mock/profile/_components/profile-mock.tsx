@@ -142,8 +142,10 @@ export function ProfileMock() {
         </section>
 
         <p className="border-pana-ink/10 text-pana-ink/55 mt-14 border-t pt-6 text-[13px] font-bold">
-          This is a design mock at <code>/mock/profile</code> with hardcoded
-          data. The live profile is{' '}
+          Design mock at <code>/mock/profile</code> with hardcoded data. This is
+          the <strong>personal</strong> profile, which is a Pana Social profile
+          — posts, Panas, and groups. Business listings are a separate directory
+          design. The live route is{' '}
           <Link href="/p/claribel" className="link-arrow text-pana-indigo">
             /p/[handle]
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
