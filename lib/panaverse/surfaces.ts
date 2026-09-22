@@ -24,7 +24,7 @@ export interface PanaverseSurface {
   tagline: string;
   /**
    * Label under the root domain, or null for the apex.
-   * `social` → social.panamia.club
+   * `social` → social.pana.social
    */
   subdomain: string | null;
   /**
@@ -44,8 +44,14 @@ export interface PanaverseSurface {
  * The registrable domain the panaverse hangs off. Every surface is a subdomain
  * of this, which is what lets one session cookie cover all of them — cookies
  * cannot be shared across registrable domains.
+ *
+ * Equal to DEFAULT_FEDERATION_DOMAIN by design, not by accident: pana.social
+ * both serves this app and mints @user@pana.social handles. Keeping them equal
+ * is what lets a surface cookie cover the identity host, and it means the
+ * federation domain survives a UI move — see lib/federation/domain.ts.
+ * panamia.club is a different, older deployment; it is not this app.
  */
-export const DEFAULT_ROOT_DOMAIN = 'panamia.club';
+export const DEFAULT_ROOT_DOMAIN = 'pana.social';
 
 export function getRootDomain(): string {
   return process.env.PANAVERSE_ROOT_DOMAIN?.trim() || DEFAULT_ROOT_DOMAIN;
@@ -98,14 +104,16 @@ export function originFor(
  *
  * `originFor` always points at the configured root domain, which is right in
  * production and wrong everywhere else: on social.localhost:3002 it would send
- * a member to https://panamia.club — the live site — for what should be a link
+ * a member to https://pana.social — the live site — for what should be a link
  * across the hall. This swaps the surface label on the host in hand instead,
  * keeping scheme and port, so cross-surface links behave in dev and in prod
  * without a branch at every call site.
  *
- * Hosts that are not under the root domain — alias hosts like the fediverse
- * identity domain, and *.workers.dev previews — have no sibling to swap to, so
- * they fall back to the canonical origin.
+ * Hosts that are not under the root domain — *.workers.dev previews, and any
+ * future alias — have no sibling to swap to, so they fall back to the
+ * canonical origin. That fallback is only safe while the root domain is the
+ * host that actually serves production: while it named panamia.club, every
+ * link out of here pointed at a different app behind an expired certificate.
  */
 export function originForFrom(
   target: PanaverseSurface,
@@ -129,6 +137,14 @@ export function originForFrom(
     current.subdomain && hostname.startsWith(`${current.subdomain}.`)
       ? hostname.slice(current.subdomain.length + 1)
       : hostname;
+
+  // `base` has to be the domain the panaverse actually hangs off. When it is
+  // not, the current host is some other subdomain under the root — today
+  // relay.pana.social, tomorrow an api.* — and swapping labels would invent
+  // social.relay.pana.social. Those hosts have no sibling, so they take the
+  // canonical origin. This only became reachable when the root domain moved to
+  // pana.social and brought the relay under it.
+  if (!isLocal && base !== root) return originFor(target, rootDomain);
 
   const host = target.subdomain ? `${target.subdomain}.${base}` : base;
   return `${isLocal ? 'http' : 'https'}://${host}${port ? `:${port}` : ''}`;

@@ -63,7 +63,7 @@ export function wearsOwnChrome(pathname: string | null | undefined): boolean {
  *
  * Every route stays reachable from every hostname — that is a deliberate
  * property of the registry, not an oversight, because one deploy serves the
- * whole panaverse. The consequence is that social.panamia.club/directory/search
+ * whole panaverse. The consequence is that social.pana.social/directory/search
  * renders the main site's directory, and until now it rendered it with no
  * header, no footer and no link home: the root layout withheld main-site chrome
  * on surface hostnames, and Pana Social had none of its own to put there. A

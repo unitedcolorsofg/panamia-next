@@ -22,12 +22,13 @@ import { getRootDomain } from './surfaces';
  * would take down *.workers.dev previews for a variable that only matters once
  * real identities are being minted.
  *
- * Covers two domains, not one. The surface root (panamia.club) is the obvious
- * case, but the fediverse identity domain is served too — it is the
- * BETTER_AUTH_URL origin, and handles live on it permanently — and it is not a
- * subdomain of the surface root, so a root-only test never sees it. That is the
- * one host where an unset variable would infer the identity domain while
- * minting is most likely.
+ * Tests two domains even though they are the same domain today. The surface
+ * root and the fediverse identity domain are both pana.social, so the second
+ * `isUnder` is currently redundant — keep it anyway. They were different until
+ * the surface root was corrected, and the identity domain is the one host
+ * where an unset variable would infer a wrong value while minting is most
+ * likely. If the UI ever moves off pana.social they diverge again, and this is
+ * the only test that still covers the host handles live on.
  *
  * Matched against the hardcoded DEFAULT_FEDERATION_DOMAIN rather than
  * `getConfiguredFederationDomain()` on purpose: the configured value is null in

@@ -13,11 +13,33 @@ Measured 2026-09-22. Verify before acting on it; deployments move.
 | `pana.social`         | **200** (Cloudflare)           | **This app.** The live production deployment.             |
 | `www.panamia.club`    | **200**                        | A **different, older site** — "All Things Local In SoFlo" |
 | `panamia.club` (apex) | **Fails** — TLS cert expired   | Nothing reachable. See [Known issues](#known-issues).     |
-| `social.panamia.club` | **Fails** — connection timeout | Not deployed yet.                                         |
+| `social.pana.social`  | Not created yet                | The Pana Social surface. Needs a Worker custom domain.    |
+| `social.panamia.club` | **Fails** — connection timeout | Parked domain. Not part of the plan; see below.           |
 
-`www.panamia.club` is not this codebase. It returns zero React Server Component markers, which is the reliable way to tell the two apart — the page titles alone are similar enough to mislead.
+`www.panamia.club` is not this codebase. It is a Next.js **Pages Router** app; this one is App Router. The titles are similar enough to mislead, so tell them apart by markup:
 
-The panaverse surface split (`panamia.club` for the directory, `social.panamia.club` for Pana Social) is therefore **a planned migration, not a configuration change**. Today neither of those hosts serves this app.
+```
+                                www.panamia.club   pana.social
+__NEXT_DATA__                          1               0
+/_next/static/chunks/pages/            2               0
+<script type="module">                 0               4
+self.__next_f  (RSC marker)            0               0   <- does NOT discriminate
+```
+
+Counting RSC markers is the obvious test and is worthless here — this build emits none either, so "zero RSC markers" matches both sites. Use `__NEXT_DATA__`, which only the Pages Router ships.
+
+### The surface root is `pana.social`, not `panamia.club`
+
+`PANAVERSE_ROOT_DOMAIN` named `panamia.club` until this was corrected, so the root domain named a host this app does not serve. `originForFrom` builds every cross-surface link, `metadataBase` and `canonical` from it, and falls back to the configured root whenever the current host is not under it. Production runs on `pana.social`, which was not under `panamia.club`, so that fallback fired on every request:
+
+```
+host=pana.social -> www    : https://panamia.club         curl exit 35  (cert expired)
+                 -> social : https://social.panamia.club  curl exit 28  (timeout)
+```
+
+Both cross-surface targets were dead. It was never live — the deployed build predates the panaverse work — so this was caught before shipping rather than after.
+
+Pana Social is therefore `social.pana.social`. Making the surface root equal the identity domain also retires a standing hazard instead of arming one; see `lib/federation/domain.ts`.
 
 ## The two roles of `pana.social`
 
@@ -45,7 +67,7 @@ total 'pana.social'        114  in 66 files
 
 **85 of 114 occurrences are identity.** A global replace corrupts 85 correct values in order to fix 20. It will look obviously right in review, and federation breakage is silent and permanent — remote servers never re-resolve a URI they have already stored.
 
-Migrate the 20 hardcoded sites explicitly, by hand, from the list below.
+**Under the current plan, none of the 20 need editing.** They already name `pana.social`, which is both the live host and the surface root, so there is no pending migration — the inventory below is a map for a hypothetical future move, not a task list. If the web surface ever does move, migrate those 20 explicitly, by hand, and leave the other 94 alone.
 
 ## Inventory of hardcoded web origins
 
@@ -71,15 +93,18 @@ Every other site in this table carries an inline comment pointing back to this d
 
 The env-guarded sites (`app/sitemap.ts`, `app/robots.ts`, the five feed routes, `app/.well-known/privacy-policy/route.ts`) need **no edit** — set `NEXT_PUBLIC_HOST_URL` and they follow it.
 
-## Cutover checklist
+## Launching `social.pana.social`
 
-1. Fix the `panamia.club` apex certificate; confirm the apex and `www` both serve.
-2. Decide what happens to the existing `www.panamia.club` site — it is a separate deployment, not a route in this app.
-3. Stand up `social.panamia.club`.
-4. Set `NEXT_PUBLIC_HOST_URL` to the new surface root. This moves the 8 env-guarded origins on its own.
-5. Edit the 20 hardcoded origins by hand, excluding the federation one.
-6. **Leave `FEDERATION_DOMAIN=pana.social` pinned.** `lib/panaverse/boot.ts` fails at boot if it is unset on a public host, deliberately.
-7. Keep `pana.social` resolving and serving WebFinger and actor JSON indefinitely, whatever happens to the web surface.
+The repo side is done: `PANAVERSE_ROOT_DOMAIN` is `pana.social` in `wrangler.jsonc`, and `DEFAULT_ROOT_DOMAIN` matches. The rest is Cloudflare dashboard work, because this Worker has no `routes` or `custom_domain` block — hostname binding lives outside the repo.
+
+1. Add `social.pana.social` as a custom domain on the `panamia-next` Worker. Cloudflare issues the certificate. The current one is per-hostname (`pana.social`, `relay.pana.social`, `*.relay.pana.social`) with **no `*.pana.social` wildcard**, so the subdomain has no certificate until it is bound.
+2. Confirm `PANAVERSE_ROOT_DOMAIN=pana.social` in the deployed Worker vars, not only in `wrangler.jsonc`.
+3. Only then set `PANAVERSE_COOKIE_DOMAIN=".pana.social"`, if one session should span both surfaces. It re-scopes existing cookies and signs everyone out once, so it is a launch step and not a preparatory one. Note it also sends the session cookie to `relay.pana.social`.
+4. `NEXT_PUBLIC_HOST_URL` is optional here and is **build-time inlined** (CF-BUILD — see `auth.ts`), so changing it requires a rebuild, not a config edit.
+5. **Leave `FEDERATION_DOMAIN=pana.social` pinned.** `lib/panaverse/boot.ts` fails at boot if it is unset on a public host, deliberately.
+6. Keep `pana.social` resolving and serving WebFinger and actor JSON indefinitely, whatever happens to the web surface.
+
+`panamia.club` is a separate concern with no dependency on any of the above. It is an older, unrelated deployment, and what becomes of it is a product decision rather than a routing one.
 
 ## Known issues
 
@@ -93,3 +118,5 @@ SAN      : DNS Name=panamia.club     (apex only — which is why www is unaffect
 ```
 
 Anyone typing the bare brand domain gets a full-page browser security interstitial. Because `www` is healthy, visitors arriving from links or search never see it, which is why it has stayed invisible for over two years.
+
+**Root cause is a split A record, not a lapsed subscription.** The apex resolves to two addresses — `76.76.21.21` (Vercel) and `192.64.119.168` (Namecheap). ACME HTTP-01 validation round-robins between them, and the Namecheap address `302`s `/.well-known/acme-challenge/` away to `www`, which does not serve the token. Roughly half of every renewal attempt therefore fails. `www` renews without trouble because its CNAME has a single target — same registrar, same ACME, and the only difference is the split record. Deleting the stale `192.64.119.168` record should let renewal self-heal; no certificate needs buying. Vercel additionally `308`s `http://panamia.club` to `https://panamia.club`, i.e. into its own dead certificate, so there is no working plaintext fallback either.

@@ -57,15 +57,15 @@ export function getConfiguredFederationDomain(): string | null {
  * The identity domain inferred from the UI host, for deployments that predate
  * `FEDERATION_DOMAIN`.
  *
- * Latent hazard worth stating plainly, because the fallback currently looks
- * harmless: today `NEXT_PUBLIC_HOST_URL` is unset in the Worker config, so an
+ * Hazard worth stating plainly, because it is dormant rather than fixed.
+ * Today `NEXT_PUBLIC_HOST_URL` is unset in the Worker config, so an
  * environment that lost `FEDERATION_DOMAIN` would still land on
- * DEFAULT_FEDERATION_DOMAIN and mint correct URIs. That stops being true the
- * moment `NEXT_PUBLIC_HOST_URL` becomes the panaverse surface root
- * (https://panamia.club) — a change someone will make for ordinary reasons,
- * with no visible connection to federation. From then on, an unset
- * `FEDERATION_DOMAIN` silently mints every actor under the main site's
- * hostname instead of the identity domain, and those URIs are permanent.
+ * DEFAULT_FEDERATION_DOMAIN and mint correct URIs. Setting it to the panaverse
+ * surface root is also safe now — but only because that root is pana.social,
+ * the identity domain itself. It re-arms the moment the UI moves to a hostname
+ * that is not the identity domain: from then on an unset `FEDERATION_DOMAIN`
+ * silently mints every actor under the UI's hostname, and those URIs are
+ * permanent.
  *
  * `assertPanaverseConfigured` in lib/panaverse/boot.ts exists to make that
  * combination fail at boot rather than quietly. Do not remove one without the
