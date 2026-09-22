@@ -7,27 +7,70 @@
     "searchAriaLabel": "Search the directory",
     "searchButton": "Search"
   },
+  "ticker": "Shop Local · Eat Local · Hire Local · Support Local · Build Local · Stay Local",
+  "directory": {
+    "eyebrow": "The Directory",
+    "title": "Find Your <em>People</em>",
+    "lede": "Every category below is a live filter on the directory. Pick a lane and meet the locals working in it.",
+    "browseAll": "Browse the full directory"
+  },
   "events": {
     "badge": "Upcoming Events",
     "title": "Community Events",
     "description": "Pana MIA curates intentional events centered around meaningful connection and the celebration of local culture and art.",
-    "viewEvents": "View Events"
+    "viewEvents": "View Events",
+    "imageAlt": "Panas gathered at a Pana MIA community event"
   },
   "articles": {
-    "title": "Recent Articles",
-    "subtitle": "Stories from the Pana MIA community",
+    "eyebrow": "Dispatches",
+    "title": "Stories From The <em>Collective</em>",
+    "subtitle": "Longer reads from the people building South Florida's local economy.",
     "viewAll": "View All",
     "noArticles": "No articles yet!",
     "noArticlesDesc": "Be the first to share a story with the community.",
     "writeArticle": "Write an Article"
   },
   "about": {
+    "eyebrow": "Our Mission",
     "title": "¿Que Tal, Pana?",
     "tagline": "Being a small business owner can be overwhelming and isolating, but you're not alone.",
-    "body": "Miami is filled with small vendors, all with different strengths and skillsets. We started Pana Mia to bring everyone together—pooling resources, insights, and strategies. As consumers recognize the benefits of shopping local, we're creating a centralized space to explore and fall in love with local brands."
+    "body": "Miami is filled with small vendors, all with different strengths and skillsets. We started Pana Mia to bring everyone together—pooling resources, insights, and strategies. As consumers recognize the benefits of shopping local, we're creating a centralized space to explore and fall in love with local brands.",
+    "ctaJoin": "Become a Pana",
+    "ctaBrowse": "Browse the directory",
+    "imageAlt": "The Pana MIA community"
+  },
+  "statement": {
+    "eyebrow": "Our Work",
+    "text": "Community is a form of <em>power</em>.",
+    "gather": {
+      "title": "Gather",
+      "body": "Events built for real connection rather than networking for its own sake — dinners, markets, workshops and nights out across South Florida."
+    },
+    "connect": {
+      "title": "Connect",
+      "body": "A searchable directory that turns supporting local from a slogan into something you can act on, by name, category and neighborhood."
+    },
+    "celebrate": {
+      "title": "Celebrate",
+      "body": "Stories, features and a platform that put local creatives and small businesses on the record and in front of new audiences."
+    }
+  },
+  "collective": {
+    "eyebrow": "The Collective",
+    "title": "Featured <em>Panas</em>",
+    "lede": "A rotating look at the creatives, organizations and small businesses in the directory right now.",
+    "cta": "Meet the whole collective"
+  },
+  "closing": {
+    "eyebrow": "The Point",
+    "statement": "The future isn't coming. It's <em>next door</em>.",
+    "lede": "Pana MIA is built by and for locally based creatives, organizations and small businesses across Broward, Miami-Dade and Palm Beach. Join the directory, or start by finding someone already in it.",
+    "ctaJoin": "Become a Pana",
+    "ctaBrowse": "Search the directory"
   },
   "faq": {
-    "title": "Frequently Asked Questions",
+    "eyebrow": "Frequently Asked",
+    "title": "Questions",
     "q1": "What does Pana mean?",
     "a1": "Pana is a Latine term for friend or homie.",
     "qWhatIsAPana": "What <em>is</em> a Pana?",

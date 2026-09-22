@@ -38,6 +38,7 @@
   --color-pana-ink: #110d0d;
   --color-pana-indigo: #303e8c;
   --color-pana-butter: #f6f099;
+  --color-pana-butter-2: #fbf7d2;
   --color-pana-flame: #f28444;
   --color-pana-burnt: #d96236;
   --color-pana-red: #d94e41;
@@ -336,4 +337,291 @@
       rgb(48 62 140 / 0.3),
       transparent 64%
     );
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage editorial sections
+   ---------------------------------------------------------------------------
+   The homepage runs as a sequence of full-bleed brand surfaces alternating the
+   warm half of the palette (cream, butter, flame, red, burnt) against the one
+   dark surface (indigo). That alternation is the structure the design is built
+   on, so the surfaces are defined here rather than inlined per section.
+
+   Contrast rule, applied to every surface below: the warm half of the palette
+   is all high-luminance — cream on flame measures only 2.4:1 — so warm
+   surfaces carry ink and only indigo carries cream. Measured: ink on butter
+   16.4:1, ink on flame 7.5:1, ink on burnt 5.3:1, ink on red 4.7:1, cream on
+   indigo 9.0:1.
+
+   Like .surface-indigo and .surface-butter above, these hold their colour in
+   the dark theme rather than inverting. They are brand surfaces on a branded
+   page, not document chrome — inverting them would drop the identity the page
+   exists to carry. Cards *inside* them still need dark-theme borders, because
+   the dark theme gives --card and --background the same value.
+   --------------------------------------------------------------------------- */
+
+.surface-cream {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+}
+
+.surface-butter-2 {
+  background-color: var(--color-pana-butter-2);
+  color: var(--color-pana-ink);
+}
+
+.surface-red {
+  background-color: var(--color-pana-red);
+  color: var(--color-pana-ink);
+}
+
+.surface-burnt {
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-ink);
+}
+
+/* The citrus-peel texture: a flame-to-burnt wash under a few low-opacity
+   speckle layers. Mottled enough to read as printed stock, flat enough that
+   photographs and type still sit cleanly on top of it. */
+.surface-citrus {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  background-image:
+    radial-gradient(
+      circle at 18% 22%,
+      rgb(255 247 236 / 0.17) 0 2px,
+      transparent 2.5px
+    ),
+    radial-gradient(
+      circle at 63% 71%,
+      rgb(255 247 236 / 0.13) 0 1.6px,
+      transparent 2.1px
+    ),
+    radial-gradient(
+      circle at 87% 34%,
+      rgb(17 13 13 / 0.07) 0 2.2px,
+      transparent 2.7px
+    ),
+    radial-gradient(ellipse at 78% 8%, rgb(246 240 153 / 0.2), transparent 58%),
+    linear-gradient(
+      168deg,
+      var(--color-pana-flame) 0%,
+      var(--color-pana-burnt) 100%
+    );
+  background-size:
+    46px 46px,
+    71px 71px,
+    93px 93px,
+    100% 100%,
+    100% 100%;
+}
+
+/* Scalloped doily trim along a section's top edge — one downward semicircle
+   per tile, repeated across. --scallop is set to the colour of the section
+   *above*, so the notches read as bites taken out of this one. */
+.scallop {
+  position: relative;
+}
+
+.scallop::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 22px;
+  z-index: 4;
+  background-image: radial-gradient(
+    circle at 50% 0,
+    var(--scallop, var(--color-pana-cream)) 0 13px,
+    transparent 13.5px
+  );
+  background-size: 32px 22px;
+  background-repeat: repeat-x;
+  pointer-events: none;
+}
+
+/* The citrus slice from the logo, reused as a section marker. Purely
+   decorative, so every call site pairs it with aria-hidden. */
+.citrus {
+  width: var(--cz, 3.5rem);
+  height: var(--cz, 3.5rem);
+  flex: none;
+  display: inline-block;
+  border-radius: 50%;
+  border: 3px solid var(--cz-rim, var(--color-pana-cream));
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0 6deg,
+      var(--cz-seg, rgb(255 247 236 / 0.85)) 6deg 54deg,
+      transparent 54deg 60deg
+    ),
+    radial-gradient(
+      circle,
+      var(--cz-core, var(--color-pana-cream)) 0 14%,
+      transparent 14.5%
+    );
+  background-repeat: repeat, no-repeat;
+}
+
+/* Oversized slices bleed off the section edge. The host clips them so the
+   bleed can never introduce horizontal scroll on a narrow viewport. */
+.citrus-host {
+  position: relative;
+  overflow: hidden;
+}
+
+.citrus-deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  border-width: 6px;
+}
+
+@media (max-width: 860px) {
+  .citrus-deco {
+    display: none;
+  }
+}
+
+/* Section typography. The site ships a single family (Nunito), so hierarchy
+   is carried by weight, size and case rather than by a second typeface. */
+.section-display {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(2rem, 5.1vw, 4.375rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+.section-lede {
+  font-size: clamp(1rem, 1.24vw, 1.1875rem);
+  line-height: 1.6;
+  max-width: 46ch;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Pull-quote treatment: short measure, tight leading, one emphasised word
+   picked out in whichever brand colour contrasts with the host surface. */
+.section-statement {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 4.1vw, 3.625rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  max-width: 20ch;
+}
+
+.section-statement em {
+  font-style: normal;
+  color: var(--color-pana-indigo);
+}
+
+.surface-indigo .section-statement em {
+  color: var(--color-pana-butter);
+}
+
+.surface-cream .section-statement em,
+.surface-butter .section-statement em,
+.surface-butter-2 .section-statement em {
+  color: var(--color-pana-burnt);
+}
+
+/* Inline "more" link. The rule is a border rather than an underline so the
+   gap can open on hover without the rule jumping with it. */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  padding-bottom: 2px;
+  border-bottom: 2px solid currentColor;
+  transition: gap 0.3s ease;
+}
+
+.link-arrow:hover {
+  gap: 0.875rem;
+}
+
+/* Directory index row — a rule-separated list item that reveals its arrow on
+   hover. The arrow is hidden with opacity rather than display so it still
+   occupies its column and the row never reflows. */
+.index-row {
+  display: grid;
+  align-items: center;
+  gap: 1.5rem;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  padding: clamp(1rem, 1.6vw, 1.5rem) 0;
+  border-top: 2px solid rgb(17 13 13 / 0.16);
+}
+
+.index-row .index-go {
+  justify-self: end;
+  opacity: 0;
+  transform: translateX(-0.5rem);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+.index-row:hover .index-go,
+.index-row:focus-visible .index-go {
+  opacity: 1;
+  transform: none;
+}
+
+/* Photo frame for the split sections. Clips the hover zoom so the image can
+   scale without pushing anything around it. */
+.media-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.625rem;
+}
+
+.media-frame img {
+  transition: transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.media-frame:hover img {
+  transform: scale(1.04);
+}
+
+/* Marquee strip under the hero. The track holds the phrase list twice and
+   travels exactly half its own width, which is what makes the loop seamless. */
+.ticker {
+  overflow: hidden;
+  padding: 0.9375rem 0;
+  border-top: 2px solid rgb(17 13 13 / 0.18);
+  border-bottom: 2px solid rgb(17 13 13 / 0.18);
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-slide 42s linear infinite;
+}
+
+@keyframes ticker-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Motion here is decorative in every case, so all of it is optional. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+
+  .index-row .index-go,
+  .media-frame img {
+    transition: none;
+  }
+
+  .media-frame:hover img {
+    transform: none;
+  }
 }
