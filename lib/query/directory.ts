@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 
+export type DirectorySort = 'relevance' | 'nearest' | 'recommended' | 'name';
+
 interface SearchInterface {
   pageNum: number;
   pageLimit: number;
@@ -10,14 +12,29 @@ interface SearchInterface {
   random: number;
   geolat: number;
   geolng: number;
+  sort?: DirectorySort;
+  certifiedOnly?: boolean;
+  withEventsOnly?: boolean;
   mentorsOnly?: boolean;
   expertise?: string;
   languages?: string;
   freeOnly?: boolean;
 }
 
+/** The next public event a listing is hosting, within three months. */
+export interface SearchEventInterface {
+  slug: string;
+  title: string;
+  /** ISO 8601. Serialised as a string because it crosses a JSON boundary. */
+  startsAt: string;
+  timezone: string;
+  online: boolean;
+  venueCity: string | null;
+}
+
 export interface SearchResultsInterface {
   _id: string;
+  id: string;
   score: number;
   score_details: Record<string, unknown>;
   name: string;
@@ -30,9 +47,22 @@ export interface SearchResultsInterface {
   images: {
     primaryCDN: string;
   };
+  /** First gallery photo, standing in for a cover. Null when there are none. */
+  coverImage?: string | null;
   primary_address?: { city?: string };
   /** True when the business has nowhere to visit, so distance does not apply. */
   online_only?: boolean;
+  categories?: string[];
+  counties?: string[];
+  /** Awarded by Pana Mia, not self-declared. */
+  certified?: boolean;
+  /** Has a handle, so it has a profile page. Otherwise it gets a claim CTA. */
+  claimed?: boolean;
+  saves?: number;
+  recommends?: number;
+  /** Faces for the recommend row. Recommendations only — saves are private. */
+  recommenderAvatars?: string[];
+  nextEvent?: SearchEventInterface | null;
   socials: Record<string, unknown>;
 }
 
@@ -69,6 +99,24 @@ export const searchParamsToString = (params: SearchInterface) => {
   }
   if (params.filterCategories) {
     qs.append('fcat', params.filterCategories);
+  }
+  // Sent at two decimal places so the edge cache key stays low-cardinality and
+  // the CDN never sees a precise location. Omitted entirely when absent, so a
+  // visitor who has not shared one produces the same URL as everybody else.
+  if (Number.isFinite(params.geolat) && Number.isFinite(params.geolng)) {
+    if (params.geolat !== 0 || params.geolng !== 0) {
+      qs.append('geolat', params.geolat.toFixed(2));
+      qs.append('geolng', params.geolng.toFixed(2));
+    }
+  }
+  if (params.sort && params.sort !== 'relevance') {
+    qs.append('sort', params.sort);
+  }
+  if (params.certifiedOnly) {
+    qs.append('certified', 'true');
+  }
+  if (params.withEventsOnly) {
+    qs.append('events', 'true');
   }
   if (params.mentorsOnly) {
     qs.append('mentors', 'true');

@@ -60,7 +60,7 @@ export interface LegacyProfile {
  * driver as strings, and a half-populated row (lat set, lng NULL) would
  * otherwise produce a point at the equator.
  */
-function extractCoordinates(
+export function extractCoordinates(
   profile: Record<string, unknown>
 ): [number, number] | null {
   const lat = Number(profile.addressLat);
