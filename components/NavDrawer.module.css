@@ -187,19 +187,24 @@
       visibility 0s;
   }
 
+  /* A 12px travel instead of the full 380px: enough to read as "this came from
+     the left" without the sweep across a third of the viewport that the
+     setting is actually asking us to avoid. */
   .panel {
-    transform: none;
+    transform: translateX(-12px);
     opacity: 0;
     transition:
-      opacity 0.25s ease,
-      visibility 0s linear 0.25s;
+      opacity 0.28s ease,
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s linear 0.28s;
   }
 
   .panelOpen {
     transform: none;
     opacity: 1;
     transition:
-      opacity 0.25s ease,
+      opacity 0.28s ease,
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
       visibility 0s;
   }
 
