@@ -4,10 +4,17 @@ import {
   canAdministerProfile,
   listAdministeredProfiles,
 } from '@/lib/server/profile-owners';
-import { ACTIVE_PROFILE_COOKIE } from '@/lib/server/active-profile';
+import {
+  ACTIVE_PROFILE_COOKIE,
+  getActiveProfileId,
+} from '@/lib/server/active-profile';
 
 /**
- * Profiles this account can act as, for the switcher menu.
+ * Profiles this account can act as, plus which one is currently selected.
+ *
+ * The active id is resolved server-side rather than read from the cookie by the
+ * client: the cookie is httpOnly, and it is only authoritative after being
+ * re-validated against profile_owners.
  */
 export async function GET() {
   const session = await auth();
@@ -18,8 +25,23 @@ export async function GET() {
     );
   }
 
-  const administered = await listAdministeredProfiles(session.user.id);
-  return NextResponse.json({ success: true, data: administered });
+  const [administered, activeProfileId] = await Promise.all([
+    listAdministeredProfiles(session.user.id),
+    getActiveProfileId(session.user.id),
+  ]);
+
+  // Your own profile first, then businesses alphabetically — a stable order, so
+  // the menu doesn't reshuffle between loads.
+  const sorted = [...administered].sort((a, b) => {
+    if (a.isPersonal !== b.isPersonal) return a.isPersonal ? -1 : 1;
+    return (a.name ?? '').localeCompare(b.name ?? '');
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: sorted,
+    activeProfileId,
+  });
 }
 
 /**

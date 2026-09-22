@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import {
-  users,
-  profiles,
-  screennameHistory,
-  socialStatuses,
-  socialActors,
-} from '@/lib/schema';
+import { users, profiles, screennameHistory, socialActors } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
 import {
@@ -110,20 +104,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // If social actor exists, delete all their statuses (timeline + DMs reset)
-  const hasSocialActor = !!currentUser?.profile?.socialActor;
-  if (hasSocialActor) {
-    const actorId = currentUser.profile!.socialActor!.id;
-
-    // Delete all statuses authored by this actor
-    await db.delete(socialStatuses).where(eq(socialStatuses.actorId, actorId));
-
-    // Reset status count
-    await db
-      .update(socialActors)
-      .set({ statusCount: 0 })
-      .where(eq(socialActors.id, actorId));
-  }
+  // Posts deliberately survive a handle change.
+  //
+  // This previously deleted every status the actor had authored. That was
+  // silent, unwarned data loss - the `timelineReset` flag below was never read
+  // by any UI - and it is indefensible for a business rebrand, where the back
+  // catalogue is most of the value.
+  //
+  // Nothing has to be rewritten to keep those posts reachable:
+  //   - the permalink route /p/[user]/[postId] resolves on postId alone and
+  //     ignores the handle segment, so existing links keep working;
+  //   - social_statuses.uri is an ActivityPub object id, and object ids are
+  //     permanent by spec. Rewriting them would orphan every remote reply and
+  //     like that points at the old id, so they are left alone on purpose;
+  //   - the actor's own URIs are re-pointed below, and the old handle is
+  //     archived to screenname_history above, which drives the 410 tombstone.
 
   // Update user screenname and record change timestamp
   const [updatedUser] = await db
@@ -219,7 +214,9 @@ export async function POST(request: NextRequest) {
     success: true,
     data: {
       screenname: updatedUser.screenname,
-      timelineReset: hasSocialActor && !!currentUser?.screenname,
+      // Always false now - renaming no longer destroys the timeline. Retained
+      // so existing callers keep a stable response shape.
+      timelineReset: false,
     },
   });
 }

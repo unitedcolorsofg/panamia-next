@@ -1716,3 +1716,319 @@ button.bizprofile-update-action:hover {
 .dark .bizprofile-distance-ask:hover {
   color: var(--color-pana-flame);
 }
+
+
+/* ==========================================================================
+   Personal profile
+   Shared by the public profile on the website and the profile surface inside
+   Pana Social, so everything here is layout and palette only — no assumptions
+   about which app is rendering it.
+   ========================================================================== */
+
+/* Cover band. The height is clamped rather than an aspect ratio because the
+   avatar hangs off the bottom edge: a ratio-driven band changes height with
+   the viewport and the overhang stops landing in the same place. */
+.profile-cover {
+  position: relative;
+  height: clamp(9rem, 22vw, 15rem);
+  overflow: hidden;
+  background-color: var(--color-pana-indigo);
+}
+
+.profile-cover img {
+  object-fit: cover;
+}
+
+/* Two washes over the photo: a flame tint so any cover image still reads as
+   Pana, and a bottom fade into the cream body so the scallop has something to
+   bite into regardless of what the photograph is doing down there. */
+.profile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgb(17 13 13 / 0.12) 0%,
+      transparent 42%,
+      rgb(255 247 236 / 0.55) 88%,
+      var(--color-pana-cream) 100%
+    ),
+    linear-gradient(
+      120deg,
+      rgb(242 132 68 / 0.34) 0%,
+      rgb(48 62 140 / 0.22) 100%
+    );
+  pointer-events: none;
+}
+
+/* The identity block sits in the cream body and pulls up over the cover. The
+   negative margin is on the avatar alone so the text baseline is unaffected
+   and the two columns still align on the desktop row. */
+.profile-avatar {
+  position: relative;
+  z-index: 2;
+  margin-top: calc(var(--pa-size, 9.5rem) / -2);
+  width: var(--pa-size, 9.5rem);
+  height: var(--pa-size, 9.5rem);
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 6px solid var(--color-pana-cream);
+  background-color: var(--color-pana-butter);
+  box-shadow: 0 12px 32px rgb(17 13 13 / 0.18);
+}
+
+.profile-avatar img {
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .profile-avatar {
+    --pa-size: 11.5rem;
+  }
+}
+
+/* Display name. Smaller than `.section-display` — a person's name should not
+   compete with a section heading — but shares its weight and tracking. */
+.profile-name {
+  font-weight: 900;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Handle. Monospaced-feeling tracking so `@claribel` reads as an address
+   rather than as more prose. */
+.profile-handle {
+  font-weight: 800;
+  font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+  letter-spacing: 0.02em;
+  color: var(--color-pana-burnt);
+}
+
+/* Pronouns and other small identity facts. Outlined rather than filled so a
+   row of them never out-shouts the name directly above. */
+.identity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.18);
+  font-size: 0.78125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.identity-pill[data-tone='verified'] {
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-indigo);
+}
+
+/* Stat rail. Grid rather than flex so the figures keep equal columns and the
+   dividing rules land at even intervals. `grid-auto-flow: column` keeps the
+   rail in a single row for however many stats exist, so adding or removing one
+   cannot leave a half-filled row with a dangling rule. Never scrolls: a
+   horizontally scrolled stat row hides figures people are looking for. */
+.stat-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-top: 2px solid rgb(17 13 13 / 0.14);
+  border-bottom: 2px solid rgb(17 13 13 / 0.14);
+}
+
+.stat-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-left: 2px solid rgb(17 13 13 / 0.1);
+  transition: background-color 0.2s ease;
+}
+
+/* Only the leading cell loses its rule, so the rail never opens with one. */
+.stat-rail-item:first-child {
+  border-left: 0;
+}
+
+.stat-rail-item:hover,
+.stat-rail-item:focus-visible {
+  background-color: rgb(246 240 153 / 0.5);
+}
+
+.stat-rail-item[data-active='true'] {
+  background-color: rgb(246 240 153 / 0.72);
+}
+
+.stat-rail-value {
+  font-weight: 900;
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-rail-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+}
+
+/* Tab bar. Deliberately not the shadcn pill group: on cream, a filled track
+   reads as a second surface. Rules and an indigo underline instead. */
+.profile-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 2px solid rgb(17 13 13 / 0.14);
+  scrollbar-width: none;
+}
+
+.profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.6);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.profile-tab:hover {
+  color: var(--color-pana-ink);
+}
+
+.profile-tab[data-active='true'] {
+  color: var(--color-pana-indigo);
+  border-bottom-color: var(--color-pana-indigo);
+}
+
+/* Count that trails a tab label. */
+.profile-tab-count {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  background-color: rgb(17 13 13 / 0.08);
+  letter-spacing: 0.02em;
+}
+
+.profile-tab[data-active='true'] .profile-tab-count {
+  background-color: rgb(48 62 140 / 0.14);
+}
+
+/* Generic content card for posts, panas, businesses, and groups. Square-ish
+   radius and a flat rule — the cards sit on cream and should read as items in
+   a list, not as floating panels. */
+.profile-card {
+  position: relative;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 1.125rem;
+  background-color: #fff;
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.profile-card:hover {
+  border-color: var(--color-pana-indigo);
+  transform: translateY(-2px);
+}
+
+/* Small label used for a group's role or join policy. */
+.card-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background-color: rgb(48 62 140 / 0.1);
+  color: var(--color-pana-indigo);
+}
+
+.card-flag[data-tone='admin'] {
+  background-color: rgb(217 98 54 / 0.16);
+  color: var(--color-pana-burnt);
+}
+
+/* Over imagery the translucent tints disappear and the warm text loses
+   contrast, so flags on a photo go fully opaque instead. */
+.card-flag[data-on-media='true'] {
+  background-color: rgb(255 255 255 / 0.92);
+  color: var(--color-pana-ink);
+}
+
+.card-flag[data-on-media='true'][data-tone='admin'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* Post engagement counts. Icon-and-number pairs, muted until hovered so a
+   feed of them does not read as a wall of controls. */
+.post-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.55);
+  transition: color 0.2s ease;
+}
+
+.post-action:hover {
+  color: var(--color-pana-burnt);
+}
+
+/* Reserved module. Dashed and unfilled on purpose: it has to read as space
+   held open for a feature, never as a card that failed to load. */
+.reserved-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 2px dashed rgb(48 62 140 / 0.35);
+  border-radius: 1.125rem;
+  background-color: rgb(251 247 210 / 0.45);
+  color: var(--color-pana-ink);
+}
+
+.reserved-slot-title {
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-card,
+  .profile-card:hover,
+  .stat-rail-item,
+  .profile-tab,
+  .post-action {
+    transition: none;
+    transform: none;
+  }
+}

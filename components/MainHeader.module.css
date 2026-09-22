@@ -255,6 +255,33 @@
   gap: 0.5rem;
 }
 
+/* Phones carry one more control on the right than they used to (the identity
+   avatar), which pushed the right column past its fair `1fr` share and drifted
+   the logo. Per the note above the fix is to shrink the side content, not the
+   grid: tighter padding and gaps hand the columns back the width they need. */
+@media (max-width: 480px) {
+  .mastheadInner {
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .mastheadRight {
+    gap: 0.25rem;
+  }
+
+  .mastheadLogo img {
+    height: 30px;
+  }
+}
+
+/* Smallest phones: one more notch off the logo so the side columns still fit
+   inside their fair share. */
+@media (max-width: 380px) {
+  .mastheadLogo img {
+    height: 26px;
+  }
+}
+
 /* Borderless on purpose: the outlined CTA beside it is the loud element, and a
    second outlined pill next to it reads as a matching twin rather than a
    quieter control. */
