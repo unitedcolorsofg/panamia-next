@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import {
   MOCK_BUSINESSES,
+  MOCK_FOLLOWERS_ONLY_COUNT,
   MOCK_GROUPS,
   MOCK_PANAS,
   MOCK_POSTS,
@@ -76,13 +77,19 @@ export function ProfileMock() {
             <Panel id="panas">
               <PanelIntro
                 title="Panas"
-                lede="People this Pana is connected to. A Pana is a mutual follow — one-way follows sit in a separate list."
+                lede="A Pana is a mutual follow — both people followed each other. Everyone listed here follows this Pana back."
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 {MOCK_PANAS.map((pana) => (
                   <PanaCard key={pana.id} pana={pana} />
                 ))}
               </div>
+              <p className="border-pana-ink/10 text-pana-ink/60 mt-5 border-t pt-4 text-[13px] font-bold">
+                {MOCK_FOLLOWERS_ONLY_COUNT.toLocaleString('en-US')} more people
+                follow {MOCK_PROFILE.name.split(' ')[0]} without being followed
+                back. They are followers, not Panas, so they are not counted in
+                the Panas figure above.
+              </p>
             </Panel>
           )}
 

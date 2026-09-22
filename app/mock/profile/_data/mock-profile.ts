@@ -27,8 +27,6 @@ export interface MockPana {
   pronouns?: string;
   /** socialActors.summary, clamped to two lines in the card */
   blurb: string;
-  /** True when the viewer follows them back — drives the "Panas" label. */
-  mutual: boolean;
 }
 
 export interface MockBusiness {
@@ -117,6 +115,8 @@ export const MOCK_PROFILE: MockProfile = {
   verified: true,
   tags: ['risograph', 'zines', 'printmaking', 'workshops', 'bilingual'],
   stats: [
+    /* Panas is the count of mutual follows, not followers. One-way followers
+       are MOCK_FOLLOWERS_ONLY_COUNT and are deliberately excluded here. */
     { tab: 'panas', label: 'Panas', value: 1284 },
     { tab: 'following', label: 'Businesses', value: 37 },
     { tab: 'posts', label: 'Posts', value: 216 },
@@ -165,6 +165,15 @@ export const MOCK_POSTS: MockPost[] = [
   },
 ];
 
+/* A Pana is a MUTUAL follow: two accepted `socialFollows` rows, one in each
+ * direction. Membership in this list *is* the mutual relationship, so there is
+ * deliberately no per-row `mutual` flag — a boolean here would let a one-way
+ * follow be listed as a Pana, which is exactly the thing that cannot be true.
+ *
+ * Real query shape: socialFollows f1 JOIN socialFollows f2
+ *   ON f1.targetActorId = f2.actorId AND f1.actorId = f2.targetActorId
+ *   WHERE f1.actorId = :me AND f1.status = 'accepted' AND f2.status = 'accepted'
+ */
 export const MOCK_PANAS: MockPana[] = [
   {
     id: 'pana-1',
@@ -173,7 +182,6 @@ export const MOCK_PANAS: MockPana[] = [
     avatar: '/img/about/bee_maria.jpg',
     pronouns: 'they/them',
     blurb: 'Sound artist. Field recordings from every canal in Broward.',
-    mutual: true,
   },
   {
     id: 'pana-2',
@@ -182,7 +190,6 @@ export const MOCK_PANAS: MockPana[] = [
     avatar: '/img/about/anette_mago.jpg',
     pronouns: 'she/her',
     blurb: 'Ceramics, plant swaps, and an unreasonable number of propagations.',
-    mutual: true,
   },
   {
     id: 'pana-3',
@@ -191,7 +198,6 @@ export const MOCK_PANAS: MockPana[] = [
     avatar: '/img/about/gbarrios.jpg',
     pronouns: 'he/him',
     blurb: 'Documentary photographer covering Miami housing.',
-    mutual: false,
   },
   {
     id: 'pana-4',
@@ -200,9 +206,13 @@ export const MOCK_PANAS: MockPana[] = [
     avatar: '/img/about/jdowns.jpg',
     pronouns: 'he/him',
     blurb: 'Runs the Saturday repair café. Fixes anything with a cord.',
-    mutual: true,
   },
 ];
+
+/* People who follow Claribel without being followed back. They are followers,
+   not Panas, and they are counted separately so the "Panas" figure never
+   inflates itself with one-way follows. */
+export const MOCK_FOLLOWERS_ONLY_COUNT = 219;
 
 /* Business thumbnails sit on a white tile, so every logo here must be a dark
    mark. Some partner assets (partner-we-met-community, partner-pana-mia-club)
