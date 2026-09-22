@@ -1253,6 +1253,85 @@ button.bizprofile-update-action:hover {
   opacity: 1;
 }
 
+/* ---------------------------------------------------------------------------
+   The live updates feed on a business profile.
+
+   The posts come from components/social, which /s renders too, so they carry
+   the neutral shadcn card look by default. That look punches white holes in
+   the one dark run on the profile page. Rather than thread a variant prop down
+   through PostList into PostCard — and have every future social component need
+   the same prop — the surface is corrected here, scoped to this section only,
+   so /s is untouched.
+
+   These are unlayered like the rest of the .bizprofile- rules, which is what
+   lets them beat the Tailwind utilities sitting on the components themselves.
+   --------------------------------------------------------------------------- */
+.bizprofile-updates .bg-card {
+  background-color: rgb(255 255 255 / 0.07);
+  border-color: rgb(255 255 255 / 0.16);
+  border-radius: 1.375rem;
+  color: var(--color-pana-cream);
+  box-shadow: none;
+}
+
+/* Secondary type inside the cards: handles, timestamps, empty states. */
+.bizprofile-updates .text-muted-foreground {
+  color: rgb(255 255 255 / 0.65);
+}
+
+/* The tab strip. bg-muted is a near-white pill that reads as a light control
+   stranded on a dark band. */
+.bizprofile-updates .bg-muted {
+  background-color: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* Radix sets data-state="active" on the tab *panel* as well as the tab, so
+   this has to name the role or it paints the whole feed butter. */
+.bizprofile-updates [role='tab'][data-state='active'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+/* Links inside posts pick up the page's default ink-on-light colour, which is
+   near-invisible here. */
+.bizprofile-updates a:not([class*='bg-']) {
+  color: var(--color-pana-butter);
+}
+
+/* Buttons. shadcn's primary is near-black slate and its outline variant is a
+   solid white pill — both read as system chrome dropped onto a brand band.
+   Matched to the buttons the claim prompt uses on this same surface. */
+.bizprofile-updates button.bg-primary {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+.bizprofile-updates button.bg-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.bizprofile-updates button.bg-background {
+  background-color: transparent;
+  border-color: rgb(255 255 255 / 0.4);
+  color: var(--color-pana-cream);
+  font-weight: 700;
+}
+
+.bizprofile-updates button.bg-background:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+}
+
+/* Reply/like/share. Their hover inverts to dark-on-light by default, which
+   flashes a white chip on the dark band. */
+.bizprofile-updates [role='tabpanel'] button:hover {
+  background-color: rgb(255 255 255 / 0.12);
+  color: var(--color-pana-butter);
+}
+
 /* The mock's own state switcher. Not part of the design — it is scaffolding so
    the claimed/unclaimed and certified/uncertified variants can be reviewed
    without four separate routes, and it goes away with the mock. */

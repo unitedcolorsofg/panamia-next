@@ -74,12 +74,27 @@
     "tickets": "Detalles del evento"
   },
   "updates": {
-    "eyebrow": "Publicaciones",
+    "eyebrow": "Novedades",
     "heading": "Directo del negocio",
     "empty": "Todavía no hay publicaciones.",
+    "emptyHandle": "@{{handle}} todavía no ha publicado nada.",
+    "posts": "Publicaciones",
+    "following": "Siguiendo",
+    "followers": "Seguidores",
+    "followingPrivate": "La lista de seguidos solo la ve quien administra la cuenta.",
+    "followersPrivate": "La lista de seguidores solo la ve quien administra la cuenta.",
+    "noFollowing": "Todavía no sigues a nadie.",
+    "noFollowers": "Todavía no tienes seguidores.",
     "claimEyebrow": "Negocio sin reclamar",
     "claimHeading": "¿Es tuyo este negocio?",
     "claimBody": "Reclama este negocio para publicar novedades, agregar fotos y responder a las panas que te guardan.",
     "claimCta": "Reclamar este negocio"
+  },
+  "location": {
+    "eyebrow": "Visita",
+    "heading": "Dónde encontrarlos",
+    "hours": "Horario",
+    "address": "Dirección",
+    "directions": "Cómo llegar"
   }
 }

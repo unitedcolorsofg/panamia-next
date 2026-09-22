@@ -77,9 +77,24 @@
     "eyebrow": "Updates",
     "heading": "Straight from the business",
     "empty": "No updates yet.",
+    "emptyHandle": "@{{handle}} hasn't posted anything yet.",
+    "posts": "Posts",
+    "following": "Following",
+    "followers": "Followers",
+    "followingPrivate": "Following list is only visible to the account owner.",
+    "followersPrivate": "Followers list is only visible to the account owner.",
+    "noFollowing": "You're not following anyone yet.",
+    "noFollowers": "You don't have any followers yet.",
     "claimEyebrow": "Unclaimed listing",
     "claimHeading": "Is this your business?",
     "claimBody": "Claim this listing to post updates, add photos, and reply to the panas who save you.",
     "claimCta": "Claim this listing"
+  },
+  "location": {
+    "eyebrow": "Visit",
+    "heading": "Where to find them",
+    "hours": "Hours",
+    "address": "Address",
+    "directions": "Get directions"
   }
 }

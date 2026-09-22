@@ -158,18 +158,14 @@ export default async function ProfilePage({ params }: PageProps) {
         {/* An unclaimed listing has nobody posting updates, so it gets the
             claim invitation in that slot instead of an empty feed.
 
-            Claiming a listing does not provision a Pana Social actor, so a
-            claimed listing can still have no feed to show. Checking for the
-            actor here keeps that case from rendering an empty padded band
-            (SocialSection itself renders null) and avoids mounting the
-            client component just to have it fetch a 404. */}
+            Claiming provisions a Pana Social actor, but listings claimed
+            before that shipped -- or ones with no handle to name an actor --
+            still have none, so the check stays. SocialSection owns its own
+            band (as ClaimListingCta does), which is what keeps the slot
+            looking the same whichever half of it renders. */}
         {claimed ? (
           socialActor ? (
-            <section className="surface-cream py-16 md:py-24">
-              <div className="container mx-auto max-w-3xl px-4">
-                <SocialSection handle={user} />
-              </div>
-            </section>
+            <SocialSection handle={user} />
           ) : null
         ) : (
           <ClaimListingCta profileId={profile.id} />
