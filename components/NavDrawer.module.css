@@ -1,12 +1,13 @@
 /* Slide-in navigation drawer. See components/NavDrawer.tsx for the a11y
    contract this stylesheet is half of — in particular the delayed `visibility`
-   transition, which is what removes the closed panel from the tab order. */
+   transition, which is what removes the closed panel from the tab order.
+   Metrics follow the design mock. */
 
 .scrim {
   position: fixed;
   inset: 0;
   z-index: 55;
-  background-color: rgb(17 13 13 / 0.5);
+  background-color: rgb(17 13 13 / 0.58);
   opacity: 0;
   visibility: hidden;
   transition:
@@ -29,108 +30,158 @@
   left: 0;
   z-index: 60;
   display: flex;
-  width: min(22rem, 85vw);
+  width: min(380px, 86vw);
   flex-direction: column;
-  gap: 1.5rem;
   overflow-y: auto;
-  padding: 1.25rem;
+  overscroll-behavior: contain;
+  padding: clamp(20px, 3vw, 30px);
   background-color: var(--color-pana-indigo);
   color: var(--color-pana-cream);
   transform: translateX(-100%);
   visibility: hidden;
   transition:
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 0.45s;
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.55s;
 }
 
 .panelOpen {
   transform: none;
   visibility: visible;
   transition:
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
     visibility 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scrim,
-  .scrimOpen,
-  .panel,
-  .panelOpen {
-    transition: none;
-  }
 }
 
 .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(26px, 4vw, 44px);
 }
 
-.title {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-pana-butter);
+.logo {
+  width: 132px;
+  height: auto;
+  flex: none;
 }
 
 .close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid rgb(255 247 236 / 0.4);
+  background-color: transparent;
   color: var(--color-pana-cream);
-  background-color: rgb(253 248 240 / 0.08);
-  transition: background-color 0.2s ease;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .close:hover {
-  background-color: rgb(253 248 240 / 0.18);
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-indigo);
+  border-color: var(--color-pana-cream);
+  transform: rotate(90deg);
 }
 
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .link {
-  display: flex;
-  align-items: baseline;
-  gap: 0.875rem;
-  padding: 0.7rem 0.5rem;
-  border-bottom: 1px solid rgb(253 248 240 / 0.14);
-  font-size: 1.375rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 2px;
+  border-bottom: 1px solid rgb(255 247 236 / 0.16);
   color: var(--color-pana-cream);
+  /* Hidden until the panel opens, then staggered in via --d (set per item in
+     the component). The closed state is safe because the whole panel is
+     `visibility: hidden` — nothing is ever stranded invisible-but-present. */
+  opacity: 0;
+  transform: translateX(-18px);
   transition:
-    color 0.2s ease,
-    padding-left 0.2s ease;
+    padding-left 0.38s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease;
+}
+
+.panelOpen .link {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease var(--d),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) var(--d),
+    padding-left 0.38s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease;
 }
 
 .link:hover,
 .link:focus-visible {
   color: var(--color-pana-butter);
-  padding-left: 0.875rem;
+  padding-left: 10px;
 }
 
 .num {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 800;
   letter-spacing: 0.1em;
-  /* Butter on indigo measures 8.13:1, so the index stays legible rather than
-     fading into the panel the way a low-opacity cream would. */
-  color: var(--color-pana-butter);
+  opacity: 0.75;
+}
+
+.label {
+  font-size: clamp(21px, 2.4vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.arrow {
+  font-weight: 800;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: 0.38s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.link:hover .arrow,
+.link:focus-visible .arrow {
+  opacity: 1;
+  transform: none;
 }
 
 .foot {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid rgb(253 248 240 / 0.14);
+  padding-top: clamp(24px, 3vw, 34px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .scrimOpen,
+  .panel,
+  .panelOpen,
+  .link,
+  .panelOpen .link,
+  .arrow,
+  .close {
+    transition: none;
+  }
+  .link {
+    opacity: 1;
+    transform: none;
+  }
 }

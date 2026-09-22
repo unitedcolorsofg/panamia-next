@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { useSession, signOut } from '@/lib/auth-client';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -490,15 +490,20 @@ export default function MainHeader({
               </Link>
               {/* Mirrors the masthead sign-in link, which is hidden on narrow
                   viewports to keep the logo centered. */}
-              <Link
-                href="/signin"
-                className={styles.drawerLogin}
-                onClick={closeDrawer}
-              >
-                {t('nav.signIn')}
-              </Link>
+              <p className={styles.drawerLogin}>
+                <Trans
+                  i18nKey="nav.alreadyAPana"
+                  t={t}
+                  components={{
+                    a: <Link href="/signin" onClick={closeDrawer} />,
+                  }}
+                />
+              </p>
+              <p className={styles.drawerMeta}>{t('nav.regions')}</p>
             </>
-          ) : null
+          ) : (
+            <p className={styles.drawerMeta}>{t('nav.regions')}</p>
+          )
         }
       />
     </header>

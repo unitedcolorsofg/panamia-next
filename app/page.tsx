@@ -16,6 +16,7 @@ import { ArrowRight, FileText, Loader2 } from 'lucide-react';
 import ArticleCard from '@/components/ArticleCard';
 import { DirectorySuggest } from '@/components/directory-suggest';
 import { countyList, profileCategoryList } from '@/lib/lists';
+import ScrollReveal from '@/components/scroll-reveal';
 
 interface Article {
   _id: string;
@@ -130,6 +131,8 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ScrollReveal />
+
       {/* Hero. A full-bleed photo under an orange multiply wash and an ink
           scrim — the mock's opening. The scallop bites up into the masthead,
           and its colour matches the masthead rather than the cream token so
@@ -168,7 +171,7 @@ export default function HomePage() {
             />
           </h1>
 
-          <div className="mx-auto mt-4 max-w-[760px]">
+          <div className="mx-auto mt-4 max-w-[760px]" data-rv>
             <p className="hero-subheadline">{t('hero.subheadline')}</p>
 
             <DirectorySuggest
@@ -231,7 +234,7 @@ export default function HomePage() {
           lives on the hero above rather than here, because the ticker and this
           section share one continuous flame field. */}
       <section id="directory" className="surface-citrus py-16 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="mb-10 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
             <div>
               <span className="section-eyebrow text-pana-ink/80">
@@ -281,7 +284,7 @@ export default function HomePage() {
       {/* About + the statement that follows it share one indigo run, separated
           by a rule rather than a colour change — as in the design. */}
       <section id="about" className="surface-indigo py-16 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div>
               <span className="section-eyebrow text-pana-butter">
@@ -336,7 +339,7 @@ export default function HomePage() {
 
       {/* Community is a form of power. */}
       <section className="surface-indigo pb-16 md:pb-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="border-t border-white/20 pt-16 md:pt-24">
             <span className="section-eyebrow text-pana-butter">
               {t('statement.eyebrow')}
@@ -387,7 +390,7 @@ export default function HomePage() {
             }
             aria-hidden="true"
           />
-          <div className="wrap relative container mx-auto px-4">
+          <div className="wrap relative container mx-auto px-4" data-rv>
             <div className="mb-10 md:mb-16">
               <span className="section-eyebrow">{t('collective.eyebrow')}</span>
               <h2 className="section-display mt-4">
@@ -465,7 +468,7 @@ export default function HomePage() {
           }
           aria-hidden="true"
         />
-        <div className="wrap relative container mx-auto px-4">
+        <div className="wrap relative container mx-auto px-4" data-rv>
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div className="media-frame aspect-[5/4] lg:order-2">
               <Image
@@ -504,7 +507,7 @@ export default function HomePage() {
 
       {/* Stories From The Collective */}
       <section id="dispatches" className="surface-cream py-16 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="mb-10 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
             <div>
               <span className="section-eyebrow">{t('articles.eyebrow')}</span>
@@ -579,7 +582,7 @@ export default function HomePage() {
         className="surface-citrus scallop py-16 md:py-24"
         style={{ '--scallop': 'var(--color-pana-cream)' } as CSSProperties}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <span className="section-eyebrow text-pana-ink/80">
             {t('impact.eyebrow')}
           </span>
@@ -616,7 +619,7 @@ export default function HomePage() {
 
       {/* FAQ Section */}
       <section className="surface-butter py-16 md:py-24" id="home-faq">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="mx-auto max-w-3xl">
             <span className="section-eyebrow">{t('faq.eyebrow')}</span>
             <h2 className="section-display mt-4 mb-10">{t('faq.title')}</h2>
@@ -731,7 +734,7 @@ export default function HomePage() {
           with the two real destinations (join, browse) carrying the section
           until a public subscribe endpoint exists. */}
       <section className="surface-indigo py-16 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4" data-rv>
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div>
               <span className="section-eyebrow text-pana-butter">

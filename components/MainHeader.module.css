@@ -320,22 +320,62 @@
 
 .drawerCta {
   display: inline-flex;
+  align-items: center;
   justify-content: center;
-  padding: 0.6rem 1rem;
-  border-radius: 9999px;
-  background-color: var(--color-pana-flame);
-  color: var(--color-pana-ink);
-  font-weight: 800;
-}
-
-.drawerLogin {
-  display: inline-flex;
-  justify-content: center;
-  padding: 0.6rem 1rem;
-  border: 2px solid rgb(253 248 240 / 0.3);
+  gap: 0.625rem;
+  width: 100%;
+  padding: 14px 28px;
+  border: 2px solid currentColor;
   border-radius: 9999px;
   color: var(--color-pana-cream);
+  font-size: 14.5px;
   font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.3s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.drawerCta:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-indigo);
+  transform: translateY(-2px);
+}
+
+/* Mirrors the masthead sign-in, which is hidden on phones — this keeps the
+   action reachable at every width. */
+.drawerLogin {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13.5px;
+  opacity: 0.8;
+}
+
+.drawerLogin a {
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.drawerLogin a:hover {
+  color: var(--color-pana-cream);
+}
+
+.drawerMeta {
+  margin-top: 16px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.62;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawerCta {
+    transition: none;
+  }
 }
 
 @media only screen and (min-width: 600px) {

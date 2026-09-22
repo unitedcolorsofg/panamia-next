@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import Image from 'next/image';
 
 import styles from './NavDrawer.module.css';
 import { cn } from '@/lib/utils';
@@ -109,14 +109,24 @@ export default function NavDrawer({
         aria-label={title}
       >
         <div className={styles.head}>
-          <span className={styles.title}>{title}</span>
+          {/* The wordmark, not a text label — the drawer reads as an extension
+              of the brand rather than a utility panel. `title` still carries
+              the accessible name via aria-label on the dialog. */}
+          <Image
+            src="/logos/pana_logo_long_orange.png"
+            alt=""
+            aria-hidden="true"
+            width={264}
+            height={66}
+            className={styles.logo}
+          />
           <button
             type="button"
             onClick={onClose}
             className={styles.close}
             aria-label={closeLabel}
           >
-            <X className="h-5 w-5" aria-hidden="true" />
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -128,11 +138,17 @@ export default function NavDrawer({
                   href={item.href}
                   className={styles.link}
                   onClick={onClose}
+                  // Staggered entrance. Set per item rather than with
+                  // nth-child because the item count varies with auth state.
+                  style={{ '--d': `${0.1 + index * 0.05}s` } as CSSProperties}
                 >
                   <span className={styles.num} aria-hidden="true">
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <span>{item.label}</span>
+                  <span className={styles.label}>{item.label}</span>
+                  <span className={styles.arrow} aria-hidden="true">
+                    →
+                  </span>
                 </Link>
               </li>
             ))}

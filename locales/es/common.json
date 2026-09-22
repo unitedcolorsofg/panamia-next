@@ -32,7 +32,9 @@
     "signUp": "Registrarse",
     "signIn": "Iniciar Sesión",
     "menu": "Menú",
-    "closeMenu": "Cerrar menú"
+    "closeMenu": "Cerrar menú",
+    "alreadyAPana": "¿Ya eres Pana? <a>Inicia sesión</a>",
+    "regions": "Miami-Dade · Broward · Palm Beach"
   },
   "onboarding": {
     "screennameTitle": "Elige tu nombre de usuario",

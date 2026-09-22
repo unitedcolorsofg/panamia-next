@@ -32,7 +32,9 @@
     "signUp": "Sign Up",
     "signIn": "Sign In",
     "menu": "Menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "alreadyAPana": "Already a Pana? <a>Log in</a>",
+    "regions": "Miami-Dade · Broward · Palm Beach"
   },
   "onboarding": {
     "screennameTitle": "Pick your screenname",
