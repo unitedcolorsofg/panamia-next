@@ -50,3 +50,18 @@ export const SURFACE_BLURB: Record<SurfaceId, string> = {
   www: 'Find Panas, browse the directory, and see what the org is up to.',
   social: 'Post, reply, and read what your Panas are making this week.',
 };
+
+/**
+ * Default meta description per surface, used by the root layout for any page
+ * that does not set its own.
+ *
+ * `www` is deliberately the exact string the root layout shipped before
+ * surfaces existed: the main site's description is indexed, and this change is
+ * meant to give Pana Social its own identity, not to quietly rewrite Pana
+ * Mia's. Only the social entry is new.
+ */
+export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
+  www: 'Community platform for Pana Mia',
+  social:
+    'The Pana Mia community timeline — post, reply, and follow Panas across the fediverse.',
+};

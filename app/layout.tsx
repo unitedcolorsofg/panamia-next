@@ -9,12 +9,31 @@ import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 import ScreennameGate from '@/components/ScreennameGate';
 import { resolveSurface } from '@/lib/panaverse/surfaces';
+import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
 import { PATHNAME_HEADER, wearsOwnChrome } from '@/lib/panaverse/chrome';
 
-export const metadata: Metadata = {
-  title: 'Pana Mia',
-  description: 'Community platform for Pana Mia',
-};
+/**
+ * Title and description for any page that does not set its own.
+ *
+ * Pana Social's pages are mostly client components with no metadata export, so
+ * every one of them inherited the literal string "Pana Mia" — a member on
+ * social.panamia.club got a browser tab, a bookmark, and a shared link all
+ * branded as the main site.
+ *
+ * Deliberately sets only `title`, with no `title.template`. Every page in this
+ * app that titles itself already spells out its own suffix ("Events | Pana
+ * MIA", "Terms of Service - Pana MIA Club"), so introducing a template would
+ * append a second one to all of them. Overriding just the default changes
+ * exactly the pages that never had a title of their own, and leaves the main
+ * site byte-identical.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const surface = resolveSurface((await headers()).get('host'));
+  return {
+    title: surface.name,
+    description: SURFACE_DESCRIPTION[surface.id],
+  };
+}
 
 export default async function RootLayout({
   children,

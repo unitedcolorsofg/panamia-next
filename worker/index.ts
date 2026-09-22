@@ -18,6 +18,7 @@ import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
+import { assertPanaverseConfigured } from '../lib/panaverse/boot';
 import { PATHNAME_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
@@ -59,6 +60,19 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    /* Configuration that must hold before this deployment serves anybody.
+     *
+     * Runs here rather than at module scope because Worker bindings are not
+     * populated until an invocation exists — top-level code would read an
+     * empty environment and pass regardless of how it is configured. Memoised
+     * inside, so this is one string comparison per request after the first.
+     *
+     * Throwing takes the deployment down on its first public request. That is
+     * the intent: the failure it guards against is silent and permanent (see
+     * lib/panaverse/boot.ts), and an outage is recoverable in a way that
+     * orphaned fediverse identities are not. */
+    assertPanaverseConfigured(request.headers.get('host'));
+
     // Prime the R2/email/relay caches with CF bindings before any application
     // code runs. These hold plain binding objects, which are safe to reuse.
     getEmail(env);
