@@ -2754,6 +2754,61 @@ button.bizprofile-update-action:hover {
   }
 }
 
+/* The closing rule under a borrowed page. Slim by intent: its job is to carry
+   the legal links MainFooter would have provided, not to stand in for
+   MainFooter. See components/panaverse/SurfaceGuestFooter.tsx. */
+.panaverse-guest-footer {
+  margin-top: 3rem;
+  border-top: 1px solid rgb(17 13 13 / 0.08);
+  padding-block: 1rem;
+}
+
+.panaverse-guest-footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: 0.78125rem;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.panaverse-guest-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+}
+
+.panaverse-guest-footer-nav a {
+  font-weight: 700;
+  color: var(--surface-tone, var(--color-pana-indigo));
+  transition: opacity 0.2s ease;
+}
+
+.panaverse-guest-footer-nav a:hover {
+  opacity: 0.75;
+}
+
+.dark .panaverse-guest-footer {
+  border-top-color: rgb(255 255 255 / 0.12);
+}
+
+.dark .panaverse-guest-footer-inner {
+  color: rgb(255 255 255 / 0.6);
+}
+
+/* Side by side once there is room for the attribution and the links to share
+   a line without either wrapping. */
+@media (min-width: 640px) {
+  .panaverse-guest-footer-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
 @media (min-width: 768px) {
   .panaverse-nav {
     display: flex;

@@ -20,6 +20,7 @@ import {
   wearsOwnChrome,
 } from '@/lib/panaverse/chrome';
 import { SurfaceGuestHeader } from '@/components/panaverse/SurfaceGuestHeader';
+import { SurfaceGuestFooter } from '@/components/panaverse/SurfaceGuestFooter';
 
 /**
  * Title and description for any page that does not set its own.
@@ -119,11 +120,12 @@ export default async function RootLayout({
   const standalone = wearsOwnChrome(requestHeaders.get(PATHNAME_HEADER));
   const wearsMainChrome = surface.id === 'www' && !standalone;
 
-  /* Pages this surface is borrowing from another one get a slim bar instead.
-   * See lib/panaverse/chrome.ts — the short version is that every route
-   * answers on every hostname, so without this the main site's directory
-   * rendered on social.panamia.club with no chrome at all and no way back to
-   * the feed. */
+  /* Pages this surface is borrowing from another one get a slim bar and a slim
+   * footer instead. See lib/panaverse/chrome.ts — the short version is that
+   * every route answers on every hostname, so without this the main site's
+   * directory rendered on social.panamia.club with no chrome at all and no way
+   * back to the feed. The footer is not symmetry: it carries the legal links
+   * that MainFooter would otherwise have been the only source of. */
   const pathname = requestHeaders.get(PATHNAME_HEADER);
   const guest = wearsGuestChrome(surface, pathname);
 
@@ -175,6 +177,12 @@ export default async function RootLayout({
               )}
               <div id="layout-main">{children}</div>
               {wearsMainChrome && <MainFooter />}
+              {guest && pathname && (
+                <SurfaceGuestFooter
+                  surface={surface}
+                  owner={surfaceForPath(pathname)}
+                />
+              )}
               <ScreennameGate />
             </Providers>
           </FlowerPowerProvider>
