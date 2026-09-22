@@ -1,4 +1,4 @@
-import { FileText, Store, Users, UsersRound } from 'lucide-react';
+import { FileText, Users, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ProfileTab } from '../_data/mock-profile';
 
@@ -56,7 +56,6 @@ export function ProfileTabs({
 export const PROFILE_TAB_ICONS: Record<ProfileTab, LucideIcon> = {
   posts: FileText,
   panas: Users,
-  following: Store,
   groups: UsersRound,
 };
 

@@ -998,21 +998,17 @@
   color: var(--color-pana-indigo);
 }
 
-/* Stat rail. Grid rather than flex so the four figures keep equal columns and
-   the dividing rules land at even intervals; on narrow screens it drops to two
-   columns instead of scrolling, because a horizontally scrolled stat row hides
-   figures people are looking for. */
+/* Stat rail. Grid rather than flex so the figures keep equal columns and the
+   dividing rules land at even intervals. `grid-auto-flow: column` keeps the
+   rail in a single row for however many stats exist, so adding or removing one
+   cannot leave a half-filled row with a dangling rule. Never scrolls: a
+   horizontally scrolled stat row hides figures people are looking for. */
 .stat-rail {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   border-top: 2px solid rgb(17 13 13 / 0.14);
   border-bottom: 2px solid rgb(17 13 13 / 0.14);
-}
-
-@media (min-width: 640px) {
-  .stat-rail {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 .stat-rail-item {
@@ -1026,19 +1022,9 @@
   transition: background-color 0.2s ease;
 }
 
-/* First cell in each row loses its rule so the rail does not start with one. */
-.stat-rail-item:nth-child(2n + 1) {
+/* Only the leading cell loses its rule, so the rail never opens with one. */
+.stat-rail-item:first-child {
   border-left: 0;
-}
-
-@media (min-width: 640px) {
-  .stat-rail-item:nth-child(2n + 1) {
-    border-left: 2px solid rgb(17 13 13 / 0.1);
-  }
-
-  .stat-rail-item:first-child {
-    border-left: 0;
-  }
 }
 
 .stat-rail-item:hover,

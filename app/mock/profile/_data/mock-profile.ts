@@ -13,19 +13,12 @@
  * real data is mechanical.
  */
 
-export type ProfileTab = 'posts' | 'panas' | 'following' | 'groups';
+export type ProfileTab = 'posts' | 'panas' | 'groups';
 
 export interface MockStat {
   /** Tab this figure opens, so the rail doubles as navigation. */
   tab: ProfileTab;
-  /* The rail describes quantities about a person, so a bare noun inherits the
-     possessive reading from its neighbours: "37 Businesses" sitting beside
-     "216 Posts" and "6 Groups" reads as businesses she owns. Labels here can
-     take a verb to break that frame. */
   label: string;
-  /** Tab labels name a section rather than describe a quantity, so they can
-      stay shorter than the rail. Falls back to `label`. */
-  tabLabel?: string;
   value: number;
 }
 
@@ -40,18 +33,6 @@ export interface MockPana {
   pronouns?: string;
   /** socialActors.summary, clamped to two lines in the card */
   blurb: string;
-}
-
-export interface MockBusiness {
-  id: string;
-  /** profiles.name */
-  name: string;
-  handle: string;
-  image: string;
-  /** profiles.categories[0] */
-  category: string;
-  /** profiles.addressLocality */
-  neighborhood: string;
 }
 
 export interface MockGroup {
@@ -144,12 +125,6 @@ export const MOCK_PROFILE: MockProfile = {
     /* Panas is the count of mutual follows, not followers. One-way followers
        are MOCK_FOLLOWERS_ONLY_COUNT and are deliberately excluded here. */
     { tab: 'panas', label: 'Panas', value: 1284 },
-    {
-      tab: 'following',
-      label: 'Businesses followed',
-      tabLabel: 'Businesses',
-      value: 37,
-    },
     { tab: 'posts', label: 'Posts', value: 216 },
     { tab: 'groups', label: 'Groups', value: 6 },
   ],
@@ -245,44 +220,6 @@ export const MOCK_PANAS: MockPana[] = [
    inflates itself with one-way follows. */
 export const MOCK_FOLLOWERS_ONLY_COUNT = 219;
 
-/* Business thumbnails sit on a white tile, so every logo here must be a dark
-   mark. Some partner assets (partner-we-met-community, partner-pana-mia-club)
-   are white-on-transparent and render invisible — do not use those. */
-export const MOCK_BUSINESSES: MockBusiness[] = [
-  {
-    id: 'biz-1',
-    name: 'Subtropic Film Festival',
-    handle: 'subtropic',
-    image: '/img/impact/partner-subtropic-film-festival.webp',
-    category: 'Film & Media',
-    neighborhood: 'Downtown Miami',
-  },
-  {
-    id: 'biz-2',
-    name: 'Dale Collective',
-    handle: 'dale',
-    image: '/img/impact/partner-dale.webp',
-    category: 'Community Space',
-    neighborhood: 'Allapattah',
-  },
-  {
-    id: 'biz-3',
-    name: 'Miami Workers Center',
-    handle: 'miamiworkers',
-    image: '/img/impact/partner-miami-workers-center.webp',
-    category: 'Labor & Advocacy',
-    neighborhood: 'Little Havana',
-  },
-  {
-    id: 'biz-4',
-    name: 'Radical Partners',
-    handle: 'radicalpartners',
-    image: '/img/impact/partner-radical-partners.webp',
-    category: 'Social Impact',
-    neighborhood: 'Miami',
-  },
-];
-
 export const MOCK_GROUPS: MockGroup[] = [
   {
     id: 'group-1',
@@ -366,9 +303,9 @@ export const RESERVED_MODULES: ReservedModule[] = [
       'Verified county, founding member, group admin, and Gente dePana standing.',
   },
   {
-    title: 'Collections',
+    title: 'Recommended lists',
     description:
-      'Saved posts, businesses, and zines this Pana wants to point people at.',
+      'Named lists of businesses a Pana vouches for, plus saved posts and zines they want to point people at.',
   },
   {
     title: 'Voice memos',

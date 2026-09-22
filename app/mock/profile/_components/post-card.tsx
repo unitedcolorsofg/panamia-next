@@ -1,5 +1,11 @@
 import Image from 'next/image';
-import { Heart, MessageCircle, MoreHorizontal, Repeat2, Users } from 'lucide-react';
+import {
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Repeat2,
+  Users,
+} from 'lucide-react';
 import type { MockPost, MockProfile } from '../_data/mock-profile';
 
 /* One status in the profile's own feed. The author is always the profile
@@ -15,7 +21,7 @@ export function PostCard({
   return (
     <article className="profile-card p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <div className="relative h-11 w-11 flex-none overflow-hidden rounded-full border-2 border-pana-ink/10">
+        <div className="border-pana-ink/10 relative h-11 w-11 flex-none overflow-hidden rounded-full border-2">
           <Image
             src={profile.avatar}
             alt=""
@@ -28,19 +34,19 @@ export function PostCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-x-2 gap-y-0.5 text-sm leading-tight">
             <span className="truncate font-extrabold">{profile.name}</span>
-            <span className="truncate font-bold text-pana-ink/45">
+            <span className="text-pana-ink/45 truncate font-bold">
               @{profile.handle}
             </span>
             <span aria-hidden="true" className="text-pana-ink/30">
               ·
             </span>
-            <time className="flex-none font-bold text-pana-ink/45">
+            <time className="text-pana-ink/45 flex-none font-bold">
               {post.published}
             </time>
           </div>
 
           {post.group && (
-            <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest text-pana-indigo uppercase">
+            <p className="text-pana-indigo mt-1 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase">
               <Users className="h-3 w-3" aria-hidden="true" />
               Posted in {post.group}
             </p>

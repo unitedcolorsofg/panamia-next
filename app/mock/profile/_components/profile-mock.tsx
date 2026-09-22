@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import {
-  MOCK_BUSINESSES,
   MOCK_FOLLOWERS_ONLY_COUNT,
   MOCK_GROUPS,
   MOCK_PANAS,
@@ -17,17 +16,16 @@ import {
 import { ProfileHero } from './profile-hero';
 import { PROFILE_TAB_ICONS, ProfileTabs, type TabDef } from './profile-tabs';
 import { PostCard } from './post-card';
-import { BusinessCard, PanaCard } from './connection-cards';
+import { PanaCard } from './connection-cards';
 import { GroupCard, ReservedSlot } from './group-cards';
 
 /* Reading order for the body, which is not the stat rail's order — posts lead
    here because that is what people come to a profile for, while the rail
    leads with the figure the profile is proudest of. */
-const TAB_ORDER: ProfileTab[] = ['posts', 'panas', 'following', 'groups'];
+const TAB_ORDER: ProfileTab[] = ['posts', 'panas', 'groups'];
 
-/* Counts come off the same stats the rail renders, so the two controls can
-   never disagree about how many Panas someone has. Labels are allowed to
-   differ: the rail describes a quantity, a tab names a section. */
+/* Labels and counts come off the same stats the rail renders, so the two
+   controls can never disagree about how many Panas someone has. */
 const TABS: TabDef[] = TAB_ORDER.map((id) => {
   const stat = MOCK_PROFILE.stats.find((entry) => entry.tab === id);
   if (!stat) {
@@ -35,7 +33,7 @@ const TABS: TabDef[] = TAB_ORDER.map((id) => {
   }
   return {
     id,
-    label: stat.tabLabel ?? stat.label,
+    label: stat.label,
     icon: PROFILE_TAB_ICONS[id],
     count: stat.value,
   };
@@ -91,20 +89,6 @@ export function ProfileMock() {
                 back. They are followers, not Panas, so they are not counted in
                 the Panas figure above.
               </p>
-            </Panel>
-          )}
-
-          {activeTab === 'following' && (
-            <Panel id="following">
-              <PanelIntro
-                title="Businesses they follow"
-                lede="Directory listings this Pana keeps up with. Following a business is separate from being someone's Pana."
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                {MOCK_BUSINESSES.map((business) => (
-                  <BusinessCard key={business.id} business={business} />
-                ))}
-              </div>
             </Panel>
           )}
 
