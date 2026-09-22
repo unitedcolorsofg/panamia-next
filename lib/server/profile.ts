@@ -21,6 +21,8 @@ export interface LegacyProfile {
   phone_number: unknown;
   /** Set by Pana Mia staff; null means not certified. */
   panaCertifiedAt: Date | null;
+  /** True when the business has no location to visit. */
+  onlineOnly: boolean;
   primary_address: {
     name: string | undefined;
     street1: string | undefined;
@@ -108,6 +110,10 @@ function transformToLegacyFormat(
     id: profile.id as string,
     name: profile.name as string,
     panaCertifiedAt: (profile.panaCertifiedAt as Date | null) ?? null,
+    // Declared explicitly rather than left to the spread so it survives the
+    // Record<string, unknown> cast with a real boolean type. Defaults to
+    // false: a row that predates the column is a physical business.
+    onlineOnly: (profile.onlineOnly as boolean | null) ?? false,
     // Legacy field mappings
     details: descriptions?.details,
     five_words: descriptions?.fiveWords,

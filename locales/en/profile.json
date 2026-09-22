@@ -20,7 +20,8 @@
     "distanceNear": "less than 0.1 miles away",
     "distance_one": "{{count}} mile away",
     "distance_other": "{{count}} miles away",
-    "distanceDenied": "Location off"
+    "distanceDenied": "Location off",
+    "onlineOnly": "Online business"
   },
   "gate": {
     "eyebrow": {

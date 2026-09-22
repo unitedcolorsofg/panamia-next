@@ -20,7 +20,8 @@
     "distanceNear": "a menos de 0.1 millas",
     "distance_one": "a {{count}} milla",
     "distance_other": "a {{count}} millas",
-    "distanceDenied": "Ubicación desactivada"
+    "distanceDenied": "Ubicación desactivada",
+    "onlineOnly": "Negocio en línea"
   },
   "gate": {
     "eyebrow": {

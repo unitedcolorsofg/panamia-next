@@ -85,10 +85,18 @@ export function SearchResultCard({
             <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
               <MapPin className="h-4 w-4" />
               <span>{profile.primary_address.city}</span>
-              {distance && distance > 0 && (
-                <span className="text-xs">
-                  &nbsp;({distance.toFixed(2)} miles away)
-                </span>
+              {/* An online-only business has nowhere to visit, so a distance
+                  to its address on file would be both wrong and a privacy
+                  leak — that address is usually the owner's home. */}
+              {profile.online_only ? (
+                <span className="text-xs">&nbsp;(online)</span>
+              ) : (
+                distance &&
+                distance > 0 && (
+                  <span className="text-xs">
+                    &nbsp;({distance.toFixed(2)} miles away)
+                  </span>
+                )
               )}
             </div>
           )}

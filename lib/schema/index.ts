@@ -610,6 +610,17 @@ export const profiles = pgTable(
      * in the member-facing app writes this.
      */
     panaCertifiedAt: timestamp('pana_certified_at', { withTimezone: true }),
+    /**
+     * This business has nowhere to visit — it operates online.
+     *
+     * Suppresses distance and directions on the public profile. A flag rather
+     * than an inference from a missing address, because an absent address
+     * already means something else: a storefront mid-onboarding, or one whose
+     * address failed to geocode. Those should still read as physical and
+     * should start showing distance once the address lands. Set by the owner;
+     * see drizzle/0038_profile_online_only.sql.
+     */
+    onlineOnly: boolean('online_only').notNull().default(false),
     locallyBased: text('locally_based'),
     membershipLevel: membershipLevel('membership_level')
       .notNull()

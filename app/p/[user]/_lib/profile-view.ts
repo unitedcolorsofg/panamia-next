@@ -49,6 +49,15 @@ export interface ProfileView {
   city: string | null;
   region: string | null;
   coords: Coords | null;
+  /**
+   * True when the business has nowhere to visit.
+   *
+   * Distinct from `coords === null`, which only means we do not know where it
+   * is — a storefront mid-onboarding, or an address that failed to geocode.
+   * Those should still offer a distance once their address lands. This says
+   * the question does not apply at all.
+   */
+  onlineOnly: boolean;
   certified: boolean;
   categories: string[];
   links: ProfileLink[];
@@ -224,6 +233,7 @@ export function toProfileView(
         ? { lng: coordinates[0], lat: coordinates[1] }
         : null,
     certified: profile.panaCertifiedAt != null,
+    onlineOnly: profile.onlineOnly === true,
     categories: buildCategories(profile.categories),
     links: buildLinks(profile.socials),
     gallery,

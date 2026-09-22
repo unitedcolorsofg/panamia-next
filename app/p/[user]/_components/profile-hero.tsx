@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Bookmark,
   BookmarkCheck,
+  Globe,
   MapPin,
   Share2,
   ThumbsUp,
@@ -66,8 +67,11 @@ export function ProfileHero({
   };
 
   const place = [profile.city, profile.region].filter(Boolean).join(', ');
+  // Skipped entirely for an online-only business rather than computed and
+  // hidden, so the page never asks for the viewer's location to answer a
+  // question it will not show.
   const distance =
-    location.coords && profile.coords
+    !profile.onlineOnly && location.coords && profile.coords
       ? distanceInMiles(location.coords, profile.coords)
       : null;
 
@@ -134,47 +138,70 @@ export function ProfileHero({
                 question, but it is not dimmed with it: "how far" is the
                 sharper signal of the two in a directory people open to find
                 something nearby. */}
-            {place && (
+            {(place || profile.onlineOnly) && (
               <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
-                <span className="flex items-center gap-1.5 opacity-75">
-                  <MapPin className="h-4 w-4" aria-hidden="true" />
-                  {place}
-                </span>
+                {place && (
+                  <span className="flex items-center gap-1.5 opacity-75">
+                    <MapPin className="h-4 w-4" aria-hidden="true" />
+                    {place}
+                  </span>
+                )}
 
-                {profile.coords && (
+                {/* An online-only business says so in the slot where a
+                    distance would go, because that is the question it is
+                    answering. The city still shows when there is one — "based
+                    in Miami, operates online" is a different and useful fact
+                    from "operates online", and the directory is for finding
+                    local businesses. */}
+                {profile.onlineOnly ? (
                   <>
-                    <span className="opacity-40" aria-hidden="true">
-                      &middot;
-                    </span>
-
-                    {distance !== null ? (
-                      <span className="bizprofile-distance">
-                        {distance < 0.1
-                          ? t('hero.distanceNear')
-                          : t('hero.distance', {
-                              count:
-                                distance < 10
-                                  ? Number(distance.toFixed(1))
-                                  : Math.round(distance),
-                            })}
+                    {place && (
+                      <span className="opacity-40" aria-hidden="true">
+                        &middot;
                       </span>
-                    ) : location.status === 'denied' ? (
-                      <span className="bizprofile-distance opacity-60">
-                        {t('hero.distanceDenied')}
-                      </span>
-                    ) : (
-                      // Most first-time visitors are in this state, so it has
-                      // to be an offer rather than a blank.
-                      <button
-                        type="button"
-                        className="bizprofile-distance-ask"
-                        onClick={location.request}
-                        disabled={location.status === 'asking'}
-                      >
-                        {t('hero.distanceAsk')}
-                      </button>
                     )}
+
+                    <span className="bizprofile-distance inline-flex items-center gap-1.5">
+                      <Globe className="h-4 w-4" aria-hidden="true" />
+                      {t('hero.onlineOnly')}
+                    </span>
                   </>
+                ) : (
+                  profile.coords && (
+                    <>
+                      <span className="opacity-40" aria-hidden="true">
+                        &middot;
+                      </span>
+
+                      {distance !== null ? (
+                        <span className="bizprofile-distance">
+                          {distance < 0.1
+                            ? t('hero.distanceNear')
+                            : t('hero.distance', {
+                                count:
+                                  distance < 10
+                                    ? Number(distance.toFixed(1))
+                                    : Math.round(distance),
+                              })}
+                        </span>
+                      ) : location.status === 'denied' ? (
+                        <span className="bizprofile-distance opacity-60">
+                          {t('hero.distanceDenied')}
+                        </span>
+                      ) : (
+                        // Most first-time visitors are in this state, so it
+                        // has to be an offer rather than a blank.
+                        <button
+                          type="button"
+                          className="bizprofile-distance-ask"
+                          onClick={location.request}
+                          disabled={location.status === 'asking'}
+                        >
+                          {t('hero.distanceAsk')}
+                        </button>
+                      )}
+                    </>
+                  )
                 )}
               </p>
             )}
