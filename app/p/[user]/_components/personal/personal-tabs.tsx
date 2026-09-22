@@ -36,10 +36,14 @@ export function PersonalTabs({
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
             {tab.label}
-            {tab.count !== null && (
-              <span className="profile-tab-count">
-                {tab.count.toLocaleString('en-US')}
-              </span>
+            {tab.soon ? (
+              <span className="profile-tab-count">Soon</span>
+            ) : (
+              tab.count !== null && (
+                <span className="profile-tab-count">
+                  {tab.count.toLocaleString('en-US')}
+                </span>
+              )
             )}
           </button>
         );

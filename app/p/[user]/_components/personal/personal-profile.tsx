@@ -9,7 +9,6 @@ import {
   useActor,
   useActorPosts,
   usePanas,
-  useProfileGroups,
 } from '@/lib/query/social';
 import {
   PostList,
@@ -20,13 +19,8 @@ import { Button } from '@/components/ui/button';
 import type { PersonalProfileView } from '@/lib/server/personal-profile';
 import { PersonalHero } from './personal-hero';
 import { PERSONAL_TAB_ICONS, PersonalTabs } from './personal-tabs';
-import { PanaCard, GroupCard } from './personal-cards';
+import { PanaCard } from './personal-cards';
 import type { PersonalTab, StatDef, TabDef } from './types';
-
-/* Reading order for the body, which is not the stat rail's order — posts lead
-   here because that is what people come to a profile for, while the rail
-   leads with the figure the profile is proudest of. */
-const TAB_ORDER: PersonalTab[] = ['posts', 'panas', 'groups'];
 
 /* The personal (Pana Social) profile.
  *
@@ -47,32 +41,46 @@ export function PersonalProfile({
   const { data: actorData } = useActor(handle);
   const { data: postsData, isLoading: postsLoading } = useActorPosts(handle);
   const { data: panasData, isLoading: panasLoading } = usePanas(handle);
-  const { data: groupsData, isLoading: groupsLoading } =
-    useProfileGroups(handle);
 
   const actor = actorData?.actor;
   const isSelf = Boolean(actorData?.isSelf);
 
-  /* Rail order leads with Panas; the tab bar below leads with Posts. Both read
-     from this one list so the two controls can never disagree about a count. */
+  /* Rail order leads with Panas; the tab bar below leads with Posts. Groups is
+     absent here on purpose — it hasn't shipped, and an unshipped feature has
+     no figure to stand next to real ones. */
   const stats: StatDef[] = [
     { tab: 'panas', label: 'Panas', value: panasData?.count ?? null },
     { tab: 'posts', label: 'Posts', value: actor?.statusCount ?? null },
-    { tab: 'groups', label: 'Groups', value: groupsData?.groups.length ?? null },
   ];
 
-  const tabs: TabDef[] = TAB_ORDER.map((id) => {
-    const stat = stats.find((entry) => entry.tab === id);
-    if (!stat) {
-      throw new Error(`Personal profile is missing a stat for "${id}".`);
-    }
-    return {
-      id,
-      label: stat.label,
-      icon: PERSONAL_TAB_ICONS[id],
-      count: stat.value,
-    };
-  });
+  const statValue = (tab: PersonalTab) =>
+    stats.find((entry) => entry.tab === tab)?.value ?? null;
+
+  /* Posts lead the body because that is what people come to a profile for,
+     while the rail leads with the figure the profile is proudest of. Groups
+     keeps its tab so the shape of the profile is honest about what's coming,
+     but carries a "Soon" chip rather than a count. */
+  const tabs: TabDef[] = [
+    {
+      id: 'posts',
+      label: 'Posts',
+      icon: PERSONAL_TAB_ICONS.posts,
+      count: statValue('posts'),
+    },
+    {
+      id: 'panas',
+      label: 'Panas',
+      icon: PERSONAL_TAB_ICONS.panas,
+      count: statValue('panas'),
+    },
+    {
+      id: 'groups',
+      label: 'Groups',
+      icon: PERSONAL_TAB_ICONS.groups,
+      count: null,
+      soon: true,
+    },
+  ];
 
   const actions = renderActions({
     isSelf,
@@ -130,15 +138,7 @@ export function PersonalProfile({
 
           {activeTab === 'groups' && (
             <Panel id="groups">
-              <PanelIntro
-                title="Groups"
-                lede="Communities inside Pana Social. Only groups anyone can find are listed — private groups stay private."
-              />
-              <GroupsPanel
-                groups={groupsData?.groups ?? []}
-                isLoading={groupsLoading}
-                name={profile.name}
-              />
+              <GroupsComingSoon name={profile.name} />
             </Panel>
           )}
         </div>
@@ -255,28 +255,19 @@ function PanasPanel({
   );
 }
 
-function GroupsPanel({
-  groups,
-  isLoading,
-  name,
-}: {
-  groups: Parameters<typeof GroupCard>[0]['group'][];
-  isLoading: boolean;
-  name: string;
-}) {
-  if (isLoading) return <PanelLoading />;
-
-  if (groups.length === 0) {
-    return (
-      <EmptyState>{firstName(name)} isn&apos;t in any public groups.</EmptyState>
-    );
-  }
-
+/* Groups hasn't shipped. This says so plainly instead of showing an empty
+   list, which would read as "this person joined nothing" rather than "there
+   is nothing to join yet" — two very different impressions of the same
+   blank space. */
+function GroupsComingSoon({ name }: { name: string }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {groups.map((group) => (
-        <GroupCard key={group.groupId} group={group} />
-      ))}
+    <div className="reserved-slot">
+      <span className="reserved-slot-title">Groups are coming soon</span>
+      <p className="text-pana-ink/70 max-w-2xl text-sm leading-snug font-medium">
+        Communities inside Pana Social — neighborhood crews, crafts, dominoes,
+        whatever people organize around. When they open, the ones{' '}
+        {firstName(name)} joins will show up here.
+      </p>
     </div>
   );
 }

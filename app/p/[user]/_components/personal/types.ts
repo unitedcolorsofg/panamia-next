@@ -14,4 +14,9 @@ export interface TabDef {
   label: string;
   icon: LucideIcon;
   count: number | null;
+  /**
+   * Marks a tab whose feature hasn't shipped. Such a tab shows a "Soon" chip
+   * instead of a count, because a number implies there is data behind it.
+   */
+  soon?: boolean;
 }
