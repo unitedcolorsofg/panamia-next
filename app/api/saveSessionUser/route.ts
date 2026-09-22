@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import {
-  users,
-  screennameHistory,
-  socialStatuses,
-  socialActors,
-} from '@/lib/schema';
+import { users, screennameHistory, socialActors } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { validateScreennameFull } from '@/lib/screenname';
 import type { User } from '@/lib/schema';
@@ -98,18 +93,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Delete timeline if screenname is changing and user has social actor
+  // Posts deliberately survive a handle change. This route used to carry an
+  // identical destructive block to the one removed from
+  // app/api/user/screenname/set/route.ts - see the long note there for why
+  // statuses and their ActivityPub object ids are now left intact.
   const actorId = existingUser.profile?.socialActor?.id;
-  if (isScreennameChanging && actorId) {
-    // Delete all statuses authored by this actor
-    await db.delete(socialStatuses).where(eq(socialStatuses.actorId, actorId));
-
-    // Reset status count
-    await db
-      .update(socialActors)
-      .set({ statusCount: 0 })
-      .where(eq(socialActors.id, actorId));
-  }
 
   // Build update data
   const updateData: {
