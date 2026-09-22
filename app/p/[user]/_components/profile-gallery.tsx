@@ -59,14 +59,30 @@ export function ProfileGallery({ profile }: ProfileGalleryProps) {
       </div>
 
       {gallery.length > 0 && (
-        <div className="grid auto-rows-[10rem] grid-cols-2 gap-4 md:auto-rows-[13rem] md:grid-cols-4">
+        // The tile spans are count-aware because the grid otherwise leaves a
+        // hole. gallery_images holds at most three slots, so a three-image
+        // gallery is the fullest one possible — with a 2x2 lead tile in a
+        // four-column grid that left two empty cells on every complete
+        // gallery. Three images now tile a 4x2 block exactly; one and two
+        // images use a grid sized to fit them.
+        <div
+          className={`grid auto-rows-[10rem] gap-4 md:auto-rows-[13rem] ${
+            gallery.length === 1
+              ? 'grid-cols-1'
+              : gallery.length === 2
+                ? 'grid-cols-2'
+                : 'grid-cols-2 md:grid-cols-4'
+          }`}
+        >
           {gallery.map((image, index) => (
             <div
               key={image.src}
               className={
-                index === 0
-                  ? 'bizprofile-gallery-tile col-span-2 row-span-2'
-                  : 'bizprofile-gallery-tile'
+                gallery.length < 3
+                  ? 'bizprofile-gallery-tile'
+                  : index === 0
+                    ? 'bizprofile-gallery-tile col-span-2 row-span-2'
+                    : 'bizprofile-gallery-tile md:col-span-2'
               }
             >
               <Image

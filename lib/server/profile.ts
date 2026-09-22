@@ -124,13 +124,23 @@ function transformToLegacyFormat(
       zipcode: profile.addressPostalCode as string | undefined,
       country: profile.addressCountry as string | undefined,
     },
-    // Legacy image format
-    images: {
-      primaryCDN: profile.primaryImageCdn as string | undefined,
-      gallery1CDN: profile.gallery1Cdn as string | undefined,
-      gallery2CDN: profile.gallery2Cdn as string | undefined,
-      gallery3CDN: profile.gallery3Cdn as string | undefined,
-    },
+    // Legacy image format. Gallery slots live inside the gallery_images JSONB
+    // column as { gallery1CDN, gallery2CDN, ... } — written that way by
+    // /api/profile/upload. The previous implementation read gallery1Cdn/
+    // gallery2Cdn/gallery3Cdn, which are not columns on this table, so the
+    // gallery was unconditionally empty.
+    images: (() => {
+      const gallery = (profile.galleryImages ?? {}) as Record<
+        string,
+        string | undefined
+      >;
+      return {
+        primaryCDN: profile.primaryImageCdn as string | undefined,
+        gallery1CDN: gallery.gallery1CDN,
+        gallery2CDN: gallery.gallery2CDN,
+        gallery3CDN: gallery.gallery3CDN,
+      };
+    })(),
     // Legacy geo format. Reads the authoritative address_lat/address_lng
     // columns; the previous implementation referenced geoLat/geoLng, which are
     // not columns on this table, so geo was unconditionally null and the map

@@ -459,6 +459,15 @@
   color: var(--color-pana-cream);
 }
 
+/* .section-eyebrow hard-codes indigo, so on the indigo surface it renders
+   invisible — identical foreground and background. Callers try to correct this
+   with text-pana-butter, but that utility sits in @layer utilities and an
+   unlayered rule always wins the cascade, so the override has to live here
+   next to the surface that causes it. ::before inherits via currentColor. */
+.surface-indigo .section-eyebrow {
+  color: var(--color-pana-butter);
+}
+
 .surface-butter {
   background-color: var(--color-pana-butter);
   color: var(--color-pana-ink);

@@ -92,7 +92,15 @@ function socialUrl(
   value: string
 ): { href: string; label: string } {
   if (/^https?:\/\//i.test(value)) {
-    const handle = value.replace(/\/+$/, '').split('/').filter(Boolean).pop();
+    // The trailing segment can already carry an "@" — TikTok profile URLs are
+    // literally tiktok.com/@handle — so strip it before prefixing, or the chip
+    // renders "@@handle".
+    const handle = value
+      .replace(/\/+$/, '')
+      .split('/')
+      .filter(Boolean)
+      .pop()
+      ?.replace(/^@+/, '');
     return { href: value, label: handle ? `@${handle}` : value };
   }
 

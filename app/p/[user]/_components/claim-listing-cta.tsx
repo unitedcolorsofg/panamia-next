@@ -19,7 +19,9 @@ export function ClaimListingCta({ profileId }: { profileId: string }) {
   return (
     <section className="surface-indigo py-16 md:py-24">
       <div className="container mx-auto max-w-3xl px-4 text-center" data-rv>
-        <span className="section-eyebrow">{t('updates.claimEyebrow')}</span>
+        <span className="section-eyebrow text-pana-butter">
+          {t('updates.claimEyebrow')}
+        </span>
         <h2 className="bizprofile-h2 mt-4">{t('updates.claimHeading')}</h2>
         <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed font-semibold opacity-90">
           {t('updates.claimBody')}
