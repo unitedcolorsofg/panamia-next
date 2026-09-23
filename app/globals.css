@@ -5217,6 +5217,134 @@ body:has([data-density]) {
   stroke-width: 1.5;
 }
 
+/* Standing-seam metal roofs. Ink at low alpha, so the one rule reads on a
+   terracotta roof and on a cream one without a second colour. */
+.street-seam {
+  stroke: rgb(2 8 17 / 0.22);
+  stroke-width: 1.4;
+}
+
+/* --- The town is alive --------------------------------------------------
+
+   Four kinds of motion, all of them small, all of them on wall-clock timers
+   rather than on the scroll. The street should read as a place where
+   something is happening, not as an animation.
+
+   Every rule below animates `translate` or `rotate` rather than `transform`.
+   The elements underneath already carry a `transform` *attribute* — their
+   position, scale and facing in the drawing — which maps onto the CSS
+   `transform` property, so animating `transform` would throw all of that
+   away and stack everybody at the origin. The individual transform
+   properties compose with it instead.
+
+   `transform-box: fill-box` makes `transform-origin: 50% 100%` mean "the
+   bottom middle of this shape's own bounding box", which is the feet of a
+   figure, the base of a palm, and the shoulder of a raised arm. One
+   declaration covering all three is the whole reason to use it rather than
+   hand-computing origins in user units per element. */
+
+.street-sway,
+.street-palm,
+.street-arm {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* People crossing the block. Each lap runs clear off both ends of the
+     drawing, where the viewBox crops it, and each starts part-way through
+     so the street is populated on the first frame. */
+  .street-walk {
+    animation: street-walk var(--walk-dur, 54s) linear var(--walk-delay, 0s)
+      infinite;
+  }
+
+  /* The step. A figure that slides is a ghost; a unit and a half of rise on
+     a two-thirds-second cycle is enough to put weight on their feet. Scoped
+     inside `.street-walk` so the people standing around do not bob on the
+     spot. */
+  .street-walk .street-person,
+  .street-walk .street-pram {
+    animation: street-step 0.66s ease-in-out infinite;
+  }
+
+  /* The dog trots, which is a shorter stride than its owner's. */
+  .street-walk .street-dog {
+    animation: street-step 0.4s ease-in-out infinite;
+  }
+
+  /* Standing still, as opposed to being a statue. Every figure gets its own
+     period so the pavement never pulses in time. */
+  .street-sway {
+    animation: street-sway var(--sway-dur, 4.6s) ease-in-out
+      var(--sway-delay, 0s) infinite alternate;
+  }
+
+  .street-palm {
+    animation: street-palm var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s)
+      infinite alternate;
+  }
+
+  /* Waving. Duration and delay come from the element so that two people
+     waving in the same scene are not in lockstep — matched timing reads as
+     a mechanism rather than as two people. */
+  .street-arm {
+    animation: street-wave var(--wave-dur, 1.15s) ease-in-out
+      var(--wave-delay, 0s) infinite alternate;
+  }
+}
+
+@keyframes street-walk {
+  from {
+    translate: var(--walk-from) 0;
+  }
+
+  to {
+    translate: var(--walk-to) 0;
+  }
+}
+
+@keyframes street-step {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -1.6px;
+  }
+}
+
+@keyframes street-sway {
+  from {
+    rotate: -1.5deg;
+  }
+
+  to {
+    rotate: 1.5deg;
+  }
+}
+
+@keyframes street-palm {
+  from {
+    rotate: -2deg;
+  }
+
+  to {
+    rotate: 2.4deg;
+  }
+}
+
+@keyframes street-wave {
+  from {
+    rotate: -20deg;
+  }
+
+  to {
+    rotate: 12deg;
+  }
+}
+
 /* --- The three stops ---------------------------------------------------- */
 
 .story-basics {
