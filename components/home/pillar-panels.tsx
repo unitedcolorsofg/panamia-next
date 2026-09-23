@@ -4,10 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { Pillar, PillarProgram } from './content';
+import { RailNav, useIsRail, useRail } from './rail';
 
 interface PillarPanelsProps {
   pillars: Pillar[];
 }
+
+/* Matches the CSS breakpoint below, where `.pillars` stops being a flex row
+   of spines and becomes a scroll rail. */
+const PILLAR_RAIL_QUERY = '(max-width: 63.99rem)';
 
 /**
  * The three pillars, as expanding panels.
@@ -20,9 +25,19 @@ interface PillarPanelsProps {
  * needs.
  *
  * Above 64rem the closed panels collapse to a spine and the open one takes the
- * remaining width, which is the shape in the sketch. Below that it is an
- * ordinary vertical accordion; vertical spines in a narrow column would just
- * be an unreadable stack of sideways words.
+ * remaining width, which is the shape in the sketch.
+ *
+ * Below that it is a horizontal rail of three whole cards, matching the
+ * questions above it. It was a vertical accordion, which cost the section its
+ * one-screen promise: an open panel plus two closed bars plus the heading ran
+ * 1,117px against an 844px phone, so the section could not be taken in at a
+ * glance no matter how much padding came out of it. As a rail only one pillar
+ * is on screen, so each one gets the full height instead of a third of it,
+ * and nothing has to be cut to make the three fit together.
+ *
+ * On a rail there is no disclosure left — every card is already open — so the
+ * trigger stops being a button rather than sitting there claiming an
+ * `aria-expanded` it no longer controls.
  *
  * One panel is always open, so the section never collapses into three closed
  * bars with nothing to read. That means clicking the open panel is a no-op
@@ -31,55 +46,81 @@ interface PillarPanelsProps {
  */
 export function PillarPanels({ pillars }: PillarPanelsProps) {
   const [active, setActive] = useState(pillars[0].id);
+  const isRail = useIsRail(PILLAR_RAIL_QUERY);
+  const { railRef, rail, syncRail, nudge } = useRail<HTMLDivElement>('.pillar');
 
   return (
-    <div className="pillars">
-      {pillars.map((pillar, index) => {
-        const isOpen = pillar.id === active;
-        return (
-          <section
-            key={pillar.id}
-            className="pillar"
-            data-accent={pillar.accent}
-            data-open={isOpen}
-            aria-labelledby={`pillar-trigger-${pillar.id}`}
-          >
-            <h3 className="pillar-head">
-              <button
-                type="button"
-                id={`pillar-trigger-${pillar.id}`}
-                className="pillar-trigger"
-                aria-expanded={isOpen}
-                aria-controls={`pillar-body-${pillar.id}`}
-                onClick={() => setActive(pillar.id)}
-              >
-                <span className="pillar-index" aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="pillar-name">{pillar.name}</span>
+    <div className="pillars-rail">
+      <div className="pillars" ref={railRef} onScroll={syncRail}>
+        {pillars.map((pillar, index) => {
+          const isOpen = isRail || pillar.id === active;
+          const triggerId = `pillar-trigger-${pillar.id}`;
+          const bodyId = `pillar-body-${pillar.id}`;
+          const label = (
+            <>
+              <span className="pillar-index" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="pillar-name">{pillar.name}</span>
+              {!isRail && (
                 <ArrowRight className="pillar-chev" aria-hidden="true" />
-              </button>
-            </h3>
+              )}
+            </>
+          );
 
-            <div
-              id={`pillar-body-${pillar.id}`}
-              className="pillar-body"
-              hidden={!isOpen}
+          return (
+            <section
+              key={pillar.id}
+              className="pillar"
+              data-accent={pillar.accent}
+              data-open={isOpen}
+              aria-labelledby={triggerId}
             >
-              <p className="pillar-problem">{pillar.problem}</p>
-              <p className="pillar-answer">{pillar.answer}</p>
+              <h3 className="pillar-head">
+                {isRail ? (
+                  <span id={triggerId} className="pillar-trigger">
+                    {label}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    id={triggerId}
+                    className="pillar-trigger"
+                    aria-expanded={isOpen}
+                    aria-controls={bodyId}
+                    onClick={() => setActive(pillar.id)}
+                  >
+                    {label}
+                  </button>
+                )}
+              </h3>
 
-              <ul className="pillar-programs">
-                {pillar.programs.map((program) => (
-                  <li key={program.name}>
-                    <ProgramRow program={program} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        );
-      })}
+              <div id={bodyId} className="pillar-body" hidden={!isOpen}>
+                <p className="pillar-problem">{pillar.problem}</p>
+                <p className="pillar-answer">{pillar.answer}</p>
+
+                <ul className="pillar-programs">
+                  {pillar.programs.map((program) => (
+                    <li key={program.name}>
+                      <ProgramRow program={program} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {isRail && (
+        <RailNav
+          rail={rail}
+          nudge={nudge}
+          className="pillars-nav"
+          prevLabel="Previous pillar"
+          nextLabel="Next pillar"
+        />
+      )}
     </div>
   );
 }

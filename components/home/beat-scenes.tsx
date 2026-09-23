@@ -20,6 +20,8 @@ export function BeatSceneArt({ scene }: { scene: BeatScene }) {
       return <RingScene scene={scene} />;
     case 'map':
       return <MapScene scene={scene} />;
+    case 'banner':
+      return <BannerScene scene={scene} />;
   }
 }
 
@@ -77,17 +79,38 @@ function CollageScene({
    Ring — "why was Pana MIA started?"
    ------------------------------------------------------------------------- */
 
-/** A circular arc as an SVG path. Degrees run clockwise from twelve o'clock,
-    which is how the labels are positioned too, so the two stay in step. */
+/** A point on the dial. Degrees run clockwise from twelve o'clock, which is
+    how the labels are ordered too, so the two stay in step. */
+function polar(deg: number, r: number) {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return [160 + r * Math.cos(rad), 160 + r * Math.sin(rad)] as const;
+}
+
+/** A circular arc as an SVG path. */
 function arcPath(r: number, from: number, to: number) {
-  const point = (deg: number) => {
-    const rad = ((deg - 90) * Math.PI) / 180;
-    return [160 + r * Math.cos(rad), 160 + r * Math.sin(rad)] as const;
-  };
-  const [x1, y1] = point(from);
-  const [x2, y2] = point(to);
+  const [x1, y1] = polar(from, r);
+  const [x2, y2] = polar(to, r);
   const large = Math.abs(to - from) > 180 ? 1 : 0;
   return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+}
+
+/**
+ * The arrowhead that finishes each arc.
+ *
+ * The deck's version of this diagram is two heavy arrows chasing each other
+ * round a circle, and the arrows are the whole argument: the four things are
+ * not a list, they are a loop that feeds itself. Drawn as four bare arcs the
+ * diagram lost that and became a segmented ring, which says "four parts of a
+ * whole" instead.
+ *
+ * Base corners sit either side of the stroke and the tip runs a few degrees
+ * further round, so the head reads as the arc coming to a point rather than a
+ * triangle parked on the end of it.
+ */
+function arrowHead(r: number, at: number, sweep = 9, spread = 16) {
+  return [polar(at + sweep, r), polar(at, r - spread), polar(at, r + spread)]
+    .map(([x, y]) => `${x},${y}`)
+    .join(' ');
 }
 
 const RING_COLOURS = [
@@ -127,6 +150,10 @@ function RingScene({ scene }: { scene: Extract<BeatScene, { kind: 'ring' }> }) {
   return (
     <div className="beat-ring">
       <svg className="ring-dial" viewBox="0 0 320 320" aria-hidden="true">
+        {/* Two passes rather than four groups. The draw-in stagger selects
+            arcs with `:nth-of-type`, which counts within a parent — wrap each
+            arc and its head in a `<g>` and every arc becomes the first path
+            in its own group, so all four animate as one. */}
         {RING_ARCS.map(([from, to], i) => (
           <path
             key={i}
@@ -134,6 +161,15 @@ function RingScene({ scene }: { scene: Extract<BeatScene, { kind: 'ring' }> }) {
             className="ring-arc"
             pathLength={100}
             style={{ stroke: RING_COLOURS[i] }}
+          />
+        ))}
+
+        {RING_ARCS.map(([, to], i) => (
+          <polygon
+            key={i}
+            points={arrowHead(128, to)}
+            className="ring-arrow"
+            style={{ fill: RING_COLOURS[i] }}
           />
         ))}
 
@@ -208,5 +244,51 @@ function MapScene({ scene }: { scene: Extract<BeatScene, { kind: 'map' }> }) {
         </figcaption>
       )}
     </figure>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Banner - "what is Pana MIA?"
+   ------------------------------------------------------------------------- */
+
+/**
+ * The vision, strung across the street on cloth.
+ *
+ * The other three scenes argue: a stack of photographs, a diagram, a map.
+ * This one does not, because the vision is not an argument - it is four
+ * words shouted at a block party. So it gets the object those words would
+ * actually be printed on, hung from bunting, sagging slightly in the middle
+ * the way real cloth does.
+ *
+ * The sag is two things at once: the banner is a trapezoid via `clip-path`
+ * so its bottom edge dips, and the whole thing hangs at a small angle. Both
+ * are deliberately imperfect. A banner pinned up straight and square reads
+ * as a web component; a crooked one reads as something a person put up.
+ *
+ * The words are real text rather than a drawn path, so they stay selectable,
+ * translatable and legible to a screen reader. The bunting is the only part
+ * that is decoration, and it is hidden from the accessibility tree.
+ */
+function BannerScene({
+  scene,
+}: {
+  scene: Extract<BeatScene, { kind: 'banner' }>;
+}) {
+  return (
+    <div className="banner-scene">
+      <div className="banner-bunting" aria-hidden="true">
+        {Array.from({ length: 9 }, (_, i) => (
+          <span
+            key={i}
+            className="banner-flag"
+            style={{ '--i': i } as React.CSSProperties}
+          />
+        ))}
+      </div>
+      <p className="banner-cloth">
+        <span className="banner-headline">{scene.headline}</span>
+        <span className="banner-caption">{scene.caption}</span>
+      </p>
+    </div>
   );
 }
