@@ -5,9 +5,11 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
+  ArrowUpRight,
   BadgeCheck,
   Check,
   Fingerprint,
+  ImagePlus,
   Loader2,
   Mail,
   Trash2,
@@ -172,9 +174,11 @@ export function UserSettingsView({
   const [sessionScreenname, setSessionScreenname] = useState('');
   const [changingEmail, setChangingEmail] = useState(false);
 
-  // Default publishing license (stored on the profile, used to pre-select the
-  // picker when composing new Articles and posts).
+  // The profile record. Backs two things here: the default publishing licence
+  // below, and the avatar signposted from Identity — both live on the profile
+  // rather than the account, which is exactly why they need explaining.
   const { data: profile } = useProfile();
+  const avatarUrl = profile?.images?.primaryCDN ?? null;
   const mutateDefaultLicense = useMutateDefaultLicense();
   const [defaultLicense, setDefaultLicense] =
     useState<CCLicenseValue>('cc-by-4');
@@ -724,6 +728,34 @@ export function UserSettingsView({
             {/* ---- Identity ---------------------------------------------- */}
             <Section id="identity">
               <SettingsCard>
+                {/* First, because it is the only part of "who you are" this
+                    page cannot edit. Leaving it out is what sent members
+                    hunting through the profile pages for it. */}
+                <SettingsRow
+                  label="Profile picture"
+                  note="One image is your avatar everywhere — beside everything you post, on your listing in directory search, and on other fediverse servers. It belongs to your profile rather than your account, so it is changed on a page of its own."
+                  control={
+                    <Link
+                      href="/account/profile/images"
+                      className="settings-btn"
+                      data-variant="quiet"
+                    >
+                      {avatarUrl ? 'Change picture' : 'Add a picture'}
+                      <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  }
+                >
+                  <div className="settings-avatar">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Your current profile picture" />
+                    ) : (
+                      <span className="settings-avatar-empty">
+                        <ImagePlus className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                    )}
+                  </div>
+                </SettingsRow>
+
                 <SettingsRow
                   label="Name"
                   htmlFor="name"
@@ -839,6 +871,24 @@ export function UserSettingsView({
                     </div>
                   )}
                 </SettingsRow>
+
+                {/* The rest of the profile, named so members stop looking for
+                    it here. Bio and links are the next two things people
+                    arrive on this page hoping to change. */}
+                <SettingsRow
+                  label="Your public profile"
+                  note="Your bio, links, categories, and the location shown on your listing are part of your profile, and are edited together in one place."
+                  control={
+                    <Link
+                      href="/account/profile/edit"
+                      className="settings-btn"
+                      data-variant="quiet"
+                    >
+                      Edit profile
+                      <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  }
+                />
               </SettingsCard>
             </Section>
 

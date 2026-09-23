@@ -2712,6 +2712,43 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-ink);
 }
 
+/* The profile picture, previewed on a page that cannot change it.
+   
+   The avatar is stored on the profile record rather than the account, so this
+   row is a signpost. The preview is what stops it reading as one: a member who
+   can see their own face here believes the link goes somewhere relevant, where
+   a bare "Edit images" link is one more thing to gamble a click on. */
+.settings-avatar {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.settings-avatar img {
+  width: 4rem;
+  height: 4rem;
+  flex: none;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  background-color: var(--color-pana-butter-2);
+  object-fit: cover;
+}
+
+/* No picture yet. A dashed edge over butter, so an empty avatar reads as a
+   slot waiting to be filled rather than as an image that failed to load. */
+.settings-avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  flex: none;
+  border-radius: 999px;
+  border: 2px dashed rgb(17 13 13 / 0.22);
+  background-color: var(--color-pana-butter-2);
+  color: rgb(17 13 13 / 0.35);
+}
+
 /* Where a setting takes effect. The load-bearing element of the redesign:
    every group carries one, so a member never has to guess whether changing
    something on the main site follows them into the timeline. */
