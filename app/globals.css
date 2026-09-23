@@ -4486,21 +4486,36 @@ body:has([data-density]) {
 
 /* --- The sky ------------------------------------------------------------ */
 
+/* The "you are visiting a test site" bar is an environment warning, not part
+   of the page: `MainHeader` only renders it when the host is not production,
+   so nobody visiting the real site ever sees it. On a design mock it is a
+   56px band of someone else's navy and magenta sitting above the sky, which
+   makes the mock a less accurate preview than it would be without it.
+
+   Hidden here rather than in `MainHeader`, and scoped to this page, because
+   on every other route of this deployment the warning is doing its job. */
+body:has([data-density]) #call-to-action-bar {
+  display: none;
+}
+
 /* The page opens outdoors.
  *
  * The gradient is on the body rather than on the hero, because the top of the
- * document is not the top of the hero: there is a call-to-action bar and the
- * masthead above it. Painting the sky on the hero would have left a cream bar
- * sitting across it, which is the cut-out seam this page has already been
- * through once. On the body it runs behind everything, and the masthead is
- * made transparent below so the sky simply continues through it.
+ * document is not the top of the hero: the masthead sits above it. Painting
+ * the sky on the hero would have left a cream bar sitting across it, which is
+ * the cut-out seam this page has already been through once. On the body it
+ * runs behind everything, and the masthead is made transparent below so the
+ * sky simply continues through it.
  *
  * Measured in pixels, in page coordinates, so the bands land in fixed places:
- * the CTA bar occupies 0–56 and the masthead 56–121, and the sky holds one
- * flat tone across all of that so the bar sits on a single colour instead of
- * a ramp. Full strength only *below* the chrome, where nothing has to be read
- * on it, and back to paper before the hero's wordmark arrives — orange on
- * vivid blue is a poor pairing, and the wordmark is not negotiable.
+ * the masthead occupies 0–65, and the sky holds one flat tone across all of
+ * it so the chrome sits on a single colour instead of a ramp. Full strength
+ * only *below* the masthead, where nothing has to be read on it, and back to
+ * paper before the hero's wordmark arrives — orange on vivid blue is a poor
+ * pairing, and the wordmark is not negotiable.
+ *
+ * These offsets are 56px higher up the page than they used to be, which is
+ * the height of the test-site bar hidden just above.
  *
  * `--story-sky-high` is capped at 78% blue for exactly one reason: the
  * masthead's own ink type sits on it. */
@@ -4510,10 +4525,10 @@ body:has([data-density]) {
   background-image: linear-gradient(
     180deg,
     var(--story-sky-high) 0,
-    var(--story-sky-high) 121px,
-    var(--story-blue) 190px,
-    var(--story-sky-low) 285px,
-    var(--story-cream) 360px
+    var(--story-sky-high) 65px,
+    var(--story-blue) 134px,
+    var(--story-sky-low) 229px,
+    var(--story-cream) 304px
   );
 }
 
@@ -4605,6 +4620,16 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
      subtree entirely. See the handover rule below. */
   view-timeline-name: --home-hero;
   view-timeline-axis: block;
+  /* Both layers below end in solid cream, and a background tile repeats by
+     default. The masthead is 65.375px tall, so this box starts on a half
+     pixel — and the bottom edge of the tile repeating *above* the box, which
+     is solid cream, bleeds into that fractional first row. It rendered as a
+     1px cream hairline across the full width, sitting exactly on the join
+     between the masthead and the hero, which is precisely the cut-out seam
+     this page has already been through twice.
+
+     There is only ever one tile here, so repeating was never wanted. */
+  background-repeat: no-repeat;
   background-image:
     /* The haze. Zero alpha at the top edge — anything else would put back the
        hard line this exists to remove — reaching full paper by 250px, which
