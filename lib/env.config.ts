@@ -119,24 +119,25 @@ export const envConfig: Record<string, EnvVarConfig> = {
       'Registrable domain the panaverse surfaces hang off. Each surface in ' +
       'lib/panaverse/surfaces.ts is a subdomain of this (social.<root>, …), and ' +
       'the Worker uses it to route a surface hostname to that surface. Defaults ' +
-      'to panamia.club. Unset or unmatched hosts — localhost, *.workers.dev — ' +
+      'to pana.social. Unset or unmatched hosts — localhost, *.workers.dev — ' +
       'fall back to the main site with every route reachable, as before surfaces.',
     location: 'VAR',
     required: false,
-    example: 'panamia.club',
+    example: 'pana.social',
   },
 
   PANAVERSE_COOKIE_DOMAIN: {
     description:
       'Cookie domain shared by the panaverse surfaces, so one sign-in carries ' +
-      'across panamia.club and social.panamia.club. Leave unset to keep ' +
+      'across pana.social and social.pana.social. Leave unset to keep ' +
       'host-only cookies, which is how every existing session was issued — ' +
-      'setting this re-scopes cookies and signs current users out once. Must be ' +
-      'the registrable domain; it cannot reach the fediverse identity domain, ' +
-      'which is a separate registrable domain needing an OAuth handoff.',
+      'setting this re-scopes cookies and signs current users out once, so do ' +
+      'it as part of launching the social surface, not before. Must be the ' +
+      'registrable domain, which now also carries the fediverse identity host: ' +
+      'a ".pana.social" cookie is sent to relay.pana.social as well.',
     location: 'VAR',
     required: false,
-    example: '.panamia.club',
+    example: '.pana.social',
   },
 
   // =============================================================================

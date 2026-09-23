@@ -63,7 +63,7 @@ export function wearsOwnChrome(pathname: string | null | undefined): boolean {
  *
  * Every route stays reachable from every hostname — that is a deliberate
  * property of the registry, not an oversight, because one deploy serves the
- * whole panaverse. The consequence is that social.panamia.club/directory/search
+ * whole panaverse. The consequence is that social.pana.social/directory/search
  * renders the main site's directory, and until now it rendered it with no
  * header, no footer and no link home: the root layout withheld main-site chrome
  * on surface hostnames, and Pana Social had none of its own to put there. A
@@ -93,4 +93,39 @@ export function wearsGuestChrome(
   if (surface.id === DEFAULT_SURFACE.id) return false;
   if (wearsOwnChrome(pathname)) return false;
   return surfaceForPath(normalisePath(pathname)).id !== surface.id;
+}
+
+/**
+ * Is this surface serving one of its own rooms, and therefore owed its own
+ * masthead?
+ *
+ * This is the case the other two predicates leave uncovered, and it was the
+ * one a member actually lived in. The root layout withholds MainHeader and
+ * MainFooter on surface hostnames — correctly, because the Pana Mia masthead
+ * over a timeline is what made Pana Social read as a section of the main site
+ * rather than a place of its own. `wearsGuestChrome` then covers pages a
+ * surface has borrowed. Between them sat the surface's *own* front door:
+ * social.pana.social/s matched neither, so the timeline rendered with no
+ * header, no footer, no nav and no route back to Pana Mia. A signed-in member
+ * on the surface built for them got the barest page on the site.
+ *
+ * Three exclusions, matching the predicates this sits beside:
+ *   - The main site has MainHeader; this is only for surfaces that would
+ *     otherwise render bare.
+ *   - Doorways (`wearsOwnChrome`) frame themselves on every surface.
+ *   - Borrowed pages get the guest bar, which says whose page it is — a full
+ *     surface masthead there would claim the surface owns it.
+ *
+ * An unknown path returns false, for the same reason `wearsGuestChrome` does:
+ * the pathname is absent only when the request did not come through the
+ * Worker, and rendering the page as it renders today is the safer failure.
+ */
+export function wearsSurfaceChrome(
+  surface: PanaverseSurface,
+  pathname: string | null | undefined
+): boolean {
+  if (!pathname) return false;
+  if (surface.id === DEFAULT_SURFACE.id) return false;
+  if (wearsOwnChrome(pathname)) return false;
+  return !wearsGuestChrome(surface, pathname);
 }
