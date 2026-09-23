@@ -64,7 +64,15 @@ export const SURFACES: readonly PanaverseSurface[] = [
     tagline: 'The directory, the org, and how to get involved.',
     subdomain: null,
     rootPath: '/',
-    paths: ['/directory', '/directorio', '/d', '/listings', '/venues', '/a'],
+    paths: [
+      '/directory',
+      '/directorio',
+      '/d',
+      '/listings',
+      '/venues',
+      '/a',
+      '/p',
+    ],
   },
   {
     id: 'social',
@@ -72,7 +80,7 @@ export const SURFACES: readonly PanaverseSurface[] = [
     tagline: 'The community timeline, federated with the fediverse.',
     subdomain: 'social',
     rootPath: '/s',
-    paths: ['/s', '/p', '/timeline', '/inbox'],
+    paths: ['/s', '/timeline', '/inbox'],
   },
 ];
 
@@ -221,8 +229,25 @@ export function resolveSurface(
   return DEFAULT_SURFACE;
 }
 
+/**
+ * A Pana Social post permalink, reached by clicking a timestamp in the feed.
+ *
+ * `/p` is split between the surfaces rather than owned by one of them.
+ * `/p/<user>` is a public directory profile: server-rendered Pana Mia content,
+ * and the page whose duplicate copy actually costs a ranking. `/p/<user>/<id>`
+ * is a social post — client-rendered status, replies and composer. Prefix
+ * matching cannot express "www owns the parent, social owns the child", so the
+ * deeper route is claimed explicitly, before the prefix scan runs.
+ *
+ * Without this, moving `/p` to www would frame every post permalink on Pana
+ * Social as a borrowed Pana Mia page, on the one route members reach straight
+ * from the feed.
+ */
+const POST_PERMALINK = /^\/p\/[^/]+\/[^/]+/;
+
 /** The surface a path belongs to, for the switcher's active state. */
 export function surfaceForPath(pathname: string): PanaverseSurface {
+  if (POST_PERMALINK.test(pathname)) return getSurface('social');
   const match = SURFACES.filter((s) => s.id !== DEFAULT_SURFACE.id).find((s) =>
     s.paths.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
