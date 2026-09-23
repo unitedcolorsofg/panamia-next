@@ -47,3 +47,19 @@ export function isNewAccount(
   // as new would redirect the member on every load.
   return created <= now && now - created < NEW_ACCOUNT_WINDOW_MS;
 }
+
+/**
+ * Routes that are themselves about getting set up.
+ *
+ * Anything that nudges a member toward finishing setup has to stay quiet here,
+ * or it ends up arguing with the page. The gate would bounce a member off the
+ * very page asking the question, and the masthead's "Complete your profile"
+ * bar would appear on `/welcome` pointing at `/welcome` — a member being told
+ * to go where they already are.
+ */
+export function isOnboardingRoute(
+  pathname: string | null | undefined
+): boolean {
+  if (!pathname) return false;
+  return pathname.startsWith('/welcome') || pathname.startsWith('/signin');
+}

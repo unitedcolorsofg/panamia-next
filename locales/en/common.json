@@ -88,7 +88,18 @@
     "checkFailed": "Could not check that name. Try again.",
     "setFailed": "Could not save that screenname. Try again.",
     "finishSetup": "Finish setting up",
-    "finishSetupHint": "Pick a screenname to post and follow"
+    "finishSetupHint": "Pick a screenname to post and follow",
+    "startEyebrow": "You're all set",
+    "startTitle": "Where do you want to start?",
+    "startBody": "You're @{{screenname}} now. All of this stays open to you — this is just the quickest way in.",
+    "startDirectoryTitle": "Explore the directory",
+    "startDirectoryBody": "Find the makers, shops, and artists around you.",
+    "startSocialTitle": "Join the conversation",
+    "startSocialBody": "Pana Social is the community timeline. Post, follow, reply.",
+    "startBusinessDivider": "Or",
+    "startBusinessTitle": "List your business",
+    "startBusinessBody": "Run a shop, a studio, or a stand? Get listed so people can find you.",
+    "startSkip": "I'll find my own way around"
   },
   "footer": {
     "panaMia": "PanaMia",
