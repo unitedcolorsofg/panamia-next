@@ -1039,15 +1039,6 @@ function Walker({
   delay?: number;
   children: ReactNode;
 }) {
-  /* Where the lap would have put this figure on its first frame, for the
-     reduced-motion park in `globals.css`. The delay is negative, so the
-     fraction of the lap already run is `-delay / dur` — modulo'd so a delay
-     longer than one lap still lands somewhere sensible rather than off the
-     end. Deriving it here means the still street and the moving one cannot
-     drift apart: there is one set of numbers, not two. */
-  const lap = dur > 0 ? (((-delay % dur) + dur) % dur) / dur : 0;
-  const park = Math.round((from + (to - from) * lap) * 10) / 10;
-
   return (
     <g
       className="street-walk"
@@ -1055,7 +1046,6 @@ function Walker({
         {
           '--walk-from': `${from}px`,
           '--walk-to': `${to}px`,
-          '--walk-park': `${park}px`,
           '--walk-dur': `${dur}s`,
           '--walk-delay': `${delay}s`,
         } as CSSProperties
