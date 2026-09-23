@@ -5421,11 +5421,11 @@ body:has([data-density]) {
   text-align: center;
 }
 
-/* Short laptops. The row of three is a fixed cost, so what gives is the
+/* Short laptops. The row of four is a fixed cost, so what gives is the
    introduction around it: the band padding, the gap under the heading, the
-   display ceiling and the shop window. Width-gated, because below 60rem the
+   display ceiling and the shop window. Width-gated, because below 72rem the
    section is a rail and none of this applies. */
-@media (max-height: 50rem) and (min-width: 60rem) {
+@media (max-height: 50rem) and (min-width: 72rem) {
   .story-basics {
     --home-pad: 2rem;
     --home-head-gap: 1.25rem;
@@ -5435,10 +5435,23 @@ body:has([data-density]) {
 }
 
 /* Shorter still. */
-@media (max-height: 42rem) and (min-width: 60rem) {
+@media (max-height: 42rem) and (min-width: 72rem) {
   .story-basics {
     --home-pad: 1.5rem;
     --home-head-gap: 1rem;
+    --home-display-max: 2.25rem;
+    --home-beat-art: 8.5rem;
+  }
+}
+
+/* Short and narrow: the small-laptop rail. The two tiers above are gated to
+   the four-across layout, so without this a 1024x640 window falls through to
+   the full-height defaults and overruns by about sixty pixels. Same trade as
+   the tiers above — the frame around the rail gives, the cards do not. */
+@media (max-width: 71.99rem) and (max-height: 44rem) {
+  .story-basics {
+    --home-pad: 1.25rem;
+    --home-head-gap: 0.9rem;
     --home-display-max: 2.25rem;
     --home-beat-art: 8.5rem;
   }
@@ -5527,14 +5540,19 @@ body:has([data-density]) {
 
 .beats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--home-beat-gap, 1.25rem);
-  width: min(100% - 2rem, 80rem);
+  /* Wider than the other sections because four shopfronts have to stand in
+     the row that used to hold three. At the narrow end of this layout each
+     card is about 265px, which is the floor: any narrower and the questions
+     start wrapping to three lines and the row stops reading as a street. The
+     rail below takes over before that happens. */
+  width: min(100% - 2rem, 84rem);
   margin-inline: auto;
-  /* Stretched, so the three shopfronts are the same size whatever their copy
+  /* Stretched, so the four shopfronts are the same size whatever their copy
      does. The signs hang level either way — the shop windows above them are a
-     fixed height — but three cards of three different depths standing in a
-     row read as three unfinished cards rather than as a block of shops.
+     fixed height — but four cards of four different depths standing in a
+     row read as four unfinished cards rather than as a block of shops.
      Nothing is lost by it: the open note is drawn over its card rather than
      pushed under it, so no stop can grow the row it stands in. */
   align-items: stretch;
@@ -5582,6 +5600,13 @@ body:has([data-density]) {
   --beat-on-accent: var(--story-ink);
 }
 
+/* Ink on red, not cream: cream on this red is 3.45:1, which is under AA for
+   the sign's body weight, while ink is 5.27:1. */
+.beat[data-accent='red'] {
+  --beat-accent: var(--story-red);
+  --beat-on-accent: var(--story-ink);
+}
+
 /* The artwork sits in a shop window: one fixed height across all three, so
    the three signs hang at the same level and the row reads as a street rather
    than as three cards that happen to be adjacent. Cream rather than an accent
@@ -5617,10 +5642,16 @@ body:has([data-density]) {
   --beat-in: 34px;
 }
 
-/* Below three-across, the row becomes a swipeable rail rather than a stack:
-   the three questions stay one gesture apart instead of three screens, and
-   the half-visible neighbour is the affordance that says so. */
-@media (max-width: 59.99rem) {
+/* Below four-across, the row becomes a swipeable rail rather than a stack:
+   the four questions stay one gesture apart instead of four screens, and
+   the half-visible neighbour is the affordance that says so.
+
+   The cutover is 72rem rather than the 60rem it was at three cards. Four
+   columns in 1024px leaves each card about 230px, which is narrower than the
+   artwork wants and tall enough to cost the section its one-screen fit; a
+   rail at that width keeps all four one gesture apart and the section one
+   screen. Laptops that used to get three-across now swipe. */
+@media (max-width: 71.99rem) {
   .beats {
     grid-template-columns: none;
     grid-auto-flow: column;
@@ -6022,7 +6053,14 @@ body:has([data-density]) {
 
 .ring-label {
   position: relative;
-  max-width: 11rem;
+  /* Bounded by its own column rather than by a fixed ceiling. The four-across
+     row leaves each column about 58px, and an 11rem ceiling let the longer
+     labels spill sideways into their neighbours. Hyphenation is what makes
+     58px survivable: "Environmental" does not fit on one line at any size
+     this artwork can afford, so it breaks at a syllable instead of
+     overflowing or being chopped mid-word. */
+  max-width: 100%;
+  hyphens: auto;
   text-align: center;
   font-size: 0.5625rem;
   font-weight: 900;
@@ -6057,6 +6095,109 @@ body:has([data-density]) {
 
 /* `overflow: hidden` is what the rise is animating against: the map starts
    below its own frame and comes up into it. */
+/* -------------------------------------------------------------------------
+   Banner scene — "what is Pana MIA?"
+   ------------------------------------------------------------------------- */
+
+.banner-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  padding-inline: 0.5rem;
+}
+
+/* Bunting. A row of pennants rather than a drawn string, because the flags
+   are the only part that has to survive being squeezed: at the narrow end of
+   the four-across row this is 240px wide, and nine flexed triangles shrink
+   evenly where a fixed-width SVG would clip. */
+.banner-bunting {
+  display: flex;
+  justify-content: center;
+  gap: 0.28rem;
+  width: 100%;
+  /* Sits on the line the flags hang from, which is the top of the cloth. */
+  margin-bottom: -0.15rem;
+}
+
+.banner-flag {
+  flex: 1 1 0;
+  max-width: 1.15rem;
+  aspect-ratio: 1 / 1.35;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  /* Four colours cycling across nine flags, so no two neighbours match and
+     the run never reads as a repeating pair. */
+  background: var(--flag);
+}
+
+.banner-flag:nth-child(4n + 1) {
+  --flag: var(--story-orange);
+}
+
+.banner-flag:nth-child(4n + 2) {
+  --flag: var(--story-blue);
+}
+
+.banner-flag:nth-child(4n + 3) {
+  --flag: var(--story-coral);
+}
+
+.banner-flag:nth-child(4n + 4) {
+  --flag: var(--story-red);
+}
+
+/* Every other flag hangs a touch lower, the way bunting does when the string
+   is not taut. */
+.banner-flag:nth-child(odd) {
+  margin-top: 0.22rem;
+}
+
+/* The cloth. Hung at a slight angle, because a banner pinned up straight and
+   square reads as a web component and a crooked one reads as something a
+   person put up.
+
+   Square-cornered with a real border rather than clipped into a pennant dip:
+   `clip-path` cuts the border box, so a dipped banner loses its bottom edge
+   and reads as an unfinished box. Faking the outline back on with stacked
+   drop-shadows works in principle but goes soft and grey along the rotated
+   edges, which is worse than not having the dip at all. The border also
+   matches the sign below it, so the card reads as two things on one wall. */
+.banner-cloth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: min(100% - 0.75rem, 20rem);
+  padding: 0.95rem 1.1rem 0.85rem;
+  background: var(--story-cream);
+  border: 3px solid var(--story-ink);
+  box-shadow: 4px 4px 0 rgb(2 8 17 / 0.16);
+  transform: rotate(-1.4deg);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.banner-headline {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.15rem, 2.4vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--story-blue);
+}
+
+.banner-caption {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.62);
+}
+
 .statemap-frame {
   width: min(100%, calc((var(--home-beat-art, 12rem) - 1.5rem) * 1.32));
   overflow: hidden;
@@ -6909,7 +7050,7 @@ a.pillar-program:hover {
        travel along, so each of these would sit at 0% forever. Turned off
        rather than re-ranged: each one's resting state is its own base style,
        so switching the animation off is what shows the finished artwork. */
-    @media (max-width: 59.99rem) {
+    @media (max-width: 71.99rem) {
       .beat-art,
       .beat-copy,
       .collage-print,

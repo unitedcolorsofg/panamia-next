@@ -20,6 +20,8 @@ export function BeatSceneArt({ scene }: { scene: BeatScene }) {
       return <RingScene scene={scene} />;
     case 'map':
       return <MapScene scene={scene} />;
+    case 'banner':
+      return <BannerScene scene={scene} />;
   }
 }
 
@@ -242,5 +244,51 @@ function MapScene({ scene }: { scene: Extract<BeatScene, { kind: 'map' }> }) {
         </figcaption>
       )}
     </figure>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Banner - "what is Pana MIA?"
+   ------------------------------------------------------------------------- */
+
+/**
+ * The vision, strung across the street on cloth.
+ *
+ * The other three scenes argue: a stack of photographs, a diagram, a map.
+ * This one does not, because the vision is not an argument - it is four
+ * words shouted at a block party. So it gets the object those words would
+ * actually be printed on, hung from bunting, sagging slightly in the middle
+ * the way real cloth does.
+ *
+ * The sag is two things at once: the banner is a trapezoid via `clip-path`
+ * so its bottom edge dips, and the whole thing hangs at a small angle. Both
+ * are deliberately imperfect. A banner pinned up straight and square reads
+ * as a web component; a crooked one reads as something a person put up.
+ *
+ * The words are real text rather than a drawn path, so they stay selectable,
+ * translatable and legible to a screen reader. The bunting is the only part
+ * that is decoration, and it is hidden from the accessibility tree.
+ */
+function BannerScene({
+  scene,
+}: {
+  scene: Extract<BeatScene, { kind: 'banner' }>;
+}) {
+  return (
+    <div className="banner-scene">
+      <div className="banner-bunting" aria-hidden="true">
+        {Array.from({ length: 9 }, (_, i) => (
+          <span
+            key={i}
+            className="banner-flag"
+            style={{ '--i': i } as React.CSSProperties}
+          />
+        ))}
+      </div>
+      <p className="banner-cloth">
+        <span className="banner-headline">{scene.headline}</span>
+        <span className="banner-caption">{scene.caption}</span>
+      </p>
+    </div>
   );
 }

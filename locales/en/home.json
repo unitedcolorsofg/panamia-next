@@ -120,9 +120,20 @@
     "label": "Pana Mia's neighbourhood"
   },
   "basics": {
-    "title": "What is <em>Pana MIA</em>?"
+    "title": "The <em>basics</em>"
   },
   "beats": {
+    "panamia": {
+      "question": "What is Pana MIA?",
+      "answer": "A club that connects South Florida to its own: the small businesses, creatives and organizations who make this place what it is.",
+      "more": "Read the mission",
+      "banner": {
+        "headline": "The future is local!",
+        "caption": "Pana MIA Club"
+      },
+      "mission": "Pana MIA Club serves as a community connector to promote everything local in South Florida — small businesses, creatives, and organizations — in order to achieve a more regenerative future.",
+      "promise": "That is the whole idea. Everything else on this page is a way of doing it."
+    },
     "pana": {
       "question": "What's a pana?",
       "aside": "/pah·nah/",
@@ -168,7 +179,7 @@
     "why": {
       "question": "Why was Pana MIA started?",
       "answer": "So that nobody with an idea for how to make South Florida better had to start at ground zero.",
-      "more": "Read the mission",
+      "more": "Read why it exists",
       "ring": {
         "centre": "Pana MIA Club",
         "items": [
@@ -178,7 +189,6 @@
           "Community Well-Being"
         ]
       },
-      "mission": "Pana MIA Club serves as a community connector to promote everything local in South Florida — small businesses, creatives, and organizations — in order to achieve a more regenerative future.",
       "invitation": "Use this community to launch your ideas, get feedback, and grow skills, all for the benefit of South Florida. We don’t believe in competition and we reject the scarcity mindset.",
       "values": {
         "label": "What we hold to",
