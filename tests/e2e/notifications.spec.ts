@@ -107,7 +107,9 @@ test.describe('Notifications in Navigation', () => {
     // shown to every visitor. Wait for the unauthenticated branch to actually
     // render, which is the proof that the gate evaluated, and only then assert
     // the authenticated control is absent.
-    await expect(page.locator('a:has-text("Sign In")')).toBeVisible({
+    await expect(
+      page.getByRole('button', { name: 'Sign in or sign up' })
+    ).toBeVisible({
       timeout: 15000,
     });
 
@@ -124,9 +126,12 @@ test.describe('Notifications in Navigation', () => {
     // Wait for header to load
     await page.waitForSelector('header');
 
-    // Sign In link should be visible (inside a Button with asChild)
-    // Use text locator as fallback since the Button wrapper may affect role detection
-    const signInLink = page.locator('a:has-text("Sign In")');
-    await expect(signInLink).toBeVisible({ timeout: 10000 });
+    // The masthead offers one control to unauthenticated visitors: a button
+    // that opens the sign-in/sign-up menu. It is a <button>, not a link, so
+    // match it by its accessible name rather than by anchor text.
+    const signInButton = page.getByRole('button', {
+      name: 'Sign in or sign up',
+    });
+    await expect(signInButton).toBeVisible({ timeout: 10000 });
   });
 });

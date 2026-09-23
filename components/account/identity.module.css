@@ -249,6 +249,42 @@
   opacity: 0.85;
 }
 
+/* Sits in the avatar's column so a site row lines its label up with the
+   account rows above it, rather than starting 34px to their left. */
+.siteIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  opacity: 0.7;
+}
+
+/* An offering that is named but not built. Dimmed and not a link: a row that
+   looks clickable and goes nowhere is worse than one that says it is not
+   ready, and the badge beside it is what says so. */
+.rowComingSoon {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.rowComingSoon:hover {
+  background-color: transparent;
+}
+
+/* The only row in this menu that cannot be undone by clicking it again, and it
+   sits directly beneath Account settings. The tint is a speed bump, not an
+   alarm — loud enough to catch a mis-aimed cursor, quiet enough that it does
+   not read as an error state every time the menu opens. */
+.rowSignOut .rowName {
+  color: rgb(158 42 42);
+}
+
+.rowSignOut:hover,
+.rowSignOut:focus-visible {
+  background-color: rgb(158 42 42 / 0.08);
+}
+
 .error {
   padding: 4px 12px 8px;
   color: var(--color-pana-burnt);

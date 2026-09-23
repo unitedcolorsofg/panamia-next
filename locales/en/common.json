@@ -1,15 +1,31 @@
 {
+  "authMenu": {
+    "heading": "Join the club",
+    "open": "Sign in or sign up",
+    "signInHint": "Welcome back, Pana",
+    "signUpHint": "New here? Create your account"
+  },
   "identity": {
     "account": "Account",
     "actingAs": "Acting as",
     "backToYou": "Back to you",
     "business": "Business",
+    "comingSoon": "Coming soon",
     "inactive": "Draft",
     "listBusiness": "List your business",
     "listBusinessHint": "Add a shop, studio or service",
     "manager": "Manager",
     "owner": "Owner",
+    "panaSites": "Pana Sites",
     "settings": "Account settings",
+    "sites": {
+      "directory": "Directory",
+      "events": "Events",
+      "getInvolved": "Get Involved",
+      "panaInk": "PanaInk",
+      "panaSocial": "Pana Social",
+      "panaVizion": "PanaVizión"
+    },
     "switchAccount": "Switch account",
     "you": "You",
     "yourProfile": "Your profile"
