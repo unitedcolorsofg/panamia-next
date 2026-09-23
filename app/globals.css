@@ -5640,6 +5640,83 @@ body:has([data-density]) {
   color: var(--story-ink);
 }
 
+/* --- The county shortcuts and the donate ask ---------------------------- */
+
+/* Deliberately slimmer than a real band: `--home-pad` would give this the
+   same weight as the pillars, and it is a signpost, not a section. It sits
+   on paper rather than carrying the ink band above it further down, so the
+   dark block ends where its argument ends. */
+.story-localrow {
+  padding-block: calc(var(--home-pad) * 0.42);
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.localrow-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2.5rem;
+}
+
+.localrow-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.localrow-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.localrow-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.localrow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(2 8 17 / 0.18);
+  border-radius: 999px;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--story-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.localrow-chip:hover {
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* Set apart from the counties on purpose. Three outlined chips and a fourth
+   that looks identical would read as four of the same thing, and clicking
+   "Palm Beach" then "Donate" should not feel like the same gesture. */
+.localrow-chip-give {
+  border-color: var(--story-orange);
+  background-color: var(--story-orange);
+}
+
+.localrow-chip-give:hover {
+  border-color: var(--story-coral);
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
 /* --- The three pillars: expanding panels -------------------------------- */
 
 .pillars {

@@ -8,6 +8,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ScrollReveal from '@/components/scroll-reveal';
 import { searchPath } from '@/lib/directory-search-path';
+import { countyList } from '@/lib/lists';
 import { MockControls, type Density } from './mock-controls';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
@@ -82,6 +83,7 @@ export function HomeMock() {
         <InfoCard />
         <PillarsCard />
         <PointCard />
+        <LocalRow />
 
         {/* Every mock says where it came from, so a screenshot taken out of
             context still names its own route. */}
@@ -364,6 +366,61 @@ function PointCard() {
 
             <Link href="/a" className="link-arrow story-point-accent mt-10">
               Read the dispatches
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   5. Where to go next
+   ------------------------------------------------------------------------- */
+
+/**
+ * The county shortcuts and the donate ask, rehoused.
+ *
+ * These four used to sit under the search bar. They were the first thing
+ * below the mission and they were competing with the search field for the
+ * same job — "pick a county" is a narrower version of "search" — while
+ * Donate was asking for money from someone who had not yet been told what
+ * the club does. Both were in the wrong place, not wrong.
+ *
+ * Down here they are in the right one. The page has made its case by now,
+ * so a reader arriving at this row has either finished it or scrolled to
+ * the bottom looking for exactly this kind of thing. It is the last band
+ * before the footer and it does what the footer cannot: it offers the two
+ * concrete next moves, at a size you can hit.
+ *
+ * Donate is set apart rather than styled as a fourth county, because it is
+ * a different kind of ask and reading it as one of four would be a trap.
+ */
+function LocalRow() {
+  return (
+    <section className="home-section story-localrow">
+      <div className="container mx-auto px-4" data-rv>
+        <div className="localrow-inner">
+          <div className="localrow-group">
+            <span className="localrow-label">Browse by county</span>
+            <div className="localrow-links">
+              {countyList.map((county) => (
+                <Link
+                  key={county.value}
+                  href={`/directory/search?floc=${county.value}`}
+                  className="localrow-chip"
+                >
+                  {county.desc}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="localrow-group localrow-group-give">
+            <span className="localrow-label">Keep it running</span>
+            <Link href="/donate" className="localrow-chip localrow-chip-give">
+              Donate
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
