@@ -370,17 +370,22 @@
   }
 }
 
-/* Flame pill. Ink text, not cream — cream on flame is 2.42:1 and fails. */
+/* Flame pill. Ink text, not cream — cream on flame is 2.42:1 and fails.
+   Now a <button> rather than an <a>: it opens the auth menu instead of
+   navigating, so it has to undo the UA button defaults the anchor never had. */
 .cta {
   display: inline-flex;
   align-items: center;
   padding: 0.55rem 1.1rem;
+  border: 0;
   border-radius: 9999px;
   background-color: var(--color-pana-flame);
   color: var(--color-pana-ink);
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 800;
   white-space: nowrap;
+  cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
@@ -388,27 +393,16 @@
   background-color: var(--color-pana-burnt);
 }
 
-/* Borderless text action so the right column stays narrow enough to keep the
-   logo centered. */
-.login {
-  padding: 0.5rem 0.25rem;
-  color: var(--color-pana-ink);
-  font-size: 0.875rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.login:hover {
-  color: var(--color-pana-burnt);
-  text-decoration: underline;
+.cta:focus-visible {
+  outline: 2px solid var(--color-pana-indigo);
+  outline-offset: 2px;
 }
 
 /* Below this width the right column outgrows its 1fr share and pushes the logo
-   off centre. Both the menu word and the login link are mirrored inside the
-   drawer, so nothing becomes unreachable. */
+   off centre. The menu word is mirrored inside the drawer, so nothing becomes
+   unreachable. */
 @media (max-width: 559px) {
-  .menuLabel,
-  .login {
+  .menuLabel {
     display: none;
   }
 }

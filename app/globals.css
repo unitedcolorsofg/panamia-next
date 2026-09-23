@@ -4659,6 +4659,13 @@ body:has([data-density]) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
+  /* Foliage. Worn straight by the palm fronds and the street tree, and pulled
+     into ink for the gator so he stays in front of the canopy rather than
+     dissolving into it. Kept at the same chroma and lightness as the blue and
+     the coral so it sits in the family rather than looking pasted in from
+     another palette. */
+  --story-green: #2f9e57;
+
   /* Blue let down towards cream. A fixed mix rather than a `color-mix()` call
      repeated at every use, so it still reads as a number when someone checks
      the maths later. The page no longer opens on a band of sky, so the only
@@ -4911,6 +4918,65 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 .home-hero-field {
   position: relative;
   overflow: hidden;
+}
+
+/* The sun. Sat in the top-left because the right-hand end of the masthead is
+   already spoken for by Sign Up / Sign In and the middle by the wordmark, so
+   the left is the only corner of the band where something can be bright
+   without competing with something you are supposed to click.
+
+   Everything here is `currentColor` off one declaration, which is what keeps
+   the core, the halo and the rays reading as one object rather than as three
+   orange things that happen to be concentric. */
+.sky-sun {
+  position: absolute;
+  top: 11%;
+  left: 5.5%;
+  width: clamp(62px, 7.5vw, 104px);
+  height: auto;
+  color: var(--story-orange);
+}
+
+.sky-sun-core {
+  fill: currentColor;
+  opacity: 0.85;
+}
+
+.sky-sun-ray {
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.42;
+}
+
+/* The halo breathes, and it is the only thing here that moves: the disc and
+   the rays are fixed. A sun that rotates is the single element on this page
+   that would be a fair vestibular complaint, and it would also be the only
+   spinning object anywhere in the illustration — a slow swell of heat is both
+   kinder and more like weather.
+
+   `transform-box: fill-box` for the same reason as the street: without it
+   `transform-origin: 50% 50%` resolves against the whole viewBox and the
+   halo scales off toward the corner instead of about its own centre. */
+.sky-sun-halo {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: home-sun-breathe 7.5s ease-in-out infinite alternate;
+}
+
+@keyframes home-sun-breathe {
+  from {
+    scale: 0.93;
+    opacity: 0.22;
+  }
+
+  to {
+    scale: 1.08;
+    opacity: 0.46;
+  }
 }
 
 /* Each cloud is one colour in `currentColor`, so its overlapping parts cannot
@@ -5489,9 +5555,18 @@ body:has([data-density]) {
 
 .street-sway,
 .street-palm,
-.street-arm {
+.street-arm,
+.street-gator {
   transform-box: fill-box;
   transform-origin: 50% 100%;
+}
+
+/* The tail hinges on its own right edge, which is precisely where it meets
+   the body — so the swish pivots at the hips instead of pumping the whole
+   tail up and down like a lever. */
+.street-gator-tail {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
 }
 
 /* Also deliberately ungated — see the note on `.sky-cloud` above. The people
@@ -5518,6 +5593,19 @@ body:has([data-density]) {
 /* The dog trots, which is a shorter stride than its owner's. */
 .street-walk .street-dog {
   animation: street-step 0.4s ease-in-out infinite;
+}
+
+/* The gator does not trot and does not bob. Alligators walk by rolling the
+   body side to side over short legs, so it gets a slow see-saw and a tail
+   swish on the same clock instead — both a good deal slower than the dog,
+   because a brisk gator reads as a cartoon and this one is meant to read as
+   an ordinary Tuesday. */
+.street-walk .street-gator {
+  animation: street-waddle 1.7s ease-in-out infinite;
+}
+
+.street-walk .street-gator-tail {
+  animation: street-tail 1.7s ease-in-out infinite alternate;
 }
 
 /* Standing still, as opposed to being a statue. Every figure gets its own
@@ -5578,6 +5666,29 @@ body:has([data-density]) {
 
   to {
     rotate: 2.4deg;
+  }
+}
+
+/* A full cycle rather than an alternate, so the roll passes through level
+   twice per stride the way a real four-legged gait does. */
+@keyframes street-waddle {
+  0%,
+  100% {
+    rotate: -1.5deg;
+  }
+
+  50% {
+    rotate: 1.5deg;
+  }
+}
+
+@keyframes street-tail {
+  from {
+    rotate: -3.5deg;
+  }
+
+  to {
+    rotate: 3.5deg;
   }
 }
 
