@@ -109,6 +109,15 @@
     // deployment — pointing this at it sends every cross-surface link and
     // canonical URL to another app. See docs/DOMAINS.md.
     "PANAVERSE_ROOT_DOMAIN": "pana.social",
+    // Off until each surface subdomain has a DNS record AND is bound to this
+    // Worker — dashboard work this repo cannot do, see docs/DOMAINS.md. While
+    // it is "0", cross-surface links, metadataBase and canonical URLs stay on
+    // the host being served, so Pana Social is reached at /s. That is the safe
+    // default: social.pana.social currently resolves nowhere, and a link to a
+    // host with no record is a dead end rather than a slower route. Routing is
+    // unaffected — every surface route answers on every hostname — so flipping
+    // this to "1" moves the front door without moving a single route.
+    "PANAVERSE_SUBDOMAINS": "0",
     // Set as part of launching social.pana.social. Without it the session
     // cookie is host-only, so verification on pana.social leaves the member
     // signed out on social.pana.social — the social surface cannot hold a
