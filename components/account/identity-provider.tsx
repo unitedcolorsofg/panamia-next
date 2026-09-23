@@ -29,6 +29,13 @@ interface IdentityState {
   /** The user's own profile, whatever they are currently acting as. */
   personal: Identity | null;
   loading: boolean;
+  /**
+   * True when the lookup gave up after its retries. Distinct from an empty
+   * list: "this account has no profile yet" invites a setup nudge, while "we
+   * could not ask" must not, or a dropped connection would tell an established
+   * member their account is unfinished.
+   */
+  failed: boolean;
   switching: string | null;
   error: string | null;
   switchTo: (profileId: string) => Promise<void>;
@@ -87,6 +94,7 @@ export function IdentityProvider({
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,6 +107,7 @@ export function IdentityProvider({
 
     let cancelled = false;
     setLoading(true);
+    setFailed(false);
 
     fetchIdentities()
       .then(({ identities: list, activeId: active }) => {
@@ -107,7 +116,9 @@ export function IdentityProvider({
         setActiveId(active);
       })
       .catch(() => {
-        if (!cancelled) setIdentities([]);
+        if (cancelled) return;
+        setIdentities([]);
+        setFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -146,12 +157,13 @@ export function IdentityProvider({
       active,
       personal: identities.find((i) => i.isPersonal) ?? null,
       loading,
+      failed,
       switching,
       error,
       switchTo,
       clearError: () => setError(null),
     };
-  }, [identities, activeId, loading, switching, error, switchTo]);
+  }, [identities, activeId, loading, failed, switching, error, switchTo]);
 
   return (
     <IdentityContext.Provider value={value}>

@@ -470,7 +470,10 @@ export default function MainHeader({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <IdentityMenu />
+              {/* Gated on the session here rather than inside the menu: the
+                  menu now renders for a signed-in member even before they have
+                  a profile, so that they can still reach Sign Out. */}
+              {status !== 'loading' && session && <IdentityMenu />}
               <ThemeToggle />
             </div>
           </div>

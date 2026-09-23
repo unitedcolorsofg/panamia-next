@@ -31,7 +31,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { screenname } = body;
+  const { screenname, name } = body;
+
+  // Optional, and collected here because this is the only moment the platform
+  // is guaranteed to ask. A magic-link member arrives with no name from any
+  // provider, so without it every such profile is named after its own handle —
+  // the "Name quality" gap in docs/ACCOUNTS-ROADMAP.md. Capped rather than
+  // rejected: an over-long name is a paste accident, not an attack.
+  const displayName = typeof name === 'string' ? name.trim().slice(0, 80) : '';
 
   if (!screenname) {
     return NextResponse.json(
@@ -126,6 +133,9 @@ export async function POST(request: NextRequest) {
     .set({
       screenname: newScreenname,
       lastScreennameChange: currentUser?.screenname ? new Date() : undefined,
+      // Only when supplied, so a caller that omits it never blanks a name the
+      // member already has.
+      ...(displayName ? { name: displayName } : {}),
     })
     .where(eq(users.id, session.user.id))
     .returning({ screenname: users.screenname });
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
       await db.insert(profiles).values({
         userId: session.user.id,
         email,
-        name: session.user.name?.trim() || newScreenname,
+        name: displayName || session.user.name?.trim() || newScreenname,
         // Consistent with createExpressProfile: self-created profiles are
         // active immediately. Visibility is governed by accountType, not this.
         active: true,
