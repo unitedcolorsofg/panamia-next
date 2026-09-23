@@ -382,9 +382,12 @@
 }
 
 /* Let the typeahead listbox resolve against the whole pill so it spans the
-   bar rather than stopping short of the submit button. */
-.directory-suggest-pill > div:first-child {
+   bar rather than stopping short of the submit button. Named rather than
+   positional: the pill's first child is the magnifier. */
+.directory-suggest-pill .directory-suggest-field {
   position: static;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .directory-suggest-pill-button {
@@ -4437,4 +4440,2280 @@ button.bizprofile-update-action:hover {
 .dirsearch-cta .link-arrow {
   margin-top: 0.9rem;
   display: inline-flex;
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage mock — the info card and the three pillars  (/mock/home)
+   ---------------------------------------------------------------------------
+   Two new primitives, both built from tokens already in this file so the mock
+   cannot win an argument with colours the design system does not have.
+
+   If the mock is signed off these move up into the homepage section above and
+   the `/mock/home` route is deleted, the same way the directory mock's
+   components moved into app/directory/search/_components.
+   --------------------------------------------------------------------------- */
+
+/* ---- Vertical rhythm ---------------------------------------------------- */
+
+/* The live site pins its hero to the viewport and puts `py-16 md:py-24` on
+   every band below it, which on a 1000px screen spends roughly a third of the
+   page on air. These two token sets are the whole of the density switch: the
+   markup never changes, only what these resolve to.
+
+   `roomy` restates today's numbers exactly, so the switch is a genuine
+   before/after rather than a flattering redraw of the thing being replaced. */
+[data-density='roomy'] {
+  --home-pad: 4rem;
+  --home-head-gap: 2.5rem;
+  --home-head-stack: 1.25rem;
+  --home-display-max: 4.375rem;
+  --home-hero-min: 100svh;
+  /* This was 196–300px, and none of it was breathing room: it was holding the
+     wordmark clear of the band of sky painted across the top of the document.
+     With the sky gone, the only thing above the card that still has to be
+     cleared is the masthead, so what is left is its height plus a margin —
+     and the card comes up the page by about 150px. */
+  --home-hero-pad-top: clamp(40px, 9svh, 148px);
+  --home-hero-pad-bottom: clamp(20px, min(2.4vw, 3.5svh), 34px);
+  /* How far apart consecutive stops on the walk sit, and how wide the art
+     half of a stop is allowed to get before it starts crowding the words. */
+  --home-beat-gap: 5.5rem;
+  --home-beat-art: 24rem;
+}
+
+[data-density='compact'] {
+  --home-pad: 2.75rem;
+  --home-head-gap: 1.75rem;
+  --home-head-stack: 0.85rem;
+  /* Display type is part of the vertical rhythm, not separate from it: a
+     two-line heading at 70px is 143px of the fold on its own. Only the
+     ceiling moves, so small screens — already below the clamp — are
+     unaffected. */
+  --home-display-max: 3.5rem;
+  /* The hero stops being a full screen and becomes as tall as what is in it.
+     This is the single biggest saving on the page: the content is ~610px and
+     the viewport reserves 1000. The top padding stays, because that is what
+     clears the fixed header rather than decoration. */
+  --home-hero-min: 0;
+  /* Same reasoning as `roomy`: what is left is the masthead plus a margin.
+     Tighter than roomy, because the compact hero is only ever as tall as what
+     is inside it, so this padding is a much larger share of the whole. */
+  --home-hero-pad-top: clamp(24px, 6svh, 96px);
+  --home-hero-pad-bottom: 1.25rem;
+  --home-beat-gap: 3.75rem;
+  --home-beat-art: 20rem;
+}
+
+@media (min-width: 48rem) {
+  [data-density='roomy'] {
+    --home-pad: 6rem;
+    --home-head-gap: 3.5rem;
+  }
+
+  [data-density='compact'] {
+    --home-pad: 3.5rem;
+    --home-head-gap: 2.25rem;
+  }
+}
+
+.home-section {
+  padding-block: var(--home-pad);
+}
+
+.home-sectionhead {
+  margin-bottom: var(--home-head-gap);
+}
+
+/* The eyebrow / headline / lede stack, spaced from one token instead of the
+   `mt-4` and `mt-5` utilities that were here, so density reaches inside the
+   heading block and not just between the bands. */
+.home-sectionhead > * + * {
+  margin-top: var(--home-head-stack);
+}
+
+[data-density] .section-display {
+  font-size: clamp(2rem, 5.1vw, var(--home-display-max));
+}
+
+/* Overrides the live hero's own min-height and padding, scoped to the mock so
+   the real homepage is untouched. */
+[data-density] .home-hero-banner {
+  min-height: var(--home-hero-min);
+  padding-top: var(--home-hero-pad-top);
+  padding-bottom: var(--home-hero-pad-bottom);
+}
+
+/* The switch is indigo-on-light by default, which disappears on the ink bar —
+   the same treatment `.mock-toolbar` already gets. */
+.bizprofile-mockbar .mock-switch {
+  border-color: rgb(255 247 236 / 0.25);
+  background-color: rgb(255 247 236 / 0.08);
+}
+
+.bizprofile-mockbar .mock-switch button {
+  color: rgb(255 247 236 / 0.75);
+}
+
+.bizprofile-mockbar .mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
+/* The donate chip in the hero. A `.tagpill` that carries an icon and reads as
+   an aside rather than a fourth county — same size and shape as its
+   neighbours, inverted fill so it is not mistaken for a filter. `.tagpill` is
+   inline-block with no border, so both have to be restated here. */
+.hero-donate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(255 247 236 / 0.5);
+  background-color: rgb(17 13 13 / 0.55);
+  color: var(--color-pana-cream);
+}
+
+.hero-donate:hover {
+  background-color: var(--color-pana-ink);
+  border-color: var(--color-pana-cream);
+  color: var(--color-pana-cream);
+}
+
+/* --- The palette -------------------------------------------------------- */
+
+/* The six colours the panas handed over, and the only six this page draws
+   with.
+ *
+ * It is a tightening of the refresh palette rather than a departure from it —
+ * indigo becomes a true blue, the ink goes cooler, flame and burnt become
+ * orange and coral — with one real loss: there is no butter. Everything on
+ * this page that used to lean on butter (the hero's pool of light, the notes,
+ * the newsletter block) is re-cut below.
+ *
+ * Scoped to `body:has(...)` rather than `:root` for two reasons. Nothing
+ * outside /mock/home should inherit a palette that has not been signed off;
+ * and this page reaches into the masthead, which is not a descendant of the
+ * mock's own wrapper, so a `[data-density]` scope would not reach the rules
+ * that need these.
+ *
+ * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
+ * registry, and adding to it would be a mock quietly redefining site-wide
+ * tokens ahead of the decision it exists to inform. */
+body:has([data-density]) {
+  --story-blue: #3565f2;
+  --story-ink: #020811;
+  --story-cream: #fcf2e7;
+  --story-orange: #f2882f;
+  --story-coral: #f27457;
+  --story-red: #f4374f;
+
+  /* Blue let down towards cream. A fixed mix rather than a `color-mix()` call
+     repeated at every use, so it still reads as a number when someone checks
+     the maths later. The page no longer opens on a band of sky, so the only
+     thing left tinted this way is the glass in the street below. */
+  --story-sky-low: rgb(146 172 244); /* blue 52% — window glass */
+}
+
+/* --- The sky ------------------------------------------------------------ */
+
+/* The "you are visiting a test site" bar is an environment warning, not part
+   of the page: `MainHeader` only renders it when the host is not production,
+   so nobody visiting the real site ever sees it. On a design mock it is a
+   56px band of someone else's navy and magenta sitting above the sky, which
+   makes the mock a less accurate preview than it would be without it.
+
+   Hidden here rather than in `MainHeader`, and scoped to this page, because
+   on every other route of this deployment the warning is doing its job. */
+body:has([data-density]) #call-to-action-bar {
+  display: none;
+}
+
+/* The page opens on paper.
+ *
+ * It used to open on a band of blue running from the top of the document,
+ * down past the masthead, dissolving into cream just before the wordmark.
+ * For its size that band was the most expensive thing on the page, in three
+ * separate ways:
+ *
+ *  - It cost the top of the fold. The wordmark could not sit in the blue, so
+ *    the hero carried 196–300px of padding whose only job was to hold the
+ *    card clear of the weather. That padding was the empty space at the top
+ *    of this page — the sky was not above the card, it *was* the gap.
+ *  - It capped the palette. Ink on full blue is 3.7:1 and fails AA, so the
+ *    top of the gradient had to be held back to 78% blue for the sake of the
+ *    masthead's own type. On cream that same type is ~17:1: the cap, and the
+ *    two mixed tones that existed to satisfy it, are simply not needed.
+ *  - It was measured in page coordinates. The gradient sat on the body in
+ *    fixed pixels, so every change to the height of the chrome above the hero
+ *    meant re-deriving five stops by hand. That is how this page acquired a
+ *    1px seam across the masthead the last time something above it moved.
+ *
+ * The clouds stay, and become the whole of the weather: see `.sky-cloud`,
+ * which inverts them to blue-on-paper now that there is no blue behind them.
+ * The page still opens outdoors, but the sky is drawn rather than painted
+ * across the full width of the document. */
+body:has([data-density]) {
+  background-color: var(--story-cream);
+}
+
+/* The masthead stops being a cream bar of its own and becomes part of the
+   same sheet of paper as the hero, so there is no edge at all where the
+   chrome ends and the page begins.
+
+   Transparent is only correct while there is nothing scrolling underneath —
+   which is true for as long as the hero is on screen. The handover animation
+   further down puts the cream back on the way out, and it carries the
+   background as well as the rule. */
+body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+  background-color: transparent;
+}
+
+/* The mock's own control bar is a full-width dark band, and it sits in the
+   one place on this page that cannot take one: between the masthead and the
+   hero, straight across the sky. So on this page it comes out of the flow and
+   floats at the bottom of the viewport instead.
+ *
+ * Scoped on `.home-hero-field`, not `[data-density]` — the bar is shared with
+   two other mocks and none of this should follow it there. */
+body:has(.home-hero-field) .bizprofile-mockbar {
+  position: fixed;
+  z-index: 60;
+  /* The base rule is `position: sticky; top: 0`, and that `top` survives the
+     switch to fixed — with a `bottom` as well it stretches the bar over the
+     whole viewport instead of sitting at the foot of it. */
+  top: auto;
+  right: 0;
+  bottom: 1rem;
+  left: 0;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin-inline: auto;
+  /* Not `999px`: on a narrow screen the row wraps to three lines and a pill
+     radius turns the whole bar into an ellipse. 1.75rem is still more than
+     half the one-line height, so it reads as a pill when it fits on one. */
+  border-radius: 1.75rem;
+  padding-block: 0.4rem;
+  box-shadow: 0 10px 34px rgb(2 8 17 / 0.34);
+}
+
+/* The bar's inner wrapper is a Tailwind `container`, which is a fixed width at
+   every breakpoint — inside a `fit-content` parent that is what the pill would
+   size to. This lets it shrink to what is actually in it. */
+body:has(.home-hero-field) .bizprofile-mockbar > div {
+  width: auto;
+  max-width: none;
+  margin-inline: 0;
+  justify-content: center;
+}
+
+/* The compare link is a nowrap flex row wider than a phone, which pushes the
+   bar past its own max-width and puts a scrollbar on the document. */
+body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+}
+
+/* --- The hero as a colour field ----------------------------------------- */
+
+/* The seam. The hero's bottom edge resolves to this, and so does the section
+   below it, so the two can never drift apart into a visible line. */
+[data-density] {
+  --home-seam: var(--story-cream);
+}
+
+/* The hero has been a photograph under an orange wash, then a field of cream,
+ * then the bottom of the sky. It is paper now — the same paper as the body
+ * and the masthead — so there is nothing left to blend between them: the
+ * chrome, this card and the section beneath it are one continuous sheet.
+ *
+ * That leaves a single background layer, the pool of light behind the search
+ * box. It does one job: put the light source directly behind the thing the
+ * eye should find first. The haze that used to sit over it existed only to
+ * dissolve the sky into the paper, and with no sky it was cream fading into
+ * cream, so it has gone with the sky. */
+.home-hero-field {
+  background-color: transparent;
+  color: var(--story-ink);
+  /* Named so the masthead can react to this card leaving, from a different
+     subtree entirely. See the handover rule below. */
+  view-timeline-name: --home-hero;
+  view-timeline-axis: block;
+  /* The remaining layer ends fully transparent rather than in an opaque
+     colour, so it can no longer bleed the way the cream-terminated one did:
+     this box starts on a half pixel (the masthead is 65.375px tall) and a
+     background tile repeats by default, so the bottom edge of the tile
+     repeating *above* the box used to leak a 1px cream hairline into that
+     fractional first row. Kept regardless — there is only ever one tile
+     here, so repeating was never wanted. */
+  background-repeat: no-repeat;
+  background-image:
+    /* The pool of light behind the search. This is the first time it has
+       actually been drawn: the haze that used to sit over it reached *opaque*
+       cream partway down, so everything here was painted and then covered up.
+
+       Its geometry is therefore new too. Centred just above the search and
+       sized so the transparent stop lands at ~97% of the card, because the
+       hero has no fade to hide behind any more — left where it was, at 104%
+       with a 72% radius, the falloff was still at 32% alpha when it reached
+       the bottom edge and was cut dead there. Measured as a step of 50 across
+       one row: a hard orange line straight over the join into the section
+       below. Percentages, not pixels, so it keeps resolving inside the card
+       at either density and on a phone. */ radial-gradient(
+    88% 24% at 50% 78%,
+    rgb(242 136 47 / 0.3) 0%,
+    rgb(242 136 47 / 0.18) 34%,
+    rgb(242 136 47 / 0.06) 60%,
+    rgb(242 136 47 / 0) 78%
+  );
+}
+
+/* The grain used to have to dodge the sky — ink dots scattered over blue read
+   as dirt on the lens rather than as tooth on paper. There is no sky now, but
+   the ramp earns its place twice over: the masthead above this card is the
+   same cream and carries no grain, so grain reaching the hero's top edge
+   would draw a visible boundary right on that join, which is the seam this
+   page has been through three times. It still clears before the pool of
+   light at the bottom. */
+.home-hero-field .home-hero-grain {
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
+  );
+}
+
+/* Everything below here is the cost of turning the field over. All of it was
+   cream because the hero used to be dark; all of it is now re-cut onto the
+   six colours the panas handed over. */
+
+/* The drop shadow existed to lift cream type off a photograph. Ink on cream
+   needs no help, and a shadow at this size just reads as a smudge.
+
+   The size is re-clamped against the viewport's short edge rather than
+   inherited. The global rule allows up to 16svh, which is generous on a
+   desktop and too generous on a laptop: at 1366x768 it made a two line
+   headline 216px tall, and those 216px were the difference between the town
+   sitting on the bottom edge of the screen and hanging off it. 13svh keeps
+   desktop sizes exactly where they were — 8.4vw is the binding term there —
+   and only bites on short windows, which is where the room is needed. */
+.home-hero-field .hero-headline {
+  text-shadow: none;
+  font-size: clamp(42px, min(8.4vw, 13svh), 126px);
+}
+
+/* Coral rather than orange, and for a specific reason: the wordmark directly
+   above it is orange, and an accent in the same colour 80px below it reads as
+   a second logo. Coral is the next step round the palette and picks up the
+   pool of light underneath it. */
+.home-hero-field .accent-word {
+  color: var(--story-coral);
+}
+
+/* The counties row and the donate chip used to sit under the search; both
+   were removed — they are navigation, and this card is for one thing. The
+   rules that dressed them went with them. */
+
+/* A cream pill on a cream field is an outline of a search box. This is the
+   primary action on the page, so it gets an edge — and a shadow sized for a
+   light surface. The old one was a 34px spread tuned to read against ink,
+   which over cream is just a grey bruise. */
+.home-hero-field .directory-suggest-pill {
+  border: 2px solid rgb(2 8 17 / 0.14);
+  box-shadow: 0 10px 30px rgb(2 8 17 / 0.07);
+}
+
+/* --- Clouds ------------------------------------------------------------- */
+
+/* The band the clouds fly in: the top of the hero, which is where the body's
+   gradient is still blue. It is `absolute` and clipped by the hero, so a
+   cloud that drifts past the edge is cut off by the sky rather than by the
+   viewport — which is what keeps the page from growing a horizontal scrollbar
+   when one of them travels.
+
+   `pointer-events: none` because it covers the whole top of the hero and the
+   masthead's dropdowns open into it. */
+.sky-clouds {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: clamp(150px, 26svh, 280px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-hero-field {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Each cloud is one colour in `currentColor`, so its overlapping parts cannot
+   show as seams. Depth is size and opacity only — a blurred cloud reads as a
+   rendering fault rather than as distance.
+
+   These were cream on blue. With the sky gone they are the only weather left
+   on the page, so they invert: blue let most of the way down into the paper,
+   which lands as a soft periwinkle on cream. The mix is what carries the
+   lightness rather than the alpha, because it has to survive the per-cloud
+   opacities below — the nearest cloud is at 0.95, so tinting by alpha alone
+   would have given that one no colour to be light *with*. */
+.sky-cloud {
+  position: absolute;
+  width: auto;
+  color: color-mix(in srgb, var(--story-blue) 20%, var(--story-cream));
+
+  /* Hidden runway at both ends of the lap, and the reason it is a fixed
+     length rather than `100%`: every cloud must travel the *same* distance.
+     With `100%` the lap length varied with each cloud's own width, so two
+     clouds set to the same speed would still slide out of step over a few
+     minutes. A constant makes the lap `100vw + 2 × runway` for all of them,
+     which is what holds the spacing below fixed indefinitely.
+
+     230px because it has to hide the widest cloud (158px) plus the largest
+     scroll drift (58px) at the moment the lap restarts, or the cloud pops
+     into view already half on screen. */
+  --float-runway: 230px;
+
+  /* One speed, shared by all five, and this is load-bearing rather than
+     laziness. Clouds at different speeds overtake each other, and an overtake
+     is two clouds in the same place — which is exactly the pile-up this is
+     meant to prevent. It is not a question of tuning: any two speeds that
+     differ at all will eventually produce every possible overlap, so the only
+     way to rule it out is to let nobody pass anybody.
+
+     Holding one speed means the gaps between clouds never change, so the
+     spacing set by the delays below is the spacing the sky has forever. Depth
+     is still carried by size and opacity, and by the per-cloud scroll drift
+     further down, which is the parallax you actually notice because it
+     responds to you. */
+  --float-dur: 38s;
+}
+
+.sky-cloud-1 {
+  top: 8%;
+  height: 54px;
+  opacity: 0.9;
+  --drift: 46px;
+  --float-delay: -15.2s;
+}
+
+.sky-cloud-2 {
+  top: 34%;
+  height: 34px;
+  opacity: 0.55;
+  --drift: 18px;
+  --float-delay: -7.6s;
+}
+
+/* Order around the lap is 4, 2, 1, 3, 5 rather than 1–5, and the pairing of
+   which cloud sits next to which is deliberate. The gap between two clouds is
+   a fifth of a lap minus the width of whichever one leads, so the widest
+   cloud always eats the most room behind it. Below 48rem two of the five are
+   hidden, which leaves one pair only a fifth of a lap apart with no room to
+   spare — so the narrower of that pair leads. Swapping 1 and 3 here is worth
+   25px of clear sky on a phone and costs nothing on a desktop. */
+.sky-cloud-3 {
+  top: 4%;
+  height: 44px;
+  opacity: 0.72;
+  --drift: 30px;
+  --float-delay: -22.8s;
+}
+
+.sky-cloud-4 {
+  top: 44%;
+  height: 62px;
+  opacity: 0.95;
+  --drift: 58px;
+  --float-delay: 0s;
+}
+
+.sky-cloud-5 {
+  top: 22%;
+  height: 26px;
+  opacity: 0.4;
+  --drift: 10px;
+  --float-delay: -30.4s;
+}
+
+/* Weather. Every cloud starts parked just past the right edge and crosses to
+   just past the left one, which means both ends of the loop happen outside
+   `.sky-clouds`' clip and the restart is never seen — no fade, no pop.
+   Staggering is done with a negative delay rather than five different start
+   positions: the animation is already running when the page loads, so the sky
+   opens mid-drift instead of with all five clouds queued at the same edge.
+   (Negative delay is fine here. It is only meaningless on the scroll-driven
+   animation below, which has no clock to be early against.)
+
+   Near clouds are bigger and faster, far ones smaller and slower — the same
+   parallax the scroll does, running on its own.
+
+   On the durations: the first pass ran these at 80–165s, which is roughly
+   what a real cloud does and was a mistake. At that rate a cloud moves about
+   a finger's width in ten seconds, so the sky was animating and reading as
+   completely still — worse than no animation, because it costs the same and
+   returns nothing. A lap now takes 38s, which is fast enough to catch out of
+   the corner of your eye and slow enough to ignore while reading.
+
+   On why every cloud shares one speed: five *different* speeds do not stay
+   spread out. Each cloud was its own loop, so the fast ones caught the slow
+   ones and the set wandered through every possible arrangement — including
+   one cloud parked squarely on top of another, reading as a single lump with
+   a hole either side of it. Grouping them into a fast set and a slow set
+   narrowed it but could not fix it, because two sets at different speeds
+   still have to pass through each other, forever.
+
+   So nobody passes anybody. All five share a duration and the delays divide
+   it into fifths, which puts them a fifth of a lap apart and keeps them
+   there. At the narrowest that is still wider than the widest cloud, so an
+   overlap is not unlikely — it is geometrically impossible, at any viewport
+   width, for as long as the page is open.
+
+   The cost is that clouds no longer pass each other, which is a thing real
+   skies do. It buys a sky that is evenly occupied at every instant instead
+   of one that looks composed for a few seconds after load and clumps
+   thereafter, and the depth cue that was doing the work — the per-cloud
+   scroll drift — is untouched.
+
+   Delays only matter relative to each other, so rounding to a hundredth of a
+   second is harmless: a fixed offset cannot accumulate. Only a difference in
+   *duration* would drift, which is why there is exactly one.
+
+   Held to `translate` rather than `transform` deliberately: the scroll
+   parallax below owns `transform`, and the two properties compose, so each
+   can be animated without knowing about the other. */
+@media (prefers-reduced-motion: no-preference) {
+  .sky-cloud {
+    left: 100%;
+    animation: home-cloud-float var(--float-dur) linear var(--float-delay)
+      infinite;
+  }
+}
+
+@keyframes home-cloud-float {
+  from {
+    translate: var(--float-runway, 0px);
+  }
+  to {
+    translate: calc(-100vw - var(--float-runway, 0px));
+  }
+}
+
+@media (max-width: 48rem) {
+  /* Two of the five come out on a phone. At this width the remaining three
+     are already most of the sky, and five would read as overcast. */
+  .sky-cloud-2,
+  .sky-cloud-5 {
+    display: none;
+  }
+}
+
+/* The hero card carries the wordmark now, which makes the one in the masthead
+   the same artwork in the same colour twice inside 200px. It cannot just be
+   deleted, though: `.masthead` is `position: sticky`, so removing it would
+   leave every screen *below* the hero with no wordmark and nothing obvious to
+   click to get home.
+ *
+ * So it hands over instead of disappearing — absent while the hero is on
+ * screen, arriving as the hero leaves. Whichever one you can see, there is
+ * exactly one.
+ *
+ * Driven by the hero's own view timeline rather than a pixel offset, because
+ * the hero's height changes with the density switch and `exit` means "as this
+ * card leaves" at any height. That needs `timeline-scope`: the masthead is not
+ * a descendant of the hero, so without it the name would not resolve.
+ *
+ * `visibility`, not opacity alone. A transparent link is still tabbable and
+ * still clickable, and an invisible target at the top of the page is the kind
+ * of thing only ever found by accident. Because `visibility` interpolates
+ * discretely, holding `hidden` until 55% and pairing it with the opacity ramp
+ * gives a hard cut to visible followed by a fade, not a ghost you can hit.
+ *
+ * Deliberately not behind `prefers-reduced-motion`, unlike the rest of the
+ * page's motion: this decides *which* wordmark is on screen, not how anything
+ * travels, and a duplicate logo is not more restful. */
+body:has([data-density]) {
+  timeline-scope: --home-hero;
+}
+
+@supports (animation-timeline: view()) {
+  body:has([data-density]) header a[aria-label='Pana Mia'] {
+    animation: home-masthead-wordmark linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
+
+  /* The masthead's hairline and its background both go with it. The rule
+     exists to separate a sticky bar from content scrolling underneath, which
+     is a real job — but at rest there is nothing to separate: the masthead is
+     a pane of the sky, and the only thing the line would divide is one field
+     from itself. So the masthead stops being a bar while the hero is on
+     screen and becomes one on the way out.
+
+     Both properties animate, the background from transparent to cream, so
+     that by the time anything is actually scrolling underneath there is
+     something opaque in the way. Width never animates — the border keeps
+     holding its 0.67px, so nothing below it ever shifts. */
+  body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+    animation: home-masthead-rule linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
+}
+
+@keyframes home-masthead-wordmark {
+  0%,
+  55% {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  100% {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes home-masthead-rule {
+  0% {
+    background-color: rgb(252 242 231 / 0);
+    border-bottom-color: rgb(2 8 17 / 0);
+  }
+
+  55% {
+    background-color: rgb(252 242 231 / 0.72);
+    border-bottom-color: rgb(2 8 17 / 0);
+  }
+
+  100% {
+    background-color: var(--story-cream);
+    border-bottom-color: rgb(2 8 17 / 0.08);
+  }
+}
+
+/* --- The street --------------------------------------------------------- */
+
+/* The band the rest of the page stands on. It is paper, like the bottom of
+   the hero above it, so the two meet with no join at all — the drawing is the
+   only thing that marks the change, which is the point: you do not cross into
+   a new section, you arrive at ground level.
+
+   The padding at the top is where the scroll hint lives — just enough to
+   clear it, and no more. The street used to sit a comfortable gap below the
+   search; it now sits directly under it, so the card and the town read as
+   one picture rather than two stacked bands. */
+/* --- The first screen ---------------------------------------------------
+
+   The card and the town are one picture that happens to be two sections, so
+   the pair is measured as one: together they are exactly the height of the
+   screen. That is what lands the ground line — the street, the market, the
+   people — on the bottom edge of the first view at any resolution. Measured
+   before this rule existed, the town's feet fell 79px (1920x1080) to 211px
+   (1366x768) below the fold, and the feet are the part the drawing is about.
+
+   The card is `flex: none` and the street is the flexible one, not the other
+   way round. The card holds a wordmark, a headline and a form; type that
+   shrinks to fit the window is type that ends up too small on exactly the
+   screens where the fit was tightest. The drawing has slack the card does
+   not, because it crops instead of scaling — the SVG is `xMidYMax slice`,
+   so a shorter box shows less sky above the roofline and the same street at
+   the same size underneath it. Same trade already made for narrow screens
+   further down: crop, don't shrink.
+
+   `height` rather than `min-height`, because a minimum cannot take space
+   away and taking space away is the whole job. The `min-height: min-content`
+   underneath it is the safety net for windows too short to hold both — a
+   half height desktop window, a landscape phone — where the pair is allowed
+   to grow past the screen rather than have the town spill over the section
+   below it. That guard only works because the drawing is taken out of flow
+   below: an SVG carries an intrinsic aspect ratio, so while it was in flow
+   the street's min-content height was its *full natural height* and the
+   guard silently restored the exact layout it was meant to bound.
+
+   The card is kept short enough to fit on everything larger than that — see
+   the hero padding and headline overrides, both of which take the viewport's
+   short edge into account, so a laptop gets a slightly smaller card rather
+   than a clipped town.
+
+   Nothing here establishes a scroll container. That is load bearing: one
+   would re-root the view timelines that drive the clouds and the parallax. */
+.home-first {
+  /* The masthead is the only thing between the top of the screen and the top
+     of the card, so it is the only thing to subtract. */
+  --masthead-h: 65px;
+
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--masthead-h) - var(--mock-chrome-h, 0px));
+  min-height: min-content;
+}
+
+.home-first .home-hero-field {
+  flex: 0 0 auto;
+}
+
+/* A floor so the town is always a town. Below roughly this height the crop
+   has eaten the roofline and what is left reads as a strip of pavement. */
+.home-first .story-street {
+  flex: 1 1 auto;
+  min-height: 8rem;
+}
+
+/* Short screens. A 768-tall laptop is the tightest case on the desktop side,
+   and it got tighter when the first screen started ending above the mock
+   bar rather than behind it. Of the three things sharing that height the
+   card is the only one with slack: the town has a floor below which it
+   stops being a town, and the hint is a single line. So here the card gives
+   up the difference — smaller wordmark, smaller headline, less air above it
+   — rather than the composition spilling past the fold and pushing the hint
+   somewhere nobody will read it.
+
+   Desktop only. Narrow screens are already below every one of these clamps,
+   and a phone held in portrait is not short. */
+@media (max-height: 56rem) and (min-width: 48rem) {
+  [data-density] {
+    --home-display-max: 2.75rem;
+    --home-hero-pad-top: 24px;
+    --home-hero-pad-bottom: 0.75rem;
+  }
+
+  /* Beats the `mb-8 md:mb-10` and `max-w-` utilities on the wordmark: rules
+     here are unlayered, so they win against Tailwind regardless of order. */
+  [data-density] .flower-power-logo {
+    max-width: min(19rem, 60vw);
+    margin-bottom: 1.25rem;
+  }
+
+  /* The headline is the largest single item on the card — two lines at
+     13svh is 188px of a 768-tall screen, more than the town gets. The
+     ceiling comes down to roughly a tenth of the screen here; the floor and
+     the width term are untouched, so nothing changes on any screen tall
+     enough not to need it. */
+  [data-density] .home-hero-field .hero-headline {
+    font-size: clamp(38px, min(8.4vw, 9.8svh), 126px);
+  }
+}
+
+/* Out of flow, anchored to the bottom of the band, filling its height. Out
+   of flow is what stops the drawing's aspect ratio from setting a minimum
+   height for the whole first screen; anchored to the bottom is what keeps
+   the ground line on the ground line while `slice` trims sky off the top.
+
+   Width is left to the rules below on purpose — this selector is heavier
+   than they are, so setting it here would override the narrow-screen crop. */
+.home-first .street-svg {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+}
+
+/* The drawing is out of flow and fills the band, so there is nothing left
+   for padding to space away from. `position: relative` is what it is
+   positioned against — without it the drawing anchors to the viewport. */
+.story-street {
+  position: relative;
+  background-color: var(--story-cream);
+}
+
+/* Static, below the town, and the last thing on the first screen — the town
+   is what it is telling you to scroll past, so it has to come after it.
+   Cream so it reads as more pavement rather than as a band under the
+   drawing, and `flex: none` so the street gives up the height for it rather
+   than the card, which has none to give. */
+.story-street-note {
+  flex: 0 0 auto;
+  padding-block: 0.55rem 0.7rem;
+  background-color: var(--story-cream);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+.street-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* On a narrow screen a 1440-wide drawing scaled to fit is 80px tall, and at
+   80px the market, the crowd and the park are all one smudge. So below this
+   width the scene stops fitting and starts cropping: it is held at a usable
+   size and centred on the middle of the block, which is where the stalls and
+   most of the people are. You lose the ends of the street; you keep the part
+   that is actually about people.
+
+   `clip` rather than `hidden` so no scroll container is created — one here
+   would re-root the view timelines of anything inside it. */
+@media (max-width: 60rem) {
+  .story-street {
+    --street-w: clamp(760px, 240vw, 1000px);
+    overflow-x: clip;
+  }
+
+  .street-svg {
+    width: var(--street-w);
+    max-width: none;
+    margin-left: calc(50% - var(--street-w) / 2);
+  }
+}
+
+/* The back row. One muted tone via `currentColor`, which every shape in that
+   group inherits, so depth is a single value rather than a colour per
+   building. It is plain blocks now — no windows, no doors. At that distance
+   detail is noise, and leaving it out is what makes the row read as far away
+   rather than as small. */
+.street-back {
+  color: rgb(53 101 242 / 0.14);
+}
+
+/* The middle row. Half opacity over cream washes every fill toward the paper,
+   which is atmospheric perspective done with one declaration instead of a
+   second set of colours. */
+.street-mid {
+  opacity: 0.48;
+}
+
+.street-window-lit {
+  fill: var(--story-orange);
+}
+
+.street-window-dark {
+  fill: rgb(2 8 17 / 0.3);
+}
+
+.street-door {
+  fill: var(--story-ink);
+}
+
+/* Opaque rather than a tint, because a translucent blue takes the colour of
+   whatever wall it is cut into — over the red shopfront it mixed to a purple
+   that is in no palette here. */
+.street-glass {
+  fill: var(--story-sky-low);
+}
+
+/* Ink at low alpha rather than a colour, so the same stripe reads on an
+   orange awning and on a cream one without a second rule. */
+.street-awning-stripe {
+  fill: rgb(2 8 17 / 0.16);
+}
+
+.street-roof {
+  fill: rgb(2 8 17 / 0.72);
+}
+
+.street-bench {
+  fill: var(--story-ink);
+}
+
+.street-kerb {
+  fill: rgb(2 8 17 / 0.2);
+}
+
+/* --- The people --------------------------------------------------------- */
+
+/* Skin, mixed from the palette rather than added to it. Orange toward cream
+   gives a light warm tone; orange toward ink gives the two deeper ones. Three
+   is enough to read as a crowd at this size and stops the pavement looking
+   like one person copied twenty times. */
+.street-skin-1 {
+  fill: color-mix(in srgb, var(--story-orange) 28%, var(--story-cream));
+}
+
+.street-skin-2 {
+  fill: color-mix(in srgb, var(--story-orange) 62%, var(--story-ink));
+}
+
+.street-skin-3 {
+  fill: color-mix(in srgb, var(--story-orange) 34%, var(--story-ink));
+}
+
+/* Legs and wheels are ink for everybody: at forty units tall a second colour
+   below the waist just muddies the silhouette. */
+.street-leg rect {
+  fill: var(--story-ink);
+}
+
+.street-wheel {
+  fill: var(--story-ink);
+}
+
+.street-tote {
+  fill: rgb(2 8 17 / 0.62);
+}
+
+/* --- The market --------------------------------------------------------- */
+
+.street-stall-post {
+  fill: rgb(2 8 17 / 0.55);
+}
+
+.street-stall-top {
+  fill: var(--story-ink);
+}
+
+/* The cloth is ink at low alpha rather than a colour, so three stalls with
+   three different canopies still look like one market. */
+.street-stall-cloth {
+  fill: rgb(2 8 17 / 0.14);
+}
+
+.street-crate {
+  fill: rgb(2 8 17 / 0.38);
+}
+
+.street-bunting-line {
+  stroke: rgb(2 8 17 / 0.42);
+  stroke-width: 1.5;
+}
+
+/* Standing-seam metal roofs. Ink at low alpha, so the one rule reads on a
+   terracotta roof and on a cream one without a second colour. */
+.street-seam {
+  stroke: rgb(2 8 17 / 0.22);
+  stroke-width: 1.4;
+}
+
+/* --- The town is alive --------------------------------------------------
+
+   Four kinds of motion, all of them small, all of them on wall-clock timers
+   rather than on the scroll. The street should read as a place where
+   something is happening, not as an animation.
+
+   Every rule below animates `translate` or `rotate` rather than `transform`.
+   The elements underneath already carry a `transform` *attribute* — their
+   position, scale and facing in the drawing — which maps onto the CSS
+   `transform` property, so animating `transform` would throw all of that
+   away and stack everybody at the origin. The individual transform
+   properties compose with it instead.
+
+   `transform-box: fill-box` makes `transform-origin: 50% 100%` mean "the
+   bottom middle of this shape's own bounding box", which is the feet of a
+   figure, the base of a palm, and the shoulder of a raised arm. One
+   declaration covering all three is the whole reason to use it rather than
+   hand-computing origins in user units per element. */
+
+.street-sway,
+.street-palm,
+.street-arm {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* People crossing the block. Each lap runs clear off both ends of the
+     drawing, where the viewBox crops it, and each starts part-way through
+     so the street is populated on the first frame. */
+  .street-walk {
+    animation: street-walk var(--walk-dur, 54s) linear var(--walk-delay, 0s)
+      infinite;
+  }
+
+  /* The step. A figure that slides is a ghost; a unit and a half of rise on
+     a two-thirds-second cycle is enough to put weight on their feet. Scoped
+     inside `.street-walk` so the people standing around do not bob on the
+     spot. */
+  .street-walk .street-person,
+  .street-walk .street-pram {
+    animation: street-step 0.66s ease-in-out infinite;
+  }
+
+  /* The dog trots, which is a shorter stride than its owner's. */
+  .street-walk .street-dog {
+    animation: street-step 0.4s ease-in-out infinite;
+  }
+
+  /* Standing still, as opposed to being a statue. Every figure gets its own
+     period so the pavement never pulses in time. */
+  .street-sway {
+    animation: street-sway var(--sway-dur, 4.6s) ease-in-out
+      var(--sway-delay, 0s) infinite alternate;
+  }
+
+  .street-palm {
+    animation: street-palm var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s)
+      infinite alternate;
+  }
+
+  /* Waving. Duration and delay come from the element so that two people
+     waving in the same scene are not in lockstep — matched timing reads as
+     a mechanism rather than as two people. */
+  .street-arm {
+    animation: street-wave var(--wave-dur, 1.15s) ease-in-out
+      var(--wave-delay, 0s) infinite alternate;
+  }
+}
+
+@keyframes street-walk {
+  from {
+    translate: var(--walk-from) 0;
+  }
+
+  to {
+    translate: var(--walk-to) 0;
+  }
+}
+
+@keyframes street-step {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -1.6px;
+  }
+}
+
+@keyframes street-sway {
+  from {
+    rotate: -1.5deg;
+  }
+
+  to {
+    rotate: 1.5deg;
+  }
+}
+
+@keyframes street-palm {
+  from {
+    rotate: -2deg;
+  }
+
+  to {
+    rotate: 2.4deg;
+  }
+}
+
+@keyframes street-wave {
+  from {
+    rotate: -20deg;
+  }
+
+  to {
+    rotate: 12deg;
+  }
+}
+
+/* --- The three stops ---------------------------------------------------- */
+
+.story-basics {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code the old indigo and
+   are unlayered, so they have to be overridden by name rather than by a
+   utility on the element. */
+.story-basics .section-eyebrow,
+.story-basics .display-accent {
+  color: var(--story-blue);
+}
+
+/* The search pill is the shared directory component, so its indigo button and
+   its slightly different cream come from the old palette. Re-pointed inside
+   the mock only — the real directory page keeps what it has. */
+[data-density] .directory-suggest-pill {
+  background-color: var(--story-cream);
+}
+
+[data-density] .directory-suggest-pill-button {
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* Its type is the old near-black `#110D0D` rather than `#020811`. The two are
+   indistinguishable side by side, but there is no reason to leave the old
+   token rendering on a page that is otherwise entirely the new palette. */
+[data-density] .directory-suggest-pill .text-pana-ink,
+[data-density] .directory-suggest-pill input {
+  color: var(--story-ink);
+}
+
+.beats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-beat-gap, 5.5rem);
+  /* The per-side arrival offset pushes a stop past the viewport mid-animation,
+     which on a phone is enough to put a scrollbar on the document. `clip`
+     rather than `hidden` so no scroll container is created — a scroll
+     container here would re-root the `view()` timelines below. */
+  overflow-x: clip;
+}
+
+.beat {
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: center;
+  width: min(100% - 2rem, 66rem);
+  margin-inline: auto;
+  padding-block: calc(var(--home-pad, 3rem) * 0.7);
+}
+
+/* One accent per stop, set once here and read by the sign, the disclosure and
+   anything else in the stop that needs to agree with it. `--beat-on-accent`
+   exists because the three fills do not take the same text colour: ink clears
+   AA on orange and coral and fails on blue, cream is the other way round. */
+.beat[data-accent='orange'] {
+  --beat-accent: var(--story-orange);
+  --beat-on-accent: var(--story-ink);
+}
+
+.beat[data-accent='blue'] {
+  --beat-accent: var(--story-blue);
+  --beat-on-accent: var(--story-cream);
+}
+
+.beat[data-accent='paper'] {
+  --beat-accent: var(--story-coral);
+  --beat-on-accent: var(--story-ink);
+}
+
+/* Below 60rem everything stacks and the artwork leads, so `data-side` stops
+   meaning anything — there is only one column to be on. */
+@media (min-width: 60rem) {
+  .beat {
+    grid-template-columns:
+      minmax(0, var(--home-beat-art, 27rem))
+      minmax(0, 1fr);
+  }
+
+  /* `order`, not a column assignment, so the DOM keeps artwork-then-copy in
+     both directions. A screen reader and a keyboard both get the same
+     sequence at every stop; only the painting alternates. */
+  .beat[data-side='right'] {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, var(--home-beat-art, 27rem));
+  }
+
+  .beat[data-side='right'] .beat-art {
+    order: 2;
+  }
+}
+
+/* Which way a stop arrives from. Read by the arrival keyframes so the walk
+   alternates left-right instead of everything rising out of the floor. */
+.beat[data-side='left'] {
+  --beat-in: -34px;
+}
+
+/* The ring needs more room than a collage or a map: it is a circle with a
+   wrapping label on each side of it, and the side labels are what run out of
+   width first. */
+.beat:has(.beat-ring) {
+  --home-beat-art: 28rem;
+}
+
+.beat[data-side='right'] {
+  --beat-in: 34px;
+}
+
+/* The question, hung like a sign outside the shop it belongs to. Still an h3
+   underneath — the tilt and the fill are paint, not structure. */
+.beat-sign {
+  display: inline-block;
+  transform: rotate(-1.2deg);
+  border: 2px solid var(--story-ink);
+  border-radius: 4px;
+  background-color: var(--beat-accent, var(--story-orange));
+  box-shadow: 0 8px 20px rgb(2 8 17 / 0.14);
+  padding: 0.5rem 1rem;
+  color: var(--beat-on-accent, var(--story-ink));
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.beat-aside {
+  margin-top: 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(2 8 17 / 0.55);
+}
+
+.beat-answer {
+  margin-top: 0.85rem;
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.6;
+  color: rgb(2 8 17 / 0.86);
+  max-width: 34rem;
+}
+
+.beat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.4rem;
+  border: 2px solid rgb(2 8 17 / 0.2);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.beat-toggle:hover {
+  border-color: var(--beat-accent, var(--story-orange));
+  background-color: var(--beat-accent, var(--story-orange));
+  color: var(--beat-on-accent, var(--story-ink));
+}
+
+/* The long version. Ruled off against the accent rather than boxed, so it
+   reads as more of the same answer instead of a second card. */
+.beat-detail {
+  margin-top: 1.4rem;
+  border-left: 3px solid var(--beat-accent, var(--story-orange));
+  padding-left: 1.1rem;
+  max-width: 36rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.65;
+  color: rgb(2 8 17 / 0.78);
+}
+
+.beat-detail > * + * {
+  margin-top: 0.9rem;
+}
+
+.beat-label {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+.beat-label + ol,
+.beat-label + ul {
+  margin-top: 0.5rem;
+}
+
+.beat-numbered {
+  list-style: decimal;
+  padding-left: 1.15rem;
+}
+
+.beat-list {
+  list-style: disc;
+  padding-left: 1.15rem;
+}
+
+.beat-numbered > li + li,
+.beat-list > li + li {
+  margin-top: 0.4rem;
+}
+
+.beat-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.beat-tags > li {
+  border: 2px solid rgb(2 8 17 / 0.16);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.7);
+}
+
+/* --- Stop one: the collage ---------------------------------------------- */
+
+.collage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.7rem, 1.8vw, 1.2rem);
+  width: min(100%, 30rem);
+  margin-inline: auto;
+}
+
+/* The fan lives on the `<li>`; hovering moves `.collage-frame` instead. Two
+   separate elements because the arrival animation fills the `<li>`'s
+   transform, and a filled animation beats a transition — a hover on the same
+   element would simply never take. */
+.collage-print {
+  position: relative;
+  transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0));
+}
+
+.collage-print:nth-child(even) {
+  margin-top: 1.25rem;
+}
+
+.collage-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  /* A print, not a card: white border, square corners, hard shadow. */
+  border: 6px solid #fff;
+  border-radius: 2px;
+  background-color: rgb(2 8 17 / 0.06);
+  box-shadow: 0 10px 24px rgb(2 8 17 / 0.18);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.28s ease;
+}
+
+.collage-print:hover {
+  z-index: 2;
+}
+
+.collage-print:hover .collage-frame {
+  transform: scale(1.045);
+  box-shadow: 0 16px 34px rgb(2 8 17 / 0.26);
+}
+
+.collage-img {
+  object-fit: cover;
+}
+
+.collage-caption {
+  display: block;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+/* --- Stop two: the ring ------------------------------------------------- */
+
+/* A three-by-three grid with the dial in the middle cell and a label on each
+   side of it. Grid rather than absolute positioning around a circle, because
+   the labels are real wrapping text of unequal length: placed absolutely they
+   would collide at exactly the widths nobody tests. */
+.beat-ring {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.ring-dial {
+  grid-area: 2 / 2;
+  width: 100%;
+  height: auto;
+}
+
+.ring-arc {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.ring-hub {
+  fill: var(--story-cream);
+}
+
+.ring-hairline {
+  fill: none;
+  stroke: rgb(2 8 17 / 0.12);
+  stroke-width: 2;
+}
+
+/* Sits in the same cell as the dial and on top of it. */
+.ring-centre {
+  position: relative;
+  z-index: 1;
+  grid-area: 2 / 2;
+  display: grid;
+  place-items: center;
+  width: 46%;
+}
+
+.ring-centre-name {
+  max-width: 7ch;
+  color: var(--story-ink);
+  font-size: clamp(0.95rem, 1.9vw, 1.3rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* `display: contents` so the four `<li>`s become grid items of `.beat-ring`
+   itself. They stay a list for anything reading the page linearly — these are
+   the four things the club exists to produce, and that is worth having as a
+   list rather than as four labels that happen to be near a circle. */
+.ring-labels {
+  display: contents;
+}
+
+.ring-label {
+  position: relative;
+  max-width: 11rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* A dot in the arc's own colour, so each label is tied to its quarter without
+   having to colour the text itself — four coloured labels at this size would
+   be four things shouting. */
+.ring-label::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: 0 auto 0.4rem;
+  border-radius: 50%;
+  background-color: var(--dot, var(--story-orange));
+}
+
+.ring-label[data-at='top'] {
+  grid-area: 1 / 2;
+}
+
+.ring-label[data-at='right'] {
+  grid-area: 2 / 3;
+}
+
+.ring-label[data-at='bottom'] {
+  grid-area: 3 / 2;
+}
+
+.ring-label[data-at='left'] {
+  grid-area: 2 / 1;
+}
+
+/* On a phone the side cells squeeze the dial to nothing. Below 40rem the ring
+   goes on top and the four labels become a two-up list under it. */
+@media (max-width: 40rem) {
+  .beat-ring {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
+  .ring-dial,
+  .ring-centre {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+
+  .ring-dial {
+    width: min(100%, 17rem);
+    justify-self: center;
+  }
+
+  .ring-centre {
+    width: 7.8rem;
+    justify-self: center;
+  }
+
+  .ring-label[data-at='top'],
+  .ring-label[data-at='right'],
+  .ring-label[data-at='bottom'],
+  .ring-label[data-at='left'] {
+    grid-area: auto;
+  }
+}
+
+/* --- Stop three: the map ------------------------------------------------ */
+
+.statemap {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  margin: 0;
+}
+
+/* `overflow: hidden` is what the rise is animating against: the map starts
+   below its own frame and comes up into it. */
+.statemap-frame {
+  width: min(100%, 24rem);
+  overflow: hidden;
+  border: 2px solid rgb(2 8 17 / 0.12);
+  border-radius: 10px;
+  background-color: var(--story-cream);
+  box-shadow: 0 14px 32px rgb(2 8 17 / 0.14);
+}
+
+/* The map ships on a white background. Multiply drops the white to whatever
+   is behind it — cream here — while leaving the ink silhouette and the three
+   county marks alone, which is cheaper and safer than re-cutting the asset. */
+.statemap-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.statemap-counties {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.statemap-county {
+  border: 2px solid var(--beat-accent, var(--story-coral));
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* --- The last two bands ------------------------------------------------- */
+
+.story-pillars {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code indigo and are
+   unlayered, so they have to be overridden by name rather than by a utility
+   on the element. */
+.story-pillars .section-eyebrow,
+.story-pillars .display-accent {
+  color: var(--story-blue);
+}
+
+.story-point {
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+/* `.display-accent` hard-codes the old indigo, which on this ink band is
+   almost invisible. Coral rather than orange, so the accent word and the
+   eyebrow above it are not the same colour. */
+.story-point .section-eyebrow {
+  color: var(--story-orange);
+}
+
+.story-point .display-accent,
+.story-point .section-statement em {
+  color: var(--story-coral);
+}
+
+.story-point-body {
+  color: rgb(252 242 231 / 0.85);
+}
+
+.story-point-rule {
+  border-top-color: rgb(252 242 231 / 0.2);
+}
+
+.story-point-input {
+  border-color: rgb(252 242 231 / 0.25);
+  background-color: rgb(252 242 231 / 0.05);
+  color: var(--story-cream);
+}
+
+.story-point-input::placeholder {
+  color: rgb(252 242 231 / 0.45);
+}
+
+.story-point-accent {
+  color: var(--story-orange);
+}
+
+.story-btn-solid {
+  background-color: var(--story-orange);
+  color: var(--story-ink);
+}
+
+.story-btn-solid:hover {
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
+.story-btn-ghost {
+  border-color: rgb(252 242 231 / 0.4);
+  background-color: transparent;
+  color: var(--story-cream);
+}
+
+.story-btn-ghost:hover {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.story-colophon {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* --- The county shortcuts and the donate ask ---------------------------- */
+
+/* Deliberately slimmer than a real band: `--home-pad` would give this the
+   same weight as the pillars, and it is a signpost, not a section. It sits
+   on paper rather than carrying the ink band above it further down, so the
+   dark block ends where its argument ends. */
+.story-localrow {
+  padding-block: calc(var(--home-pad) * 0.42);
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.localrow-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2.5rem;
+}
+
+.localrow-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.localrow-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.localrow-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.localrow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(2 8 17 / 0.18);
+  border-radius: 999px;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--story-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.localrow-chip:hover {
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* Set apart from the counties on purpose. Three outlined chips and a fourth
+   that looks identical would read as four of the same thing, and clicking
+   "Palm Beach" then "Donate" should not feel like the same gesture. */
+.localrow-chip-give {
+  border-color: var(--story-orange);
+  background-color: var(--story-orange);
+}
+
+.localrow-chip-give:hover {
+  border-color: var(--story-coral);
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
+/* --- The three pillars: expanding panels -------------------------------- */
+
+.pillars {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+/* Each pillar is a solid block. A tinted panel on the citrus wash was easy to
+   scroll past without registering that there were three of anything, so the
+   closed state now carries its own fill and its own text colour, and the open
+   state swaps the body to paper while the head keeps the pillar's colour. */
+/* Re-cut for the story palette. Three fills that are each unmistakable at a
+   glance across a row, and each one takes the text colour that clears AA on
+   it: ink on orange (7.7:1), cream on blue (4.7:1), cream on red (5.1:1 the
+   other way round is what fails, so red carries ink). */
+.pillar[data-accent='blue'] {
+  --pillar-fill: var(--story-blue);
+  --pillar-ink: var(--story-cream);
+}
+
+.pillar[data-accent='orange'] {
+  --pillar-fill: var(--story-orange);
+  --pillar-ink: var(--story-ink);
+}
+
+.pillar[data-accent='coral'] {
+  --pillar-fill: var(--story-coral);
+  --pillar-ink: var(--story-ink);
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid rgb(2 8 17 / 0.55);
+  border-radius: 1.1rem;
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+  box-shadow: 0 12px 28px rgb(2 8 17 / 0.2);
+  transition:
+    background-color 0.35s ease,
+    flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    flex-grow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Paper laid over the peel. The head stays the pillar's colour so the open
+   panel still says which of the three it is. */
+.pillar[data-open='true'] {
+  background-color: var(--story-cream);
+  box-shadow: 0 18px 40px rgb(2 8 17 / 0.26);
+}
+
+.pillar-head {
+  margin: 0;
+  display: flex;
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+}
+
+/* Butter against cream is barely a change of colour, so the open head is
+   separated by an edge rather than by fill alone. */
+.pillar[data-open='true'] .pillar-head {
+  border-bottom: 2px solid rgb(2 8 17 / 0.35);
+}
+
+.pillar-body {
+  padding: 0 1.35rem 1.5rem;
+  padding-top: 1.35rem;
+  color: var(--story-ink);
+}
+
+.pillar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1.15rem 1.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pillar-index {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
+}
+
+.pillar-name {
+  font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.pillar-chev {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  flex: none;
+  opacity: 0.5;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.pillar-trigger:hover .pillar-chev {
+  opacity: 0.9;
+  transform: translateX(3px);
+}
+
+.pillar[data-open='true'] .pillar-chev {
+  opacity: 0;
+}
+
+.pillar-problem {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+
+.pillar-answer {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  max-width: 44rem;
+}
+
+.pillar-programs {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+/* The rows are wrapped in list items, so the item has to pass the track's
+   height down to the card that actually has the border. */
+.pillar-programs > li {
+  display: grid;
+}
+
+.pillar-program {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgb(2 8 17 / 0.14);
+  border-radius: 0.85rem;
+  background-color: rgb(2 8 17 / 0.03);
+}
+
+/* Only the linked rows light up. A hover state on a programme that goes
+   nowhere is a promise the row cannot keep. */
+a.pillar-program {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+a.pillar-program:hover {
+  border-color: var(--story-blue);
+  background-color: rgb(48 62 140 / 0.06);
+  transform: translateY(-2px);
+}
+
+.pillar-program-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.0625rem;
+  font-weight: 900;
+}
+
+.pillar-program-note {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.pillar-program-status {
+  justify-self: start;
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pillar-program-status[data-status='live'] {
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* "Building" is a dashed outline rather than a second fill, so the two states
+   are told apart by shape and not only by colour. */
+.pillar-program-status[data-status='building'] {
+  border: 2px dashed rgb(2 8 17 / 0.3);
+  opacity: 0.7;
+}
+
+/* Above this width the panels sit side by side and the closed ones collapse
+   to a spine — the shape in the sketch. Below it they stay a plain vertical
+   accordion: a column of sideways words in a narrow viewport is a puzzle, not
+   a navigation aid. */
+@media (min-width: 64rem) {
+  .pillars {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .pillar {
+    flex: 0 0 5.5rem;
+  }
+
+  .pillar[data-open='true'] {
+    flex: 1 1 auto;
+  }
+
+  .pillar[data-open='false'] .pillar-head {
+    flex: 1;
+  }
+
+  .pillar[data-open='false'] .pillar-trigger {
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+    padding: 1.35rem 0;
+  }
+
+  /* Bottom-to-top, so the spine reads with the head tilted left — the way
+     book spines and every other vertical label on a wall are read. */
+  .pillar[data-open='false'] .pillar-name {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-top: 0.85rem;
+  }
+
+  .pillar[data-open='false'] .pillar-chev {
+    margin-left: 0;
+    margin-top: auto;
+    transform: rotate(90deg);
+  }
+
+  .pillar[data-open='false'] .pillar-trigger:hover .pillar-chev {
+    transform: rotate(90deg) translateX(3px);
+  }
+
+  .pillar-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 1.75rem 2rem 2rem;
+  }
+
+  /* The row's height is set by the tallest closed spine's vertical label, not
+     by the open panel's prose, so the open panel usually has slack. Letting
+     the programme cards absorb it turns what was a dead zone between the
+     answer and the cards into taller cards, and because each card is
+     `auto 1fr auto` the status chips still line up along one floor. */
+  .pillar-programs {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.85rem;
+    flex: 1;
+    align-items: stretch;
+    padding-top: 1.4rem;
+  }
+
+  /* Name / note / status, with the note taking the slack so the status chips
+     line up along the bottom regardless of how long each note runs. */
+  .pillar-program {
+    grid-template-rows: auto 1fr auto;
+    align-content: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillar,
+  .pillar-chev,
+  a.pillar-program {
+    transition: none;
+  }
+}
+
+/* --- Scroll-driven motion ----------------------------------------------- */
+
+/*
+ * The page moves as you walk down it: clouds drift at their own rates as the
+ * sky leaves, each stop arrives as you reach it, the collage fans open, the
+ * ring draws itself, the map rises into its frame, and the pillars square up.
+ *
+ * This is `animation-timeline: view()` rather than a scroll handler: progress
+ * is tied to where the element sits in the viewport by the compositor, so
+ * there is no listener to throttle, no `getBoundingClientRect` per frame, and
+ * nothing to tear down. The existing `<ScrollReveal>` sweep stays exactly as
+ * it is — see the handoff below.
+ *
+ * Three rules hold this together:
+ *
+ * 1. Everything that can be clicked finishes moving on `entry`. A card still
+ *    animating while it is on screen is a card that slides out from under the
+ *    cursor as you reach for it, and these are all buttons. They settle by the
+ *    time they are fully in view and then hold still while you read and click.
+ *    The clouds and the map are the exceptions: they run for the whole pass,
+ *    because they are scenery, clipped by their own frames, and not targets.
+ *
+ * 2. It is an enhancement and never a requirement. Browsers without view
+ *    timelines keep the `[data-rv]` fade they already had, which is why the
+ *    handoff that switches `[data-rv]` off lives *inside* `@supports` — if the
+ *    feature is missing, the fade is still the thing doing the work.
+ *
+ * 3. `prefers-reduced-motion` opts out of all of it and falls back to that
+ *    same fade, which is already a pure cross-fade under that setting.
+ *
+ * Ranges rather than delays do the staggering. A view timeline has no wall
+ * clock to be late against, so "arrives after its neighbour" means "covers a
+ * later stretch of the scroll", and the ends are kept well short of `entry
+ * 100%` so nothing can strand mid-animation on a viewport shorter than the
+ * element.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The clouds ride the hero's own named timeline rather than their own.
+       They sit at the very top of the document, so at load they are already
+       on screen and a `view()` of their own would start them halfway through
+       their range — the hero's `contain → exit` is the run that actually
+       corresponds to "the sky is going past". */
+    /* Two animations on one element: the ambient float, which runs on the
+       clock, and the scroll parallax, which runs on the hero's view timeline.
+       Written out longhand because the `animation` shorthand would reset the
+       float's name, duration and delay back to their initial values — a
+       shorthand here would silently stop the sky moving. */
+    .sky-cloud {
+      animation-name: home-cloud-float, home-cloud-drift;
+      animation-duration: var(--float-dur), 1s;
+      animation-delay: var(--float-delay), 0s;
+      animation-timing-function: linear, linear;
+      animation-iteration-count: infinite, 1;
+      animation-fill-mode: none, both;
+      animation-timeline: auto, --home-hero;
+      animation-range:
+        normal,
+        contain 0% exit 100%;
+    }
+
+    /* The handoff. `[data-rv]` holds its element at opacity 0 until the sweep
+       reaches it, which would fight the timeline for the same two properties;
+       this hands both over. More specific than the `[data-rv-ready] [data-rv]`
+       rule it is overriding, so it wins without `!important`. */
+    [data-rv-ready] .beat > [data-rv] {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    /* Artwork first, words a beat behind it. The offset is small on purpose:
+       any further apart and the two halves of one stop stop reading as one
+       stop. */
+    .beat-art {
+      animation: home-beat-art linear both;
+      animation-timeline: view();
+      animation-range: entry 4% entry 62%;
+    }
+
+    .beat-copy {
+      animation: home-beat-copy linear both;
+      animation-timeline: view();
+      animation-range: entry 12% entry 76%;
+    }
+
+    /* The stack opens out. Each print carries its own `--fan`, and the
+       keyframes end on it rather than on zero, so the pile settles into its
+       resting fan instead of squaring up into a grid. */
+    .collage-print {
+      animation: home-print-settle linear both;
+      animation-timeline: view();
+    }
+
+    .collage-print:nth-child(1) {
+      animation-range: entry 6% entry 58%;
+    }
+
+    .collage-print:nth-child(2) {
+      animation-range: entry 12% entry 68%;
+    }
+
+    .collage-print:nth-child(3) {
+      animation-range: entry 9% entry 63%;
+    }
+
+    .collage-print:nth-child(4) {
+      animation-range: entry 16% entry 76%;
+    }
+
+    /* The ring draws itself. `pathLength="100"` is set on the paths in the
+       markup, so the dash maths is in percent and does not have to be redone
+       if the radius ever changes. */
+    .ring-arc {
+      animation: home-ring-draw linear both;
+      animation-timeline: view();
+    }
+
+    .ring-arc:nth-of-type(1) {
+      animation-range: entry 8% entry 56%;
+    }
+
+    .ring-arc:nth-of-type(2) {
+      animation-range: entry 14% entry 64%;
+    }
+
+    .ring-arc:nth-of-type(3) {
+      animation-range: entry 20% entry 72%;
+    }
+
+    .ring-arc:nth-of-type(4) {
+      animation-range: entry 26% entry 80%;
+    }
+
+    .ring-centre {
+      animation: home-ring-hub linear both;
+      animation-timeline: view();
+      animation-range: entry 22% entry 70%;
+    }
+
+    /* Florida arrives. This one runs for the whole pass rather than settling
+       on entry, because it is the only piece of motion on the page making an
+       argument instead of a flourish — the state keeps rising for as long as
+       you are looking at the reason it matters. `.statemap-frame` clips it,
+       so nothing is ever seen outside the border. */
+    .statemap-img {
+      animation: home-map-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 100%;
+    }
+
+    .pillar {
+      animation: home-pillar-arrive linear both;
+      animation-timeline: view();
+    }
+
+    .pillar:nth-child(1) {
+      animation-range: entry 6% entry 60%;
+    }
+
+    .pillar:nth-child(2) {
+      animation-range: entry 11% entry 70%;
+    }
+
+    .pillar:nth-child(3) {
+      animation-range: entry 16% entry 80%;
+    }
+  }
+}
+
+/* Sideways only. A cloud that also moved vertically would race or lag the
+   page, and at these sizes that reads as a bug rather than as depth; the
+   whole of the parallax is that `--drift` differs per cloud. */
+@keyframes home-cloud-drift {
+  from {
+    transform: translateX(calc(var(--drift, 24px) * -1));
+  }
+
+  to {
+    transform: translateX(var(--drift, 24px));
+  }
+}
+
+/* The artwork comes in from the side it lives on, which is what makes the
+   alternation read as walking past rather than as a list assembling. The
+   direction is set per stop below. */
+@keyframes home-beat-art {
+  from {
+    opacity: 0;
+    transform: translate(var(--beat-in, 0px), 38px) scale(0.972);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes home-beat-copy {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--beat-in, 0px) * -0.5), 26px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+/* Paper landing on a pile: up, over-rotated, settling onto its resting fan. */
+@keyframes home-print-settle {
+  from {
+    opacity: 0;
+    transform: rotate(calc(var(--fan, 0deg) * 2.8))
+      translateY(calc(var(--lift, 0px) + 44px));
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0px));
+  }
+}
+
+@keyframes home-ring-draw {
+  from {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes home-ring-hub {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 16% of the image's own height. Enough to read as arriving, not so much that
+   the frame is empty when the section first appears. It finishes at zero
+   rather than past it, so the map is never short of its own frame. */
+@keyframes home-map-rise {
+  from {
+    transform: translateY(16%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* The pillars rise and square up. No rotation here — these are solid blocks
+   with hard borders, and tilting them reads as broken rather than as paper. */
+@keyframes home-pillar-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(46px) scale(0.982);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
