@@ -19,7 +19,7 @@ import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 import { assertPanaverseConfigured } from '../lib/panaverse/boot';
-import { PATHNAME_HEADER } from '../lib/panaverse/chrome';
+import { PATHNAME_HEADER, SEARCH_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -168,6 +168,7 @@ export default {
       // value would let anyone strip the chrome off any page.
       const routed = new Request(request);
       routed.headers.set(PATHNAME_HEADER, url.pathname);
+      routed.headers.set(SEARCH_HEADER, url.search);
       return handler.fetch(routed);
     });
   },

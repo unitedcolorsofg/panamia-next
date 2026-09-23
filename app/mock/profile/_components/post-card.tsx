@@ -89,7 +89,7 @@ export function PostCard({
 
         <button
           type="button"
-          className="text-pana-ink/35 hover:text-pana-ink flex-none"
+          className="text-pana-ink/35 hover:text-pana-ink flex-none pointer-coarse:inline-flex pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:items-center pointer-coarse:justify-center"
           aria-label="More options"
         >
           <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
