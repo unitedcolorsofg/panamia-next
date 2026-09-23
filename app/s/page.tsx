@@ -131,6 +131,8 @@ function FeedContent() {
       <div className="min-w-0">
         <div className="feed-composer">
           <PostComposer
+            avatarUrl={actor?.iconUrl}
+            avatarName={actor?.name || actor?.username}
             placeholder={
               firstName
                 ? `¿Qué tal, ${firstName}? Ask the Panas something, or show what you're working on.`

@@ -2198,51 +2198,57 @@ button.bizprofile-update-action:hover {
   border-color: rgb(17 13 13 / 0.1);
 }
 
-/* Write/Preview. The default tab styling is a grey segmented control that
-   carries more visual weight than the Post button did. */
-.composer-tabs {
-  display: inline-flex;
-  gap: 0.25rem;
-  padding: 0;
-  background: transparent;
-  height: auto;
-}
-
-.composer-tab {
-  display: inline-flex;
+/* One row for every control under the prompt.
+ *
+ * The composer used to stack five full-width rows — tabs, prompt, hint, media,
+ * actions — in a card whose own padding then added to them. Collapsing the
+ * controls into a single wrapping row is most of the height back. */
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.3125rem 0.75rem;
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background: transparent;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: rgb(17 13 13 / 0.55);
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    background-color 0.2s ease;
+  gap: 0.5rem;
 }
 
-.composer-tab:hover {
-  color: var(--color-pana-ink);
+.composer-actions-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.composer-tab[data-state='active'] {
-  border-color: rgb(17 13 13 / 0.14);
-  background-color: #fff;
-  color: var(--color-pana-ink);
+/* `display: contents` lifts the upload trigger out of its own wrapper so it
+   sits in the row as a chip. Its previews and notices are still block-level
+   content, so they claim a full line and sort after the controls rather than
+   wedging themselves between the chips and the Post button. */
+.composer-media {
+  display: contents;
 }
 
-/* The markdown hint is a footnote, not a legend. It was rendering at the same
-   weight as the prompt above it. */
-.composer-hint {
-  margin-top: 0.5rem;
+.composer-media-block {
+  flex-basis: 100%;
+  order: 2;
+}
+
+/* Markdown hint and character count share the footnote line. */
+.composer-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(17 13 13 / 0.42);
+}
+
+/* Line the controls up under the prompt rather than under the avatar, so the
+   left edge of everything the viewer types or presses is the same. 2.5rem
+   avatar + 0.75rem gap. */
+@media (min-width: 640px) {
+  .composer-actions[data-indent],
+  .composer-foot[data-indent] {
+    padding-left: 3.25rem;
+  }
 }
 
 /* Unread pill. Sticks just under the masthead so it stays reachable mid-scroll
