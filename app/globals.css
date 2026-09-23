@@ -4339,11 +4339,12 @@ button.bizprofile-update-action:hover {
   --home-head-stack: 1.25rem;
   --home-display-max: 4.375rem;
   --home-hero-min: 100svh;
-  /* Deliberately large. The sky above the wordmark is the page's opening
-     shot, and it needs somewhere to be: the gradient on the body resolves to
-     paper at 360px, and the chrome above the hero is 121px of that, so this
-     is what keeps the wordmark below the weather rather than in it. */
-  --home-hero-pad-top: clamp(196px, 26svh, 300px);
+  /* This was 196–300px, and none of it was breathing room: it was holding the
+     wordmark clear of the band of sky painted across the top of the document.
+     With the sky gone, the only thing above the card that still has to be
+     cleared is the masthead, so what is left is its height plus a margin —
+     and the card comes up the page by about 150px. */
+  --home-hero-pad-top: clamp(104px, 13svh, 148px);
   --home-hero-pad-bottom: clamp(36px, min(4vw, 6svh), 58px);
   /* How far apart consecutive stops on the walk sit, and how wide the art
      half of a stop is allowed to get before it starts crowding the words. */
@@ -4365,10 +4366,10 @@ button.bizprofile-update-action:hover {
      the viewport reserves 1000. The top padding stays, because that is what
      clears the fixed header rather than decoration. */
   --home-hero-min: 0;
-  /* Same reasoning as `roomy` — the sky is not slack space, so it does not
-     compress with the rest of the rhythm. It is a little shorter only because
-     the compact hero has less below it to balance against. */
-  --home-hero-pad-top: clamp(184px, 24svh, 262px);
+  /* Same reasoning as `roomy`: what is left is the masthead plus a margin.
+     Tighter than roomy, because the compact hero is only ever as tall as what
+     is inside it, so this padding is a much larger share of the whole. */
+  --home-hero-pad-top: clamp(88px, 11svh, 120px);
   --home-hero-pad-bottom: 2.25rem;
   --home-beat-gap: 3.75rem;
   --home-beat-art: 20rem;
@@ -4476,12 +4477,11 @@ body:has([data-density]) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
-  /* Blue let down towards cream. Two fixed mixes rather than `color-mix()`
-     calls repeated at every use: these are specific values that were picked
-     against the masthead's ink text, and they want to be readable as numbers
-     when someone checks that maths later. */
-  --story-sky-high: rgb(103 136 239); /* blue 78% — ink on this is ~5.6:1 */
-  --story-sky-low: rgb(146 172 244); /* blue 52% — the haze at the horizon */
+  /* Blue let down towards cream. A fixed mix rather than a `color-mix()` call
+     repeated at every use, so it still reads as a number when someone checks
+     the maths later. The page no longer opens on a band of sky, so the only
+     thing left tinted this way is the glass in the street below. */
+  --story-sky-low: rgb(146 172 244); /* blue 52% — window glass */
 }
 
 /* --- The sky ------------------------------------------------------------ */
@@ -4498,47 +4498,41 @@ body:has([data-density]) #call-to-action-bar {
   display: none;
 }
 
-/* The page opens outdoors.
+/* The page opens on paper.
  *
- * The gradient is on the body rather than on the hero, because the top of the
- * document is not the top of the hero: the masthead sits above it. Painting
- * the sky on the hero would have left a cream bar sitting across it, which is
- * the cut-out seam this page has already been through once. On the body it
- * runs behind everything, and the masthead is made transparent below so the
- * sky simply continues through it.
+ * It used to open on a band of blue running from the top of the document,
+ * down past the masthead, dissolving into cream just before the wordmark.
+ * For its size that band was the most expensive thing on the page, in three
+ * separate ways:
  *
- * Measured in pixels, in page coordinates, so the bands land in fixed places:
- * the masthead occupies 0–65, and the sky holds one flat tone across all of
- * it so the chrome sits on a single colour instead of a ramp. Full strength
- * only *below* the masthead, where nothing has to be read on it, and back to
- * paper before the hero's wordmark arrives — orange on vivid blue is a poor
- * pairing, and the wordmark is not negotiable.
+ *  - It cost the top of the fold. The wordmark could not sit in the blue, so
+ *    the hero carried 196–300px of padding whose only job was to hold the
+ *    card clear of the weather. That padding was the empty space at the top
+ *    of this page — the sky was not above the card, it *was* the gap.
+ *  - It capped the palette. Ink on full blue is 3.7:1 and fails AA, so the
+ *    top of the gradient had to be held back to 78% blue for the sake of the
+ *    masthead's own type. On cream that same type is ~17:1: the cap, and the
+ *    two mixed tones that existed to satisfy it, are simply not needed.
+ *  - It was measured in page coordinates. The gradient sat on the body in
+ *    fixed pixels, so every change to the height of the chrome above the hero
+ *    meant re-deriving five stops by hand. That is how this page acquired a
+ *    1px seam across the masthead the last time something above it moved.
  *
- * These offsets are 56px higher up the page than they used to be, which is
- * the height of the test-site bar hidden just above.
- *
- * `--story-sky-high` is capped at 78% blue for exactly one reason: the
- * masthead's own ink type sits on it. */
+ * The clouds stay, and become the whole of the weather: see `.sky-cloud`,
+ * which inverts them to blue-on-paper now that there is no blue behind them.
+ * The page still opens outdoors, but the sky is drawn rather than painted
+ * across the full width of the document. */
 body:has([data-density]) {
   background-color: var(--story-cream);
-  background-repeat: no-repeat;
-  background-image: linear-gradient(
-    180deg,
-    var(--story-sky-high) 0,
-    var(--story-sky-high) 65px,
-    var(--story-blue) 134px,
-    var(--story-sky-low) 229px,
-    var(--story-cream) 304px
-  );
 }
 
-/* The masthead stops being a cream bar and becomes a pane of the sky. It is
-   only safe because of the cap above: the type inside it is unchanged ink,
-   and it still clears AA on `--story-sky-high`.
+/* The masthead stops being a cream bar of its own and becomes part of the
+   same sheet of paper as the hero, so there is no edge at all where the
+   chrome ends and the page begins.
 
    Transparent is only correct while there is nothing scrolling underneath —
    which is true for as long as the hero is on screen. The handover animation
-   further down puts the cream back on the way out, and it now carries the
+   further down puts the cream back on the way out, and it carries the
    background as well as the rule. */
 body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
   background-color: transparent;
@@ -4599,20 +4593,16 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   --home-seam: var(--story-cream);
 }
 
-/* The hero used to be a photograph under an orange wash, then a field of
- * cream. It is neither now: it is the bottom of the sky.
+/* The hero has been a photograph under an orange wash, then a field of cream,
+ * then the bottom of the sky. It is paper now — the same paper as the body
+ * and the masthead — so there is nothing left to blend between them: the
+ * chrome, this card and the section beneath it are one continuous sheet.
  *
- * Its own background starts fully transparent so the body's gradient shows
- * straight through the top of it, then fades up to paper over the first
- * stretch — which is what turns a hard horizon into a haze. Everything below
- * that point is cream, so the wordmark, the headline and the search all sit
- * on paper where they belong, and the section after this one can meet it
- * without a line.
- *
- * The one piece of the old field that survives is the pool of light behind
- * the search box, re-cut in orange now that there is no butter. It does one
- * job: put the light source directly behind the thing the eye should find
- * first. */
+ * That leaves a single background layer, the pool of light behind the search
+ * box. It does one job: put the light source directly behind the thing the
+ * eye should find first. The haze that used to sit over it existed only to
+ * dissolve the sky into the paper, and with no sky it was cream fading into
+ * cream, so it has gone with the sky. */
 .home-hero-field {
   background-color: transparent;
   color: var(--story-ink);
@@ -4620,45 +4610,42 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
      subtree entirely. See the handover rule below. */
   view-timeline-name: --home-hero;
   view-timeline-axis: block;
-  /* Both layers below end in solid cream, and a background tile repeats by
-     default. The masthead is 65.375px tall, so this box starts on a half
-     pixel — and the bottom edge of the tile repeating *above* the box, which
-     is solid cream, bleeds into that fractional first row. It rendered as a
-     1px cream hairline across the full width, sitting exactly on the join
-     between the masthead and the hero, which is precisely the cut-out seam
-     this page has already been through twice.
-
-     There is only ever one tile here, so repeating was never wanted. */
+  /* The remaining layer ends fully transparent rather than in an opaque
+     colour, so it can no longer bleed the way the cream-terminated one did:
+     this box starts on a half pixel (the masthead is 65.375px tall) and a
+     background tile repeats by default, so the bottom edge of the tile
+     repeating *above* the box used to leak a 1px cream hairline into that
+     fractional first row. Kept regardless — there is only ever one tile
+     here, so repeating was never wanted. */
   background-repeat: no-repeat;
   background-image:
-    /* The haze. Zero alpha at the top edge — anything else would put back the
-       hard line this exists to remove — reaching full paper by 250px, which
-       is a little before the body's own gradient gets there, so the two
-       overlap rather than meet. Fixed pixels, because it is an effect at an
-       edge and should be the same depth whether the hero is 600px tall or
-       1000px. */
-    linear-gradient(
-      180deg,
-      rgb(252 242 231 / 0) 0,
-      rgb(252 242 231 / 0.45) 130px,
-      var(--story-cream) 250px
-    ),
-    /* the pool of light, centred behind the search. Sitting just below the
-       bottom edge so the hero catches the top of the falloff, not the hot
-       centre. */
-    radial-gradient(
-        118% 72% at 50% 104%,
-        rgb(242 136 47 / 0.34) 0%,
-        rgb(242 136 47 / 0.2) 32%,
-        rgb(242 136 47 / 0.07) 58%,
-        rgb(242 136 47 / 0) 78%
-      );
+    /* The pool of light behind the search. This is the first time it has
+       actually been drawn: the haze that used to sit over it reached *opaque*
+       cream partway down, so everything here was painted and then covered up.
+
+       Its geometry is therefore new too. Centred just above the search and
+       sized so the transparent stop lands at ~97% of the card, because the
+       hero has no fade to hide behind any more — left where it was, at 104%
+       with a 72% radius, the falloff was still at 32% alpha when it reached
+       the bottom edge and was cut dead there. Measured as a step of 50 across
+       one row: a hard orange line straight over the join into the section
+       below. Percentages, not pixels, so it keeps resolving inside the card
+       at either density and on a phone. */ radial-gradient(
+    88% 24% at 50% 78%,
+    rgb(242 136 47 / 0.3) 0%,
+    rgb(242 136 47 / 0.18) 34%,
+    rgb(242 136 47 / 0.06) 60%,
+    rgb(242 136 47 / 0) 78%
+  );
 }
 
-/* The grain's mask now has to dodge the sky as well as the light. Ink dots
-   scattered over the blue read as dirt on the lens rather than as tooth on
-   paper, so it starts clear, comes in once the haze has resolved to cream,
-   and is gone again before the pool of light. */
+/* The grain used to have to dodge the sky — ink dots scattered over blue read
+   as dirt on the lens rather than as tooth on paper. There is no sky now, but
+   the ramp earns its place twice over: the masthead above this card is the
+   same cream and carries no grain, so grain reaching the hero's top edge
+   would draw a visible boundary right on that join, which is the seam this
+   page has been through three times. It still clears before the pool of
+   light at the bottom. */
 .home-hero-field .home-hero-grain {
   background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
   background-size: 4px 4px;
@@ -4765,12 +4752,19 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 }
 
 /* Each cloud is one colour in `currentColor`, so its overlapping parts cannot
-   show as seams. Depth is size and opacity only — a blurred cloud on a flat
-   sky reads as a rendering fault rather than as distance. */
+   show as seams. Depth is size and opacity only — a blurred cloud reads as a
+   rendering fault rather than as distance.
+
+   These were cream on blue. With the sky gone they are the only weather left
+   on the page, so they invert: blue let most of the way down into the paper,
+   which lands as a soft periwinkle on cream. The mix is what carries the
+   lightness rather than the alpha, because it has to survive the per-cloud
+   opacities below — the nearest cloud is at 0.95, so tinting by alpha alone
+   would have given that one no colour to be light *with*. */
 .sky-cloud {
   position: absolute;
   width: auto;
-  color: var(--story-cream);
+  color: color-mix(in srgb, var(--story-blue) 20%, var(--story-cream));
 }
 
 .sky-cloud-1 {
@@ -5018,9 +5012,14 @@ body:has([data-density]) {
 /* Its type is the old near-black `#110D0D` rather than `#020811`. The two are
    indistinguishable side by side, but there is no reason to leave the old
    token rendering on a page that is otherwise entirely the new palette. */
+/* `.hero-donate` is excluded deliberately: it is the one chip in this row with
+   an ink *fill*, and it carries cream type. Both this rule and the one that
+   sets that cream are (0,2,0), and this one is later in the file, so without
+   the `:not()` it wins and renders the chip ink-on-ink — a solid black pill
+   with an invisible word in it. */
 [data-density] .directory-suggest-pill .text-pana-ink,
 [data-density] .directory-suggest-pill input,
-[data-density] .tagpill {
+[data-density] .tagpill:not(.hero-donate) {
   color: var(--story-ink);
 }
 
