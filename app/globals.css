@@ -4471,6 +4471,10 @@ button.bizprofile-update-action:hover {
 .home-hero-field {
   background-color: var(--color-pana-cream);
   color: var(--color-pana-ink);
+  /* Named so the masthead wordmark can react to this card leaving, from a
+     different subtree entirely. See the handover rule below. */
+  view-timeline-name: --home-hero;
+  view-timeline-axis: block;
   background-image:
     /* Levels the bottom edge to the seam colour right across the width. The
        radial below falls off towards the corners, so without this the hero's
@@ -4525,15 +4529,6 @@ button.bizprofile-update-action:hover {
    cream because the hero used to be dark, and every one of these is the same
    fix — put the ink back. */
 
-/* The wordmark ships as white and as four brand colours, all of which are too
-   light to hold on cream. `brightness(0)` collapses every opaque pixel to
-   black and leaves the alpha channel alone, so the white file becomes an ink
-   wordmark with the artwork untouched. A *tinted* wordmark would need either a
-   real asset or a mask, and a mask means giving up the <img>. */
-.home-hero-field .flower-power-logo {
-  filter: brightness(0);
-}
-
 /* The drop shadow existed to lift cream type off a photograph. Ink on cream
    needs no help, and a shadow at this size just reads as a smudge. */
 .home-hero-field .hero-headline {
@@ -4586,6 +4581,55 @@ button.bizprofile-update-action:hover {
 .home-hero-field .directory-suggest-pill {
   border: 2px solid rgb(17 13 13 / 0.14);
   box-shadow: 0 10px 30px rgb(17 13 13 / 0.07);
+}
+
+/* The hero card carries the wordmark now, which makes the one in the masthead
+   the same artwork in the same colour twice inside 200px. It cannot just be
+   deleted, though: `.masthead` is `position: sticky`, so removing it would
+   leave every screen *below* the hero with no wordmark and nothing obvious to
+   click to get home.
+ *
+ * So it hands over instead of disappearing — absent while the hero is on
+ * screen, arriving as the hero leaves. Whichever one you can see, there is
+ * exactly one.
+ *
+ * Driven by the hero's own view timeline rather than a pixel offset, because
+ * the hero's height changes with the density switch and `exit` means "as this
+ * card leaves" at any height. That needs `timeline-scope`: the masthead is not
+ * a descendant of the hero, so without it the name would not resolve.
+ *
+ * `visibility`, not opacity alone. A transparent link is still tabbable and
+ * still clickable, and an invisible target at the top of the page is the kind
+ * of thing only ever found by accident. Because `visibility` interpolates
+ * discretely, holding `hidden` until 55% and pairing it with the opacity ramp
+ * gives a hard cut to visible followed by a fade, not a ghost you can hit.
+ *
+ * Deliberately not behind `prefers-reduced-motion`, unlike the rest of the
+ * page's motion: this decides *which* wordmark is on screen, not how anything
+ * travels, and a duplicate logo is not more restful. */
+body:has([data-density]) {
+  timeline-scope: --home-hero;
+}
+
+@supports (animation-timeline: view()) {
+  body:has([data-density]) header a[aria-label='Pana Mia'] {
+    animation: home-masthead-wordmark linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
+}
+
+@keyframes home-masthead-wordmark {
+  0%,
+  55% {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  100% {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 /* The receiving end of the seam. There is no line left to hide — this section

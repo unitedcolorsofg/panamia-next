@@ -113,8 +113,13 @@ function HeroCard() {
       <div className="home-hero-grain" aria-hidden="true" />
 
       <div className="relative z-10 container mx-auto px-4">
+        {/* The wordmark ships as white and as four brand colours. On the old
+            dark field the white file was the only one that held; on cream the
+            orange can be used as it is, which is also the file the site
+            header uses — so the two agree now instead of one being a black
+            silhouette of the other. */}
         <Image
-          src="/logos/pana_logo_long_white.png"
+          src="/logos/pana_logo_long_orange.png"
           alt="Pana Mia"
           width={600}
           height={150}
