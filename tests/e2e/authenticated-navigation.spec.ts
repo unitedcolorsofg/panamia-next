@@ -37,24 +37,31 @@ test.describe('Authenticated User Navigation', () => {
     await expectSignInPage(page);
   });
 
-  test('account user edit page shows an unauthorized card to anonymous visitors', async ({
+  test('account user edit page shows a sign-in prompt to anonymous visitors', async ({
     page,
   }) => {
     const res = await page.goto('/account/user/edit', {
       waitUntil: 'domcontentloaded',
     });
 
-    // This route does NOT redirect -- it renders an Unauthorized card in place,
-    // like /form/become-an-affiliate. `expect(page.url()).toBeTruthy()` stood
+    // This route does NOT redirect -- it renders the prompt in place, like
+    // /form/become-an-affiliate. `expect(page.url()).toBeTruthy()` stood
     // here, which no navigation can fail; status alone replaced it, which a
-    // stub answering 200 everywhere also satisfies. The card's own text is the
-    // assertion that distinguishes this page from any other page.
+    // stub answering 200 everywhere also satisfies. The prompt's own text is
+    // the assertion that distinguishes this page from any other page.
+    //
+    // It used to share Status401_Unauthorized with the rest of /account and
+    // was asserted on the word "Unauthorized". Settings now states the problem
+    // in its own words, so the second assertion names settings specifically --
+    // which is the part no other account route could satisfy.
     expect(res?.status()).toBe(200);
-    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+    await expect(
+      page.getByText('You need to be signed in').first()
+    ).toBeVisible({
       timeout: 15000,
     });
     await expect(
-      page.getByText('You must be logged in to view this page.').first()
+      page.getByText('Your settings live on your account').first()
     ).toBeVisible();
   });
 });

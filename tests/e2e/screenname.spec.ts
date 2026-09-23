@@ -92,7 +92,7 @@ test.describe('Screenname API Endpoints', () => {
 });
 
 test.describe('Screenname UI Elements', () => {
-  test('account edit page shows an unauthorized card to anonymous visitors', async ({
+  test('account edit page shows a sign-in prompt to anonymous visitors', async ({
     page,
   }) => {
     const res = await page.goto('/account/user/edit', {
@@ -102,10 +102,14 @@ test.describe('Screenname UI Elements', () => {
     // `expect(page.url()).toBeTruthy()` cannot fail, and the title check that
     // sat beside it cannot detect this app's not-found page, which keeps the
     // default "Pana Mia" title. Status alone is also not enough -- a stub
-    // answering 200 everywhere satisfies it. This route renders an Unauthorized
-    // card in place rather than redirecting, so assert the card.
+    // answering 200 everywhere satisfies it. This route renders the prompt in
+    // place rather than redirecting, so assert the prompt. It reads "You need
+    // to be signed in" since settings stopped sharing the generic
+    // Status401_Unauthorized card with the rest of /account.
     expect(res?.status()).toBe(200);
-    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+    await expect(
+      page.getByText('You need to be signed in').first()
+    ).toBeVisible({
       timeout: 15000,
     });
   });
