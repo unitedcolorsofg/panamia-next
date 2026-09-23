@@ -51,6 +51,7 @@ export function StoryBeats({ beats }: StoryBeatsProps) {
         return (
           <section
             key={beat.id}
+            id={beat.anchor}
             className="beat"
             data-side={beat.side}
             data-accent={beat.accent}

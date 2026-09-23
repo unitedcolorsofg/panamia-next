@@ -79,6 +79,12 @@ export type BeatScene =
 
 export interface StoryBeat {
   id: string;
+  /** Optional DOM id, for stops that inherit an anchor the old page owned.
+      The sign-in page has been sending people to `/#faq-what-is-a-pana`
+      since the FAQ existed, and that link is out in the world; the stop that
+      answers the same question keeps the anchor alive rather than dropping
+      those visitors at the top of the page. */
+  anchor?: string;
   /** Which side of the street this one sits on. Alternating puts the artwork
       left, right, left as you walk down, instead of three identical rows. */
   side: 'left' | 'right';
@@ -209,6 +215,7 @@ export function useStoryBeats(): StoryBeat[] {
   return [
     {
       id: 'pana',
+      anchor: 'faq-what-is-a-pana',
       side: 'left',
       accent: 'orange',
       question: t('beats.pana.question'),
