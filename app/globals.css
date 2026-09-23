@@ -4869,12 +4869,23 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
    Held to `translate` rather than `transform` deliberately: the scroll
    parallax below owns `transform`, and the two properties compose, so each
    can be animated without knowing about the other. */
-@media (prefers-reduced-motion: no-preference) {
-  .sky-cloud {
-    left: 100%;
-    animation: home-cloud-float var(--float-dur) linear var(--float-delay)
-      infinite;
-  }
+/* Deliberately not gated on `prefers-reduced-motion`.
+
+   The drift is a 38s linear translation of small decorative shapes. That is
+   not the motion the setting exists to suppress — the vestibular triggers are
+   scroll-linked parallax, spin, zoom and large fast movement, and the one
+   piece here that qualifies (the scroll parallax in the `@supports` block at
+   the end of this file) stays gated.
+
+   The sky is the page's whole first impression, and losing it entirely is a
+   worse outcome than a slow drift for the people who get caught by this.
+   Windows turns the setting on for everyone in Battery Saver and for anyone
+   whose machine is set to "adjust for best performance", so the group in
+   question is mostly not people who asked for stillness. */
+.sky-cloud {
+  left: 100%;
+  animation: home-cloud-float var(--float-dur) linear var(--float-delay)
+    infinite;
 }
 
 @keyframes home-cloud-float {
@@ -4883,89 +4894,6 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   }
   to {
     translate: calc(-100vw - var(--float-runway, 0px));
-  }
-}
-
-/* Reduced motion has to park them, not just stop them.
-
-   `left: 100%` is set in the `no-preference` block above, because it is the
-   lap's starting edge. That means it is the *animation* that was giving each
-   cloud a horizontal position at all — the base rule sets only `top`. Switch
-   the animation off and all five resolve to `left: auto`, which puts them on
-   the sky's left edge, stacked into one lump in the corner with the rest of
-   the sky empty. It reads as a broken image rather than as a still one.
-
-   So place them explicitly. The order and spacing mirror the lap: cloud 5
-   leads and 4 brings up the rear, the same sequence the delays produce, at
-   roughly the same fifth-of-a-lap spacing. The `top` values already differ,
-   so this lands as a scattered sky rather than a row.
-
-   Centred on each point with `translate` so the two outermost cannot be
-   clipped by `.sky-clouds` on a narrow viewport — at 375px the three clouds
-   that survive the phone breakpoint all clear both edges. `translate` is
-   free to use here: the float animation owns that property, and under this
-   query it does not exist. */
-@media (prefers-reduced-motion: reduce) {
-  .sky-cloud {
-    translate: -50%;
-  }
-
-  .sky-cloud-5 {
-    left: 10%;
-  }
-
-  .sky-cloud-3 {
-    left: 27%;
-  }
-
-  .sky-cloud-1 {
-    left: 45%;
-  }
-
-  .sky-cloud-2 {
-    left: 62%;
-  }
-
-  .sky-cloud-4 {
-    left: 78%;
-  }
-}
-
-/* Below the phone breakpoint only clouds 1, 3 and 4 survive, and their widths
-   add up to 410px — more than a 360px viewport holds. The lap normally solves
-   this by moving them through each other's space over time; a still sky has to
-   solve it with geometry.
-
-   So two tiers. Down to ~544px the three are simply pushed out to the full
-   width of the sky, which leaves a comfortable gap between each. Below that
-   the three no longer fit with any margin to spare, so the middle one goes
-   and the remaining pair re-centres — two clouds still cover three quarters
-   of a phone's sky, which reads as weather rather than as a gap. */
-@media (prefers-reduced-motion: reduce) and (max-width: 48rem) {
-  .sky-cloud-3 {
-    left: 16%;
-  }
-
-  .sky-cloud-1 {
-    left: 46%;
-  }
-
-  .sky-cloud-4 {
-    left: 82%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) and (max-width: 34rem) {
-  .sky-cloud-1 {
-    display: none;
-  }
-
-  .sky-cloud-3 {
-    left: 25%;
-  }
-
-  .sky-cloud-4 {
-    left: 72%;
   }
 }
 
@@ -4999,8 +4927,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
  * discretely, holding `hidden` until 55% and pairing it with the opacity ramp
  * gives a hard cut to visible followed by a fade, not a ghost you can hit.
  *
- * Deliberately not behind `prefers-reduced-motion`, unlike the rest of the
- * page's motion: this decides *which* wordmark is on screen, not how anything
+ * Deliberately not behind `prefers-reduced-motion`, as with the sky and the
+ * street: this decides *which* wordmark is on screen, not how anything
  * travels, and a duplicate logo is not more restful. */
 body:has([data-density]) {
   timeline-scope: --home-hero;
@@ -5387,64 +5315,50 @@ body:has([data-density]) {
   transform-origin: 50% 100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  /* People crossing the block. Each lap runs clear off both ends of the
-     drawing, where the viewBox crops it, and each starts part-way through
-     so the street is populated on the first frame. */
-  .street-walk {
-    animation: street-walk var(--walk-dur, 54s) linear var(--walk-delay, 0s)
-      infinite;
-  }
+/* Also deliberately ungated — see the note on `.sky-cloud` above. The people
+   are the point of the scene: a town where nobody moves reads as abandoned,
+   which is the opposite of what this illustration is for. */
 
-  /* The step. A figure that slides is a ghost; a unit and a half of rise on
-     a two-thirds-second cycle is enough to put weight on their feet. Scoped
-     inside `.street-walk` so the people standing around do not bob on the
-     spot. */
-  .street-walk .street-person,
-  .street-walk .street-pram {
-    animation: street-step 0.66s ease-in-out infinite;
-  }
-
-  /* The dog trots, which is a shorter stride than its owner's. */
-  .street-walk .street-dog {
-    animation: street-step 0.4s ease-in-out infinite;
-  }
-
-  /* Standing still, as opposed to being a statue. Every figure gets its own
-     period so the pavement never pulses in time. */
-  .street-sway {
-    animation: street-sway var(--sway-dur, 4.6s) ease-in-out
-      var(--sway-delay, 0s) infinite alternate;
-  }
-
-  .street-palm {
-    animation: street-palm var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s)
-      infinite alternate;
-  }
-
-  /* Waving. Duration and delay come from the element so that two people
-     waving in the same scene are not in lockstep — matched timing reads as
-     a mechanism rather than as two people. */
-  .street-arm {
-    animation: street-wave var(--wave-dur, 1.15s) ease-in-out
-      var(--wave-delay, 0s) infinite alternate;
-  }
+/* People crossing the block. Each lap runs clear off both ends of the
+   drawing, where the viewBox crops it, and each starts part-way through
+   so the street is populated on the first frame. */
+.street-walk {
+  animation: street-walk var(--walk-dur, 54s) linear var(--walk-delay, 0s)
+    infinite;
 }
 
-/* Same problem as the clouds, same shape of fix. A walker's position along
-   the block comes entirely from `translate` in the lap below, so with the
-   animation gone all six collapse onto their raw drawing position — which
-   is off the left edge of the viewBox, because that is where a lap starts.
-   The result is a street with its walkers heaped in the gutter.
+/* The step. A figure that slides is a ghost; a unit and a half of rise on
+   a two-thirds-second cycle is enough to put weight on their feet. Scoped
+   inside `.street-walk` so the people standing around do not bob on the
+   spot. */
+.street-walk .street-person,
+.street-walk .street-pram {
+  animation: street-step 0.66s ease-in-out infinite;
+}
 
-   `--walk-park` is where the figure would have been on the first frame,
-   worked out from its own negative delay, so a still street is exactly the
-   composed scene the animation opens on rather than a second arrangement
-   that has to be maintained alongside it. */
-@media (prefers-reduced-motion: reduce) {
-  .street-walk {
-    translate: var(--walk-park, 0) 0;
-  }
+/* The dog trots, which is a shorter stride than its owner's. */
+.street-walk .street-dog {
+  animation: street-step 0.4s ease-in-out infinite;
+}
+
+/* Standing still, as opposed to being a statue. Every figure gets its own
+   period so the pavement never pulses in time. */
+.street-sway {
+  animation: street-sway var(--sway-dur, 4.6s) ease-in-out var(--sway-delay, 0s)
+    infinite alternate;
+}
+
+.street-palm {
+  animation: street-palm var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s)
+    infinite alternate;
+}
+
+/* Waving. Duration and delay come from the element so that two people
+   waving in the same scene are not in lockstep — matched timing reads as
+   a mechanism rather than as two people. */
+.street-arm {
+  animation: street-wave var(--wave-dur, 1.15s) ease-in-out
+    var(--wave-delay, 0s) infinite alternate;
 }
 
 @keyframes street-walk {
