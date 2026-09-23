@@ -1,10 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * These tests require authentication.
  * In a real environment, you would set up auth state using Playwright's storageState feature.
  * For now, these tests will skip if not authenticated.
  */
+
+// A URL is a location, not a page. The first version of these tests asserted
+// only `toHaveURL(/(api\/auth\/)?signin/)`, and that alternation was a
+// tolerance hiding a live bug: Status401_Unauthorized redirected to
+// /api/auth/signin, which better-auth does not serve, so every one of these
+// routes ended on a 404 and every test was green anyway. Assert the sign-in
+// page's own heading too, so a redirect that lands nowhere fails here.
+async function expectSignInPage(page: Page) {
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin(\?|$)/, {
+    timeout: 15000,
+  });
+  await expect(page.locator('h1').first()).toContainText('Welcome to Pana MIA');
+}
 
 test.describe('Authenticated User Navigation', () => {
   test('account user page requires authentication', async ({ page }) => {
@@ -13,20 +26,15 @@ test.describe('Authenticated User Navigation', () => {
     });
 
     // The page should load without crashing. Unauthenticated visitors are sent
-    // to a sign-in surface rather than being shown the account page.
+    // to the sign-in page rather than being shown the account page.
     //
-    // Note: this route lands on /api/auth/signin (better-auth's own endpoint),
-    // not the custom /signin page that /m/schedule and /become-a-pana use, and
-    // the callbackUrl comes back as /account/user/edit rather than the
-    // /account/user/ that was requested. The source is
-    // components/Page/Status401_Unauthorized.tsx, which router.replace()s to
-    // `/api/auth/signin?callbackUrl=...` -- every /account/* route inherits it.
-    // That is pre-existing behaviour, not something this test changes: the old
-    // `not.toHaveTitle(/404/)` assertion passed straight through it. Flagged
-    // rather than fixed here; pointing that component at /signin would be a
-    // one-line app change, and is Jose's call rather than a test-only decision.
+    // Note: the callbackUrl comes back as /account/user/edit rather than the
+    // /account/user/ that was requested. This route does not use
+    // Status401_Unauthorized -- app/account/user/page.tsx calls router.replace
+    // directly -- which is why grepping the string found three more sites than
+    // tracing the component did.
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/(api\/auth\/)?signin/);
+    await expectSignInPage(page);
   });
 
   test('account user edit page shows an unauthorized card to anonymous visitors', async ({
@@ -54,14 +62,13 @@ test.describe('Authenticated User Navigation', () => {
 test.describe('Authenticated Profile Navigation', () => {
   // Every /account/* route below renders components/Page/Status401_Unauthorized
   // for anonymous visitors, which shows an UNAUTHORIZED card and then
-  // router.replace()s to a sign-in surface. So unauthenticated runs cannot
+  // router.replace()s to the sign-in page. So unauthenticated runs cannot
   // assert route-specific content -- all eight routes produce the same page.
   // What they CAN assert is that the account page is not served to an anonymous
   // visitor, which is the actual security-relevant behaviour and is what
   // `expect(res?.status()).toBe(200)` alone did not check: a stub answering 200
   // everywhere satisfied it. Asserting route-specific content here needs the
   // storageState fixture this file's header has promised since it was written.
-  const signInSurface = /^https?:\/\/[^/]+\/(api\/auth\/)?signin/;
 
   test('account profile edit page sends anonymous visitors to sign in', async ({
     page,
@@ -71,7 +78,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile contact page sends anonymous visitors to sign in', async ({
@@ -82,7 +89,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
 
     // Check that there are no React Query errors visible. On its own this was
     // the test's only assertion, and a negative visibility check passes on any
@@ -99,7 +106,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile categories page sends anonymous visitors to sign in', async ({
@@ -110,7 +117,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile desc page sends anonymous visitors to sign in', async ({
@@ -121,7 +128,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile social page sends anonymous visitors to sign in', async ({
@@ -132,7 +139,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile images page sends anonymous visitors to sign in', async ({
@@ -143,7 +150,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 
   test('account profile gentedepana page sends anonymous visitors to sign in', async ({
@@ -154,7 +161,7 @@ test.describe('Authenticated Profile Navigation', () => {
     });
 
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+    await expectSignInPage(page);
   });
 });
 
