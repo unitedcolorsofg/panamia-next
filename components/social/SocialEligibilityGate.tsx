@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button';
 import { useMyActor, useEnableSocial } from '@/lib/query/social';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import { Users, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import {
+  Users,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  RefreshCw,
+} from 'lucide-react';
 import Link from 'next/link';
 
 interface SocialEligibilityGateProps {
@@ -15,7 +22,7 @@ interface SocialEligibilityGateProps {
 export function SocialEligibilityGate({
   children,
 }: SocialEligibilityGateProps) {
-  const { data, isLoading } = useMyActor();
+  const { data, isLoading, isError, error, isFetching, refetch } = useMyActor();
   const enableSocial = useEnableSocial();
   const { t } = useTranslation('toast');
 
@@ -25,6 +32,46 @@ export function SocialEligibilityGate({
       <div className="flex justify-center py-8">
         <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
       </div>
+    );
+  }
+
+  // The eligibility check itself failed. A backend/network fault is NOT the
+  // same as "your account can't use social features", so offer a retry rather
+  // than the confident-but-wrong "Social Features Unavailable" dead end below.
+  if (isError) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardHeader className="text-center">
+          <div className="bg-destructive/10 mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full">
+            <AlertCircle className="text-destructive h-6 w-6" />
+          </div>
+          <CardTitle>Couldn&apos;t Load Social Features</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-muted-foreground">
+            We couldn&apos;t check your social account just now. This is usually
+            temporary.
+          </p>
+          {error?.message && (
+            <p className="text-muted-foreground font-mono text-xs break-words">
+              {error.message}
+            </p>
+          )}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
