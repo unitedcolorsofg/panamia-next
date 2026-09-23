@@ -2529,6 +2529,342 @@ button.bizprofile-update-action:hover {
   background-color: rgb(17 13 13 / 0.12);
 }
 
+/* ==========================================================================
+   Account settings
+   The one page that is the same page on every surface. It is reached from
+   pana.social and from social.pana.social, changes the same account either
+   way, and the surface switcher already promises as much in its footer —
+   "Applies everywhere". So the primitives below are built around stating
+   *where a setting takes effect*, which is the fact the page left unsaid.
+
+   Panels are `.profile-card`, not a settings card of their own. A settings
+   group is a content card like any other, and giving it a separate border
+   treatment is how a settings page starts looking like a different product
+   from the feed it was opened from — which is the failure being fixed.
+   ========================================================================== */
+
+/* Section nav. Rules in the margin rather than a filled sidebar: at this
+   width a solid panel reads as app chrome, and app chrome is the register the
+   whole page is trying to get out of.
+ *
+ * The direction lives here rather than in Tailwind utilities on the element.
+ * These rules are unlayered and utilities are in `@layer utilities`, so an
+ * unlayered declaration wins no matter how specific the utility looks — a
+ * `flex-row` on the nav would silently do nothing. */
+.settings-nav {
+  display: flex;
+  /* A scrolling row above the content until there is a margin to put it in. */
+  flex-direction: row;
+  gap: 0.125rem;
+  overflow-x: auto;
+}
+
+@media (min-width: 64rem) {
+  .settings-nav {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  /* Shrink-wrapped in the mobile row; full width once it is a column. */
+  flex: none;
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid transparent;
+  border-radius: 0.875rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: rgb(17 13 13 / 0.62);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@media (min-width: 64rem) {
+  .settings-nav-item {
+    width: 100%;
+  }
+}
+
+.settings-nav-item:hover {
+  color: var(--color-pana-ink);
+  background-color: rgb(48 62 140 / 0.06);
+}
+
+.settings-nav-item[data-active='true'] {
+  color: var(--color-pana-indigo);
+  border-color: rgb(48 62 140 / 0.28);
+  background-color: rgb(48 62 140 / 0.08);
+}
+
+/* Clears the sticky masthead when the nav jumps to a section. Without it the
+   heading you asked for lands underneath the header you cannot scroll past. */
+.settings-section {
+  scroll-margin-top: 6rem;
+}
+
+/* One setting per row, separated by rules inside a single card. The old page
+   gave every field its own vertical stack with no divisions, so a form with
+   four fields and a form with twelve looked equally shapeless. */
+.settings-row {
+  padding: 1.125rem 1.25rem;
+}
+
+.settings-row + .settings-row {
+  border-top: 2px solid rgb(17 13 13 / 0.08);
+}
+
+.settings-label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.settings-note {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.settings-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 2px solid rgb(17 13 13 / 0.16);
+  border-radius: 0.875rem;
+  background-color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-pana-ink);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.settings-input:focus {
+  border-color: var(--color-pana-indigo);
+}
+
+.settings-input::placeholder {
+  color: rgb(17 13 13 / 0.38);
+  font-weight: 600;
+}
+
+/* Availability states. Indigo and red rather than the usual green and red,
+   because the palette has no green — `--story-green` is scoped to one
+   illustrated section. Importing a generic green here would be the one thing
+   these mocks exist to catch: a colour that is not in the design system
+   smuggled in because a convention expects it. Indigo already means
+   affirmative everywhere else on the page, so it carries this too. */
+.settings-input[data-state='available'] {
+  border-color: var(--color-pana-indigo);
+}
+
+.settings-input[data-state='taken'] {
+  border-color: var(--color-pana-red);
+}
+
+/* A value the member cannot type over — a verified email, a derived handle.
+   Set on butter with no border so it reads as a fact the account holds rather
+   than as an input that has been switched off. A disabled text field, which is
+   what the page uses today, says "you are not allowed" where the truth is
+   "there is nothing here to edit". */
+.settings-readonly {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.875rem;
+  background-color: var(--color-pana-butter-2);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-pana-ink);
+}
+
+/* Where a setting takes effect. The load-bearing element of the redesign:
+   every group carries one, so a member never has to guess whether changing
+   something on the main site follows them into the timeline. */
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.16);
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.scope-chip::before {
+  content: '';
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background-color: currentColor;
+}
+
+/* "Applies everywhere" is the common case and the reassuring one, so it is the
+   only scope that gets colour. The per-surface scopes stay neutral — colouring
+   them would make the exception look like the rule. */
+.scope-chip[data-scope='everywhere'] {
+  border-color: rgb(48 62 140 / 0.3);
+  color: var(--color-pana-indigo);
+}
+
+/* What a change costs, shown next to the control that causes it rather than in
+   the dialog that follows it. Changing a screenname deletes every post and DM
+   on the account; finding that out only after committing to the change is how
+   the current page is built, and it is the single worst thing about it. */
+.settings-consequence {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 2px solid rgb(217 98 54 / 0.4);
+  border-left-width: 6px;
+  border-radius: 0.875rem;
+  background-color: rgb(242 132 68 / 0.1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-pana-ink);
+}
+
+.settings-consequence-title {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--color-pana-burnt);
+}
+
+/* Irreversible actions. Red edge, no fill — a solid red block at the foot of
+   a settings page reads as an error the member has already caused. */
+.settings-danger {
+  border-color: rgb(217 78 65 / 0.45);
+  background-color: rgb(217 78 65 / 0.05);
+}
+
+.settings-danger:hover {
+  border-color: var(--color-pana-red);
+  transform: none;
+}
+
+/* Two-state consent control. Deliberately a labelled pair rather than a
+   switch: these are the marketing channels, the state has legal weight, and a
+   sliding toggle makes "off" a position rather than a word. */
+.settings-segment {
+  display: inline-flex;
+  flex: none;
+  gap: 0.25rem;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  background-color: rgb(17 13 13 / 0.04);
+}
+
+.settings-segment button {
+  padding: 0.1875rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(17 13 13 / 0.55);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.settings-segment button[data-active='true'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* Off is a real choice, not a failure, so the active "Off" is stated in ink
+   rather than in red. Red here would push members back on for the wrong
+   reason. */
+.settings-segment button[data-active='true'][data-value='off'] {
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+}
+
+/* The save bar. Pinned to the bottom of the viewport and only present when
+   something is unsaved — the old page kept a permanently enabled Update button
+   at the end of a long form, which cannot tell you whether you have pending
+   changes or where they are. */
+.settings-savebar {
+  position: sticky;
+  bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-pana-indigo);
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 10px 30px rgb(17 13 13 / 0.12);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1.125rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.settings-btn[data-variant='quiet'] {
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+}
+
+.settings-btn[data-variant='quiet']:hover {
+  background-color: rgb(48 62 140 / 0.1);
+}
+
+.settings-btn[data-variant='danger'] {
+  border-color: var(--color-pana-red);
+  background-color: transparent;
+  color: var(--color-pana-red);
+}
+
+.settings-btn[data-variant='danger']:hover {
+  background-color: var(--color-pana-red);
+  color: var(--color-pana-cream);
+}
+
+.settings-btn:disabled {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-nav-item,
+  .settings-input,
+  .settings-segment button,
+  .settings-btn {
+    transition: none;
+  }
+}
+
 /* Mock-only state switcher. Deliberately styled as developer chrome — indigo
    rule, no brand warmth — so it never reads as part of the design under
    review. */

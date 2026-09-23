@@ -179,8 +179,9 @@ export function SurfaceSwitcher({
 
           {/* One settings page for the whole panaverse. Per-surface settings
               would mean a member has to remember which room they changed their
-              email in. */}
-          <a href="#" className="surface-panel-footer">
+              email in. Points at the settings mock, so the claim this footer
+              makes is one click from being checked. */}
+          <a href="/mock/settings" className="surface-panel-footer">
             <Settings className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
             Account settings
             <span className="text-pana-ink/45 ml-auto text-[11px] font-bold">
