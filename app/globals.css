@@ -4447,10 +4447,12 @@ button.bizprofile-update-action:hover {
 
 /* --- The hero as a colour field ----------------------------------------- */
 
-/* The seam. The hero's bottom edge and the info card's top ramp both resolve
-   to this, so the two can never drift apart into a visible line. */
+/* The seam. The hero's bottom edge resolves to this, and so does the info
+   card's own surface, so the two can never drift apart into a visible line.
+   It has to track whatever surface the info card is using — `surface-butter-2`
+   today. Change one and change this. */
 [data-density] {
-  --home-seam: var(--color-pana-burnt);
+  --home-seam: var(--color-pana-butter-2);
 }
 
 /* The live hero is a photograph under an orange multiply wash. It works, but
@@ -4459,89 +4461,148 @@ button.bizprofile-update-action:hover {
    continuing. It also puts a full-bleed JPEG in front of the one thing the
    hero is for, which is the search box.
  *
- * So: nothing behind the search but colour. Ink at the top with an indigo
- * bloom so it is not flat black, a warm horizon rising off the bottom edge
- * centred behind the search, and the last stretch settling into `--home-seam`
- * for the info card to pick up.
+ * So: nothing behind the search but light. Cream at the top, warming as it
+ * falls into a pool of butter centred behind the search box, and settling
+ * over the last stretch into `--home-seam` — which is the info card's own
+ * surface. The hero does not end so much as stop being the hero.
  *
  * The glow is doing one job: it puts the light source directly behind the
- * search box, which is where the eye should land first. Everything above it
- * falls away into the dark.
- *
- * Deliberately still dark. The white wordmark, the cream headline, the cream
- * region chips and the cream rule above them all depend on it — a pale hero
- * would need an ink wordmark, which does not exist as an asset. */
+ * search box, which is where the eye should land first. */
 .home-hero-field {
-  background-color: var(--color-pana-ink);
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
   background-image:
     /* Levels the bottom edge to the seam colour right across the width. The
        radial below falls off towards the corners, so without this the hero's
-       bottom-left and bottom-right are still dark where the info card's ramp
-       has already started at full seam — which shows up as a step at either
+       bottom-left and bottom-right are still cream where the info card has
+       already started at full butter — which shows up as a step at either
        end of an otherwise invisible join. Fading through `/ 0` rather than
        `transparent` keeps the interpolation in the same hue; `transparent`
        is transparent *black*, and ramping to it greys the middle. */
     linear-gradient(
       180deg,
-      rgb(217 98 54 / 0) 70%,
-      rgb(217 98 54 / 0.5) 89%,
+      rgb(251 247 210 / 0) 72%,
+      rgb(251 247 210 / 0.72) 90%,
       var(--home-seam) 100%
     ),
-    /* the horizon, centred behind the search. Sitting just below the bottom
-       edge so the hero catches the top of the falloff, not the hot centre. */
+    /* the pool of light, centred behind the search. Sitting just below the
+       bottom edge so the hero catches the top of the falloff, not the hot
+       centre. */
     radial-gradient(
-        125% 74% at 50% 102%,
-        var(--home-seam) 0%,
-        rgb(217 98 54 / 0.62) 30%,
-        rgb(217 98 54 / 0.16) 55%,
-        rgb(217 98 54 / 0) 74%
+        118% 72% at 50% 104%,
+        rgb(246 240 153 / 0.92) 0%,
+        rgb(246 240 153 / 0.58) 32%,
+        rgb(246 240 153 / 0.19) 58%,
+        rgb(246 240 153 / 0) 78%
       ),
-    /* a cool bloom up top, so the field reads as depth rather than as a
-       black rectangle with a sunset pasted on it */
+    /* a cool wash up top, so the field reads as air above the light rather
+       than as one flat sheet of cream */
     radial-gradient(
-        96% 62% at 50% -12%,
-        rgb(48 62 140 / 0.62),
-        rgb(48 62 140 / 0) 72%
+        96% 58% at 50% -14%,
+        rgb(48 62 140 / 0.1),
+        rgb(48 62 140 / 0) 74%
       );
 }
 
 /* Without a photograph underneath, the grain's job changes. The vertical ink
    scrim existed to buy the headline contrast over the busier parts of the
-   image; there is no image now, and leaving it in just mutes the glow. What
-   is left is the dot screen, faded out before it reaches the warm end where
-   cream dots on a warm field would only look like dirt. */
+   image; there is no image now, and leaving it in would only dirty the cream.
+   What is left is the dot screen, flipped to ink because cream dots on a
+   cream field are nothing at all, and faded out before it reaches the light. */
 .home-hero-field .home-hero-grain {
-  background-image: radial-gradient(
-    rgb(255 247 236 / 0.1) 1px,
-    transparent 1px
-  );
+  background-image: radial-gradient(rgb(17 13 13 / 0.055) 1px, transparent 1px);
   background-size: 4px 4px;
   -webkit-mask-image: linear-gradient(
     180deg,
     #000 0%,
-    #000 46%,
-    transparent 82%
+    #000 44%,
+    transparent 78%
   );
-  mask-image: linear-gradient(180deg, #000 0%, #000 46%, transparent 82%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 44%, transparent 78%);
 }
 
-/* The headline's drop shadow was sized to lift cream type off a photograph.
-   Against a flat field that much shadow reads as a smudge. */
+/* Everything below here is the cost of turning the field over. All of it was
+   cream because the hero used to be dark, and every one of these is the same
+   fix — put the ink back. */
+
+/* The wordmark ships as white and as four brand colours, all of which are too
+   light to hold on cream. `brightness(0)` collapses every opaque pixel to
+   black and leaves the alpha channel alone, so the white file becomes an ink
+   wordmark with the artwork untouched. A *tinted* wordmark would need either a
+   real asset or a mask, and a mask means giving up the <img>. */
+.home-hero-field .flower-power-logo {
+  filter: brightness(0);
+}
+
+/* The drop shadow existed to lift cream type off a photograph. Ink on cream
+   needs no help, and a shadow at this size just reads as a smudge. */
 .home-hero-field .hero-headline {
-  text-shadow: 0 2px 18px rgb(17 13 13 / 0.34);
+  text-shadow: none;
 }
 
-/* The receiving end of the seam: the info card carries the hero's glow a
-   fixed distance into its own butter, so the boundary is a ramp rather than
-   a line. Fixed pixels, not a percentage — this is a fade across an edge and
-   it should be the same depth whether the section is 600px or 1600px tall,
-   and it has to stay clear of the section heading either way. */
+/* Butter on cream is a highlighter drawn on a highlighter. Burnt picks up the
+   pool of light underneath it instead. */
+.home-hero-field .accent-word {
+  color: var(--color-pana-burnt);
+}
+
+.home-hero-field .hero-meta {
+  border-top-color: rgb(17 13 13 / 0.16);
+}
+
+/* A cream chip on a cream field is not a chip. Outlining them also squares
+   them up with `.hero-donate`, which already carried a 2px border. */
+.home-hero-field .tagpill {
+  border: 2px solid rgb(17 13 13 / 0.22);
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* `.tagpill:hover` is only (0,2,0) and sits far earlier in the file, so the
+   rule above would otherwise win on hover and kill the fill. */
+.home-hero-field .tagpill:hover {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* Donate stays filled while the counties go outline, which is what keeps it
+   reading as an aside rather than as a fourth county. */
+.home-hero-field .hero-donate {
+  border-color: var(--color-pana-ink);
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+}
+
+.home-hero-field .hero-donate:hover {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+}
+
+/* A cream pill on a cream field is an outline of a search box. This is the
+   primary action on the page, so it gets an edge — and a shadow sized for a
+   light surface. The old one was a 34px spread tuned to read against ink,
+   which over cream is just a grey bruise. */
+.home-hero-field .directory-suggest-pill {
+  border: 2px solid rgb(17 13 13 / 0.14);
+  box-shadow: 0 10px 30px rgb(17 13 13 / 0.07);
+}
+
+/* The receiving end of the seam. There is no line left to hide — this section
+   and the hero's bottom edge both resolve to `--home-seam` — so what is left
+   is the light. It swells in just below the boundary and fades out, which
+   reads as the glow passing through the edge rather than stopping at it.
+ *
+ * It has to start at zero alpha. Anything else would put back exactly the
+ * step this is here to avoid. Fixed pixels, not a percentage: this is an
+ * effect at an edge, so it should be the same depth whether the section is
+ * 600px or 1600px tall, and it has to stay clear of the heading either way. */
 .home-handoff {
   background-image: linear-gradient(
     180deg,
-    var(--home-seam) 0,
-    rgb(217 98 54 / 0.38) 46px,
-    rgb(217 98 54 / 0) 164px
+    rgb(246 240 153 / 0) 0,
+    rgb(246 240 153 / 0.5) 74px,
+    rgb(246 240 153 / 0) 230px
   );
 }
 

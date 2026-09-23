@@ -100,15 +100,15 @@ function HeroCard() {
   };
 
   return (
-    /* Ink, not the live page's white: the mock control bar sits where the
-       site header would, and a white scallop against it reads as a bug rather
-       than as the underside of the thing above.
+    /* The scallop is cut in the hero's own colour: it is the hero's top edge,
+       not the underside of the control bar above it.
 
-       No photograph behind the search — see `.home-hero-field`. Nothing here
-       is an <Image> any more, so the hero has no LCP image to wait on. */
+       Nothing behind the search but light — see `.home-hero-field`. The
+       background is pure CSS now, so there is no full-bleed JPEG sitting in
+       front of the one thing this card is for. */
     <section
       className="home-hero-banner home-hero-field scallop"
-      style={{ '--scallop': 'var(--color-pana-ink)' } as CSSProperties}
+      style={{ '--scallop': 'var(--color-pana-cream)' } as CSSProperties}
     >
       <div className="home-hero-grain" aria-hidden="true" />
 
