@@ -18,6 +18,7 @@ import { SURFACE_DESCRIPTION, SURFACE_ICON } from '@/lib/panaverse/branding';
 import {
   PATHNAME_HEADER,
   SEARCH_HEADER,
+  resolveChromeSurface,
   resolveInstallSurface,
   wearsGuestChrome,
   wearsOwnChrome,
@@ -49,6 +50,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const surface = resolveSurface(host);
   const pathname = requestHeaders.get(PATHNAME_HEADER);
 
+  /* Same rule the chrome uses, for the same reason: while PANAVERSE_SUBDOMAINS
+   * is off, pana.social/s resolves to the default surface, so a host-keyed
+   * title names the feed "Pana Mia". See `resolveChromeSurface`. */
+  const chromeSurface = resolveChromeSurface(surface, pathname);
+
   /* A page a surface is borrowing points its canonical at the surface that
    * owns it.
    *
@@ -61,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
    *
    * Gated on the same predicate as the chrome, so the two cannot disagree: if
    * a page is framed as borrowed, it is also declared as borrowed. */
-  const owner = wearsGuestChrome(surface, pathname)
+  const owner = wearsGuestChrome(chromeSurface, pathname)
     ? surfaceForPath(pathname as string)
     : null;
 
@@ -83,8 +89,8 @@ export async function generateMetadata(): Promise<Metadata> {
    * browser is known to look rather than where the framework offers to put
    * it. */
   return {
-    title: surface.name,
-    description: SURFACE_DESCRIPTION[surface.id],
+    title: chromeSurface.name,
+    description: SURFACE_DESCRIPTION[chromeSurface.id],
     ...(owner && pathname
       ? {
           /* Both halves are load-bearing, and the second is the one that
@@ -167,8 +173,19 @@ export default async function RootLayout({
    * again above the card, and on a surface hostname it rendered with nothing
    * at all. The path comes from the Worker because the runtime hands the
    * server renderer a Host header but no pathname. */
-  const standalone = wearsOwnChrome(requestHeaders.get(PATHNAME_HEADER));
-  const wearsMainChrome = surface.id === 'www' && !standalone;
+  const pathname = requestHeaders.get(PATHNAME_HEADER);
+
+  /* Which surface's chrome to wear, which is not always the surface the
+   * hostname names. While PANAVERSE_SUBDOMAINS is off, pana.social/s resolves
+   * to the default surface, so the two predicates below would both decline it
+   * and the feed would fall through to the Pana Mia masthead — newsletter bar,
+   * footer and all — on the one page built to read as somewhere else. See
+   * `resolveChromeSurface`; it is the identity function once the subdomains
+   * land. */
+  const chromeSurface = resolveChromeSurface(surface, pathname);
+
+  const standalone = wearsOwnChrome(pathname);
+  const wearsMainChrome = chromeSurface.id === 'www' && !standalone;
 
   /* Pages this surface is borrowing from another one get a slim bar and a slim
    * footer instead. See lib/panaverse/chrome.ts — the short version is that
@@ -176,15 +193,14 @@ export default async function RootLayout({
    * directory rendered on social.pana.social with no chrome at all and no way
    * back to the feed. The footer is not symmetry: it carries the legal links
    * that MainFooter would otherwise have been the only source of. */
-  const pathname = requestHeaders.get(PATHNAME_HEADER);
-  const guest = wearsGuestChrome(surface, pathname);
+  const guest = wearsGuestChrome(chromeSurface, pathname);
 
   /* A surface over one of its own rooms wears its own masthead. This is the
    * case the other two predicates left uncovered, and it was the one members
    * actually lived in: social.pana.social/s matched neither `wearsMainChrome`
    * nor `guest`, so the timeline rendered with no header at all — no mark, no
    * account, no way back to Pana Mia. See lib/panaverse/chrome.ts. */
-  const ownSurface = wearsSurfaceChrome(surface, pathname);
+  const ownSurface = wearsSurfaceChrome(chromeSurface, pathname);
 
   /* Which app this page would install as, which is not always the surface the
    * hostname names, and not always the page the member is looking at.
@@ -275,7 +291,7 @@ export default async function RootLayout({
               )}
               {guest && pathname && (
                 <SurfaceGuestHeader
-                  surface={surface}
+                  surface={chromeSurface}
                   host={host}
                   pathname={pathname}
                   owner={surfaceForPath(pathname)}
@@ -283,7 +299,7 @@ export default async function RootLayout({
               )}
               {ownSurface && pathname && (
                 <SurfaceMemberHeader
-                  surface={surface}
+                  surface={chromeSurface}
                   host={host}
                   pathname={pathname}
                 />
@@ -292,11 +308,11 @@ export default async function RootLayout({
               {wearsMainChrome && <MainFooter />}
               {guest && pathname && (
                 <SurfaceGuestFooter
-                  surface={surface}
+                  surface={chromeSurface}
                   owner={surfaceForPath(pathname)}
                 />
               )}
-              {ownSurface && <SurfaceMemberFooter surface={surface} />}
+              {ownSurface && <SurfaceMemberFooter surface={chromeSurface} />}
               <ScreennameGate />
             </Providers>
           </FlowerPowerProvider>
