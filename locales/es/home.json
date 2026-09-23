@@ -6,7 +6,8 @@
     "searchLabel": "Buscar directorio",
     "searchAriaLabel": "Buscar en el directorio",
     "searchButton": "Buscar",
-    "meta": "Desplázate ↓ · Explora el directorio"
+    "meta": "Desplázate ↓ · Explora el directorio",
+    "scrollNote": "Desplázate ↓ · Explora el directorio"
   },
   "comingSoon": "Próximamente",
   "directory": {

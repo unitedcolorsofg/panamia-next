@@ -246,7 +246,24 @@ export function DirectorySuggest({
             : 'flex flex-col items-center justify-center gap-4 md:flex-row'
         }
       >
-        <div className="relative w-full">
+        {/* A magnifier at the head of the pill. The button already says
+            "Search", but it sits at the far right of a 720px bar, so on a
+            wide screen the left end of the field has nothing on it saying
+            what it is. Pill layout only: the stacked layout puts the icon on
+            the button instead, where that field is narrow enough not to need
+            one. */}
+        {layout === 'pill' && (
+          <Search
+            className="text-pana-ink ml-6 h-5 w-5 shrink-0 opacity-45"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* `directory-suggest-field` rather than a positional selector: the
+            icon above is now the pill's first child, so the stylesheet needs
+            to name the field to keep the dropdown anchored to the whole pill
+            instead of to the magnifier. */}
+        <div className="directory-suggest-field relative w-full">
           <Input
             id="directory-suggest-input"
             type="text"

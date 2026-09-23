@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import type { NoteBlock, StoryBeat } from '../_data';
+import type { NoteBlock, StoryBeat } from './content';
 import { BeatSceneArt } from './beat-scenes';
 
 interface StoryBeatsProps {

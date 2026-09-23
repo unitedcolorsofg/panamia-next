@@ -382,9 +382,12 @@
 }
 
 /* Let the typeahead listbox resolve against the whole pill so it spans the
-   bar rather than stopping short of the submit button. */
-.directory-suggest-pill > div:first-child {
+   bar rather than stopping short of the submit button. Named rather than
+   positional: the pill's first child is the magnifier. */
+.directory-suggest-pill .directory-suggest-field {
   position: static;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .directory-suggest-pill-button {

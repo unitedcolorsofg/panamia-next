@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
-import type { Pillar, PillarProgram } from '../_data';
+import type { Pillar, PillarProgram } from './content';
 
 interface PillarPanelsProps {
   pillars: Pillar[];
@@ -100,7 +100,7 @@ function ProgramRow({ program }: { program: PillarProgram }) {
       </span>
       <span className="pillar-program-note">{program.note}</span>
       <span className="pillar-program-status" data-status={program.status}>
-        {program.status === 'live' ? 'Live now' : 'Building'}
+        {program.statusLabel}
       </span>
     </>
   );

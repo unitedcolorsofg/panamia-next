@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import type { BeatScene } from '../_data';
+import type { BeatScene } from './content';
 
 /**
  * The artwork for each of the three places.
