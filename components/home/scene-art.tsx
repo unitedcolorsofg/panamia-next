@@ -83,6 +83,14 @@ const FROND = 'var(--story-blue)';
  *  row of red poles — so they get orange pulled toward ink instead. */
 const TRUNK = 'color-mix(in srgb, var(--story-orange) 46%, var(--story-ink))';
 
+/** The gator. Same reasoning as the fronds: there is no green in the palette,
+ *  and inventing one for a single animal would put a colour on the page that
+ *  appears nowhere else. Blue is already doing the work of "living thing" up
+ *  in the canopy, so the gator takes the same blue pulled well down into ink
+ *  — dark enough to read as a reptile rather than as a shrub, and dark enough
+ *  to hold its shape at 46 units long against cream. */
+const GATOR = 'color-mix(in srgb, var(--story-blue) 56%, var(--story-ink))';
+
 /* ---------------------------------------------------------------- clouds */
 
 /**
@@ -107,6 +115,41 @@ function Cloud({ className }: { className: string }) {
 }
 
 /**
+ * The sun. Eight rays at eight even angles, and they do not turn: a rotating
+ * sun is the one thing in this scene that would genuinely qualify as the
+ * motion `prefers-reduced-motion` exists to suppress, and it would be the
+ * only spinning object on the page. The halo breathes instead, which reads
+ * as heat rather than as machinery.
+ *
+ * Drawn before the clouds so they pass in front of it. That single ordering
+ * choice is what stops a static disc from looking like a logo stuck in the
+ * corner — once something crosses it, it is sky.
+ */
+function Sun() {
+  return (
+    <svg className="sky-sun" viewBox="0 0 120 120" aria-hidden="true">
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
+        const rad = (deg * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        return (
+          <line
+            key={deg}
+            className="sky-sun-ray"
+            x1={(60 + cos * 39).toFixed(2)}
+            y1={(60 + sin * 39).toFixed(2)}
+            x2={(60 + cos * 51).toFixed(2)}
+            y2={(60 + sin * 51).toFixed(2)}
+          />
+        );
+      })}
+      <circle className="sky-sun-halo" cx="60" cy="60" r="32" />
+      <circle className="sky-sun-core" cx="60" cy="60" r="24" />
+    </svg>
+  );
+}
+
+/**
  * Five clouds at five sizes and five opacities. They drift on their own
  * clock — see `home-cloud-float` — and are pushed a second time by the
  * scroll position, which is what gives the top of the page its parallax.
@@ -114,6 +157,7 @@ function Cloud({ className }: { className: string }) {
 export function SkyClouds() {
   return (
     <div className="sky-clouds" aria-hidden="true">
+      <Sun />
       <Cloud className="sky-cloud sky-cloud-1" />
       <Cloud className="sky-cloud sky-cloud-2" />
       <Cloud className="sky-cloud sky-cloud-3" />
@@ -988,6 +1032,132 @@ function Dog({
   );
 }
 
+/** Ridge of scutes down the back: [x, baseline, height]. This is the detail
+ *  that does the identifying — without it a long low body on four legs at
+ *  this size is just a very committed dachshund. Split in two because the
+ *  tail's scutes have to travel with the tail; see `GATOR_TAIL_SCUTES`. */
+const GATOR_SCUTES: Array<[number, number, number]> = [
+  [-10, -13, 1.9],
+  [-3, -13, 2.1],
+  [4, -13, 1.8],
+];
+
+/** The two that sit on the tail. They live inside the rotating group, or the
+ *  tail swishes out from under them and leaves them hanging in mid-air. */
+const GATOR_TAIL_SCUTES: Array<[number, number, number]> = [
+  [-23, -8.9, 1.2],
+  [-17, -9.8, 1.5],
+];
+
+/**
+ * An alligator on a lead, because this is South Florida and somebody was
+ * always going to.
+ *
+ * Roughly 46 units nose to tail against the 40-unit person walking it, which
+ * at this scene's scale is a bit over six feet — a real and entirely legal
+ * size of gator to be attached to.
+ *
+ * The waddle and the tail swish live in `globals.css`; the swish hinges on
+ * the tail's own right edge, which is exactly where it meets the body.
+ */
+function Gator({
+  x,
+  fill,
+  flip = false,
+  scale = 1,
+  ground = GROUND,
+}: {
+  x: number;
+  fill: string;
+  flip?: boolean;
+  scale?: number;
+  ground?: number;
+}) {
+  return (
+    <g
+      transform={`translate(${x} ${ground}) scale(${(flip ? -1 : 1) * scale} ${scale})`}
+    >
+      {/* The rotation wrapper carries no transform of its own, because the
+          transform attribute above maps onto the same CSS property the
+          animation uses and would be thrown away by it. */}
+      <g className="street-gator">
+        {/* Far pair of legs first, so the body covers where they join. Set
+            back a little from the near pair, which is the whole trick for
+            depth on a flat side view. The legs are longer than a real
+            alligator's, deliberately: at true proportions the body sat down
+            inside the 4-unit kerb band and the animal read as half-sunk in
+            the pavement. Raising it clears the kerb entirely. */}
+        <rect
+          x="-6"
+          y="-6"
+          width="3"
+          height="6"
+          rx="1.4"
+          fill={fill}
+          opacity="0.5"
+        />
+        <rect
+          x="9"
+          y="-6"
+          width="3"
+          height="6"
+          rx="1.4"
+          fill={fill}
+          opacity="0.5"
+        />
+
+        <g className="street-gator-tail">
+          <path
+            d="M -33 -6.6 Q -24 -10.2 -12 -10.6 L -12 -4.4 Q -24 -4.8 -33 -6.6 Z"
+            fill={fill}
+          />
+          {GATOR_TAIL_SCUTES.map(([sx, sy, h]) => (
+            <path
+              key={sx}
+              d={`M ${sx - 2.8} ${sy} L ${sx} ${sy - h} L ${sx + 2.8} ${sy} Z`}
+              fill={fill}
+            />
+          ))}
+        </g>
+
+        <rect x="-14" y="-13" width="26" height="7.6" rx="3.2" fill={fill} />
+
+        {/* Skull, then the snout, which is shallower — the step between the
+            two is most of what makes the head read as a head. */}
+        <rect x="8" y="-13.4" width="15" height="8" rx="2.6" fill={fill} />
+        <rect x="21" y="-11.4" width="13" height="5.4" rx="2.7" fill={fill} />
+
+        {GATOR_SCUTES.map(([sx, sy, h]) => (
+          <path
+            key={sx}
+            d={`M ${sx - 2.8} ${sy} L ${sx} ${sy - h} L ${sx + 2.8} ${sy} Z`}
+            fill={fill}
+          />
+        ))}
+
+        <rect x="-9" y="-6" width="3.4" height="6" rx="1.5" fill={fill} />
+        <rect x="5" y="-6" width="3.4" height="6" rx="1.5" fill={fill} />
+
+        {/* Eye and nostrils sit proud on top, which is where a gator keeps
+            them and the reason the rest of one is usually underwater. */}
+        <circle cx="13" cy="-14" r="2.5" fill={fill} />
+        <circle cx="13.4" cy="-14.4" r="0.95" fill="var(--story-cream)" />
+        <circle cx="31" cy="-11.9" r="1.5" fill={fill} />
+
+        {/* Collar, in orange to match the lead. It is also what gives the lead
+            somewhere to land — a lead that stops in open space above the back
+            looks like a handle rather than a lead. */}
+        <path
+          d="M 6 -13.4 L 6 -5"
+          stroke="var(--story-orange)"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+      </g>
+    </g>
+  );
+}
+
 /** A pram. Drawn beside a `pose="push"` figure. */
 function Pram({
   x,
@@ -1713,6 +1883,33 @@ export function StreetScene() {
             skin={1}
             scale={0.64}
             pose="walk"
+          />
+        </Walker>
+
+        {/* and, this being South Florida, somebody walking an alligator.
+            Drawn at 67 units and then scaled down, because at full size it
+            came out around ten feet long next to its owner — a real length of
+            alligator, but not one anybody walks on a lead. 0.68 puts it at
+            roughly six feet, which is both plausible and still unmistakable
+            at the size this scene actually renders. */}
+        <Walker from={-190} to={1500} dur={92} delay={-58}>
+          <Person x={0} shirt="var(--story-coral)" skin={3} pose="walk" />
+          <Gator x={38} scale={0.68} fill={GATOR} />
+          {/* The lead is orange, and drawn last so it sits on top of the
+              gator rather than behind it. A collar on a long low animal is at
+              the far end from its owner, so the lead has to cross the
+              creature's own back to get there — there is no arrangement of
+              the two that avoids it. In the gator's own navy that crossing
+              turned into one indistinct mass; in orange it stays a separate
+              object over both the navy and the cream, which is the whole
+              reason it reads as a lead at all. */}
+          <path
+            d="M 7.5 -13.5 Q 25 -11.4 42 -8.7"
+            transform={`translate(0 ${GROUND})`}
+            stroke="var(--story-orange)"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            fill="none"
           />
         </Walker>
       </g>
