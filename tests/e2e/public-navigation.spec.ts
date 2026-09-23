@@ -1,93 +1,129 @@
 import { test, expect } from '@playwright/test';
 
+// These tests used to assert `not.toHaveTitle(/404/)` plus a `toHaveURL`
+// substring. Both were inert:
+//
+//   - This app's not-found page renders <h1>404 - Page Not Found</h1> but keeps
+//     the default <title>Pana Mia</title>. A title-based 404 check therefore
+//     never fired on the page it was written to catch. Measured directly
+//     against /form/become-a-pana-single, a route that 404s today.
+//   - An unanchored toHaveURL matched the path anywhere in the URL, including
+//     inside a query string, so /become-a-pana "passed" while sitting on
+//     /signin?callbackUrl=/form/become-a-pana.
+//
+// Together they passed against a stub server that served one static page for
+// every route (14 of 24 tests in this file, measured). Each test now asserts
+// the HTTP status and a heading only that route renders, so a wrong page, a
+// blank page and a 404 all fail. The URL is asserted only where a redirect is
+// the behaviour under test, and anchored to the origin so a callbackUrl cannot
+// satisfy it.
+
 test.describe('Public Navigation', () => {
   test('homepage loads successfully', async ({ page }) => {
-    await page.goto('/');
+    const res = await page.goto('/');
+    expect(res?.status()).toBe(200);
     await expect(page).toHaveTitle(/Pana Mia/i);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('h1').first()).toContainText('The Future');
   });
 
   test('about page loads', async ({ page }) => {
-    await page.goto('/about-us');
-    await expect(page).toHaveURL(/about-us/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/about-us');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('About Us');
   });
 
   test('directory search loads', async ({ page }) => {
-    await page.goto('/directory/search');
-    await expect(page).toHaveURL(/directory\/search/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/directory/search');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Find your people');
   });
 
   test('donate page loads', async ({ page }) => {
-    await page.goto('/donate');
-    await expect(page).toHaveURL(/donate/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/donate');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('MAKE A DONATION');
   });
 
-  test('affiliate page loads', async ({ page }) => {
-    await page.goto('/affiliate');
-    await expect(page).toHaveURL(/affiliate/);
-    await expect(page).not.toHaveTitle(/404/);
+  // /affiliate is a redirect shim: it banks an affiliate code in localStorage
+  // and then router.replace()s away. The old test asserted toHaveURL(/affiliate/),
+  // which only passed by catching the transient pre-redirect URL — it asserted
+  // the page had not done the one thing it exists to do.
+  test('affiliate link forwards to the homepage', async ({ page }) => {
+    const res = await page.goto('/affiliate?code=e2e-smoke');
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
+    await expect(page.locator('h1').first()).toContainText('The Future');
   });
 
-  test('become a pana form loads', async ({ page }) => {
-    await page.goto('/become-a-pana');
-    await expect(page).toHaveURL(/become-a-pana/);
-    await expect(page).not.toHaveTitle(/404/);
+  test('become a pana form sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/become-a-pana');
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 
   test('contact form loads', async ({ page }) => {
-    await page.goto('/form/contact-us');
-    await expect(page).toHaveURL(/form\/contact-us/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/form/contact-us');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Contact Us');
   });
 
   test('/contact-us redirects to the contact form', async ({ page }) => {
-    await page.goto('/contact-us');
-    await expect(page).toHaveURL(/form\/contact-us/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/contact-us');
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/form\/contact-us\/?$/);
+    await expect(page.locator('h1').first()).toContainText('Contact Us');
   });
 
   test('links page loads', async ({ page }) => {
-    await page.goto('/links');
-    await expect(page).toHaveURL(/links/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/links');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toHaveText('Pana MIA Club');
   });
 
   test('podcasts page loads', async ({ page }) => {
-    await page.goto('/podcasts');
-    await expect(page).toHaveURL(/podcasts/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/podcasts');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText(
+      'Pana MIA Club Podcasts'
+    );
   });
 
   test('terms of service loads', async ({ page }) => {
-    await page.goto('/legal/terms');
-    await expect(page).toHaveURL(/legal\/terms/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/legal/terms');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Terms of Service');
   });
 
   test('old terms URL redirects to new location', async ({ page }) => {
-    await page.goto('/doc/terms-and-conditions');
-    await expect(page).toHaveURL(/legal\/terms/);
+    const res = await page.goto('/doc/terms-and-conditions');
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/legal\/terms\/?$/);
+    await expect(page.locator('h1').first()).toContainText('Terms of Service');
   });
 
   test('privacy policy loads', async ({ page }) => {
-    await page.goto('/legal/privacy');
-    await expect(page).toHaveURL(/legal\/privacy/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/legal/privacy');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Privacy Policy');
   });
 
   test('DMCA policy loads', async ({ page }) => {
-    await page.goto('/legal/dmca');
-    await expect(page).toHaveURL(/legal\/dmca/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/legal/dmca');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('DMCA Policy');
   });
 
   test('affiliate terms loads', async ({ page }) => {
-    await page.goto('/doc/affiliate-terms-and-conditions');
-    await expect(page).toHaveURL(/doc\/affiliate-terms-and-conditions/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/doc/affiliate-terms-and-conditions');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText(
+      'Terms and Conditions'
+    );
   });
 });
 
@@ -96,18 +132,39 @@ test.describe('Profile Pages', () => {
     // Navigate to directory first to find a valid profile
     await page.goto('/directory/search');
 
-    // Wait for any profile links to appear
-    const profileLink = page.locator('a[href^="/p/"]').first();
+    // `count()` does not auto-wait. The previous `if (count > 0) ... else
+    // test.skip()` called it immediately, so under parallel load it read 0
+    // before results rendered and turned "not loaded yet" into "no data,
+    // skip" -- this test silently removed itself from the suite and its
+    // assertions never ran. Wait for the list to settle, then decide.
+    const card = page.locator('.dirsearch-card').first();
+    const hasResults = await card
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!hasResults, 'directory search returned no profiles');
 
-    // If a profile exists, test it
-    if ((await profileLink.count()) > 0) {
-      await profileLink.click();
-      await expect(page).toHaveURL(/\/p\/.+/);
-      await expect(page).not.toHaveTitle(/404/);
-    } else {
-      // Skip if no profiles exist
-      test.skip();
-    }
+    // Capture the name from the card so the destination can be checked against
+    // data only this profile renders.
+    const name = (
+      await card.locator('.dirsearch-card-name').innerText()
+    ).trim();
+    expect(name.length).toBeGreaterThan(0);
+
+    // Each card carries three links to the same profile. The cover image is
+    // `tabindex="-1"`, a decorative duplicate of the name link, and is not what
+    // a visitor clicks -- target the real one.
+    await card.locator('a[href^="/p/"]:not([tabindex="-1"])').first().click();
+
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/p\/[^?#]+/);
+
+    // Profile headings are user data, so assert the one string this route is
+    // known to produce: the name carried over from the card. A wrong page and
+    // a blank page both fail this, which the 404 negative below cannot do on
+    // its own -- it passes on any page lacking the string, including an empty
+    // one. Keeping it is only meaningful now that a positive precedes it.
+    await expect(page.locator('body')).toContainText(name);
+    await expect(page.locator('body')).not.toContainText('Page Not Found');
   });
 });
 
@@ -123,9 +180,11 @@ test.describe('Navigation Links', () => {
 
 test.describe('Custom Sign-In Page', () => {
   test('signin page loads successfully', async ({ page }) => {
-    await page.goto('/signin');
-    await expect(page).toHaveURL(/signin/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/signin');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 
   test('signin page displays Pana MIA branding', async ({ page }) => {
@@ -209,10 +268,16 @@ test.describe('Custom Sign-In Page', () => {
 
   test('signin page preserves callback URL', async ({ page }) => {
     // Navigate to signin with a callback URL
-    await page.goto('/signin?callbackUrl=/m/discover');
+    const res = await page.goto('/signin?callbackUrl=/m/discover');
 
-    // Page should load without errors
-    await expect(page).not.toHaveTitle(/404/);
-    await expect(page).toHaveURL(/callbackUrl/);
+    // The sign-in page renders and keeps the callback rather than dropping it
+    // on a redirect.
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
+    await expect(page).toHaveURL(
+      /^https?:\/\/[^/]+\/signin\?callbackUrl=(\/|%2F)m(\/|%2F)discover$/
+    );
   });
 });

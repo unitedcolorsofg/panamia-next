@@ -73,6 +73,10 @@ export default function AccountProfileEdit() {
         }
         setLoading(false);
       });
+    } else if (status === 'unauthenticated') {
+      // Without this, `loading` stays true forever for anonymous visitors and
+      // the Status401_Unauthorized branch below is never reached.
+      setLoading(false);
     }
   }, [status]);
 

@@ -31,8 +31,14 @@ test.describe('better-auth API mount', () => {
     const res = await request.get('/api/auth/get-session');
 
     // 200 with a null session, not a 404. This is the assertion that would have
-    // caught vinext#2158 in CI instead of by hand.
+    // caught vinext#2158 in CI instead of by hand. The status alone was the
+    // whole check, which any server answering 200 satisfies -- including a
+    // static stub serving HTML. The comment already claimed a null JSON
+    // session, so assert that too: it is the part that says better-auth
+    // answered, rather than something else answering in its place.
     expect(res.status()).toBe(200);
+    expect(res.headers()['content-type']).toContain('application/json');
+    expect(await res.json()).toBeNull();
   });
 
   test('GET /api/auth/get-session/ is not 404 with a trailing slash', async ({
@@ -51,6 +57,13 @@ test.describe('better-auth API mount', () => {
     // is a bare 404 and takes the endpoint down for any caller that adds a
     // slash. If this starts failing, skipTrailingSlashes is load-bearing.
     expect(res.status()).not.toBe(404);
+    expect(res.status()).toBeLessThan(400);
+
+    // A 200 here must be the session endpoint answering, not an HTML page that
+    // happens to have a non-404 status.
+    if (res.status() === 200) {
+      expect(res.headers()['content-type']).toContain('application/json');
+    }
   });
 });
 
@@ -64,7 +77,13 @@ test.describe('OAuth callback paths', () => {
       maxRedirects: 0,
     });
 
+    // `not.toBe(404)` was the whole assertion, which a server answering 200
+    // everywhere also satisfies. The comment above already describes the two
+    // acceptable outcomes, so assert them: a mounted callback given no state
+    // must reject it, and a plain 200 means it did not.
     expect(res.status()).not.toBe(404);
+    expect(res.status()).toBeGreaterThanOrEqual(300);
+    expect(res.status()).toBeLessThan(500);
   });
 
   test('GET /api/auth/oauth2/callback/:id is gone after 1.7', async ({

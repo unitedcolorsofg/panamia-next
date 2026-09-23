@@ -30,13 +30,14 @@ test.describe('Stripe Configuration', () => {
       'node_modules/stripe/package.json'
     );
 
-    // Skip if node_modules not available
-    if (!fs.existsSync(stripePackagePath)) {
-      console.log(
-        'Skipping: node_modules/stripe not found (run npm install first)'
-      );
-      return;
-    }
+    // A bare `return` here reported a PASS, not a skip, despite the comment
+    // that used to say "Skip if node_modules not available" -- so a machine
+    // without dependencies installed scored this as green. test.skip() with a
+    // condition tells the runner the truth.
+    test.skip(
+      !fs.existsSync(stripePackagePath),
+      'node_modules/stripe not found (run yarn install first)'
+    );
 
     const packageJson = JSON.parse(fs.readFileSync(stripePackagePath, 'utf-8'));
 
@@ -55,11 +56,11 @@ test.describe('Stripe Configuration', () => {
       'node_modules/stripe/cjs/apiVersion.js'
     );
 
-    // Skip if node_modules not available
-    if (!fs.existsSync(stripeApiVersionPath)) {
-      console.log('Skipping: stripe apiVersion.js not found');
-      return;
-    }
+    // Same bare-`return`-reports-a-pass defect as the test above.
+    test.skip(
+      !fs.existsSync(stripeApiVersionPath),
+      'stripe apiVersion.js not found (run yarn install first)'
+    );
 
     const content = fs.readFileSync(stripeApiVersionPath, 'utf-8');
     const versionMatch = content.match(/ApiVersion\s*=\s*['"]([^'"]+)['"]/);

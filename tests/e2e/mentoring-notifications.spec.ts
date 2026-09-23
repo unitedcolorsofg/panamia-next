@@ -101,11 +101,11 @@ test.describe('Mentoring Pages - Unauthenticated Access', () => {
   test('mentoring discover page is accessible to unauthenticated users', async ({
     page,
   }) => {
-    await page.goto('/m/discover');
+    const res = await page.goto('/m/discover');
 
     // Discover is public — unauthenticated users can browse mentors
-    await expect(page).toHaveURL(/\/m\/discover/);
-    await expect(page).not.toHaveTitle(/404/);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Discover Mentors');
   });
 
   test('mentoring profile page redirects unauthenticated users', async ({
