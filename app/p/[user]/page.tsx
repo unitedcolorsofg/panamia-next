@@ -74,6 +74,15 @@ export async function generateMetadata({
    * a listing returns 200 on both pana.social and social.pana.social, and a
    * crawler sees two URLs with identical content splitting one ranking.
    *
+   * The split is metadata only, and that is the point. A member who taps a
+   * business card in the feed stays on social, in social chrome, with the
+   * switcher intact — the canonical moves what a crawler indexes, never where
+   * a member is. Framing the listing as a borrowed www page was considered
+   * and rejected: it would tell a member they had left home for tapping a
+   * card in their own feed. So a canonical pointing at www while social
+   * renders the page and owns `/p` in the registry is the intended state,
+   * not a disagreement to reconcile.
+   *
    * The canonical is absolute deliberately. A relative one resolves against
    * the host being served, which would declare whichever copy the crawler
    * happened to fetch the original — the bug it is meant to settle. Reading
