@@ -142,6 +142,46 @@ npm run db:reset
 npx tsx scripts/reset-test-db.ts
 ```
 
+### `seed-dev-data.ts`
+
+Seeds the committed base data fixture: users, profiles, `profile_owners` and
+the business actor. Run it with the social seed via `db:seed`, which chains
+both in the required order:
+
+```bash
+npm run db:seed
+# or, base layer only
+npx tsx scripts/seed-dev-data.ts
+```
+
+Run this **before** `seed-test-account.ts`, which resolves profiles by
+screenname and silently skips the ones it cannot find.
+
+The fixture is deliberately shaped so that local results mean something:
+
+- Both branches of directory eligibility are present — an unclaimed intake
+  listing (`profiles.userId` null) and a `small_business` sole trader — so the
+  `featured` and `suggest` read paths can be told apart from dead code.
+- Two rows must stay invisible: an unapproved submission (`active: false`) and
+  an unclaimed personal profile. A read path that returns them is widened, not
+  working.
+- `seed_p_legacy` and `seed_biz_pending` differ only in `status.source`, so the
+  OAuth auto-claim guard is observable attaching in one case and declining in
+  the other. Ad-hoc local data left this column null, which
+  `notBusinessListing()` passes, making the guard untestable in both directions.
+- At least one business name carries a Spanish accent, because unaccented
+  fixtures hide accent-sensitive matching. This is how the `suggest` typeahead
+  bug was found.
+
+Every row mirrors a production writer and names it in a comment, and the script
+uses Drizzle rather than raw SQL so a schema change breaks it at `tsc` time.
+It re-queries with the production predicates when it finishes and exits
+non-zero if the shapes disagree — asserting ids rather than counts, since a
+count cannot distinguish a guard that discriminates from one that rejects
+everything.
+
+Idempotent: re-running updates the `seed_`-prefixed rows in place.
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:
