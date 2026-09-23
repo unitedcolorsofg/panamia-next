@@ -12,6 +12,7 @@ import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
 import type { SocialStatusDisplay } from '@/lib/interfaces';
 import { FeedPostCard } from './_components/feed-post-card';
 import { FeedRail } from './_components/feed-rail';
+import { IdentityPrompt } from './_components/identity-prompt';
 import {
   DirectoryModule,
   EventsModule,
@@ -113,6 +114,10 @@ export default function SocialPage() {
 
 function FeedContent() {
   const [filter, setFilter] = useState<FeedFilter>('panas');
+  /* Latched, not a timer: once a member has posted in this visit the ask stays
+     available until they act on it or wave it away. Resetting it on the next
+     render would take the card away mid-reach. */
+  const [hasPosted, setHasPosted] = useState(false);
 
   const { data: me } = useMyActor();
   const home = useTimeline();
@@ -139,6 +144,7 @@ function FeedContent() {
           <PostComposer
             avatarUrl={actor?.iconUrl}
             avatarName={actor?.name || actor?.username}
+            onSuccess={() => setHasPosted(true)}
             placeholder={
               firstName
                 ? `¿Qué tal, ${firstName}? Ask the Panas something, or show what you're working on.`
@@ -146,6 +152,15 @@ function FeedContent() {
             }
           />
         </div>
+
+        {hasPosted && (
+          <IdentityPrompt
+            actorId={actor?.id}
+            name={actor?.name}
+            username={actor?.username}
+            iconUrl={actor?.iconUrl}
+          />
+        )}
 
         <div className="mt-6" role="tablist" aria-label="Feed filters">
           <div className="profile-tabs">

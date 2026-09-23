@@ -99,7 +99,14 @@
     "startBusinessDivider": "Or",
     "startBusinessTitle": "List your business",
     "startBusinessBody": "Run a shop, a studio, or a stand? Get listed so people can find you.",
-    "startSkip": "I'll find my own way around"
+    "startSkip": "I'll find my own way around",
+    "identityTitle": "That went up as @{{screenname}}",
+    "identityBodyBoth": "Add your name and a photo so panas know who they're talking to.",
+    "identityBodyName": "Add your name so panas see more than a handle.",
+    "identityBodyAvatar": "Add a photo so panas can put a face to your posts.",
+    "identityAddName": "Add your name",
+    "identityAddPhoto": "Add a photo",
+    "identityDismiss": "Not now"
   },
   "footer": {
     "panaMia": "PanaMia",

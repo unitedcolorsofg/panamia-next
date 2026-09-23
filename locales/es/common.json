@@ -99,7 +99,14 @@
     "startBusinessDivider": "O",
     "startBusinessTitle": "Registra tu negocio",
     "startBusinessBody": "¿Tienes una tienda, un estudio o un puesto? Aparece en el directorio para que te encuentren.",
-    "startSkip": "Prefiero explorar por mi cuenta"
+    "startSkip": "Prefiero explorar por mi cuenta",
+    "identityTitle": "Eso se publicó como @{{screenname}}",
+    "identityBodyBoth": "Agrega tu nombre y una foto para que los panas sepan con quién hablan.",
+    "identityBodyName": "Agrega tu nombre para que los panas vean más que un usuario.",
+    "identityBodyAvatar": "Agrega una foto para que los panas le pongan cara a tus publicaciones.",
+    "identityAddName": "Agregar mi nombre",
+    "identityAddPhoto": "Agregar una foto",
+    "identityDismiss": "Ahora no"
   },
   "footer": {
     "panaMia": "PanaMia",

@@ -215,8 +215,38 @@ Three details settled during the build:
 
 ### Phase 3 — contextual asks
 
-- **Display name and avatar** — prompt on first post if still unset.
+- **Display name and avatar** — shipped. See below.
 - **Who to follow** — see Known Gaps; this one is not a wiring job.
+
+#### Shipped: the first-post ask
+
+`app/s/_components/identity-prompt.tsx`, rendered by the feed once
+`PostComposer` reports a successful post.
+
+The timing carries the whole idea. Asked before the post, "add a photo" is a
+chore between a member and the thing they came to do. Asked immediately after
+their words go up under a bare handle, it answers a question they are already
+asking themselves. So the prompt is mounted on the composer's existing
+`onSuccess` callback and cannot appear before a post exists.
+
+It nudges rather than gates: the post is already published when the card
+appears, nothing is withheld, and "Not now" hides it for the browser session
+via `IDENTITY_DISMISS_KEY`, keyed by actor id so a shared browser does not
+inherit someone else's answer.
+
+**Detecting an unset name** is subtler than detecting a missing avatar, and
+`describeBareIdentity` in `lib/onboarding.ts` owns the rule. `profiles.name` is
+`NOT NULL`, so it is never empty; a member who skips the name field during
+setup gets it filled from their screenname (`app/api/user/screenname/set` —
+`displayName || session.user.name || newScreenname`), and that value is what
+`createActorForProfile` copies to `socialActors.name`. An actor whose name
+equals its username is therefore the fallback showing through, not a choice.
+The false positive — somebody whose real name genuinely is their handle — costs
+one dismissible card, which is the right side to err on.
+
+The card links out to the pages that already exist rather than inlining a
+second editor: `/account/user/edit` for the name, `/account/profile/images` for
+the photo. Only the missing half is offered.
 
 #### Dropped: the `zipCode` ask
 
