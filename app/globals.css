@@ -4737,13 +4737,17 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   width: auto;
   color: color-mix(in srgb, var(--story-blue) 20%, var(--story-cream));
 
-  /* Hidden runway at both ends of the lap. The scroll parallax below shifts
-     each cloud by up to its own `--drift` (58px on the widest), and that shift
-     applies at the moment the float restarts too — so a cloud whose lap ends
-     exactly at the band edge can be dragged back inside it and reappear with
-     a slice of itself already showing. One 70px overshoot past each edge
-     covers the largest drift and keeps the wrap invisible. */
-  --float-runway: 70px;
+  /* Hidden runway at both ends of the lap, and the reason it is a fixed
+     length rather than `100%`: every cloud must travel the *same* distance.
+     With `100%` the lap length varied with each cloud's own width, so two
+     clouds set to the same speed would still slide out of step over a few
+     minutes. A constant makes the lap `100vw + 2 × runway` for all of them,
+     which is what lets the pairing below hold indefinitely.
+
+     230px because it has to hide the widest cloud (158px) plus the largest
+     scroll drift (58px) at the moment the lap restarts, or the cloud pops
+     into view already half on screen. */
+  --float-runway: 230px;
 }
 
 .sky-cloud-1 {
@@ -4752,7 +4756,7 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   opacity: 0.9;
   --drift: 46px;
   --float-dur: 38s;
-  --float-delay: -11.6s;
+  --float-delay: -25.97s;
 }
 
 .sky-cloud-2 {
@@ -4760,8 +4764,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 34px;
   opacity: 0.55;
   --drift: 18px;
-  --float-dur: 56s;
-  --float-delay: -36.8s;
+  --float-dur: 70s;
+  --float-delay: 0s;
 }
 
 .sky-cloud-3 {
@@ -4769,8 +4773,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 44px;
   opacity: 0.72;
   --drift: 30px;
-  --float-dur: 46s;
-  --float-delay: -21.2s;
+  --float-dur: 38s;
+  --float-delay: -0.63s;
 }
 
 .sky-cloud-4 {
@@ -4778,8 +4782,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 62px;
   opacity: 0.95;
   --drift: 58px;
-  --float-dur: 32s;
-  --float-delay: -4s;
+  --float-dur: 38s;
+  --float-delay: -13.3s;
 }
 
 .sky-cloud-5 {
@@ -4787,8 +4791,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 26px;
   opacity: 0.4;
   --drift: 10px;
-  --float-dur: 66s;
-  --float-delay: -55.6s;
+  --float-dur: 70s;
+  --float-delay: -35s;
 }
 
 /* Weather. Every cloud starts parked just past the right edge and crosses to
@@ -4807,10 +4811,36 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
    what a real cloud does and was a mistake. At that rate a cloud moves about
    a finger's width in ten seconds, so the sky was animating and reading as
    completely still — worse than no animation, because it costs the same and
-   returns nothing. These cross in 32–66s, or 25–50px a second, which is fast
-   enough to catch out of the corner of your eye and slow enough to ignore
-   while reading. The delays are the same fractions of the new durations, so
-   the clouds still open the page spread across the sky rather than bunched.
+   returns nothing. These cross in 38–70s, fast enough to catch out of the
+   corner of your eye and slow enough to ignore while reading.
+
+   On why there are only two speeds for five clouds: five *different* speeds
+   do not stay spread out. Each cloud is an independent loop, so the fast
+   ones lap the slow ones and the set wanders through every possible
+   arrangement — including all five bunched at one edge with an empty sky
+   behind them, which is what it actually did after about two minutes. The
+   opening spread was the only moment the layout was ever designed.
+
+   So the five are two groups. Inside a group every cloud runs the same
+   duration and the delays divide that duration evenly, which locks their
+   spacing permanently — a group of three sits a third of a lap apart and
+   stays that way, no matter how long the page is open. The three nearest
+   clouds take the fast lap and the two farthest take the slow one, so the
+   speed difference that sells depth is kept; it just happens between the
+   groups rather than between every cloud. The two groups still slide past
+   each other, but the fast trio alone is never more than a third of a lap
+   from itself, so it carries the sky on its own and the slow pair only ever
+   adds to it. Modelled over ten minutes at both a laptop and a desktop
+   width, that holds at three or more clouds on screen at every instant.
+
+   Delays only need to be right relative to each other within a group, and
+   rounding them to the nearest hundredth of a second is harmless: a fixed
+   delay offset cannot accumulate. Only a difference in *duration* would
+   drift, which is why the durations inside a group have to match exactly.
+
+   This is also why the lap length above is a constant rather than `100%`:
+   even spacing only holds if the clouds in a group travel the same distance,
+   and `100%` would make each lap as wide as that particular cloud.
 
    Held to `translate` rather than `transform` deliberately: the scroll
    parallax below owns `transform`, and the two properties compose, so each
@@ -4828,7 +4858,7 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
     translate: var(--float-runway, 0px);
   }
   to {
-    translate: calc(-100vw - 100% - var(--float-runway, 0px));
+    translate: calc(-100vw - var(--float-runway, 0px));
   }
 }
 
