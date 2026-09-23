@@ -8,3 +8,10 @@ coverage
 package-lock.json
 yarn.lock
 public
+
+# Vendored upstream project (944 tracked files), not our code to format.
+# It ships its own .prettierrc.yml, so formatting it with our rules would
+# contradict its declared config and create a diff against upstream that has
+# to be re-applied on every sync. Excluding it also removes the permanent
+# floor of 2 that made 'prettier --check .' unable to ever exit 0.
+external
