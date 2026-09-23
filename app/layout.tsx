@@ -14,7 +14,7 @@ import {
   surfaceForPath,
   getRootDomain,
 } from '@/lib/panaverse/surfaces';
-import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
+import { SURFACE_DESCRIPTION, SURFACE_ICON } from '@/lib/panaverse/branding';
 import {
   PATHNAME_HEADER,
   SEARCH_HEADER,
@@ -65,37 +65,26 @@ export async function generateMetadata(): Promise<Metadata> {
     ? surfaceForPath(pathname as string)
     : null;
 
-  /* Which app this page would install as, which is not always the surface the
-   * hostname names, and not always the page the member is looking at.
+  /* The install tags — manifest link and Apple app meta — are deliberately not
+   * here, even though this object has `manifest` and `appleWebApp` fields for
+   * exactly that. They are rendered in the layout's own <head> instead.
    *
-   * See `resolveInstallSurface` for the three rules and why a doorway needs the
-   * third one. */
-  const installSurface = resolveInstallSurface(
-    surface,
-    pathname,
-    requestHeaders.get(SEARCH_HEADER)
-  );
-
+   * Setting them here does produce correct tags with correct values; it puts
+   * them in the wrong place. This runtime streams metadata into the body and
+   * relies on a client script to lift it into <head>, and that script moves
+   * icon links but not the manifest link. The result was
+   * `LINK < DIV < DIV < BODY < HTML`, and Chromium only searches <head> for a
+   * manifest, so `Page.getAppManifest` returned url:null with errors:[] — the
+   * tag was present, well-formed and completely invisible. An empty error list
+   * is what "never looked" reports, and it reads exactly like "nothing wrong".
+   *
+   * <head> children written as JSX land in the real <head> (the font links
+   * below have always proved it), so the install identity goes where the
+   * browser is known to look rather than where the framework offers to put
+   * it. */
   return {
     title: surface.name,
     description: SURFACE_DESCRIPTION[surface.id],
-    /* The surface is passed explicitly because a manifest request carries the
-     * origin but not the path that asked for it, and while PANAVERSE_SUBDOMAINS
-     * is off both surfaces answer on one origin — so the Host header alone
-     * cannot tell Pana Social from Pana Mia. See
-     * app/manifest.webmanifest/route.ts. */
-    manifest: `/manifest.webmanifest?s=${installSurface.id}`,
-    appleWebApp: {
-      capable: true,
-      /* The home screen label, and so part of the install identity rather than
-       * the page's chrome: it follows installSurface for the same reason the
-       * manifest does. */
-      title: installSurface.name,
-      /* Translucent rather than 'default': the masthead already paints to the
-       * top of the viewport, so an opaque status bar would sit on a second
-       * band of background above it. */
-      statusBarStyle: 'black-translucent',
-    },
     ...(owner && pathname
       ? {
           /* Both halves are load-bearing, and the second is the one that
@@ -197,9 +186,58 @@ export default async function RootLayout({
    * account, no way back to Pana Mia. See lib/panaverse/chrome.ts. */
   const ownSurface = wearsSurfaceChrome(surface, pathname);
 
+  /* Which app this page would install as, which is not always the surface the
+   * hostname names, and not always the page the member is looking at.
+   *
+   * See `resolveInstallSurface` for the three rules and why a doorway needs the
+   * third one. */
+  const installSurface = resolveInstallSurface(
+    surface,
+    pathname,
+    requestHeaders.get(SEARCH_HEADER)
+  );
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Install identity. See the note in generateMetadata for why these
+         * are written here by hand rather than through its `manifest` and
+         * `appleWebApp` fields: those render into the body, and a manifest
+         * link outside <head> is one the browser never reads.
+         *
+         * The surface is passed explicitly because a manifest request carries
+         * the origin but not the path that asked for it, and while
+         * PANAVERSE_SUBDOMAINS is off both surfaces answer on one origin — so
+         * the Host header alone cannot tell Pana Social from Pana Mia. See
+         * app/manifest.webmanifest/route.ts. */}
+        <link
+          rel="manifest"
+          href={`/manifest.webmanifest?s=${installSurface.id}`}
+        />
+        {/* The home screen label, and so part of the install identity rather
+         * than the page's chrome: it follows installSurface for the same
+         * reason the manifest does. */}
+        <meta name="apple-mobile-web-app-title" content={installSurface.name} />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* iOS takes the home screen icon from this link, not from the
+         * manifest's icons array, and falls back to a screenshot of the page
+         * when it is missing — so without this an installed Pana Social would
+         * sit on the home screen as a thumbnail of whatever was on screen at
+         * the moment it was added. 192 rather than 512 because iOS downscales
+         * and the 512 is an upscale of a 225px source (see the PR): the
+         * smaller file is the one with real detail in it. */}
+        <link
+          rel="apple-touch-icon"
+          href={`/logos/${SURFACE_ICON[installSurface.id]}_192.png`}
+        />
+        {/* Translucent rather than 'default': the masthead already paints to
+         * the top of the viewport, so an opaque status bar would sit on a
+         * second band of background above it. */}
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

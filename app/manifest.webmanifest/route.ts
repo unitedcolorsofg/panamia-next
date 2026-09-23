@@ -27,15 +27,7 @@ import {
   panaverseSubdomainsEnabled,
   type PanaverseSurface,
 } from '@/lib/panaverse/surfaces';
-import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
-
-/** Square marks, per surface. Separate from SURFACE_MARK in branding.ts,
- *  which holds wordmarks: a wordmark squashed into a square home-screen tile
- *  is unreadable, so installable icons are their own asset. */
-const SURFACE_ICON: Record<string, string> = {
-  www: 'pana_mia_icon',
-  social: 'pana_social_icon',
-};
+import { SURFACE_DESCRIPTION, SURFACE_ICON } from '@/lib/panaverse/branding';
 
 /** Background behind the icon on the splash screen, and the browser UI tint.
  *  Token values from app/globals.css, not new colours. */

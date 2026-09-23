@@ -44,6 +44,20 @@ export const SURFACE_MARK: Record<SurfaceId, SurfaceMark> = {
   },
 };
 
+/** Square marks, per surface. Separate from SURFACE_MARK above, which holds
+ *  wordmarks: a wordmark squashed into a square home-screen tile is
+ *  unreadable, so installable icons are their own asset.
+ *
+ *  Shared by the manifest route (which lists the 192/512/maskable variants)
+ *  and the root layout (which emits the apple-touch-icon link, because iOS
+ *  takes the home screen icon from that link and not from the manifest). Two
+ *  copies of this mapping would install two different tiles for the same
+ *  surface depending on which platform did the installing. */
+export const SURFACE_ICON: Record<SurfaceId, string> = {
+  www: 'pana_mia_icon',
+  social: 'pana_social_icon',
+};
+
 /** What each surface is for, in the second person — written for a member
  *  deciding where to click, not a developer reading the registry. */
 export const SURFACE_BLURB: Record<SurfaceId, string> = {

@@ -72,7 +72,13 @@ export default function SocialPage() {
   const { status } = useSession();
 
   if (status === 'unauthenticated') {
-    redirect('/signin');
+    /* The callback is not only a courtesy that returns the member to the feed
+     * after signing in. A bare '/signin' is a www doorway, so a signed-out
+     * member sent here was offered "Pana Mia" to install, with the Pana Mia
+     * tile — on the one journey that starts at Pana Social's front door. The
+     * callback is what tells the doorway which app it is a doorway to; see
+     * resolveInstallSurface in lib/panaverse/chrome.ts. */
+    redirect(`/signin?callbackUrl=${encodeURIComponent('/s')}`);
   }
 
   if (status === 'loading') {
