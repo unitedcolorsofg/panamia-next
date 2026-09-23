@@ -640,7 +640,7 @@ export function StreetScene() {
     <svg
       className="street-svg"
       viewBox="0 58 1440 310"
-      preserveAspectRatio="xMidYMax meet"
+      preserveAspectRatio="xMidYMax slice"
       fill="none"
       aria-hidden="true"
     >

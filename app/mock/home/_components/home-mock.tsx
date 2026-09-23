@@ -78,8 +78,17 @@ export function HomeMock() {
       <ScrollReveal />
 
       <div className="flex min-h-screen flex-col" data-density={density}>
-        <HeroCard />
-        <StreetBand />
+        {/* The card and the town are one composition, so they are measured as
+            one: together they are exactly the height of the screen, which puts
+            the street — the ground line, the market, the people — on the
+            bottom edge of the first view at any resolution. Separately they
+            were 79–211px too tall for a laptop and the town's feet were the
+            part that fell off. */}
+        <div className="home-first">
+          <HeroCard />
+          <StreetBand />
+        </div>
+
         <InfoCard />
         <PillarsCard />
         <PointCard />
@@ -189,6 +198,14 @@ function HeroCard() {
               </button>
             </div>
           </form>
+
+          {/* The scroll hint sits on the card rather than on the street. It
+              lived on the street until the street started filling whatever
+              height was left over: at 184px on a laptop there is no sky left
+              above the roofline for a caption to sit in, and it landed on
+              the buildings. Here it is in the same place to the eye — the
+              last line before the town — and always on paper. */}
+          <p className="story-street-note">Scroll ↓ · Start with the basics</p>
         </div>
       </div>
     </section>
@@ -208,15 +225,14 @@ function HeroCard() {
  * making it a section of its own is what lets both of those be true without
  * either one owning it.
  *
- * The scroll hint moved down here from the hero's meta line. It was competing
- * with the county chips for the same corner; on the street it has a job,
- * which is to say that the drawing is not the end of the page.
+ * It no longer has a fixed height. It takes whatever the card leaves of the
+ * first screen, and the drawing crops rather than scales to fill it, so the
+ * street lands on the bottom edge of the screen at any resolution.
  */
 function StreetBand() {
   return (
     <section className="story-street" aria-label="Pana Mia's neighbourhood">
       <StreetScene />
-      <p className="story-street-note">Scroll ↓ · Start with the basics</p>
     </section>
   );
 }

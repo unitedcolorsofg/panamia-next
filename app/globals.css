@@ -4344,7 +4344,7 @@ button.bizprofile-update-action:hover {
      With the sky gone, the only thing above the card that still has to be
      cleared is the masthead, so what is left is its height plus a margin —
      and the card comes up the page by about 150px. */
-  --home-hero-pad-top: clamp(104px, 13svh, 148px);
+  --home-hero-pad-top: clamp(40px, 9svh, 148px);
   --home-hero-pad-bottom: clamp(20px, min(2.4vw, 3.5svh), 34px);
   /* How far apart consecutive stops on the walk sit, and how wide the art
      half of a stop is allowed to get before it starts crowding the words. */
@@ -4369,7 +4369,7 @@ button.bizprofile-update-action:hover {
   /* Same reasoning as `roomy`: what is left is the masthead plus a margin.
      Tighter than roomy, because the compact hero is only ever as tall as what
      is inside it, so this padding is a much larger share of the whole. */
-  --home-hero-pad-top: clamp(88px, 11svh, 120px);
+  --home-hero-pad-top: clamp(24px, 6svh, 96px);
   --home-hero-pad-bottom: 1.25rem;
   --home-beat-gap: 3.75rem;
   --home-beat-art: 20rem;
@@ -4670,9 +4670,18 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
    six colours the panas handed over. */
 
 /* The drop shadow existed to lift cream type off a photograph. Ink on cream
-   needs no help, and a shadow at this size just reads as a smudge. */
+   needs no help, and a shadow at this size just reads as a smudge.
+
+   The size is re-clamped against the viewport's short edge rather than
+   inherited. The global rule allows up to 16svh, which is generous on a
+   desktop and too generous on a laptop: at 1366x768 it made a two line
+   headline 216px tall, and those 216px were the difference between the town
+   sitting on the bottom edge of the screen and hanging off it. 13svh keeps
+   desktop sizes exactly where they were — 8.4vw is the binding term there —
+   and only bites on short windows, which is where the room is needed. */
 .home-hero-field .hero-headline {
   text-shadow: none;
+  font-size: clamp(42px, min(8.4vw, 13svh), 126px);
 }
 
 /* Coral rather than orange, and for a specific reason: the wordmark directly
@@ -4977,17 +4986,91 @@ body:has([data-density]) {
    clear it, and no more. The street used to sit a comfortable gap below the
    search; it now sits directly under it, so the card and the town read as
    one picture rather than two stacked bands. */
+/* --- The first screen ---------------------------------------------------
+
+   The card and the town are one picture that happens to be two sections, so
+   the pair is measured as one: together they are exactly the height of the
+   screen. That is what lands the ground line — the street, the market, the
+   people — on the bottom edge of the first view at any resolution. Measured
+   before this rule existed, the town's feet fell 79px (1920x1080) to 211px
+   (1366x768) below the fold, and the feet are the part the drawing is about.
+
+   The card is `flex: none` and the street is the flexible one, not the other
+   way round. The card holds a wordmark, a headline and a form; type that
+   shrinks to fit the window is type that ends up too small on exactly the
+   screens where the fit was tightest. The drawing has slack the card does
+   not, because it crops instead of scaling — the SVG is `xMidYMax slice`,
+   so a shorter box shows less sky above the roofline and the same street at
+   the same size underneath it. Same trade already made for narrow screens
+   further down: crop, don't shrink.
+
+   `height` rather than `min-height`, because a minimum cannot take space
+   away and taking space away is the whole job. The `min-height: min-content`
+   underneath it is the safety net for windows too short to hold both — a
+   half height desktop window, a landscape phone — where the pair is allowed
+   to grow past the screen rather than have the town spill over the section
+   below it. That guard only works because the drawing is taken out of flow
+   below: an SVG carries an intrinsic aspect ratio, so while it was in flow
+   the street's min-content height was its *full natural height* and the
+   guard silently restored the exact layout it was meant to bound.
+
+   The card is kept short enough to fit on everything larger than that — see
+   the hero padding and headline overrides, both of which take the viewport's
+   short edge into account, so a laptop gets a slightly smaller card rather
+   than a clipped town.
+
+   Nothing here establishes a scroll container. That is load bearing: one
+   would re-root the view timelines that drive the clouds and the parallax. */
+.home-first {
+  /* The masthead is the only thing between the top of the screen and the top
+     of the card, so it is the only thing to subtract. */
+  --masthead-h: 65px;
+
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--masthead-h));
+  min-height: min-content;
+}
+
+.home-first .home-hero-field {
+  flex: 0 0 auto;
+}
+
+/* A floor so the town is always a town. Below roughly this height the crop
+   has eaten the roofline and what is left reads as a strip of pavement. */
+.home-first .story-street {
+  flex: 1 1 auto;
+  min-height: 8rem;
+}
+
+/* Out of flow, anchored to the bottom of the band, filling its height. Out
+   of flow is what stops the drawing's aspect ratio from setting a minimum
+   height for the whole first screen; anchored to the bottom is what keeps
+   the ground line on the ground line while `slice` trims sky off the top.
+
+   Width is left to the rules below on purpose — this selector is heavier
+   than they are, so setting it here would override the narrow-screen crop. */
+.home-first .street-svg {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+}
+
+.home-first .street-svg {
+  height: 100%;
+}
+
+/* The drawing is out of flow and fills the band, so there is nothing left
+   for padding to space away from. */
 .story-street {
   position: relative;
   background-color: var(--story-cream);
-  padding-top: clamp(1.25rem, 3vw, 2.25rem);
 }
 
+/* Static, on the card. It used to be absolutely positioned across the top of
+   the street band, which only worked while that band had spare sky in it. */
 .story-street-note {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
+  margin-top: 1.1rem;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 800;
