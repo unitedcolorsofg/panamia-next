@@ -192,6 +192,27 @@ business (`/form/become-a-pana`, which sets `accountType`). This is the
 person-versus-business split that `ACCOUNTS-ROADMAP.md` specifies; the welcome
 page is where it should first be offered, as one click rather than a form.
 
+| #   | Area  | File                                       | Change                                                                             |
+| --- | ----- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 1   | Route | `app/welcome/start/`                       | The fork: two browse doors plus a listing door, gated on a claimed screenname      |
+| 2   | Flow  | `app/welcome/_components/welcome-view.tsx` | Land a completed claim on the fork, unless the member was already headed somewhere |
+
+Three details settled during the build:
+
+- **The fork yields to intent.** A member interrupted on the way to a specific
+  page is returned there, not handed a tour — `?next=` outranks the fork, per
+  Decision §2. It appears only when the destination is a front door, which is
+  the case that means "nowhere in particular".
+- **Skipping the screenname skips the fork.** Someone who just declined to
+  answer a question has not asked for a second screen. Skip goes straight to
+  the destination.
+- **The listing door hides for accounts that already have one.** Offering
+  `become-a-pana` to a `small_business` or `hybrid` account is noise. No new
+  write path was needed: `createExpressProfile` already updates an existing
+  profile rather than inserting a second one (`ACCOUNTS-ROADMAP.md` #7), which
+  is what keeps the `UNIQUE` constraint on `profiles.userId` satisfied now that
+  every member arrives with a profile.
+
 ### Phase 3 — contextual asks
 
 - **`zipCode`** — exists on `users`, collected today only in account settings.

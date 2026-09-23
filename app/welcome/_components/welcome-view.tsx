@@ -37,6 +37,15 @@ function WelcomeForm({ rootPath }: { rootPath: string }) {
       ? requestedNext
       : rootPath;
 
+  /* Where a finished setup leads. Someone interrupted on the way to a specific
+     page gets taken there — their intent outranks our tour. Someone who just
+     signed in and landed on a front door has nowhere in particular to be, and
+     that is precisely who the fork is for. */
+  const afterClaim =
+    destination === rootPath || destination === '/'
+      ? '/welcome/start'
+      : destination;
+
   /* Someone who already has a handle has nothing to do here — they may have
      hit a stale link or the back button. Send them on rather than inviting
      them to re-answer a question with a 90-day cooldown attached. */
@@ -129,7 +138,7 @@ function WelcomeForm({ rootPath }: { rootPath: string }) {
            created the profile the masthead reads from, and every cached
            identity in the tree is now stale. Once per account, correctness is
            worth more than the transition. */
-        window.location.assign(destination);
+        window.location.assign(afterClaim);
         return;
       }
 

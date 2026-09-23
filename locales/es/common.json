@@ -88,7 +88,18 @@
     "checkFailed": "No se pudo verificar ese nombre. Inténtalo de nuevo.",
     "setFailed": "No se pudo guardar ese nombre de usuario. Inténtalo de nuevo.",
     "finishSetup": "Termina de configurar tu cuenta",
-    "finishSetupHint": "Elige un nombre de usuario para publicar y seguir"
+    "finishSetupHint": "Elige un nombre de usuario para publicar y seguir",
+    "startEyebrow": "Ya está todo listo",
+    "startTitle": "¿Por dónde quieres empezar?",
+    "startBody": "Ahora eres @{{screenname}}. Todo esto queda abierto para ti — este es solo el camino más rápido.",
+    "startDirectoryTitle": "Explora el directorio",
+    "startDirectoryBody": "Encuentra a los creadores, tiendas y artistas cerca de ti.",
+    "startSocialTitle": "Únete a la conversación",
+    "startSocialBody": "Pana Social es la línea de tiempo de la comunidad. Publica, sigue, responde.",
+    "startBusinessDivider": "O",
+    "startBusinessTitle": "Registra tu negocio",
+    "startBusinessBody": "¿Tienes una tienda, un estudio o un puesto? Aparece en el directorio para que te encuentren.",
+    "startSkip": "Prefiero explorar por mi cuenta"
   },
   "footer": {
     "panaMia": "PanaMia",

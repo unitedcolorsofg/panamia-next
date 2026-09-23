@@ -5,7 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import ScreennamePrompt from '@/components/ScreennamePrompt';
-import { ONBOARDING_DISMISS_KEY, isNewAccount } from '@/lib/onboarding';
+import {
+  ONBOARDING_DISMISS_KEY,
+  isNewAccount,
+  isOnboardingRoute,
+} from '@/lib/onboarding';
 
 /**
  * Prompts a signed-in user who has no screenname to claim one.
@@ -56,7 +60,7 @@ export default function ScreennameGate() {
     /* Onboarding routes ask this question themselves. Running the check here
        too would either double up or, on /welcome, bounce the member straight
        back into the page they are already standing on. */
-    if (pathname?.startsWith('/welcome') || pathname?.startsWith('/signin')) {
+    if (isOnboardingRoute(pathname)) {
       return;
     }
     if (checkedFor.current === userId) {
