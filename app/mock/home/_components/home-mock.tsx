@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import ScrollReveal from '@/components/scroll-reveal';
 import { countyList } from '@/lib/lists';
 import { searchPath } from '@/lib/directory-search-path';
-import { MockControls } from './mock-controls';
+import { MockControls, type Density } from './mock-controls';
 import { StickyBoard } from './sticky-board';
 import { PillarPanels } from './pillar-panels';
 import { pillars, stickyNotes } from '../_data';
@@ -47,14 +47,24 @@ import { pillars, stickyNotes } from '../_data';
  * Nothing here reads the database. The search bar navigates to the real
  * results page but drops the typeahead, so this route stays a fixture: see
  * the comment on the form below.
+ *
+ * On density: the live site's vertical rhythm is a full-viewport hero plus
+ * `py-16 md:py-24` on every band, which is where most of the page's empty
+ * space comes from. Rather than pick a new number here, the bar carries a
+ * switch: `compact` is the proposal, `roomy` is what the live site does
+ * today, and the two are a click apart so the difference can be judged
+ * rather than argued about. Only the rhythm changes — no copy, no colour,
+ * nothing reflows to a different layout.
  */
 export function HomeMock() {
+  const [density, setDensity] = useState<Density>('compact');
+
   return (
     <>
-      <MockControls />
+      <MockControls density={density} onDensityChange={setDensity} />
       <ScrollReveal />
 
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col" data-density={density}>
         <HeroCard />
         <InfoCard />
         <PillarsCard />
@@ -197,16 +207,16 @@ function HeroCard() {
 
 function InfoCard() {
   return (
-    <section id="what-is-this" className="surface-butter-2 py-16 md:py-24">
+    <section id="what-is-this" className="home-section surface-butter-2">
       <div className="container mx-auto px-4">
-        <div className="mb-10 max-w-3xl md:mb-14" data-rv>
+        <div className="home-sectionhead max-w-3xl" data-rv>
           <span className="section-eyebrow">Start Here</span>
-          <h2 className="section-display mt-4">
+          <h2 className="section-display">
             First,
             <br />
             <em className="display-accent">the basics</em>
           </h2>
-          <p className="section-lede mt-5">
+          <p className="section-lede">
             Three questions everyone asks in their first minute here. The
             answers are on the front of each note — open one for the long
             version.
@@ -225,19 +235,19 @@ function InfoCard() {
 
 function PillarsCard() {
   return (
-    <section id="pillars" className="surface-citrus py-16 md:py-24">
+    <section id="pillars" className="home-section surface-citrus">
       <div className="container mx-auto px-4">
-        <div className="mb-10 md:mb-14" data-rv>
+        <div className="home-sectionhead" data-rv>
           {/* No colour utility here: `.section-eyebrow` hard-codes indigo and
               is unlayered, so it beats one anyway. Indigo on the citrus wash
               is the pairing the rest of the site already uses. */}
           <span className="section-eyebrow">The Future Of Pana MIA</span>
-          <h2 className="section-display mt-4">
+          <h2 className="section-display">
             Three ways
             <br />
             <em className="display-accent">we build</em>
           </h2>
-          <p className="section-lede mt-5 max-w-2xl">
+          <p className="section-lede max-w-2xl">
             Not three departments — three halves of the same argument, that a
             place gets better when the people in it own the tools, the
             gatherings and the stories.
@@ -266,7 +276,7 @@ function PillarsCard() {
 function PointCard() {
   return (
     <section
-      className="surface-indigo scallop py-16 md:py-24"
+      className="home-section surface-indigo scallop"
       style={{ '--scallop': 'var(--color-pana-burnt)' } as CSSProperties}
     >
       <div className="container mx-auto px-4" data-rv>

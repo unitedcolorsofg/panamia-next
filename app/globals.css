@@ -4324,6 +4324,108 @@ button.bizprofile-update-action:hover {
    components moved into app/directory/search/_components.
    --------------------------------------------------------------------------- */
 
+/* ---- Vertical rhythm ---------------------------------------------------- */
+
+/* The live site pins its hero to the viewport and puts `py-16 md:py-24` on
+   every band below it, which on a 1000px screen spends roughly a third of the
+   page on air. These two token sets are the whole of the density switch: the
+   markup never changes, only what these resolve to.
+
+   `roomy` restates today's numbers exactly, so the switch is a genuine
+   before/after rather than a flattering redraw of the thing being replaced. */
+[data-density='roomy'] {
+  --home-pad: 4rem;
+  --home-head-gap: 2.5rem;
+  --home-head-stack: 1.25rem;
+  --home-display-max: 4.375rem;
+  --home-hero-min: 100svh;
+  --home-hero-pad-top: clamp(96px, min(10vw, 14svh), 124px);
+  --home-hero-pad-bottom: clamp(36px, min(4vw, 6svh), 58px);
+  --home-note-gap: 2.75rem;
+  --home-note-pad: 1.6rem;
+  --home-photo-w: 17rem;
+}
+
+[data-density='compact'] {
+  --home-pad: 2.75rem;
+  --home-head-gap: 1.75rem;
+  --home-head-stack: 0.85rem;
+  /* Display type is part of the vertical rhythm, not separate from it: a
+     two-line heading at 70px is 143px of the fold on its own. Only the
+     ceiling moves, so small screens — already below the clamp — are
+     unaffected. */
+  --home-display-max: 3.5rem;
+  /* The hero stops being a full screen and becomes as tall as what is in it.
+     This is the single biggest saving on the page: the content is ~610px and
+     the viewport reserves 1000. The top padding stays, because that is what
+     clears the fixed header rather than decoration. */
+  --home-hero-min: 0;
+  --home-hero-pad-top: clamp(84px, min(8vw, 12svh), 104px);
+  --home-hero-pad-bottom: 2.25rem;
+  --home-note-gap: 1.85rem;
+  --home-note-pad: 1.35rem;
+  --home-photo-w: 13.5rem;
+}
+
+@media (min-width: 48rem) {
+  [data-density='roomy'] {
+    --home-pad: 6rem;
+    --home-head-gap: 3.5rem;
+  }
+
+  [data-density='compact'] {
+    --home-pad: 3.5rem;
+    --home-head-gap: 2.25rem;
+  }
+}
+
+.home-section {
+  padding-block: var(--home-pad);
+}
+
+.home-sectionhead {
+  margin-bottom: var(--home-head-gap);
+}
+
+/* The eyebrow / headline / lede stack, spaced from one token instead of the
+   `mt-4` and `mt-5` utilities that were here, so density reaches inside the
+   heading block and not just between the bands. */
+.home-sectionhead > * + * {
+  margin-top: var(--home-head-stack);
+}
+
+[data-density] .section-display {
+  font-size: clamp(2rem, 5.1vw, var(--home-display-max));
+}
+
+[data-density] .stickynote-photo {
+  width: min(100%, var(--home-photo-w));
+}
+
+/* Overrides the live hero's own min-height and padding, scoped to the mock so
+   the real homepage is untouched. */
+[data-density] .home-hero-banner {
+  min-height: var(--home-hero-min);
+  padding-top: var(--home-hero-pad-top);
+  padding-bottom: var(--home-hero-pad-bottom);
+}
+
+/* The switch is indigo-on-light by default, which disappears on the ink bar —
+   the same treatment `.mock-toolbar` already gets. */
+.bizprofile-mockbar .mock-switch {
+  border-color: rgb(255 247 236 / 0.25);
+  background-color: rgb(255 247 236 / 0.08);
+}
+
+.bizprofile-mockbar .mock-switch button {
+  color: rgb(255 247 236 / 0.75);
+}
+
+.bizprofile-mockbar .mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
 /* The donate chip in the hero. A `.tagpill` that carries an icon and reads as
    an aside rather than a fourth county — same size and shape as its
    neighbours, inverted fill so it is not mistaken for a filter. `.tagpill` is
@@ -4347,7 +4449,7 @@ button.bizprofile-update-action:hover {
 
 .stickyboard {
   display: grid;
-  gap: clamp(2rem, 4vw, 2.75rem);
+  gap: var(--home-note-gap, clamp(2rem, 4vw, 2.75rem));
   grid-template-columns: 1fr;
 }
 
@@ -4365,7 +4467,8 @@ button.bizprofile-update-action:hover {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 2.25rem 1.6rem 1.5rem;
+  padding: calc(var(--home-note-pad, 1.6rem) + 0.65rem)
+    var(--home-note-pad, 1.6rem) var(--home-note-pad, 1.6rem);
   color: var(--color-pana-ink);
   border: 2px solid rgb(17 13 13 / 0.14);
   /* Barely rounded. Paper has corners; cards have radii. */
@@ -4846,14 +4949,17 @@ a.pillar-program:hover {
     padding: 1.75rem 2rem 2rem;
   }
 
-  /* The vertical spines set the row's height, and they are taller than this
-     panel's prose. Rather than leave a dead zone under the programme cards,
-     let the copy sit at the top and the cards settle on the floor. */
+  /* The row's height is set by the tallest closed spine's vertical label, not
+     by the open panel's prose, so the open panel usually has slack. Letting
+     the programme cards absorb it turns what was a dead zone between the
+     answer and the cards into taller cards, and because each card is
+     `auto 1fr auto` the status chips still line up along one floor. */
   .pillar-programs {
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
     gap: 0.85rem;
-    margin-top: auto;
+    flex: 1;
+    align-items: stretch;
     padding-top: 1.4rem;
   }
 
