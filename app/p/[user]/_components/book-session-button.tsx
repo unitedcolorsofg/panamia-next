@@ -15,7 +15,7 @@ export function BookSessionButton({ handle }: BookSessionButtonProps) {
 
   const handleBookSession = () => {
     if (!session) {
-      router.push('/api/auth/signin');
+      router.push('/signin');
       return;
     }
     router.push(`/m/schedule/book?mentor=${handle}`);
