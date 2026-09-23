@@ -132,23 +132,39 @@ test.describe('Profile Pages', () => {
     // Navigate to directory first to find a valid profile
     await page.goto('/directory/search');
 
-    // Wait for any profile links to appear
-    const profileLink = page.locator('a[href^="/p/"]').first();
+    // `count()` does not auto-wait. The previous `if (count > 0) ... else
+    // test.skip()` called it immediately, so under parallel load it read 0
+    // before results rendered and turned "not loaded yet" into "no data,
+    // skip" -- this test silently removed itself from the suite and its
+    // assertions never ran. Wait for the list to settle, then decide.
+    const card = page.locator('.dirsearch-card').first();
+    const hasResults = await card
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!hasResults, 'directory search returned no profiles');
 
-    // If a profile exists, test it
-    if ((await profileLink.count()) > 0) {
-      await profileLink.click();
-      await expect(page).toHaveURL(/^https?:\/\/[^/]+\/p\/[^?#]+/);
-      // Profile headings are user data, so there is no fixed string to assert.
-      // Key the negative on the marker this app's not-found page actually
-      // renders instead of on the document title, which stays "Pana Mia".
-      // Scoped to body rather than h1 because not every page in this app
-      // renders an h1, and a missing element fails a `.not.` assertion.
-      await expect(page.locator('body')).not.toContainText('Page Not Found');
-    } else {
-      // Skip if no profiles exist
-      test.skip();
-    }
+    // Capture the name from the card so the destination can be checked against
+    // data only this profile renders.
+    const name = (
+      await card.locator('.dirsearch-card-name').innerText()
+    ).trim();
+    expect(name.length).toBeGreaterThan(0);
+
+    // Each card carries three links to the same profile. The cover image is
+    // `tabindex="-1"`, a decorative duplicate of the name link, and is not what
+    // a visitor clicks -- target the real one.
+    await card.locator('a[href^="/p/"]:not([tabindex="-1"])').first().click();
+
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/p\/[^?#]+/);
+
+    // Profile headings are user data, so assert the one string this route is
+    // known to produce: the name carried over from the card. A wrong page and
+    // a blank page both fail this, which the 404 negative below cannot do on
+    // its own -- it passes on any page lacking the string, including an empty
+    // one. Keeping it is only meaningful now that a positive precedes it.
+    await expect(page.locator('body')).toContainText(name);
+    await expect(page.locator('body')).not.toContainText('Page Not Found');
   });
 });
 

@@ -90,12 +90,6 @@ test.describe('Authenticated Profile Navigation', () => {
 
     expect(res?.status()).toBe(200);
     await expectSignInPage(page);
-
-    // Check that there are no React Query errors visible. On its own this was
-    // the test's only assertion, and a negative visibility check passes on any
-    // page that does not contain the string -- including a blank one.
-    const queryError = page.getByText(/query data cannot be undefined/i);
-    await expect(queryError).not.toBeVisible();
   });
 
   test('account profile address page sends anonymous visitors to sign in', async ({
