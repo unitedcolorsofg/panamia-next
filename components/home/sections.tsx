@@ -247,10 +247,6 @@ export function HomePillars() {
     <section id="pillars" className="home-section story-pillars">
       <div className="container mx-auto px-4">
         <div className="home-sectionhead" data-rv>
-          {/* No colour utility here: `.section-eyebrow` hard-codes indigo and
-              is unlayered, so it beats one anyway. The section overrides it by
-              name in CSS instead. */}
-          <span className="section-eyebrow">{t('pillarsBand.eyebrow')}</span>
           <h2 className="section-display">
             <Trans
               i18nKey="pillarsBand.title"
