@@ -232,7 +232,7 @@ function ArticleCard({
                         handleDelete();
                       }}
                       disabled={deleting}
-                      className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                      className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
                     >
                       {deleting ? (
                         <>

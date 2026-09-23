@@ -45,6 +45,39 @@ interface RepliesResponse {
   nextCursor: string | null;
 }
 
+/** Envelope every /api/social route responds with. */
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// ============================================================================
+// Request Helper
+// ============================================================================
+
+/**
+ * Wraps a failed request in an Error carrying the API's own message when it
+ * sent one, so TanStack Query surfaces something actionable via `error`.
+ */
+function toSocialError(url: string, error: unknown, status?: number): Error {
+  const apiMessage = axios.isAxiosError(error)
+    ? (error.response?.data as ApiEnvelope<unknown> | undefined)?.error
+    : undefined;
+
+  const detail =
+    apiMessage ||
+    (error instanceof Error ? error.message : String(error)) ||
+    'Request failed';
+
+  const wrapped = new Error(
+    `${url} failed (${status ?? 'network error'}): ${detail}`,
+    { cause: error }
+  );
+  wrapped.name = 'SocialApiError';
+  return wrapped;
+}
+
 // ============================================================================
 // Fetch Functions
 // ============================================================================
@@ -62,6 +95,12 @@ interface RepliesResponse {
  * ("Query data cannot be undefined") and the query never settles, so the caller
  * spins forever. That is exactly what stranded personal profiles belonging to
  * accounts that never enrolled in Pana Social, whose actor legitimately 404s.
+ *
+ * Genuine failures are wrapped by `toSocialError` so the thrown value is a
+ * named `SocialApiError` carrying the API's own message. That is the half of
+ * #165 worth keeping: its `getSocial` helper was dropped in the merge because
+ * it returned a non-nullable `T` via per-status fallbacks, which contradicts
+ * the `T | null` contract every caller here and downstream is written against.
  */
 async function getSocialData<T>(url: string): Promise<T | null> {
   try {
@@ -81,7 +120,7 @@ async function getSocialData<T>(url: string): Promise<T | null> {
       return null;
     }
 
-    throw error;
+    throw toSocialError(url, error, status);
   }
 }
 

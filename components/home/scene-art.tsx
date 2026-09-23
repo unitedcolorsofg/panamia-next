@@ -203,55 +203,6 @@ function Tower({ x, w, h, fill, ground = ROW_NEAR }: Placed) {
   );
 }
 
-/** A single-storey house: pitched roof, a door, two windows. */
-function House({ x, w, h, fill, ground = ROW_NEAR }: Placed) {
-  const top = ground - h;
-  const eaves = top + h * 0.34;
-  const doorW = w * 0.2;
-  const doorH = h * 0.42;
-
-  return (
-    <g>
-      <path
-        d={`M ${x} ${eaves} L ${x + w / 2} ${top} L ${x + w} ${eaves} Z`}
-        className="street-roof"
-      />
-      <rect
-        x={x}
-        y={eaves}
-        width={w}
-        height={ground - eaves}
-        fill={fill}
-        rx="2"
-      />
-      <rect
-        x={x + w / 2 - doorW / 2}
-        y={ground - doorH}
-        width={doorW}
-        height={doorH}
-        rx="2"
-        className="street-door"
-      />
-      <rect
-        x={x + w * 0.14}
-        y={eaves + h * 0.16}
-        width={w * 0.18}
-        height={h * 0.18}
-        rx="2"
-        className="street-window-lit"
-      />
-      <rect
-        x={x + w * 0.68}
-        y={eaves + h * 0.16}
-        width={w * 0.18}
-        height={h * 0.18}
-        rx="2"
-        className="street-window-lit"
-      />
-    </g>
-  );
-}
-
 /** A shop: a wide glass front, a door, and a striped awning over both. */
 function Shop({
   x,
