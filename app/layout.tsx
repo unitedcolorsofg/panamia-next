@@ -13,11 +13,12 @@ import {
   originForFrom,
   surfaceForPath,
   getRootDomain,
-  DEFAULT_SURFACE,
 } from '@/lib/panaverse/surfaces';
 import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
 import {
   PATHNAME_HEADER,
+  SEARCH_HEADER,
+  resolveInstallSurface,
   wearsGuestChrome,
   wearsOwnChrome,
   wearsSurfaceChrome,
@@ -65,23 +66,15 @@ export async function generateMetadata(): Promise<Metadata> {
     : null;
 
   /* Which app this page would install as, which is not always the surface the
-   * hostname names.
+   * hostname names, and not always the page the member is looking at.
    *
-   * `resolveSurface` reads the Host header alone, and that is the right answer
-   * once a surface has a hostname of its own: social.pana.social owns its
-   * origin, so every page on it installs as Pana Social. But while
-   * PANAVERSE_SUBDOMAINS is off — the configuration we actually ship — Pana
-   * Social lives at pana.social/s, where the host resolves to the default
-   * surface. Keying the install off the host there hands a member who installs
-   * from the feed a tile labelled Pana Mia that opens the directory.
-   *
-   * So the host decides whenever it names a surface, and the path decides when
-   * it cannot. This is the same rule `wearsGuestChrome` already applies: a
-   * non-default hostname owns its origin outright. */
-  const installSurface =
-    surface.id === DEFAULT_SURFACE.id && pathname
-      ? surfaceForPath(pathname)
-      : surface;
+   * See `resolveInstallSurface` for the three rules and why a doorway needs the
+   * third one. */
+  const installSurface = resolveInstallSurface(
+    surface,
+    pathname,
+    requestHeaders.get(SEARCH_HEADER)
+  );
 
   return {
     title: surface.name,
