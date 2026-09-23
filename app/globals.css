@@ -2125,6 +2125,126 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-indigo);
 }
 
+.composer-chip:disabled {
+  opacity: 0.5;
+}
+
+/* Content-warning toggle. It is a two-state control, so it needs to look
+   pressed rather than just coloured — the old version only changed its text
+   to yellow, which reads as emphasis, not as "this is currently on". */
+.composer-chip[aria-pressed='true'] {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* The real composer's prompt.
+ *
+ * The mock can style its textarea as a bare `.feed-composer-prompt` because it
+ * only ever renders inside the composer card. The live PostComposer is also the
+ * reply box (feed-post-card.tsx), where it renders against the post background
+ * with no card around it — so a borderless transparent field there is an
+ * invisible one. The default below therefore carries its own edge, and the
+ * card context removes it, rather than the other way round.
+ *
+ * `resize: none` and the absence of a mono stack are the point of the rule:
+ * the drag handle and the monospace placeholder were what made the field read
+ * as a code editor dropped into a warm page. */
+.composer-prompt {
+  width: 100%;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #fff;
+  padding: 0.625rem 0.75rem;
+  outline: none;
+  resize: none;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-pana-ink);
+  transition: border-color 0.2s ease;
+}
+
+.composer-prompt:focus-visible {
+  border-color: var(--color-pana-indigo);
+}
+
+.composer-prompt::placeholder {
+  color: rgb(17 13 13 / 0.45);
+  font-weight: 600;
+}
+
+/* Inside the composer card the card already supplies the edge and the
+   focus-within colour change, so a second border here would draw a box in a
+   box — which is exactly what it looked like. */
+.feed-composer .composer-prompt {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 1.0625rem;
+}
+
+/* Preview pane and content-warning field, kept on the same palette so toggling
+   Write/Preview does not change the shape of the box you are typing into. */
+.composer-surface {
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #fff;
+  padding: 0.625rem 0.75rem;
+}
+
+.feed-composer .composer-surface {
+  border-color: rgb(17 13 13 / 0.1);
+}
+
+/* Write/Preview. The default tab styling is a grey segmented control that
+   carries more visual weight than the Post button did. */
+.composer-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0;
+  background: transparent;
+  height: auto;
+}
+
+.composer-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(17 13 13 / 0.55);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.composer-tab:hover {
+  color: var(--color-pana-ink);
+}
+
+.composer-tab[data-state='active'] {
+  border-color: rgb(17 13 13 / 0.14);
+  background-color: #fff;
+  color: var(--color-pana-ink);
+}
+
+/* The markdown hint is a footnote, not a legend. It was rendering at the same
+   weight as the prompt above it. */
+.composer-hint {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.42);
+}
+
 /* Unread pill. Sticks just under the masthead so it stays reachable mid-scroll
    — a "new posts" control that scrolls away is a control nobody presses. */
 /* The pill pins itself over the timeline, so the sticky lives on the row that

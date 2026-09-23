@@ -6,7 +6,6 @@ import { useModuleConsent } from '@/hooks/use-module-consent';
 import { ConsentModal } from '@/components/legal/ConsentModal';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -55,6 +54,7 @@ const VISIBILITY_OPTIONS: {
   description: string;
   buttonText: string;
   replyText: string;
+  chipText: string;
 }[] = [
   {
     value: 'unlisted',
@@ -63,6 +63,7 @@ const VISIBILITY_OPTIONS: {
     description: 'Visible to local Panas only. Not shared via federation.',
     buttonText: 'Visible to Local Panas',
     replyText: 'Reply to Local Panas',
+    chipText: 'Local Panas',
   },
   {
     value: 'private',
@@ -71,6 +72,7 @@ const VISIBILITY_OPTIONS: {
     description: 'Only visible to your followers',
     buttonText: 'Private Post',
     replyText: 'Reply Privately',
+    chipText: 'Followers',
   },
   {
     value: 'public',
@@ -79,6 +81,7 @@ const VISIBILITY_OPTIONS: {
     description: 'Visible to everyone',
     buttonText: 'Public Post',
     replyText: 'Reply Publicly',
+    chipText: 'Everyone',
   },
 ];
 
@@ -171,6 +174,7 @@ export function PostComposer({
             onChange={(e) => setContentWarning(e.target.value)}
             placeholder="Add a content warning..."
             maxLength={100}
+            className="composer-surface"
           />
         </div>
       )}
@@ -180,13 +184,13 @@ export function PostComposer({
         onValueChange={(v) => setActiveTab(v as 'write' | 'preview')}
       >
         <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="write" className="flex items-center gap-1.5">
-              <Pencil className="h-3.5 w-3.5" />
+          <TabsList className="composer-tabs">
+            <TabsTrigger value="write" className="composer-tab">
+              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
               Write
             </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-1.5">
-              <Eye className="h-3.5 w-3.5" />
+            <TabsTrigger value="preview" className="composer-tab">
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
               Preview
             </TabsTrigger>
           </TabsList>
@@ -198,33 +202,33 @@ export function PostComposer({
                 onClick={() => setShowLicensePicker(true)}
               />
             )}
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => setShowCW(!showCW)}
-              className={showCW ? 'text-yellow-600' : ''}
+              aria-pressed={showCW}
+              className="composer-chip"
             >
-              <AlertTriangle className="mr-1 h-4 w-4" />
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
               CW
-            </Button>
+            </button>
           </div>
         </div>
         <TabsContent value="write" className="mt-2">
-          <Textarea
+          <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={placeholder}
-            rows={4}
-            className="resize-y font-mono"
+            rows={3}
+            aria-label={inReplyTo ? 'Write a reply' : 'Write a post'}
+            className="composer-prompt"
           />
-          <p className="text-muted-foreground mt-1.5 text-xs">
+          <p className="composer-hint">
             **<strong>bold</strong>**, <em>_italic_</em>, [link
             text](example.com), # headers, - lists
           </p>
         </TabsContent>
         <TabsContent value="preview" className="mt-2">
-          <div className="min-h-[106px] rounded-md border p-3">
+          <div className="composer-surface min-h-[106px]">
             {content.trim() ? (
               <div className="prose prose-sm dark:prose-invert max-w-none break-words">
                 <ReactMarkdown>{content}</ReactMarkdown>
@@ -260,35 +264,36 @@ export function PostComposer({
         </span>
 
         {createPost.isPending ? (
-          <Button type="button" disabled size="sm">
+          <Button
+            type="button"
+            disabled
+            size="sm"
+            className="bg-pana-indigo text-pana-cream rounded-full px-5 font-extrabold"
+          >
             Posting...
           </Button>
         ) : isReply ? (
-          <Button type="submit" disabled={isDisabled} size="sm">
+          <Button
+            type="submit"
+            disabled={isDisabled}
+            size="sm"
+            className="bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full px-5 font-extrabold"
+          >
             <Send className="mr-1 h-4 w-4" />
             {currentOption.replyText}
           </Button>
         ) : (
-          <div className="flex">
-            <Button
-              type="submit"
-              disabled={isDisabled}
-              size="sm"
-              className="rounded-r-none"
-            >
-              <Icon className="mr-1 h-4 w-4" />
-              {currentOption.buttonText}
-            </Button>
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  disabled={isDisabled}
-                  size="sm"
-                  className="rounded-l-none border-l px-2"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                {/* Not disabled alongside the Post button: picking who a post
+                    is for is a decision people make before typing, and the
+                    split control used to lock it until the box had text. */}
+                <button type="button" className="composer-chip">
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {currentOption.chipText}
+                  <ChevronDown className="h-3 w-3" aria-hidden="true" />
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
                 {VISIBILITY_OPTIONS.map((option) => {
@@ -315,6 +320,14 @@ export function PostComposer({
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              type="submit"
+              disabled={isDisabled}
+              size="sm"
+              className="bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full px-5 font-extrabold"
+            >
+              Post
+            </Button>
           </div>
         )}
       </div>
