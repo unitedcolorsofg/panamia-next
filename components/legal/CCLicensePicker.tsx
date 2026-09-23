@@ -74,10 +74,14 @@ export function CCLicenseBadge({
   value,
   onClick,
   disabled,
+  className = 'hover:bg-accent inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50',
 }: {
   value: CCLicenseValue;
   onClick?: () => void;
   disabled?: boolean;
+  /** Override the default pill so the badge can adopt a caller's own control
+   *  vocabulary — the composer renders it in a row of chips. */
+  className?: string;
 }) {
   const option = LICENSE_OPTIONS.find((o) => o.value === value)!;
   return (
@@ -85,7 +89,7 @@ export function CCLicenseBadge({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="hover:bg-accent inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50"
+      className={className}
     >
       <CCHeartIcon className="h-3 w-3" />
       {option.label}

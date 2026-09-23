@@ -2128,6 +2128,132 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-indigo);
 }
 
+.composer-chip:disabled {
+  opacity: 0.5;
+}
+
+/* Content-warning toggle. It is a two-state control, so it needs to look
+   pressed rather than just coloured — the old version only changed its text
+   to yellow, which reads as emphasis, not as "this is currently on". */
+.composer-chip[aria-pressed='true'] {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* The real composer's prompt.
+ *
+ * The mock can style its textarea as a bare `.feed-composer-prompt` because it
+ * only ever renders inside the composer card. The live PostComposer is also the
+ * reply box (feed-post-card.tsx), where it renders against the post background
+ * with no card around it — so a borderless transparent field there is an
+ * invisible one. The default below therefore carries its own edge, and the
+ * card context removes it, rather than the other way round.
+ *
+ * `resize: none` and the absence of a mono stack are the point of the rule:
+ * the drag handle and the monospace placeholder were what made the field read
+ * as a code editor dropped into a warm page. */
+.composer-prompt {
+  width: 100%;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #fff;
+  padding: 0.625rem 0.75rem;
+  outline: none;
+  resize: none;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-pana-ink);
+  transition: border-color 0.2s ease;
+}
+
+.composer-prompt:focus-visible {
+  border-color: var(--color-pana-indigo);
+}
+
+.composer-prompt::placeholder {
+  color: rgb(17 13 13 / 0.45);
+  font-weight: 600;
+}
+
+/* Inside the composer card the card already supplies the edge and the
+   focus-within colour change, so a second border here would draw a box in a
+   box — which is exactly what it looked like. */
+.feed-composer .composer-prompt {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 1.0625rem;
+}
+
+/* Preview pane and content-warning field, kept on the same palette so toggling
+   Write/Preview does not change the shape of the box you are typing into. */
+.composer-surface {
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #fff;
+  padding: 0.625rem 0.75rem;
+}
+
+.feed-composer .composer-surface {
+  border-color: rgb(17 13 13 / 0.1);
+}
+
+/* One row for every control under the prompt.
+ *
+ * The composer used to stack five full-width rows — tabs, prompt, hint, media,
+ * actions — in a card whose own padding then added to them. Collapsing the
+ * controls into a single wrapping row is most of the height back. */
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.composer-actions-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* `display: contents` lifts the upload trigger out of its own wrapper so it
+   sits in the row as a chip. Its previews and notices are still block-level
+   content, so they claim a full line and sort after the controls rather than
+   wedging themselves between the chips and the Post button. */
+.composer-media {
+  display: contents;
+}
+
+.composer-media-block {
+  flex-basis: 100%;
+  order: 2;
+}
+
+/* Markdown hint and character count share the footnote line. */
+.composer-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.42);
+}
+
+/* Line the controls up under the prompt rather than under the avatar, so the
+   left edge of everything the viewer types or presses is the same. 2.5rem
+   avatar + 0.75rem gap. */
+@media (min-width: 640px) {
+  .composer-actions[data-indent],
+  .composer-foot[data-indent] {
+    padding-left: 3.25rem;
+  }
+}
+
 /* Unread pill. Sticks just under the masthead so it stays reachable mid-scroll
    — a "new posts" control that scrolls away is a control nobody presses. */
 /* The pill pins itself over the timeline, so the sticky lives on the row that
