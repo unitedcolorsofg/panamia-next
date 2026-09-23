@@ -5,32 +5,33 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Events — Public Pages', () => {
   test('events discovery page route exists', async ({ page }) => {
-    await page.goto('/e', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/e/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/e', { waitUntil: 'domcontentloaded' });
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Community Events');
   });
 
   test('venues discovery page route exists', async ({ page }) => {
-    await page.goto('/venues', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/venues/);
-    await expect(page).not.toHaveTitle(/404/);
+    const res = await page.goto('/venues', { waitUntil: 'domcontentloaded' });
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Venues');
   });
 
   test('event detail page returns 404 for unknown slug', async ({ page }) => {
-    await page.goto('/e/this-event-does-not-exist-xyz', {
+    const res = await page.goto('/e/this-event-does-not-exist-xyz', {
       waitUntil: 'domcontentloaded',
     });
-    // Either 404 page or error page (pre-migration) — must not be a successful load
-    const url = page.url();
-    // Page should not redirect away from /e/...
-    expect(url).toContain('/e/');
+    // Either 404 page or error page (pre-migration) — must not be a successful
+    // load. The previous `expect(url).toContain('/e/')` only re-checked the
+    // path this test had just typed, so a 200 rendering a real event page
+    // would have passed it.
+    expect(res?.status()).toBeGreaterThanOrEqual(400);
   });
 
   test('venue detail page returns 404 for unknown slug', async ({ page }) => {
-    await page.goto('/venues/this-venue-does-not-exist-xyz', {
+    const res = await page.goto('/venues/this-venue-does-not-exist-xyz', {
       waitUntil: 'domcontentloaded',
     });
-    expect(page.url()).toContain('/venues/');
+    expect(res?.status()).toBeGreaterThanOrEqual(400);
   });
 });
 
@@ -54,23 +55,37 @@ test.describe('Events — Auth-Protected Pages', () => {
     await expect(page).toHaveURL(/\/signin/);
   });
 
-  test('/e/[slug]/manage redirects unauthenticated users', async ({ page }) => {
+  test('/e/[slug]/manage redirects unauthenticated users to signin', async ({
+    page,
+  }) => {
     await page.goto('/e/nonexistent-event/manage');
-    // Redirects to signin (unauthenticated) or 404/error (event not found)
-    const url = page.url();
-    const title = await page.title();
-    const redirectedToSignin = url.includes('/signin');
-    const notFoundOrError = /404|error/i.test(title) || url.includes('/e/');
-    expect(redirectedToSignin || notFoundOrError).toBe(true);
+
+    // app/e/[slug]/manage/page.tsx checks auth BEFORE looking up the event, so
+    // an anonymous visitor always lands on /signin regardless of whether the
+    // slug exists. The previous assertion allowed "404 or error" as an
+    // alternative, and its `url.includes('/e/')` branch was satisfied by the
+    // callbackUrl on the sign-in page itself — so the disjunction was true on
+    // every possible outcome, including outcomes this route cannot produce.
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin/);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 
-  test('/e/[slug]/edit redirects unauthenticated users', async ({ page }) => {
+  test('/e/[slug]/edit redirects unauthenticated users to signin', async ({
+    page,
+  }) => {
     await page.goto('/e/nonexistent-event/edit');
-    const url = page.url();
-    const title = await page.title();
-    const redirectedToSignin = url.includes('/signin');
-    const notFoundOrError = /404|error/i.test(title) || url.includes('/e/');
-    expect(redirectedToSignin || notFoundOrError).toBe(true);
+
+    // This route is a client component and redirects from a useEffect once the
+    // session resolves, so the navigation is not complete on load. toHaveURL
+    // retries, but give it room for the session round-trip.
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin/, {
+      timeout: 15000,
+    });
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 });
 

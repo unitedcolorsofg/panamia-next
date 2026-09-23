@@ -8,10 +8,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Articles — public pages', () => {
   test('browse page (/a) loads', async ({ page }) => {
-    await page.goto('/a');
-    await expect(page).toHaveURL(/\/a\/?$/);
-    await expect(page).not.toHaveTitle(/404/);
-    await expect(page.locator('body')).toBeVisible();
+    const res = await page.goto('/a');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText(
+      'Community Articles'
+    );
   });
 
   test('RSS feed responds', async ({ request }) => {

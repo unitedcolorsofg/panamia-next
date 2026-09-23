@@ -8,137 +8,163 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authenticated User Navigation', () => {
   test('account user page requires authentication', async ({ page }) => {
-    await page.goto('/account/user/', { waitUntil: 'domcontentloaded' });
+    const res = await page.goto('/account/user/', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // The page should load without crashing
-    // For unauthenticated users, it may:
-    // - Redirect to signin
-    // - Redirect to home
-    // - Stay on the page showing minimal content
-    // - Show a "please sign in" message
-    const url = page.url();
-    expect(url).toBeTruthy();
-
-    // Should not be a 404 or server error page
-    await expect(page).not.toHaveTitle(/404/);
-    await expect(page).not.toHaveTitle(/error/i);
+    // The page should load without crashing. Unauthenticated visitors are sent
+    // to a sign-in surface rather than being shown the account page.
+    //
+    // Note: this route lands on /api/auth/signin (better-auth's own endpoint),
+    // not the custom /signin page that /m/schedule and /become-a-pana use, and
+    // the callbackUrl comes back as /account/user/edit rather than the
+    // /account/user/ that was requested. The source is
+    // components/Page/Status401_Unauthorized.tsx, which router.replace()s to
+    // `/api/auth/signin?callbackUrl=...` -- every /account/* route inherits it.
+    // That is pre-existing behaviour, not something this test changes: the old
+    // `not.toHaveTitle(/404/)` assertion passed straight through it. Flagged
+    // rather than fixed here; pointing that component at /signin would be a
+    // one-line app change, and is Jose's call rather than a test-only decision.
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/(api\/auth\/)?signin/);
   });
 
-  test('account user edit page loads or redirects', async ({ page }) => {
-    await page.goto('/account/user/edit', { waitUntil: 'domcontentloaded' });
+  test('account user edit page shows an unauthorized card to anonymous visitors', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/user/edit', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // Just verify we get a valid response, don't wait for networkidle
-    const url = page.url();
-    expect(url).toBeTruthy();
+    // This route does NOT redirect -- it renders an Unauthorized card in place,
+    // like /form/become-an-affiliate. `expect(page.url()).toBeTruthy()` stood
+    // here, which no navigation can fail; status alone replaced it, which a
+    // stub answering 200 everywhere also satisfies. The card's own text is the
+    // assertion that distinguishes this page from any other page.
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(
+      page.getByText('You must be logged in to view this page.').first()
+    ).toBeVisible();
   });
 });
 
 test.describe('Authenticated Profile Navigation', () => {
-  test('account profile edit page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/edit', {
-      waitUntil: 'domcontentloaded',
-    });
+  // Every /account/* route below renders components/Page/Status401_Unauthorized
+  // for anonymous visitors, which shows an UNAUTHORIZED card and then
+  // router.replace()s to a sign-in surface. So unauthenticated runs cannot
+  // assert route-specific content -- all eight routes produce the same page.
+  // What they CAN assert is that the account page is not served to an anonymous
+  // visitor, which is the actual security-relevant behaviour and is what
+  // `expect(res?.status()).toBe(200)` alone did not check: a stub answering 200
+  // everywhere satisfied it. Asserting route-specific content here needs the
+  // storageState fixture this file's header has promised since it was written.
+  const signInSurface = /^https?:\/\/[^/]+\/(api\/auth\/)?signin/;
 
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account profile contact page loads without query errors', async ({
+  test('account profile edit page sends anonymous visitors to sign in', async ({
     page,
   }) => {
-    await page.goto('/account/profile/contact', {
+    const res = await page.goto('/account/profile/edit', {
       waitUntil: 'domcontentloaded',
     });
 
-    // Check that there are no React Query errors visible
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+  });
+
+  test('account profile contact page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/profile/contact', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+
+    // Check that there are no React Query errors visible. On its own this was
+    // the test's only assertion, and a negative visibility check passes on any
+    // page that does not contain the string -- including a blank one.
     const queryError = page.getByText(/query data cannot be undefined/i);
     await expect(queryError).not.toBeVisible();
   });
 
-  test('account profile address page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/address', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account profile categories page loads or redirects', async ({
+  test('account profile address page sends anonymous visitors to sign in', async ({
     page,
   }) => {
-    await page.goto('/account/profile/categories', {
+    const res = await page.goto('/account/profile/address', {
       waitUntil: 'domcontentloaded',
     });
 
-    const url = page.url();
-    expect(url).toBeTruthy();
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
   });
 
-  test('account profile desc page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/desc', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account profile social page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/social', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account profile images page loads or redirects', async ({ page }) => {
-    await page.goto('/account/profile/images', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    const url = page.url();
-    expect(url).toBeTruthy();
-  });
-
-  test('account profile gentedepana page loads or redirects', async ({
+  test('account profile categories page sends anonymous visitors to sign in', async ({
     page,
   }) => {
-    await page.goto('/account/profile/gentedepana', {
+    const res = await page.goto('/account/profile/categories', {
       waitUntil: 'domcontentloaded',
     });
 
-    const url = page.url();
-    expect(url).toBeTruthy();
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+  });
+
+  test('account profile desc page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/profile/desc', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+  });
+
+  test('account profile social page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/profile/social', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+  });
+
+  test('account profile images page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/profile/images', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
+  });
+
+  test('account profile gentedepana page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/account/profile/gentedepana', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(signInSurface, { timeout: 15000 });
   });
 });
 
-test.describe('404 Error Prevention', () => {
-  test('no account routes return 404', async ({ page }) => {
-    const routes = [
-      '/account/user/',
-      '/account/user/edit',
-      '/account/profile/edit',
-      '/account/profile/contact',
-      '/account/profile/address',
-      '/account/profile/categories',
-      '/account/profile/desc',
-      '/account/profile/social',
-      '/account/profile/images',
-      '/account/profile/gentedepana',
-    ];
-
-    for (const route of routes) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
-
-      // Check that we don't get a 404 page
-      const title = await page.title();
-      expect(title).not.toMatch(/404/i);
-
-      // Also check that the URL is valid (not showing a 404 route)
-      const url = page.url();
-      expect(url).not.toContain('404');
-    }
-  });
-});
+// The '404 Error Prevention' describe that stood here looped all ten
+// /account/* routes asserting only that each returned 200. Every one of those
+// routes already has its own test above asserting status AND the sign-in
+// redirect that actually protects it, so the loop asserted strictly less than
+// what it duplicated -- and a static stub answering 200 on every path passed
+// it. Its original form checked the document title and URL string for '404',
+// neither of which can detect this app's not-found page: it keeps the default
+// "Pana Mia" title and is served in place, with no /404 redirect. Removed
+// rather than rewritten, because the per-route tests are the stronger version
+// of the same claim.

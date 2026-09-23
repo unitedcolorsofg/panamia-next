@@ -92,47 +92,39 @@ test.describe('Screenname API Endpoints', () => {
 });
 
 test.describe('Screenname UI Elements', () => {
-  test('account edit page loads or redirects for screenname', async ({
+  test('account edit page shows an unauthorized card to anonymous visitors', async ({
     page,
   }) => {
-    await page.goto('/account/user/edit', { waitUntil: 'domcontentloaded' });
+    const res = await page.goto('/account/user/edit', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // Just verify we get a valid response (same pattern as existing tests)
-    const url = page.url();
-    expect(url).toBeTruthy();
-
-    // Page should not show 404
-    const title = await page.title();
-    expect(title).not.toMatch(/404/i);
+    // `expect(page.url()).toBeTruthy()` cannot fail, and the title check that
+    // sat beside it cannot detect this app's not-found page, which keeps the
+    // default "Pana Mia" title. Status alone is also not enough -- a stub
+    // answering 200 everywhere satisfies it. This route renders an Unauthorized
+    // card in place rather than redirecting, so assert the card.
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 
-  test('account edit page has expected structure when authenticated', async ({
+  // This test's entire body was wrapped in `if (url.includes('/account/user/edit'))`.
+  // Unauthenticated -- which is how this suite runs, locally and in CI -- that
+  // route redirects to a sign-in surface, so the condition is false and the
+  // test passes having executed no assertions at all. That is a different
+  // failure from a weak assertion: there is no assertion. Skipping it states
+  // the true coverage instead of reporting a pass for work never done. It needs
+  // the storageState fixture this file's sibling has promised since it was
+  // written; restore it there rather than here.
+  test.skip('account edit page has expected structure when authenticated', async ({
     page,
   }) => {
-    // This test documents expected behavior when authenticated
-    // In CI/unauthenticated environments, the page will redirect
     await page.goto('/account/user/edit', { waitUntil: 'domcontentloaded' });
 
-    const url = page.url();
-
-    // If on the edit page, verify screenname-related elements exist in DOM
-    if (url.includes('/account/user/edit')) {
-      // Wait briefly for React hydration
-      await page.waitForTimeout(1000);
-
-      // Check page source contains screenname-related text
-      const pageContent = await page.content();
-      const hasScreennameField =
-        pageContent.includes('screenname') ||
-        pageContent.includes('Screenname');
-      const hasPrivacyNotice =
-        pageContent.includes('publicly displayed') ||
-        pageContent.includes('Unauthorized');
-
-      // Either we see the form or an unauthorized message
-      expect(hasScreennameField || hasPrivacyNotice).toBeTruthy();
-    }
-    // Redirect is also valid for unauthenticated users
+    await expect(page.getByText(/screenname/i).first()).toBeVisible();
+    await expect(page.getByText(/publicly displayed/i).first()).toBeVisible();
   });
 });
 

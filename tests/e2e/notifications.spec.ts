@@ -9,17 +9,25 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Updates Page', () => {
-  test('updates page shows unauthorized message for unauthenticated users', async ({
+  test('updates page exists and shows unauthorized message for anonymous users', async ({
     page,
   }) => {
-    await page.goto('/updates', {
+    const res = await page.goto('/updates', {
       waitUntil: 'domcontentloaded',
     });
 
-    // Page should load without 404
-    await expect(page).not.toHaveTitle(/404/);
+    // Routing and content in one place. Two further tests used to cover the
+    // routing half -- 'updates page does not return 404' and a
+    // 'Updates Routes - No 404' describe whose route list held a single entry,
+    // /updates. Both asserted only `status === 200`, which a static stub
+    // answering 200 on every path also satisfies, and both were strictly weaker
+    // than this test. Their original title/URL assertions could not fail at all
+    // against this app: the not-found page keeps the default "Pana Mia" title
+    // and is served in place, with no /404 redirect. Consolidated here so the
+    // route's existence is asserted by something that can tell this page from
+    // any other page.
+    expect(res?.status()).toBe(200);
 
-    // Should show unauthorized message (the page handles auth client-side)
     const unauthorizedCard = page.getByText('Unauthorized');
     await expect(unauthorizedCard).toBeVisible({ timeout: 10000 });
 
@@ -27,18 +35,6 @@ test.describe('Updates Page', () => {
       'You must be logged in to view this page.'
     );
     await expect(loginMessage).toBeVisible();
-  });
-
-  test('updates page does not return 404', async ({ page }) => {
-    await page.goto('/updates');
-    await page.waitForLoadState('networkidle');
-
-    // Should not be a 404 page
-    const title = await page.title();
-    expect(title).not.toMatch(/404/i);
-
-    const url = page.url();
-    expect(url).not.toContain('404');
   });
 });
 
@@ -121,23 +117,5 @@ test.describe('Notifications in Navigation', () => {
     // Use text locator as fallback since the Button wrapper may affect role detection
     const signInLink = page.locator('a:has-text("Sign In")');
     await expect(signInLink).toBeVisible({ timeout: 10000 });
-  });
-});
-
-test.describe('Updates Routes - No 404', () => {
-  test('all updates routes return valid responses', async ({ page }) => {
-    const routes = ['/updates'];
-
-    for (const route of routes) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
-
-      // Check that we don't get a 404 page
-      const title = await page.title();
-      expect(title).not.toMatch(/404/i);
-
-      // Also check that the URL is valid
-      const url = page.url();
-      expect(url).not.toContain('404');
-    }
   });
 });

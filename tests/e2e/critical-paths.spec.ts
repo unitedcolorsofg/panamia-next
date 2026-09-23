@@ -1,41 +1,55 @@
 import { test, expect } from '@playwright/test';
 
+// See the header of public-navigation.spec.ts for why `not.toHaveTitle(/404/)`
+// was removed: this app's not-found page keeps the default "Pana Mia" title, so
+// the check never fired. Each test below asserts the HTTP status plus content
+// specific to the route.
+
 test.describe('Critical User Paths', () => {
   test('directory search and profile view', async ({ page }) => {
-    // Start at directory search
-    await page.goto('/directory/search', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/directory\/search/);
+    const res = await page.goto('/directory/search', {
+      waitUntil: 'domcontentloaded',
+    });
 
     // Search should load without errors (don't wait for networkidle - Atlas search may be slow)
-    await expect(page).not.toHaveTitle(/404/);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Find your people');
   });
 
-  test('become a pana form loads without errors', async ({ page }) => {
-    await page.goto('/become-a-pana', { waitUntil: 'domcontentloaded' });
+  test('become a pana sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/become-a-pana', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // Page should load (not 404)
-    await expect(page).not.toHaveTitle(/404/);
-
-    // Note: Form submission requires Turnstile which is not configured in test environment
-    // Don't wait for networkidle - Turnstile prevents it from completing
+    // Unauthenticated visitors never reach the form; they land on sign-in with
+    // the form as the callback. The old assertion read the path out of that
+    // callback query string and reported it as the form having loaded.
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 
   test('contact form loads without errors', async ({ page }) => {
-    await page.goto('/form/contact-us', { waitUntil: 'domcontentloaded' });
+    const res = await page.goto('/form/contact-us', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // Page should load (not 404)
-    await expect(page).not.toHaveTitle(/404/);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Contact Us');
 
     // Note: Form submission requires Turnstile which is not configured in test environment
     // Don't wait for networkidle - Turnstile prevents it from completing
   });
 
   test('donation flow initiates correctly', async ({ page }) => {
-    await page.goto('/donate', { waitUntil: 'domcontentloaded' });
+    const res = await page.goto('/donate', { waitUntil: 'domcontentloaded' });
 
-    // Should not have errors
-    await expect(page).not.toHaveTitle(/404/);
-    await expect(page).not.toHaveTitle(/error/i);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('MAKE A DONATION');
     // Don't wait for networkidle - Stripe may have pending requests
   });
 });
@@ -55,32 +69,72 @@ test.describe('Mentoring Features', () => {
     await expect(page).toHaveURL(/\/signin/);
   });
 
-  test('mentor profile page loads or redirects', async ({ page }) => {
-    await page.goto('/m/profile', { waitUntil: 'domcontentloaded' });
+  test('mentor profile page sends anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/m/profile', {
+      waitUntil: 'domcontentloaded',
+    });
 
-    // Should redirect to signin for unauthenticated users or load the profile page
-    const url = page.url();
-    expect(url).toBeTruthy();
+    // app/m/profile/page.tsx redirects unauthenticated visitors unconditionally,
+    // so "loads or redirects" described an outcome this route does not have for
+    // an anonymous user. This test has now failed to fail twice: first as
+    // `expect(page.url()).toBeTruthy()`, which no navigation can fail, and then
+    // as a status check plus a URL alternation whose /m/profile branch was
+    // satisfied by simply not redirecting. It was the single test of 35 that
+    // still passed against a static stub answering 200 everywhere. Asserting
+    // the redirect AND the destination's content is what distinguishes the real
+    // app from both a wrong page and a blank one.
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin/);
+    await expect(page.locator('h1').first()).toContainText(
+      'Welcome to Pana MIA'
+    );
   });
 });
 
 test.describe('Form Pages', () => {
-  test('all form pages load without errors', async ({ page }) => {
-    const forms = [
-      '/form/become-a-pana',
-      '/form/become-a-pana-single',
-      '/form/become-an-affiliate',
-      '/form/contact-us',
-      '/form/join-the-team',
-    ];
+  // These four routes were previously asserted in one loop. They do not behave
+  // alike, so the only assertions a loop could make were ones that held for all
+  // of them -- and `expect(url).toContain('/form/')` was satisfied by the
+  // sign-in redirect's callbackUrl, not by any form. A fifth entry,
+  // /form/become-a-pana-single, was removed: it 404s, this test was the last
+  // reference to it left in the repo, and both of the loop's assertions passed
+  // on it.
 
-    for (const formUrl of forms) {
-      await page.goto(formUrl, { waitUntil: 'domcontentloaded' });
-      await expect(page).not.toHaveTitle(/404/);
+  test('become a pana form requires sign in', async ({ page }) => {
+    const res = await page.goto('/form/become-a-pana', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+  });
 
-      // Just verify the page loaded, don't wait for networkidle (Turnstile issues)
-      const url = page.url();
-      expect(url).toContain('/form/');
-    }
+  test('affiliate form asks anonymous visitors to sign in', async ({
+    page,
+  }) => {
+    const res = await page.goto('/form/become-an-affiliate', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(
+      page.getByText('You must be signed in to become an affiliate')
+    ).toBeVisible();
+  });
+
+  test('contact form is publicly reachable', async ({ page }) => {
+    const res = await page.goto('/form/contact-us', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Contact Us');
+  });
+
+  test('join the team form is publicly reachable', async ({ page }) => {
+    const res = await page.goto('/form/join-the-team', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('Join The Team');
   });
 });
