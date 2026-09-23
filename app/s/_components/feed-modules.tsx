@@ -1,9 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, MapPin, Store } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Check,
+  MapPin,
+  Store,
+  UserPlus,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFeaturedProfiles } from '@/lib/query/directory';
 import { useUpcomingEvents, type UpcomingEvent } from '@/lib/query/events';
+import { useFollowActor, useSuggestedPanas } from '@/lib/query/social';
 
 /* Modules injected between posts.
  *
@@ -12,10 +23,10 @@ import { useUpcomingEvents, type UpcomingEvent } from '@/lib/query/events';
  * quiet. These carry the surface on a slow day and give a new account
  * something to act on before it has followed anybody.
  *
- * Two of the mock's three modules are here. The third — "Panas you might
- * know" — is not, because nothing in the product recommends accounts yet and
- * the module is worthless without that; a suggestion list needs a reason
- * beside each name, and there is no query that produces one.
+ * All three of the mock's modules are here now. "Panas you might know" was
+ * held back originally because a suggestion list needs a reason beside each
+ * name and nothing produced one; listSuggestedActors does, by walking mutual
+ * follows, so the module has the thing it was missing.
  *
  * Both modules render nothing at all when they have no rows. A module that
  * degrades to a heading above an empty strip is worse than an absent one,
@@ -199,6 +210,127 @@ export function DirectoryModule() {
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* Same derivation as the rail's, so one person's initials do not differ
+   between the card and the sidebar on the same screen. */
+function actorInitials(name: string | null, username: string): string {
+  if (!name) return username.slice(0, 2).toUpperCase();
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/** People to follow, each with the reason it is being suggested. */
+export function SuggestionsModule() {
+  const { data } = useSuggestedPanas();
+  const followActor = useFollowActor();
+
+  /* Followed handles are held locally instead of invalidating the suggestions
+     query, because the server excludes anyone you follow -- refetching would
+     delete the card the moment it was tapped and slide the rest of the strip
+     under the user's finger. The row stays, the button changes, and the list
+     rebuilds on the next natural fetch. */
+  const [followed, setFollowed] = useState<string[]>([]);
+
+  const suggestions = data?.actors ?? [];
+  if (suggestions.length === 0) return null;
+
+  return (
+    <section className="feed-module" aria-labelledby="feed-module-panas">
+      <div className="mb-3 flex items-end justify-between gap-4">
+        <div>
+          <h2 id="feed-module-panas" className="feed-module-title">
+            Panas you might know
+          </h2>
+          <p className="text-pana-ink/60 mt-0.5 text-[13px] font-medium">
+            A Pana is a mutual follow. Follow back and you both show up in each
+            other&apos;s feed.
+          </p>
+        </div>
+        {/* The mock's "See all" is omitted: there is no page listing every
+            suggestion, and a link to nowhere is worse than no link. */}
+      </div>
+
+      <div className="feed-strip">
+        {suggestions.map((suggestion) => {
+          const isFollowed = followed.includes(suggestion.username);
+          const displayName = suggestion.name || suggestion.username;
+
+          return (
+            <article
+              key={suggestion.id}
+              className="profile-card flex flex-col p-4"
+            >
+              <Link href={`/p/${suggestion.username}`} className="flex-none">
+                <Avatar className="border-pana-ink/10 h-12 w-12 border-2">
+                  <AvatarImage src={suggestion.iconUrl || undefined} alt="" />
+                  <AvatarFallback>
+                    {actorInitials(suggestion.name, suggestion.username)}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <h3 className="mt-2.5 text-[15px] leading-tight font-extrabold">
+                <Link href={`/p/${suggestion.username}`}>{displayName}</Link>
+              </h3>
+              <p className="text-pana-ink/45 text-[13px] font-bold">
+                @{suggestion.username}
+              </p>
+
+              {/* No placeholder blurb. An invented one-liner under a real name
+                  is the kind of filler that makes the whole strip suspect. */}
+              {suggestion.summary && (
+                <p className="text-pana-ink/70 mt-1.5 line-clamp-2 text-[13px] leading-snug font-medium">
+                  {suggestion.summary}
+                </p>
+              )}
+
+              <p className="card-flag mt-2.5 self-start">
+                {suggestion.mutualCount > 0
+                  ? `${suggestion.mutualCount} ${
+                      suggestion.mutualCount === 1 ? 'Pana' : 'Panas'
+                    } in common`
+                  : 'New to Pana Social'}
+              </p>
+
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isFollowed || followActor.isPending}
+                onClick={() => {
+                  setFollowed((prev) => [...prev, suggestion.username]);
+                  followActor.mutate(suggestion.username, {
+                    onError: () =>
+                      setFollowed((prev) =>
+                        prev.filter((u) => u !== suggestion.username)
+                      ),
+                  });
+                }}
+                className="border-pana-indigo text-pana-indigo hover:bg-pana-indigo hover:text-pana-cream mt-3 rounded-full font-extrabold"
+              >
+                {isFollowed ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                    Follow
+                  </>
+                )}
+                <span className="sr-only"> {displayName}</span>
+              </Button>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

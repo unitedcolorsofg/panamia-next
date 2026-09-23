@@ -314,6 +314,39 @@ export const useProfileGroups = (username: string) => {
   });
 };
 
+export interface SuggestedPana extends PanaSummary {
+  /**
+   * Panas shared with the viewer. Zero means the server had no graph to walk
+   * and fell back to recently joined accounts, which is the normal state for a
+   * new Pana and needs different copy rather than a hidden card.
+   */
+  mutualCount: number;
+}
+
+export interface SuggestionsResponse {
+  actors: SuggestedPana[];
+}
+
+async function fetchSuggestedPanas(): Promise<SuggestionsResponse | null> {
+  return getSocialData('/api/social/suggestions');
+}
+
+/**
+ * Panas you might know. Always about the signed-in viewer, so it takes no
+ * handle -- the server reads the actor from the session.
+ *
+ * Held stale for five minutes because this renders inline in the timeline: a
+ * recommendation set that reshuffles every time the feed refetches makes the
+ * page feel unstable and moves the Follow button out from under a thumb.
+ */
+export const useSuggestedPanas = () => {
+  return useQuery<SuggestionsResponse | null, Error>({
+    queryKey: [socialQueryKey, 'suggestions'],
+    queryFn: fetchSuggestedPanas,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 export const useStatus = (statusId: string) => {
   return useQuery<{ status: SocialStatusDisplay } | null, Error>({
     queryKey: [socialQueryKey, 'status', statusId],

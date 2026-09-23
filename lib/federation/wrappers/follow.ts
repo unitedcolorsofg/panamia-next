@@ -13,7 +13,16 @@ import {
   PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
 import type { SocialFollow, PublicSocialActor } from '@/lib/schema';
-import { and, eq, sql, desc, getTableColumns } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  ne,
+  sql,
+  asc,
+  desc,
+  notInArray,
+  getTableColumns,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { canFollow, GateResult } from '../gates';
 import { socialConfig } from '../index';
@@ -341,4 +350,139 @@ export async function listMutualFollows(
     .limit(limit);
 
   return rows.map((r) => r.actor);
+}
+
+export type SuggestedActor = PublicSocialActor & {
+  /**
+   * How many Panas the viewer and this actor share. Zero means the suggestion
+   * came from the fallback tier rather than the graph.
+   */
+  mutualCount: number;
+};
+
+/** me -> M */
+const panaOut = alias(socialFollows, 'pana_out');
+/** M -> me, which makes M a Pana rather than just somebody I follow */
+const panaIn = alias(socialFollows, 'pana_in');
+/** M -> X */
+const fofOut = alias(socialFollows, 'fof_out');
+/** X -> M, so X is a Pana of M on the same bilateral terms */
+const fofIn = alias(socialFollows, 'fof_in');
+
+/**
+ * Panas you might know.
+ *
+ * Suggests actors the viewer does not follow yet, in two tiers:
+ *
+ *   1. Panas in common. X is suggested when some M is a Pana of the viewer
+ *      *and* a Pana of X. Every link walked is bilateral and accepted, so
+ *      nobody is surfaced through a connection they did not opt into -- the
+ *      same consent argument that lets countMutualFollows be public.
+ *   2. Recently joined local actors, used only to top the list up. A brand new
+ *      account has no graph to walk, and an empty "people to follow" module
+ *      fails precisely the person it exists to help. These carry mutualCount 0
+ *      so callers can tell a real overlap from a cold-start filler.
+ *
+ * Caller-scoped: it only ever answers about the viewer's own graph, so it has
+ * the disclosure profile of /api/social/follows, not the public half of
+ * /api/social/actors/[username]/panas. Callers must resolve the actor from the
+ * session rather than from a route parameter.
+ *
+ * Exclusions are follows-only because the schema has no block or mute table
+ * yet. When one lands it has to be subtracted here too, or this module becomes
+ * the one place a blocked account reappears.
+ */
+export async function listSuggestedActors(
+  actorId: string,
+  limit = 6
+): Promise<SuggestedActor[]> {
+  const { privateKey: _privateKey, ...publicActorColumns } =
+    getTableColumns(socialActors);
+
+  // Any existing edge disqualifies a candidate, including a pending one --
+  // re-suggesting somebody whose request is already awaiting approval reads as
+  // the follow having silently failed.
+  const alreadyAsked = db
+    .select({ id: socialFollows.targetActorId })
+    .from(socialFollows)
+    .where(eq(socialFollows.actorId, actorId));
+
+  const mutualCount = sql<number>`count(distinct ${panaOut.targetActorId})`;
+
+  const shared = await db
+    .select({ actor: publicActorColumns, mutualCount })
+    .from(panaOut)
+    .innerJoin(
+      panaIn,
+      and(
+        eq(panaIn.actorId, panaOut.targetActorId),
+        eq(panaIn.targetActorId, actorId),
+        eq(panaIn.status, 'accepted')
+      )
+    )
+    .innerJoin(
+      fofOut,
+      and(
+        eq(fofOut.actorId, panaOut.targetActorId),
+        eq(fofOut.status, 'accepted')
+      )
+    )
+    .innerJoin(
+      fofIn,
+      and(
+        eq(fofIn.actorId, fofOut.targetActorId),
+        eq(fofIn.targetActorId, fofOut.actorId),
+        eq(fofIn.status, 'accepted')
+      )
+    )
+    .innerJoin(socialActors, eq(socialActors.id, fofOut.targetActorId))
+    .where(
+      and(
+        eq(panaOut.actorId, actorId),
+        eq(panaOut.status, 'accepted'),
+        ne(fofOut.targetActorId, actorId),
+        // Local only, matching the fallback tier. createFollow accepts a local
+        // follow outright and leaves a remote one pending, so a mixed list
+        // could not label its own buttons truthfully -- "Following" would be a
+        // lie for half the cards. Suggesting fediverse accounts is a separate
+        // feature with its own copy.
+        eq(socialActors.domain, socialConfig.domain),
+        notInArray(fofOut.targetActorId, alreadyAsked)
+      )
+    )
+    // Grouping by the primary key lets Postgres carry the rest of the actor
+    // columns through by functional dependency.
+    .groupBy(socialActors.id)
+    // asc(id) is a tiebreaker, not decoration: without it equal-overlap rows
+    // come back in whatever order the plan produces and the module reshuffles
+    // between renders for no visible reason.
+    .orderBy(desc(mutualCount), asc(socialActors.id))
+    .limit(limit);
+
+  const suggestions: SuggestedActor[] = shared.map((r) => ({
+    ...r.actor,
+    mutualCount: Number(r.mutualCount ?? 0),
+  }));
+
+  const remaining = limit - suggestions.length;
+  if (remaining <= 0) {
+    return suggestions;
+  }
+
+  const fresh = await db
+    .select({ actor: publicActorColumns })
+    .from(socialActors)
+    .where(
+      and(
+        // Local only. "Recently joined" is a claim about this instance, and a
+        // remote actor's createdAt is just when we first cached them.
+        eq(socialActors.domain, socialConfig.domain),
+        notInArray(socialActors.id, [actorId, ...suggestions.map((s) => s.id)]),
+        notInArray(socialActors.id, alreadyAsked)
+      )
+    )
+    .orderBy(desc(socialActors.createdAt), desc(socialActors.id))
+    .limit(remaining);
+
+  return suggestions.concat(fresh.map((r) => ({ ...r.actor, mutualCount: 0 })));
 }

@@ -12,7 +12,11 @@ import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
 import type { SocialStatusDisplay } from '@/lib/interfaces';
 import { FeedPostCard } from './_components/feed-post-card';
 import { FeedRail } from './_components/feed-rail';
-import { DirectoryModule, EventsModule } from './_components/feed-modules';
+import {
+  DirectoryModule,
+  EventsModule,
+  SuggestionsModule,
+} from './_components/feed-modules';
 
 const PostComposer = dynamic(
   () =>
@@ -203,24 +207,28 @@ function FeedContent() {
  * because they are not posts and must never be treated as posts — no keys
  * collide with status ids, and filtering never sees them.
  *
- * The mock injects three; two exist here, so the spacing is re-derived rather
- * than copied — dropping the middle one from fixed positions 1/3/5 would have
- * left a nine-post gap between modules.
+ * The mock injects three and all three now exist, so its 1/3/5 spacing is
+ * used directly rather than re-derived. An earlier version of this function
+ * compressed the positions because the middle module was missing and fixed
+ * positions would have left a nine-post gap.
  *
  * The short-list rule is the important one. A feed with one or two posts is a
  * new or quiet account, which is precisely the case that used to dead-end in
  * a grey box. Those get a module appended so the column ends on somewhere to
- * go. The positional injections cannot fire on a list that short, so nothing
- * is ever shown twice. */
+ * go — Suggestions rather than Directory, because a thin feed means too few
+ * people followed, and that is the module that fixes the cause. The
+ * positional injections cannot fire on a list that short, so nothing is ever
+ * shown twice. */
 function withModules(cards: ReactNode[]): ReactNode[] {
   if (cards.length <= 2) {
-    return [...cards, <DirectoryModule key="module-directory-tail" />];
+    return [...cards, <SuggestionsModule key="module-panas-tail" />];
   }
 
   const out: ReactNode[] = [];
   cards.forEach((card, index) => {
     out.push(card);
-    if (index === 2) out.push(<EventsModule key="module-events" />);
+    if (index === 1) out.push(<SuggestionsModule key="module-panas" />);
+    if (index === 3) out.push(<EventsModule key="module-events" />);
     if (index === 5) out.push(<DirectoryModule key="module-directory" />);
   });
   return out;
@@ -259,22 +267,31 @@ function FeedError({ onRetry }: { onRetry: () => void }) {
 }
 
 /* A new account, not a narrow filter. Nothing is broken and the answer is to
-   go and find people, so it points at the directory rather than apologising. */
+   go and find people, so it points at the directory rather than apologising.
+
+   Suggestions sit directly underneath because this is the one screen where
+   "go and find Panas" can be answered on the spot instead of delegated to a
+   search box. It renders nothing when it has no rows, so the empty state never
+   degrades into a heading above an empty strip. */
 function FeedEmpty() {
   return (
-    <div className="reserved-slot items-start p-6">
-      <p className="reserved-slot-title">Your feed starts here</p>
-      <p className="text-pana-ink/65 text-[13px] leading-snug font-medium">
-        You&apos;re not following anyone yet, so there is nothing to show. Find
-        Panas in the directory, or post something and let them find you.
-      </p>
-      <Link
-        href="/directory/search"
-        className="link-arrow text-pana-indigo mt-2 text-[13px] font-extrabold"
-      >
-        Browse the directory
-        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-      </Link>
+    <div className="space-y-5">
+      <div className="reserved-slot items-start p-6">
+        <p className="reserved-slot-title">Your feed starts here</p>
+        <p className="text-pana-ink/65 text-[13px] leading-snug font-medium">
+          You&apos;re not following anyone yet, so there is nothing to show.
+          Find Panas in the directory, or post something and let them find you.
+        </p>
+        <Link
+          href="/directory/search"
+          className="link-arrow text-pana-indigo mt-2 text-[13px] font-extrabold"
+        >
+          Browse the directory
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <SuggestionsModule />
     </div>
   );
 }
