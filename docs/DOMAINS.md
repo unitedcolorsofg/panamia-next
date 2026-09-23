@@ -99,7 +99,14 @@ The repo side is done: `PANAVERSE_ROOT_DOMAIN` is `pana.social` in `wrangler.jso
 
 1. Add `social.pana.social` as a custom domain on the `panamia-next` Worker. Cloudflare issues the certificate. The current one is per-hostname (`pana.social`, `relay.pana.social`, `*.relay.pana.social`) with **no `*.pana.social` wildcard**, so the subdomain has no certificate until it is bound.
 2. Confirm `PANAVERSE_ROOT_DOMAIN=pana.social` in the deployed Worker vars, not only in `wrangler.jsonc`.
-3. Only then set `PANAVERSE_COOKIE_DOMAIN=".pana.social"`, if one session should span both surfaces. It re-scopes existing cookies and signs everyone out once, so it is a launch step and not a preparatory one. Note it also sends the session cookie to `relay.pana.social`.
+3. ~~Only then set `PANAVERSE_COOKIE_DOMAIN=".pana.social"`~~ — **already done, ahead of this step.** It is pinned in `wrangler.jsonc`, so it applied on the deploy of `baf61d9` (2026-09-23), before `social.pana.social` existed. The one-time sign-out this step warns about has therefore already been spent, on a deploy made for other reasons.
+
+   This is harmless but worth understanding, because the ordering advice above is no longer available to follow. `.pana.social` is a valid `Domain` for `pana.social` itself, so the apex holds sessions normally and nothing is broken. What has not happened yet is the _benefit_: a session spanning both surfaces cannot be observed until the subdomain is bound. So do not read a working www login as evidence that the shared-session behaviour works — that remains untested until step 1 is done.
+
+   Still true from the original note: this also sends the session cookie to `relay.pana.social`.
+
+   **The sign-out's blast radius is larger than it looks, because production has no OAuth providers configured.** Measured against the deployed site on 2026-09-23: `https://pana.social/signin` renders **zero** "Continue with" buttons and opens the email form directly, since `signin-view.tsx` filters to providers whose `NEXT_PUBLIC_*_ENABLED` flag is `'true'` and production sets none. So the magic link is not one way back in, it is the _only_ way back in, for every account at once. The endpoint is wired — `POST /api/auth/sign-in/magic-link` with a malformed address returns `400 VALIDATION_ERROR`, and a wrong path returns `404`, so that 400 is real application logic rather than a catch-all — but **delivery is a separate question that a 400 does not answer.** Send yourself a real magic link and confirm it arrives before treating a cookie-domain change as complete.
+
 4. `NEXT_PUBLIC_HOST_URL` is optional here and is **build-time inlined** (CF-BUILD — see `auth.ts`), so changing it requires a rebuild, not a config edit.
 5. **Leave `FEDERATION_DOMAIN=pana.social` pinned.** `lib/panaverse/boot.ts` fails at boot if it is unset on a public host, deliberately.
 6. Keep `pana.social` resolving and serving WebFinger and actor JSON indefinitely, whatever happens to the web surface.

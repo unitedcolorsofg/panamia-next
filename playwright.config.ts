@@ -51,11 +51,45 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /*
+   * Run your local dev server before starting the tests.
+   *
+   * `reuseExistingServer` is false even locally, deliberately, and this costs
+   * you the ability to reuse a dev server you already have up. That is the
+   * intended trade.
+   *
+   * Playwright's reuse check is "does anything answer on this URL", not "is
+   * that the application". It cannot tell the app from an unrelated process,
+   * and this repo is developed across eleven git worktrees plus the main
+   * checkout, all sharing one machine and this one hardcoded port. Reuse
+   * therefore meant: whichever worktree booted first silently grades every
+   * other worktree's suite.
+   *
+   * That is measured, not theorised. A 40-line stub serving one static page
+   * on 0.0.0.0:3000 was adopted by Playwright with zero [WebServer] output,
+   * and passed 14 of 24 tests in public-navigation.spec.ts. The reason so
+   * many passed is a separate defect worth knowing about while you are in
+   * here: 29 assertions across 7 spec files are the negative form
+   * `not.toHaveTitle(/404/)`, which an empty title satisfies, versus exactly
+   * one positive `toHaveTitle(/Pana Mia/i)`. Negative assertions cannot
+   * distinguish the app from a blank page, so weak assertions are what made
+   * server hijacking silent rather than loud.
+   *
+   * Until those assertions are positive, this flag is the only thing
+   * guaranteeing the suite measured this checkout. Do not set it back to
+   * `!process.env.CI` to save a boot: the previous escape was an accident of
+   * address family (the occupying server happened to bind ::1 only, so the
+   * 127.0.0.1 probe was refused), not a safeguard.
+   *
+   * Consequence: `vinext dev` is single-instance per project directory, so
+   * stop your own dev server in THIS worktree before running the suite. A
+   * loud "Another vinext dev server is already running" is the good failure —
+   * it is the one that cannot be mistaken for a pass.
+   */
   webServer: {
     command: 'npm run dev:http',
     url: 'http://127.0.0.1:3000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 300 * 1000,
   },
 });
