@@ -642,6 +642,52 @@ async function enrichUserFields(
  *
  * Best-effort throughout — a failure here must never block a sign-in.
  */
+/**
+ * Give a member the social actor their account already entitles them to.
+ *
+ * profiles.socialEligible defaults to true (lib/schema/index.ts), but nothing
+ * ever created the actor to go with it, so a new member reached /s and was
+ * asked to "Enable Social Features" — an opt-in to something the account had
+ * already granted. Actor creation is the missing half of that default, not a
+ * new permission being taken.
+ *
+ * The consent reasoning recorded for business listings (f137f94, "claiming is
+ * the consent signal") is deliberately not extended here: claiming a listing
+ * is a real consent moment for a business you own, whereas a person signing up
+ * for a Pana account has no equivalent second step to hang it on.
+ *
+ * Runs on every sign-in rather than only on account creation so it also
+ * back-fills members who signed up before this existed; createActorForProfile
+ * returns the existing actor untouched once there is one. Best-effort and
+ * never fatal — a member who cannot federate must still be able to sign in.
+ * Imported lazily to keep keypair generation out of the auth entry bundle.
+ */
+async function ensureSocialActor(
+  userId: string,
+  source: string
+): Promise<void> {
+  try {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: { id: true },
+    });
+    if (!profile) return;
+
+    const { createActorForProfile } =
+      await import('@/lib/federation/wrappers/actor');
+    const result = await createActorForProfile(profile.id);
+    if (!result.success) {
+      console.log('[auth] social actor not created', {
+        userId,
+        source,
+        reason: result.error,
+      });
+    }
+  } catch (error) {
+    console.error('Error creating social actor (non-fatal):', error);
+  }
+}
+
 async function claimProfileForUser(
   userId: string,
   /** Where the claim was triggered from; for logs only. */
@@ -689,6 +735,11 @@ async function claimProfileForUser(
       await addProfileOwner(unclaimedProfile.id, userId);
       console.log('Profile claimed successfully');
     }
+
+    // Before the GHL early-return below, which exits for returning users: a
+    // member who signed up prior to this needs the back-fill on a later
+    // sign-in, not only on the one where something was claimed.
+    await ensureSocialActor(userId, source);
 
     // Nothing claimed and not an account-creation path — normally a returning
     // user, so stop before the GHL call. The exception is a backfilled

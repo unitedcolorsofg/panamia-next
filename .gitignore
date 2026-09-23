@@ -78,3 +78,6 @@ external/panamia-next-crm-bridge/.wrangler/
 
 # vinext dev server state
 .vinext/
+
+# Playwright MCP scratch output (snapshots, console logs)
+.playwright-mcp/

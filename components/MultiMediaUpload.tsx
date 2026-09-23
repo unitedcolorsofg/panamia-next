@@ -51,6 +51,14 @@ interface MultiMediaUploadProps {
   /** R2 key prefix, e.g. "social/media". */
   pathPrefix: string;
   disabled?: boolean;
+  /** Class for the outer wrapper, replacing the default stack. Pass a
+   *  `display: contents` class to let a caller lay the trigger out inline in
+   *  its own row — the composer puts it in a row of chips. */
+  wrapperClassName?: string;
+  /** Class for the file-picker trigger. Supplying one swaps the default
+   *  shadcn button for an unstyled element, so the caller's styling isn't
+   *  competing with button utilities it would have to override one by one. */
+  triggerClassName?: string;
 }
 
 export default function MultiMediaUpload({
@@ -62,6 +70,8 @@ export default function MultiMediaUpload({
   presignEndpoint,
   pathPrefix,
   disabled,
+  wrapperClassName = 'space-y-2',
+  triggerClassName,
 }: MultiMediaUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -168,8 +178,17 @@ export default function MultiMediaUpload({
   const removeAt = (index: number) =>
     onChange(value.filter((_, i) => i !== index));
 
+  const triggerLabel =
+    videoProgress !== null
+      ? `Transcoding… ${videoProgress}%`
+      : uploading
+        ? 'Uploading…'
+        : value.length > 0
+          ? `${value.length}/${maxItems}`
+          : 'Media';
+
   return (
-    <div className="space-y-2">
+    <div className={wrapperClassName}>
       <input
         ref={fileInputRef}
         type="file"
@@ -179,35 +198,45 @@ export default function MultiMediaUpload({
         onChange={handleFileSelect}
       />
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={disabled || value.length >= maxItems || uploading}
-      >
-        {uploading ? (
-          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-        ) : (
-          <ImagePlus className="mr-1 h-4 w-4" />
-        )}
-        {videoProgress !== null
-          ? `Transcoding… ${videoProgress}%`
-          : uploading
-            ? 'Uploading…'
-            : value.length > 0
-              ? `${value.length}/${maxItems}`
-              : 'Media'}
-      </Button>
+      {triggerClassName ? (
+        <button
+          type="button"
+          className={triggerClassName}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled || value.length >= maxItems || uploading}
+        >
+          {uploading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <ImagePlus className="h-3.5 w-3.5" />
+          )}
+          {triggerLabel}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled || value.length >= maxItems || uploading}
+        >
+          {uploading ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <ImagePlus className="mr-1 h-4 w-4" />
+          )}
+          {triggerLabel}
+        </Button>
+      )}
 
       {safariNotice && (
-        <p className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+        <p className="composer-media-block text-muted-foreground rounded-md border px-3 py-2 text-sm">
           {`Audio/video playback requires Chrome or Firefox \u{1F49B} — your upload will succeed but won't play on this device.`}
         </p>
       )}
 
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="composer-media-block flex flex-wrap gap-2">
           {value.map((att, i) => (
             <div key={i} className="group relative">
               {att.type === 'image' ? (

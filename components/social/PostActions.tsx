@@ -62,12 +62,24 @@ export function PostActions({
     }
   };
 
+  // These buttons are icon-only when their count is zero, so without an
+  // explicit name a screen reader announces them as just "button".
+  const replyLabel =
+    repliesCount > 0
+      ? `Reply, ${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}`
+      : 'Reply';
+  const likeLabel =
+    likesCount > 0
+      ? `Like, ${likesCount} ${likesCount === 1 ? 'like' : 'likes'}`
+      : 'Like';
+
   return (
     <div className="flex items-center gap-1">
       {showReplyButton && (
         <Button
           variant="ghost"
           size="sm"
+          aria-label={replyLabel}
           className="text-muted-foreground hover:text-foreground h-8 px-2"
           onClick={onReply}
         >
@@ -79,6 +91,8 @@ export function PostActions({
       <Button
         variant="ghost"
         size="sm"
+        aria-label={likeLabel}
+        aria-pressed={liked}
         className={`h-8 px-2 ${
           liked
             ? 'text-red-500 hover:text-red-600'
@@ -94,6 +108,7 @@ export function PostActions({
       <Button
         variant="ghost"
         size="sm"
+        aria-label="Copy link to post"
         className="text-muted-foreground hover:text-foreground h-8 px-2"
         onClick={handleShare}
       >
