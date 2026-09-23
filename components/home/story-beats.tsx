@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import type { NoteBlock, StoryBeat } from './content';
 import { BeatSceneArt } from './beat-scenes';
+import { RailNav, useRail } from './rail';
 
 interface StoryBeatsProps {
   beats: StoryBeat[];
@@ -38,9 +39,8 @@ export function StoryBeats({ beats }: StoryBeatsProps) {
   // keep closing one to read the other.
   const [open, setOpen] = useState<string[]>([]);
 
-  const railRef = useRef<HTMLDivElement>(null);
+  const { railRef, rail, syncRail, nudge } = useRail<HTMLDivElement>('.beat');
   const toggleRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [rail, setRail] = useState({ prev: false, next: false });
 
   const toggle = (id: string) =>
     setOpen((prev) =>
@@ -52,35 +52,6 @@ export function StoryBeats({ beats }: StoryBeatsProps) {
     // Back to the control that opened it, rather than dumping focus at the
     // top of the document.
     toggleRefs.current[id]?.focus();
-  };
-
-  /* The rail hides its scrollbar, which is right on a phone and wrong
-     everywhere else: on a narrow desktop window there is no swipe and a
-     trackpad's horizontal gesture is not something most people know they
-     have. These two buttons are the only way some visitors can reach the
-     second and third card at all. */
-  const syncRail = useCallback(() => {
-    const el = railRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    // A pixel of slack either end: scrollLeft is fractional under zoom and on
-    // high-DPI displays, so an exact comparison leaves a button half-dead at
-    // the end of the rail.
-    setRail({ prev: el.scrollLeft > 1, next: el.scrollLeft < max - 1 });
-  }, []);
-
-  useEffect(() => {
-    syncRail();
-    window.addEventListener('resize', syncRail);
-    return () => window.removeEventListener('resize', syncRail);
-  }, [syncRail]);
-
-  const nudge = (direction: 1 | -1) => {
-    const el = railRef.current;
-    if (!el) return;
-    const card = el.querySelector<HTMLElement>('.beat');
-    const step = card ? card.offsetWidth + 16 : el.clientWidth * 0.85;
-    el.scrollBy({ left: direction * step, behavior: 'smooth' });
   };
 
   return (
@@ -161,26 +132,13 @@ export function StoryBeats({ beats }: StoryBeatsProps) {
         })}
       </div>
 
-      <div className="beats-nav">
-        <button
-          type="button"
-          className="beats-nav-btn"
-          onClick={() => nudge(-1)}
-          disabled={!rail.prev}
-          aria-label="Previous question"
-        >
-          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="beats-nav-btn"
-          onClick={() => nudge(1)}
-          disabled={!rail.next}
-          aria-label="Next question"
-        >
-          <ChevronRight className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
+      <RailNav
+        rail={rail}
+        nudge={nudge}
+        className="beats-nav"
+        prevLabel="Previous question"
+        nextLabel="Next question"
+      />
     </div>
   );
 }

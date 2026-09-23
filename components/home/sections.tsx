@@ -1,6 +1,5 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
@@ -285,10 +284,7 @@ export function HomePoint() {
   const { t } = useTranslation('home');
 
   return (
-    <section
-      className="home-section story-point scallop"
-      style={{ '--scallop': 'var(--story-cream)' } as CSSProperties}
-    >
+    <section className="home-section story-point">
       <div className="container mx-auto px-4" data-rv>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>

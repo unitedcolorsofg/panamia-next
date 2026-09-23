@@ -5483,9 +5483,46 @@ body:has([data-density]) {
 }
 
 /* Nothing to page through when all three stand on screen at once. These come
-   back with the rail below 60rem. */
-.beats-nav {
+   back with the rail below 60rem. Shared with the pillars, which become a
+   rail at their own breakpoint — hence the base rule here rather than one
+   `display: none` per section. */
+.rail-nav {
   display: none;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.rail-nav-btn {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 2px solid var(--story-ink);
+  border-radius: 999px;
+  background-color: #fff;
+  color: var(--story-ink);
+  box-shadow: 0 6px 14px rgb(2 8 17 / 0.1);
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.rail-nav-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.rail-nav-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Dimmed rather than removed. A control that disappears at the end of the
+   rail takes the other one with it as the row re-centres, and the arrows
+   move under the cursor mid-click. */
+.rail-nav-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
 }
 
 .beats {
@@ -5621,36 +5658,6 @@ body:has([data-density]) {
      anyone driving with a mouse. */
   .beats-nav {
     display: flex;
-    justify-content: center;
-    gap: 0.6rem;
-    margin-top: 0.85rem;
-  }
-
-  .beats-nav-btn {
-    display: grid;
-    place-items: center;
-    width: 2.35rem;
-    height: 2.35rem;
-    border: 2px solid var(--story-ink);
-    border-radius: 999px;
-    background-color: #fff;
-    color: var(--story-ink);
-    box-shadow: 0 6px 14px rgb(2 8 17 / 0.1);
-    transition:
-      transform 0.15s ease,
-      opacity 0.15s ease;
-  }
-
-  .beats-nav-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-
-  /* Dimmed rather than removed. A control that disappears at the end of the
-     rail takes the other one with it as the row re-centres, and the arrows
-     move under the cursor mid-click. */
-  .beats-nav-btn:disabled {
-    opacity: 0.32;
-    cursor: default;
   }
 }
 
@@ -6089,9 +6096,46 @@ body:has([data-density]) {
 
 /* --- The last two bands ------------------------------------------------- */
 
+/* Held to one screen, the same promise the questions above it make. Three
+   pillars that need scrolling to count are not three pillars, they are a
+   list — and the whole point of the section is that you can see all three at
+   once. `min-height` rather than `height` so a long programme list grows the
+   band instead of spilling out of it. */
 .story-pillars {
   background-color: var(--story-cream);
   color: var(--story-ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100svh - var(--masthead-h, 0px) - var(--mock-chrome-h, 0px));
+}
+
+/* Short laptops. The open panel's programme list is the fixed cost, so what
+   gives is everything around it: band padding, the gap under the heading and
+   the display ceiling. Measured against the sizes that actually overflowed —
+   1366x768 ran 67px over, 1280x720 ran 112px over. */
+@media (max-height: 50rem) and (min-width: 64rem) {
+  .story-pillars {
+    --home-pad: 2rem;
+    --home-head-gap: 1rem;
+    --home-display-max: 2.75rem;
+  }
+}
+
+/* Shorter still, where trimming the frame is no longer enough. The lede goes:
+   it is the one part of the section the three panels immediately restate, so
+   it is the only thing here that can be dropped without losing anything the
+   visitor cannot read two inches lower. */
+@media (max-height: 45rem) and (min-width: 64rem) {
+  .story-pillars {
+    --home-pad: 1.5rem;
+    --home-head-gap: 1rem;
+    --home-display-max: 2.25rem;
+  }
+
+  .story-pillars .section-lede {
+    display: none;
+  }
 }
 
 /* `.section-eyebrow` and `.display-accent` both hard-code indigo and are
@@ -6102,14 +6146,22 @@ body:has([data-density]) {
   color: var(--story-blue);
 }
 
+/* Deep ocean blue rather than the near-black ink. The ink band read as a
+   footer — a place where a page stops — which is the wrong signal for the
+   one section that asks you to do something. This is the brand blue taken
+   40% toward ink: dark enough to still be the page's floor, blue enough to
+   be a colour. Cream on it is 8.4:1, so the body copy clears AAA even at the
+   0.85 alpha below, and both accents clear AA Large. */
 .story-point {
-  background-color: var(--story-ink);
+  --point-bg: #214098;
+  background-color: var(--point-bg);
   color: var(--story-cream);
 }
 
-/* `.display-accent` hard-codes the old indigo, which on this ink band is
-   almost invisible. Coral rather than orange, so the accent word and the
-   eyebrow above it are not the same colour. */
+/* `.display-accent` hard-codes the old indigo, which on this blue band is
+   almost invisible. Orange for the eyebrow (3.7:1) and coral for the accent
+   word (3.3:1) — both large, bold text, and each one warm against the blue
+   rather than competing with it. */
 .story-point .section-eyebrow {
   color: var(--story-orange);
 }
@@ -6250,6 +6302,148 @@ body:has([data-density]) {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: 1fr;
+}
+
+/* Below the spine breakpoint the three pillars become a rail, matching the
+   questions above them.
+   
+   It was a vertical accordion, and the accordion is what broke the
+   one-screen promise on a phone: an open panel plus two closed bars plus the
+   heading measured 1,117px against an 844px viewport, and no amount of
+   padding removed closes a 273px gap. On a rail only one pillar is on screen
+   at a time, so it gets the whole height rather than a third of it and
+   nothing has to be squeezed to fit.
+   
+   Every card is open here — there is no room for a closed state that saves
+   nothing — which is why the trigger stops being a button at this width. */
+@media (max-width: 63.99rem) {
+  /* Every card is open on the rail, so the section's height is one whole
+     pillar rather than one pillar and two bars. The frame has to give up what
+     the accordion used to borrow from the closed panels. */
+  .story-pillars {
+    --home-pad: 1.75rem;
+    --home-head-gap: 1.25rem;
+  }
+
+  /* Restated by the three panels immediately below it, and the only thing
+     here that can go without losing something a visitor cannot read two
+     inches lower. */
+  .story-pillars .section-lede {
+    display: none;
+  }
+
+  .pillars {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Snap points line up with the padding edge rather than the box edge, so
+       a card lands where the gutter is rather than flush to the screen. */
+    scroll-padding-inline-start: 1rem;
+    padding-inline: 1rem;
+    padding-block: 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .pillars::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pillar {
+    /* Sized against the viewport, not the container. The rail sits inside a
+       gutter that is already inside the page gutter, so a percentage here
+       measures a box two indents deep and hands back a card barely two
+       thirds of the screen — narrow enough that the programme rows wrap into
+       a 975px tower. Measuring in `vw` skips both indents. */
+    flex: 0 0 min(88vw, 23rem);
+    /* `start`, not `center`: the last card's centre sits past the end of the
+       scroll range, so centre-snapping leaves it permanently unreachable. */
+    scroll-snap-align: start;
+    /* The spine transition is for the desktop accordion. Here it would animate
+       the card's width on every resize. */
+    transition: none;
+  }
+
+  /* No disclosure, so no affordance pointing at one. */
+  .pillar-chev {
+    display: none;
+  }
+
+  .pillars-nav {
+    display: flex;
+  }
+
+  /* The blurb is what makes a pillar 800px tall on a phone: three programmes
+     with three lines of explanation each is 500px of the card on its own.
+     Cut to a name and a status, the row still says what the programme is
+     called and whether it is running, and the linked ones still lead
+     somewhere that explains the rest. It is a real loss, and the smallest one
+     available — the alternative is a section called "three ways we build"
+     that takes a screen and a half to count to three. */
+  .pillar-program {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .pillar-program-note {
+    display: none;
+  }
+
+  .pillar-program-status {
+    margin-top: 0;
+  }
+
+  .pillar-programs {
+    margin-top: 1rem;
+    gap: 0.5rem;
+  }
+
+  .pillar-body {
+    padding: 1.1rem 1.1rem 1.25rem;
+  }
+}
+
+/* The trigger is a plain span on the rail, where there is nothing to press. */
+span.pillar-trigger {
+  cursor: default;
+}
+
+/* Short phones, where the rail alone does not close the gap. Everything here
+   is frame rather than content: the band padding, the heading ceiling and a
+   step of type off the two body lines. */
+@media (max-width: 63.99rem) and (max-height: 48rem) {
+  .story-pillars {
+    --home-pad: 0.75rem;
+    --home-head-gap: 0.85rem;
+    --home-display-max: 2.25rem;
+  }
+
+  .pillar-answer {
+    font-size: 1rem;
+  }
+
+  .pillar-problem {
+    font-size: 0.95rem;
+  }
+
+  .pillar-body {
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .pillar-trigger {
+    padding: 0.9rem 1rem;
+  }
+
+  .pillar-programs {
+    margin-top: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .pillar-program {
+    padding: 0.55rem 0.8rem;
+  }
 }
 
 /* Each pillar is a solid block. A tinted panel on the citrus wash was easy to
