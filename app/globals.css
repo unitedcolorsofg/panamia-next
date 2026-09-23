@@ -4445,6 +4445,106 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-cream);
 }
 
+/* --- The hero as a colour field ----------------------------------------- */
+
+/* The seam. The hero's bottom edge and the info card's top ramp both resolve
+   to this, so the two can never drift apart into a visible line. */
+[data-density] {
+  --home-seam: var(--color-pana-burnt);
+}
+
+/* The live hero is a photograph under an orange multiply wash. It works, but
+   it gives the page a hard seam — the photo stops, the info card's butter
+   starts, and the two read as separate pages stacked rather than one page
+   continuing. It also puts a full-bleed JPEG in front of the one thing the
+   hero is for, which is the search box.
+ *
+ * So: nothing behind the search but colour. Ink at the top with an indigo
+ * bloom so it is not flat black, a warm horizon rising off the bottom edge
+ * centred behind the search, and the last stretch settling into `--home-seam`
+ * for the info card to pick up.
+ *
+ * The glow is doing one job: it puts the light source directly behind the
+ * search box, which is where the eye should land first. Everything above it
+ * falls away into the dark.
+ *
+ * Deliberately still dark. The white wordmark, the cream headline, the cream
+ * region chips and the cream rule above them all depend on it — a pale hero
+ * would need an ink wordmark, which does not exist as an asset. */
+.home-hero-field {
+  background-color: var(--color-pana-ink);
+  background-image:
+    /* Levels the bottom edge to the seam colour right across the width. The
+       radial below falls off towards the corners, so without this the hero's
+       bottom-left and bottom-right are still dark where the info card's ramp
+       has already started at full seam — which shows up as a step at either
+       end of an otherwise invisible join. Fading through `/ 0` rather than
+       `transparent` keeps the interpolation in the same hue; `transparent`
+       is transparent *black*, and ramping to it greys the middle. */
+    linear-gradient(
+      180deg,
+      rgb(217 98 54 / 0) 70%,
+      rgb(217 98 54 / 0.5) 89%,
+      var(--home-seam) 100%
+    ),
+    /* the horizon, centred behind the search. Sitting just below the bottom
+       edge so the hero catches the top of the falloff, not the hot centre. */
+    radial-gradient(
+        125% 74% at 50% 102%,
+        var(--home-seam) 0%,
+        rgb(217 98 54 / 0.62) 30%,
+        rgb(217 98 54 / 0.16) 55%,
+        rgb(217 98 54 / 0) 74%
+      ),
+    /* a cool bloom up top, so the field reads as depth rather than as a
+       black rectangle with a sunset pasted on it */
+    radial-gradient(
+        96% 62% at 50% -12%,
+        rgb(48 62 140 / 0.62),
+        rgb(48 62 140 / 0) 72%
+      );
+}
+
+/* Without a photograph underneath, the grain's job changes. The vertical ink
+   scrim existed to buy the headline contrast over the busier parts of the
+   image; there is no image now, and leaving it in just mutes the glow. What
+   is left is the dot screen, faded out before it reaches the warm end where
+   cream dots on a warm field would only look like dirt. */
+.home-hero-field .home-hero-grain {
+  background-image: radial-gradient(
+    rgb(255 247 236 / 0.1) 1px,
+    transparent 1px
+  );
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 46%,
+    transparent 82%
+  );
+  mask-image: linear-gradient(180deg, #000 0%, #000 46%, transparent 82%);
+}
+
+/* The headline's drop shadow was sized to lift cream type off a photograph.
+   Against a flat field that much shadow reads as a smudge. */
+.home-hero-field .hero-headline {
+  text-shadow: 0 2px 18px rgb(17 13 13 / 0.34);
+}
+
+/* The receiving end of the seam: the info card carries the hero's glow a
+   fixed distance into its own butter, so the boundary is a ramp rather than
+   a line. Fixed pixels, not a percentage — this is a fade across an edge and
+   it should be the same depth whether the section is 600px or 1600px tall,
+   and it has to stay clear of the section heading either way. */
+.home-handoff {
+  background-image: linear-gradient(
+    180deg,
+    var(--home-seam) 0,
+    rgb(217 98 54 / 0.38) 46px,
+    rgb(217 98 54 / 0) 164px
+  );
+}
+
 /* --- The info card: pinned notes ---------------------------------------- */
 
 .stickyboard {
@@ -4976,5 +5076,151 @@ a.pillar-program:hover {
   .pillar-chev,
   a.pillar-program {
     transition: none;
+  }
+}
+
+/* --- Scroll-driven motion ----------------------------------------------- */
+
+/*
+ * The notes and the pillars arrive as you scroll to them, and the photographs
+ * pinned to the notes drift inside their frames the whole way past.
+ *
+ * This is `animation-timeline: view()` rather than a scroll handler: progress
+ * is tied to where the element sits in the viewport by the compositor, so
+ * there is no listener to throttle, no `getBoundingClientRect` per frame, and
+ * nothing to tear down. The existing `<ScrollReveal>` sweep stays exactly as
+ * it is — see the handoff below.
+ *
+ * Three rules hold this together:
+ *
+ * 1. Everything that can be clicked finishes moving on `entry`. A card still
+ *    animating while it is on screen is a card that slides out from under the
+ *    cursor as you reach for it, and these are all buttons. They settle by the
+ *    time they are fully in view and then hold still while you read and click.
+ *    The photographs are the single exception: they pan for the whole pass,
+ *    because they are decorative, clipped by their own frame, and not targets.
+ *
+ * 2. It is an enhancement and never a requirement. Browsers without view
+ *    timelines keep the `[data-rv]` fade they already had, which is why the
+ *    handoff that switches `[data-rv]` off lives *inside* `@supports` — if the
+ *    feature is missing, the fade is still the thing doing the work.
+ *
+ * 3. `prefers-reduced-motion` opts out of all of it and falls back to that
+ *    same fade, which is already a pure cross-fade under that setting.
+ *
+ * Ranges rather than delays do the staggering. A view timeline has no wall
+ * clock to be late against, so "arrives after its neighbour" means "covers a
+ * later stretch of the scroll", and the ends are kept well short of `entry
+ * 100%` so nothing can strand mid-animation on a viewport shorter than the
+ * element.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The handoff. `[data-rv]` holds its element at opacity 0 until the sweep
+       reaches it, which would fight the timeline for the same two properties;
+       this hands both over. More specific than the `[data-rv-ready] [data-rv]`
+       rule it is overriding, so it wins without `!important`. */
+    [data-rv-ready] .stickyboard > [data-rv] {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    .stickyboard > li {
+      animation: home-note-arrive linear both;
+      animation-timeline: view();
+    }
+
+    /* Three notes, three arrivals. The lift and the turn differ per column so
+       they land like three separate pieces of paper rather than one row of
+       three; the middle one comes from furthest away and lands last, which is
+       what stops the group reading as a single block sliding up. */
+    .stickyboard > li:nth-child(1) {
+      --note-lift: 44px;
+      --note-turn: -2.6deg;
+      animation-range: entry 4% entry 62%;
+    }
+
+    .stickyboard > li:nth-child(2) {
+      --note-lift: 70px;
+      --note-turn: 2.2deg;
+      animation-range: entry 10% entry 78%;
+    }
+
+    .stickyboard > li:nth-child(3) {
+      --note-lift: 52px;
+      --note-turn: -1.5deg;
+      animation-range: entry 1% entry 58%;
+    }
+
+    /* The photograph drifts inside its frame for the whole pass — the one
+       continuous effect here. `.stickynote-photo-frame` is `overflow: hidden`
+       and the image is scaled past its box, so the pan never exposes an edge.
+       Targeting the element `next/image` renders rather than a class of ours,
+       because `fill` owns that element's positioning entirely. */
+    .stickynote-photo-frame img {
+      animation: home-photo-drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+
+    .pillar {
+      animation: home-pillar-arrive linear both;
+      animation-timeline: view();
+    }
+
+    .pillar:nth-child(1) {
+      animation-range: entry 6% entry 60%;
+    }
+
+    .pillar:nth-child(2) {
+      animation-range: entry 11% entry 70%;
+    }
+
+    .pillar:nth-child(3) {
+      animation-range: entry 16% entry 80%;
+    }
+  }
+}
+
+/* Paper landing on a board: up, a little askew, settling flat. The rotation
+   is on the `<li>`, which has no transform of its own — `.stickynote` is
+   already using its own to hold the tilt and to straighten on hover, and two
+   rules cannot share one `transform`. */
+@keyframes home-note-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--note-lift, 54px)) rotate(var(--note-turn, 0deg));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/* A slow vertical pan. `scale` is what buys the travel: at 1.12 there is 6%
+   of overflow at each edge, and the pan uses 4% of it. */
+@keyframes home-photo-drift {
+  from {
+    transform: scale(1.12) translateY(-4%);
+  }
+
+  to {
+    transform: scale(1.12) translateY(4%);
+  }
+}
+
+/* The pillars rise and square up. No rotation here — these are solid blocks
+   with hard borders, and tilting them reads as broken rather than as paper. */
+@keyframes home-pillar-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(46px) scale(0.982);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

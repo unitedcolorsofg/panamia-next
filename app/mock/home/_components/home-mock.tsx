@@ -102,21 +102,14 @@ function HeroCard() {
   return (
     /* Ink, not the live page's white: the mock control bar sits where the
        site header would, and a white scallop against it reads as a bug rather
-       than as the underside of the thing above. */
+       than as the underside of the thing above.
+
+       No photograph behind the search — see `.home-hero-field`. Nothing here
+       is an <Image> any more, so the hero has no LCP image to wait on. */
     <section
-      className="home-hero-banner scallop"
+      className="home-hero-banner home-hero-field scallop"
       style={{ '--scallop': 'var(--color-pana-ink)' } as CSSProperties}
     >
-      <div className="home-hero-photo" aria-hidden="true">
-        <Image
-          src="/img/home/bg_main_hero.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-      </div>
       <div className="home-hero-grain" aria-hidden="true" />
 
       <div className="relative z-10 container mx-auto px-4">
@@ -207,7 +200,14 @@ function HeroCard() {
 
 function InfoCard() {
   return (
-    <section id="what-is-this" className="home-section surface-butter-2">
+    /* `home-handoff` catches the hero's glow and carries it a little way down
+       into the butter, so the two sections share an edge instead of meeting
+       at one. Both ends of that ramp resolve to `--home-seam`, so they cannot
+       drift apart. */
+    <section
+      id="what-is-this"
+      className="home-section home-handoff surface-butter-2"
+    >
       <div className="container mx-auto px-4">
         <div className="home-sectionhead max-w-3xl" data-rv>
           <span className="section-eyebrow">Start Here</span>
