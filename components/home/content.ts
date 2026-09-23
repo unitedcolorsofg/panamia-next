@@ -49,32 +49,24 @@ export type NoteBlock =
 /**
  * The artwork that answers each question.
  *
- * A tagged union rather than a shared `image` field, because these are not
- * the same kind of picture doing one job — they are four different arguments.
- * A photograph of a room proves a word means people; a diagram proves a claim
- * has parts; a map proves a place is a real place; a banner is how a slogan
- * is actually said out loud. Giving them one shape would have meant one
- * renderer hedging across all four.
+ * A tagged union rather than a shared `image` field, because a photograph and
+ * the map are not the same kind of picture doing the same job. A photograph
+ * of a room proves a word means people and needs nothing around it; the map
+ * proves a place is a real place, and to do that it has to arrive on scroll
+ * and carry its county labels. Giving them one shape would have meant one
+ * renderer hedging across both.
  */
 export type BeatScene =
   | {
-      /** Overlapping photographs, fanned out. "What is a pana" is answered
-          better by a room full of them than by any definition. */
-      kind: 'collage';
-      photos: { src: string; alt: string; caption: string }[];
-    }
-  | {
-      /** Portraits of the people who run the club. "Why was this started" is
-          a question about intent, and intent belongs to people rather than to
-          a diagram — so it is answered by the faces behind it, named.
-
-          Distinct from the collage on purpose: that one is rectangular prints
-          of rooms, fanned like objects on a table. These are round, upright
-          and evenly spaced, which reads as a roster of people rather than a
-          handful of snapshots, so the two photographic stops next door to
-          each other do not look like the same scene twice. */
-      kind: 'faces';
-      photos: { src: string; alt: string; name: string }[];
+      /** One photograph, filling the card.
+       *
+       *  These stops were a fanned collage, a row of portraits and a drawn
+       *  banner. They are single frames now, on the ask of the panas: a
+       *  composition of four prints is a design, and what they wanted on this
+       *  band was pictures of people. */
+      kind: 'photo';
+      src: string;
+      alt: string;
     }
   | {
       /** The branded state map, rising into frame on scroll. */
@@ -82,19 +74,6 @@ export type BeatScene =
       src: string;
       alt: string;
       counties: string[];
-    }
-  | {
-      /** The vision, strung up as cloth. It is one short shout — "the future
-          is local!" — and a shout wants a banner over the street, not a
-          diagram. Drawn rather than photographed so the words stay real
-          text: selectable, translatable and legible to a screen reader. */
-      kind: 'banner';
-      headline: string;
-      caption: string;
-      /** The crowd the banner is strung over. The cloth alone was a drawn
-          object on an empty wall; behind a real room of people it reads as
-          something hung at an actual event, which is what it is. */
-      photo: { src: string; alt: string };
     };
 
 export interface StoryBeat {
@@ -159,35 +138,18 @@ export interface Pillar {
    Structure
    ------------------------------------------------------------------------- */
 
-/** Photographs for the "what's a pana" collage. Paths are structure; the alt
-    text and captions underneath them are copy. */
-const PANA_PHOTOS = [
-  '/img/impact/hero-mixer.webp',
-  '/img/impact/pana-social-dinner.webp',
-  '/img/impact/community-group.webp',
-  '/img/about/clari_and_anette.webp',
-] as const;
+/* One photograph per stop, and all three are of people. The band used to run
+   a fanned collage, a row of portraits and a drawn banner; it is three single
+   frames now because that is what was asked for — pictures, not compositions.
 
-/* The room behind the banner on the first stop. Chosen over the other crowd
-   shots because it is the widest: the cloth and its bunting sit across the
-   middle of this window, so the photo has to still read as a crowd with its
-   centre covered. The two mixer photos are close-range and lose their subject
-   entirely underneath the sign. */
-const BANNER_PHOTO_SRC = '/img/impact/filmfest-collab-right.webp';
-
-/* Faces for the "why was this started" stop. These are the only assets on the
-   site that are actually portraits rather than scenes — every other photo is a
-   room — which is what makes them worth spending here: the stop next door is
-   already four pictures of rooms.
-
-   Ordered board first, then team, which is the order `/about-us` uses. */
-const PANA_FACES = [
-  '/img/about/anette_mago.jpg',
-  '/img/about/claribel_avila.jpg',
-  '/img/about/bee_maria.jpg',
-  '/img/about/gbarrios.jpg',
-  '/img/about/jdowns.jpg',
-] as const;
+   Picked to be three different kinds of gathering, so three photographic
+   stops in a row do not read as one scene repeated: a crowd outdoors in
+   daylight, a table indoors at night, and two people sitting down. The last
+   is Clari and Anette, which is also the literal answer to the question that
+   stop asks. */
+const PANAMIA_PHOTO_SRC = '/img/impact/filmfest-collab-right.webp';
+const PANA_PHOTO_SRC = '/img/impact/pana-social-dinner.webp';
+const WHY_PHOTO_SRC = '/img/about/clari_and_anette.webp';
 
 /* `floridamap_panamia.jpg` is the other candidate and it is the more heavily
    branded of the two, but its highlighted counties are hot pink — a colour
@@ -263,13 +225,9 @@ export function useStoryBeats(): StoryBeat[] {
       answer: t('beats.panamia.answer'),
       more: t('beats.panamia.more'),
       scene: {
-        kind: 'banner',
-        headline: t('beats.panamia.banner.headline'),
-        caption: t('beats.panamia.banner.caption'),
-        photo: {
-          src: BANNER_PHOTO_SRC,
-          alt: t('beats.panamia.banner.photoAlt'),
-        },
+        kind: 'photo',
+        src: PANAMIA_PHOTO_SRC,
+        alt: t('beats.panamia.photoAlt'),
       },
       /* The mission lives here rather than under "why was this started",
          where it used to sit. It is the answer to what the club *is* — a
@@ -291,12 +249,9 @@ export function useStoryBeats(): StoryBeat[] {
       answer: t('beats.pana.answer'),
       more: t('beats.pana.more'),
       scene: {
-        kind: 'collage',
-        photos: PANA_PHOTOS.map((src, index) => ({
-          src,
-          alt: t(`beats.pana.photos.${index}.alt`),
-          caption: t(`beats.pana.photos.${index}.caption`),
-        })),
+        kind: 'photo',
+        src: PANA_PHOTO_SRC,
+        alt: t('beats.pana.photoAlt'),
       },
       detail: [
         {
@@ -318,19 +273,15 @@ export function useStoryBeats(): StoryBeat[] {
       question: t('beats.why.question'),
       answer: t('beats.why.answer'),
       more: t('beats.why.more'),
-      /* This stop used to carry the deck's benefits ring, rebuilt as vector.
-         It is photographs now, on the ask of the panas: the page had one
-         drawn diagram sitting between two photographic stops, and the thing
-         they wanted more of was faces. The ring's four benefits were the only
-         copy it carried, so they move into the panel below rather than being
-         dropped with the artwork. */
+      /* This stop used to carry the deck's benefits ring, rebuilt as vector,
+         and then a row of five portraits. It is one photograph now — the two
+         founders — which is the most direct answer this question has: it was
+         started by these two. The ring's four benefits were the only copy it
+         ever carried, so they stayed behind in the panel below. */
       scene: {
-        kind: 'faces',
-        photos: PANA_FACES.map((src, index) => ({
-          src,
-          name: t(`beats.why.faces.${index}.name`),
-          alt: t(`beats.why.faces.${index}.alt`),
-        })),
+        kind: 'photo',
+        src: WHY_PHOTO_SRC,
+        alt: t('beats.why.photoAlt'),
       },
       detail: [
         { kind: 'paragraph', text: t('beats.why.invitation') },

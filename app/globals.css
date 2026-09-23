@@ -6075,166 +6075,38 @@ body:has([data-density]) {
   color: rgb(2 8 17 / 0.7);
 }
 
-/* --- Stop one: the collage ---------------------------------------------- */
+/* --- Stops one, two and three: the photograph --------------------------- */
 
-.collage {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.7rem, 1.8vw, 1.2rem);
-  width: min(100%, 30rem);
-  margin-inline: auto;
-}
+/* One picture per card, filling the whole art window.
 
-/* The fan lives on the `<li>`; hovering moves `.collage-frame` instead. Two
-   separate elements because the arrival animation fills the `<li>`'s
-   transform, and a filled animation beats a transition — a hover on the same
-   element would simply never take. */
-.collage-print {
+   This one rule took over from three scenes: a fanned collage of four
+   prints, a row of five round portraits, and a drawn banner. Each had its
+   own geometry and its own motion, and between them they were most of the
+   CSS in this file's homepage section. They are single frames now because
+   that is what was wanted here - pictures of people, not arrangements of
+   them.
+
+   The wrapper does the rounding and the clipping rather than the image:
+   `border-radius` on a replaced element still lets the browser paint the
+   element's own background into the corners, so the crop has to happen on a
+   box that owns no background of its own. */
+.beat-photo {
   position: relative;
-  transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0));
-}
-
-.collage-print:nth-child(even) {
-  margin-top: 1.25rem;
-}
-
-.collage-frame {
-  position: relative;
-  display: block;
-  aspect-ratio: 4 / 5;
   overflow: hidden;
-  /* A print, not a card: white border, square corners, hard shadow. */
-  border: 6px solid #fff;
-  border-radius: 2px;
-  background-color: rgb(2 8 17 / 0.06);
-  box-shadow: 0 10px 24px rgb(2 8 17 / 0.18);
-  transition:
-    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.28s ease;
-}
-
-.collage-print:hover {
-  z-index: 2;
-}
-
-.collage-print:hover .collage-frame {
-  transform: scale(1.045);
-  box-shadow: 0 16px 34px rgb(2 8 17 / 0.26);
-}
-
-.collage-img {
-  object-fit: cover;
-}
-
-/* A strip of prints rather than a two-by-two pile. In the shop window there
-   is far more width than height, so four across fans out where a square block
-   of four would simply not fit, and the fan still reads as a handful of
-   photos rather than as a grid. */
-.collage {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.45rem;
-  /* Capped against the height of the window it sits in, not just its width.
-     A strip of four 4:5 prints is about a third as tall as it is wide, so on
-     a short laptop — where the window gives up height first — the cap is what
-     stops the bottom row of prints being sliced off. */
-  width: min(100%, calc((var(--home-beat-art, 12rem) - 2.2rem) * 2.55));
-}
-
-/* Decorative in a window this size: four captions at 11px under four thumbs
-   is more type than picture. The alt text still carries them. */
-.collage-caption {
-  display: none;
-}
-
-/* The stagger was 18/8/26 pixels plus a fixed row offset, sized for a
-   two-by-two pile. As percentages of each print's own column it survives the
-   window losing height on a short laptop, where fixed pixels went on pushing
-   the lowest print through the floor. Percentage block margins on a grid item
-   resolve against its grid area's inline size, which is exactly the column
-   that is shrinking. */
-.collage-print {
-  --lift: 0px;
-}
-
-.collage-print:nth-child(1) {
-  margin-top: 0;
-}
-
-.collage-print:nth-child(2) {
-  margin-top: 12%;
-}
-
-.collage-print:nth-child(3) {
-  margin-top: 5%;
-}
-
-.collage-print:nth-child(4) {
-  margin-top: 16%;
-}
-
-.collage-frame {
-  border-width: 3px;
-  box-shadow: 0 5px 12px rgb(2 8 17 / 0.18);
-}
-
-/* --- Stop two: the faces ------------------------------------------------ */
-
-/* A roll-call across the window. Five portraits in a row rather than a block
-   of them: the art window is far wider than it is tall, so a row is the shape
-   that fits, and a row of heads reads as people lined up in a way that a grid
-   of them does not.
-
-   Five fixed columns rather than `auto-fit`. Five is the count; a column that
-   dropped off on a narrow card would silently remove somebody. */
-.beat-faces {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  align-content: center;
-  justify-items: center;
-  gap: 0.4rem 0.25rem;
-  width: min(100%, 21rem);
-  margin-inline: auto;
-}
-
-.face {
-  display: grid;
-  justify-items: center;
-  gap: 0.3rem;
+  border-radius: 14px;
   width: 100%;
-}
-
-/* The coloured ring is the entire frame — no white border, no drop shadow.
-   The stop next door is four white-bordered prints with hard shadows, and
-   lending these the same treatment would collapse the one difference the two
-   scenes have to hold on to. */
-.face-frame {
-  position: relative;
-  display: block;
-  width: 100%;
-  max-width: 3.4rem;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 3px solid var(--ring, var(--story-blue));
-  border-radius: 50%;
+  height: 100%;
+  /* Sits under the photograph while it decodes, so the card is never a hole
+     in the band on a slow connection. */
   background-color: rgb(2 8 17 / 0.06);
 }
 
-.face-img {
+/* Held slightly above centre. These are group shots and faces sit in the top
+   half of all three; a straight centre crop on a window this wide cuts the
+   heads off the back row. */
+.beat-photo-img {
   object-fit: cover;
-  /* These are all portrait-orientation frames with the head high in them, so
-     a centred square crop takes chin and shoulders and loses the top of the
-     head. */
-  object-position: 50% 30%;
-}
-
-.face-name {
-  font-size: 0.5625rem;
-  font-weight: 900;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: center;
-  color: var(--story-ink);
+  object-position: 50% 42%;
 }
 
 /* --- Stop three: the map ------------------------------------------------ */
@@ -6245,142 +6117,6 @@ body:has([data-density]) {
   gap: 0.6rem;
   margin: 0;
   width: 100%;
-}
-
-/* -------------------------------------------------------------------------
-   Banner scene — "what is Pana MIA?"
-   ------------------------------------------------------------------------- */
-
-/* The photograph is a backdrop and the sign is the subject, so the scene
-   becomes the positioning context for a `fill` image and everything else is
-   lifted above it. Without the explicit layering the absolutely-positioned
-   photo would paint over the bunting, which is in normal flow.
-
-   The sign is pushed to the bottom rather than centred so the band of faces
-   in the photograph is left uncovered. Centring it put the cloth exactly over
-   the crowd and all that showed was the treeline above their heads. */
-.banner-scene {
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
-  background-color: var(--story-cream);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-  height: 100%;
-  padding-inline: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
-/* Anchored to the bottom of the frame. The crop is wider than it is tall, so
-   `cover` trims the photograph's top and bottom; pulling it all the way down
-   lands the crowd in the strip above the sign instead of below it. Held a
-   little under full strength so the sign in front stays the thing you read
-   first. */
-.banner-photo {
-  z-index: 0;
-  object-fit: cover;
-  object-position: 50% 100%;
-  opacity: 0.86;
-}
-
-/* Bunting. A row of pennants rather than a drawn string, because the flags
-   are the only part that has to survive being squeezed: at the narrow end of
-   the four-across row this is 240px wide, and nine flexed triangles shrink
-   evenly where a fixed-width SVG would clip.
-
-   Pinned to the top of the frame rather than sitting on the cloth, now that
-   the sign hangs at the bottom — strung across the top of the photograph the
-   way bunting actually is at the events in it. */
-.banner-bunting {
-  position: absolute;
-  z-index: 1;
-  top: 0.35rem;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 0.28rem;
-  padding-inline: 0.5rem;
-}
-
-.banner-flag {
-  flex: 1 1 0;
-  max-width: 1.15rem;
-  aspect-ratio: 1 / 1.35;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-  /* Four colours cycling across nine flags, so no two neighbours match and
-     the run never reads as a repeating pair. */
-  background: var(--flag);
-}
-
-.banner-flag:nth-child(4n + 1) {
-  --flag: var(--story-orange);
-}
-
-.banner-flag:nth-child(4n + 2) {
-  --flag: var(--story-blue);
-}
-
-.banner-flag:nth-child(4n + 3) {
-  --flag: var(--story-coral);
-}
-
-.banner-flag:nth-child(4n + 4) {
-  --flag: var(--story-red);
-}
-
-/* Every other flag hangs a touch lower, the way bunting does when the string
-   is not taut. */
-.banner-flag:nth-child(odd) {
-  margin-top: 0.22rem;
-}
-
-/* The cloth. Hung at a slight angle, because a banner pinned up straight and
-   square reads as a web component and a crooked one reads as something a
-   person put up.
-
-   Square-cornered with a real border rather than clipped into a pennant dip:
-   `clip-path` cuts the border box, so a dipped banner loses its bottom edge
-   and reads as an unfinished box. Faking the outline back on with stacked
-   drop-shadows works in principle but goes soft and grey along the rotated
-   edges, which is worse than not having the dip at all. The border also
-   matches the sign below it, so the card reads as two things on one wall. */
-.banner-cloth {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  width: min(100% - 0.75rem, 20rem);
-  padding: 0.95rem 1.1rem 0.85rem;
-  background: var(--story-cream);
-  border: 3px solid var(--story-ink);
-  box-shadow: 4px 4px 0 rgb(2 8 17 / 0.16);
-  transform: rotate(-1.4deg);
-  text-align: center;
-  text-wrap: balance;
-}
-
-.banner-headline {
-  font-family: var(--font-display, inherit);
-  font-size: clamp(1.15rem, 2.4vw, 1.75rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--story-blue);
-}
-
-.banner-caption {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgb(2 8 17 / 0.62);
 }
 
 /* Nothing but a clip now. The map used to sit in a bordered, cream, shadowed
@@ -6982,9 +6718,8 @@ a.pillar-program:hover {
 
 /*
  * The page moves as you walk down it: clouds drift at their own rates as the
- * sky leaves, each stop arrives as you reach it, the collage fans open, the
- * portraits pop in one after another, the map rises into place, and the
- * pillars square up.
+ * sky leaves, each stop arrives as you reach it, the map rises into place,
+ * and the pillars square up.
  *
  * This is `animation-timeline: view()` rather than a scroll handler: progress
  * is tied to where the element sits in the viewport by the compositor, so
@@ -7065,58 +6800,6 @@ a.pillar-program:hover {
       animation-range: entry 12% entry 76%;
     }
 
-    /* The stack opens out. Each print carries its own `--fan`, and the
-       keyframes end on it rather than on zero, so the pile settles into its
-       resting fan instead of squaring up into a grid. */
-    .collage-print {
-      animation: home-print-settle linear both;
-      animation-timeline: view();
-    }
-
-    .collage-print:nth-child(1) {
-      animation-range: entry 6% entry 58%;
-    }
-
-    .collage-print:nth-child(2) {
-      animation-range: entry 12% entry 68%;
-    }
-
-    .collage-print:nth-child(3) {
-      animation-range: entry 9% entry 63%;
-    }
-
-    .collage-print:nth-child(4) {
-      animation-range: entry 16% entry 76%;
-    }
-
-    /* The row fills in left to right as you reach it. Each portrait carries
-       its own range rather than a delay, for the same reason the prints above
-       it do: a view timeline has no wall clock to delay against. */
-    .face {
-      animation: home-face-arrive linear both;
-      animation-timeline: view();
-    }
-
-    .face:nth-child(1) {
-      animation-range: entry 6% entry 52%;
-    }
-
-    .face:nth-child(2) {
-      animation-range: entry 10% entry 58%;
-    }
-
-    .face:nth-child(3) {
-      animation-range: entry 14% entry 64%;
-    }
-
-    .face:nth-child(4) {
-      animation-range: entry 18% entry 70%;
-    }
-
-    .face:nth-child(5) {
-      animation-range: entry 22% entry 76%;
-    }
-
     /* Florida arrives. This one runs for the whole pass rather than settling
        on entry, because it is the only piece of motion on the page making an
        argument instead of a flourish — the state keeps rising for as long as
@@ -7136,8 +6819,6 @@ a.pillar-program:hover {
     @media (max-width: 71.99rem) {
       .beat-art,
       .beat-copy,
-      .collage-print,
-      .face,
       .statemap-img {
         animation: none;
       }
@@ -7199,36 +6880,6 @@ a.pillar-program:hover {
   to {
     opacity: 1;
     transform: translate(0, 0);
-  }
-}
-
-/* Paper landing on a pile: up, over-rotated, settling onto its resting fan. */
-@keyframes home-print-settle {
-  from {
-    opacity: 0;
-    transform: rotate(calc(var(--fan, 0deg) * 2.8))
-      translateY(calc(var(--lift, 0px) + 44px));
-  }
-
-  to {
-    opacity: 1;
-    transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0px));
-  }
-}
-
-/* The portraits pop in. `translate` and `scale` rather than one `transform`,
-   so nothing has to know or restate what the other is doing. */
-@keyframes home-face-arrive {
-  from {
-    opacity: 0;
-    translate: 0 14px;
-    scale: 0.9;
-  }
-
-  to {
-    opacity: 1;
-    translate: 0 0;
-    scale: 1;
   }
 }
 
