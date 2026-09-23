@@ -15,6 +15,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/profile`   | Personal profile page (pana page) redesign                 |
 | `/mock/feed`      | Pana Social feed redesign, including the empty feed        |
 | `/mock/panaverse` | Panaverse chrome: masthead, surface switcher, identity     |
+| `/mock/settings`  | Account settings — one page, either masthead               |
 
 ## Viewing the Pana Social surface
 

@@ -5,6 +5,7 @@ import { useTranslation, Trans } from 'react-i18next';
 import { useSession } from '@/lib/auth-client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import axios from 'axios';
 import {
   DropdownMenu,
@@ -41,6 +42,7 @@ import type { LucideIcon } from 'lucide-react';
 
 import styles from './MainHeader.module.css';
 import { cn } from '@/lib/utils';
+import { isOnboardingRoute } from '@/lib/onboarding';
 import { useUnreadCount } from '@/lib/query/notifications';
 import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
@@ -145,6 +147,7 @@ export default function MainHeader({
 }) {
   const { t } = useTranslation('common');
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   // Get admin status directly from session (no API call needed)
@@ -312,14 +315,17 @@ export default function MainHeader({
             <CallToActionBar isProductionSite={isProductionSite} />
           </div>
         )}
-        {status !== 'loading' && session && hasProfile === false && (
-          <div id="call-to-action-bar">
-            <CallToActionBar
-              variant="complete-profile"
-              isProductionSite={isProductionSite}
-            />
-          </div>
-        )}
+        {status !== 'loading' &&
+          session &&
+          hasProfile === false &&
+          !isOnboardingRoute(pathname) && (
+            <div id="call-to-action-bar">
+              <CallToActionBar
+                variant="complete-profile"
+                isProductionSite={isProductionSite}
+              />
+            </div>
+          )}
         {/* Centered masthead: menu (left) · logo (center) · actions (right) */}
         <div className={styles.masthead}>
           <div className={styles.mastheadInner}>
@@ -470,7 +476,10 @@ export default function MainHeader({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <IdentityMenu />
+              {/* Gated on the session here rather than inside the menu: the
+                  menu now renders for a signed-in member even before they have
+                  a profile, so that they can still reach Sign Out. */}
+              {status !== 'loading' && session && <IdentityMenu />}
               <ThemeToggle />
             </div>
           </div>

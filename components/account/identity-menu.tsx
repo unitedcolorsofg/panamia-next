@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Check, LogOut, Plus, Settings } from 'lucide-react';
+import { Check, LogOut, Plus, Settings, UserPlus } from 'lucide-react';
 
 import { signOut } from '@/lib/auth-client';
 import { useIdentity, type Identity } from './identity-provider';
@@ -52,9 +52,18 @@ export function IdentityMenu() {
 
   const active = identity?.active ?? null;
 
-  if (!identity || identity.identities.length === 0) return null;
+  /* Only the absence of a provider hides this. It deliberately does *not* bail
+     on an empty identity list: a member who has just signed in for the first
+     time has no profile yet, and this menu is where Sign Out lives. Hiding it
+     from them would leave them with no way out of an account they only just
+     created. MainHeader is what keeps it away from signed-out visitors. */
+  if (!identity) return null;
 
-  const { identities, activeId, switching, error, switchTo } = identity;
+  const { identities, activeId, switching, error, failed, loading, switchTo } =
+    identity;
+
+  // Only claim the account is unfinished once we have actually heard back.
+  const needsSetup = !loading && !failed && identities.length === 0;
 
   return (
     <MenuSurface
@@ -82,7 +91,9 @@ export function IdentityMenu() {
 
         return (
           <>
-            <div className={styles.menuHeading}>{t('identity.actingAs')}</div>
+            {identities.length > 0 && (
+              <div className={styles.menuHeading}>{t('identity.actingAs')}</div>
+            )}
 
             {identities.map((item) => {
               const isActive = item.id === activeId;
@@ -131,6 +142,32 @@ export function IdentityMenu() {
                 </button>
               );
             })}
+
+            {/* Takes the place of the account list for someone who has signed
+                in but never claimed a handle. Without it the menu would open
+                on nothing but Sign Out, with no hint as to why the account
+                looks empty. */}
+            {needsSetup && (
+              <Link
+                href="/welcome"
+                role="menuitem"
+                data-menu-row
+                onClick={() => close(false)}
+                className={styles.row}
+              >
+                <span className={styles.addIcon} aria-hidden="true">
+                  <UserPlus className="h-4 w-4" />
+                </span>
+                <span className={styles.rowMeta}>
+                  <span className={styles.rowName}>
+                    {t('onboarding.finishSetup')}
+                  </span>
+                  <span className={styles.rowHandle}>
+                    {t('onboarding.finishSetupHint')}
+                  </span>
+                </span>
+              </Link>
+            )}
 
             {error && <p className={styles.error}>{error}</p>}
 

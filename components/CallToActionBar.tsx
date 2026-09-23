@@ -28,9 +28,12 @@ export default function CallToActionBar({
             className="bg-gradient-to-r from-pink-500 to-purple-600 font-semibold text-white shadow-lg hover:from-pink-600 hover:to-purple-700"
             asChild
           >
-            <Link href="/form/become-a-pana">
-              {t('cta.completeYourProfile')}
-            </Link>
+            {/* This bar appears because the member has no profile, and the
+                thing that creates a profile is a screenname. It used to point
+                at the business listing form, which answered a different
+                question entirely — that is the personal/business conflation
+                docs/ACCOUNTS-ROADMAP.md exists to undo. */}
+            <Link href="/welcome">{t('cta.completeYourProfile')}</Link>
           </Button>
         </div>
       </div>

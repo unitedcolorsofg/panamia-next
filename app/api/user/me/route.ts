@@ -27,6 +27,7 @@ export async function GET() {
         screenname: true,
         accountType: true,
         notificationPreferences: true,
+        createdAt: true,
       },
       with: {
         profile: {
@@ -52,6 +53,11 @@ export async function GET() {
         name: currentUser.profile?.name,
         accountType: currentUser.accountType,
         notificationPreferences: currentUser.notificationPreferences,
+        // Lets the client tell a first-run account from one that has existed
+        // for years without ever claiming a handle. The two want different
+        // treatment: a welcome page for the former, a quiet nudge for the
+        // latter. See components/ScreennameGate.tsx.
+        createdAt: currentUser.createdAt,
       },
     });
   } catch (error) {
