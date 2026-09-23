@@ -57,6 +57,24 @@ export function getRootDomain(): string {
   return process.env.PANAVERSE_ROOT_DOMAIN?.trim() || DEFAULT_ROOT_DOMAIN;
 }
 
+/**
+ * Whether a surface's subdomain is actually reachable.
+ *
+ * Off by default, because a surface subdomain only works once DNS exists for
+ * it, and DNS is dashboard work outside this repo (see docs/DOMAINS.md). While
+ * it is off, cross-surface links stay on the host in hand: Pana Social is
+ * reached at /s on whatever hostname is already serving, rather than at a
+ * social.<root> that resolves nowhere. A link to a host with no record is a
+ * dead end, not a slower route, so the unset default is the safe one.
+ *
+ * This gates links only. Every surface route is reachable from every hostname
+ * either way, so flipping this on moves the front door without moving a route.
+ */
+export function panaverseSubdomainsEnabled(): boolean {
+  const raw = process.env.PANAVERSE_SUBDOMAINS?.trim().toLowerCase();
+  return raw === '1' || raw === 'true';
+}
+
 export const SURFACES: readonly PanaverseSurface[] = [
   {
     id: 'www',
@@ -130,6 +148,14 @@ export function originForFrom(
   const port = currentHost.trim().match(/:(\d+)$/)?.[1] ?? '';
 
   const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost');
+
+  // *.localhost always resolves without DNS, so dev keeps its surface
+  // subdomains and goes on exercising the production-shaped path. Every other
+  // host needs a real record, which is the thing that does not exist yet.
+  if (!isLocal && !panaverseSubdomainsEnabled()) {
+    return `https://${hostname}${port ? `:${port}` : ''}`;
+  }
+
   const isUnderRoot = hostname === root || hostname.endsWith(`.${root}`);
   if (!isLocal && !isUnderRoot) return originFor(target, rootDomain);
 

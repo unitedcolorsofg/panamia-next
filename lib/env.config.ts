@@ -126,6 +126,22 @@ export const envConfig: Record<string, EnvVarConfig> = {
     example: 'pana.social',
   },
 
+  PANAVERSE_SUBDOMAINS: {
+    description:
+      'Set to "1" once each surface subdomain has a DNS record and is bound to ' +
+      'this Worker — dashboard work outside this repo, see docs/DOMAINS.md. ' +
+      'Until then leave it unset: cross-surface links, metadataBase and every ' +
+      'canonical URL stay on the host currently being served, so Pana Social is ' +
+      'reached at /s rather than at a social.<root> that resolves nowhere. A ' +
+      'link to a host with no record is a dead end, not a slower route, so the ' +
+      'unset default is the safe one. Routing does not depend on this — every ' +
+      'surface route answers on every hostname — so flipping it moves the front ' +
+      'door, not the routes. *.localhost is exempt and keeps its subdomains.',
+    location: 'VAR',
+    required: false,
+    example: '1',
+  },
+
   PANAVERSE_COOKIE_DOMAIN: {
     description:
       'Cookie domain shared by the panaverse surfaces, so one sign-in carries ' +
