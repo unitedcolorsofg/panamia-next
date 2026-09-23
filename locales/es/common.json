@@ -1,15 +1,31 @@
 {
+  "authMenu": {
+    "heading": "Únete al club",
+    "open": "Iniciar sesión o registrarse",
+    "signInHint": "Bienvenido de nuevo, Pana",
+    "signUpHint": "¿Eres nuevo? Crea tu cuenta"
+  },
   "identity": {
     "account": "Cuenta",
     "actingAs": "Actuando como",
     "backToYou": "Volver a ti",
     "business": "Negocio",
+    "comingSoon": "Próximamente",
     "inactive": "Borrador",
     "listBusiness": "Publica tu negocio",
     "listBusinessHint": "Agrega una tienda, estudio o servicio",
     "manager": "Gerente",
     "owner": "Dueño",
+    "panaSites": "Sitios Pana",
     "settings": "Configuración de cuenta",
+    "sites": {
+      "directory": "Directorio",
+      "events": "Eventos",
+      "getInvolved": "Participa",
+      "panaInk": "PanaInk",
+      "panaSocial": "Pana Social",
+      "panaVizion": "PanaVizión"
+    },
     "switchAccount": "Cambiar de cuenta",
     "you": "Tú",
     "yourProfile": "Tu perfil"

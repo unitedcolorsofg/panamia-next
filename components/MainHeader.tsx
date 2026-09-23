@@ -48,15 +48,8 @@ import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
 import { ThemeToggle } from './theme-toggle';
 import { IdentityProvider } from './account/identity-provider';
-import { SURFACES } from '@/lib/panaverse/surfaces';
-
-/**
- * Where joining lands a new member. Read from the surface registry rather than
- * written as '/s' so it follows the social surface if its root ever moves.
- */
-const JOIN_DESTINATION =
-  SURFACES.find((s) => s.id === 'social')?.rootPath ?? '/s';
 import { IdentityMenu } from './account/identity-menu';
+import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
@@ -364,26 +357,18 @@ export default function MainHeader({
             </Link>
 
             <div className={styles.mastheadRight}>
-              {/* Unauthenticated users: Become a Pana + Sign In */}
+              {/* Unauthenticated users: one control, one panel. It used to be
+                  a "Sign Up" pill beside a "Sign In" link, which asked a
+                  visitor to classify themselves before anything had explained
+                  the difference — and this site is passwordless, so there is
+                  no real difference to explain: the account is created the
+                  first time you use a magic link. The pair also cost the right
+                  column the width the `1fr auto 1fr` grid needs to keep the
+                  logo on the page axis, which is why the sign-in link was
+                  hidden below 560px and narrow phones were left with a lone
+                  "Sign Up". */}
               {status !== 'loading' && !session && (
-                <>
-                  {/* One label, one destination. This pointed at the directory
-                    express form while reading "Sign Up" on narrow viewports, so
-                    tapping it signed you up and dropped you into a listing form
-                    you never chose — the label was the only thing that said
-                    "sign up" anywhere in the flow. Joining now creates the
-                    account and lands on the feed; "Become a Pana" still opens
-                    the directory form from the drawer, homepage and footer. */}
-                  <Link
-                    href={`/signin?callbackUrl=${encodeURIComponent(JOIN_DESTINATION)}`}
-                    className={styles.cta}
-                  >
-                    {t('nav.signUp')}
-                  </Link>
-                  <Link href="/signin" className={styles.login}>
-                    {t('nav.signIn')}
-                  </Link>
-                </>
+                <AuthMenu triggerClassName={styles.cta} />
               )}
 
               {/* Authenticated users: Show Jump To dropdown */}
