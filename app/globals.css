@@ -4990,6 +4990,15 @@ body:has([data-density]) {
   color: var(--story-cream);
 }
 
+/* Its type is the old near-black `#110D0D` rather than `#020811`. The two are
+   indistinguishable side by side, but there is no reason to leave the old
+   token rendering on a page that is otherwise entirely the new palette. */
+[data-density] .directory-suggest-pill .text-pana-ink,
+[data-density] .directory-suggest-pill input,
+[data-density] .tagpill {
+  color: var(--story-ink);
+}
+
 .beats {
   display: flex;
   flex-direction: column;
