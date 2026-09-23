@@ -35,6 +35,12 @@ const KEYS = [
   // a localhost host. An empty value here restores host-only cookies so local
   // sign-in works. Without it, sign-in redirects correctly but lands signed out.
   'PANAVERSE_COOKIE_DOMAIN',
+  // Not a live break today: wrangler.jsonc pins this to the same "pana.social"
+  // that .env.local.example ships, so dropping it changed nothing. Carried
+  // through so an *explicit* local override survives `dev:setup` — and because
+  // an unset value is not inert: lib/federation/domain.ts falls back to the UI
+  // host, so a plain `dev` run with no value mints actor URIs under localhost.
+  'FEDERATION_DOMAIN',
 ];
 
 if (!existsSync('.env.local')) {
