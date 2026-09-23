@@ -202,6 +202,15 @@ export function DirectoryModule() {
             </p>
           )}
 
+          {/* Relative on purpose, and the premise is worth stating because it
+              has already moved once. `/p` belongs to social for CHROME
+              (lib/panaverse/surfaces.ts), while an individual listing declares
+              its own canonical pointing at www (app/p/[user]/page.tsx). So a
+              member who taps this stays on social with the switcher intact,
+              and only a crawler is sent to www. The "From the directory"
+              eyebrow above is what tells the member this is directory content
+              -- the chrome deliberately does not say it by ejecting them.
+              If /p ever stops being a social path, revisit this link. */}
           <Link
             href={`/p/${spotlight.screenname}`}
             className="link-arrow text-pana-indigo mt-3.5 inline-flex text-[13px]"
