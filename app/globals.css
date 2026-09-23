@@ -4743,8 +4743,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 54px;
   opacity: 0.9;
   --drift: 46px;
-  --float-dur: 95s;
-  --float-delay: -29s;
+  --float-dur: 38s;
+  --float-delay: -11.6s;
 }
 
 .sky-cloud-2 {
@@ -4752,8 +4752,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 34px;
   opacity: 0.55;
   --drift: 18px;
-  --float-dur: 140s;
-  --float-delay: -92s;
+  --float-dur: 56s;
+  --float-delay: -36.8s;
 }
 
 .sky-cloud-3 {
@@ -4761,8 +4761,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 44px;
   opacity: 0.72;
   --drift: 30px;
-  --float-dur: 115s;
-  --float-delay: -53s;
+  --float-dur: 46s;
+  --float-delay: -21.2s;
 }
 
 .sky-cloud-4 {
@@ -4770,8 +4770,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 62px;
   opacity: 0.95;
   --drift: 58px;
-  --float-dur: 80s;
-  --float-delay: -10s;
+  --float-dur: 32s;
+  --float-delay: -4s;
 }
 
 .sky-cloud-5 {
@@ -4779,8 +4779,8 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   height: 26px;
   opacity: 0.4;
   --drift: 10px;
-  --float-dur: 165s;
-  --float-delay: -139s;
+  --float-dur: 66s;
+  --float-delay: -55.6s;
 }
 
 /* Weather. Every cloud starts parked just past the right edge and crosses to
@@ -4794,6 +4794,15 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 
    Near clouds are bigger and faster, far ones smaller and slower — the same
    parallax the scroll does, running on its own.
+
+   On the durations: the first pass ran these at 80–165s, which is roughly
+   what a real cloud does and was a mistake. At that rate a cloud moves about
+   a finger's width in ten seconds, so the sky was animating and reading as
+   completely still — worse than no animation, because it costs the same and
+   returns nothing. These cross in 32–66s, or 25–50px a second, which is fast
+   enough to catch out of the corner of your eye and slow enough to ignore
+   while reading. The delays are the same fractions of the new durations, so
+   the clouds still open the page spread across the sky rather than bunched.
 
    Held to `translate` rather than `transform` deliberately: the scroll
    parallax below owns `transform`, and the two properties compose, so each
