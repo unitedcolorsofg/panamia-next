@@ -4736,6 +4736,14 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   position: absolute;
   width: auto;
   color: color-mix(in srgb, var(--story-blue) 20%, var(--story-cream));
+
+  /* Hidden runway at both ends of the lap. The scroll parallax below shifts
+     each cloud by up to its own `--drift` (58px on the widest), and that shift
+     applies at the moment the float restarts too — so a cloud whose lap ends
+     exactly at the band edge can be dragged back inside it and reappear with
+     a slice of itself already showing. One 70px overshoot past each edge
+     covers the largest drift and keeps the wrap invisible. */
+  --float-runway: 70px;
 }
 
 .sky-cloud-1 {
@@ -4817,10 +4825,10 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 
 @keyframes home-cloud-float {
   from {
-    translate: 0;
+    translate: var(--float-runway, 0px);
   }
   to {
-    translate: calc(-100vw - 100%);
+    translate: calc(-100vw - 100% - var(--float-runway, 0px));
   }
 }
 
