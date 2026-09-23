@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
@@ -11,6 +12,7 @@ import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
 import type { SocialStatusDisplay } from '@/lib/interfaces';
 import { FeedPostCard } from './_components/feed-post-card';
 import { FeedRail } from './_components/feed-rail';
+import { DirectoryModule, EventsModule } from './_components/feed-modules';
 
 const PostComposer = dynamic(
   () =>
@@ -173,7 +175,9 @@ function FeedContent() {
           ) : source.isError ? (
             <FeedError onRetry={() => source.refetch()} />
           ) : posts.length > 0 ? (
-            posts.map((post) => <FeedPostCard key={post.id} status={post} />)
+            withModules(
+              posts.map((post) => <FeedPostCard key={post.id} status={post} />)
+            )
           ) : filter === 'panas' && statuses.length === 0 ? (
             <FeedEmpty />
           ) : (
@@ -191,6 +195,35 @@ function FeedContent() {
       {actor && <FeedRail actor={actor} />}
     </div>
   );
+}
+
+/* Threads the standing modules through the timeline instead of stacking them
+ * in the rail, so the column has something other than statuses in it. The
+ * modules are injected into the rendered list rather than mixed into the data,
+ * because they are not posts and must never be treated as posts — no keys
+ * collide with status ids, and filtering never sees them.
+ *
+ * The mock injects three; two exist here, so the spacing is re-derived rather
+ * than copied — dropping the middle one from fixed positions 1/3/5 would have
+ * left a nine-post gap between modules.
+ *
+ * The short-list rule is the important one. A feed with one or two posts is a
+ * new or quiet account, which is precisely the case that used to dead-end in
+ * a grey box. Those get a module appended so the column ends on somewhere to
+ * go. The positional injections cannot fire on a list that short, so nothing
+ * is ever shown twice. */
+function withModules(cards: ReactNode[]): ReactNode[] {
+  if (cards.length <= 2) {
+    return [...cards, <DirectoryModule key="module-directory-tail" />];
+  }
+
+  const out: ReactNode[] = [];
+  cards.forEach((card, index) => {
+    out.push(card);
+    if (index === 2) out.push(<EventsModule key="module-events" />);
+    if (index === 5) out.push(<DirectoryModule key="module-directory" />);
+  });
+  return out;
 }
 
 function FeedSkeleton() {
