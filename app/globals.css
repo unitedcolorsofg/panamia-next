@@ -4606,6 +4606,13 @@ body:has([data-density]) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
+  /* Added for the gator, and so far only worn by the gator. Kept at the same
+     chroma and lightness as the blue and the coral so it sits in the family
+     rather than looking pasted in from another palette. The palms stay blue:
+     one green animal on a street of blue foliage is a creature you notice,
+     where a green everything would just be a different scene. */
+  --story-green: #2f9e57;
+
   /* Blue let down towards cream. A fixed mix rather than a `color-mix()` call
      repeated at every use, so it still reads as a number when someone checks
      the maths later. The page no longer opens on a band of sky, so the only
