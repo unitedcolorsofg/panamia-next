@@ -215,10 +215,51 @@ Three details settled during the build:
 
 ### Phase 3 — contextual asks
 
-- **`zipCode`** — exists on `users`, collected today only in account settings.
-  Ask at the first locality-scoped directory search.
 - **Display name and avatar** — prompt on first post if still unset.
 - **Who to follow** — see Known Gaps; this one is not a wiring job.
+
+#### Dropped: the `zipCode` ask
+
+An earlier draft of this phase proposed asking for `users.zipCode` at the first
+locality-scoped directory search. It was cut, and the account-settings input
+that wrote the column was removed with it.
+
+The field was doing nothing. Every reference to `users.zipCode` was the account
+settings round trip — the edit page sent it, `saveSessionUser` wrote it,
+`getSessionUser` handed it back — under a label reading "Used to personalize
+search results and site features." Nothing personalized anything with it.
+
+It is also redundant. The directory already answers "near me" two ways, and
+neither wants a zip:
+
+- **Distance** comes from shared browser coordinates: `geolat`/`geolng` through
+  `calcDistance` in `lib/geolocation.ts`, driving the `nearest` sort.
+- **Coarse locality** comes from the county filter: `filterLocations` matched
+  against `countyKeys(p.counties)` in `lib/server/directory.ts`. This needs no
+  permission at all, which makes it the existing answer for a member who
+  declines the location prompt.
+
+A zip is a coarser proxy for the first and a different vocabulary from the
+second, so making it useful would mean shipping a zip→county or zip→coordinates
+table purely to synthesize a signal the browser already provides. Asking again
+at search time would also have meant asking a second time for a string the
+account panel already collected and ignored.
+
+The column survives with a comment in `lib/schema/index.ts`; existing rows hold
+real data and dropping it is a migration for no benefit.
+
+**It has already come back once.** The account settings redesign (#183) landed
+while this work was in flight and re-created the input in
+`app/account/user/edit/_components/user-settings-view.tsx`, under a nav section
+called "Where you are" whose lede promised "A ZIP code is enough to sort the
+directory and the events near you." That is the same promise the old copy made
+and the same one nothing kept. If a future settings pass wants a locality
+control, the thing to surface is the county filter, which is real.
+
+**The gap this leaves.** A member who declines the location prompt gets
+`nearest` disabled and no visible alternative. The county chips are the answer,
+but nothing says so at that moment. That is a discoverability fix in
+`app/directory/search/_components/filter-bar.tsx`, not a data problem.
 
 ---
 
