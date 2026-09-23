@@ -14,6 +14,26 @@ on:
       - '*.md'
       - '.gitignore'
 
+# The test database is one shared Supabase project, and the job below resets
+# it before every run: DROP SCHEMA public CASCADE, then replay every migration
+# with psql. Two runs overlapping therefore race the same database. One drops
+# the schema out from under the other's migration replay, and the loser dies
+# partway through with errors like `type "event_visibility" already exists` --
+# a failure that looks like a broken migration but is really just a collision.
+#
+# This is deliberately a fixed, repo-wide group rather than one keyed on the
+# ref. The runs that actually collide are usually on *different* refs: a push
+# to main and a pull request that landed seconds apart, for instance. Grouping
+# per ref, which is the common default, would not separate those at all.
+#
+# cancel-in-progress stays false because the goal is to serialise, not to
+# discard. Killing a run midway through the migration replay would leave the
+# shared database half-migrated, which is the exact state this is here to
+# avoid. Queued runs wait instead, at the cost of some wall-clock time.
+concurrency:
+  group: playwright-shared-db
+  cancel-in-progress: false
+
 jobs:
   test:
     timeout-minutes: 60
