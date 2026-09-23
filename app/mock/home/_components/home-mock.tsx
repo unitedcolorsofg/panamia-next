@@ -154,10 +154,13 @@ function HeroCard() {
         </h1>
 
         <div className="mx-auto mt-4 max-w-[760px]">
+          {/* The mission, verbatim. It replaces a line that described the
+              product; this one says what the club is for, which is what the
+              rest of the page then goes on to tell the story of. */}
           <p className="hero-subheadline">
-            South Florida&rsquo;s first local directory — a living archive of
-            the creatives, entrepreneurs and small businesses who make this
-            place what it is.
+            Pana MIA Club serves as a community connector to promote everything
+            local in South Florida (small businesses, creatives, and
+            organizations) in order to achieve a more regenerative future.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-[18px]">
@@ -174,7 +177,7 @@ function HeroCard() {
                 type="search"
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
-                placeholder="Search by name, category, products"
+                placeholder="Search directory"
                 autoComplete="off"
                 className="text-pana-ink min-w-0 flex-1 border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold outline-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)]"
               />
