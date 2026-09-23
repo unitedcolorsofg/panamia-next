@@ -24,6 +24,11 @@ const RESERVED_MODULES: { title: string; description: string }[] = [
     title: 'Jams',
     description: 'Live rooms a Pana can drop into straight from the timeline.',
   },
+  {
+    title: 'Trending & hashtags',
+    description:
+      'What your county is talking about right now, and a tag to follow it by.',
+  },
 ];
 
 /* The rail beside the timeline.
@@ -35,9 +40,10 @@ const RESERVED_MODULES: { title: string; description: string }[] = [
  * Every number is fetched rather than asserted. The mock's third stat was
  * "Unread", which has no endpoint behind it; posts do, via the actor's own
  * statusCount, so that is the honest third column. The mock's "Trending in
- * Miami-Dade" module is absent entirely for the same reason — there is no
- * hashtag or trending API, and a trending list is exactly the kind of thing
- * nobody would notice was invented.
+ * Miami-Dade" module is not rendered as data for the same reason — there is
+ * no hashtag or trending API, and a trending list is exactly the kind of
+ * thing nobody would notice was invented. It is announced in "Coming to the
+ * feed" instead, which promises it without fabricating counts.
  */
 export function FeedRail({ actor }: { actor: SocialActor }) {
   /* Panas are mutual follows, which is its own endpoint rather than either

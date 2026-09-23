@@ -35,10 +35,12 @@ const PostComposer = dynamic(
  * likes for a closer pixel match, which is the wrong way round.
  *
  * Several things in the mock have no data behind them and are therefore absent
- * rather than faked: the county badge (an actor has no county), boosts
- * (`announcesCount`/`boostedBy` — there is no boost feature), the top-reply
- * preview, and link unfurls. Each would have needed an invented value to
- * render, and a feed that invents numbers is worse than one that omits them.
+ * rather than faked: boosts (`announcesCount`/`boostedBy` — there is no boost
+ * feature), the top-reply preview, and link unfurls. Each would have needed an
+ * invented value to render, and a feed that invents numbers is worse than one
+ * that omits them. The county badge was in that list and no longer is: the
+ * timeline now joins the actor's profile for it, so it renders where a member
+ * has set an address and stays absent where they have not.
  */
 export function FeedPostCard({ status }: { status: SocialStatusDisplay }) {
   const [cwOpen, setCwOpen] = useState(false);
@@ -110,6 +112,19 @@ export function FeedPostCard({ status }: { status: SocialStatusDisplay }) {
                   </time>
                 </Link>
               </>
+            )}
+            {/* A pin, not a check: the member ticked this county on their own
+                address form and nothing has verified it. The mock drew a
+                verification badge here on the strength of a billing-zip check
+                that profiles.verification was meant to carry — that column is
+                still written by nothing, so a check mark would assert a fact
+                the system has never established. Swap the icon when the
+                verification lands, not before. */}
+            {status.actor.county && (
+              <span className="text-pana-indigo inline-flex flex-none items-center gap-1 text-[11px] font-extrabold">
+                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                {status.actor.county}
+              </span>
             )}
           </div>
 
