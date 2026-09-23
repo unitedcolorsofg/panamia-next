@@ -19,9 +19,12 @@ import {
   PATHNAME_HEADER,
   wearsGuestChrome,
   wearsOwnChrome,
+  wearsSurfaceChrome,
 } from '@/lib/panaverse/chrome';
 import { SurfaceGuestHeader } from '@/components/panaverse/SurfaceGuestHeader';
 import { SurfaceGuestFooter } from '@/components/panaverse/SurfaceGuestFooter';
+import { SurfaceMemberHeader } from '@/components/panaverse/SurfaceMemberHeader';
+import { SurfaceMemberFooter } from '@/components/panaverse/SurfaceMemberFooter';
 
 /**
  * Title and description for any page that does not set its own.
@@ -135,6 +138,13 @@ export default async function RootLayout({
   const pathname = requestHeaders.get(PATHNAME_HEADER);
   const guest = wearsGuestChrome(surface, pathname);
 
+  /* A surface over one of its own rooms wears its own masthead. This is the
+   * case the other two predicates left uncovered, and it was the one members
+   * actually lived in: social.pana.social/s matched neither `wearsMainChrome`
+   * nor `guest`, so the timeline rendered with no header at all — no mark, no
+   * account, no way back to Pana Mia. See lib/panaverse/chrome.ts. */
+  const ownSurface = wearsSurfaceChrome(surface, pathname);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -181,6 +191,13 @@ export default async function RootLayout({
                   owner={surfaceForPath(pathname)}
                 />
               )}
+              {ownSurface && pathname && (
+                <SurfaceMemberHeader
+                  surface={surface}
+                  host={host}
+                  pathname={pathname}
+                />
+              )}
               <div id="layout-main">{children}</div>
               {wearsMainChrome && <MainFooter />}
               {guest && pathname && (
@@ -189,6 +206,7 @@ export default async function RootLayout({
                   owner={surfaceForPath(pathname)}
                 />
               )}
+              {ownSurface && <SurfaceMemberFooter surface={surface} />}
               <ScreennameGate />
             </Providers>
           </FlowerPowerProvider>
