@@ -75,25 +75,21 @@ const TERRA = 'color-mix(in srgb, var(--story-red) 58%, var(--story-orange))';
 const TERRA_MID =
   'color-mix(in srgb, var(--story-orange) 78%, var(--story-ink))';
 
-/** Palm fronds and street trees. Blue reads as foliage here: a blue canopy
- *  against cream is unmistakably a plant, and it keeps the trees from
- *  competing with the one thing on the street that is actually green. */
-const FROND = 'var(--story-blue)';
+/** Palm fronds and street trees. */
+const FROND = 'var(--story-green)';
 
 /** Palm trunks. Terracotta was too red for them — a row of palms came out a
  *  row of red poles — so they get orange pulled toward ink instead. */
 const TRUNK = 'color-mix(in srgb, var(--story-orange) 46%, var(--story-ink))';
 
-/** The gator, and the only thing on the page wearing green. He was navy at
- *  first, on the reasoning that the palette had no green and inventing one
- *  for a single animal would put a colour on the page that appears nowhere
- *  else — but that is exactly what makes him findable. Nothing else competes
- *  for the eye at this hue, so he reads instantly at 46 units long, and an
- *  alligator that is not green is a puzzle nobody asked to solve.
+/** The gator. Pulled well down into ink rather than wearing `--story-green`
+ *  straight, because the fronds above him now wear it straight and at equal
+ *  value the two read as one mass of foliage with a reptile hidden in it.
  *
- *  Pulled a little into ink so he is a reptile rather than a shrub, and so
- *  the orange lead still separates cleanly from his back. */
-const GATOR = 'color-mix(in srgb, var(--story-green) 84%, var(--story-ink))';
+ *  Dark also happens to be correct: canopy catches the sun, and a gator on
+ *  the pavement does not. The gap between the two is what puts him in front
+ *  of the trees rather than among them. */
+const GATOR = 'color-mix(in srgb, var(--story-green) 70%, var(--story-ink))';
 
 /* ---------------------------------------------------------------- clouds */
 
@@ -1714,7 +1710,7 @@ export function StreetScene() {
           sway={7.4}
           delay={-2.2}
         />
-        <Tree x={1252} scale={0.88} fill="var(--story-blue)" />
+        <Tree x={1252} scale={0.88} fill={FROND} />
         <Bench x={1278} />
         {/* The lifeguard stand. Nothing else says which coast this is so
             quickly, and no two of them are painted the same. Kept clear of
