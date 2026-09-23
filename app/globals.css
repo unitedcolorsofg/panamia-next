@@ -4312,3 +4312,482 @@ button.bizprofile-update-action:hover {
   margin-top: 0.9rem;
   display: inline-flex;
 }
+
+/* ---------------------------------------------------------------------------
+   Homepage mock — the info card and the three pillars  (/mock/home)
+   ---------------------------------------------------------------------------
+   Two new primitives, both built from tokens already in this file so the mock
+   cannot win an argument with colours the design system does not have.
+
+   If the mock is signed off these move up into the homepage section above and
+   the `/mock/home` route is deleted, the same way the directory mock's
+   components moved into app/directory/search/_components.
+   --------------------------------------------------------------------------- */
+
+/* The donate chip in the hero. A `.tagpill` that carries an icon and reads as
+   an aside rather than a fourth county — same size and shape as its
+   neighbours, inverted fill so it is not mistaken for a filter. `.tagpill` is
+   inline-block with no border, so both have to be restated here. */
+.hero-donate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(255 247 236 / 0.5);
+  background-color: rgb(17 13 13 / 0.55);
+  color: var(--color-pana-cream);
+}
+
+.hero-donate:hover {
+  background-color: var(--color-pana-ink);
+  border-color: var(--color-pana-cream);
+  color: var(--color-pana-cream);
+}
+
+/* --- The info card: pinned notes ---------------------------------------- */
+
+.stickyboard {
+  display: grid;
+  gap: clamp(2rem, 4vw, 2.75rem);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 52rem) {
+  .stickyboard {
+    grid-template-columns: repeat(3, 1fr);
+    /* start, not stretch: an opened note grows downward on its own rather
+       than dragging its two closed neighbours to the same height. */
+    align-items: start;
+  }
+}
+
+.stickynote {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 2.25rem 1.6rem 1.5rem;
+  color: var(--color-pana-ink);
+  border: 2px solid rgb(17 13 13 / 0.14);
+  /* Barely rounded. Paper has corners; cards have radii. */
+  border-radius: 3px;
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.16);
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.28s ease;
+}
+
+/* The tilt is charm, not information, so anything that signals intent —
+   hovering, tabbing in, opening the note — straightens it out and gets the
+   text level before it has to be read. */
+.stickynote:hover,
+.stickynote:focus-within,
+.stickynote[data-open='true'] {
+  transform: rotate(0deg) translateY(-4px);
+  box-shadow: 0 22px 44px rgb(17 13 13 / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stickynote {
+    transform: none;
+    transition: box-shadow 0.28s ease;
+  }
+
+  .stickynote:hover,
+  .stickynote:focus-within,
+  .stickynote[data-open='true'] {
+    transform: none;
+  }
+}
+
+/* A torn strip of tape across the top edge.
+
+   `data-paper`, not `data-tone` — `[data-tone='flame']` is already claimed by
+   the surface-token registry above, and a note that quietly redefined
+   `--surface-tone` for its whole subtree would be a trap for the next person. */
+.stickynote-tape {
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 5.5rem;
+  height: 1.4rem;
+  transform: translateX(-50%) rotate(-1.5deg);
+  background-color: rgb(255 247 236 / 0.72);
+  border-left: 1px dashed rgb(17 13 13 / 0.18);
+  border-right: 1px dashed rgb(17 13 13 / 0.18);
+  box-shadow: 0 1px 3px rgb(17 13 13 / 0.12);
+}
+
+.stickynote[data-paper='butter'] {
+  background-color: var(--color-pana-butter);
+}
+
+.stickynote[data-paper='flame'] {
+  background-color: var(--color-pana-flame);
+}
+
+/* Cream on butter-2 is only a shade apart, so this one needs the border to do
+   the separating that fill does for the other two. */
+.stickynote[data-paper='cream'] {
+  background-color: var(--color-pana-cream);
+  border-color: rgb(17 13 13 / 0.2);
+}
+
+/* Cream tape on a cream note is nothing at all, so this one gets a grey. */
+.stickynote[data-paper='cream'] .stickynote-tape {
+  background-color: rgb(17 13 13 / 0.1);
+}
+
+.stickynote-q {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+.stickynote-aside {
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.stickynote-a {
+  margin-top: 0.85rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+  opacity: 0.86;
+}
+
+.stickynote-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  /* Pushed to the bottom so three notes of unequal copy still line their
+     buttons up when the row stretches. */
+  margin-top: auto;
+  padding-top: 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-pana-ink);
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.stickynote-toggle:hover {
+  opacity: 1;
+}
+
+.stickynote-detail {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 2px dashed rgb(17 13 13 / 0.2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.stickynote-detail > * + * {
+  margin-top: 0.85rem;
+}
+
+.stickynote-label {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.stickynote-label + ol,
+.stickynote-label + ul {
+  margin-top: 0.45rem;
+}
+
+.stickynote-numbered {
+  list-style: decimal;
+  padding-left: 1.15rem;
+}
+
+.stickynote-list {
+  list-style: disc;
+  padding-left: 1.15rem;
+}
+
+.stickynote-numbered > li + li,
+.stickynote-list > li + li {
+  margin-top: 0.4rem;
+}
+
+.stickynote-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.stickynote-tags > li {
+  padding: 0.3rem 0.7rem;
+  border: 2px solid rgb(17 13 13 / 0.22);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* --- The three pillars: expanding panels -------------------------------- */
+
+.pillars {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid rgb(17 13 13 / 0.32);
+  border-radius: 1.1rem;
+  background-color: rgb(17 13 13 / 0.07);
+  color: var(--color-pana-ink);
+  transition:
+    background-color 0.35s ease,
+    flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    flex-grow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Cream is the "this one is open" signal. On the citrus surface it reads as a
+   sheet of paper laid over the peel, which is the whole idea. */
+.pillar[data-open='true'] {
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 18px 40px rgb(17 13 13 / 0.18);
+}
+
+.pillar-head {
+  margin: 0;
+  display: flex;
+}
+
+.pillar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1.15rem 1.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pillar-index {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  opacity: 0.55;
+}
+
+.pillar-name {
+  font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.pillar-chev {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  flex: none;
+  opacity: 0.5;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.pillar-trigger:hover .pillar-chev {
+  opacity: 0.9;
+  transform: translateX(3px);
+}
+
+.pillar[data-open='true'] .pillar-chev {
+  opacity: 0;
+}
+
+.pillar-body {
+  padding: 0 1.35rem 1.5rem;
+}
+
+.pillar-problem {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+
+.pillar-answer {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  max-width: 44rem;
+}
+
+.pillar-programs {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+/* The rows are wrapped in list items, so the item has to pass the track's
+   height down to the card that actually has the border. */
+.pillar-programs > li {
+  display: grid;
+}
+
+.pillar-program {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 0.85rem;
+  background-color: rgb(17 13 13 / 0.03);
+}
+
+/* Only the linked rows light up. A hover state on a programme that goes
+   nowhere is a promise the row cannot keep. */
+a.pillar-program {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+a.pillar-program:hover {
+  border-color: var(--color-pana-indigo);
+  background-color: rgb(48 62 140 / 0.06);
+  transform: translateY(-2px);
+}
+
+.pillar-program-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.0625rem;
+  font-weight: 900;
+}
+
+.pillar-program-note {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.pillar-program-status {
+  justify-self: start;
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pillar-program-status[data-status='live'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* "Building" is a dashed outline rather than a second fill, so the two states
+   are told apart by shape and not only by colour. */
+.pillar-program-status[data-status='building'] {
+  border: 2px dashed rgb(17 13 13 / 0.3);
+  opacity: 0.7;
+}
+
+/* Above this width the panels sit side by side and the closed ones collapse
+   to a spine — the shape in the sketch. Below it they stay a plain vertical
+   accordion: a column of sideways words in a narrow viewport is a puzzle, not
+   a navigation aid. */
+@media (min-width: 64rem) {
+  .pillars {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .pillar {
+    flex: 0 0 5.5rem;
+  }
+
+  .pillar[data-open='true'] {
+    flex: 1 1 auto;
+  }
+
+  .pillar[data-open='false'] .pillar-head {
+    flex: 1;
+  }
+
+  .pillar[data-open='false'] .pillar-trigger {
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+    padding: 1.35rem 0;
+  }
+
+  /* Bottom-to-top, so the spine reads with the head tilted left — the way
+     book spines and every other vertical label on a wall are read. */
+  .pillar[data-open='false'] .pillar-name {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-top: 0.85rem;
+  }
+
+  .pillar[data-open='false'] .pillar-chev {
+    margin-left: 0;
+    margin-top: auto;
+    transform: rotate(90deg);
+  }
+
+  .pillar[data-open='false'] .pillar-trigger:hover .pillar-chev {
+    transform: rotate(90deg) translateX(3px);
+  }
+
+  .pillar-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 0 2rem 2rem;
+  }
+
+  /* The vertical spines set the row's height, and they are taller than this
+     panel's prose. Rather than leave a dead zone under the programme cards,
+     let the copy sit at the top and the cards settle on the floor. */
+  .pillar-programs {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.85rem;
+    margin-top: auto;
+    padding-top: 1.4rem;
+  }
+
+  /* Name / note / status, with the note taking the slack so the status chips
+     line up along the bottom regardless of how long each note runs. */
+  .pillar-program {
+    grid-template-rows: auto 1fr auto;
+    align-content: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillar,
+  .pillar-chev,
+  a.pillar-program {
+    transition: none;
+  }
+}
