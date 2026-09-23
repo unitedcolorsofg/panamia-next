@@ -4,10 +4,9 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, HeartHandshake, Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ScrollReveal from '@/components/scroll-reveal';
-import { countyList } from '@/lib/lists';
 import { searchPath } from '@/lib/directory-search-path';
 import { MockControls, type Density } from './mock-controls';
 import { StoryBeats } from './story-beats';
@@ -122,12 +121,12 @@ function HeroCard() {
        made the card read as a shape pasted onto the page instead of the top
        of it.
 
-       The field behind the search is sky — see `.home-hero-field`. It runs
-       vivid blue at the very top and eases to paper by the time it reaches
-       the headline, so the page opens outdoors but the wordmark, the type
-       and the search all sit on cream where they are legible. Orange on that
-       blue is a poor pairing and the search is the one thing this card is
-       for; the gradient exists so the sky never gets near it. */
+       There is no field behind the search any more either — no photograph,
+       no wash, no sky. The card is the same paper as the masthead above it
+       and the street below it, and the only thing drawn on it is a soft pool
+       of orange light sitting under the search box. Everything this card has
+       to say is now said by four things in a column: the wordmark, the
+       headline, the mission and the one box you can type in. */
     <section className="home-hero-banner home-hero-field">
       <SkyClouds />
       <div className="home-hero-grain" aria-hidden="true" />
@@ -154,13 +153,15 @@ function HeroCard() {
         </h1>
 
         <div className="mx-auto mt-4 max-w-[760px]">
-          {/* The mission, verbatim. It replaces a line that described the
-              product; this one says what the club is for, which is what the
-              rest of the page then goes on to tell the story of. */}
+          {/* The mission, cut to one line. The full sentence named the three
+              groups and the role the club plays between them, which is the
+              right level of detail for an about page and one clause too many
+              for the first thing anyone reads. What is left is the claim and
+              the reason for it; the three stops further down are where the
+              groups get named. */}
           <p className="hero-subheadline">
-            Pana MIA Club serves as a community connector to promote everything
-            local in South Florida (small businesses, creatives, and
-            organizations) in order to achieve a more regenerative future.
+            Pana MIA Club promotes everything local in South Florida in order to
+            achieve a more regenerative future.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-[18px]">
@@ -177,7 +178,7 @@ function HeroCard() {
                 type="search"
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
-                placeholder="Search directory"
+                placeholder="Search local business, groups, events"
                 autoComplete="off"
                 className="text-pana-ink min-w-0 flex-1 border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold outline-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)]"
               />
@@ -186,33 +187,6 @@ function HeroCard() {
               </button>
             </div>
           </form>
-
-          <div className="hero-meta">
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {/* Reversed so the list opens on Miami-Dade, as on the live
-                  page — `countyList` is ordered north to south. */}
-              {[...countyList].reverse().map((county) => (
-                <Link
-                  key={county.value}
-                  href={`/directory/search?floc=${county.value}`}
-                  className="tagpill"
-                >
-                  {county.desc}
-                </Link>
-              ))}
-
-              {/* New, and the one thing in this card the sketch adds: a
-                  standing ask that does not wait for the bottom of the page.
-                  `/donate` is the real route — it is already in the header
-                  menu and the footer, just nowhere anyone looks. Deliberately
-                  a quiet chip rather than a button: it sits beside the
-                  counties instead of competing with the search. */}
-              <Link href="/donate" className="tagpill hero-donate">
-                <HeartHandshake className="h-4 w-4" aria-hidden="true" />
-                Donate
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -4345,7 +4345,7 @@ button.bizprofile-update-action:hover {
      cleared is the masthead, so what is left is its height plus a margin —
      and the card comes up the page by about 150px. */
   --home-hero-pad-top: clamp(104px, 13svh, 148px);
-  --home-hero-pad-bottom: clamp(36px, min(4vw, 6svh), 58px);
+  --home-hero-pad-bottom: clamp(20px, min(2.4vw, 3.5svh), 34px);
   /* How far apart consecutive stops on the walk sit, and how wide the art
      half of a stop is allowed to get before it starts crowding the words. */
   --home-beat-gap: 5.5rem;
@@ -4370,7 +4370,7 @@ button.bizprofile-update-action:hover {
      Tighter than roomy, because the compact hero is only ever as tall as what
      is inside it, so this padding is a much larger share of the whole. */
   --home-hero-pad-top: clamp(88px, 11svh, 120px);
-  --home-hero-pad-bottom: 2.25rem;
+  --home-hero-pad-bottom: 1.25rem;
   --home-beat-gap: 3.75rem;
   --home-beat-art: 20rem;
 }
@@ -4683,38 +4683,9 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   color: var(--story-coral);
 }
 
-.home-hero-field .hero-meta {
-  border-top-color: rgb(2 8 17 / 0.16);
-}
-
-/* A cream chip on a cream field is not a chip. Outlining them also squares
-   them up with `.hero-donate`, which already carried a 2px border. */
-.home-hero-field .tagpill {
-  border: 2px solid rgb(2 8 17 / 0.22);
-  background-color: transparent;
-  box-shadow: none;
-}
-
-/* `.tagpill:hover` is only (0,2,0) and sits far earlier in the file, so the
-   rule above would otherwise win on hover and kill the fill. */
-.home-hero-field .tagpill:hover {
-  border-color: var(--story-blue);
-  background-color: var(--story-blue);
-  color: var(--story-cream);
-}
-
-/* Donate stays filled while the counties go outline, which is what keeps it
-   reading as an aside rather than as a fourth county. */
-.home-hero-field .hero-donate {
-  border-color: var(--story-ink);
-  background-color: var(--story-ink);
-  color: var(--story-cream);
-}
-
-.home-hero-field .hero-donate:hover {
-  border-color: var(--story-blue);
-  background-color: var(--story-blue);
-}
+/* The counties row and the donate chip used to sit under the search; both
+   were removed — they are navigation, and this card is for one thing. The
+   rules that dressed them went with them. */
 
 /* A cream pill on a cream field is an outline of a search box. This is the
    primary action on the page, so it gets an edge — and a shadow sized for a
@@ -4769,42 +4740,79 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 
 .sky-cloud-1 {
   top: 8%;
-  left: -4%;
   height: 54px;
   opacity: 0.9;
   --drift: 46px;
+  --float-dur: 95s;
+  --float-delay: -29s;
 }
 
 .sky-cloud-2 {
   top: 34%;
-  left: 24%;
   height: 34px;
   opacity: 0.55;
   --drift: 18px;
+  --float-dur: 140s;
+  --float-delay: -92s;
 }
 
 .sky-cloud-3 {
   top: 4%;
-  left: 56%;
   height: 44px;
   opacity: 0.72;
   --drift: 30px;
+  --float-dur: 115s;
+  --float-delay: -53s;
 }
 
 .sky-cloud-4 {
   top: 44%;
-  left: 78%;
   height: 62px;
   opacity: 0.95;
   --drift: 58px;
+  --float-dur: 80s;
+  --float-delay: -10s;
 }
 
 .sky-cloud-5 {
   top: 22%;
-  left: 40%;
   height: 26px;
   opacity: 0.4;
   --drift: 10px;
+  --float-dur: 165s;
+  --float-delay: -139s;
+}
+
+/* Weather. Every cloud starts parked just past the right edge and crosses to
+   just past the left one, which means both ends of the loop happen outside
+   `.sky-clouds`' clip and the restart is never seen — no fade, no pop.
+   Staggering is done with a negative delay rather than five different start
+   positions: the animation is already running when the page loads, so the sky
+   opens mid-drift instead of with all five clouds queued at the same edge.
+   (Negative delay is fine here. It is only meaningless on the scroll-driven
+   animation below, which has no clock to be early against.)
+
+   Near clouds are bigger and faster, far ones smaller and slower — the same
+   parallax the scroll does, running on its own.
+
+   Held to `translate` rather than `transform` deliberately: the scroll
+   parallax below owns `transform`, and the two properties compose, so each
+   can be animated without knowing about the other. */
+@media (prefers-reduced-motion: no-preference) {
+  .sky-cloud {
+    left: 100%;
+    animation: home-cloud-float var(--float-dur) linear var(--float-delay)
+      infinite;
+  }
+}
+
+@keyframes home-cloud-float {
+  from {
+    translate: 0;
+  }
+  to {
+    translate: calc(-100vw - 100%);
+  }
 }
 
 @media (max-width: 48rem) {
@@ -4906,17 +4914,19 @@ body:has([data-density]) {
    only thing that marks the change, which is the point: you do not cross into
    a new section, you arrive at ground level.
 
-   The padding at the top is where the scroll hint lives. Without it the hint
-   would sit across the tall end of the block. */
+   The padding at the top is where the scroll hint lives — just enough to
+   clear it, and no more. The street used to sit a comfortable gap below the
+   search; it now sits directly under it, so the card and the town read as
+   one picture rather than two stacked bands. */
 .story-street {
   position: relative;
   background-color: var(--story-cream);
-  padding-top: clamp(2.25rem, 6vw, 4.5rem);
+  padding-top: clamp(1.25rem, 3vw, 2.25rem);
 }
 
 .story-street-note {
   position: absolute;
-  top: clamp(0.5rem, 2.5vw, 1.6rem);
+  top: 0;
   right: 0;
   left: 0;
   text-align: center;
@@ -4933,19 +4943,42 @@ body:has([data-density]) {
   height: auto;
 }
 
-/* The back row. One muted tone via `currentColor`, which every shape in that
-   group inherits, so depth is a single value rather than a colour per
-   building. */
-.street-back {
-  color: rgb(53 101 242 / 0.17);
+/* On a narrow screen a 1440-wide drawing scaled to fit is 80px tall, and at
+   80px the market, the crowd and the park are all one smudge. So below this
+   width the scene stops fitting and starts cropping: it is held at a usable
+   size and centred on the middle of the block, which is where the stalls and
+   most of the people are. You lose the ends of the street; you keep the part
+   that is actually about people.
+
+   `clip` rather than `hidden` so no scroll container is created — one here
+   would re-root the view timelines of anything inside it. */
+@media (max-width: 60rem) {
+  .story-street {
+    --street-w: clamp(760px, 240vw, 1000px);
+    overflow-x: clip;
+  }
+
+  .street-svg {
+    width: var(--street-w);
+    max-width: none;
+    margin-left: calc(50% - var(--street-w) / 2);
+  }
 }
 
-/* Windows in the back row would otherwise come through at full strength and
-   undo the depth the group just bought. */
-.street-back .street-window-lit,
-.street-back .street-window-dark {
-  fill: var(--story-cream);
-  opacity: 0.55;
+/* The back row. One muted tone via `currentColor`, which every shape in that
+   group inherits, so depth is a single value rather than a colour per
+   building. It is plain blocks now — no windows, no doors. At that distance
+   detail is noise, and leaving it out is what makes the row read as far away
+   rather than as small. */
+.street-back {
+  color: rgb(53 101 242 / 0.14);
+}
+
+/* The middle row. Half opacity over cream washes every fill toward the paper,
+   which is atmospheric perspective done with one declaration instead of a
+   second set of colours. */
+.street-mid {
+  opacity: 0.48;
 }
 
 .street-window-lit {
@@ -4973,13 +5006,73 @@ body:has([data-density]) {
   fill: rgb(2 8 17 / 0.16);
 }
 
-.street-trunk,
+.street-roof {
+  fill: rgb(2 8 17 / 0.72);
+}
+
 .street-bench {
   fill: var(--story-ink);
 }
 
 .street-kerb {
   fill: rgb(2 8 17 / 0.2);
+}
+
+/* --- The people --------------------------------------------------------- */
+
+/* Skin, mixed from the palette rather than added to it. Orange toward cream
+   gives a light warm tone; orange toward ink gives the two deeper ones. Three
+   is enough to read as a crowd at this size and stops the pavement looking
+   like one person copied twenty times. */
+.street-skin-1 {
+  fill: color-mix(in srgb, var(--story-orange) 28%, var(--story-cream));
+}
+
+.street-skin-2 {
+  fill: color-mix(in srgb, var(--story-orange) 62%, var(--story-ink));
+}
+
+.street-skin-3 {
+  fill: color-mix(in srgb, var(--story-orange) 34%, var(--story-ink));
+}
+
+/* Legs and wheels are ink for everybody: at forty units tall a second colour
+   below the waist just muddies the silhouette. */
+.street-leg rect {
+  fill: var(--story-ink);
+}
+
+.street-wheel {
+  fill: var(--story-ink);
+}
+
+.street-tote {
+  fill: rgb(2 8 17 / 0.62);
+}
+
+/* --- The market --------------------------------------------------------- */
+
+.street-stall-post {
+  fill: rgb(2 8 17 / 0.55);
+}
+
+.street-stall-top {
+  fill: var(--story-ink);
+}
+
+/* The cloth is ink at low alpha rather than a colour, so three stalls with
+   three different canopies still look like one market. */
+.street-stall-cloth {
+  fill: rgb(2 8 17 / 0.14);
+}
+
+.street-crate {
+  fill: rgb(2 8 17 / 0.38);
+}
+
+.street-bunting-line {
+  stroke: rgb(2 8 17 / 0.42);
+  stroke-width: 1.5;
 }
 
 /* --- The three stops ---------------------------------------------------- */
@@ -5012,14 +5105,8 @@ body:has([data-density]) {
 /* Its type is the old near-black `#110D0D` rather than `#020811`. The two are
    indistinguishable side by side, but there is no reason to leave the old
    token rendering on a page that is otherwise entirely the new palette. */
-/* `.hero-donate` is excluded deliberately: it is the one chip in this row with
-   an ink *fill*, and it carries cream type. Both this rule and the one that
-   sets that cream are (0,2,0), and this one is later in the file, so without
-   the `:not()` it wins and renders the chip ink-on-ink — a solid black pill
-   with an invisible word in it. */
 [data-density] .directory-suggest-pill .text-pana-ink,
-[data-density] .directory-suggest-pill input,
-[data-density] .tagpill:not(.hero-donate) {
+[data-density] .directory-suggest-pill input {
   color: var(--story-ink);
 }
 
@@ -5886,10 +5973,22 @@ a.pillar-program:hover {
        on screen and a `view()` of their own would start them halfway through
        their range — the hero's `contain → exit` is the run that actually
        corresponds to "the sky is going past". */
+    /* Two animations on one element: the ambient float, which runs on the
+       clock, and the scroll parallax, which runs on the hero's view timeline.
+       Written out longhand because the `animation` shorthand would reset the
+       float's name, duration and delay back to their initial values — a
+       shorthand here would silently stop the sky moving. */
     .sky-cloud {
-      animation: home-cloud-drift linear both;
-      animation-timeline: --home-hero;
-      animation-range: contain 0% exit 100%;
+      animation-name: home-cloud-float, home-cloud-drift;
+      animation-duration: var(--float-dur), 1s;
+      animation-delay: var(--float-delay), 0s;
+      animation-timing-function: linear, linear;
+      animation-iteration-count: infinite, 1;
+      animation-fill-mode: none, both;
+      animation-timeline: auto, --home-hero;
+      animation-range:
+        normal,
+        contain 0% exit 100%;
     }
 
     /* The handoff. `[data-rv]` holds its element at opacity 0 until the sweep
