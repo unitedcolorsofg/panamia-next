@@ -33,6 +33,41 @@ function escapeLike(term: string): string {
   return term.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+/**
+ * Why every comparison below is wrapped in pana_unaccent().
+ *
+ * ILIKE folds case but not diacritics, so `'Taller Lucía' ILIKE '%lucia%'` is
+ * false. A member typing on a US keyboard — which is most of them, most of the
+ * time — got an empty typeahead for any business whose name carries an accent,
+ * while pressing Enter found it, because getSearch() unaccents both sides.
+ * Miami's directory is full of these: Café, Bodegón, Peluquería, Lucía, José.
+ *
+ * Unaccenting both sides rather than just the column is deliberate, and is
+ * what getSearch() does. Column-only would fix "lucia" -> "Lucía" but break
+ * the mirror case, where someone typing "Lucía" on a Spanish keyboard or a
+ * phone misses a listing stored without the accent.
+ *
+ * It also aligns the name predicate with the index built for this very query
+ * shape: 0041_profile_name_trigram.sql creates a GIN gin_trgm_ops index on
+ * pana_unaccent(name) so an `ILIKE '%term%'` on a name can use it, and that
+ * migration warns the query must filter on the same expression the index
+ * stores or the index is dead weight. The bare column could never have.
+ *
+ * Measured rather than assumed, and the alignment alone does not buy the
+ * scan. Given the name predicate on its own the planner does choose
+ * profiles_name_trgm_idx (confirmed with enable_seqscan=off; on a small table
+ * it costs out a seq scan first). In the OR'd shape this route actually
+ * issues it bitmap-scans profiles_active_idx and applies all three ILIKEs as
+ * a filter, because the two jsonb expressions have no index to OR against.
+ * So this makes the name predicate indexable, not indexed. That is worth
+ * having as the table grows, or if those jsonb columns are ever indexed, but
+ * it is not a performance fix today and shouldn't be cited as one.
+ *
+ * pana_unaccent is STRICT, so a null descriptions field still yields null and
+ * is still excluded, exactly as the bare column was. It is also IMMUTABLE
+ * (0040) — the wrapper exists because unaccent() itself is only STABLE.
+ */
+
 export async function GET(request: NextRequest) {
   const searchParams = (request.nextUrl ?? new URL(request.url)).searchParams;
   const term = (searchParams.get('q') || '').trim().slice(0, MAX_TERM_LENGTH);
@@ -64,7 +99,7 @@ export async function GET(request: NextRequest) {
   >`COALESCE(${profiles.screenname}, ${users.screenname})`;
 
   const matches = (column: SQL<string | null> | typeof profiles.name) =>
-    sql`${column} ILIKE ${contains} ESCAPE '\\'`;
+    sql`pana_unaccent(${column}) ILIKE pana_unaccent(${contains}) ESCAPE '\\'`;
 
   try {
     const rows = await db
@@ -102,11 +137,14 @@ export async function GET(request: NextRequest) {
       )
       // Name matches first, and a name that starts with the term ahead of one
       // that merely contains it — "Dan" should lead with Dana, not with a bio
-      // that mentions Dan halfway through.
+      // that mentions Dan halfway through. Unaccented for the same reason as
+      // the filter: otherwise "lucia" would match Taller Lucía in the WHERE
+      // and then rank it below every bio mention, which reads as a worse bug
+      // than not finding it.
       .orderBy(
         sql`CASE
-          WHEN ${profiles.name} ILIKE ${prefix} ESCAPE '\\' THEN 0
-          WHEN ${profiles.name} ILIKE ${contains} ESCAPE '\\' THEN 1
+          WHEN pana_unaccent(${profiles.name}) ILIKE pana_unaccent(${prefix}) ESCAPE '\\' THEN 0
+          WHEN pana_unaccent(${profiles.name}) ILIKE pana_unaccent(${contains}) ESCAPE '\\' THEN 1
           ELSE 2
         END`,
         asc(profiles.name)
