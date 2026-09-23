@@ -55,3 +55,36 @@ export function countyLabel(raw: unknown): string | null {
   const match = countyList.find((entry) => keys.includes(entry.value));
   return match?.desc ?? null;
 }
+
+/**
+ * Short forms, for a byline rather than a form field.
+ *
+ * countyList.desc is written for the directory filter list, where a member is
+ * choosing where to search and "Broward/Ft Lauderdale" is the helpful answer.
+ * Beside a name in an 11px badge it is three words of chrome, so these are the
+ * compact readings of the same counties.
+ *
+ * Keyed by the same canonical values, deliberately: a short form is an
+ * abbreviation of a county the filters already know, never a new one. Anything
+ * missing here falls back to the long form rather than disappearing -- a
+ * county added to countyList and forgotten here should read oddly, not vanish.
+ */
+const COUNTY_SHORT_LABEL: Record<string, string> = {
+  palm_beach: 'Palm Beach',
+  broward: 'Broward',
+  miami_dade: 'Miami-Dade',
+};
+
+/**
+ * The county to show in a byline. Same selection rule as countyLabel, shorter
+ * wording.
+ */
+export function countyShortLabel(raw: unknown): string | null {
+  const keys = countyKeys(raw);
+  if (keys.length === 0) return null;
+
+  const match = countyList.find((entry) => keys.includes(entry.value));
+  if (!match) return null;
+
+  return COUNTY_SHORT_LABEL[match.value] ?? match.desc;
+}

@@ -18,7 +18,7 @@ import {
 } from '@/lib/schema';
 import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
 import { and, eq, sql, or, type SQL } from 'drizzle-orm';
-import { countyLabel } from '@/lib/county';
+import { countyShortLabel } from '@/lib/county';
 import { socialConfig } from '../index';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -83,7 +83,7 @@ function publicActor(actor: {
   const { profile, ...rest } = actor;
   return {
     ...(rest as unknown as PublicSocialActor),
-    county: countyLabel(profile?.counties),
+    county: countyShortLabel(profile?.counties),
   };
 }
 
