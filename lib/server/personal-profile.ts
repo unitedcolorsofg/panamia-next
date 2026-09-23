@@ -8,8 +8,7 @@
  * designs are separate.
  */
 
-import { countyList } from '@/lib/lists';
-import type { CountyInterface } from '@/lib/interfaces';
+import { countyLabel } from '@/lib/county';
 import type { LegacyProfile } from '@/lib/server/profile';
 import { getActorByScreenname } from '@/lib/federation';
 
@@ -33,25 +32,6 @@ export interface PersonalProfileView {
   neighborhoods: string[];
   tags: string[];
   joined: string | null;
-}
-
-/**
- * profiles.counties is a jsonb object of booleans, not a single value, because
- * a business can serve several counties. A person lives in one, so the first
- * true flag wins here rather than rendering a list.
- *
- * Labels come from the shared countyList instead of being written inline, so
- * the profile says the same thing the directory filters do.
- */
-function countyLabel(counties: unknown): string | null {
-  if (!counties || typeof counties !== 'object') return null;
-
-  const flags = counties as Partial<CountyInterface>;
-  const match = countyList.find(
-    (entry) => flags[entry.value as keyof CountyInterface] === true
-  );
-
-  return match?.desc ?? null;
 }
 
 /**
