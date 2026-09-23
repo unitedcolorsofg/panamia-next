@@ -26,6 +26,20 @@ Generate magic sign-in links for testing:
 npx tsx scripts/create-signin-link.ts user@example.com
 ```
 
+Two measured gotchas if you `curl` the link rather than opening it:
+
+- **The dev server binds `::1` only.** `localhost:3003` and `[::1]:3003`
+  answer; `127.0.0.1:3003` is refused with `curl: (7)`. That means the usual
+  virtual-host recipe `--resolve host:port:127.0.0.1` silently never reaches
+  the server, and an empty response body reads exactly like a broken route.
+  Use `--resolve social.localhost:3003:[::1]`. Note Postgres is the opposite —
+  `127.0.0.1:5433` is correct there — so the right loopback form differs per
+  service.
+- **Verify always redirects to the www host**, whichever host served it,
+  because `callbackURL` is relative. Signing in on `social.localhost` still
+  lands you on `localhost`. The social session is created regardless; check it
+  with `/api/auth/get-session` rather than by looking at the page you land on.
+
 ### `get-signin-link.ts`
 
 Retrieve existing sign-in tokens from the database.
@@ -141,6 +155,72 @@ npm run db:reset
 # or
 npx tsx scripts/reset-test-db.ts
 ```
+
+**There is no separate test database on a developer machine.** The script's own
+docstring says to use it "only with a dedicated test database", and locally
+that instruction cannot be followed: every worktree's `.env.local` points at
+the same `127.0.0.1:5433/panamia`. Its safety check only rejects URLs
+containing `prod`, `main` or `live`, so `panamia` passes it. Running this
+locally truncates every table for **every** worktree and every running dev
+server, not just yours. It does require `POSTGRES_URL` to be set in the
+environment — it is not read from `.env.local` — which is the only thing
+standing between a bare `yarn db:reset` and everyone else's data.
+
+### `seed-dev-data.ts`
+
+Seeds the committed base data fixture: users, profiles, `profile_owners` and
+the business actor. Run it with the social seed via `db:seed`, which chains
+both in the required order:
+
+```bash
+npm run db:seed
+# or, base layer only
+npx tsx scripts/seed-dev-data.ts
+```
+
+Run this **before** `seed-test-account.ts`, which resolves profiles by
+screenname and silently skips the ones it cannot find.
+
+The fixture is deliberately shaped so that local results mean something:
+
+- Both branches of directory eligibility are present — an unclaimed intake
+  listing (`profiles.userId` null) and a `small_business` sole trader — so the
+  `featured` and `suggest` read paths can be told apart from dead code.
+- Two rows must stay invisible: an unapproved submission (`active: false`) and
+  an unclaimed personal profile. A read path that returns them is widened, not
+  working.
+- `seed_p_legacy` and `seed_biz_pending` differ only in `status.source`, so the
+  OAuth auto-claim guard is observable attaching in one case and declining in
+  the other. Ad-hoc local data left this column null, which
+  `notBusinessListing()` passes, making the guard untestable in both directions.
+- At least one business name carries a Spanish accent, because unaccented
+  fixtures hide accent-sensitive matching. This is how the `suggest` typeahead
+  bug was found.
+
+Every row mirrors a production writer and names it in a comment, and the script
+uses Drizzle rather than raw SQL so a schema change breaks it at `tsc` time.
+It re-queries with the production predicates when it finishes and exits
+non-zero if the shapes disagree — asserting ids rather than counts, since a
+count cannot distinguish a guard that discriminates from one that rejects
+everything.
+
+Idempotent: re-running updates the `seed_`-prefixed rows in place.
+
+**The local database is shared by every worktree.** All `.env.local` files
+point at the same `127.0.0.1:5433/panamia`, so this seeds _the_ dev database,
+not _a_ dev database. Two consequences worth knowing before you trust a local
+measurement:
+
+- Seeding while someone else is probing changes their results mid-run. Two
+  sessions on this repo each recorded a measurement, disbelieved it when it
+  later disagreed with itself, and assumed operator error — the database had
+  changed underneath them.
+- Rows you did not create are normal. Seeing unfamiliar data is not evidence
+  of a bug or of a stale query.
+
+This is why the verification block asserts specific `seed_`-prefixed ids
+rather than row counts. A count is not stable in a database someone else is
+writing to; an id is.
 
 ### `validate-migrations.sh`
 

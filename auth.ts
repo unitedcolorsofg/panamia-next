@@ -18,7 +18,7 @@ import {
   notBusinessListing,
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
-import { SURFACES, originFor } from '@/lib/panaverse/surfaces';
+import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -770,6 +770,21 @@ function getBetterAuth(): BetterAuthInstance {
   // domain needs a real OAuth handoff, not a shared cookie.
   const panaverseCookieDomain = process.env.PANAVERSE_COOKIE_DOMAIN?.trim();
 
+  const authBaseURL =
+    process.env.NEXT_PUBLIC_HOST_URL ||
+    process.env.BETTER_AUTH_URL ||
+    'http://localhost:3000';
+
+  // Parsed defensively: this runs at instance construction, so a malformed
+  // value here would take down every auth route rather than one callback.
+  const authBaseHost = (() => {
+    try {
+      return new URL(authBaseURL).host;
+    } catch {
+      return null;
+    }
+  })();
+
   _betterAuthInstance = betterAuth<BetterAuthOptions>({
     database: drizzleAdapter(db, {
       provider: 'pg',
@@ -812,16 +827,19 @@ function getBetterAuth(): BetterAuthInstance {
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
-    baseURL:
-      process.env.NEXT_PUBLIC_HOST_URL ||
-      process.env.BETTER_AUTH_URL ||
-      'http://localhost:3000',
+    baseURL: authBaseURL,
     trustedOrigins: [
       process.env.NEXT_PUBLIC_HOST_URL,
       process.env.BETTER_AUTH_URL,
       // Every surface signs in against this one auth instance, so each surface
       // origin has to be trusted or its sign-in requests get rejected.
       ...SURFACES.map((surface) => originFor(surface)),
+      // Those name the configured root domain, so away from production they all
+      // point at pana.social and no local surface is trusted. Deriving them from
+      // the host actually being served covers dev, where a callback to
+      // http://social.localhost:3003 is otherwise rejected with a bare 403.
+      // In production this resolves to the same origins as above.
+      ...SURFACES.map((surface) => originForFrom(surface, authBaseHost)),
       'http://localhost:3000',
       'http://localhost:3001',
     ].filter(Boolean) as string[],

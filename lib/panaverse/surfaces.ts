@@ -72,6 +72,9 @@ export const SURFACES: readonly PanaverseSurface[] = [
     tagline: 'The community timeline, federated with the fediverse.',
     subdomain: 'social',
     rootPath: '/s',
+    // `/p` is social's for chrome, but it does not own every page under it:
+    // a business or unclaimed listing at /p/<user> is directory content and
+    // says so with its own canonical. See app/p/[user]/page.tsx.
     paths: ['/s', '/p', '/timeline', '/inbox'],
   },
 ];

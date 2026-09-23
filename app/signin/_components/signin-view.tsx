@@ -94,10 +94,20 @@ export interface SignInViewProps {
 }
 
 /**
- * Terms, privacy, contact, and the FAQ all live on the main site. From a
- * surface hostname a relative link would serve them from a host with no chrome
- * for them, so cross to the main site's own origin instead. On the main site
- * itself `base` is null and this stays a client-side navigation.
+ * Crosses to the main site's own origin when rendered on a surface hostname.
+ *
+ * Reserved for the main site's front door. Borrowed pages — legal, forms —
+ * used to arrive bare on a surface, which is why everything pointing at the
+ * main site once crossed; guest chrome frames them now, so they link
+ * relatively and keep the member on the hostname they chose. Sending someone
+ * to another origin to read the terms is the dead end this page's own footer
+ * exists to avoid.
+ *
+ * The homepage is the exception: going there is a deliberate departure, the
+ * same intent as the footer's link home, so it still crosses.
+ *
+ * On the main site itself `base` is null and this stays a client-side
+ * navigation.
  */
 function MainSiteLink({
   href,
@@ -399,13 +409,12 @@ function SignInPageContent({
               {/* Footer */}
               <p className="text-muted-foreground pt-2 text-center text-xs">
                 {t('termsAgreement')}{' '}
-                <MainSiteLink
+                <Link
                   href="/legal/terms"
-                  base={mainSiteUrl}
                   className="text-pana-indigo dark:text-pana-flame font-semibold hover:underline"
                 >
                   {t('termsLink')}
-                </MainSiteLink>
+                </Link>
               </p>
             </CardContent>
           </Card>
@@ -413,13 +422,12 @@ function SignInPageContent({
           {/* Additional Info */}
           <p className="text-pana-ink/70 dark:text-muted-foreground text-center text-sm">
             {t('needHelp')}{' '}
-            <MainSiteLink
+            <Link
               href="/form/contact-us"
-              base={mainSiteUrl}
               className="text-pana-indigo dark:text-pana-flame font-semibold hover:underline"
             >
               {t('contactUs')}
-            </MainSiteLink>
+            </Link>
           </p>
         </div>
       </div>
@@ -446,20 +454,12 @@ function SignInPageContent({
               {t('goToMain', { main: mainSiteName })}
             </a>
           )}
-          <MainSiteLink
-            href="/legal/terms"
-            base={mainSiteUrl}
-            className="hover:underline"
-          >
+          <Link href="/legal/terms" className="hover:underline">
             {t('termsLink')}
-          </MainSiteLink>
-          <MainSiteLink
-            href="/legal/privacy"
-            base={mainSiteUrl}
-            className="hover:underline"
-          >
+          </Link>
+          <Link href="/legal/privacy" className="hover:underline">
             {t('privacyLink')}
-          </MainSiteLink>
+          </Link>
         </nav>
       </footer>
     </div>

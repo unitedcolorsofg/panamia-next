@@ -18,6 +18,7 @@ import {
 } from '@/lib/schema';
 import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
 import { and, eq, sql, or, type SQL } from 'drizzle-orm';
+import { countyShortLabel } from '@/lib/county';
 import { socialConfig } from '../index';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -41,10 +42,50 @@ function jsonbArrayContains(
   return sql`${column} @> to_jsonb(${value}::text)`;
 }
 
+export type PublicActorWithCounty = PublicSocialActor & {
+  /**
+   * Where this person is, for the badge beside their name. Null for a remote
+   * actor (no local profile to read) and for a member who has not set an
+   * address, and both mean the same thing to a caller: render nothing.
+   */
+  county: string | null;
+};
+
 export type StatusWithActorAndLike = SocialStatus & {
-  actor: PublicSocialActor;
+  actor: PublicActorWithCounty;
   liked: boolean;
 };
+
+/**
+ * The actor shape every timeline returns.
+ *
+ * Written once and shared because seven read paths in this file select an
+ * actor, and a per-call-site spelling is how a field ends up present on the
+ * home feed and missing on a permalink for the same post. The directory's
+ * account-type gate had to be repaired in four places for that exact reason;
+ * this keeps the next field from repeating it.
+ */
+const ACTOR_WITH = {
+  columns: PUBLIC_ACTOR_COLUMNS,
+  with: { profile: { columns: { counties: true } } },
+} as const;
+
+/**
+ * Flatten the joined profile into the county the client actually renders.
+ *
+ * The nested profile row is dropped rather than forwarded: it was selected to
+ * answer one question, and passing the whole thing outward would make every
+ * column added to profiles later a silent addition to a public response.
+ */
+function publicActor(actor: {
+  profile?: { counties: unknown } | null;
+}): PublicActorWithCounty {
+  const { profile, ...rest } = actor;
+  return {
+    ...(rest as unknown as PublicSocialActor),
+    county: countyShortLabel(profile?.counties),
+  };
+}
 
 export type TimelineResult = {
   statuses: StatusWithActorAndLike[];
@@ -104,7 +145,7 @@ export async function getHomeTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -120,8 +161,8 @@ export async function getHomeTimeline(
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, ...rest } = row;
-    return { ...rest, liked: likes.length > 0 };
+    const { likes, actor, ...rest } = row;
+    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
   });
 
   return { statuses, nextCursor };
@@ -147,7 +188,7 @@ export async function getActorPosts(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       ...(viewerActorId && {
         likes: {
@@ -166,8 +207,12 @@ export async function getActorPosts(
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
     const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-    const { likes, ...rest } = rowWithLikes;
-    return { ...rest, liked: likes ? likes.length > 0 : false };
+    const { likes, actor, ...rest } = rowWithLikes;
+    return {
+      ...rest,
+      actor: publicActor(actor),
+      liked: likes ? likes.length > 0 : false,
+    };
   });
 
   return { statuses, nextCursor };
@@ -191,7 +236,7 @@ export async function getPublicTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       ...(viewerActorId && {
         likes: {
@@ -217,8 +262,12 @@ export async function getPublicTimeline(
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
     const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-    const { likes, ...rest } = rowWithLikes;
-    return { ...rest, liked: likes ? likes.length > 0 : false };
+    const { likes, actor, ...rest } = rowWithLikes;
+    return {
+      ...rest,
+      actor: publicActor(actor),
+      liked: likes ? likes.length > 0 : false,
+    };
   });
 
   return { statuses, nextCursor };
@@ -252,7 +301,7 @@ export async function getReceivedDirectMessages(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -268,8 +317,8 @@ export async function getReceivedDirectMessages(
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, ...rest } = row;
-    return { ...rest, liked: likes.length > 0 };
+    const { likes, actor, ...rest } = row;
+    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
   });
 
   return { statuses, nextCursor };
@@ -293,7 +342,7 @@ export async function getSentDirectMessages(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -309,8 +358,8 @@ export async function getSentDirectMessages(
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, ...rest } = row;
-    return { ...rest, liked: likes.length > 0 };
+    const { likes, actor, ...rest } = row;
+    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
   });
 
   return { statuses, nextCursor };
@@ -351,7 +400,7 @@ export async function getAtMeTimeline(
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       likes: {
         where: eq(socialLikes.actorId, actorId),
@@ -367,8 +416,8 @@ export async function getAtMeTimeline(
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, ...rest } = row;
-    return { ...rest, liked: likes.length > 0 };
+    const { likes, actor, ...rest } = row;
+    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
   });
 
   return { statuses, nextCursor };
@@ -384,7 +433,7 @@ export async function getStatusWithLikeStatus(
   const row = await db.query.socialStatuses.findFirst({
     where: eq(socialStatuses.id, statusId),
     with: {
-      actor: { columns: PUBLIC_ACTOR_COLUMNS },
+      actor: ACTOR_WITH,
       attachments: true,
       ...(viewerActorId && {
         likes: {
@@ -398,6 +447,10 @@ export async function getStatusWithLikeStatus(
   if (!row) return null;
 
   const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-  const { likes, ...rest } = rowWithLikes;
-  return { ...rest, liked: likes ? likes.length > 0 : false };
+  const { likes, actor, ...rest } = rowWithLikes;
+  return {
+    ...rest,
+    actor: publicActor(actor),
+    liked: likes ? likes.length > 0 : false,
+  };
 }

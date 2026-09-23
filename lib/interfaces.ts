@@ -372,6 +372,12 @@ export interface SocialStatusDisplay {
     domain: string;
     name?: string | null;
     iconUrl?: string | null;
+    /**
+     * Self-declared county, already resolved to a label by the server. Absent
+     * for remote actors and for members who have not set an address; a card
+     * should read that as "no badge" rather than substituting a placeholder.
+     */
+    county?: string | null;
   };
   inReplyTo?: {
     id: string;

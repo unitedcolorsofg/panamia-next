@@ -130,6 +130,17 @@ yarn lint
 yarn lint --fix
 ```
 
+**Read these tools by exit code, not by matching their output.** `prettier --check` writes its findings to stderr and colours them, so the `[warn]` you see on screen is not the character sequence in the stream — it is `[`, an ANSI escape, `warn`, another escape, then `]`. A pattern anchored on the literal text `[warn]` therefore matches nothing, on every line, and reports zero problems in a tree that has them. The output is not empty, which is what makes it convincing.
+
+When you need the list of offending files rather than a pass/fail, use `--list-different`: plain paths, one per line, on stdout.
+
+```bash
+npx prettier --list-different .   # names the files; exit 1 if any
+npx prettier --check .            # pass/fail only; trust $? or $LASTEXITCODE
+```
+
+The same caution applies to any coloured CLI output you are tempted to grep.
+
 ### Git Hooks
 
 Pre-commit hooks automatically run:
@@ -170,7 +181,9 @@ git reset --hard --quiet
 
 This creates no commit and changes nothing git tracks; it only rewrites the files on disk. Untracked and ignored paths, including `.husky/_`, are left alone.
 
-Verified on a worktree carrying 1683 stale files: the count drops to 0, `HEAD` is unchanged, the tree stays clean, and repo-wide `prettier --check .` goes from failing to passing.
+Verified on a worktree carrying 1683 stale files: the count drops to 0, `HEAD` is unchanged, the tree stays clean, and repo-wide `prettier --check .` goes from failing on files throughout the repo to exiting 0.
+
+It exits 0 only because `external` is excluded in `.prettierignore`. That directory is a vendored upstream project with its own Prettier config, and two of its files have never matched our rules. If you remove that exclusion, expect a permanent floor of two failures that no amount of re-materializing will clear — both are `i/lf w/lf` before and after, so they are a formatting difference, not a line-ending one.
 
 Each worktree is affected independently, and a worktree created after `.gitattributes` never sees this at all — which is why it is easy to miss when it does happen.
 

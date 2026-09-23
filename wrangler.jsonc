@@ -109,11 +109,16 @@
     // deployment — pointing this at it sends every cross-surface link and
     // canonical URL to another app. See docs/DOMAINS.md.
     "PANAVERSE_ROOT_DOMAIN": "pana.social",
-    // PANAVERSE_COOKIE_DOMAIN is deliberately unset. Setting it to
-    // ".pana.social" shares one session across the surfaces, but re-scopes
-    // existing cookies and signs everyone out once — do it as part of
-    // launching social.pana.social, not before. Note it would also be sent to
-    // relay.pana.social, which is under the same registrable domain.
+    // Set as part of launching social.pana.social. Without it the session
+    // cookie is host-only, so verification on pana.social leaves the member
+    // signed out on social.pana.social — the social surface cannot hold a
+    // session at all. Re-scoping signs every existing user out once; that is
+    // the one-time cost of this line, expected rather than a regression.
+    // Note it is also sent to relay.pana.social, under the same registrable
+    // domain. That is a cookie the relay never reads, not a new grant: it
+    // cannot reach the fediverse identity domain, which is a separate
+    // registrable domain and needs a real OAuth handoff. See docs/DOMAINS.md.
+    "PANAVERSE_COOKIE_DOMAIN": ".pana.social",
     "R2_BUCKET_NAME": "panamia-media",
     "R2_PUBLIC_URL": "https://pub-32ea3903ddd74e92a629c30bcda3b3c5.r2.dev",
     "GHL_WORKFLOW_TEST_ID": "6682f160-e9a3-4aff-9f5d-099bd9c3e951",

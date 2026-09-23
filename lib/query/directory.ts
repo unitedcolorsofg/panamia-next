@@ -161,3 +161,52 @@ export const useSearch = (filters: SearchInterface) => {
     queryFn: () => fetchSearch(filters),
   });
 };
+
+/**
+ * A card's worth of directory profile, from /api/directory/featured.
+ *
+ * The endpoint selects only these columns — notably there are no categories or
+ * tags on it, so anything wanting those needs a different query.
+ */
+export interface FeaturedProfileInterface {
+  id: string;
+  name: string;
+  screenname: string | null;
+  primaryImageCdn: string | null;
+  addressLocality: string | null;
+  fiveWords: string | null;
+}
+
+export interface FeaturedProfilesResponseInterface {
+  success: boolean;
+  data: FeaturedProfileInterface[];
+}
+
+export const directoryFeaturedKey = 'directoryFeatured';
+
+async function fetchFeaturedProfiles(
+  limit: number
+): Promise<FeaturedProfilesResponseInterface> {
+  try {
+    const response = await axios.get<FeaturedProfilesResponseInterface>(
+      `/api/directory/featured?limit=${limit}`,
+      { headers: { Accept: 'application/json' } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Directory featured fetch failed:', error);
+    return { success: false, data: [] };
+  }
+}
+
+/**
+ * A rotating sample of the directory. Not editorial curation — the endpoint
+ * orders by RANDOM() and caches for five minutes, so the sample changes on the
+ * cache cycle rather than on every navigation.
+ */
+export const useFeaturedProfiles = (limit: number = 3) => {
+  return useQuery<FeaturedProfilesResponseInterface, Error>({
+    queryKey: [directoryFeaturedKey, limit],
+    queryFn: () => fetchFeaturedProfiles(limit),
+  });
+};

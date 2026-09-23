@@ -71,6 +71,88 @@ export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
  *  that is not already in the palette. */
 export type SurfaceTone = 'indigo' | 'burnt' | 'flame' | 'blue' | 'red';
 
+/** One masthead nav link. `href` is a real route in `app/`, never a fixture —
+ *  see SURFACE_NAV. */
+export interface SurfaceNavItem {
+  label: string;
+  href: string;
+}
+
+/**
+ * The masthead nav each surface carries.
+ *
+ * Deliberately per-surface: a shared nav listing every route in the panaverse
+ * is how a timeline ends up with a directory link in it. What stays constant
+ * across surfaces is the mark, the switcher and the avatar — enough to read as
+ * one organisation without pretending the rooms have the same job.
+ *
+ * Every href here is a route that exists today. The design mock at
+ * `app/mock/_data/panaverse.ts` carries an aspirational nav for Pana Social
+ * (Explore, Groups, Notifications) because a mock is allowed to draw things
+ * that are not built yet; shipping chrome is not, so social lists the one
+ * own-surface destination it actually has. Add routes here as they land rather
+ * than copying the mock's list across.
+ *
+ * `www` is empty because the main site renders MainHeader, which has its own
+ * nav — this drives the surface masthead, and the surface masthead never flies
+ * over www. An invented list of links here would rot unverified.
+ */
+export const SURFACE_NAV: Record<SurfaceId, SurfaceNavItem[]> = {
+  www: [],
+  social: [{ label: 'Home', href: '/s' }],
+};
+
+/**
+ * A real, shipped part of Pana Mia served from the main site rather than from
+ * a hostname of its own.
+ *
+ * Rooms are listed in the switcher below the surfaces and styled more quietly,
+ * because giving them equal weight would promise a front door they do not
+ * have. Each one is a candidate to be promoted to a surface later, which is a
+ * registry entry plus a DNS record rather than a rewrite.
+ */
+export interface PanaverseRoom {
+  name: string;
+  /** The route it lives at today. Relative on purpose — see SHARED_ROOMS. */
+  path: string;
+  blurb: string;
+  tone: SurfaceTone;
+}
+
+/**
+ * The rooms the switcher offers.
+ *
+ * Paths are relative, so following one from Pana Social keeps the member on
+ * social.pana.social and the page arrives wearing the guest chrome
+ * (`SurfaceGuestHeader`). That is the same call `SurfaceGuestFooter` makes for
+ * the legal links, and for the same reason: bouncing a member to another
+ * hostname to look at Pana Mia content is exactly the "two separate products"
+ * message the switcher exists to dispel.
+ *
+ * Blurbs are one truncating line in the panel and are written to fit. A room
+ * that needs two lines to explain itself is arguing to be a surface.
+ */
+export const SHARED_ROOMS: readonly PanaverseRoom[] = [
+  {
+    name: 'Events',
+    path: '/e',
+    blurb: 'Markets, mixers, shows',
+    tone: 'flame',
+  },
+  {
+    name: 'Peer Mentoring',
+    path: '/m',
+    blurb: 'Book time with a Pana',
+    tone: 'blue',
+  },
+  {
+    name: 'Resilience Network',
+    path: '/r',
+    blurb: 'Mutual aid groups',
+    tone: 'red',
+  },
+];
+
 /**
  * The accent each surface carries.
  *
