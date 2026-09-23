@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Check, Plus, Settings } from 'lucide-react';
+import { Check, LogOut, Plus, Settings } from 'lucide-react';
 
+import { signOut } from '@/lib/auth-client';
 import { useIdentity, type Identity } from './identity-provider';
 import { MenuSurface } from './menu-surface';
 import { PanaSites } from './pana-sites';
@@ -173,6 +174,25 @@ export function IdentityMenu() {
                 <span className={styles.rowName}>{t('identity.settings')}</span>
               </span>
             </Link>
+
+            {/* Last, and tinted, because it is the one row here you cannot undo
+                by clicking again — and it sits directly under Settings, which
+                is where the cursor already is. */}
+            <button
+              type="button"
+              role="menuitem"
+              data-menu-row
+              onClick={() => {
+                close(false);
+                void signOut({ redirect: true, callbackUrl: '/' });
+              }}
+              className={cn(styles.row, styles.rowQuiet, styles.rowSignOut)}
+            >
+              <LogOut className="h-4 w-4 opacity-70" aria-hidden="true" />
+              <span className={styles.rowMeta}>
+                <span className={styles.rowName}>{t('nav.signOut')}</span>
+              </span>
+            </button>
           </>
         );
       }}

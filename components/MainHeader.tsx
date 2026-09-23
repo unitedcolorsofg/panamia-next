@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
 import Link from 'next/link';
 import Image from 'next/image';
 import axios from 'axios';
@@ -33,7 +33,6 @@ import {
   Info,
   Gift,
   Radio,
-  LogOut,
   PenLine,
   FileText,
   LayoutGrid,
@@ -146,7 +145,6 @@ export default function MainHeader({
 }) {
   const { t } = useTranslation('common');
   const { data: session, status } = useSession();
-  const handleSignOut = () => signOut({ redirect: true, callbackUrl: '/' });
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   // Get admin status directly from session (no API call needed)
@@ -469,15 +467,6 @@ export default function MainHeader({
                         </DropdownMenuItem>
                       </>
                     )}
-
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleSignOut}
-                      className="flex cursor-pointer items-center"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t('nav.signOut')}
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -506,8 +495,8 @@ export default function MainHeader({
                 >
                   {t('nav.becomeAPana')}
                 </Link>
-                {/* Mirrors the masthead sign-in link, which is hidden on narrow
-                  viewports to keep the logo centered. */}
+                {/* Mirrors the masthead sign-in button, which stays visible at
+                  every width — this is the in-drawer path to the same page. */}
                 <p className={styles.drawerLogin}>
                   <Trans
                     i18nKey="nav.alreadyAPana"

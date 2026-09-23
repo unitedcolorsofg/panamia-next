@@ -272,6 +272,19 @@
   background-color: transparent;
 }
 
+/* The only row in this menu that cannot be undone by clicking it again, and it
+   sits directly beneath Account settings. The tint is a speed bump, not an
+   alarm — loud enough to catch a mis-aimed cursor, quiet enough that it does
+   not read as an error state every time the menu opens. */
+.rowSignOut .rowName {
+  color: rgb(158 42 42);
+}
+
+.rowSignOut:hover,
+.rowSignOut:focus-visible {
+  background-color: rgb(158 42 42 / 0.08);
+}
+
 .error {
   padding: 4px 12px 8px;
   color: var(--color-pana-burnt);
