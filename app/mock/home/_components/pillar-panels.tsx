@@ -40,6 +40,7 @@ export function PillarPanels({ pillars }: PillarPanelsProps) {
           <section
             key={pillar.id}
             className="pillar"
+            data-accent={pillar.accent}
             data-open={isOpen}
             aria-labelledby={`pillar-trigger-${pillar.id}`}
           >

@@ -40,6 +40,17 @@ export interface StickyNote {
   tone: 'butter' | 'flame' | 'cream';
   /** Degrees of tilt on the pinned note. Straightens on hover and focus. */
   tilt: number;
+  /** The snapshot stuck to the note. Real photographs from the impact report
+      rather than stock: the question "what's a pana" is answered better by a
+      room full of them than by any definition underneath it. The polaroid
+      counter-rotates against `tilt`, so these two fields are related. */
+  photo: {
+    src: string;
+    alt: string;
+    /** The line in the polaroid's bottom band. Short — it is a caption on a
+        photograph, not a second answer. */
+    caption: string;
+  };
   /** The question the way a first-time visitor would actually ask it. */
   question: string;
   /** Pronunciation or aside printed under the question. */
@@ -57,6 +68,11 @@ export const stickyNotes: StickyNote[] = [
     id: 'pana',
     tone: 'butter',
     tilt: -2.2,
+    photo: {
+      src: '/img/impact/hero-mixer.webp',
+      alt: 'Panas gathered around a table at a Pana Mia community mixer',
+      caption: 'Mixer night · Miami-Dade',
+    },
     question: "What's a pana?",
     aside: '/pah·nah/',
     answer:
@@ -89,6 +105,11 @@ export const stickyNotes: StickyNote[] = [
     id: 'why',
     tone: 'flame',
     tilt: 1.6,
+    photo: {
+      src: '/img/impact/pana-social-dinner.webp',
+      alt: 'A long communal dinner table filled with Pana Mia members',
+      caption: 'Long table · Allapattah',
+    },
     question: 'Why was Pana MIA started?',
     answer:
       'So that nobody with an idea for how to make South Florida better had to start at ground zero.',
@@ -119,6 +140,11 @@ export const stickyNotes: StickyNote[] = [
     id: 'local',
     tone: 'cream',
     tilt: -1.1,
+    photo: {
+      src: '/img/impact/county-map.webp',
+      alt: 'Map of the three South Florida counties Pana Mia covers',
+      caption: 'Broward · Miami-Dade · Palm Beach',
+    },
     question: 'Why local?',
     answer:
       'Because communities know their own needs best, and they are the ones best equipped to meet them.',
@@ -167,6 +193,11 @@ export interface Pillar {
   id: string;
   /** The deck's name for the pillar. */
   name: string;
+  /** Fill colour for the panel. Each pillar is a solid block rather than a
+      tint of the wash behind it — a 7%-ink panel on citrus was easy to scroll
+      straight past. Kept to the three refresh-palette colours that hold up
+      against orange: `red` is a neighbour of burnt and disappears into it. */
+  accent: 'indigo' | 'butter' | 'ink';
   /** The condition this pillar answers, in the deck's words. */
   problem: string;
   /** What Pana MIA does about it, in the deck's words. */
@@ -178,6 +209,7 @@ export const pillars: Pillar[] = [
   {
     id: 'tech',
     name: 'Collective Tech',
+    accent: 'indigo',
     problem: 'Current tech prioritizes shareholder values.',
     answer:
       'We’re developing platforms that prioritize genuine connection, user data privacy, and ecological wellbeing.',
@@ -202,6 +234,9 @@ export const pillars: Pillar[] = [
   {
     id: 'community',
     name: 'Community Building',
+    /* Light between the two darks, so the row alternates rather than putting
+       indigo and ink next to each other. */
+    accent: 'butter',
     problem: 'People feel disconnected from each other and the land.',
     answer:
       'Our programming focuses on bringing people together to build people power and develop a community’s agency to flourish.',
@@ -222,6 +257,7 @@ export const pillars: Pillar[] = [
   {
     id: 'culture',
     name: 'Culture Work',
+    accent: 'ink',
     problem: 'Cultural change is lasting change.',
     answer:
       'We support arts projects that encourage collective dreaming and shift the narrative towards celebrating interconnectedness and joy.',

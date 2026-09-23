@@ -4398,6 +4398,14 @@ button.bizprofile-update-action:hover {
   .stickynote[data-open='true'] {
     transform: none;
   }
+
+  .stickynote-photo,
+  .stickynote:hover .stickynote-photo,
+  .stickynote:focus-within .stickynote-photo,
+  .stickynote[data-open='true'] .stickynote-photo {
+    transform: none;
+    transition: none;
+  }
 }
 
 /* A torn strip of tape across the top edge.
@@ -4436,6 +4444,49 @@ button.bizprofile-update-action:hover {
 /* Cream tape on a cream note is nothing at all, so this one gets a grey. */
 .stickynote[data-paper='cream'] .stickynote-tape {
   background-color: rgb(17 13 13 / 0.1);
+}
+
+/* The polaroid stuck to each note. Counter-rotates against the note's own
+   `--tilt` so the two angles disagree slightly, which is what makes it read
+   as a separate piece of paper instead of a printed panel. */
+.stickynote-photo {
+  align-self: center;
+  width: min(100%, 17rem);
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0.5rem 0;
+  background-color: #fffdf8;
+  box-shadow: 0 8px 20px rgb(17 13 13 / 0.26);
+  /* The cream note is nearly the same colour as the frame, so the polaroid
+     needs an edge of its own or it dissolves into the paper. */
+  outline: 1px solid rgb(17 13 13 / 0.12);
+  transform: rotate(calc(var(--tilt, 0deg) * -1.4));
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Straighten with the note, but keep a degree of disagreement so the photo
+   never looks welded on. */
+.stickynote:hover .stickynote-photo,
+.stickynote:focus-within .stickynote-photo,
+.stickynote[data-open='true'] .stickynote-photo {
+  transform: rotate(calc(var(--tilt, 0deg) * -0.5));
+}
+
+.stickynote-photo-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background-color: rgb(17 13 13 / 0.1);
+}
+
+.stickynote-photo-caption {
+  padding: 0.5rem 0.25rem 0.55rem;
+  color: var(--color-pana-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+  opacity: 0.62;
 }
 
 .stickynote-q {
@@ -4547,30 +4598,64 @@ button.bizprofile-update-action:hover {
   grid-template-columns: 1fr;
 }
 
+/* Each pillar is a solid block. A tinted panel on the citrus wash was easy to
+   scroll past without registering that there were three of anything, so the
+   closed state now carries its own fill and its own text colour, and the open
+   state swaps the body to paper while the head keeps the pillar's colour. */
+.pillar[data-accent='indigo'] {
+  --pillar-fill: var(--color-pana-indigo);
+  --pillar-ink: var(--color-pana-cream);
+}
+
+.pillar[data-accent='butter'] {
+  --pillar-fill: var(--color-pana-butter);
+  --pillar-ink: var(--color-pana-ink);
+}
+
+.pillar[data-accent='ink'] {
+  --pillar-fill: var(--color-pana-ink);
+  --pillar-ink: var(--color-pana-cream);
+}
+
 .pillar {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 2px solid rgb(17 13 13 / 0.32);
+  border: 2px solid rgb(17 13 13 / 0.55);
   border-radius: 1.1rem;
-  background-color: rgb(17 13 13 / 0.07);
-  color: var(--color-pana-ink);
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+  box-shadow: 0 12px 28px rgb(17 13 13 / 0.2);
   transition:
     background-color 0.35s ease,
     flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1),
     flex-grow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Cream is the "this one is open" signal. On the citrus surface it reads as a
-   sheet of paper laid over the peel, which is the whole idea. */
+/* Paper laid over the peel. The head stays the pillar's colour so the open
+   panel still says which of the three it is. */
 .pillar[data-open='true'] {
   background-color: var(--color-pana-cream);
-  box-shadow: 0 18px 40px rgb(17 13 13 / 0.18);
+  box-shadow: 0 18px 40px rgb(17 13 13 / 0.26);
 }
 
 .pillar-head {
   margin: 0;
   display: flex;
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+}
+
+/* Butter against cream is barely a change of colour, so the open head is
+   separated by an edge rather than by fill alone. */
+.pillar[data-open='true'] .pillar-head {
+  border-bottom: 2px solid rgb(17 13 13 / 0.35);
+}
+
+.pillar-body {
+  padding: 0 1.35rem 1.5rem;
+  padding-top: 1.35rem;
+  color: var(--color-pana-ink);
 }
 
 .pillar-trigger {
@@ -4587,7 +4672,7 @@ button.bizprofile-update-action:hover {
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.16em;
-  opacity: 0.55;
+  opacity: 0.7;
 }
 
 .pillar-name {
@@ -4616,10 +4701,6 @@ button.bizprofile-update-action:hover {
 
 .pillar[data-open='true'] .pillar-chev {
   opacity: 0;
-}
-
-.pillar-body {
-  padding: 0 1.35rem 1.5rem;
 }
 
 .pillar-problem {
@@ -4762,7 +4843,7 @@ a.pillar-program:hover {
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: 0 2rem 2rem;
+    padding: 1.75rem 2rem 2rem;
   }
 
   /* The vertical spines set the row's height, and they are taller than this

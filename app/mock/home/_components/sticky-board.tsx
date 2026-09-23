@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import Image from 'next/image';
 import { Minus, Plus } from 'lucide-react';
 import type { NoteBlock, StickyNote } from '../_data';
 
@@ -49,6 +50,24 @@ export function StickyBoard({ notes }: StickyBoardProps) {
               style={{ '--tilt': `${note.tilt}deg` } as CSSProperties}
             >
               <span className="stickynote-tape" aria-hidden="true" />
+
+              {/* A polaroid stuck to the note. The frame counter-rotates
+                  against the note's own tilt so it reads as a second piece of
+                  paper rather than part of the print. */}
+              <figure className="stickynote-photo">
+                <span className="stickynote-photo-frame">
+                  <Image
+                    src={note.photo.src}
+                    alt={note.photo.alt}
+                    fill
+                    sizes="(min-width: 52rem) 20rem, 90vw"
+                    className="object-cover"
+                  />
+                </span>
+                <figcaption className="stickynote-photo-caption">
+                  {note.photo.caption}
+                </figcaption>
+              </figure>
 
               <h3 className="stickynote-q">{note.question}</h3>
               {note.aside && <p className="stickynote-aside">{note.aside}</p>}
