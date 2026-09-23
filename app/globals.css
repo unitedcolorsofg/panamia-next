@@ -6177,121 +6177,64 @@ body:has([data-density]) {
   box-shadow: 0 5px 12px rgb(2 8 17 / 0.18);
 }
 
-/* --- Stop two: the ring ------------------------------------------------- */
+/* --- Stop two: the faces ------------------------------------------------ */
 
-/* The dial on top with its four labels in a row beneath it. This used to be a
-   three-by-three grid with a label either side of the circle, which needed
-   about 26rem of width; a shopfront gives it 22rem at most, and the window is
-   wider than it is tall. Four across keeps all four labels — they are the
-   four things the club exists to produce, and dropping any to fit would have
-   cost the artwork its argument. */
-.beat-ring {
+/* A roll-call across the window. Five portraits in a row rather than a block
+   of them: the art window is far wider than it is tall, so a row is the shape
+   that fits, and a row of heads reads as people lined up in a way that a grid
+   of them does not.
+
+   Five fixed columns rather than `auto-fit`. Five is the count; a column that
+   dropped off on a narrow card would silently remove somebody. */
+.beat-faces {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-content: center;
   justify-items: center;
-  gap: 0.5rem 0.4rem;
-  width: 100%;
+  gap: 0.4rem 0.25rem;
+  width: min(100%, 21rem);
   margin-inline: auto;
 }
 
-.ring-dial,
-.ring-centre {
-  grid-area: 1 / 1 / 2 / 5;
-}
-
-.ring-dial {
-  /* Same reasoning as the collage: the four labels under the circle are a
-     fixed cost, so the circle is what gives when the window loses height. */
-  width: min(100%, 6.25rem, calc(var(--home-beat-art, 12rem) - 4.8rem));
-  height: auto;
-  justify-self: center;
-}
-
-.ring-arc {
-  fill: none;
-  stroke-width: 13;
-  stroke-linecap: round;
-}
-
-/* The heads. Four arrows chasing each other is the deck's diagram and the
-   deck's argument: the four benefits are a loop that feeds itself, not a list
-   of four things. Drawn as bare arcs it became a segmented ring, which says
-   "four parts of a whole" instead — true, but not the point being made. */
-.ring-arrow {
-  stroke: none;
-}
-
-.ring-hub {
-  fill: var(--story-cream);
-}
-
-.ring-hairline {
-  fill: none;
-  stroke: rgb(2 8 17 / 0.12);
-  stroke-width: 2;
-}
-
-/* Sits in the same cell as the dial and on top of it. */
-.ring-centre {
-  position: relative;
-  z-index: 1;
+.face {
   display: grid;
-  place-items: center;
-  width: 2.95rem;
-  justify-self: center;
+  justify-items: center;
+  gap: 0.3rem;
+  width: 100%;
 }
 
-.ring-centre-name {
-  max-width: 7ch;
-  color: var(--story-ink);
-  font-size: 0.5rem;
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  text-align: center;
-  text-wrap: balance;
-}
-
-/* `display: contents` so the four `<li>`s become grid items of `.beat-ring`
-   itself. They stay a list for anything reading the page linearly — these are
-   the four things the club exists to produce, and that is worth having as a
-   list rather than as four labels that happen to be near a circle. */
-.ring-labels {
-  display: contents;
-}
-
-.ring-label {
+/* The coloured ring is the entire frame — no white border, no drop shadow.
+   The stop next door is four white-bordered prints with hard shadows, and
+   lending these the same treatment would collapse the one difference the two
+   scenes have to hold on to. */
+.face-frame {
   position: relative;
-  /* Bounded by its own column rather than by a fixed ceiling. The four-across
-     row leaves each column about 58px, and an 11rem ceiling let the longer
-     labels spill sideways into their neighbours. "Environmental" is 81px at
-     this size, so it has to break: `hyphens` alone does not do it here, and
-     `anywhere` is the only value that guarantees a word wider than its column
-     wraps instead of painting over the label beside it. */
-  max-width: 100%;
-  hyphens: auto;
-  overflow-wrap: anywhere;
-  text-align: center;
+  display: block;
+  width: 100%;
+  max-width: 3.4rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 3px solid var(--ring, var(--story-blue));
+  border-radius: 50%;
+  background-color: rgb(2 8 17 / 0.06);
+}
+
+.face-img {
+  object-fit: cover;
+  /* These are all portrait-orientation frames with the head high in them, so
+     a centred square crop takes chin and shoulders and loses the top of the
+     head. */
+  object-position: 50% 30%;
+}
+
+.face-name {
   font-size: 0.5625rem;
   font-weight: 900;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-align: center;
   color: var(--story-ink);
-}
-
-/* A dot in the arc's own colour, so each label is tied to its quarter without
-   having to colour the text itself — four coloured labels at this size would
-   be four things shouting. */
-.ring-label::before {
-  content: '';
-  display: block;
-  width: 7px;
-  height: 7px;
-  margin: 0 auto 0.25rem;
-  border-radius: 50%;
-  background-color: var(--dot, var(--story-orange));
 }
 
 /* --- Stop three: the map ------------------------------------------------ */
@@ -6304,34 +6247,63 @@ body:has([data-density]) {
   width: 100%;
 }
 
-/* `overflow: hidden` is what the rise is animating against: the map starts
-   below its own frame and comes up into it. */
 /* -------------------------------------------------------------------------
    Banner scene — "what is Pana MIA?"
    ------------------------------------------------------------------------- */
 
+/* The photograph is a backdrop and the sign is the subject, so the scene
+   becomes the positioning context for a `fill` image and everything else is
+   lifted above it. Without the explicit layering the absolutely-positioned
+   photo would paint over the bunting, which is in normal flow.
+
+   The sign is pushed to the bottom rather than centred so the band of faces
+   in the photograph is left uncovered. Centring it put the cloth exactly over
+   the crowd and all that showed was the treeline above their heads. */
 .banner-scene {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background-color: var(--story-cream);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
   padding-inline: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Anchored to the bottom of the frame. The crop is wider than it is tall, so
+   `cover` trims the photograph's top and bottom; pulling it all the way down
+   lands the crowd in the strip above the sign instead of below it. Held a
+   little under full strength so the sign in front stays the thing you read
+   first. */
+.banner-photo {
+  z-index: 0;
+  object-fit: cover;
+  object-position: 50% 100%;
+  opacity: 0.86;
 }
 
 /* Bunting. A row of pennants rather than a drawn string, because the flags
    are the only part that has to survive being squeezed: at the narrow end of
    the four-across row this is 240px wide, and nine flexed triangles shrink
-   evenly where a fixed-width SVG would clip. */
+   evenly where a fixed-width SVG would clip.
+
+   Pinned to the top of the frame rather than sitting on the cloth, now that
+   the sign hangs at the bottom — strung across the top of the photograph the
+   way bunting actually is at the events in it. */
 .banner-bunting {
+  position: absolute;
+  z-index: 1;
+  top: 0.35rem;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   gap: 0.28rem;
-  width: 100%;
-  /* Sits on the line the flags hang from, which is the top of the cloth. */
-  margin-bottom: -0.15rem;
+  padding-inline: 0.5rem;
 }
 
 .banner-flag {
@@ -6377,6 +6349,8 @@ body:has([data-density]) {
    edges, which is worse than not having the dip at all. The border also
    matches the sign below it, so the card reads as two things on one wall. */
 .banner-cloth {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6409,13 +6383,14 @@ body:has([data-density]) {
   color: rgb(2 8 17 / 0.62);
 }
 
-.statemap-frame {
+/* Nothing but a clip now. The map used to sit in a bordered, cream, shadowed
+   panel, which read as a picture inside a picture when the card around it is
+   already the frame. `overflow: hidden` is the part that has to stay: it is
+   what the rise animates against, so the state starts below this box and
+   comes up into it without ever being seen outside. */
+.statemap-clip {
   width: min(100%, calc((var(--home-beat-art, 12rem) - 1.5rem) * 1.32));
   overflow: hidden;
-  border: 2px solid rgb(2 8 17 / 0.12);
-  border-radius: 10px;
-  background-color: var(--story-cream);
-  box-shadow: 0 8px 18px rgb(2 8 17 / 0.14);
 }
 
 /* The map ships on a white background. Multiply drops the white to whatever
@@ -7008,7 +6983,8 @@ a.pillar-program:hover {
 /*
  * The page moves as you walk down it: clouds drift at their own rates as the
  * sky leaves, each stop arrives as you reach it, the collage fans open, the
- * ring draws itself, the map rises into its frame, and the pillars square up.
+ * portraits pop in one after another, the map rises into place, and the
+ * pillars square up.
  *
  * This is `animation-timeline: view()` rather than a scroll handler: progress
  * is tied to where the element sits in the viewport by the compositor, so
@@ -7113,66 +7089,39 @@ a.pillar-program:hover {
       animation-range: entry 16% entry 76%;
     }
 
-    /* The ring draws itself. `pathLength="100"` is set on the paths in the
-       markup, so the dash maths is in percent and does not have to be redone
-       if the radius ever changes. */
-    .ring-arc {
-      animation: home-ring-draw linear both;
+    /* The row fills in left to right as you reach it. Each portrait carries
+       its own range rather than a delay, for the same reason the prints above
+       it do: a view timeline has no wall clock to delay against. */
+    .face {
+      animation: home-face-arrive linear both;
       animation-timeline: view();
     }
 
-    .ring-arc:nth-of-type(1) {
-      animation-range: entry 8% entry 56%;
+    .face:nth-child(1) {
+      animation-range: entry 6% entry 52%;
     }
 
-    .ring-arc:nth-of-type(2) {
+    .face:nth-child(2) {
+      animation-range: entry 10% entry 58%;
+    }
+
+    .face:nth-child(3) {
       animation-range: entry 14% entry 64%;
     }
 
-    .ring-arc:nth-of-type(3) {
-      animation-range: entry 20% entry 72%;
+    .face:nth-child(4) {
+      animation-range: entry 18% entry 70%;
     }
 
-    .ring-arc:nth-of-type(4) {
-      animation-range: entry 26% entry 80%;
-    }
-
-    /* The heads land as their own arc finishes drawing, which is what makes
-       the ring read as four arrows chasing each other rather than four
-       stripes that happen to have points on them. */
-    .ring-arrow {
-      opacity: 0;
-      animation: home-ring-arrow linear both;
-      animation-timeline: view();
-    }
-
-    .ring-arrow:nth-of-type(1) {
-      animation-range: entry 44% entry 58%;
-    }
-
-    .ring-arrow:nth-of-type(2) {
-      animation-range: entry 52% entry 66%;
-    }
-
-    .ring-arrow:nth-of-type(3) {
-      animation-range: entry 60% entry 74%;
-    }
-
-    .ring-arrow:nth-of-type(4) {
-      animation-range: entry 68% entry 82%;
-    }
-
-    .ring-centre {
-      animation: home-ring-hub linear both;
-      animation-timeline: view();
-      animation-range: entry 22% entry 70%;
+    .face:nth-child(5) {
+      animation-range: entry 22% entry 76%;
     }
 
     /* Florida arrives. This one runs for the whole pass rather than settling
        on entry, because it is the only piece of motion on the page making an
        argument instead of a flourish — the state keeps rising for as long as
-       you are looking at the reason it matters. `.statemap-frame` clips it,
-       so nothing is ever seen outside the border. */
+       you are looking at the reason it matters. `.statemap-clip` clips it, so
+       nothing is ever seen outside the card. */
     .statemap-img {
       animation: home-map-rise linear both;
       animation-timeline: view();
@@ -7188,18 +7137,9 @@ a.pillar-program:hover {
       .beat-art,
       .beat-copy,
       .collage-print,
-      .ring-arc,
-      .ring-centre,
+      .face,
       .statemap-img {
         animation: none;
-      }
-
-      /* The one exception to "the base style is the resting state": the heads
-         are hidden by this block's own `opacity: 0`, so dropping the
-         animation has to put it back or the ring loses its arrows. */
-      .ring-arrow {
-        animation: none;
-        opacity: 1;
       }
     }
 
@@ -7276,46 +7216,25 @@ a.pillar-program:hover {
   }
 }
 
-/* Opacity only. A scale would need a `transform-origin` per head — these are
-   polygons in user space, not centred boxes — and four heads winking in is
-   enough to read as arrival. */
-@keyframes home-ring-arrow {
+/* The portraits pop in. `translate` and `scale` rather than one `transform`,
+   so nothing has to know or restate what the other is doing. */
+@keyframes home-face-arrive {
   from {
     opacity: 0;
+    translate: 0 14px;
+    scale: 0.9;
   }
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes home-ring-draw {
-  from {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-  }
-
-  to {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes home-ring-hub {
-  from {
-    opacity: 0;
-    transform: scale(0.82);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
+    translate: 0 0;
+    scale: 1;
   }
 }
 
 /* 16% of the image's own height. Enough to read as arriving, not so much that
-   the frame is empty when the section first appears. It finishes at zero
-   rather than past it, so the map is never short of its own frame. */
+   the card is empty when the section first appears. It finishes at zero
+   rather than past it, so the map is never short of its own box. */
 @keyframes home-map-rise {
   from {
     transform: translateY(16%);

@@ -64,11 +64,17 @@ export type BeatScene =
       photos: { src: string; alt: string; caption: string }[];
     }
   | {
-      /** The circular diagram from the deck's "THE LOCAL MOVEMENT" slide,
-          rebuilt as vector so it stays crisp and can draw itself in. */
-      kind: 'ring';
-      centre: string;
-      items: string[];
+      /** Portraits of the people who run the club. "Why was this started" is
+          a question about intent, and intent belongs to people rather than to
+          a diagram — so it is answered by the faces behind it, named.
+
+          Distinct from the collage on purpose: that one is rectangular prints
+          of rooms, fanned like objects on a table. These are round, upright
+          and evenly spaced, which reads as a roster of people rather than a
+          handful of snapshots, so the two photographic stops next door to
+          each other do not look like the same scene twice. */
+      kind: 'faces';
+      photos: { src: string; alt: string; name: string }[];
     }
   | {
       /** The branded state map, rising into frame on scroll. */
@@ -85,6 +91,10 @@ export type BeatScene =
       kind: 'banner';
       headline: string;
       caption: string;
+      /** The crowd the banner is strung over. The cloth alone was a drawn
+          object on an empty wall; behind a real room of people it reads as
+          something hung at an actual event, which is what it is. */
+      photo: { src: string; alt: string };
     };
 
 export interface StoryBeat {
@@ -156,6 +166,27 @@ const PANA_PHOTOS = [
   '/img/impact/pana-social-dinner.webp',
   '/img/impact/community-group.webp',
   '/img/about/clari_and_anette.webp',
+] as const;
+
+/* The room behind the banner on the first stop. Chosen over the other crowd
+   shots because it is the widest: the cloth and its bunting sit across the
+   middle of this window, so the photo has to still read as a crowd with its
+   centre covered. The two mixer photos are close-range and lose their subject
+   entirely underneath the sign. */
+const BANNER_PHOTO_SRC = '/img/impact/filmfest-collab-right.webp';
+
+/* Faces for the "why was this started" stop. These are the only assets on the
+   site that are actually portraits rather than scenes — every other photo is a
+   room — which is what makes them worth spending here: the stop next door is
+   already four pictures of rooms.
+
+   Ordered board first, then team, which is the order `/about-us` uses. */
+const PANA_FACES = [
+  '/img/about/anette_mago.jpg',
+  '/img/about/claribel_avila.jpg',
+  '/img/about/bee_maria.jpg',
+  '/img/about/gbarrios.jpg',
+  '/img/about/jdowns.jpg',
 ] as const;
 
 /* `floridamap_panamia.jpg` is the other candidate and it is the more heavily
@@ -235,6 +266,10 @@ export function useStoryBeats(): StoryBeat[] {
         kind: 'banner',
         headline: t('beats.panamia.banner.headline'),
         caption: t('beats.panamia.banner.caption'),
+        photo: {
+          src: BANNER_PHOTO_SRC,
+          alt: t('beats.panamia.banner.photoAlt'),
+        },
       },
       /* The mission lives here rather than under "why was this started",
          where it used to sit. It is the answer to what the club *is* — a
@@ -283,20 +318,27 @@ export function useStoryBeats(): StoryBeat[] {
       question: t('beats.why.question'),
       answer: t('beats.why.answer'),
       more: t('beats.why.more'),
-      /* The deck draws this ring on the "THE LOCAL MOVEMENT" slide, where it
-         sits beside the "why local" argument. It is carried here instead, on
-         the ask of the panas who walked through the deck: read as artwork it
-         is the club's own thesis — the four things the whole project exists
-         to produce, with the logo in the middle of them — which is a better
-         answer to "why was this started" than to "why local". The four labels
-         are therefore no longer repeated as tags on the third stop. */
+      /* This stop used to carry the deck's benefits ring, rebuilt as vector.
+         It is photographs now, on the ask of the panas: the page had one
+         drawn diagram sitting between two photographic stops, and the thing
+         they wanted more of was faces. The ring's four benefits were the only
+         copy it carried, so they move into the panel below rather than being
+         dropped with the artwork. */
       scene: {
-        kind: 'ring',
-        centre: t('beats.why.ring.centre'),
-        items: list('beats.why.ring.items'),
+        kind: 'faces',
+        photos: PANA_FACES.map((src, index) => ({
+          src,
+          name: t(`beats.why.faces.${index}.name`),
+          alt: t(`beats.why.faces.${index}.alt`),
+        })),
       },
       detail: [
         { kind: 'paragraph', text: t('beats.why.invitation') },
+        {
+          kind: 'tags',
+          label: t('beats.why.builds.label'),
+          items: list('beats.why.builds.items'),
+        },
         {
           kind: 'tags',
           label: t('beats.why.values.label'),
