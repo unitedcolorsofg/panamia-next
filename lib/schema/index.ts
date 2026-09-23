@@ -361,6 +361,13 @@ export const users = pgTable('users', {
     .notNull()
     .default(sql`ARRAY[]::text[]`),
   notificationPreferences: jsonb('notification_preferences'),
+  // Unused. Present since 0000_initial_schema.sql and never read by anything:
+  // locality in the directory is served by the county filter (filterLocations
+  // -> profiles.counties) and by distance from shared browser coordinates
+  // (geolat/geolng -> calcDistance). A member zip is a coarser proxy for both
+  // and would need a lookup table to become either, so the account settings
+  // input that used to write this was removed rather than wired up. Kept as a
+  // column because existing rows hold real data and dropping it is a migration.
   zipCode: text('zip_code'),
   affiliate: jsonb('affiliate'),
   createdAt: timestamp('created_at', { withTimezone: true })

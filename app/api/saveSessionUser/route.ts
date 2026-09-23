@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     ? (session.user?.email as string).toLowerCase()
     : null;
 
-  const { name, zip_code, screenname } = body;
+  const { name, screenname } = body;
 
   if (!email) {
     return NextResponse.json(
@@ -102,15 +102,11 @@ export async function POST(request: NextRequest) {
   // Build update data
   const updateData: {
     name?: string;
-    zipCode?: string;
     screenname?: string;
     lastScreennameChange?: Date;
   } = {};
   if (name) {
     updateData.name = name;
-  }
-  if (zip_code) {
-    updateData.zipCode = zip_code;
   }
   if (newScreenname) {
     updateData.screenname = newScreenname;
@@ -165,7 +161,6 @@ function formatUserResponse(user: User) {
     },
     affiliate: user.affiliate,
     alternate_emails: user.alternateEmails,
-    zip_code: user.zipCode,
     accountType: user.accountType,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

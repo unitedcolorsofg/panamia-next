@@ -114,7 +114,6 @@ function formatUserResponse(user: User) {
     },
     affiliate: user.affiliate,
     alternate_emails: user.alternateEmails,
-    zip_code: user.zipCode,
     accountType: user.accountType,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

@@ -161,7 +161,6 @@ export function UserSettingsView({
   const { toast } = useToast();
   const { t } = useTranslation('toast');
   const [sessionEmail, setSessionEmail] = useState('');
-  const [sessionZipCode, setSessionZipCode] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [userData, setUserData] = useState({} as UserInterface);
   const [isLoading, setIsLoading] = useState(false);
@@ -199,9 +198,6 @@ export function UserSettingsView({
     const userSession = await getUserSession();
     if (userSession) {
       setSessionEmail(userSession.email == null ? '' : userSession.email);
-      setSessionZipCode(
-        userSession.zip_code == null ? '' : userSession.zip_code
-      );
       setSessionName(userSession.name == null ? '' : userSession.name);
       setSessionScreenname(
         userSession.screenname == null ? '' : userSession.screenname
@@ -281,12 +277,10 @@ export function UserSettingsView({
   const isDirty =
     loaded &&
     (sessionName !== (userData.name ?? '') ||
-      sessionZipCode !== (userData.zip_code ?? '') ||
       sessionScreenname !== (userData.screenname ?? ''));
 
   const revertChanges = () => {
     setSessionName(userData.name ?? '');
-    setSessionZipCode(userData.zip_code ?? '');
     setSessionScreenname(userData.screenname ?? '');
     setMessage('');
   };
@@ -313,7 +307,6 @@ export function UserSettingsView({
     try {
       const response = await saveUserSession({
         name: sessionName,
-        zip_code: sessionZipCode,
         screenname: sessionScreenname || undefined,
       });
       setMessage('Settings updated successfully!');
@@ -927,28 +920,6 @@ export function UserSettingsView({
                   <div className="border-pana-ink/10 mt-1 rounded-2xl border-2 border-dashed p-3">
                     <RotateKeysSection context="inline" />
                   </div>
-                </SettingsRow>
-              </SettingsCard>
-            </Section>
-
-            {/* ---- Place ------------------------------------------------- */}
-            <Section id="place">
-              <SettingsCard>
-                <SettingsRow
-                  label="ZIP code"
-                  htmlFor="zipcode"
-                  note="Used to personalise search results and surface events near you. Not shown on your profile."
-                >
-                  <input
-                    id="zipcode"
-                    type="text"
-                    className="settings-input max-w-[9rem]"
-                    value={sessionZipCode}
-                    maxLength={10}
-                    inputMode="numeric"
-                    autoComplete="postal-code"
-                    onChange={(e) => setSessionZipCode(e.target.value)}
-                  />
                 </SettingsRow>
               </SettingsCard>
             </Section>

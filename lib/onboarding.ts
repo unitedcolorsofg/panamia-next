@@ -21,6 +21,14 @@
 export const ONBOARDING_DISMISS_KEY = 'pana:screenname-prompt-dismissed';
 
 /**
+ * Remembers, for the browser session, that this member has already waved away
+ * the ask to put a name and a face on their posts. Keyed by actor id for the
+ * same reason the screenname key is keyed by user id: a shared browser must
+ * not inherit the previous person's answer.
+ */
+export const IDENTITY_DISMISS_KEY = 'pana:identity-prompt-dismissed';
+
+/**
  * How recently an account must have been created to be treated as arriving for
  * the first time.
  *
@@ -62,4 +70,36 @@ export function isOnboardingRoute(
 ): boolean {
   if (!pathname) return false;
   return pathname.startsWith('/welcome') || pathname.startsWith('/signin');
+}
+
+export interface BareIdentity {
+  needsName: boolean;
+  needsAvatar: boolean;
+}
+
+/**
+ * Which parts of a member's public identity are still placeholders.
+ *
+ * A missing avatar is simply null. A missing *name* is subtler, because
+ * `profiles.name` is `NOT NULL` and therefore never actually empty: when a
+ * member skips the name field during setup it is filled from the screenname
+ * (`app/api/user/screenname/set/route.ts` — `displayName || session.user.name
+ * || newScreenname`), and that value is what `createActorForProfile` copies to
+ * `socialActors.name`. So an actor whose name equals its username is not
+ * someone who chose that name; it is the fallback showing through.
+ *
+ * The false positive — somebody whose real name genuinely is their handle —
+ * costs one dismissible card, which is the right side to err on.
+ */
+export function describeBareIdentity(actor: {
+  name?: string | null;
+  username?: string | null;
+  iconUrl?: string | null;
+}): BareIdentity {
+  const name = actor.name?.trim() ?? '';
+  const username = actor.username?.trim() ?? '';
+  return {
+    needsName: name === '' || name.toLowerCase() === username.toLowerCase(),
+    needsAvatar: !actor.iconUrl,
+  };
 }

@@ -202,7 +202,6 @@ export interface UserInterface {
   name?: string;
   accountType?: AccountType;
   status?: UserStatusInterface;
-  zip_code?: string;
   affiliate: {
     activated: boolean;
     code: string;

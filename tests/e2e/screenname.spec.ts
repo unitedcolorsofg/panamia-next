@@ -102,10 +102,13 @@ test.describe('Screenname UI Elements', () => {
     // `expect(page.url()).toBeTruthy()` cannot fail, and the title check that
     // sat beside it cannot detect this app's not-found page, which keeps the
     // default "Pana Mia" title. Status alone is also not enough -- a stub
-    // answering 200 everywhere satisfies it. This route renders an Unauthorized
-    // card in place rather than redirecting, so assert the card.
+    // answering 200 everywhere satisfies it. This route renders a signed-out
+    // card in place rather than redirecting, so assert the card. The wording is
+    // the settings redesign's (#183).
     expect(res?.status()).toBe(200);
-    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+    await expect(
+      page.getByText('You need to be signed in').first()
+    ).toBeVisible({
       timeout: 15000,
     });
   });

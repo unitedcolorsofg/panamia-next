@@ -44,17 +44,22 @@ test.describe('Authenticated User Navigation', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    // This route does NOT redirect -- it renders an Unauthorized card in place,
+    // This route does NOT redirect -- it renders a signed-out card in place,
     // like /form/become-an-affiliate. `expect(page.url()).toBeTruthy()` stood
     // here, which no navigation can fail; status alone replaced it, which a
     // stub answering 200 everywhere also satisfies. The card's own text is the
     // assertion that distinguishes this page from any other page.
+    //
+    // The wording is the settings redesign's (#183), which replaced a generic
+    // "Unauthorized" with a sentence that says what is missing and why.
     expect(res?.status()).toBe(200);
-    await expect(page.getByText('Unauthorized').first()).toBeVisible({
+    await expect(
+      page.getByText('You need to be signed in').first()
+    ).toBeVisible({
       timeout: 15000,
     });
     await expect(
-      page.getByText('You must be logged in to view this page.').first()
+      page.getByText('Your settings live on your account').first()
     ).toBeVisible();
   });
 });
