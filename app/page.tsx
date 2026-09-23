@@ -1,371 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTranslation, Trans } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import ScrollReveal from '@/components/scroll-reveal';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Calendar, MessageCircle, FileText, Loader2 } from 'lucide-react';
-import ArticleCard from '@/components/ArticleCard';
-import { DirectorySuggest } from '@/components/directory-suggest';
+  HomeFirstScreen,
+  HomeBasics,
+  HomePillars,
+  HomePoint,
+  HomeLocalRow,
+} from '@/components/home/sections';
 
-interface Article {
-  _id: string;
-  slug: string;
-  title: string;
-  excerpt?: string;
-  articleType: 'business_update' | 'community_commentary' | 'staff_update';
-  tags: string[];
-  coverImage?: string;
-  coverImageAlt?: string;
-  readingTime?: number;
-  publishedAt: string;
-  author: {
-    screenname?: string;
-    name?: string;
-  };
-  coAuthorCount: number;
-}
-
-// URL fragments that open a specific FAQ entry, mapped to its accordion value.
-// Linking to a collapsed accordion would otherwise just drop the reader next to
-// a closed row — see the sign-in ad copy, which points here.
-const FAQ_ANCHORS: Record<string, string> = {
-  'faq-what-is-a-pana': 'item-what-is-a-pana',
-};
-
+/**
+ * The homepage.
+ *
+ * Four cards, in the order the panas who brought the Community Connectors
+ * deck over described them: search, then the three questions everyone asks,
+ * then the three pillars the organisation is building, then the ask. The
+ * reasoning for the cut — and for the seven sections the previous eleven-
+ * section page loses — is on the sections themselves, in
+ * `components/home/sections.tsx`.
+ *
+ * The composition lives there rather than here because `/mock/home` renders
+ * the same sections inside a density-toggle harness. There is one
+ * implementation of this page, and the mock is a lens on it.
+ *
+ * `data-density` is the knob the mock's toggle drives, and it is what scopes
+ * the whole design: the palette, the section rhythm and every `.story-*` rule
+ * hang off it. `compact` is the rhythm this page was designed and reviewed
+ * at — the alternative, `roomy`, is the old site's full-viewport-hero,
+ * `py-24`-everywhere spacing, which is where most of the old page's empty
+ * space came from.
+ */
 export default function HomePage() {
-  const { t } = useTranslation('home');
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [articlesLoading, setArticlesLoading] = useState(true);
-  const [openFaq, setOpenFaq] = useState('');
-
-  useEffect(() => {
-    async function fetchRecentArticles() {
-      try {
-        const response = await fetch('/api/articles/recent?limit=3');
-        const data = await response.json();
-        if (data.success) {
-          setArticles(data.data.articles);
-        }
-      } catch (error) {
-        console.error('Failed to fetch recent articles:', error);
-      } finally {
-        setArticlesLoading(false);
-      }
-    }
-    fetchRecentArticles();
-  }, []);
-
-  // Open (and scroll to) the FAQ entry named in the URL fragment. The scroll is
-  // explicit because this page renders client-side: by the time the accordion
-  // exists, the browser has already done its own fragment jump and found
-  // nothing. Also listens for hashchange so a same-page link still works.
-  useEffect(() => {
-    function openFromHash() {
-      const anchor = window.location.hash.slice(1);
-      const value = FAQ_ANCHORS[anchor];
-      if (!value) return;
-      setOpenFaq(value);
-      document
-        .getElementById(anchor)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    openFromHash();
-    window.addEventListener('hashchange', openFromHash);
-    return () => window.removeEventListener('hashchange', openFromHash);
-  }, []);
-
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Hero Section with Search */}
-      <section className="home-hero-banner relative bg-cover bg-center py-8 text-center md:py-12">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-[90vw] space-y-8">
-            {/* Logo */}
-            <div className="py-8 md:py-12">
-              <Image
-                src="/logos/pana_logo_long_pink.png"
-                alt="Pana Mia"
-                width={600}
-                height={150}
-                className="flower-power-logo mx-auto h-auto max-w-full"
-                priority
-              />
-            </div>
+    <>
+      <ScrollReveal />
 
-            {/* Search Section */}
-            <div className="py-8">
-              <h1
-                className="mb-4 text-4xl font-bold md:text-5xl"
-                style={{
-                  color: 'white',
-                  textShadow:
-                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-                }}
-              >
-                {t('hero.headline')}
-              </h1>
-              <p
-                className="mb-6 text-2xl md:text-3xl"
-                style={{
-                  color: 'white',
-                  textShadow:
-                    '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-                }}
-              >
-                {t('hero.subheadline')}
-              </p>
-
-              <DirectorySuggest
-                className="mx-auto max-w-2xl"
-                label={t('hero.searchLabel')}
-                placeholder={t('hero.searchPlaceholder')}
-                ariaLabel={t('hero.searchAriaLabel')}
-                buttonLabel={t('hero.searchButton')}
-                inputClassName="h-12 min-w-[33vw] rounded-2xl border-2 text-lg"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Community Events Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <Card className="overflow-hidden">
-            <div className="grid gap-0 md:grid-cols-2">
-              <div className="relative aspect-video min-h-[300px] md:aspect-auto">
-                <Image
-                  src="/img/home/EventsBanner.webp"
-                  alt="Community events banner"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-              <CardContent className="flex flex-col justify-center p-8 md:p-12">
-                <div className="space-y-4">
-                  <div className="text-pana-blue flex items-center gap-2">
-                    <Calendar className="h-6 w-6" aria-hidden="true" />
-                    <Badge variant="secondary">{t('events.badge')}</Badge>
-                  </div>
-                  <CardTitle className="text-3xl">
-                    {t('events.title')}
-                  </CardTitle>
-                  <CardDescription className="text-lg break-words whitespace-normal">
-                    {t('events.description')}
-                  </CardDescription>
-                  <Link href="https://shotgun.live/venues/pana-mia-club">
-                    <Button size="lg">{t('events.viewEvents')}</Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* Recent Articles Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-pana-blue/10 flex h-12 w-12 items-center justify-center rounded-full">
-                <FileText
-                  className="text-pana-blue h-6 w-6"
-                  aria-hidden="true"
-                />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">{t('articles.title')}</h2>
-                <p className="text-muted-foreground text-sm">
-                  {t('articles.subtitle')}
-                </p>
-              </div>
-            </div>
-            <Button variant="outline" asChild>
-              <Link href="/a">{t('articles.viewAll')}</Link>
-            </Button>
-          </div>
-          {articlesLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          ) : articles.length === 0 ? (
-            <div className="rounded-lg border border-dashed py-12 text-center">
-              <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium">
-                {t('articles.noArticles')}
-              </h3>
-              <p className="mt-1 text-gray-500">
-                {t('articles.noArticlesDesc')}
-              </p>
-              <Button asChild className="mt-4">
-                <Link href="/a/new">{t('articles.writeArticle')}</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article) => (
-                <ArticleCard
-                  key={article._id}
-                  slug={article.slug}
-                  title={article.title}
-                  excerpt={article.excerpt}
-                  articleType={article.articleType}
-                  tags={article.tags}
-                  coverImage={article.coverImage}
-                  coverImageAlt={article.coverImageAlt}
-                  readingTime={article.readingTime}
-                  publishedAt={article.publishedAt}
-                  author={article.author}
-                  coAuthorCount={article.coAuthorCount}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl space-y-6 text-center">
-            <div className="bg-pana-blue/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-              <MessageCircle
-                className="text-pana-blue h-8 w-8"
-                aria-hidden="true"
-              />
-            </div>
-            <h2 className="text-3xl font-bold">{t('about.title')}</h2>
-            <p className="text-muted-foreground text-xl">
-              {t('about.tagline')}
-            </p>
-            <p className="text-lg">{t('about.body')}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="bg-muted/30 py-16 md:py-24" id="home-faq">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="mb-8 text-center text-3xl font-bold">
-              {t('faq.title')}
-            </h2>
-
-            <Accordion
-              type="single"
-              collapsible
-              className="w-full"
-              value={openFaq}
-              onValueChange={setOpenFaq}
-            >
-              <AccordionItem value="item-1">
-                <AccordionTrigger>{t('faq.q1')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a1')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem
-                value="item-what-is-a-pana"
-                id="faq-what-is-a-pana"
-                className="scroll-mt-24"
-              >
-                <AccordionTrigger>
-                  {/* The emphasis is part of the question — it distinguishes
-                      this from "What does Pana mean?" directly above. */}
-                  <Trans
-                    i18nKey="faq.qWhatIsAPana"
-                    t={t}
-                    components={{ em: <em /> }}
-                  />
-                </AccordionTrigger>
-                <AccordionContent>{t('faq.aWhatIsAPana')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-2">
-                <AccordionTrigger>{t('faq.q2')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a2')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-3">
-                <AccordionTrigger>{t('faq.q3')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a3')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-4">
-                <AccordionTrigger>{t('faq.q4')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a4')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-5">
-                <AccordionTrigger>{t('faq.q5')}</AccordionTrigger>
-                <AccordionContent>
-                  {t('faq.a5')}{' '}
-                  <Link
-                    href="/form/become-a-pana"
-                    className="text-primary underline"
-                  >
-                    {t('faq.a5Link')}
-                  </Link>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-6">
-                <AccordionTrigger>{t('faq.q6')}</AccordionTrigger>
-                <AccordionContent>
-                  <ul className="list-disc space-y-2 pl-6">
-                    <li>{t('faq.a6_1')}</li>
-                    <li>{t('faq.a6_2')}</li>
-                    <li>{t('faq.a6_3')}</li>
-                    <li>{t('faq.a6_4')}</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-7">
-                <AccordionTrigger>{t('faq.q7')}</AccordionTrigger>
-                <AccordionContent>{t('faq.a7')}</AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-8">
-                <AccordionTrigger>{t('faq.q8')}</AccordionTrigger>
-                <AccordionContent>
-                  {t('faq.a8')}{' '}
-                  <Link
-                    href="/directory/search"
-                    className="text-primary underline"
-                  >
-                    {t('faq.a8Link')}
-                  </Link>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-9">
-                <AccordionTrigger>{t('faq.q9')}</AccordionTrigger>
-                <AccordionContent>
-                  <p className="mb-2">{t('faq.a9_1')}</p>
-                  <p>{t('faq.a9_2')}</p>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </div>
-      </section>
-    </div>
+      <div className="flex min-h-screen flex-col" data-density="compact">
+        <HomeFirstScreen />
+        <HomeBasics />
+        <HomePillars />
+        <HomePoint />
+        <HomeLocalRow />
+      </div>
+    </>
   );
 }

@@ -18,21 +18,60 @@
 }
 
 @theme {
-  /* Custom Pana colors */
+  /* Nunito is the brand face and the mock sets it on <body>, not just on
+     headings. The app's <body> carries Tailwind's `font-sans` class, and that
+     class beats the `body { font-family }` rule below on specificity — so the
+     only way body copy actually renders in Nunito is to point Tailwind's own
+     sans token at it. */
+  --font-sans: 'Nunito', sans-serif;
+
+  /* Legacy Pana colors — kept for existing `text-pana-blue` style usages. */
   --color-pana-blue: #4ab3ea;
   --color-pana-pink: #fc2070;
   --color-pana-yellow: #fab22c;
   --color-pana-orange: #ff8100;
   --color-pana-navy: #181c3d;
 
+  /* Pana design-refresh palette. Orange leads (it carries the brand); indigo
+     is the deep counterweight; butter and cream are the warm surfaces.
+
+     CONTRAST RULE — the one thing to remember when using these: #f28444 is a
+     high-luminance orange, so cream-on-orange measures 2.42:1 and fails even
+     the 3:1 large-text bar. Warm surfaces (orange, burnt, red, butter, cream)
+     must carry ink text; only indigo and ink carry cream text.
+       ink/orange 7.50  ink/butter 16.41  cream/indigo 9.01  cream/ink 18.18
+       butter/indigo 8.13
+       indigo/orange 3.72 — large text only (>=24px), never body copy. */
+  --color-pana-ink: #110d0d;
+  --color-pana-indigo: #303e8c;
+  /* butter is the saturated yellow the mock puts behind Featured Panas and the
+     FAQ; butter-2 is the pale tint used only for soft fills. The mock's class
+     names invert these (its `.bg-butter2` resolves to this butter), so trust
+     the values here rather than the mock's class names. */
+  --color-pana-butter: #f6f099;
+  --color-pana-butter-2: #fbf7d2;
+  --color-pana-flame: #f28444;
+  --color-pana-burnt: #d96236;
+  --color-pana-red: #d94e41;
+  --color-pana-cream: #fff7ec;
+
   /* Shadcn/ui color tokens.
-     These must be complete CSS colors, not bare HSL triples: Tailwind v4 emits
-     `.bg-background { background-color: var(--color-background) }` verbatim, so
-     a raw `0 0% 100%` would resolve to an invalid declaration that the browser
-     drops. Wrapping the runtime var in hsl() here keeps every bg-/text-/border-
-     utility painting, and dark mode still works because `.dark` redefines the
-     underlying `--background` etc. below and the utility follows it through the
-     cascade. */
+     ------------------------------------------------------------------------
+     These MUST be complete colors, not bare HSL triples. Tailwind v4 emits
+     `.bg-background { background-color: var(--color-background) }` verbatim,
+     so a bare `0 0% 100%` resolves to an invalid color and the browser drops
+     the declaration — which used to make every bg-/text-/border- utility built
+     on these tokens paint nothing (transparent modals, invisible popovers).
+
+     Wrapping the runtime var in hsl() fixes that and preserves dark mode: the
+     `.dark` block below redefines `--background` and the utility follows it
+     through the cascade.
+
+     Fixed 2026-08-10 together with the `outline` variant in
+     components/ui/button.tsx, which needed `text-foreground` — without it,
+     removing the old `!important` workarounds left outline buttons
+     white-on-white in light mode. The two changes are a pair.
+     ------------------------------------------------------------------------ */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -129,6 +168,14 @@
 }
 
 @layer base {
+  /* Reserve the scrollbar gutter at all times. Without this, any scroll-lock
+     (drawer, modal) removes the scrollbar, widens the viewport ~15px, and
+     visibly shifts centered content — the masthead logo jumped 7.7px. Reserving
+     it also keeps `position: fixed` children stable, which a body padding-right
+     workaround would not. */
+  html {
+    scrollbar-gutter: stable;
+  }
   * {
     border-color: hsl(var(--border));
   }
@@ -139,21 +186,6408 @@
     font-size: 16px;
     line-height: 1.5;
   }
+  /* Nunito carries headings too, per the approved design refresh — it is Pana's
+     own typeface and the display weights (800/900) give the mock its voice.
+     Montserrat stays loaded for any component that asks for it explicitly. */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    font-family: var(--font-montserrat), sans-serif;
+    font-family: var(--font-nunito), sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 }
 
+/* The former block of 21 `!important` declarations lived here. It was a
+   workaround for the invalid bare-HSL `@theme` tokens above — each rule
+   hardcoded a literal (white, black, a duplicated HSL) to stand in for a token
+   utility that never painted. With the tokens now emitting real colors, and
+   `text-foreground` added to the button `outline` variant, the utilities paint
+   on their own and the workarounds are gone.
+
+   Removing them also retires two documented hazards: the old
+   `[data-radix-popper-content-wrapper] > *` rule forced a background onto ALL
+   popper content (tooltips included), and `button[class*='bg-primary']`
+   overrode any variant that legitimately set its own background. */
+
+/* ---------------------------------------------------------------------------
+   Design refresh — hero, masthead and section furniture.
+
+   Everything below obeys the contrast rule documented in @theme: warm surfaces
+   (flame, burnt, red, butter, cream) carry ink text; only indigo and ink carry
+   cream text. The hero is the one exception the mock makes: it is a photo
+   darkened by an ink scrim plus an orange multiply wash, which puts it firmly
+   in the "dark surface" bucket, so it carries cream text like indigo does.
+   --------------------------------------------------------------------------- */
+
+/* Full-bleed photo hero. `100svh` rather than `100vh` so mobile browser
+   chrome does not push the search box below the fold. */
 .home-hero-banner {
-  background-image: url('/img/home/website_banner.jpg');
-  background-image: image-set(
-    url('/img/home/website_banner.avif') type('image/avif'),
-    url('/img/home/website_banner.webp') type('image/webp'),
-    url('/img/home/website_banner.jpg') type('image/jpeg')
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding-top: clamp(96px, min(10vw, 14svh), 124px);
+  padding-bottom: clamp(36px, min(4vw, 6svh), 58px);
+  overflow: hidden;
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+  text-align: center;
+}
+
+.home-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* The orange wash. `multiply` keeps the photo's own contrast instead of
+   flattening it the way a plain translucent overlay would, which is what
+   pulls the image into the brand palette. */
+.home-hero-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(217 98 54 / 0.42) 0%,
+      rgb(242 132 68 / 0.62) 52%,
+      rgb(217 98 54 / 0.93) 100%
+    ),
+    radial-gradient(
+      ellipse at 22% 18%,
+      rgb(246 240 153 / 0.26),
+      transparent 62%
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Dot screen plus a vertical ink scrim. The scrim is what buys the cream
+   headline its contrast over the busier parts of the photo. */
+.home-hero-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgb(255 247 236 / 0.11) 1px, transparent 1px),
+    linear-gradient(
+      180deg,
+      rgb(17 13 13 / 0.34) 0%,
+      rgb(17 13 13 / 0.3) 42%,
+      rgb(17 13 13 / 0.62) 100%
+    );
+  background-size:
+    4px 4px,
+    100% 100%;
+}
+
+/* Hero copy. The headline is the largest type on the site; it scales off the
+   viewport's short edge as well as its width so a landscape phone does not
+   get a headline taller than the fold. */
+.hero-headline {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(42px, min(8.4vw, 16svh), 126px);
+  line-height: 0.94;
+  letter-spacing: -0.018em;
+  text-shadow: 0 3px 26px rgb(17 13 13 / 0.28);
+}
+
+.accent-word {
+  color: var(--color-pana-butter);
+  font-style: normal;
+}
+
+.hero-subheadline {
+  margin-inline: auto;
+  max-width: 760px;
+  font-size: clamp(17px, 1.4vw, 21px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: clamp(22px, 2.6vw, 38px);
+  padding-top: 0.875rem;
+  border-top: 2px solid rgb(255 247 236 / 0.42);
+}
+
+.hero-meta-note {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* Region chips. Cream on the darkened photo, inverting to indigo on hover. */
+.tagpill {
+  display: inline-block;
+  padding: 0.5rem 1.125rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgb(17 13 13 / 0.14);
+  transition:
+    transform 0.28s,
+    background-color 0.28s,
+    color 0.28s;
+}
+
+.tagpill:hover {
+  transform: translateY(-2px);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tagpill {
+    transition: none;
+  }
+
+  .tagpill:hover {
+    transform: none;
+  }
+}
+
+/* Merged search bar used by the hero: one cream pill with the submit button
+   living inside it. Deliberately not `overflow: hidden` — the typeahead
+   listbox is absolutely positioned inside this box and would be clipped. */
+.directory-suggest-pill {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-inline: auto;
+  max-width: 720px;
+  border-radius: 9999px;
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 10px 34px rgb(17 13 13 / 0.22);
+}
+
+/* Let the typeahead listbox resolve against the whole pill so it spans the
+   bar rather than stopping short of the submit button. Named rather than
+   positional: the pill's first child is the magnifier. */
+.directory-suggest-pill .directory-suggest-field {
+  position: static;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.directory-suggest-pill-button {
+  margin: 0.375rem;
+  padding: 0.8125rem 1.625rem;
+  height: auto;
+  border-radius: 9999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.directory-suggest-pill-button:hover {
+  background-color: var(--color-pana-ink);
+}
+
+/* Scroll reveal. The hidden state is gated on `html[data-rv-ready]`, which is
+   set by components/scroll-reveal.tsx on mount — so if that script never runs,
+   nothing is hidden. Never make these rules unconditional. */
+[data-rv-ready] [data-rv] {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 1s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-rv-ready] [data-rv].rv-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Fade only — the 34px lift is the part that reduced-motion users are asking
+   us to drop, not the reveal itself. */
+@media (prefers-reduced-motion: reduce) {
+  [data-rv-ready] [data-rv] {
+    transform: none;
+    transition: opacity 0.45s ease;
+  }
+
+  [data-rv-ready] [data-rv].rv-in {
+    transform: none;
+  }
+}
+
+/* Small uppercase label that opens a section, as in the mock. */
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-pana-indigo);
+}
+
+.section-eyebrow::before {
+  content: '';
+  width: 1.5rem;
+  height: 2px;
+  background-color: currentColor;
+}
+
+/* Indigo is the one dark surface in the palette, so it is the only place cream
+   body text is allowed. */
+.surface-indigo {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* .section-eyebrow hard-codes indigo, so on the indigo surface it renders
+   invisible — identical foreground and background. Callers try to correct this
+   with text-pana-butter, but that utility sits in @layer utilities and an
+   unlayered rule always wins the cascade, so the override has to live here
+   next to the surface that causes it. ::before inherits via currentColor. */
+.surface-indigo .section-eyebrow {
+  color: var(--color-pana-butter);
+}
+
+.surface-butter {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
+/* Auth pages. Cream matches the masthead directly above it, with the same two
+   washes as the hero at lower opacity so the card stays the focal point.
+
+   Deliberately not min-height: 100vh — this renders between a sticky masthead
+   and the footer, so a full viewport height pushes the card below the fold and
+   forces a scroll on every sign-in. The min-height below is the viewport less
+   the masthead, which is what actually centres the card on screen. */
+.auth-surface {
+  position: relative;
+  min-height: calc(100vh - 4.5rem);
+  background-color: var(--color-pana-cream);
+  background-image:
+    radial-gradient(
+      48rem 32rem at 8% -12%,
+      rgb(246 240 153 / 0.42),
+      transparent 62%
+    ),
+    radial-gradient(
+      42rem 30rem at 96% 108%,
+      rgb(242 132 68 / 0.28),
+      transparent 64%
+    );
+}
+
+/* A standalone auth page has no masthead above it, so it owns the whole
+   viewport — the subtraction above compensates for chrome that is not there.
+   Sign-in is the only such page today; see lib/panaverse/chrome.ts. */
+.auth-surface[data-standalone='true'] {
+  min-height: 100vh;
+}
+
+/* Cream is a light surface, so the dark theme has to take it back over —
+   otherwise the washes sit on near-white and the card loses all separation. */
+.dark .auth-surface {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(
+      48rem 32rem at 8% -12%,
+      rgb(242 132 68 / 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      42rem 30rem at 96% 108%,
+      rgb(48 62 140 / 0.3),
+      transparent 64%
+    );
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage editorial sections
+   ---------------------------------------------------------------------------
+   The homepage runs as a sequence of full-bleed brand surfaces alternating the
+   warm half of the palette (cream, butter, flame, red, burnt) against the one
+   dark surface (indigo). That alternation is the structure the design is built
+   on, so the surfaces are defined here rather than inlined per section.
+
+   Contrast rule, applied to every surface below: the warm half of the palette
+   is all high-luminance — cream on flame measures only 2.4:1 — so warm
+   surfaces carry ink and only indigo carries cream. Measured: ink on butter
+   16.4:1, ink on flame 7.5:1, ink on burnt 5.3:1, ink on red 4.7:1, cream on
+   indigo 9.0:1.
+
+   Like .surface-indigo and .surface-butter above, these hold their colour in
+   the dark theme rather than inverting. They are brand surfaces on a branded
+   page, not document chrome — inverting them would drop the identity the page
+   exists to carry. Cards *inside* them still need dark-theme borders, because
+   the dark theme gives --card and --background the same value.
+   --------------------------------------------------------------------------- */
+
+.surface-cream {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+}
+
+.surface-butter-2 {
+  background-color: var(--color-pana-butter-2);
+  color: var(--color-pana-ink);
+}
+
+.surface-red {
+  background-color: var(--color-pana-red);
+  color: var(--color-pana-ink);
+}
+
+.surface-burnt {
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-ink);
+}
+
+/* The citrus-peel texture: a flame-to-burnt wash under a few low-opacity
+   speckle layers. Mottled enough to read as printed stock, flat enough that
+   photographs and type still sit cleanly on top of it. */
+.surface-citrus {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  background-image:
+    radial-gradient(
+      circle at 18% 22%,
+      rgb(255 247 236 / 0.17) 0 2px,
+      transparent 2.5px
+    ),
+    radial-gradient(
+      circle at 63% 71%,
+      rgb(255 247 236 / 0.13) 0 1.6px,
+      transparent 2.1px
+    ),
+    radial-gradient(
+      circle at 87% 34%,
+      rgb(17 13 13 / 0.07) 0 2.2px,
+      transparent 2.7px
+    ),
+    radial-gradient(ellipse at 78% 8%, rgb(246 240 153 / 0.2), transparent 58%),
+    linear-gradient(
+      168deg,
+      var(--color-pana-flame) 0%,
+      var(--color-pana-burnt) 100%
+    );
+  background-size:
+    46px 46px,
+    71px 71px,
+    93px 93px,
+    100% 100%,
+    100% 100%;
+}
+
+/* Scalloped doily trim along a section's top edge — one downward semicircle
+   per tile, repeated across. --scallop is set to the colour of the section
+   *above*, so the notches read as bites taken out of this one. */
+.scallop {
+  position: relative;
+}
+
+.scallop::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 22px;
+  z-index: 4;
+  background-image: radial-gradient(
+    circle at 50% 0,
+    var(--scallop, var(--color-pana-cream)) 0 13px,
+    transparent 13.5px
   );
+  background-size: 32px 22px;
+  background-repeat: repeat-x;
+  pointer-events: none;
+}
+
+/* The citrus slice from the logo, reused as a section marker. Purely
+   decorative, so every call site pairs it with aria-hidden. */
+.citrus {
+  width: var(--cz, 3.5rem);
+  height: var(--cz, 3.5rem);
+  flex: none;
+  display: inline-block;
+  border-radius: 50%;
+  border: 3px solid var(--cz-rim, var(--color-pana-cream));
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0 6deg,
+      var(--cz-seg, rgb(255 247 236 / 0.85)) 6deg 54deg,
+      transparent 54deg 60deg
+    ),
+    radial-gradient(
+      circle,
+      var(--cz-core, var(--color-pana-cream)) 0 14%,
+      transparent 14.5%
+    );
+  background-repeat: repeat, no-repeat;
+}
+
+/* Oversized slices bleed off the section edge. The host clips them so the
+   bleed can never introduce horizontal scroll on a narrow viewport. */
+.citrus-host {
+  position: relative;
+  overflow: hidden;
+}
+
+.citrus-deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  border-width: 6px;
+}
+
+/* The decos are meant to bleed off the section edge rather than sit inside the
+   content box — without these offsets they fall back to their static position
+   and land on top of the heading. `.citrus-host` clips the overflow. */
+.citrus-deco.right {
+  right: -120px;
+  top: 8%;
+}
+
+.citrus-deco.left {
+  left: -140px;
+  bottom: -90px;
+}
+
+@media (max-width: 860px) {
+  .citrus-deco {
+    display: none;
+  }
+}
+
+/* Section typography. The site ships a single family (Nunito), so hierarchy
+   is carried by weight, size and case rather than by a second typeface. */
+.section-display {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(2rem, 5.1vw, 4.375rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+/* The mock's signature heading move: the display heading breaks onto a second
+   line and that line is set italic in the counterweight colour. Indigo is the
+   default because most of these headings sit on a warm surface. */
+.display-accent {
+  font-style: italic;
+  color: var(--color-pana-indigo);
+}
+
+/* Indigo on indigo disappears, and indigo on red measures 1.26 — both flip to
+   butter, which clears the bar against either. */
+.surface-indigo .display-accent,
+.surface-red .display-accent {
+  color: var(--color-pana-butter);
+}
+
+/* Marks a block that is designed but not yet wired to real data. Understated
+   on purpose: it should read as a promise, not as a broken state. */
+.coming-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+}
+
+/* The dot that precedes "Coming soon". Sized in em so it tracks the label. */
+.coming-soon::before {
+  content: '';
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/* A statistic with no number behind it yet. The em dash holds the visual slot
+   the real figure will take, so the layout does not shift when it lands. */
+.stat-figure {
+  font-weight: 900;
+  font-size: clamp(2.125rem, 4vw, 3.625rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-figure[data-pending='true'] {
+  opacity: 0.45;
+}
+
+.section-lede {
+  font-size: clamp(1rem, 1.24vw, 1.1875rem);
+  line-height: 1.6;
+  max-width: 46ch;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Pull-quote treatment: short measure, tight leading, one emphasised word
+   picked out in whichever brand colour contrasts with the host surface. */
+.section-statement {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 4.1vw, 3.625rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  max-width: 20ch;
+}
+
+.section-statement em {
+  font-style: normal;
+  color: var(--color-pana-indigo);
+}
+
+.surface-indigo .section-statement em {
+  color: var(--color-pana-butter);
+}
+
+.surface-cream .section-statement em,
+.surface-butter .section-statement em,
+.surface-butter-2 .section-statement em {
+  color: var(--color-pana-burnt);
+}
+
+/* Inline "more" link. The rule is a border rather than an underline so the
+   gap can open on hover without the rule jumping with it. */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  padding-bottom: 2px;
+  border-bottom: 2px solid currentColor;
+  transition: gap 0.3s ease;
+}
+
+.link-arrow:hover {
+  gap: 0.875rem;
+}
+
+/* Directory index row — a rule-separated list item that reveals its arrow on
+   hover. The arrow is hidden with opacity rather than display so it still
+   occupies its column and the row never reflows. */
+.index-row {
+  display: grid;
+  align-items: center;
+  gap: 1.5rem;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  padding: clamp(1rem, 1.6vw, 1.5rem) 0;
+  border-top: 2px solid rgb(17 13 13 / 0.16);
+}
+
+.index-row .index-go {
+  justify-self: end;
+  opacity: 0;
+  transform: translateX(-0.5rem);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+.index-row:hover .index-go,
+.index-row:focus-visible .index-go {
+  opacity: 1;
+  transform: none;
+}
+
+/* Photo frame for the split sections. Clips the hover zoom so the image can
+   scale without pushing anything around it. */
+.media-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.625rem;
+}
+
+.media-frame img {
+  transition: transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.media-frame:hover img {
+  transform: scale(1.04);
+}
+
+/* Marquee strip under the hero. The track holds the phrase list twice and
+   travels exactly half its own width, which is what makes the loop seamless.
+   In the mock this band sits directly on the flame field between the hero and
+   the directory, so its rules are cream at low alpha; the ink variant below
+   covers the case where it is dropped onto a light surface instead. */
+.ticker {
+  overflow: hidden;
+  padding: 0.9375rem 0;
+  border-top: 2px solid rgb(255 247 236 / 0.3);
+  border-bottom: 2px solid rgb(255 247 236 / 0.3);
+}
+
+.surface-cream .ticker,
+.surface-butter .ticker,
+.surface-butter-2 .ticker {
+  border-top-color: rgb(17 13 13 / 0.18);
+  border-bottom-color: rgb(17 13 13 / 0.18);
+}
+
+.ticker span {
+  font-weight: 800;
+  font-size: 0.84375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0 1.5rem;
+  white-space: nowrap;
+}
+
+/* Separator glyph. Indigo on flame measures 3.72, under the 4.5 bar for a mark
+   this size, so the tick stays ink and leans on opacity instead. */
+.ticker span i {
+  color: var(--color-pana-ink);
+  font-style: normal;
+  opacity: 0.72;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-slide 42s linear infinite;
+}
+
+/* Pausing on hover lets someone actually read a category they spotted. */
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Motion here is decorative in every case, so all of it is optional. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+
+  .index-row .index-go,
+  .media-frame img {
+    transition: none;
+  }
+
+  .media-frame:hover img {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Business profile (directory listing page)
+   ---------------------------------------------------------------------------
+   The profile is the one page in the directory a visitor lands on from a
+   search result, so it has to carry the brand without turning into a second
+   homepage. It reuses the editorial surfaces above rather than inventing new
+   ones: cream for the read, butter-2 for the events rail, indigo for the
+   social updates.
+
+   Everything here is prefixed `bizprofile-` because these are page-specific
+   compositions, not reusable primitives. A rule that turns out to be reusable
+   should be promoted up into the sections above rather than aliased here.
+   --------------------------------------------------------------------------- */
+
+.bizprofile-cover {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-pana-indigo);
+  /* `width: 100%` is load-bearing. Without it the box is auto-width, and on a
+     narrow viewport `min-height` back-solves through `aspect-ratio` into a
+     width far wider than the screen (190px x 16/5 = 608px), which is what
+     produced horizontal page scroll on mobile. Pinning the width makes the
+     ratio resolve height-from-width instead, the direction we actually want. */
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  min-height: 190px;
+}
+
+.bizprofile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The logo overlaps the cover's lower edge, so the bottom third of the photo
+   is always behind type or the logo plate. The scrim keeps both legible
+   regardless of what the business uploaded. */
+.bizprofile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.1) 0%,
+    rgb(17 13 13 / 0) 42%,
+    rgb(255 247 236 / 0.35) 78%,
+    var(--color-pana-cream) 100%
+  );
+}
+
+.dark .bizprofile-cover::after {
+  background: linear-gradient(
+    to bottom,
+    rgb(17 13 13 / 0.25) 0%,
+    rgb(17 13 13 / 0) 42%,
+    hsl(var(--background) / 0.45) 78%,
+    hsl(var(--background)) 100%
+  );
+}
+
+/* A white plate rather than a circular avatar: business logos are wordmarks as
+   often as they are marks, and a circle crops the former into nonsense. */
+.bizprofile-logo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 1.5rem;
+  background-color: #fff;
+  box-shadow:
+    0 0 0 5px var(--color-pana-cream),
+    0 18px 40px rgb(17 13 13 / 0.18);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dark .bizprofile-logo {
+  box-shadow:
+    0 0 0 5px hsl(var(--background)),
+    0 18px 40px rgb(0 0 0 / 0.5);
+}
+
+.bizprofile-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .bizprofile-logo {
+    width: 11rem;
+    height: 11rem;
+  }
+}
+
+.bizprofile-name {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.9rem, 4.2vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+/* Pana Certified. Indigo-on-butter so it reads as an award from the
+   organisation rather than as one more category tag — the tags beside it are
+   cream pills, and the contrast is the point. */
+.bizprofile-certified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+  border: 2px solid var(--color-pana-indigo);
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bizprofile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bizprofile-stat-figure {
+  font-weight: 900;
+  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.bizprofile-stat-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.bizprofile-avatarstack {
+  display: flex;
+  align-items: center;
+}
+
+.bizprofile-avatarstack > * {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid var(--color-pana-cream);
+  margin-left: -0.6rem;
+}
+
+.bizprofile-avatarstack > *:first-child {
+  margin-left: 0;
+}
+
+.dark .bizprofile-avatarstack > * {
+  border-color: hsl(var(--background));
+}
+
+/* External links. Outlined rather than filled so a business with nine links
+   does not turn the header into a wall of solid colour. */
+.bizprofile-linkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 2px solid rgb(17 13 13 / 0.18);
+  background-color: #fff;
+  color: var(--color-pana-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-linkchip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-pana-flame);
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-linkchip {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .bizprofile-linkchip:hover {
+  background-color: hsl(var(--accent));
+}
+
+.bizprofile-card {
+  background-color: #fff;
+  border-radius: 1.625rem;
+  border: 2px solid rgb(17 13 13 / 0.08);
+  box-shadow: 0 10px 30px rgb(17 13 13 / 0.06);
+}
+
+.dark .bizprofile-card {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow: none;
+}
+
+/* Event date chip. Flame block, ink type — the same pairing the ticker uses,
+   so the calendar reads as brand furniture rather than a system control. */
+.bizprofile-datechip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.bizprofile-datechip .chip-month {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bizprofile-datechip .chip-day {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-top: 0.15rem;
+}
+
+.bizprofile-rolepill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The upload affordance in the gallery. Dashed, not filled, so it never
+   competes with an actual photograph for attention. */
+.bizprofile-addphoto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
+  border-radius: 1.25rem;
+  border: 2px dashed rgb(17 13 13 / 0.28);
+  background-color: rgb(255 255 255 / 0.55);
+  color: var(--color-pana-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.bizprofile-addphoto:hover {
+  border-color: var(--color-pana-flame);
+  background-color: #fff;
+}
+
+.dark .bizprofile-addphoto {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+/* Sits under the upload tile and explains the three-photo limit. Lower
+   contrast and sentence case on purpose: the tile is the instruction, this is
+   the footnote, and matching their weight would make the reader pick. */
+.bizprofile-addphoto-hint {
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(17 13 13 / 0.68);
+}
+
+.dark .bizprofile-addphoto-hint {
+  color: hsl(var(--muted-foreground));
+}
+
+.bizprofile-gallery-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-gallery-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bizprofile-gallery-tile:hover img {
+  transform: scale(1.05);
+}
+
+/* Social updates sit on indigo, so this card is a translucent lift off that
+   surface rather than a white panel — a white card here would punch a hole in
+   the only dark run on the page. */
+.bizprofile-update {
+  border-radius: 1.375rem;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background-color: rgb(255 255 255 / 0.07);
+  padding: 1.5rem;
+}
+
+.bizprofile-update-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+button.bizprofile-update-action:hover {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   The live updates feed on a business profile.
+
+   The posts come from components/social, which /s renders too, so they carry
+   the neutral shadcn card look by default. That look punches white holes in
+   the one dark run on the profile page. Rather than thread a variant prop down
+   through PostList into PostCard — and have every future social component need
+   the same prop — the surface is corrected here, scoped to this section only,
+   so /s is untouched.
+
+   These are unlayered like the rest of the .bizprofile- rules, which is what
+   lets them beat the Tailwind utilities sitting on the components themselves.
+   --------------------------------------------------------------------------- */
+.bizprofile-updates .bg-card {
+  background-color: rgb(255 255 255 / 0.07);
+  border-color: rgb(255 255 255 / 0.16);
+  border-radius: 1.375rem;
+  color: var(--color-pana-cream);
+  box-shadow: none;
+}
+
+/* Secondary type inside the cards: handles, timestamps, empty states. */
+.bizprofile-updates .text-muted-foreground {
+  color: rgb(255 255 255 / 0.65);
+}
+
+/* The tab strip. bg-muted is a near-white pill that reads as a light control
+   stranded on a dark band. */
+.bizprofile-updates .bg-muted {
+  background-color: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* Radix sets data-state="active" on the tab *panel* as well as the tab, so
+   this has to name the role or it paints the whole feed butter. */
+.bizprofile-updates [role='tab'][data-state='active'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+/* Links inside posts pick up the page's default ink-on-light colour, which is
+   near-invisible here. */
+.bizprofile-updates a:not([class*='bg-']) {
+  color: var(--color-pana-butter);
+}
+
+/* Buttons. shadcn's primary is near-black slate and its outline variant is a
+   solid white pill — both read as system chrome dropped onto a brand band.
+   Matched to the buttons the claim prompt uses on this same surface. */
+.bizprofile-updates button.bg-primary {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-weight: 800;
+}
+
+.bizprofile-updates button.bg-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.bizprofile-updates button.bg-background {
+  background-color: transparent;
+  border-color: rgb(255 255 255 / 0.4);
+  color: var(--color-pana-cream);
+  font-weight: 700;
+}
+
+.bizprofile-updates button.bg-background:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+}
+
+/* Reply/like/share. Their hover inverts to dark-on-light by default, which
+   flashes a white chip on the dark band. */
+.bizprofile-updates [role='tabpanel'] button:hover {
+  background-color: rgb(255 255 255 / 0.12);
+  color: var(--color-pana-butter);
+}
+
+/* The mock's own state switcher. Not part of the design — it is scaffolding so
+   the claimed/unclaimed and certified/uncertified variants can be reviewed
+   without four separate routes, and it goes away with the mock. */
+.bizprofile-mockbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--color-pana-ink);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mocktoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.bizprofile-mocktoggle[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  border-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-linkchip,
+  .bizprofile-gallery-tile img {
+    transition: none;
+  }
+
+  .bizprofile-linkchip:hover {
+    transform: none;
+  }
+
+  .bizprofile-gallery-tile:hover img {
+    transform: none;
+  }
+}
+
+/* Section headings inside the profile. A step down from `.section-display`,
+   which is sized for the homepage's full-bleed statements and overpowers a
+   page that is mostly read rather than scanned. Defined as its own class
+   rather than a Tailwind override so it does not depend on which of the two
+   rules wins the cascade. */
+.bizprofile-h2 {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+/* The event card's cover. Same hover behaviour as a gallery tile but square at
+   the top, because it sits flush inside a card that already has the corners.
+   Declared here rather than as a `rounded-none` utility on the tile: the
+   `bizprofile-` rules are unlayered, so they beat Tailwind's utility layer no
+   matter how specific the utility is. */
+.bizprofile-eventcover {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(17 13 13 / 0.06);
+}
+
+.bizprofile-eventcover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.group:hover .bizprofile-eventcover img {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bizprofile-eventcover img {
+    transition: none;
+  }
+
+  .group:hover .bizprofile-eventcover img {
+    transform: none;
+  }
+}
+
+/* Larger than a comment avatar because it is doing real work here: this row is
+   the page's proof that other panas stand behind the business. */
+.bizprofile-avatarstack > * {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.75rem;
+}
+
+/* The bio column. Same rhythm as `.section-lede` but without its 46ch cap —
+   that limit is tuned for a homepage statement sitting beside artwork, and
+   here it strands the paragraph at half the width of its own column. */
+.bizprofile-bio {
+  font-size: clamp(1rem, 1.24vw, 1.1875rem);
+  line-height: 1.65;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Full-width upload zone: it sits on its own implicit grid row, and the
+   13rem auto-row height would leave a canyon of dashed nothing. */
+.bizprofile-addphoto {
+  height: 7.5rem;
+  align-self: start;
+  flex-direction: row;
+  gap: 0.625rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Signup gate dialog
+   -------------------------------------------------------------------------- */
+
+/* Overrides the shadcn DialogContent defaults (grid, thin border, sm radius).
+   These rules are unlayered and so win over the component's utilities without
+   needing `!important`. */
+.bizprofile-gate {
+  display: block;
+  max-width: 34rem;
+  padding: 1.75rem;
+  border: 2px solid var(--color-pana-ink);
+  border-radius: 1.5rem;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 24px 60px rgb(17 13 13 / 0.28);
+}
+
+.dark .bizprofile-gate {
+  border-color: rgb(255 255 255 / 0.22);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-gate-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bizprofile-gate-logo {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.bizprofile-gate-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.25rem;
+}
+
+.bizprofile-gate-biz {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bizprofile-gate-title {
+  margin-top: 0.625rem;
+  font-size: clamp(1.625rem, 3.4vw, 2.125rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.bizprofile-gate-reason {
+  margin-top: 0.875rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: rgb(17 13 13 / 0.78);
+}
+
+.dark .bizprofile-gate-reason {
+  color: rgb(255 247 236 / 0.82);
+}
+
+.bizprofile-gate-list {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dark .bizprofile-gate-list {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.bizprofile-gate-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.bizprofile-gate-list svg {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-gate-list svg {
+  color: var(--color-pana-butter);
+}
+
+/* A text link, not a third button. Dismissing has to stay clearly secondary to
+   signing up without becoming hard to find — the page behind it still works. */
+.bizprofile-gate-dismiss {
+  display: block;
+  width: 100%;
+  margin-top: 1.125rem;
+  padding: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.5);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-ink);
+}
+
+.dark .bizprofile-gate-dismiss {
+  color: rgb(255 247 236 / 0.55);
+}
+
+.dark .bizprofile-gate-dismiss:hover {
+  color: var(--color-pana-cream);
+}
+
+/* One-of-three viewer picker in the mock bar. Segmented rather than three
+   separate pills so it reads as mutually exclusive at a glance. */
+/* On a phone the three viewer options are wider than the bar. Let the
+   segmented control scroll rather than clipping the last option. */
+.bizprofile-mockseg {
+  display: inline-flex;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background-color: rgb(255 255 255 / 0.06);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bizprofile-mockseg::-webkit-scrollbar {
+  display: none;
+}
+
+.bizprofile-mockseg > button {
+  flex: none;
+}
+
+.bizprofile-mockseg > button {
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 247 236 / 0.7);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bizprofile-mockseg > button:hover {
+  color: var(--color-pana-cream);
+}
+
+.bizprofile-mockseg > button[data-on='true'] {
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+}
+
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. */
+/* The update actions became buttons when the signup gate needed somewhere to
+   attach, so they need the affordances a span did not: a hit area, a hover,
+   and a pressed state for like/boost. Scoped to `button` on purpose — a
+   business-only account gets these same counts as static spans, and those
+   must not carry a cursor or a hover. */
+button.bizprofile-update-action {
+  cursor: pointer;
+  border-radius: 999px;
+  margin: -0.25rem -0.5rem;
+  padding: 0.25rem 0.5rem;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+}
+
+button.bizprofile-update-action:hover {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+/* Pressed state is full opacity plus a filled glyph. Setting `color` here
+   would be a no-op: it already matches the base. */
+.bizprofile-update-action[data-on='true'] {
+  opacity: 1;
+}
+
+.bizprofile-update-action[data-on='true'] svg {
+  fill: currentColor;
+}
+
+/* Stands in for Save/Recommend when a business-only account is viewing, so the
+   missing controls read as "not for this account type" rather than as a bug. */
+.bizprofile-hero-note {
+  margin-top: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.65);
+}
+
+.bizprofile-hero-note a {
+  color: var(--color-pana-indigo);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bizprofile-hero-note a:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-hero-note {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Same counts, no affordance. The interactive rules are scoped to `button`,
+   so a static span needs only its spacing back. */
+.bizprofile-update-action[data-static='true'] {
+  cursor: default;
+}
+
+/* "1.6 miles away". Indigo and undimmed so it separates from the muted
+   city/county line it sits beside — in a directory people open to find
+   something nearby, distance is the sharper of the two facts. */
+.bizprofile-distance {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+}
+
+.dark .bizprofile-distance {
+  color: var(--color-pana-butter);
+}
+
+/* Shown before the viewer has shared a location, which is where most first
+   visits start. Styled as an offer rather than a disabled placeholder. */
+.bizprofile-distance-ask {
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease;
+}
+
+.bizprofile-distance-ask:hover {
+  color: var(--color-pana-burnt);
+}
+
+.dark .bizprofile-distance-ask {
+  color: var(--color-pana-butter);
+}
+
+.dark .bizprofile-distance-ask:hover {
+  color: var(--color-pana-flame);
+}
+
+/* ==========================================================================
+   Personal profile
+   Shared by the public profile on the website and the profile surface inside
+   Pana Social, so everything here is layout and palette only — no assumptions
+   about which app is rendering it.
+   ========================================================================== */
+
+/* Cover band. The height is clamped rather than an aspect ratio because the
+   avatar hangs off the bottom edge: a ratio-driven band changes height with
+   the viewport and the overhang stops landing in the same place. */
+.profile-cover {
+  position: relative;
+  height: clamp(9rem, 22vw, 15rem);
+  overflow: hidden;
+  background-color: var(--color-pana-indigo);
+}
+
+.profile-cover img {
+  object-fit: cover;
+}
+
+/* Two washes over the photo: a flame tint so any cover image still reads as
+   Pana, and a bottom fade into the cream body so the scallop has something to
+   bite into regardless of what the photograph is doing down there. */
+.profile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgb(17 13 13 / 0.12) 0%,
+      transparent 42%,
+      rgb(255 247 236 / 0.55) 88%,
+      var(--color-pana-cream) 100%
+    ),
+    linear-gradient(
+      120deg,
+      rgb(242 132 68 / 0.34) 0%,
+      rgb(48 62 140 / 0.22) 100%
+    );
+  pointer-events: none;
+}
+
+/* The identity block sits in the cream body and pulls up over the cover. The
+   negative margin is on the avatar alone so the text baseline is unaffected
+   and the two columns still align on the desktop row. */
+.profile-avatar {
+  position: relative;
+  z-index: 2;
+  margin-top: calc(var(--pa-size, 9.5rem) / -2);
+  width: var(--pa-size, 9.5rem);
+  height: var(--pa-size, 9.5rem);
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 6px solid var(--color-pana-cream);
+  background-color: var(--color-pana-butter);
+  box-shadow: 0 12px 32px rgb(17 13 13 / 0.18);
+}
+
+.profile-avatar img {
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .profile-avatar {
+    --pa-size: 11.5rem;
+  }
+}
+
+/* Display name. Smaller than `.section-display` — a person's name should not
+   compete with a section heading — but shares its weight and tracking. */
+.profile-name {
+  font-weight: 900;
+  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Handle. Monospaced-feeling tracking so `@claribel` reads as an address
+   rather than as more prose. */
+.profile-handle {
+  font-weight: 800;
+  font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+  letter-spacing: 0.02em;
+  color: var(--color-pana-burnt);
+}
+
+/* Pronouns and other small identity facts. Outlined rather than filled so a
+   row of them never out-shouts the name directly above. */
+.identity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.18);
+  font-size: 0.78125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.identity-pill[data-tone='verified'] {
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-indigo);
+}
+
+/* Stat rail. Grid rather than flex so the figures keep equal columns and the
+   dividing rules land at even intervals. `grid-auto-flow: column` keeps the
+   rail in a single row for however many stats exist, so adding or removing one
+   cannot leave a half-filled row with a dangling rule. Never scrolls: a
+   horizontally scrolled stat row hides figures people are looking for. */
+.stat-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-top: 2px solid rgb(17 13 13 / 0.14);
+  border-bottom: 2px solid rgb(17 13 13 / 0.14);
+}
+
+.stat-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-left: 2px solid rgb(17 13 13 / 0.1);
+  transition: background-color 0.2s ease;
+}
+
+/* Only the leading cell loses its rule, so the rail never opens with one. */
+.stat-rail-item:first-child {
+  border-left: 0;
+}
+
+.stat-rail-item:hover,
+.stat-rail-item:focus-visible {
+  background-color: rgb(246 240 153 / 0.5);
+}
+
+.stat-rail-item[data-active='true'] {
+  background-color: rgb(246 240 153 / 0.72);
+}
+
+.stat-rail-value {
+  font-weight: 900;
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-rail-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+}
+
+/* Tab bar. Deliberately not the shadcn pill group: on cream, a filled track
+   reads as a second surface. Rules and an indigo underline instead. */
+.profile-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 2px solid rgb(17 13 13 / 0.14);
+  scrollbar-width: none;
+}
+
+.profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.6);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.profile-tab:hover {
+  color: var(--color-pana-ink);
+}
+
+.profile-tab[data-active='true'] {
+  color: var(--color-pana-indigo);
+  border-bottom-color: var(--color-pana-indigo);
+}
+
+/* Count that trails a tab label. */
+.profile-tab-count {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  background-color: rgb(17 13 13 / 0.08);
+  letter-spacing: 0.02em;
+}
+
+.profile-tab[data-active='true'] .profile-tab-count {
+  background-color: rgb(48 62 140 / 0.14);
+}
+
+/* Generic content card for posts, panas, businesses, and groups. Square-ish
+   radius and a flat rule — the cards sit on cream and should read as items in
+   a list, not as floating panels. */
+.profile-card {
+  position: relative;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 1.125rem;
+  background-color: #fff;
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.profile-card:hover {
+  border-color: var(--color-pana-indigo);
+  transform: translateY(-2px);
+}
+
+/* Small label used for a group's role or join policy. */
+.card-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background-color: rgb(48 62 140 / 0.1);
+  color: var(--color-pana-indigo);
+}
+
+.card-flag[data-tone='admin'] {
+  background-color: rgb(217 98 54 / 0.16);
+  color: var(--color-pana-burnt);
+}
+
+/* Over imagery the translucent tints disappear and the warm text loses
+   contrast, so flags on a photo go fully opaque instead. */
+.card-flag[data-on-media='true'] {
+  background-color: rgb(255 255 255 / 0.92);
+  color: var(--color-pana-ink);
+}
+
+.card-flag[data-on-media='true'][data-tone='admin'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* Post engagement counts. Icon-and-number pairs, muted until hovered so a
+   feed of them does not read as a wall of controls. */
+.post-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.55);
+  transition: color 0.2s ease;
+}
+
+.post-action:hover {
+  color: var(--color-pana-burnt);
+}
+
+/* Reserved module. Dashed and unfilled on purpose: it has to read as space
+   held open for a feature, never as a card that failed to load. */
+.reserved-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 2px dashed rgb(48 62 140 / 0.35);
+  border-radius: 1.125rem;
+  background-color: rgb(251 247 210 / 0.45);
+  color: var(--color-pana-ink);
+}
+
+.reserved-slot-title {
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-card,
+  .profile-card:hover,
+  .stat-rail-item,
+  .profile-tab,
+  .post-action {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Pana Social feed
+   The timeline surface. Builds on the personal-profile primitives above rather
+   than restating them — `.profile-card`, `.profile-tabs`, `.post-action`, and
+   `.identity-pill` are all reused here on purpose, because a post should look
+   the same whether it is read on a profile or in the feed.
+
+   Everything below is what the timeline needs and the profile does not: a
+   composer, a filter rail that carries counts, per-post author attribution,
+   and the injected modules that keep the column from going dead on a slow day.
+   ========================================================================== */
+
+/* Composer. Butter rather than white so the one box the reader is meant to
+   type in is the warmest thing on the page — on cream, another white card
+   would sit at the same visual level as every post below it. */
+.feed-composer {
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 1.125rem;
+  background-color: rgb(251 247 210 / 0.6);
+  padding: 1rem;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.feed-composer:focus-within {
+  border-color: var(--color-pana-indigo);
+  background-color: #fff;
+}
+
+/* The prompt itself. Sized like body copy rather than like a form control:
+   this is a place to write, and a 14px input says "fill in this field". */
+.feed-composer-prompt {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-pana-ink);
+}
+
+.feed-composer-prompt::placeholder {
+  color: rgb(17 13 13 / 0.45);
+  font-weight: 600;
+}
+
+/* Attachment affordances under the composer. Named rather than icon-only —
+   "Voice memo" is a feature nobody discovers from a microphone glyph. */
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  background-color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.composer-chip:hover {
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-indigo);
+}
+
+/* Unread pill. Sticks just under the masthead so it stays reachable mid-scroll
+   — a "new posts" control that scrolls away is a control nobody presses. */
+/* The pill pins itself over the timeline, so the sticky lives on the row that
+   wraps it rather than on the button: a sticky element is bound by its own
+   parent, and a parent that is only as tall as the pill unpins it immediately.
+   The row spans the feed column, so the pill rides the whole scroll. */
+.feed-new-row {
+  position: sticky;
+  top: 5.25rem;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+}
+
+.feed-new-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 auto;
+  padding: 0.4375rem 1.125rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.78125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 8px 22px rgb(17 13 13 / 0.22);
+  transition: transform 0.2s ease;
+}
+
+.feed-new-pill:hover {
+  transform: translateY(-1px);
+}
+
+/* Attribution line above a boosted post, and the group line inside one. Both
+   are small indigo caps that say where a post came from before it is read. */
+.feed-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-pana-indigo);
+}
+
+/* Lit state for an engagement count the reader has already acted on. The base
+   `.post-action` is muted by design, so likes and boosts need somewhere to go
+   once they are on. */
+.post-action[data-active='true'] {
+  color: var(--color-pana-pink);
+}
+
+.post-action[data-active='true'] svg {
+  fill: currentColor;
+}
+
+.post-action[data-tone='boost'][data-active='true'] {
+  color: var(--color-pana-indigo);
+}
+
+.post-action[data-tone='boost'][data-active='true'] svg {
+  fill: none;
+}
+
+/* Content-warning disclosure. Burnt rather than a red alert colour: a CW is a
+   courtesy from the poster, not an error the reader has to clear. */
+.cw-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.875rem;
+  border: 2px dashed rgb(217 98 54 / 0.45);
+  background-color: rgb(217 98 54 / 0.07);
+  color: var(--color-pana-burnt);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.cw-toggle:hover {
+  background-color: rgb(217 98 54 / 0.13);
+}
+
+/* Voice memo player. Indigo field so audio reads as its own kind of post at a
+   glance while scrolling past — the feature is distinctive and the card should
+   be too. */
+.voice-memo {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.voice-memo-play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  transition: transform 0.2s ease;
+}
+
+.voice-memo-play:hover {
+  transform: scale(1.06);
+}
+
+/* Waveform. Bars are spans sized by an inline --peak, so the shape comes from
+   the data rather than from a background image that cannot change per post. */
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  height: 2rem;
+}
+
+.waveform span {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 999px;
+  background-color: var(--color-pana-butter);
+  height: calc(var(--peak, 0.5) * 100%);
+  opacity: 0.85;
+}
+
+/* The portion already played. Flame against butter keeps the progress readable
+   on the indigo field without introducing a fifth colour. */
+.waveform span[data-played='true'] {
+  background-color: var(--color-pana-flame);
+  opacity: 1;
+}
+
+/* Unfurled link. Flat and bordered so it cannot be mistaken for an attachment
+   the poster uploaded. */
+.link-preview {
+  display: block;
+  border: 2px solid rgb(17 13 13 / 0.14);
+  border-radius: 1rem;
+  overflow: hidden;
+  padding: 0.875rem 1rem;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.link-preview:hover {
+  border-color: var(--color-pana-indigo);
+  background-color: rgb(48 62 140 / 0.04);
+}
+
+.link-preview-domain {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-pana-burnt);
+}
+
+/* Quoted top reply. The left rule is the only thing marking it as nested,
+   which is enough at one level and stays legible at card width. */
+.reply-preview {
+  border-left: 3px solid rgb(48 62 140 / 0.25);
+  padding-left: 0.875rem;
+}
+
+/* A module injected between posts. Butter-2 marks it as not-a-post without
+   dropping it out of the column the reader is already scanning. */
+.feed-module {
+  border: 2px solid rgb(48 62 140 / 0.18);
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-butter-2);
+  padding: 1.25rem;
+}
+
+.feed-module-title {
+  font-weight: 900;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+
+/* Horizontal card strip inside a module. Scrolls rather than wraps so a module
+   is always exactly one row tall and the timeline keeps its rhythm. */
+.feed-strip {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem;
+}
+
+.feed-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.feed-strip > * {
+  flex: none;
+  width: 15rem;
+}
+
+/* Sticky rail beside the timeline. The offset clears the masthead; the max
+   height plus scroll keeps a long rail from outrunning the viewport. */
+/* Sticky only once the rail is actually a column beside the feed. Below the
+   lg breakpoint it is stacked underneath, where pinning it and capping its
+   height would turn ordinary page content into a nested scroll box. */
+@media (min-width: 64rem) {
+  .feed-rail {
+    position: sticky;
+    top: 5.25rem;
+    max-height: calc(100vh - 6.5rem);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+}
+
+.feed-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-heading {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgb(17 13 13 / 0.55);
+}
+
+/* Numbered step in the empty state. The numeral is the whole design: three
+   things in order, not three cards of equal weight. */
+.empty-step-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-weight: 900;
+  font-size: 0.9375rem;
+}
+
+/* End-of-feed marker. Reaching the bottom is an accomplishment, so it gets a
+   rule and a sentence rather than a spinner that never resolves. */
+.feed-end {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgb(17 13 13 / 0.45);
+  font-size: 0.78125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.feed-end::before,
+.feed-end::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background-color: rgb(17 13 13 / 0.12);
+}
+
+/* Mock-only state switcher. Deliberately styled as developer chrome — indigo
+   rule, no brand warmth — so it never reads as part of the design under
+   review. */
+.mock-switch {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.3);
+  background-color: rgb(48 62 140 / 0.06);
+}
+
+.mock-switch button {
+  padding: 0.25rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-pana-indigo);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* ---- Mock toolbar ------------------------------------------------------- */
+
+/* A strip of developer chrome above a full-bleed mock.
+ *
+ * It exists so the surface below it needs no mock furniture of its own. A
+ * "Mock" badge sitting inside a masthead is a badge in the design; a dark bar
+ * above the masthead is plainly not part of the product, which means
+ * everything under it can be judged as if it shipped.
+ *
+ * Deliberately not sticky. The masthead pins and this scrolls away, so within
+ * one scroll the reviewer is looking at nothing but the surface. */
+.mock-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1.125rem;
+  background-color: var(--color-pana-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: rgb(255 247 236 / 0.75);
+}
+
+.mock-toolbar-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-pana-butter);
+}
+
+/* The hostname, set as an address rather than as prose. This is the claim the
+   whole redesign rests on — that social.panamia.club is its own place — so it
+   is stated once, in the chrome, instead of drawing a fake browser window
+   around the page and putting the surface back inside a rectangle. */
+.mock-toolbar-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border: 1px solid rgb(255 247 236 / 0.25);
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  color: rgb(255 247 236 / 0.9);
+}
+
+.mock-toolbar-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(255 247 236 / 0.7);
+  transition: color 0.2s ease;
+}
+
+.mock-toolbar-link:hover {
+  color: var(--color-pana-butter);
+}
+
+/* The switch is indigo-on-light by default, which disappears on the ink bar. */
+.mock-toolbar .mock-switch {
+  border-color: rgb(255 247 236 / 0.25);
+  background-color: rgb(255 247 236 / 0.08);
+}
+
+.mock-toolbar .mock-switch button {
+  color: rgb(255 247 236 / 0.75);
+}
+
+.mock-toolbar .mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-composer,
+  .feed-new-pill,
+  .feed-new-pill:hover,
+  .composer-chip,
+  .voice-memo-play,
+  .voice-memo-play:hover,
+  .link-preview,
+  .mock-switch button {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   PANAVERSE CHROME
+   The shared frame that lets panamia.club and social.panamia.club read as one
+   organisation even though the browser says they are two origins. See
+   /mock/panaverse.
+
+   Every accent below resolves through a single `--surface-tone` pair set by a
+   `data-tone` attribute, so adding a surface is one registry entry plus one
+   pair of declarations — never a new component.
+   ========================================================================== */
+
+/* Scoped to nothing in particular on purpose. These were originally written
+   under `.browser-frame`, where the only thing wearing a tone was a masthead
+   drawn inside the mock's simulated browser window. Real surface chrome ships
+   now and needs the same tokens outside that frame, and duplicating the pairs
+   would be the first step towards the mock and the real chrome disagreeing
+   about what colour Pana Social is. Custom properties only take effect where
+   something reads them, so widening the selector changes nothing else. */
+[data-tone='indigo'] {
+  --surface-tone: var(--color-pana-indigo);
+  --surface-tone-soft: rgb(48 62 140 / 0.1);
+}
+
+[data-tone='burnt'] {
+  --surface-tone: var(--color-pana-burnt);
+  --surface-tone-soft: rgb(217 98 54 / 0.12);
+}
+
+[data-tone='flame'] {
+  --surface-tone: var(--color-pana-flame);
+  --surface-tone-soft: rgb(242 132 68 / 0.14);
+}
+
+[data-tone='blue'] {
+  --surface-tone: var(--color-pana-blue);
+  --surface-tone-soft: rgb(74 179 234 / 0.16);
+}
+
+[data-tone='red'] {
+  --surface-tone: var(--color-pana-red);
+  --surface-tone-soft: rgb(217 78 65 / 0.12);
+}
+
+/* A browser window drawn around the mock. The address bar is part of the
+   design under review rather than decoration: the switcher exists to survive
+   the URL changing, and a mock with no URL cannot show whether it does. */
+.browser-frame {
+  overflow: hidden;
+  border: 3px solid var(--color-pana-ink);
+  border-radius: 1.25rem;
+  background-color: #ffffff;
+  box-shadow: 0 22px 50px rgb(17 13 13 / 0.16);
+}
+
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 2px solid rgb(17 13 13 / 0.12);
+  background-color: var(--color-pana-butter-2);
+}
+
+.browser-dots {
+  display: flex;
+  flex: none;
+  gap: 0.3125rem;
+}
+
+.browser-dots i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background-color: rgb(17 13 13 / 0.18);
+}
+
+.browser-url {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  gap: 0.4375rem;
+  min-width: 0;
+  max-width: 30rem;
+  flex: 1;
+  padding: 0.3125rem 0.75rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  border-radius: 999px;
+  background-color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.75);
+}
+
+.browser-url strong {
+  font-weight: 900;
+}
+
+/* Tall enough that the open switcher panel is never clipped by the frame's
+   `overflow: hidden`. A real browser window is this tall anyway, so sizing to
+   fit the panel also makes the simulation more honest. */
+.browser-viewport {
+  min-height: 40rem;
+  background-color: var(--color-pana-cream);
+}
+
+/* The masthead every surface carries. The switcher, avatar, and lettering
+   family stay constant; the mark, the accent rule, and the nav change. */
+.panaverse-masthead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.125rem;
+  border-bottom: 3px solid var(--surface-tone, var(--color-pana-indigo));
+  background-color: #ffffff;
+}
+
+/* Full-bleed mode. Inside the browser frame the masthead has nothing to stick
+   to, but as the real header of Pana Social it has to survive a scrolling
+   timeline — a masthead that scrolls away takes the surface's identity with
+   it, which on a long feed is most of the session. Above the switcher panel's
+   own z-index so the panel stays inside the header's stacking context. */
+.panaverse-masthead[data-sticky='true'] {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* Full bleed, the bar spans the viewport but its contents must line up with
+   the column beneath it, so the horizontal padding moves to the inner element
+   and the edge padding is dropped. */
+.panaverse-masthead[data-contained='true'] {
+  padding-inline: 0;
+}
+
+/* Positioned so `.surface-panel` — which anchors to the nearest positioned
+   ancestor, `.surface-switcher` being deliberately static — hangs off the
+   centred column rather than the viewport edge. Without this the panel opens
+   flush to the right of the screen while the pill that opened it sits several
+   hundred pixels inboard. */
+.panaverse-masthead-inner {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* The real lockup for whichever surface is in view. Height is pinned and width
+   follows, so two marks with different aspect ratios share an optical
+   baseline. Never recoloured per surface — the shared orange is precisely what
+   makes the two marks read as siblings rather than as two products. */
+.panaverse-logo {
+  height: 1.375rem;
+  width: auto;
+  flex: none;
+}
+
+.panaverse-nav {
+  display: none;
+  align-items: center;
+  gap: 1.125rem;
+}
+
+.panaverse-nav a {
+  font-size: 0.78125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.6);
+  transition: color 0.2s ease;
+}
+
+.panaverse-nav a[data-active='true'] {
+  color: var(--color-pana-ink);
+}
+
+.panaverse-nav a:hover {
+  color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+/* The bar a surface wears over a page borrowed from another surface — see
+   components/panaverse/SurfaceGuestHeader.tsx. Slimmer than a real masthead
+   and carrying no nav, because it frames someone else's page rather than
+   fronting this one. The tone rule still reads as the surface's, which is the
+   point: the member can see at a glance they have not left Pana Social. */
+.panaverse-guest {
+  padding-block: 0.5rem;
+}
+
+.panaverse-guest-home {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+/* Context rather than a control, so it is the first thing dropped when the
+   bar runs out of room — below 640px the mark and the link are what have to
+   survive. */
+.panaverse-guest-note {
+  display: none;
+  min-width: 0;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.panaverse-guest-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  font-size: 0.78125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--surface-tone, var(--color-pana-indigo));
+  transition: opacity 0.2s ease;
+}
+
+.panaverse-guest-link:hover {
+  opacity: 0.75;
+}
+
+@media (min-width: 640px) {
+  .panaverse-guest-note {
+    display: block;
+  }
+}
+
+/* The closing rule under a borrowed page. Slim by intent: its job is to carry
+   the legal links MainFooter would have provided, not to stand in for
+   MainFooter. See components/panaverse/SurfaceGuestFooter.tsx. */
+.panaverse-guest-footer {
+  margin-top: 3rem;
+  border-top: 1px solid rgb(17 13 13 / 0.08);
+  padding-block: 1rem;
+}
+
+.panaverse-guest-footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: 0.78125rem;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.panaverse-guest-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+}
+
+.panaverse-guest-footer-nav a {
+  font-weight: 700;
+  color: var(--surface-tone, var(--color-pana-indigo));
+  transition: opacity 0.2s ease;
+}
+
+.panaverse-guest-footer-nav a:hover {
+  opacity: 0.75;
+}
+
+.dark .panaverse-guest-footer {
+  border-top-color: rgb(255 255 255 / 0.12);
+}
+
+.dark .panaverse-guest-footer-inner {
+  color: rgb(255 255 255 / 0.6);
+}
+
+/* Side by side once there is room for the attribution and the links to share
+   a line without either wrapping. */
+@media (min-width: 640px) {
+  .panaverse-guest-footer-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+@media (min-width: 768px) {
+  .panaverse-nav {
+    display: flex;
+  }
+}
+
+/* On a phone the pill already names the surface, so the masthead suffix is
+   duplicate information — drop it rather than let it run under the switcher. */
+@media (max-width: 479px) {
+  .panaverse-logo {
+    height: 1.125rem;
+  }
+
+  /* The logo already names the surface, so the pill's label is the redundant
+     element at this width — and the most expendable ~70px in the masthead.
+     Without this the longer "Pana Social" lockup pushes the avatar past the
+     frame edge. The star and chevron still read as "switch surfaces", and the
+     button keeps its name via aria-label. */
+  .surface-pill-name {
+    display: none;
+  }
+}
+
+/* Small avatar for chrome. Distinct from `.profile-avatar`, which is a 9.5rem
+   header element with a negative margin and would tear the masthead apart. */
+.chrome-avatar {
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-pana-butter);
+}
+
+/* ---- The switcher ------------------------------------------------------- */
+
+/* Static, so the panel below anchors to `.panaverse-masthead` rather than to
+   the pill. Anchoring to the pill overflows the frame on a phone, where the
+   panel is wider than the distance from the pill to the left edge. */
+.surface-switcher {
+  position: static;
+}
+
+.surface-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.625rem 0.3125rem 0.5rem;
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.surface-pill:hover {
+  border-color: var(--surface-tone, var(--color-pana-indigo));
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-pill-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* The star that dots the `i` in both the Pana Mia Club and Pana Social
+   wordmarks, reused as the surface indicator. A plain circle was the first
+   draft, but the star is already the motif the two marks share, so it does
+   continuity work for free. Sized up from 0.5rem because a five-point
+   clip-path much below 12px reads as a smudge rather than a star. */
+.surface-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: none;
+  background-color: var(--surface-tone, var(--color-pana-indigo));
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+/* Right edge lines up with the avatar, which is the masthead's own padding —
+   so the panel reads as hanging off the chrome rather than off one control.
+   Width is capped against the masthead so it can never outgrow the frame. */
+.surface-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 1.125rem;
+  z-index: 30;
+  width: min(21rem, calc(100% - 2.25rem));
+  padding: 0.875rem;
+  border: 2px solid var(--color-pana-ink);
+  border-radius: 1.125rem;
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 18px 44px rgb(17 13 13 / 0.22);
+}
+
+/* Identity sits above the destinations, not beside them. The panel's argument
+   is "same you, different room", and a list of links with an avatar tucked in
+   the corner makes the opposite argument. */
+.surface-panel-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-bottom: 0.75rem;
+}
+
+.surface-identity-name {
+  font-size: 0.9375rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.surface-identity-handle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-pana-burnt);
+}
+
+/* The sentence the panel exists to make believable. On butter so it reads as
+   a statement of fact rather than as helper text. */
+.surface-panel-note {
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.625rem;
+  background-color: var(--color-pana-butter-2);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(17 13 13 / 0.7);
+}
+
+.surface-panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid rgb(17 13 13 / 0.1);
+}
+
+.surface-panel-label {
+  margin-bottom: 0.125rem;
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.surface-option {
+  display: flex;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem;
+  border: 2px solid transparent;
+  border-radius: 0.875rem;
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.surface-option:hover {
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-option[data-current='true'] {
+  border-color: var(--surface-tone, var(--color-pana-indigo));
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-option-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.surface-option-name {
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.surface-option-blurb {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgb(17 13 13 / 0.65);
+}
+
+/* The hostname, shown rather than hidden. A member who can see that Pana
+   Social lives at a different address is not surprised when the URL bar
+   changes; one who cannot has simply been redirected somewhere. */
+.surface-host {
+  display: block;
+  margin-top: 0.3125rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.surface-here {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  margin-left: auto;
+  flex: none;
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--surface-tone, var(--color-pana-indigo));
+}
+
+/* Rooms: one line, no hostname, because they do not have one. The visual gap
+   between this and `.surface-option` is the honest signal that these live
+   inside the main site rather than behind a front door of their own. */
+.surface-room {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.625rem;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.surface-room:hover {
+  background-color: var(--surface-tone-soft, rgb(48 62 140 / 0.08));
+}
+
+.surface-room-name {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.surface-room-blurb {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(17 13 13 / 0.5);
+}
+
+/* One settings page for the whole panaverse. Per-surface settings would mean
+   remembering which room you changed your email in. */
+.surface-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5625rem 0.625rem;
+  border: 2px solid rgb(17 13 13 / 0.12);
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  transition: border-color 0.2s ease;
+}
+
+.surface-panel-footer:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+/* ---- Page body under the masthead --------------------------------------- */
+
+/* Deliberately low fidelity. The surfaces themselves are designed in
+   /mock/feed and /mock/profile; redrawing them here would invite review of
+   the content instead of the chrome. */
+.panaverse-body {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem 1.125rem 2rem;
+}
+
+.panaverse-body-title {
+  margin-top: 0.25rem;
+  font-size: clamp(1.375rem, 2.6vw, 1.875rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.panaverse-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.panaverse-skeleton span {
+  height: 3.75rem;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  border-radius: 0.875rem;
+  background-color: #ffffff;
+}
+
+.panaverse-skeleton-rail {
+  display: none;
+  width: 12rem;
+  flex: none;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding-top: 2.5rem;
+}
+
+.panaverse-skeleton-rail span {
+  height: 4.5rem;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  border-radius: 0.875rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+@media (min-width: 768px) {
+  .panaverse-skeleton-rail {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-pill,
+  .surface-pill:hover,
+  .surface-option,
+  .surface-room,
+  .surface-panel-footer,
+  .panaverse-nav a {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   Directory search
+   The results page a pana lands on after searching from the homepage hero.
+   Design mock at /mock/directory; moves to app/directory/search when signed
+   off. Unlayered on purpose — these rules sit beside Tailwind utilities on the
+   same elements and need to win without !important, same as .bizprofile-*.
+   ========================================================================== */
+
+/* --- Search band ------------------------------------------------------- */
+
+.dirsearch-band {
+  padding-block: clamp(2rem, 5vw, 3.25rem) clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.dirsearch-title {
+  margin-top: 0.85rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+/* The searched term is the one word on the page the visitor typed, so it gets
+   the accent rather than the sentence around it. */
+.dirsearch-title em {
+  font-style: normal;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-count {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.dirsearch-count strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-searchrow {
+  margin-top: 1.35rem;
+  max-width: 44rem;
+}
+
+.dirsearch-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.05rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.22);
+}
+
+.dirsearch-pill input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding-block: 0.55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.dirsearch-pill input:focus {
+  outline: none;
+}
+
+/* Safari paints its own clear affordance inside type="search", which lands on
+   top of the submit button at this size. */
+.dirsearch-pill input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dirsearch-pill button {
+  flex: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-pill button:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-locbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  margin-top: 0.95rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.dirsearch-locbar strong {
+  font-weight: 900;
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-locshare {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-pana-butter);
+  color: var(--color-pana-butter);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dirsearch-locshare:hover {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-locchange {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+}
+
+.dirsearch-locchange:hover {
+  opacity: 1;
+}
+
+/* --- Filter bar --------------------------------------------------------- */
+
+/* Sticky because refining is iterative: you scroll, you see too much food,
+   you want to cut it to Broward without scrolling back up. */
+.dirsearch-filters {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-block: 0.7rem 0.6rem;
+  background-color: var(--color-pana-cream);
+  border-bottom: 2px solid rgb(48 62 140 / 0.12);
+  box-shadow: 0 8px 20px rgb(17 13 13 / 0.05);
+}
+
+/* The mock bar is itself sticky at top: 0, so on the mock route the filter bar
+   has to stack beneath it rather than slide behind it — otherwise the first
+   chip row is permanently hidden. Scoped to the sibling pairing so the shipped
+   page, which has no mock bar, still pins to the very top. */
+.bizprofile-mockbar ~ .dirsearch-filters {
+  top: 3.7rem;
+}
+
+.dirsearch-filterrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.dirsearch-filterlabel {
+  flex: none;
+  width: 4.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+/* Horizontal scroll rather than wrapping: eleven categories wrapped to three
+   lines pushes the first result below the fold on a phone, and the whole
+   point of putting filters on the page was to keep results visible. */
+.dirsearch-chiprow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 0.15rem;
+}
+
+.dirsearch-chiprow::-webkit-scrollbar {
+  display: none;
+}
+
+.dirsearch-chip {
+  flex: none;
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-chip:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-chip[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.dirsearch-chipdivide {
+  flex: none;
+  width: 2px;
+  height: 1.25rem;
+  margin-inline: 0.3rem;
+  background-color: rgb(48 62 140 / 0.18);
+}
+
+.dirsearch-filterfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding-top: 0.5rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.45);
+}
+
+.dirsearch-sort select {
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.dirsearch-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-clear:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dirsearch-viewtoggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dirsearch-viewtoggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-indigo);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-viewtoggle button[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Results ------------------------------------------------------------ */
+
+.dirsearch-results {
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(2.5rem, 6vw, 4rem);
+}
+
+/* One column, not a grid of tiles. Each result carries a cover, a logo, a
+   location, counts, and an event — a three-across grid either truncates all
+   of that or produces tiles too tall to compare. A single column also keeps
+   every card's signals on the same vertical line, which is what makes a list
+   scannable rather than merely dense. */
+.dirsearch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* position: relative anchors the stretched link on the business name, which
+   is what makes the whole card a click target without nesting the Save button
+   inside an anchor. Save and Claim lift themselves back above it. */
+.dirsearch-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background-color: #fff;
+  border: 2px solid rgb(48 62 140 / 0.1);
+  box-shadow: 0 10px 26px rgb(17 13 13 / 0.06);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dirsearch-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(48 62 140 / 0.24);
+  box-shadow: 0 18px 38px rgb(17 13 13 / 0.11);
+}
+
+.dirsearch-card-media {
+  position: relative;
+  flex: none;
+  height: 10rem;
+  background-color: var(--color-pana-butter-2);
+}
+
+.dirsearch-card-cert {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+}
+
+.dirsearch-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem 1.05rem;
+}
+
+.dirsearch-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.dirsearch-card-logo {
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 2px solid var(--color-pana-cream);
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.12);
+}
+
+/* Business logos are wordmarks as often as they are marks; `cover` crops
+   them to an unreadable slice. `contain` keeps the whole logo legible. */
+.dirsearch-card-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.dirsearch-card-name {
+  font-family: var(--font-montserrat);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-name a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.dirsearch-card-tagline {
+  margin-top: 0.12rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-card-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-pana-indigo);
+}
+
+/* Distance is the one number on the card that decides whether someone goes,
+   so it is the one number that gets a chip. */
+.dirsearch-card-distance {
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.dirsearch-card-distance-off {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-style: italic;
+  opacity: 0.45;
+}
+
+.dirsearch-card-blurb {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: rgb(17 13 13 / 0.72);
+}
+
+.dirsearch-card-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dirsearch-card-cats li {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background-color: rgb(48 62 140 / 0.07);
+  color: var(--color-pana-indigo);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dirsearch-card-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.7rem;
+  background-color: rgb(217 98 54 / 0.09);
+  color: var(--color-pana-burnt);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.dirsearch-card-event strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-event span {
+  opacity: 0.85;
+}
+
+.dirsearch-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-card-signals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  min-width: 0;
+}
+
+/* Faces before numbers. "14 recommend" is a statistic; four overlapping
+   photographs of neighbours is the thing that makes it feel like a place
+   people you might know actually go. */
+.dirsearch-card-avatars {
+  display: inline-flex;
+}
+
+.dirsearch-card-avatars img {
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  background-color: var(--color-pana-butter);
+}
+
+.dirsearch-card-avatars img + img {
+  margin-left: -0.55rem;
+}
+
+.dirsearch-card-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.62);
+}
+
+.dirsearch-card-counts strong {
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-card-counts i {
+  font-style: normal;
+  opacity: 0.35;
+}
+
+.dirsearch-card-active {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-card-actions {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.dirsearch-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.25);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-save:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-save[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-butter);
+}
+
+.dirsearch-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  transition: background-color 0.16s ease;
+}
+
+.dirsearch-view:hover {
+  background-color: var(--color-pana-red);
+}
+
+.dirsearch-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  border: 2px dashed rgb(48 62 140 / 0.35);
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-claim:hover {
+  background-color: rgb(48 62 140 / 0.07);
+}
+
+/* The card goes horizontal once there is room for the cover to sit beside the
+   text without squeezing either. Below this it stacks, which is also the only
+   arrangement where a 10rem cover is worth its vertical cost. */
+@media (min-width: 40rem) {
+  .dirsearch-card {
+    flex-direction: row;
+  }
+
+  .dirsearch-card-media {
+    width: 15rem;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+/* --- Map view ----------------------------------------------------------- */
+
+.dirsearch-maplayout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.dirsearch-maplist-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .dirsearch-maplayout {
+    grid-template-columns: 20rem 1fr;
+    align-items: start;
+  }
+
+  .dirsearch-maplist {
+    max-height: 34rem;
+    overflow-y: auto;
+  }
+}
+
+.dirsearch-maplist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dirsearch-maprow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.8rem;
+  border: 2px solid transparent;
+  text-align: left;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-maprow:hover {
+  background-color: rgb(48 62 140 / 0.06);
+}
+
+.dirsearch-maprow[data-on='true'] {
+  background-color: #fff;
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow img {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-maprow-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-maprow-name svg {
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-maprow-meta {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-mapoffmap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.7rem;
+  background-color: rgb(48 62 140 / 0.06);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-map {
+  position: relative;
+  height: clamp(22rem, 55vh, 34rem);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 2px solid rgb(48 62 140 / 0.14);
+  background:
+    radial-gradient(
+      circle at 78% 62%,
+      rgb(74 179 234 / 0.35) 0%,
+      transparent 42%
+    ),
+    linear-gradient(160deg, #eef3e6 0%, #e4ecdd 100%);
+}
+
+.dirsearch-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(48 62 140 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(48 62 140 / 0.06) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+}
+
+.dirsearch-map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-map-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dirsearch-map-pin:hover {
+  transform: translate(-50%, -100%) scale(1.1);
+}
+
+.dirsearch-map-pin[data-on='true'] {
+  z-index: 3;
+  border-color: var(--color-pana-burnt);
+  transform: translate(-50%, -100%) scale(1.18);
+}
+
+.dirsearch-map-you {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.dirsearch-map-youdot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background-color: var(--color-pana-blue);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0.45rem rgb(74 179 234 / 0.25);
+}
+
+/* The "you" marker sits among the pins, so its label needs its own
+   background — plain text collides with whatever logo is underneath. */
+.dirsearch-map-youlabel {
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-pana-indigo);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.92);
+  box-shadow: 0 2px 6px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card {
+  position: absolute;
+  z-index: 4;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.9rem;
+  background-color: #fff;
+  box-shadow: 0 14px 30px rgb(17 13 13 / 0.18);
+}
+
+.dirsearch-map-card img {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  object-fit: contain;
+  padding: 0.15rem;
+  background-color: #fff;
+  border: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.dirsearch-map-card-name {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-map-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-map-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-cream);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dirsearch-map-note {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgb(17 13 13 / 0.38);
+}
+
+/* --- Empty state -------------------------------------------------------- */
+
+.dirsearch-empty {
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4rem);
+  text-align: center;
+  color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty > svg {
+  margin-inline: auto;
+  opacity: 0.35;
+}
+
+.dirsearch-empty-title {
+  margin-top: 1rem;
+  font-family: var(--font-montserrat);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-empty-title em {
+  font-style: normal;
+  color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-lede {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.6);
+}
+
+.dirsearch-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.dirsearch-empty-primary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+.dirsearch-empty-secondary {
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.28);
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.dirsearch-empty-secondary:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-empty-or {
+  margin-top: 2rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(17 13 13 / 0.4);
+}
+
+.dirsearch-empty-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.dirsearch-empty-cats button {
+  padding: 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-empty-cats button:hover {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* --- Tail CTA ----------------------------------------------------------- */
+
+.dirsearch-tail {
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.dirsearch-tail .section-display {
+  margin-top: 0.75rem;
+}
+
+.dirsearch-tail .section-lede {
+  margin-top: 0.75rem;
+  max-width: 38rem;
+}
+
+.dirsearch-tail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.dirsearch-tail-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 1rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease;
+}
+
+.dirsearch-tail-primary:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+/* --- Live-page additions ------------------------------------------------ */
+
+/* Pins on real tiles. Distinct from .dirsearch-map-pin because pigeon-maps
+   positions its own overlay wrapper — a pin that also positions itself would
+   fight it and land in the wrong place. */
+.dirsearch-pin {
+  position: relative;
+  display: block;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 6px 16px rgb(17 13 13 / 0.25);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.dirsearch-pin img {
+  width: 100%;
+  height: 100%;
+  /* Never `cover`. Cropping a logo to a circle turns wordmarks into
+     fragments — "rtist" instead of Artist. */
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dirsearch-pin:hover {
+  transform: scale(1.1);
+}
+
+.dirsearch-pin[data-on='true'] {
+  z-index: 3;
+  border-color: var(--color-pana-burnt);
+  transform: scale(1.18);
+}
+
+/* Tiles paint their own background; the mock's illustrative gradient would
+   show through the seams while they load. */
+.dirsearch-map:has(.pigeon-tiles) {
+  background: var(--color-pana-butter-2);
+}
+
+/* Shaped like the card it stands in for, so the list does not jump when
+   results arrive. A spinner would say "something is happening"; this says
+   "results are coming, and roughly this many". */
+.dirsearch-skeleton {
+  height: 11.5rem;
+  border-radius: 1.25rem;
+  border: 2px solid rgb(48 62 140 / 0.08);
+  background: linear-gradient(
+    100deg,
+    rgb(48 62 140 / 0.05) 30%,
+    rgb(48 62 140 / 0.11) 50%,
+    rgb(48 62 140 / 0.05) 70%
+  );
+  background-size: 220% 100%;
+  animation: dirsearch-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes dirsearch-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dirsearch-skeleton {
+    animation: none;
+  }
+}
+
+.dirsearch-cta {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  max-width: 58rem;
+  margin-inline: auto;
+  padding-block: clamp(1rem, 3vw, 1.5rem) clamp(3rem, 7vw, 5rem);
+}
+
+@media (min-width: 48rem) {
+  .dirsearch-cta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dirsearch-cta > div {
+  padding: 1.35rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 2px dashed rgb(48 62 140 / 0.22);
+  background-color: rgb(48 62 140 / 0.04);
+}
+
+.dirsearch-cta h2 {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--color-pana-ink);
+}
+
+.dirsearch-cta p {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(17 13 13 / 0.62);
+}
+
+.dirsearch-cta .link-arrow {
+  margin-top: 0.9rem;
+  display: inline-flex;
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage mock — the info card and the three pillars  (/mock/home)
+   ---------------------------------------------------------------------------
+   Two new primitives, both built from tokens already in this file so the mock
+   cannot win an argument with colours the design system does not have.
+
+   If the mock is signed off these move up into the homepage section above and
+   the `/mock/home` route is deleted, the same way the directory mock's
+   components moved into app/directory/search/_components.
+   --------------------------------------------------------------------------- */
+
+/* ---- Vertical rhythm ---------------------------------------------------- */
+
+/* The live site pins its hero to the viewport and puts `py-16 md:py-24` on
+   every band below it, which on a 1000px screen spends roughly a third of the
+   page on air. These two token sets are the whole of the density switch: the
+   markup never changes, only what these resolve to.
+
+   `roomy` restates today's numbers exactly, so the switch is a genuine
+   before/after rather than a flattering redraw of the thing being replaced. */
+[data-density='roomy'] {
+  --home-pad: 4rem;
+  --home-head-gap: 2.5rem;
+  --home-head-stack: 1.25rem;
+  --home-display-max: 4.375rem;
+  --home-hero-min: 100svh;
+  /* This was 196–300px, and none of it was breathing room: it was holding the
+     wordmark clear of the band of sky painted across the top of the document.
+     With the sky gone, the only thing above the card that still has to be
+     cleared is the masthead, so what is left is its height plus a margin —
+     and the card comes up the page by about 150px. */
+  --home-hero-pad-top: clamp(40px, 9svh, 148px);
+  --home-hero-pad-bottom: clamp(20px, min(2.4vw, 3.5svh), 34px);
+  /* How far apart consecutive stops on the walk sit, and how wide the art
+     half of a stop is allowed to get before it starts crowding the words. */
+  --home-beat-gap: 5.5rem;
+  --home-beat-art: 24rem;
+}
+
+[data-density='compact'] {
+  --home-pad: 2.75rem;
+  --home-head-gap: 1.75rem;
+  --home-head-stack: 0.85rem;
+  /* Display type is part of the vertical rhythm, not separate from it: a
+     two-line heading at 70px is 143px of the fold on its own. Only the
+     ceiling moves, so small screens — already below the clamp — are
+     unaffected. */
+  --home-display-max: 3.5rem;
+  /* The hero stops being a full screen and becomes as tall as what is in it.
+     This is the single biggest saving on the page: the content is ~610px and
+     the viewport reserves 1000. The top padding stays, because that is what
+     clears the fixed header rather than decoration. */
+  --home-hero-min: 0;
+  /* Same reasoning as `roomy`: what is left is the masthead plus a margin.
+     Tighter than roomy, because the compact hero is only ever as tall as what
+     is inside it, so this padding is a much larger share of the whole. */
+  --home-hero-pad-top: clamp(24px, 6svh, 96px);
+  --home-hero-pad-bottom: 1.25rem;
+  --home-beat-gap: 3.75rem;
+  --home-beat-art: 20rem;
+}
+
+@media (min-width: 48rem) {
+  [data-density='roomy'] {
+    --home-pad: 6rem;
+    --home-head-gap: 3.5rem;
+  }
+
+  [data-density='compact'] {
+    --home-pad: 3.5rem;
+    --home-head-gap: 2.25rem;
+  }
+}
+
+.home-section {
+  padding-block: var(--home-pad);
+}
+
+.home-sectionhead {
+  margin-bottom: var(--home-head-gap);
+}
+
+/* The eyebrow / headline / lede stack, spaced from one token instead of the
+   `mt-4` and `mt-5` utilities that were here, so density reaches inside the
+   heading block and not just between the bands. */
+.home-sectionhead > * + * {
+  margin-top: var(--home-head-stack);
+}
+
+[data-density] .section-display {
+  font-size: clamp(2rem, 5.1vw, var(--home-display-max));
+}
+
+/* Overrides the live hero's own min-height and padding, scoped to the mock so
+   the real homepage is untouched. */
+[data-density] .home-hero-banner {
+  min-height: var(--home-hero-min);
+  padding-top: var(--home-hero-pad-top);
+  padding-bottom: var(--home-hero-pad-bottom);
+}
+
+/* The switch is indigo-on-light by default, which disappears on the ink bar —
+   the same treatment `.mock-toolbar` already gets. */
+.bizprofile-mockbar .mock-switch {
+  border-color: rgb(255 247 236 / 0.25);
+  background-color: rgb(255 247 236 / 0.08);
+}
+
+.bizprofile-mockbar .mock-switch button {
+  color: rgb(255 247 236 / 0.75);
+}
+
+.bizprofile-mockbar .mock-switch button[data-active='true'] {
+  background-color: var(--color-pana-butter);
+  color: var(--color-pana-ink);
+}
+
+/* The donate chip in the hero. A `.tagpill` that carries an icon and reads as
+   an aside rather than a fourth county — same size and shape as its
+   neighbours, inverted fill so it is not mistaken for a filter. `.tagpill` is
+   inline-block with no border, so both have to be restated here. */
+.hero-donate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(255 247 236 / 0.5);
+  background-color: rgb(17 13 13 / 0.55);
+  color: var(--color-pana-cream);
+}
+
+.hero-donate:hover {
+  background-color: var(--color-pana-ink);
+  border-color: var(--color-pana-cream);
+  color: var(--color-pana-cream);
+}
+
+/* --- The palette -------------------------------------------------------- */
+
+/* The six colours the panas handed over, and the only six this page draws
+   with.
+ *
+ * It is a tightening of the refresh palette rather than a departure from it —
+ * indigo becomes a true blue, the ink goes cooler, flame and burnt become
+ * orange and coral — with one real loss: there is no butter. Everything on
+ * this page that used to lean on butter (the hero's pool of light, the notes,
+ * the newsletter block) is re-cut below.
+ *
+ * Scoped to `body:has(...)` rather than `:root` for two reasons. Nothing
+ * outside /mock/home should inherit a palette that has not been signed off;
+ * and this page reaches into the masthead, which is not a descendant of the
+ * mock's own wrapper, so a `[data-density]` scope would not reach the rules
+ * that need these.
+ *
+ * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
+ * registry, and adding to it would be a mock quietly redefining site-wide
+ * tokens ahead of the decision it exists to inform. */
+body:has([data-density]) {
+  --story-blue: #3565f2;
+  --story-ink: #020811;
+  --story-cream: #fcf2e7;
+  --story-orange: #f2882f;
+  --story-coral: #f27457;
+  --story-red: #f4374f;
+
+  /* Blue let down towards cream. A fixed mix rather than a `color-mix()` call
+     repeated at every use, so it still reads as a number when someone checks
+     the maths later. The page no longer opens on a band of sky, so the only
+     thing left tinted this way is the glass in the street below. */
+  --story-sky-low: rgb(146 172 244); /* blue 52% — window glass */
+}
+
+/* --- The sky ------------------------------------------------------------ */
+
+/* The "you are visiting a test site" bar is an environment warning, not part
+   of the page: `MainHeader` only renders it when the host is not production,
+   so nobody visiting the real site ever sees it. On a design mock it is a
+   56px band of someone else's navy and magenta sitting above the sky, which
+   makes the mock a less accurate preview than it would be without it.
+
+   Hidden here rather than in `MainHeader`, and scoped to this page, because
+   on every other route of this deployment the warning is doing its job. */
+body:has([data-density]) #call-to-action-bar {
+  display: none;
+}
+
+/* The page opens on paper.
+ *
+ * It used to open on a band of blue running from the top of the document,
+ * down past the masthead, dissolving into cream just before the wordmark.
+ * For its size that band was the most expensive thing on the page, in three
+ * separate ways:
+ *
+ *  - It cost the top of the fold. The wordmark could not sit in the blue, so
+ *    the hero carried 196–300px of padding whose only job was to hold the
+ *    card clear of the weather. That padding was the empty space at the top
+ *    of this page — the sky was not above the card, it *was* the gap.
+ *  - It capped the palette. Ink on full blue is 3.7:1 and fails AA, so the
+ *    top of the gradient had to be held back to 78% blue for the sake of the
+ *    masthead's own type. On cream that same type is ~17:1: the cap, and the
+ *    two mixed tones that existed to satisfy it, are simply not needed.
+ *  - It was measured in page coordinates. The gradient sat on the body in
+ *    fixed pixels, so every change to the height of the chrome above the hero
+ *    meant re-deriving five stops by hand. That is how this page acquired a
+ *    1px seam across the masthead the last time something above it moved.
+ *
+ * The clouds stay, and become the whole of the weather: see `.sky-cloud`,
+ * which inverts them to blue-on-paper now that there is no blue behind them.
+ * The page still opens outdoors, but the sky is drawn rather than painted
+ * across the full width of the document. */
+body:has([data-density]) {
+  background-color: var(--story-cream);
+}
+
+/* The masthead stops being a cream bar of its own and becomes part of the
+   same sheet of paper as the hero, so there is no edge at all where the
+   chrome ends and the page begins.
+
+   Transparent is only correct while there is nothing scrolling underneath —
+   which is true for as long as the hero is on screen. The handover animation
+   further down puts the cream back on the way out, and it carries the
+   background as well as the rule. */
+body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+  background-color: transparent;
+}
+
+/* The mock's own control bar is a full-width dark band, and it sits in the
+   one place on this page that cannot take one: between the masthead and the
+   hero, straight across the sky. So on this page it comes out of the flow and
+   floats at the bottom of the viewport instead.
+ *
+ * Scoped on `.home-hero-field`, not `[data-density]` — the bar is shared with
+   two other mocks and none of this should follow it there. */
+body:has(.home-hero-field) .bizprofile-mockbar {
+  position: fixed;
+  z-index: 60;
+  /* The base rule is `position: sticky; top: 0`, and that `top` survives the
+     switch to fixed — with a `bottom` as well it stretches the bar over the
+     whole viewport instead of sitting at the foot of it. */
+  top: auto;
+  right: 0;
+  bottom: 1rem;
+  left: 0;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin-inline: auto;
+  /* Not `999px`: on a narrow screen the row wraps to three lines and a pill
+     radius turns the whole bar into an ellipse. 1.75rem is still more than
+     half the one-line height, so it reads as a pill when it fits on one. */
+  border-radius: 1.75rem;
+  padding-block: 0.4rem;
+  box-shadow: 0 10px 34px rgb(2 8 17 / 0.34);
+}
+
+/* The bar's inner wrapper is a Tailwind `container`, which is a fixed width at
+   every breakpoint — inside a `fit-content` parent that is what the pill would
+   size to. This lets it shrink to what is actually in it. */
+body:has(.home-hero-field) .bizprofile-mockbar > div {
+  width: auto;
+  max-width: none;
+  margin-inline: 0;
+  justify-content: center;
+}
+
+/* The compare link is a nowrap flex row wider than a phone, which pushes the
+   bar past its own max-width and puts a scrollbar on the document. */
+body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+}
+
+/* --- The hero as a colour field ----------------------------------------- */
+
+/* The seam. The hero's bottom edge resolves to this, and so does the section
+   below it, so the two can never drift apart into a visible line. */
+[data-density] {
+  --home-seam: var(--story-cream);
+}
+
+/* The hero has been a photograph under an orange wash, then a field of cream,
+ * then the bottom of the sky. It is paper now — the same paper as the body
+ * and the masthead — so there is nothing left to blend between them: the
+ * chrome, this card and the section beneath it are one continuous sheet.
+ *
+ * That leaves a single background layer, the pool of light behind the search
+ * box. It does one job: put the light source directly behind the thing the
+ * eye should find first. The haze that used to sit over it existed only to
+ * dissolve the sky into the paper, and with no sky it was cream fading into
+ * cream, so it has gone with the sky. */
+.home-hero-field {
+  background-color: transparent;
+  color: var(--story-ink);
+  /* Named so the masthead can react to this card leaving, from a different
+     subtree entirely. See the handover rule below. */
+  view-timeline-name: --home-hero;
+  view-timeline-axis: block;
+  /* The remaining layer ends fully transparent rather than in an opaque
+     colour, so it can no longer bleed the way the cream-terminated one did:
+     this box starts on a half pixel (the masthead is 65.375px tall) and a
+     background tile repeats by default, so the bottom edge of the tile
+     repeating *above* the box used to leak a 1px cream hairline into that
+     fractional first row. Kept regardless — there is only ever one tile
+     here, so repeating was never wanted. */
+  background-repeat: no-repeat;
+  background-image:
+    /* The pool of light behind the search. This is the first time it has
+       actually been drawn: the haze that used to sit over it reached *opaque*
+       cream partway down, so everything here was painted and then covered up.
+
+       Its geometry is therefore new too. Centred just above the search and
+       sized so the transparent stop lands at ~97% of the card, because the
+       hero has no fade to hide behind any more — left where it was, at 104%
+       with a 72% radius, the falloff was still at 32% alpha when it reached
+       the bottom edge and was cut dead there. Measured as a step of 50 across
+       one row: a hard orange line straight over the join into the section
+       below. Percentages, not pixels, so it keeps resolving inside the card
+       at either density and on a phone. */ radial-gradient(
+    88% 24% at 50% 78%,
+    rgb(242 136 47 / 0.3) 0%,
+    rgb(242 136 47 / 0.18) 34%,
+    rgb(242 136 47 / 0.06) 60%,
+    rgb(242 136 47 / 0) 78%
+  );
+}
+
+/* The grain used to have to dodge the sky — ink dots scattered over blue read
+   as dirt on the lens rather than as tooth on paper. There is no sky now, but
+   the ramp earns its place twice over: the masthead above this card is the
+   same cream and carries no grain, so grain reaching the hero's top edge
+   would draw a visible boundary right on that join, which is the seam this
+   page has been through three times. It still clears before the pool of
+   light at the bottom. */
+.home-hero-field .home-hero-grain {
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
+  );
+}
+
+/* Everything below here is the cost of turning the field over. All of it was
+   cream because the hero used to be dark; all of it is now re-cut onto the
+   six colours the panas handed over. */
+
+/* The drop shadow existed to lift cream type off a photograph. Ink on cream
+   needs no help, and a shadow at this size just reads as a smudge.
+
+   The size is re-clamped against the viewport's short edge rather than
+   inherited. The global rule allows up to 16svh, which is generous on a
+   desktop and too generous on a laptop: at 1366x768 it made a two line
+   headline 216px tall, and those 216px were the difference between the town
+   sitting on the bottom edge of the screen and hanging off it. 13svh keeps
+   desktop sizes exactly where they were — 8.4vw is the binding term there —
+   and only bites on short windows, which is where the room is needed. */
+.home-hero-field .hero-headline {
+  text-shadow: none;
+  font-size: clamp(42px, min(8.4vw, 13svh), 126px);
+}
+
+/* Coral rather than orange, and for a specific reason: the wordmark directly
+   above it is orange, and an accent in the same colour 80px below it reads as
+   a second logo. Coral is the next step round the palette and picks up the
+   pool of light underneath it. */
+.home-hero-field .accent-word {
+  color: var(--story-coral);
+}
+
+/* The counties row and the donate chip used to sit under the search; both
+   were removed — they are navigation, and this card is for one thing. The
+   rules that dressed them went with them. */
+
+/* A cream pill on a cream field is an outline of a search box. This is the
+   primary action on the page, so it gets an edge — and a shadow sized for a
+   light surface. The old one was a 34px spread tuned to read against ink,
+   which over cream is just a grey bruise. */
+.home-hero-field .directory-suggest-pill {
+  border: 2px solid rgb(2 8 17 / 0.14);
+  box-shadow: 0 10px 30px rgb(2 8 17 / 0.07);
+}
+
+/* --- Clouds ------------------------------------------------------------- */
+
+/* The band the clouds fly in: the top of the hero, which is where the body's
+   gradient is still blue. It is `absolute` and clipped by the hero, so a
+   cloud that drifts past the edge is cut off by the sky rather than by the
+   viewport — which is what keeps the page from growing a horizontal scrollbar
+   when one of them travels.
+
+   `pointer-events: none` because it covers the whole top of the hero and the
+   masthead's dropdowns open into it. */
+.sky-clouds {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: clamp(150px, 26svh, 280px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-hero-field {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Each cloud is one colour in `currentColor`, so its overlapping parts cannot
+   show as seams. Depth is size and opacity only — a blurred cloud reads as a
+   rendering fault rather than as distance.
+
+   These were cream on blue. With the sky gone they are the only weather left
+   on the page, so they invert: blue let most of the way down into the paper,
+   which lands as a soft periwinkle on cream. The mix is what carries the
+   lightness rather than the alpha, because it has to survive the per-cloud
+   opacities below — the nearest cloud is at 0.95, so tinting by alpha alone
+   would have given that one no colour to be light *with*. */
+.sky-cloud {
+  position: absolute;
+  width: auto;
+  color: color-mix(in srgb, var(--story-blue) 20%, var(--story-cream));
+
+  /* Hidden runway at both ends of the lap, and the reason it is a fixed
+     length rather than `100%`: every cloud must travel the *same* distance.
+     With `100%` the lap length varied with each cloud's own width, so two
+     clouds set to the same speed would still slide out of step over a few
+     minutes. A constant makes the lap `100vw + 2 × runway` for all of them,
+     which is what holds the spacing below fixed indefinitely.
+
+     230px because it has to hide the widest cloud (158px) plus the largest
+     scroll drift (58px) at the moment the lap restarts, or the cloud pops
+     into view already half on screen. */
+  --float-runway: 230px;
+
+  /* One speed, shared by all five, and this is load-bearing rather than
+     laziness. Clouds at different speeds overtake each other, and an overtake
+     is two clouds in the same place — which is exactly the pile-up this is
+     meant to prevent. It is not a question of tuning: any two speeds that
+     differ at all will eventually produce every possible overlap, so the only
+     way to rule it out is to let nobody pass anybody.
+
+     Holding one speed means the gaps between clouds never change, so the
+     spacing set by the delays below is the spacing the sky has forever. Depth
+     is still carried by size and opacity, and by the per-cloud scroll drift
+     further down, which is the parallax you actually notice because it
+     responds to you. */
+  --float-dur: 38s;
+}
+
+.sky-cloud-1 {
+  top: 8%;
+  height: 54px;
+  opacity: 0.9;
+  --drift: 46px;
+  --float-delay: -15.2s;
+}
+
+.sky-cloud-2 {
+  top: 34%;
+  height: 34px;
+  opacity: 0.55;
+  --drift: 18px;
+  --float-delay: -7.6s;
+}
+
+/* Order around the lap is 4, 2, 1, 3, 5 rather than 1–5, and the pairing of
+   which cloud sits next to which is deliberate. The gap between two clouds is
+   a fifth of a lap minus the width of whichever one leads, so the widest
+   cloud always eats the most room behind it. Below 48rem two of the five are
+   hidden, which leaves one pair only a fifth of a lap apart with no room to
+   spare — so the narrower of that pair leads. Swapping 1 and 3 here is worth
+   25px of clear sky on a phone and costs nothing on a desktop. */
+.sky-cloud-3 {
+  top: 4%;
+  height: 44px;
+  opacity: 0.72;
+  --drift: 30px;
+  --float-delay: -22.8s;
+}
+
+.sky-cloud-4 {
+  top: 44%;
+  height: 62px;
+  opacity: 0.95;
+  --drift: 58px;
+  --float-delay: 0s;
+}
+
+.sky-cloud-5 {
+  top: 22%;
+  height: 26px;
+  opacity: 0.4;
+  --drift: 10px;
+  --float-delay: -30.4s;
+}
+
+/* Weather. Every cloud starts parked just past the right edge and crosses to
+   just past the left one, which means both ends of the loop happen outside
+   `.sky-clouds`' clip and the restart is never seen — no fade, no pop.
+   Staggering is done with a negative delay rather than five different start
+   positions: the animation is already running when the page loads, so the sky
+   opens mid-drift instead of with all five clouds queued at the same edge.
+   (Negative delay is fine here. It is only meaningless on the scroll-driven
+   animation below, which has no clock to be early against.)
+
+   Near clouds are bigger and faster, far ones smaller and slower — the same
+   parallax the scroll does, running on its own.
+
+   On the durations: the first pass ran these at 80–165s, which is roughly
+   what a real cloud does and was a mistake. At that rate a cloud moves about
+   a finger's width in ten seconds, so the sky was animating and reading as
+   completely still — worse than no animation, because it costs the same and
+   returns nothing. A lap now takes 38s, which is fast enough to catch out of
+   the corner of your eye and slow enough to ignore while reading.
+
+   On why every cloud shares one speed: five *different* speeds do not stay
+   spread out. Each cloud was its own loop, so the fast ones caught the slow
+   ones and the set wandered through every possible arrangement — including
+   one cloud parked squarely on top of another, reading as a single lump with
+   a hole either side of it. Grouping them into a fast set and a slow set
+   narrowed it but could not fix it, because two sets at different speeds
+   still have to pass through each other, forever.
+
+   So nobody passes anybody. All five share a duration and the delays divide
+   it into fifths, which puts them a fifth of a lap apart and keeps them
+   there. At the narrowest that is still wider than the widest cloud, so an
+   overlap is not unlikely — it is geometrically impossible, at any viewport
+   width, for as long as the page is open.
+
+   The cost is that clouds no longer pass each other, which is a thing real
+   skies do. It buys a sky that is evenly occupied at every instant instead
+   of one that looks composed for a few seconds after load and clumps
+   thereafter, and the depth cue that was doing the work — the per-cloud
+   scroll drift — is untouched.
+
+   Delays only matter relative to each other, so rounding to a hundredth of a
+   second is harmless: a fixed offset cannot accumulate. Only a difference in
+   *duration* would drift, which is why there is exactly one.
+
+   Held to `translate` rather than `transform` deliberately: the scroll
+   parallax below owns `transform`, and the two properties compose, so each
+   can be animated without knowing about the other. */
+@media (prefers-reduced-motion: no-preference) {
+  .sky-cloud {
+    left: 100%;
+    animation: home-cloud-float var(--float-dur) linear var(--float-delay)
+      infinite;
+  }
+}
+
+@keyframes home-cloud-float {
+  from {
+    translate: var(--float-runway, 0px);
+  }
+  to {
+    translate: calc(-100vw - var(--float-runway, 0px));
+  }
+}
+
+@media (max-width: 48rem) {
+  /* Two of the five come out on a phone. At this width the remaining three
+     are already most of the sky, and five would read as overcast. */
+  .sky-cloud-2,
+  .sky-cloud-5 {
+    display: none;
+  }
+}
+
+/* The hero card carries the wordmark now, which makes the one in the masthead
+   the same artwork in the same colour twice inside 200px. It cannot just be
+   deleted, though: `.masthead` is `position: sticky`, so removing it would
+   leave every screen *below* the hero with no wordmark and nothing obvious to
+   click to get home.
+ *
+ * So it hands over instead of disappearing — absent while the hero is on
+ * screen, arriving as the hero leaves. Whichever one you can see, there is
+ * exactly one.
+ *
+ * Driven by the hero's own view timeline rather than a pixel offset, because
+ * the hero's height changes with the density switch and `exit` means "as this
+ * card leaves" at any height. That needs `timeline-scope`: the masthead is not
+ * a descendant of the hero, so without it the name would not resolve.
+ *
+ * `visibility`, not opacity alone. A transparent link is still tabbable and
+ * still clickable, and an invisible target at the top of the page is the kind
+ * of thing only ever found by accident. Because `visibility` interpolates
+ * discretely, holding `hidden` until 55% and pairing it with the opacity ramp
+ * gives a hard cut to visible followed by a fade, not a ghost you can hit.
+ *
+ * Deliberately not behind `prefers-reduced-motion`, unlike the rest of the
+ * page's motion: this decides *which* wordmark is on screen, not how anything
+ * travels, and a duplicate logo is not more restful. */
+body:has([data-density]) {
+  timeline-scope: --home-hero;
+}
+
+@supports (animation-timeline: view()) {
+  body:has([data-density]) header a[aria-label='Pana Mia'] {
+    animation: home-masthead-wordmark linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
+
+  /* The masthead's hairline and its background both go with it. The rule
+     exists to separate a sticky bar from content scrolling underneath, which
+     is a real job — but at rest there is nothing to separate: the masthead is
+     a pane of the sky, and the only thing the line would divide is one field
+     from itself. So the masthead stops being a bar while the hero is on
+     screen and becomes one on the way out.
+
+     Both properties animate, the background from transparent to cream, so
+     that by the time anything is actually scrolling underneath there is
+     something opaque in the way. Width never animates — the border keeps
+     holding its 0.67px, so nothing below it ever shifts. */
+  body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+    animation: home-masthead-rule linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
+}
+
+@keyframes home-masthead-wordmark {
+  0%,
+  55% {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  100% {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes home-masthead-rule {
+  0% {
+    background-color: rgb(252 242 231 / 0);
+    border-bottom-color: rgb(2 8 17 / 0);
+  }
+
+  55% {
+    background-color: rgb(252 242 231 / 0.72);
+    border-bottom-color: rgb(2 8 17 / 0);
+  }
+
+  100% {
+    background-color: var(--story-cream);
+    border-bottom-color: rgb(2 8 17 / 0.08);
+  }
+}
+
+/* --- The street --------------------------------------------------------- */
+
+/* The band the rest of the page stands on. It is paper, like the bottom of
+   the hero above it, so the two meet with no join at all — the drawing is the
+   only thing that marks the change, which is the point: you do not cross into
+   a new section, you arrive at ground level.
+
+   The padding at the top is where the scroll hint lives — just enough to
+   clear it, and no more. The street used to sit a comfortable gap below the
+   search; it now sits directly under it, so the card and the town read as
+   one picture rather than two stacked bands. */
+/* --- The first screen ---------------------------------------------------
+
+   The card and the town are one picture that happens to be two sections, so
+   the pair is measured as one: together they are exactly the height of the
+   screen. That is what lands the ground line — the street, the market, the
+   people — on the bottom edge of the first view at any resolution. Measured
+   before this rule existed, the town's feet fell 79px (1920x1080) to 211px
+   (1366x768) below the fold, and the feet are the part the drawing is about.
+
+   The card is `flex: none` and the street is the flexible one, not the other
+   way round. The card holds a wordmark, a headline and a form; type that
+   shrinks to fit the window is type that ends up too small on exactly the
+   screens where the fit was tightest. The drawing has slack the card does
+   not, because it crops instead of scaling — the SVG is `xMidYMax slice`,
+   so a shorter box shows less sky above the roofline and the same street at
+   the same size underneath it. Same trade already made for narrow screens
+   further down: crop, don't shrink.
+
+   `height` rather than `min-height`, because a minimum cannot take space
+   away and taking space away is the whole job. The `min-height: min-content`
+   underneath it is the safety net for windows too short to hold both — a
+   half height desktop window, a landscape phone — where the pair is allowed
+   to grow past the screen rather than have the town spill over the section
+   below it. That guard only works because the drawing is taken out of flow
+   below: an SVG carries an intrinsic aspect ratio, so while it was in flow
+   the street's min-content height was its *full natural height* and the
+   guard silently restored the exact layout it was meant to bound.
+
+   The card is kept short enough to fit on everything larger than that — see
+   the hero padding and headline overrides, both of which take the viewport's
+   short edge into account, so a laptop gets a slightly smaller card rather
+   than a clipped town.
+
+   Nothing here establishes a scroll container. That is load bearing: one
+   would re-root the view timelines that drive the clouds and the parallax. */
+.home-first {
+  /* The masthead is the only thing between the top of the screen and the top
+     of the card, so it is the only thing to subtract. */
+  --masthead-h: 65px;
+
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--masthead-h) - var(--mock-chrome-h, 0px));
+  min-height: min-content;
+}
+
+.home-first .home-hero-field {
+  flex: 0 0 auto;
+}
+
+/* A floor so the town is always a town. Below roughly this height the crop
+   has eaten the roofline and what is left reads as a strip of pavement. */
+.home-first .story-street {
+  flex: 1 1 auto;
+  min-height: 8rem;
+}
+
+/* Short screens. A 768-tall laptop is the tightest case on the desktop side,
+   and it got tighter when the first screen started ending above the mock
+   bar rather than behind it. Of the three things sharing that height the
+   card is the only one with slack: the town has a floor below which it
+   stops being a town, and the hint is a single line. So here the card gives
+   up the difference — smaller wordmark, smaller headline, less air above it
+   — rather than the composition spilling past the fold and pushing the hint
+   somewhere nobody will read it.
+
+   Desktop only. Narrow screens are already below every one of these clamps,
+   and a phone held in portrait is not short. */
+@media (max-height: 56rem) and (min-width: 48rem) {
+  [data-density] {
+    --home-display-max: 2.75rem;
+    --home-hero-pad-top: 24px;
+    --home-hero-pad-bottom: 0.75rem;
+  }
+
+  /* Beats the `mb-8 md:mb-10` and `max-w-` utilities on the wordmark: rules
+     here are unlayered, so they win against Tailwind regardless of order. */
+  [data-density] .flower-power-logo {
+    max-width: min(19rem, 60vw);
+    margin-bottom: 1.25rem;
+  }
+
+  /* The headline is the largest single item on the card — two lines at
+     13svh is 188px of a 768-tall screen, more than the town gets. The
+     ceiling comes down to roughly a tenth of the screen here; the floor and
+     the width term are untouched, so nothing changes on any screen tall
+     enough not to need it. */
+  [data-density] .home-hero-field .hero-headline {
+    font-size: clamp(38px, min(8.4vw, 9.8svh), 126px);
+  }
+}
+
+/* Out of flow, anchored to the bottom of the band, filling its height. Out
+   of flow is what stops the drawing's aspect ratio from setting a minimum
+   height for the whole first screen; anchored to the bottom is what keeps
+   the ground line on the ground line while `slice` trims sky off the top.
+
+   Width is left to the rules below on purpose — this selector is heavier
+   than they are, so setting it here would override the narrow-screen crop. */
+.home-first .street-svg {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+}
+
+/* The drawing is out of flow and fills the band, so there is nothing left
+   for padding to space away from. `position: relative` is what it is
+   positioned against — without it the drawing anchors to the viewport. */
+.story-street {
+  position: relative;
+  background-color: var(--story-cream);
+}
+
+/* Static, below the town, and the last thing on the first screen — the town
+   is what it is telling you to scroll past, so it has to come after it.
+   Cream so it reads as more pavement rather than as a band under the
+   drawing, and `flex: none` so the street gives up the height for it rather
+   than the card, which has none to give. */
+.story-street-note {
+  flex: 0 0 auto;
+  padding-block: 0.55rem 0.7rem;
+  background-color: var(--story-cream);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+.street-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* On a narrow screen a 1440-wide drawing scaled to fit is 80px tall, and at
+   80px the market, the crowd and the park are all one smudge. So below this
+   width the scene stops fitting and starts cropping: it is held at a usable
+   size and centred on the middle of the block, which is where the stalls and
+   most of the people are. You lose the ends of the street; you keep the part
+   that is actually about people.
+
+   `clip` rather than `hidden` so no scroll container is created — one here
+   would re-root the view timelines of anything inside it. */
+@media (max-width: 60rem) {
+  .story-street {
+    --street-w: clamp(760px, 240vw, 1000px);
+    overflow-x: clip;
+  }
+
+  .street-svg {
+    width: var(--street-w);
+    max-width: none;
+    margin-left: calc(50% - var(--street-w) / 2);
+  }
+}
+
+/* The back row. One muted tone via `currentColor`, which every shape in that
+   group inherits, so depth is a single value rather than a colour per
+   building. It is plain blocks now — no windows, no doors. At that distance
+   detail is noise, and leaving it out is what makes the row read as far away
+   rather than as small. */
+.street-back {
+  color: rgb(53 101 242 / 0.14);
+}
+
+/* The middle row. Half opacity over cream washes every fill toward the paper,
+   which is atmospheric perspective done with one declaration instead of a
+   second set of colours. */
+.street-mid {
+  opacity: 0.48;
+}
+
+.street-window-lit {
+  fill: var(--story-orange);
+}
+
+.street-window-dark {
+  fill: rgb(2 8 17 / 0.3);
+}
+
+.street-door {
+  fill: var(--story-ink);
+}
+
+/* Opaque rather than a tint, because a translucent blue takes the colour of
+   whatever wall it is cut into — over the red shopfront it mixed to a purple
+   that is in no palette here. */
+.street-glass {
+  fill: var(--story-sky-low);
+}
+
+/* Ink at low alpha rather than a colour, so the same stripe reads on an
+   orange awning and on a cream one without a second rule. */
+.street-awning-stripe {
+  fill: rgb(2 8 17 / 0.16);
+}
+
+.street-roof {
+  fill: rgb(2 8 17 / 0.72);
+}
+
+.street-bench {
+  fill: var(--story-ink);
+}
+
+.street-kerb {
+  fill: rgb(2 8 17 / 0.2);
+}
+
+/* --- The people --------------------------------------------------------- */
+
+/* Skin, mixed from the palette rather than added to it. Orange toward cream
+   gives a light warm tone; orange toward ink gives the two deeper ones. Three
+   is enough to read as a crowd at this size and stops the pavement looking
+   like one person copied twenty times. */
+.street-skin-1 {
+  fill: color-mix(in srgb, var(--story-orange) 28%, var(--story-cream));
+}
+
+.street-skin-2 {
+  fill: color-mix(in srgb, var(--story-orange) 62%, var(--story-ink));
+}
+
+.street-skin-3 {
+  fill: color-mix(in srgb, var(--story-orange) 34%, var(--story-ink));
+}
+
+/* Legs and wheels are ink for everybody: at forty units tall a second colour
+   below the waist just muddies the silhouette. */
+.street-leg rect {
+  fill: var(--story-ink);
+}
+
+.street-wheel {
+  fill: var(--story-ink);
+}
+
+.street-tote {
+  fill: rgb(2 8 17 / 0.62);
+}
+
+/* --- The market --------------------------------------------------------- */
+
+.street-stall-post {
+  fill: rgb(2 8 17 / 0.55);
+}
+
+.street-stall-top {
+  fill: var(--story-ink);
+}
+
+/* The cloth is ink at low alpha rather than a colour, so three stalls with
+   three different canopies still look like one market. */
+.street-stall-cloth {
+  fill: rgb(2 8 17 / 0.14);
+}
+
+.street-crate {
+  fill: rgb(2 8 17 / 0.38);
+}
+
+.street-bunting-line {
+  stroke: rgb(2 8 17 / 0.42);
+  stroke-width: 1.5;
+}
+
+/* Standing-seam metal roofs. Ink at low alpha, so the one rule reads on a
+   terracotta roof and on a cream one without a second colour. */
+.street-seam {
+  stroke: rgb(2 8 17 / 0.22);
+  stroke-width: 1.4;
+}
+
+/* --- The town is alive --------------------------------------------------
+
+   Four kinds of motion, all of them small, all of them on wall-clock timers
+   rather than on the scroll. The street should read as a place where
+   something is happening, not as an animation.
+
+   Every rule below animates `translate` or `rotate` rather than `transform`.
+   The elements underneath already carry a `transform` *attribute* — their
+   position, scale and facing in the drawing — which maps onto the CSS
+   `transform` property, so animating `transform` would throw all of that
+   away and stack everybody at the origin. The individual transform
+   properties compose with it instead.
+
+   `transform-box: fill-box` makes `transform-origin: 50% 100%` mean "the
+   bottom middle of this shape's own bounding box", which is the feet of a
+   figure, the base of a palm, and the shoulder of a raised arm. One
+   declaration covering all three is the whole reason to use it rather than
+   hand-computing origins in user units per element. */
+
+.street-sway,
+.street-palm,
+.street-arm {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* People crossing the block. Each lap runs clear off both ends of the
+     drawing, where the viewBox crops it, and each starts part-way through
+     so the street is populated on the first frame. */
+  .street-walk {
+    animation: street-walk var(--walk-dur, 54s) linear var(--walk-delay, 0s)
+      infinite;
+  }
+
+  /* The step. A figure that slides is a ghost; a unit and a half of rise on
+     a two-thirds-second cycle is enough to put weight on their feet. Scoped
+     inside `.street-walk` so the people standing around do not bob on the
+     spot. */
+  .street-walk .street-person,
+  .street-walk .street-pram {
+    animation: street-step 0.66s ease-in-out infinite;
+  }
+
+  /* The dog trots, which is a shorter stride than its owner's. */
+  .street-walk .street-dog {
+    animation: street-step 0.4s ease-in-out infinite;
+  }
+
+  /* Standing still, as opposed to being a statue. Every figure gets its own
+     period so the pavement never pulses in time. */
+  .street-sway {
+    animation: street-sway var(--sway-dur, 4.6s) ease-in-out
+      var(--sway-delay, 0s) infinite alternate;
+  }
+
+  .street-palm {
+    animation: street-palm var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s)
+      infinite alternate;
+  }
+
+  /* Waving. Duration and delay come from the element so that two people
+     waving in the same scene are not in lockstep — matched timing reads as
+     a mechanism rather than as two people. */
+  .street-arm {
+    animation: street-wave var(--wave-dur, 1.15s) ease-in-out
+      var(--wave-delay, 0s) infinite alternate;
+  }
+}
+
+@keyframes street-walk {
+  from {
+    translate: var(--walk-from) 0;
+  }
+
+  to {
+    translate: var(--walk-to) 0;
+  }
+}
+
+@keyframes street-step {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -1.6px;
+  }
+}
+
+@keyframes street-sway {
+  from {
+    rotate: -1.5deg;
+  }
+
+  to {
+    rotate: 1.5deg;
+  }
+}
+
+@keyframes street-palm {
+  from {
+    rotate: -2deg;
+  }
+
+  to {
+    rotate: 2.4deg;
+  }
+}
+
+@keyframes street-wave {
+  from {
+    rotate: -20deg;
+  }
+
+  to {
+    rotate: 12deg;
+  }
+}
+
+/* --- The three stops ---------------------------------------------------- */
+
+.story-basics {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code the old indigo and
+   are unlayered, so they have to be overridden by name rather than by a
+   utility on the element. */
+.story-basics .section-eyebrow,
+.story-basics .display-accent {
+  color: var(--story-blue);
+}
+
+/* The search pill is the shared directory component, so its indigo button and
+   its slightly different cream come from the old palette. Re-pointed inside
+   the mock only — the real directory page keeps what it has. */
+[data-density] .directory-suggest-pill {
+  background-color: var(--story-cream);
+}
+
+[data-density] .directory-suggest-pill-button {
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* Its type is the old near-black `#110D0D` rather than `#020811`. The two are
+   indistinguishable side by side, but there is no reason to leave the old
+   token rendering on a page that is otherwise entirely the new palette. */
+[data-density] .directory-suggest-pill .text-pana-ink,
+[data-density] .directory-suggest-pill input {
+  color: var(--story-ink);
+}
+
+.beats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-beat-gap, 5.5rem);
+  /* The per-side arrival offset pushes a stop past the viewport mid-animation,
+     which on a phone is enough to put a scrollbar on the document. `clip`
+     rather than `hidden` so no scroll container is created — a scroll
+     container here would re-root the `view()` timelines below. */
+  overflow-x: clip;
+}
+
+.beat {
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: center;
+  width: min(100% - 2rem, 66rem);
+  margin-inline: auto;
+  padding-block: calc(var(--home-pad, 3rem) * 0.7);
+}
+
+/* One accent per stop, set once here and read by the sign, the disclosure and
+   anything else in the stop that needs to agree with it. `--beat-on-accent`
+   exists because the three fills do not take the same text colour: ink clears
+   AA on orange and coral and fails on blue, cream is the other way round. */
+.beat[data-accent='orange'] {
+  --beat-accent: var(--story-orange);
+  --beat-on-accent: var(--story-ink);
+}
+
+.beat[data-accent='blue'] {
+  --beat-accent: var(--story-blue);
+  --beat-on-accent: var(--story-cream);
+}
+
+.beat[data-accent='paper'] {
+  --beat-accent: var(--story-coral);
+  --beat-on-accent: var(--story-ink);
+}
+
+/* Below 60rem everything stacks and the artwork leads, so `data-side` stops
+   meaning anything — there is only one column to be on. */
+@media (min-width: 60rem) {
+  .beat {
+    grid-template-columns:
+      minmax(0, var(--home-beat-art, 27rem))
+      minmax(0, 1fr);
+  }
+
+  /* `order`, not a column assignment, so the DOM keeps artwork-then-copy in
+     both directions. A screen reader and a keyboard both get the same
+     sequence at every stop; only the painting alternates. */
+  .beat[data-side='right'] {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, var(--home-beat-art, 27rem));
+  }
+
+  .beat[data-side='right'] .beat-art {
+    order: 2;
+  }
+}
+
+/* Which way a stop arrives from. Read by the arrival keyframes so the walk
+   alternates left-right instead of everything rising out of the floor. */
+.beat[data-side='left'] {
+  --beat-in: -34px;
+}
+
+/* The ring needs more room than a collage or a map: it is a circle with a
+   wrapping label on each side of it, and the side labels are what run out of
+   width first. */
+.beat:has(.beat-ring) {
+  --home-beat-art: 28rem;
+}
+
+.beat[data-side='right'] {
+  --beat-in: 34px;
+}
+
+/* The question, hung like a sign outside the shop it belongs to. Still an h3
+   underneath — the tilt and the fill are paint, not structure. */
+.beat-sign {
+  display: inline-block;
+  transform: rotate(-1.2deg);
+  border: 2px solid var(--story-ink);
+  border-radius: 4px;
+  background-color: var(--beat-accent, var(--story-orange));
+  box-shadow: 0 8px 20px rgb(2 8 17 / 0.14);
+  padding: 0.5rem 1rem;
+  color: var(--beat-on-accent, var(--story-ink));
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.beat-aside {
+  margin-top: 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(2 8 17 / 0.55);
+}
+
+.beat-answer {
+  margin-top: 0.85rem;
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.6;
+  color: rgb(2 8 17 / 0.86);
+  max-width: 34rem;
+}
+
+.beat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.4rem;
+  border: 2px solid rgb(2 8 17 / 0.2);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.beat-toggle:hover {
+  border-color: var(--beat-accent, var(--story-orange));
+  background-color: var(--beat-accent, var(--story-orange));
+  color: var(--beat-on-accent, var(--story-ink));
+}
+
+/* The long version. Ruled off against the accent rather than boxed, so it
+   reads as more of the same answer instead of a second card. */
+.beat-detail {
+  margin-top: 1.4rem;
+  border-left: 3px solid var(--beat-accent, var(--story-orange));
+  padding-left: 1.1rem;
+  max-width: 36rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.65;
+  color: rgb(2 8 17 / 0.78);
+}
+
+.beat-detail > * + * {
+  margin-top: 0.9rem;
+}
+
+.beat-label {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+.beat-label + ol,
+.beat-label + ul {
+  margin-top: 0.5rem;
+}
+
+.beat-numbered {
+  list-style: decimal;
+  padding-left: 1.15rem;
+}
+
+.beat-list {
+  list-style: disc;
+  padding-left: 1.15rem;
+}
+
+.beat-numbered > li + li,
+.beat-list > li + li {
+  margin-top: 0.4rem;
+}
+
+.beat-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.beat-tags > li {
+  border: 2px solid rgb(2 8 17 / 0.16);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.7);
+}
+
+/* --- Stop one: the collage ---------------------------------------------- */
+
+.collage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.7rem, 1.8vw, 1.2rem);
+  width: min(100%, 30rem);
+  margin-inline: auto;
+}
+
+/* The fan lives on the `<li>`; hovering moves `.collage-frame` instead. Two
+   separate elements because the arrival animation fills the `<li>`'s
+   transform, and a filled animation beats a transition — a hover on the same
+   element would simply never take. */
+.collage-print {
+  position: relative;
+  transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0));
+}
+
+.collage-print:nth-child(even) {
+  margin-top: 1.25rem;
+}
+
+.collage-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  /* A print, not a card: white border, square corners, hard shadow. */
+  border: 6px solid #fff;
+  border-radius: 2px;
+  background-color: rgb(2 8 17 / 0.06);
+  box-shadow: 0 10px 24px rgb(2 8 17 / 0.18);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.28s ease;
+}
+
+.collage-print:hover {
+  z-index: 2;
+}
+
+.collage-print:hover .collage-frame {
+  transform: scale(1.045);
+  box-shadow: 0 16px 34px rgb(2 8 17 / 0.26);
+}
+
+.collage-img {
+  object-fit: cover;
+}
+
+.collage-caption {
+  display: block;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+/* --- Stop two: the ring ------------------------------------------------- */
+
+/* A three-by-three grid with the dial in the middle cell and a label on each
+   side of it. Grid rather than absolute positioning around a circle, because
+   the labels are real wrapping text of unequal length: placed absolutely they
+   would collide at exactly the widths nobody tests. */
+.beat-ring {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.ring-dial {
+  grid-area: 2 / 2;
+  width: 100%;
+  height: auto;
+}
+
+.ring-arc {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.ring-hub {
+  fill: var(--story-cream);
+}
+
+.ring-hairline {
+  fill: none;
+  stroke: rgb(2 8 17 / 0.12);
+  stroke-width: 2;
+}
+
+/* Sits in the same cell as the dial and on top of it. */
+.ring-centre {
+  position: relative;
+  z-index: 1;
+  grid-area: 2 / 2;
+  display: grid;
+  place-items: center;
+  width: 46%;
+}
+
+.ring-centre-name {
+  max-width: 7ch;
+  color: var(--story-ink);
+  font-size: clamp(0.95rem, 1.9vw, 1.3rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* `display: contents` so the four `<li>`s become grid items of `.beat-ring`
+   itself. They stay a list for anything reading the page linearly — these are
+   the four things the club exists to produce, and that is worth having as a
+   list rather than as four labels that happen to be near a circle. */
+.ring-labels {
+  display: contents;
+}
+
+.ring-label {
+  position: relative;
+  max-width: 11rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* A dot in the arc's own colour, so each label is tied to its quarter without
+   having to colour the text itself — four coloured labels at this size would
+   be four things shouting. */
+.ring-label::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: 0 auto 0.4rem;
+  border-radius: 50%;
+  background-color: var(--dot, var(--story-orange));
+}
+
+.ring-label[data-at='top'] {
+  grid-area: 1 / 2;
+}
+
+.ring-label[data-at='right'] {
+  grid-area: 2 / 3;
+}
+
+.ring-label[data-at='bottom'] {
+  grid-area: 3 / 2;
+}
+
+.ring-label[data-at='left'] {
+  grid-area: 2 / 1;
+}
+
+/* On a phone the side cells squeeze the dial to nothing. Below 40rem the ring
+   goes on top and the four labels become a two-up list under it. */
+@media (max-width: 40rem) {
+  .beat-ring {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
+  .ring-dial,
+  .ring-centre {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+
+  .ring-dial {
+    width: min(100%, 17rem);
+    justify-self: center;
+  }
+
+  .ring-centre {
+    width: 7.8rem;
+    justify-self: center;
+  }
+
+  .ring-label[data-at='top'],
+  .ring-label[data-at='right'],
+  .ring-label[data-at='bottom'],
+  .ring-label[data-at='left'] {
+    grid-area: auto;
+  }
+}
+
+/* --- Stop three: the map ------------------------------------------------ */
+
+.statemap {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  margin: 0;
+}
+
+/* `overflow: hidden` is what the rise is animating against: the map starts
+   below its own frame and comes up into it. */
+.statemap-frame {
+  width: min(100%, 24rem);
+  overflow: hidden;
+  border: 2px solid rgb(2 8 17 / 0.12);
+  border-radius: 10px;
+  background-color: var(--story-cream);
+  box-shadow: 0 14px 32px rgb(2 8 17 / 0.14);
+}
+
+/* The map ships on a white background. Multiply drops the white to whatever
+   is behind it — cream here — while leaving the ink silhouette and the three
+   county marks alone, which is cheaper and safer than re-cutting the asset. */
+.statemap-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.statemap-counties {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.statemap-county {
+  border: 2px solid var(--beat-accent, var(--story-coral));
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* --- The last two bands ------------------------------------------------- */
+
+.story-pillars {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code indigo and are
+   unlayered, so they have to be overridden by name rather than by a utility
+   on the element. */
+.story-pillars .section-eyebrow,
+.story-pillars .display-accent {
+  color: var(--story-blue);
+}
+
+.story-point {
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+/* `.display-accent` hard-codes the old indigo, which on this ink band is
+   almost invisible. Coral rather than orange, so the accent word and the
+   eyebrow above it are not the same colour. */
+.story-point .section-eyebrow {
+  color: var(--story-orange);
+}
+
+.story-point .display-accent,
+.story-point .section-statement em {
+  color: var(--story-coral);
+}
+
+.story-point-body {
+  color: rgb(252 242 231 / 0.85);
+}
+
+.story-point-rule {
+  border-top-color: rgb(252 242 231 / 0.2);
+}
+
+.story-point-input {
+  border-color: rgb(252 242 231 / 0.25);
+  background-color: rgb(252 242 231 / 0.05);
+  color: var(--story-cream);
+}
+
+.story-point-input::placeholder {
+  color: rgb(252 242 231 / 0.45);
+}
+
+.story-point-accent {
+  color: var(--story-orange);
+}
+
+.story-btn-solid {
+  background-color: var(--story-orange);
+  color: var(--story-ink);
+}
+
+.story-btn-solid:hover {
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
+.story-btn-ghost {
+  border-color: rgb(252 242 231 / 0.4);
+  background-color: transparent;
+  color: var(--story-cream);
+}
+
+.story-btn-ghost:hover {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.story-colophon {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* --- The county shortcuts and the donate ask ---------------------------- */
+
+/* Deliberately slimmer than a real band: `--home-pad` would give this the
+   same weight as the pillars, and it is a signpost, not a section. It sits
+   on paper rather than carrying the ink band above it further down, so the
+   dark block ends where its argument ends. */
+.story-localrow {
+  padding-block: calc(var(--home-pad) * 0.42);
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.localrow-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2.5rem;
+}
+
+.localrow-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.localrow-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.localrow-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.localrow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(2 8 17 / 0.18);
+  border-radius: 999px;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--story-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.localrow-chip:hover {
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* Set apart from the counties on purpose. Three outlined chips and a fourth
+   that looks identical would read as four of the same thing, and clicking
+   "Palm Beach" then "Donate" should not feel like the same gesture. */
+.localrow-chip-give {
+  border-color: var(--story-orange);
+  background-color: var(--story-orange);
+}
+
+.localrow-chip-give:hover {
+  border-color: var(--story-coral);
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
+/* --- The three pillars: expanding panels -------------------------------- */
+
+.pillars {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+/* Each pillar is a solid block. A tinted panel on the citrus wash was easy to
+   scroll past without registering that there were three of anything, so the
+   closed state now carries its own fill and its own text colour, and the open
+   state swaps the body to paper while the head keeps the pillar's colour. */
+/* Re-cut for the story palette. Three fills that are each unmistakable at a
+   glance across a row, and each one takes the text colour that clears AA on
+   it: ink on orange (7.7:1), cream on blue (4.7:1), cream on red (5.1:1 the
+   other way round is what fails, so red carries ink). */
+.pillar[data-accent='blue'] {
+  --pillar-fill: var(--story-blue);
+  --pillar-ink: var(--story-cream);
+}
+
+.pillar[data-accent='orange'] {
+  --pillar-fill: var(--story-orange);
+  --pillar-ink: var(--story-ink);
+}
+
+.pillar[data-accent='coral'] {
+  --pillar-fill: var(--story-coral);
+  --pillar-ink: var(--story-ink);
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid rgb(2 8 17 / 0.55);
+  border-radius: 1.1rem;
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+  box-shadow: 0 12px 28px rgb(2 8 17 / 0.2);
+  transition:
+    background-color 0.35s ease,
+    flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    flex-grow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Paper laid over the peel. The head stays the pillar's colour so the open
+   panel still says which of the three it is. */
+.pillar[data-open='true'] {
+  background-color: var(--story-cream);
+  box-shadow: 0 18px 40px rgb(2 8 17 / 0.26);
+}
+
+.pillar-head {
+  margin: 0;
+  display: flex;
+  background-color: var(--pillar-fill);
+  color: var(--pillar-ink);
+}
+
+/* Butter against cream is barely a change of colour, so the open head is
+   separated by an edge rather than by fill alone. */
+.pillar[data-open='true'] .pillar-head {
+  border-bottom: 2px solid rgb(2 8 17 / 0.35);
+}
+
+.pillar-body {
+  padding: 0 1.35rem 1.5rem;
+  padding-top: 1.35rem;
+  color: var(--story-ink);
+}
+
+.pillar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1.15rem 1.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pillar-index {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
+}
+
+.pillar-name {
+  font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.pillar-chev {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  flex: none;
+  opacity: 0.5;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.pillar-trigger:hover .pillar-chev {
+  opacity: 0.9;
+  transform: translateX(3px);
+}
+
+.pillar[data-open='true'] .pillar-chev {
+  opacity: 0;
+}
+
+.pillar-problem {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+
+.pillar-answer {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  max-width: 44rem;
+}
+
+.pillar-programs {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+/* The rows are wrapped in list items, so the item has to pass the track's
+   height down to the card that actually has the border. */
+.pillar-programs > li {
+  display: grid;
+}
+
+.pillar-program {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgb(2 8 17 / 0.14);
+  border-radius: 0.85rem;
+  background-color: rgb(2 8 17 / 0.03);
+}
+
+/* Only the linked rows light up. A hover state on a programme that goes
+   nowhere is a promise the row cannot keep. */
+a.pillar-program {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+a.pillar-program:hover {
+  border-color: var(--story-blue);
+  background-color: rgb(48 62 140 / 0.06);
+  transform: translateY(-2px);
+}
+
+.pillar-program-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.0625rem;
+  font-weight: 900;
+}
+
+.pillar-program-note {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.pillar-program-status {
+  justify-self: start;
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pillar-program-status[data-status='live'] {
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+/* "Building" is a dashed outline rather than a second fill, so the two states
+   are told apart by shape and not only by colour. */
+.pillar-program-status[data-status='building'] {
+  border: 2px dashed rgb(2 8 17 / 0.3);
+  opacity: 0.7;
+}
+
+/* Above this width the panels sit side by side and the closed ones collapse
+   to a spine — the shape in the sketch. Below it they stay a plain vertical
+   accordion: a column of sideways words in a narrow viewport is a puzzle, not
+   a navigation aid. */
+@media (min-width: 64rem) {
+  .pillars {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .pillar {
+    flex: 0 0 5.5rem;
+  }
+
+  .pillar[data-open='true'] {
+    flex: 1 1 auto;
+  }
+
+  .pillar[data-open='false'] .pillar-head {
+    flex: 1;
+  }
+
+  .pillar[data-open='false'] .pillar-trigger {
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+    padding: 1.35rem 0;
+  }
+
+  /* Bottom-to-top, so the spine reads with the head tilted left — the way
+     book spines and every other vertical label on a wall are read. */
+  .pillar[data-open='false'] .pillar-name {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-top: 0.85rem;
+  }
+
+  .pillar[data-open='false'] .pillar-chev {
+    margin-left: 0;
+    margin-top: auto;
+    transform: rotate(90deg);
+  }
+
+  .pillar[data-open='false'] .pillar-trigger:hover .pillar-chev {
+    transform: rotate(90deg) translateX(3px);
+  }
+
+  .pillar-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 1.75rem 2rem 2rem;
+  }
+
+  /* The row's height is set by the tallest closed spine's vertical label, not
+     by the open panel's prose, so the open panel usually has slack. Letting
+     the programme cards absorb it turns what was a dead zone between the
+     answer and the cards into taller cards, and because each card is
+     `auto 1fr auto` the status chips still line up along one floor. */
+  .pillar-programs {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.85rem;
+    flex: 1;
+    align-items: stretch;
+    padding-top: 1.4rem;
+  }
+
+  /* Name / note / status, with the note taking the slack so the status chips
+     line up along the bottom regardless of how long each note runs. */
+  .pillar-program {
+    grid-template-rows: auto 1fr auto;
+    align-content: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillar,
+  .pillar-chev,
+  a.pillar-program {
+    transition: none;
+  }
+}
+
+/* --- Scroll-driven motion ----------------------------------------------- */
+
+/*
+ * The page moves as you walk down it: clouds drift at their own rates as the
+ * sky leaves, each stop arrives as you reach it, the collage fans open, the
+ * ring draws itself, the map rises into its frame, and the pillars square up.
+ *
+ * This is `animation-timeline: view()` rather than a scroll handler: progress
+ * is tied to where the element sits in the viewport by the compositor, so
+ * there is no listener to throttle, no `getBoundingClientRect` per frame, and
+ * nothing to tear down. The existing `<ScrollReveal>` sweep stays exactly as
+ * it is — see the handoff below.
+ *
+ * Three rules hold this together:
+ *
+ * 1. Everything that can be clicked finishes moving on `entry`. A card still
+ *    animating while it is on screen is a card that slides out from under the
+ *    cursor as you reach for it, and these are all buttons. They settle by the
+ *    time they are fully in view and then hold still while you read and click.
+ *    The clouds and the map are the exceptions: they run for the whole pass,
+ *    because they are scenery, clipped by their own frames, and not targets.
+ *
+ * 2. It is an enhancement and never a requirement. Browsers without view
+ *    timelines keep the `[data-rv]` fade they already had, which is why the
+ *    handoff that switches `[data-rv]` off lives *inside* `@supports` — if the
+ *    feature is missing, the fade is still the thing doing the work.
+ *
+ * 3. `prefers-reduced-motion` opts out of all of it and falls back to that
+ *    same fade, which is already a pure cross-fade under that setting.
+ *
+ * Ranges rather than delays do the staggering. A view timeline has no wall
+ * clock to be late against, so "arrives after its neighbour" means "covers a
+ * later stretch of the scroll", and the ends are kept well short of `entry
+ * 100%` so nothing can strand mid-animation on a viewport shorter than the
+ * element.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The clouds ride the hero's own named timeline rather than their own.
+       They sit at the very top of the document, so at load they are already
+       on screen and a `view()` of their own would start them halfway through
+       their range — the hero's `contain → exit` is the run that actually
+       corresponds to "the sky is going past". */
+    /* Two animations on one element: the ambient float, which runs on the
+       clock, and the scroll parallax, which runs on the hero's view timeline.
+       Written out longhand because the `animation` shorthand would reset the
+       float's name, duration and delay back to their initial values — a
+       shorthand here would silently stop the sky moving. */
+    .sky-cloud {
+      animation-name: home-cloud-float, home-cloud-drift;
+      animation-duration: var(--float-dur), 1s;
+      animation-delay: var(--float-delay), 0s;
+      animation-timing-function: linear, linear;
+      animation-iteration-count: infinite, 1;
+      animation-fill-mode: none, both;
+      animation-timeline: auto, --home-hero;
+      animation-range:
+        normal,
+        contain 0% exit 100%;
+    }
+
+    /* The handoff. `[data-rv]` holds its element at opacity 0 until the sweep
+       reaches it, which would fight the timeline for the same two properties;
+       this hands both over. More specific than the `[data-rv-ready] [data-rv]`
+       rule it is overriding, so it wins without `!important`. */
+    [data-rv-ready] .beat > [data-rv] {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    /* Artwork first, words a beat behind it. The offset is small on purpose:
+       any further apart and the two halves of one stop stop reading as one
+       stop. */
+    .beat-art {
+      animation: home-beat-art linear both;
+      animation-timeline: view();
+      animation-range: entry 4% entry 62%;
+    }
+
+    .beat-copy {
+      animation: home-beat-copy linear both;
+      animation-timeline: view();
+      animation-range: entry 12% entry 76%;
+    }
+
+    /* The stack opens out. Each print carries its own `--fan`, and the
+       keyframes end on it rather than on zero, so the pile settles into its
+       resting fan instead of squaring up into a grid. */
+    .collage-print {
+      animation: home-print-settle linear both;
+      animation-timeline: view();
+    }
+
+    .collage-print:nth-child(1) {
+      animation-range: entry 6% entry 58%;
+    }
+
+    .collage-print:nth-child(2) {
+      animation-range: entry 12% entry 68%;
+    }
+
+    .collage-print:nth-child(3) {
+      animation-range: entry 9% entry 63%;
+    }
+
+    .collage-print:nth-child(4) {
+      animation-range: entry 16% entry 76%;
+    }
+
+    /* The ring draws itself. `pathLength="100"` is set on the paths in the
+       markup, so the dash maths is in percent and does not have to be redone
+       if the radius ever changes. */
+    .ring-arc {
+      animation: home-ring-draw linear both;
+      animation-timeline: view();
+    }
+
+    .ring-arc:nth-of-type(1) {
+      animation-range: entry 8% entry 56%;
+    }
+
+    .ring-arc:nth-of-type(2) {
+      animation-range: entry 14% entry 64%;
+    }
+
+    .ring-arc:nth-of-type(3) {
+      animation-range: entry 20% entry 72%;
+    }
+
+    .ring-arc:nth-of-type(4) {
+      animation-range: entry 26% entry 80%;
+    }
+
+    .ring-centre {
+      animation: home-ring-hub linear both;
+      animation-timeline: view();
+      animation-range: entry 22% entry 70%;
+    }
+
+    /* Florida arrives. This one runs for the whole pass rather than settling
+       on entry, because it is the only piece of motion on the page making an
+       argument instead of a flourish — the state keeps rising for as long as
+       you are looking at the reason it matters. `.statemap-frame` clips it,
+       so nothing is ever seen outside the border. */
+    .statemap-img {
+      animation: home-map-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 100%;
+    }
+
+    .pillar {
+      animation: home-pillar-arrive linear both;
+      animation-timeline: view();
+    }
+
+    .pillar:nth-child(1) {
+      animation-range: entry 6% entry 60%;
+    }
+
+    .pillar:nth-child(2) {
+      animation-range: entry 11% entry 70%;
+    }
+
+    .pillar:nth-child(3) {
+      animation-range: entry 16% entry 80%;
+    }
+  }
+}
+
+/* Sideways only. A cloud that also moved vertically would race or lag the
+   page, and at these sizes that reads as a bug rather than as depth; the
+   whole of the parallax is that `--drift` differs per cloud. */
+@keyframes home-cloud-drift {
+  from {
+    transform: translateX(calc(var(--drift, 24px) * -1));
+  }
+
+  to {
+    transform: translateX(var(--drift, 24px));
+  }
+}
+
+/* The artwork comes in from the side it lives on, which is what makes the
+   alternation read as walking past rather than as a list assembling. The
+   direction is set per stop below. */
+@keyframes home-beat-art {
+  from {
+    opacity: 0;
+    transform: translate(var(--beat-in, 0px), 38px) scale(0.972);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes home-beat-copy {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--beat-in, 0px) * -0.5), 26px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+/* Paper landing on a pile: up, over-rotated, settling onto its resting fan. */
+@keyframes home-print-settle {
+  from {
+    opacity: 0;
+    transform: rotate(calc(var(--fan, 0deg) * 2.8))
+      translateY(calc(var(--lift, 0px) + 44px));
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0px));
+  }
+}
+
+@keyframes home-ring-draw {
+  from {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes home-ring-hub {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 16% of the image's own height. Enough to read as arriving, not so much that
+   the frame is empty when the section first appears. It finishes at zero
+   rather than past it, so the map is never short of its own frame. */
+@keyframes home-map-rise {
+  from {
+    transform: translateY(16%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* The pillars rise and square up. No rotation here — these are solid blocks
+   with hard borders, and tilting them reads as broken rather than as paper. */
+@keyframes home-pillar-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(46px) scale(0.982);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

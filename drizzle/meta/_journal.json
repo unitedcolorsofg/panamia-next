@@ -246,6 +246,62 @@
       "when": 1787011200000,
       "tag": "0034_account_issuer_rollback",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1787097600000,
+      "tag": "0035_profile_owners",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1787184000000,
+      "tag": "0036_profile_screenname",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1787270400000,
+      "tag": "0037_profile_signals",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1787356800000,
+      "tag": "0038_profile_online_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1787443200000,
+      "tag": "0039_drop_owner_self_signals",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1787529600000,
+      "tag": "0040_profile_search_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1787616000000,
+      "tag": "0041_profile_name_trigram",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1787702400000,
+      "tag": "0035_social_statuses_recipients_gin",
+      "breakpoints": true
     }
   ]
 }

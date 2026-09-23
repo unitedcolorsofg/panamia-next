@@ -33,6 +33,7 @@ export function LegalJsonLd({
     publisher: {
       '@type': 'Organization',
       name: 'Pana MIA Club, Corp.',
+      // Live web origin — see docs/DOMAINS.md before repointing.
       url: 'https://pana.social',
     },
     ...(policyJsonUrl && {

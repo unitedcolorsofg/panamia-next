@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { profiles, users } from '@/lib/schema';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -17,8 +18,24 @@ export async function GET(_request: NextRequest) {
       );
     }
 
+    // Listings only. Every signed-in member now has an active profile, so
+    // filtering on `active` alone would bury the vendor list under ordinary
+    // consumer signups — and this response returns name, email and phone.
     const allActiveProfiles = await db.query.profiles.findMany({
-      where: eq(profiles.active, true),
+      where: and(
+        eq(profiles.active, true),
+        or(
+          // Unclaimed legacy listings have no user to carry an account type.
+          isNull(profiles.userId),
+          inArray(
+            profiles.userId,
+            db
+              .select({ id: users.id })
+              .from(users)
+              .where(inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES))
+          )
+        )
+      ),
       with: { user: { columns: { screenname: true } } },
     });
 

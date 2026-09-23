@@ -9,6 +9,11 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { createActorForProfile, canCreateSocialActor } from '@/lib/federation';
+import { toPublicActor } from '@/lib/schema';
+import {
+  getActiveProfile,
+  getActiveProfileId,
+} from '@/lib/server/active-profile';
 
 export async function GET() {
   const session = await auth();
@@ -19,11 +24,14 @@ export async function GET() {
     );
   }
 
-  // Get user's profile with social actor, and user for screenname
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-    with: { socialActor: true, user: true },
-  });
+  // The profile being acted as, with its actor and linked user (for screenname)
+  const activeId = await getActiveProfileId(session.user.id);
+  const profile = activeId
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.id, activeId),
+        with: { socialActor: true, user: true },
+      })
+    : null;
 
   if (!profile) {
     return NextResponse.json({
@@ -41,11 +49,14 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     data: {
-      actor: profile.socialActor,
+      actor: profile.socialActor ? toPublicActor(profile.socialActor) : null,
       eligible: gateResult.allowed,
       reason: gateResult.reason,
-      // Include screenname so UI can show what the social username will be
-      screenname: profile.user?.screenname,
+      // Include screenname so UI can show what the social username will be.
+      // Profile-first: a business listing owns its handle and has no user.
+      screenname: profile.screenname ?? profile.user?.screenname,
+      profileId: profile.id,
+      profileName: profile.name,
     },
   });
 }
@@ -59,10 +70,9 @@ export async function POST() {
     );
   }
 
-  // Get user's profile
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
+  // Enable social for whoever they're acting as, so a business listing can be
+  // given its own actor by an owner who already has one personally.
+  const profile = await getActiveProfile(session.user.id);
 
   if (!profile) {
     return NextResponse.json(

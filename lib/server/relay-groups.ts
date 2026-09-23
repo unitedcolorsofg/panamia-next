@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/lib/db';
 import {
@@ -130,6 +140,85 @@ export async function listGroupsForPubkey(
     memberCount: counts.get(r.groupId) ?? 0,
     canManage: r.createdBy === pubkey,
     systemProvisioned: r.createdBy === null,
+  }));
+}
+
+// Public projection of a group, for a profile page. Deliberately narrower than
+// GroupSummary: no joinPolicy, no canManage, no systemProvisioned. A visitor
+// looking at someone else's profile has no role in these groups, so shipping
+// role-shaped fields would only invite a UI that implies otherwise.
+export interface PublicGroupSummary {
+  groupId: string;
+  name: string;
+  about: string | null;
+  picture: string | null;
+  memberCount: number;
+}
+
+// Resolve a public handle to its Nostr pubkey.
+//
+// The handle namespace is flat across profiles.screenname and users.screenname
+// (see getPublicProfile), so both are checked here for the same reason: rows
+// predating the screenname mirror still carry the handle only on the user.
+export async function getPubkeyForScreenname(
+  screenname: string
+): Promise<string | null> {
+  const [row] = await db
+    .select({ nostrPubkey: profiles.nostrPubkey })
+    .from(profiles)
+    .leftJoin(users, eq(users.id, profiles.userId))
+    .where(
+      or(
+        sql`lower(${profiles.screenname}) = lower(${screenname})`,
+        sql`lower(${users.screenname}) = lower(${screenname})`
+      )
+    )
+    .limit(1);
+
+  return row?.nostrPubkey ?? null;
+}
+
+// The groups shown on a public profile.
+//
+// Two deliberate differences from listGroupsForPubkey:
+//
+//   - Only discoverable groups are returned. An invite-only group's existence
+//     is not advertised anywhere else in the product, and a public profile is
+//     the last place it should leak: belonging to one can be sensitive by
+//     itself, independently of anything said inside it.
+//   - No maturation sweep. matureAndSettle writes, and this path is reachable
+//     by anonymous traffic on a cached page. The matured-leave predicate is
+//     still applied, so someone who has left is still filtered out correctly —
+//     only the bookkeeping is skipped, not the correctness.
+export async function listPublicGroupsForPubkey(
+  pubkey: string
+): Promise<PublicGroupSummary[]> {
+  const rows = await db
+    .select({
+      groupId: relayGroups.groupId,
+      name: relayGroups.name,
+      about: relayGroups.about,
+      picture: relayGroups.picture,
+    })
+    .from(relayGroupMembers)
+    .innerJoin(relayGroups, eq(relayGroups.groupId, relayGroupMembers.groupId))
+    .where(
+      and(
+        eq(relayGroupMembers.pubkey, pubkey),
+        eq(relayGroups.discoverable, true),
+        sql`NOT EXISTS (${maturedLeaveExists})`
+      )
+    )
+    .orderBy(asc(relayGroups.name));
+
+  const counts = await memberCounts(rows.map((r) => r.groupId));
+
+  return rows.map((r) => ({
+    groupId: r.groupId,
+    name: r.name,
+    about: r.about,
+    picture: r.picture,
+    memberCount: counts.get(r.groupId) ?? 0,
   }));
 }
 

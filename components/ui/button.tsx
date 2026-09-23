@@ -12,10 +12,13 @@ const buttonVariants = cva(
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        // `text-foreground` is required, not cosmetic: MainHeader.module.css
-        // sets `color: #fff` on a `display: contents` header, so an outline
-        // button that sets no foreground inherits white and goes
-        // white-on-white in light mode.
+        // `text-foreground` is required: without it the text inherits from the
+        // nearest ancestor, which on a dark header means white-on-white in
+        // light mode. Concretely, MainHeader.module.css sets `color: #fff` on a
+        // `display: contents` header, so an outline button that sets no
+        // foreground inherits that white. It pairs with the valid `@theme`
+        // color tokens in app/globals.css — the two were fixed together, so
+        // don't revert one without the other.
         outline:
           'border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
         secondary:

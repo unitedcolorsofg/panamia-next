@@ -7,8 +7,9 @@
 
 import { db } from '@/lib/db';
 import { events } from '@/lib/schema';
-import { and, asc, desc, eq, gte } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
+import { getFederationDomain } from '@/lib/federation/domain';
 import type { Event, EventStatus } from '@/lib/schema';
 
 export function generateSlug(title: string): string {
@@ -40,14 +41,7 @@ export async function generateUniqueSlug(title: string): Promise<string> {
  * duplicate on re-import. Generated once at create time and stored on the row.
  */
 export function buildIcalUid(): string {
-  const host = process.env.NEXT_PUBLIC_HOST_URL ?? 'pana.social';
-  let domain = 'pana.social';
-  try {
-    domain = new URL(host).host || domain;
-  } catch {
-    // host wasn't a full URL — fall back to the default domain.
-  }
-  return `${createId()}@${domain}`;
+  return `${createId()}@${getFederationDomain()}`;
 }
 
 export function isPublishable(eventDoc: {
@@ -103,6 +97,57 @@ export async function getEventsByHost(hostProfileId: string) {
     orderBy: [desc(events.startsAt)],
     with: {
       venue: { columns: { name: true, city: true, state: true } },
+    },
+  });
+}
+
+/**
+ * Published, public events a profile is hosting between now and a horizon.
+ *
+ * Distinct from getEventsByHost, which is the owner's own management view and
+ * deliberately returns drafts and past events. This one is what the public
+ * profile page shows, so it filters to what a stranger is allowed to see and
+ * drops anything already over.
+ *
+ * The horizon exists because "upcoming" with no bound is a promise the page
+ * cannot keep: a venue with a date eleven months out would push the next two
+ * weekends off the screen. Three months is roughly how far ahead people plan
+ * going somewhere.
+ *
+ * Venue coordinates come back with the row so the caller can offer distance
+ * without a second round trip.
+ */
+export async function getUpcomingEventsForHost(
+  hostProfileId: string,
+  options: { withinMonths?: number; limit?: number } = {}
+) {
+  const { withinMonths = 3, limit = 12 } = options;
+
+  const now = new Date();
+  const horizon = new Date(now);
+  horizon.setMonth(horizon.getMonth() + withinMonths);
+
+  return await db.query.events.findMany({
+    where: and(
+      eq(events.hostProfileId, hostProfileId),
+      eq(events.status, 'published' as EventStatus),
+      eq(events.visibility, 'public'),
+      gte(events.startsAt, now),
+      lte(events.startsAt, horizon)
+    ),
+    orderBy: [asc(events.startsAt)],
+    limit,
+    with: {
+      venue: {
+        columns: {
+          name: true,
+          city: true,
+          state: true,
+          slug: true,
+          lat: true,
+          lng: true,
+        },
+      },
     },
   });
 }

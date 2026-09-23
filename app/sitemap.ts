@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { articles, profiles, users } from '@/lib/schema';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 type SitemapEntry = {
   url: string;
@@ -39,10 +40,39 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
       columns: { slug: true, updatedAt: true },
     }),
     db
-      .select({ screenname: users.screenname, updatedAt: profiles.updatedAt })
-      .from(users)
-      .innerJoin(profiles, eq(profiles.userId, users.id))
-      .where(and(isNotNull(users.screenname), eq(profiles.active, true))),
+      .select({
+        screenname: sql<
+          string | null
+        >`COALESCE(${profiles.screenname}, ${users.screenname})`,
+        updatedAt: profiles.updatedAt,
+      })
+      // Driven from `profiles`, with a LEFT join: a business listing submitted
+      // through /form/list-your-business keeps `profiles.userId` NULL
+      // permanently and is administered through `profileOwners`, so driving
+      // from `users` dropped every listing in the directory before any filter
+      // below could run. /p/[handle] resolves the profile's own screenname
+      // first and falls back to its owner's, so a listing carries its handle
+      // here without a user row. Same construct as getSearch(), featured and
+      // suggest.
+      .from(profiles)
+      .leftJoin(users, eq(profiles.userId, users.id))
+      .where(
+        and(
+          sql`COALESCE(${profiles.screenname}, ${users.screenname}) IS NOT NULL`,
+          // Also the gate on unapproved submissions: /form/list-your-business
+          // writes active: false until a human approves it, and
+          // delete-account's tombstone clears it. Not merely a liveness check.
+          eq(profiles.active, true),
+          // Members are not listings. Every signed-in user has an active
+          // profile now, so without this the sitemap would publish every
+          // personal account to search engines. A listing with no user carries
+          // no account type to test and is a listing by definition.
+          or(
+            isNull(profiles.userId),
+            inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+          )
+        )
+      ),
   ]);
 
   const articleRoutes: SitemapEntry[] = publishedArticles.map((a) => ({

@@ -1,33 +1,80 @@
 {
   "hero": {
-    "headline": "The Future is Local",
-    "subheadline": "Search South Florida's First Local Directory",
-    "searchPlaceholder": "Search by name, category, products",
+    "headline": "The Future<br/>Is <em>Local</em>",
+    "subheadline": "South Florida's first local directory — a living archive of the creatives, entrepreneurs and small businesses who make this place what it is.",
+    "searchPlaceholder": "Search local business, groups, events",
     "searchLabel": "Search directory",
     "searchAriaLabel": "Search the directory",
-    "searchButton": "Search"
+    "searchButton": "Search",
+    "meta": "Scroll ↓ · Explore the directory",
+    "mission": "Pana MIA Club promotes everything local in South Florida in order to achieve a more regenerative future.",
+    "scrollNote": "Scroll ↓ · Find your panas"
+  },
+  "comingSoon": "Coming soon",
+  "directory": {
+    "eyebrow": "The Directory",
+    "title": "Find Your<br/><em>People</em>",
+    "lede": "Every category below is a live filter on the directory. Pick a lane and meet the locals working in it.",
+    "browseAll": "Browse the full directory"
+  },
+  "about": {
+    "eyebrow": "Our Mission",
+    "title": "¿Qué Tal,<br/>Pana?",
+    "tagline": "Being a small business owner can be overwhelming and isolating, but you're not alone.",
+    "body": "Miami is filled with small vendors, all with different strengths and skillsets. We started Pana Mia to bring everyone together—pooling resources, insights, and strategies. As consumers recognize the benefits of shopping local, we're creating a centralized space to explore and fall in love with local brands.",
+    "ctaJoin": "Become a Pana",
+    "ctaBrowse": "Browse the directory",
+    "imageAlt": "The Pana MIA community"
+  },
+  "statement": {
+    "eyebrow": "Our Work",
+    "text": "Community is a form of <em>power</em>.",
+    "gather": {
+      "title": "Gather",
+      "body": "Events built for real connection rather than networking for its own sake — dinners, markets, workshops and nights out across South Florida."
+    },
+    "connect": {
+      "title": "Connect",
+      "body": "A searchable directory that turns supporting local from a slogan into something you can act on, by name, category and neighborhood."
+    },
+    "celebrate": {
+      "title": "Celebrate",
+      "body": "Stories, features and a platform that put local creatives and small businesses on the record and in front of new audiences."
+    }
+  },
+  "collective": {
+    "eyebrow": "The Collective",
+    "title": "Featured<br/>Panas",
+    "lede": "A rotating look at the creatives, organizations and small businesses in the directory right now.",
+    "cta": "Meet the whole collective"
   },
   "events": {
     "badge": "Upcoming Events",
-    "title": "Community Events",
+    "title": "Community<br/>Events",
     "description": "Pana MIA curates intentional events centered around meaningful connection and the celebration of local culture and art.",
-    "viewEvents": "View Events"
+    "viewEvents": "View Events",
+    "imageAlt": "Panas gathered at a Pana MIA community event"
   },
   "articles": {
-    "title": "Recent Articles",
-    "subtitle": "Stories from the Pana MIA community",
+    "eyebrow": "Dispatches",
+    "title": "Stories From<br/>The Collective",
+    "subtitle": "Longer reads from the people building South Florida's local economy.",
     "viewAll": "View All",
     "noArticles": "No articles yet!",
     "noArticlesDesc": "Be the first to share a story with the community.",
     "writeArticle": "Write an Article"
   },
-  "about": {
-    "title": "¿Que Tal, Pana?",
-    "tagline": "Being a small business owner can be overwhelming and isolating, but you're not alone.",
-    "body": "Miami is filled with small vendors, all with different strengths and skillsets. We started Pana Mia to bring everyone together—pooling resources, insights, and strategies. As consumers recognize the benefits of shopping local, we're creating a centralized space to explore and fall in love with local brands."
+  "impact": {
+    "eyebrow": "By The Numbers",
+    "title": "Culture,<br/>On The Record",
+    "lede": "The receipts on what South Florida builds when it builds together. We are wiring the live counts up now.",
+    "panas": "Panas",
+    "events": "Events",
+    "partners": "Partners"
   },
   "faq": {
-    "title": "Frequently Asked Questions",
+    "eyebrow": "Frequently Asked",
+    "title": "Questions",
     "q1": "What does Pana mean?",
     "a1": "Pana is a Latine term for friend or homie.",
     "qWhatIsAPana": "What <em>is</em> a Pana?",
@@ -54,5 +101,177 @@
     "q9": "What are the Terms & Conditions?",
     "a9_1": "We maintain the authority to remove individuals from the directory if they engage in harmful and hateful behavior towards others or the community as a whole.",
     "a9_2": "Becoming a member is straightforward. You need to be a local to South Florida and complete our profile form."
+  },
+  "closing": {
+    "eyebrow": "The Point",
+    "statement": "The future isn't coming. It's <em>next door</em>.",
+    "lede": "Pana MIA is built by and for locally based creatives, organizations and small businesses across Broward, Miami-Dade and Palm Beach. Join the directory, or start by finding someone already in it.",
+    "ctaJoin": "Become a Pana",
+    "ctaBrowse": "Search the directory",
+    "dispatches": "Read the dispatches"
+  },
+  "newsletter": {
+    "eyebrow": "Our Newsletter",
+    "lede": "Get new Panas, events and dispatches in your inbox. No noise.",
+    "placeholder": "you@email.com",
+    "cta": "Subscribe"
+  },
+  "street": {
+    "label": "Pana Mia's neighbourhood"
+  },
+  "basics": {
+    "eyebrow": "Start Here",
+    "title": "First,<br/><em>the basics</em>",
+    "lede": "Three questions everyone asks in their first minute here. Each one gets a stop on the block — the answer is right there, and there is more behind it if you want it."
+  },
+  "beats": {
+    "pana": {
+      "question": "What's a pana?",
+      "aside": "/pah·nah/",
+      "answer": "South American and Caribbean slang for friend. Around here it also means someone who shows up for the place they live.",
+      "more": "See the full definition",
+      "photos": [
+        {
+          "alt": "Panas gathered around a table at a Pana Mia community mixer",
+          "caption": "Mixer night"
+        },
+        {
+          "alt": "A long communal dinner table filled with Pana Mia members",
+          "caption": "Long table"
+        },
+        {
+          "alt": "A group of Pana Mia members together at a community gathering",
+          "caption": "The whole room"
+        },
+        {
+          "alt": "Two Pana Mia organisers together at an event",
+          "caption": "Organisers"
+        }
+      ],
+      "definition": {
+        "label": "Pana, noun",
+        "items": [
+          "South American/Caribbean slang meaning friend.",
+          "A member of the South Florida community that enjoys engaging with and supporting local community projects, small businesses, and creators.",
+          "Someone that advocates for Pana MIA and the local movement."
+        ]
+      },
+      "practice": {
+        "label": "What this looks like in practice",
+        "items": [
+          "Switch to local goods and services.",
+          "Choose to eat out at local restaurants instead of chains.",
+          "Stay informed of local news and events.",
+          "Enjoy and advocate for the preservation of the local ecology.",
+          "Engage in mutual aid projects."
+        ]
+      }
+    },
+    "why": {
+      "question": "Why was Pana MIA started?",
+      "answer": "So that nobody with an idea for how to make South Florida better had to start at ground zero.",
+      "more": "Read the mission",
+      "ring": {
+        "centre": "Pana MIA Club",
+        "items": [
+          "Economic Resilience",
+          "Equitable Wealth",
+          "Environmental Benefits",
+          "Community Well-Being"
+        ]
+      },
+      "mission": "Pana MIA Club serves as a community connector to promote everything local in South Florida — small businesses, creatives, and organizations — in order to achieve a more regenerative future.",
+      "invitation": "Use this community to launch your ideas, get feedback, and grow skills, all for the benefit of South Florida. We don’t believe in competition and we reject the scarcity mindset.",
+      "values": {
+        "label": "What we hold to",
+        "items": [
+          "Collaborative over competitive",
+          "Abundance over scarcity",
+          "Joy and care as resistance",
+          "Horizontal growth",
+          "Mutual respect"
+        ]
+      }
+    },
+    "local": {
+      "question": "Why local?",
+      "answer": "Because communities know their own needs best, and they are the ones best equipped to meet them.",
+      "more": "See what local does",
+      "mapAlt": "Map of Florida with the three South Florida counties Pana Mia covers picked out",
+      "effects": {
+        "label": "Supporting local means",
+        "items": [
+          "More money stays in the regional economy, and goes to households rather than extractive global corporations.",
+          "Businesses stay beholden to the community, and are easier to hold accountable.",
+          "More authentic art that preserves the culture of place. It should be a point of pride for our artists not to be starving.",
+          "Local food sources, which make all of us more resilient."
+        ]
+      }
+    }
+  },
+  "pillarsBand": {
+    "eyebrow": "The Future Of Pana MIA",
+    "title": "Three ways<br/><em>we build</em>",
+    "lede": "Not three departments — three halves of the same argument, that a place gets better when the people in it own the tools, the gatherings and the stories."
+  },
+  "pillars": {
+    "tech": {
+      "name": "Collective Tech",
+      "problem": "Current tech prioritizes shareholder values.",
+      "answer": "We’re developing platforms that prioritize genuine connection, user data privacy, and ecological wellbeing.",
+      "programs": {
+        "directory": {
+          "name": "Local’s Directory",
+          "note": "Every creative, organization and small business in South Florida, searchable by name, category and neighborhood."
+        },
+        "panaSocial": {
+          "name": "Pana Social",
+          "note": "A local social network that federates, so the community owns its own feed instead of renting one."
+        }
+      }
+    },
+    "community": {
+      "name": "Community Building",
+      "problem": "People feel disconnected from each other and the land.",
+      "answer": "Our programming focuses on bringing people together to build people power and develop a community’s agency to flourish.",
+      "programs": {
+        "connectors": {
+          "name": "Community Connectors",
+          "note": "Pods across Miami-Dade, Broward and Palm Beach running projects for their own neighborhoods. Three tiers of involvement, and everyone starts at tier one."
+        },
+        "events": {
+          "name": "Collaborative Events",
+          "note": "Markets, workshops, art builds and gatherings — co-hosted with the people already doing the work."
+        }
+      }
+    },
+    "culture": {
+      "name": "Culture Work",
+      "problem": "Cultural change is lasting change.",
+      "answer": "We support arts projects that encourage collective dreaming and shift the narrative towards celebrating interconnectedness and joy.",
+      "programs": {
+        "press": {
+          "name": "Pana Ink Press",
+          "note": "Zines, pamphlets and print that explain the local movement in a form anyone can hand to anyone."
+        },
+        "newsletter": {
+          "name": "The Newsletter",
+          "note": "New panas, events and dispatches, written by the people they are about."
+        },
+        "projects": {
+          "name": "Collaborative Projects",
+          "note": "Murals, playlists, solarpunk stories — work that imagines a liberated future for South Florida out loud."
+        }
+      }
+    }
+  },
+  "programStatus": {
+    "live": "Live now",
+    "building": "Building"
+  },
+  "localRow": {
+    "countyLabel": "Browse by county",
+    "giveLabel": "Keep it running",
+    "donate": "Donate"
   }
 }

@@ -136,33 +136,59 @@ test.describe('Custom Sign-In Page', () => {
     await expect(welcomeText).toBeVisible({ timeout: 15000 });
   });
 
-  test('signin page has OAuth provider buttons', async ({ page }) => {
+  // These two tests previously asserted that Google and Apple buttons were
+  // always present, and that the email option was always a toggle. Both
+  // described the old sign-in page, which rendered every provider whether or
+  // not it had credentials, so an unconfigured deployment showed four dead
+  // controls above the one path that always works. signin-view.tsx now filters
+  // to configured providers, which means neither the buttons nor the toggle
+  // exist in an environment with no OAuth secrets — CI being exactly that.
+  // Asserting on a specific provider therefore tests the runner's env, not the
+  // page. What the page actually guarantees is the two invariants below, and
+  // they hold whether zero or four providers are configured.
+
+  test('signin page never renders an unusable OAuth button', async ({
+    page,
+  }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Check for OAuth buttons (they may be disabled if not configured)
-    // Wait longer for client-side hydration
-    const googleButton = page.getByRole('button', {
-      name: /Continue with Google/i,
-    });
-    const appleButton = page.getByRole('button', {
-      name: /Continue with Apple/i,
+    // Wait for hydration via something unconditional before counting, so an
+    // empty result means "none rendered" rather than "not rendered yet".
+    await expect(page.getByText('Welcome to Pana MIA')).toBeVisible({
+      timeout: 15000,
     });
 
-    await expect(googleButton).toBeVisible({ timeout: 15000 });
-    await expect(appleButton).toBeVisible({ timeout: 15000 });
+    const deadProviderButtons = page.getByRole('button', {
+      name: /^Continue with /,
+      disabled: true,
+    });
+    await expect(deadProviderButtons).toHaveCount(0);
   });
 
-  test('signin page has email sign-in option', async ({ page }) => {
+  test('signin page always offers an email sign-in path', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'domcontentloaded' });
 
-    // Check for email sign-in toggle button - wait for hydration
-    const emailButton = page.getByRole('button', {
+    // isVisible() does not auto-wait, so gate on something unconditional
+    // first. Without this the toggle check can resolve false purely because
+    // React has not hydrated, silently skipping the click and leaving the
+    // assertion below to fail 15s later for the wrong reason.
+    await expect(page.getByText('Welcome to Pana MIA')).toBeVisible({
+      timeout: 15000,
+    });
+
+    const emailInput = page.getByPlaceholder('your@email.com');
+    const emailToggle = page.getByRole('button', {
       name: 'Sign in with email',
     });
-    await expect(emailButton).toBeVisible({ timeout: 15000 });
 
-    // The email form is toggled via React state - verify the toggle exists
-    // Full form interaction requires authenticated test environment
+    // With OAuth configured the form sits behind a toggle; with none it is
+    // opened directly, because a toggle guarding the only option is a dead
+    // click. Accept either route, then assert the destination is the same.
+    if (await emailToggle.isVisible()) {
+      await emailToggle.click();
+    }
+
+    await expect(emailInput).toBeVisible({ timeout: 15000 });
   });
 
   test('signin page has terms link', async ({ page }) => {

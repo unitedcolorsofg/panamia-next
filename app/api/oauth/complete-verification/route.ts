@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { oAuthVerifications, users, accounts, profiles } from '@/lib/schema';
 import { and, eq, isNull } from 'drizzle-orm';
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,7 +102,15 @@ export async function POST(request: NextRequest) {
     const unclaimedProfile = await db.query.profiles.findFirst({
       where: and(
         eq(profiles.email, email.toLowerCase()),
-        isNull(profiles.userId)
+        isNull(profiles.userId),
+        // Same exclusion as auth.ts: an unclaimed *business* listing must not
+        // become this user's personal profile. Without this, a business owner
+        // who submits /form/list-your-business and later signs in with the
+        // same address through OAuth has their listing welded to their
+        // identity, consuming their single profiles.userId slot and silently
+        // barring them from ever running a second listing.
+        // See lib/server/profile-owners.ts.
+        notBusinessListing
       ),
     });
 
@@ -113,6 +125,12 @@ export async function POST(request: NextRequest) {
         .update(profiles)
         .set({ userId })
         .where(eq(profiles.id, unclaimedProfile.id));
+      // Keep the ownership table in step with the identity link so permission
+      // checks have one consistent answer. canAdministerProfile accepts either
+      // link, so omitting this does not lock anyone out — it just leaves the
+      // two sources of truth disagreeing for anything that reads
+      // profileOwners directly.
+      await addProfileOwner(unclaimedProfile.id, userId);
       console.log('Profile claimed successfully');
     }
 

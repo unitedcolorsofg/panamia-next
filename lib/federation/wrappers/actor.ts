@@ -8,8 +8,8 @@
  */
 
 import { db } from '@/lib/db';
-import { socialActors, profiles } from '@/lib/schema';
-import type { Profile, SocialActor } from '@/lib/schema';
+import { socialActors, profiles, toPublicActor } from '@/lib/schema';
+import type { Profile, SocialActor, PublicSocialActor } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
 import { canCreateSocialActor, GateResult } from '../gates';
@@ -23,7 +23,7 @@ import {
 } from '../index';
 
 export type CreateActorResult =
-  | { success: true; actor: SocialActor }
+  | { success: true; actor: PublicSocialActor }
   | { success: false; error: string; gateResult?: GateResult };
 
 /**
@@ -52,24 +52,28 @@ export async function createActorForProfile(
     };
   }
 
-  // Must have a linked user with screenname
-  if (!profile.user?.screenname) {
+  // Must have a handle. Prefer the profile's own, falling back to the linked
+  // user's for profiles that predate profiles.screenname and have not been
+  // through a rename since the backfill. A business listing has no user at all,
+  // so sourcing this from profiles is what lets it federate.
+  const username = profile.screenname ?? profile.user?.screenname;
+
+  if (!username) {
     return {
       success: false,
-      error: 'User must have a screenname to enable social features',
+      error: 'A handle is required to enable social features',
     };
   }
 
   // Check if already has an actor
   if (profile.socialActor) {
-    return { success: true, actor: profile.socialActor };
+    return { success: true, actor: toPublicActor(profile.socialActor) };
   }
 
   // Generate keypair
   const { publicKey, privateKey } = generateActorKeyPair();
 
-  // Build URIs - username comes from User.screenname
-  const username = profile.user.screenname;
+  // Build URIs
   const domain = socialConfig.domain;
   const uri = getActorUrl(username);
 
@@ -93,7 +97,7 @@ export async function createActorForProfile(
     })
     .returning();
 
-  return { success: true, actor };
+  return { success: true, actor: toPublicActor(actor) };
 }
 
 /**

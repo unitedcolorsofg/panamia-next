@@ -5,9 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { getFollowers, getFollowing } from '@/lib/federation';
 
 export async function GET(request: NextRequest) {
@@ -20,10 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get user's actor
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-    with: { socialActor: true },
-  });
+  const profile = await getActiveProfileWithActor(session.user.id);
 
   if (!profile?.socialActor) {
     return NextResponse.json({

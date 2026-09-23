@@ -1,3 +1,33 @@
+# Line endings.
+#
+# core.autocrlf is a per-machine setting that cannot be enforced across a team,
+# and with it enabled the working tree is CRLF while every tool in this repo
+# expects LF. That mismatch is not cosmetic: `prettier --check` reported ~700
+# files as failing when only one genuinely was, which is indistinguishable from
+# noise and trained everyone to ignore it. Shell scripts are worse — a .sh file
+# with CRLF fails to parse under strict shells with an opaque `$'\r': command
+# not found`.
+#
+# Pinning eol=lf here overrides core.autocrlf, so every checkout is identical
+# regardless of platform or local git config.
+* text=auto eol=lf
+
+# Executable scripts must be LF or they will not run.
+*.sh text eol=lf
+
+# Binary formats: never convert, never diff as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.gif  binary
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+
 # Mark external vendored code for GitHub linguist
 # This excludes it from language statistics and diffs by default
 external/activities.next/** linguist-vendored

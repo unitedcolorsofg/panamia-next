@@ -1,4 +1,19 @@
 {
+  "identity": {
+    "account": "Cuenta",
+    "actingAs": "Actuando como",
+    "backToYou": "Volver a ti",
+    "business": "Negocio",
+    "inactive": "Borrador",
+    "listBusiness": "Publica tu negocio",
+    "listBusinessHint": "Agrega una tienda, estudio o servicio",
+    "manager": "Gerente",
+    "owner": "Dueño",
+    "settings": "Configuración de cuenta",
+    "switchAccount": "Cambiar de cuenta",
+    "you": "Tú",
+    "yourProfile": "Tu perfil"
+  },
   "nav": {
     "jumpTo": "Ir A",
     "explore": "Explorar",
@@ -30,7 +45,15 @@
     "signOut": "Cerrar Sesión",
     "becomeAPana": "Únete como Pana",
     "signUp": "Registrarse",
-    "signIn": "Iniciar Sesión"
+    "signIn": "Iniciar Sesión",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú",
+    "alreadyAPana": "¿Ya eres Pana? <a>Inicia sesión</a>",
+    "regions": "Miami-Dade · Broward · Palm Beach"
+  },
+  "onboarding": {
+    "screennameTitle": "Elige tu nombre de usuario",
+    "screennameDescription": "Así aparecerás en Pana MIA: en tu perfil, en lo que publiques y dondequiera que te encuentren. Puedes omitirlo por ahora, pero lo necesitarás antes de publicar o seguir a alguien."
   },
   "footer": {
     "panaMia": "PanaMia",

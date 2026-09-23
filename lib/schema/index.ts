@@ -273,6 +273,32 @@ export const nostrPubkeySource = pgEnum('nostr_pubkey_source', [
   'byo',
 ]);
 
+// Ordered by power: owner can transfer or delete the listing, admin can manage
+// content and other editors, editor can only edit the listing itself.
+export const profileOwnerRole = pgEnum('profile_owner_role', [
+  'owner',
+  'admin',
+  'editor',
+]);
+
+/**
+ * What a pana expressed about a listing in the directory.
+ *
+ * 'save' is a private bookmark — "remember this for me". 'recommend' is a
+ * public vouch — "I stand behind this". They share a table because they have
+ * the same shape and the same uniqueness rule, but they are NOT interchangeable
+ * and the query layer treats them differently: recommenders may be listed,
+ * savers are only ever counted. See lib/server/profile-signals.ts.
+ *
+ * Deliberately distinct from social_follows, which is a federated ActivityPub
+ * relationship meaning "deliver their posts to me" and can come from a remote
+ * server. Saving is local, private, and says nothing about subscription.
+ */
+export const profileSignalKind = pgEnum('profile_signal_kind', [
+  'save',
+  'recommend',
+]);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -537,9 +563,25 @@ export const profiles = pgTable(
     // auto-claim) or tombstoned (userId nulled on account deletion to keep the
     // profile for attribution while severing the cascade FK). Postgres treats
     // NULLs as distinct, so the unique constraint still allows many such rows.
+    //
+    // This is the human's OWN identity profile, and stays 1:1 — it is not the
+    // general "who can edit this listing" link. Business listings created
+    // through /form/list-your-business leave this NULL permanently and are
+    // administered through profileOwners instead, which is what allows one
+    // person to run several of them. See drizzle/0035_profile_owners.sql.
     userId: text('user_id')
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // The handle, in a namespace shared flat with users.screenname: /p/:handle
+    // and acct:handle@domain resolve humans and businesses through the same
+    // path, so the two can never hold the same name at once. Uniqueness here is
+    // case-insensitive (profiles_screenname_lower_unique); the cross-table
+    // check against users + screenname_history lives in lib/screenname.ts.
+    //
+    // Nullable because a listing has no handle until somebody claims it and
+    // picks one. This is what lets a business have a federated actor without
+    // being attached to a user — see drizzle/0036_profile_screenname.sql.
+    screenname: text('screenname'),
     email: text('email').notNull().unique(),
     name: text('name').notNull(),
     phoneNumber: text('phone_number'),
@@ -559,6 +601,35 @@ export const profiles = pgTable(
     addressGooglePlaceId: text('address_google_place_id'),
     addressHours: text('address_hours'),
     active: boolean('active').notNull().default(false),
+    /**
+     * When Pana Mia certified this listing, or NULL if it has not been.
+     *
+     * A timestamp rather than a boolean because the interesting questions are
+     * "since when?" and "certify the ones granted before X" — a boolean throws
+     * that away and cannot answer either. Set by Pana Mia staff only; nothing
+     * in the member-facing app writes this.
+     */
+    panaCertifiedAt: timestamp('pana_certified_at', { withTimezone: true }),
+    /**
+     * This business has nowhere to visit — it operates online.
+     *
+     * Suppresses distance and directions on the public profile. A flag rather
+     * than an inference from a missing address, because an absent address
+     * already means something else: a storefront mid-onboarding, or one whose
+     * address failed to geocode. Those should still read as physical and
+     * should start showing distance once the address lands. Set by the owner;
+     * see drizzle/0038_profile_online_only.sql.
+     */
+    onlineOnly: boolean('online_only').notNull().default(false),
+    /*
+     * Not mapped here on purpose: profiles.search_vector.
+     *
+     * Migration 0040 adds a GENERATED ALWAYS tsvector column that backs the
+     * directory term search. It is deliberately absent from this schema so
+     * Drizzle never selects it — the vector is large, useless to the
+     * application, and would ride along on every profile read. lib/server/
+     * directory.ts queries it through raw SQL instead.
+     */
     locallyBased: text('locally_based'),
     membershipLevel: membershipLevel('membership_level')
       .notNull()
@@ -609,6 +680,103 @@ export const profiles = pgTable(
   (table) => ({
     activeIdx: index('profiles_active_idx').on(table.active),
     nostrPubkeyIdx: index('profiles_nostr_pubkey_idx').on(table.nostrPubkey),
+  })
+);
+
+// =============================================================================
+// Profile owners
+// =============================================================================
+
+/**
+ * Who is allowed to administer a profile.
+ *
+ * Separate from profiles.userId, which answers a different question ("whose
+ * identity is this?") and remains 1:1. This table answers "who runs this?" and
+ * is many-to-many, so one person can run several businesses and a business can
+ * have co-owners without sharing a password.
+ *
+ * Every profile with a userId was backfilled with an 'owner' row, so permission
+ * checks can read this table alone rather than branching on which link exists.
+ * A business listing is "unclaimed" precisely when it has no rows here.
+ */
+export const profileOwners = pgTable(
+  'profile_owners',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: profileOwnerRole('role').notNull().default('owner'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    profileUserUnique: uniqueIndex('profile_owners_profile_user_unique').on(
+      table.profileId,
+      table.userId
+    ),
+    userIdx: index('profile_owners_user_idx').on(table.userId),
+    profileIdx: index('profile_owners_profile_idx').on(table.profileId),
+  })
+);
+
+// =============================================================================
+// Profile signals (directory saves and recommendations)
+// =============================================================================
+
+/**
+ * A pana's saves and recommendations of directory listings.
+ *
+ * Keyed to userId, not profileId, because this belongs to the *person*, not to
+ * whichever profile they are currently acting as. Someone who claims a business
+ * on Monday should still have the saves they made on Sunday, and switching hats
+ * must not silently re-attribute their recommendations to a business.
+ *
+ * That choice also makes the product rule enforceable: only a human acting as
+ * themselves may save or recommend. A business cannot recommend anyone, because
+ * a business is never the subject here — see lib/server/profile-signals.ts.
+ */
+export const profileSignals = pgTable(
+  'profile_signals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: profileSignalKind('kind').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    // One save and one recommend per person per listing. Saving twice is the
+    // same as saving once, so the toggle endpoints can be safely retried.
+    profileUserKindUnique: uniqueIndex('profile_signals_profile_user_kind').on(
+      table.profileId,
+      table.userId,
+      table.kind
+    ),
+    // "How many panas saved this?" — the counts on the profile page.
+    profileKindIdx: index('profile_signals_profile_kind_idx').on(
+      table.profileId,
+      table.kind
+    ),
+    // "What have I saved?" — the member's own saved-listings view.
+    userKindIdx: index('profile_signals_user_kind_idx').on(
+      table.userId,
+      table.kind
+    ),
   })
 );
 
@@ -980,6 +1148,49 @@ export const socialActors = pgTable(
     domainIdx: index('social_actors_domain_idx').on(table.domain),
   })
 );
+
+/**
+ * Every column on social_actors that is safe to serialize to a client.
+ *
+ * This table holds `privateKey`, the key a local actor signs its
+ * ActivityPub activities with. Leaking it lets anyone forge posts,
+ * follows and deletes as that actor, and remote servers will verify the
+ * signatures as genuine, so it must never reach an HTTP response.
+ *
+ * Relational queries that join the actor onto something public --
+ * statuses, timelines, follow lists -- must pass this as `columns`.
+ * A bare `with: { actor: true }` selects every column and will hand the
+ * signing key to whoever asked.
+ *
+ * This is an allowlist rather than `{ privateKey: false }` on purpose.
+ * Adding a column here is a step someone can forget either way, but
+ * forgetting an allowlist entry drops a field from an API response,
+ * which is a visible bug. Forgetting to exclude from a denylist
+ * publishes a new secret, which is silent. Prefer the loud failure.
+ */
+export const PUBLIC_ACTOR_COLUMNS = {
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  username: true,
+  domain: true,
+  profileId: true,
+  uri: true,
+  inboxUrl: true,
+  outboxUrl: true,
+  followersUrl: true,
+  followingUrl: true,
+  sharedInboxUrl: true,
+  publicKey: true,
+  name: true,
+  summary: true,
+  iconUrl: true,
+  headerUrl: true,
+  followingCount: true,
+  followersCount: true,
+  statusCount: true,
+  manuallyApprovesFollowers: true,
+} as const;
 
 export const socialStatuses = pgTable(
   'social_statuses',
@@ -1491,6 +1702,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   articleAnnouncements: many(articleAnnouncements),
   screennameHistory: many(screennameHistory),
   consentReceipts: many(consentReceipts),
+  profilesOwned: many(profileOwners),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -1532,9 +1744,33 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
     fields: [profiles.id],
     references: [socialActors.profileId],
   }),
+  owners: many(profileOwners),
+  signals: many(profileSignals),
   venuesOperated: many(venues),
   eventsHosted: many(events),
   eventAttendeeRows: many(eventAttendees),
+}));
+
+export const profileSignalsRelations = relations(profileSignals, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [profileSignals.profileId],
+    references: [profiles.id],
+  }),
+  user: one(users, {
+    fields: [profileSignals.userId],
+    references: [users.id],
+  }),
+}));
+
+export const profileOwnersRelations = relations(profileOwners, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [profileOwners.profileId],
+    references: [profiles.id],
+  }),
+  user: one(users, {
+    fields: [profileOwners.userId],
+    references: [users.id],
+  }),
 }));
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
@@ -1954,6 +2190,29 @@ export type Interaction = typeof interactions.$inferSelect;
 export type MentorSession = typeof mentorSessions.$inferSelect;
 export type IntakeForm = typeof intakeForms.$inferSelect;
 export type SocialActor = typeof socialActors.$inferSelect;
+
+/**
+ * A social actor with the signing key stripped, as returned by any query
+ * that selects PUBLIC_ACTOR_COLUMNS. Use this in the return types of
+ * anything a client can reach so a full SocialActor cannot be assigned
+ * into a public response by mistake.
+ */
+export type PublicSocialActor = Omit<SocialActor, 'privateKey'>;
+
+/**
+ * Strip the signing key off an actor row.
+ *
+ * For the paths that cannot use PUBLIC_ACTOR_COLUMNS because they need the
+ * whole row first -- creating an actor returns the key it just generated --
+ * call this before the value reaches a response.
+ */
+export function toPublicActor<T extends { privateKey?: string | null }>(
+  actor: T
+): Omit<T, 'privateKey'> {
+  const rest = { ...actor };
+  delete (rest as { privateKey?: string | null }).privateKey;
+  return rest;
+}
 export type SocialStatus = typeof socialStatuses.$inferSelect;
 export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;

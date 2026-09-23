@@ -1,0 +1,237 @@
+/* Slide-in navigation drawer. See components/NavDrawer.tsx for the a11y
+   contract this stylesheet is half of — in particular the delayed `visibility`
+   transition, which is what removes the closed panel from the tab order.
+   Metrics follow the design mock. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background-color: rgb(17 13 13 / 0.58);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.45s ease,
+    visibility 0s linear 0.45s;
+}
+
+.scrimOpen {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.45s ease,
+    visibility 0s;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  width: min(380px, 86vw);
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(20px, 3vw, 30px);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.55s;
+}
+
+.panelOpen {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(26px, 4vw, 44px);
+}
+
+.logo {
+  width: 132px;
+  height: auto;
+  flex: none;
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid rgb(255 247 236 / 0.4);
+  background-color: transparent;
+  color: var(--color-pana-cream);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.close:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-indigo);
+  border-color: var(--color-pana-cream);
+  transform: rotate(90deg);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.link {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 2px;
+  border-bottom: 1px solid rgb(255 247 236 / 0.16);
+  color: var(--color-pana-cream);
+  /* Hidden until the panel opens, then staggered in via --d (set per item in
+     the component). The closed state is safe because the whole panel is
+     `visibility: hidden` — nothing is ever stranded invisible-but-present. */
+  opacity: 0;
+  transform: translateX(-18px);
+  transition:
+    padding-left 0.38s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease;
+}
+
+.panelOpen .link {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease var(--d),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) var(--d),
+    padding-left 0.38s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--color-pana-butter);
+  padding-left: 10px;
+}
+
+.num {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+
+.label {
+  font-size: clamp(21px, 2.4vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.arrow {
+  font-weight: 800;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: 0.38s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.link:hover .arrow,
+.link:focus-visible .arrow {
+  opacity: 1;
+  transform: none;
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: clamp(24px, 3vw, 34px);
+}
+
+/* Reduced motion means less *movement*, not no feedback — WCAG 2.3.3 is about
+   travel (sliding, parallax), not cross-fades. So the slide is dropped and the
+   panel fades in place; switching the transition off entirely made the drawer
+   appear between frames, which reads as a glitch rather than a deliberate
+   accommodation. */
+@media (prefers-reduced-motion: reduce) {
+  .scrim {
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+
+  .scrimOpen {
+    transition:
+      opacity 0.25s ease,
+      visibility 0s;
+  }
+
+  /* A 12px travel instead of the full 380px: enough to read as "this came from
+     the left" without the sweep across a third of the viewport that the
+     setting is actually asking us to avoid. */
+  .panel {
+    transform: translateX(-12px);
+    opacity: 0;
+    transition:
+      opacity 0.28s ease,
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s linear 0.28s;
+  }
+
+  .panelOpen {
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity 0.28s ease,
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s;
+  }
+
+  /* The panel carries the fade, so the links ride along rather than
+     compounding a second opacity curve on top of it. */
+  .link,
+  .panelOpen .link {
+    opacity: 1;
+    transform: none;
+    transition: color 0.3s ease;
+  }
+
+  .arrow,
+  .link:hover .arrow,
+  .link:focus-visible .arrow {
+    transform: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .close {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .close:hover {
+    transform: none;
+  }
+}

@@ -207,6 +207,256 @@
   text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------------------
+   Design refresh: centered masthead.
+
+   The logo is centered with a `1fr auto 1fr` grid. Worth knowing before you
+   touch it: a `1fr` column cannot shrink below its content's min-content width,
+   so as soon as one side outgrows its fair share the column expands and the
+   logo drifts by half the excess. Every centering regression here has been
+   that. Fix it by shrinking the side content (hide a label, shorten a word) —
+   never by changing the grid. `minmax(0, 1fr)` makes it worse, not better.
+   --------------------------------------------------------------------------- */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--color-pana-cream);
+  border-bottom: 1px solid rgb(17 13 13 / 0.08);
+}
+
+.mastheadInner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.mastheadLeft {
+  justify-self: start;
+}
+
+.mastheadLogo {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mastheadLogo img {
+  height: 34px;
+  width: auto;
+}
+
+.mastheadRight {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Phones carry one more control on the right than they used to (the identity
+   avatar), which pushed the right column past its fair `1fr` share and drifted
+   the logo. Per the note above the fix is to shrink the side content, not the
+   grid: tighter padding and gaps hand the columns back the width they need. */
+@media (max-width: 480px) {
+  .mastheadInner {
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .mastheadRight {
+    gap: 0.25rem;
+  }
+
+  .mastheadLogo img {
+    height: 30px;
+  }
+}
+
+/* Smallest phones: one more notch off the logo so the side columns still fit
+   inside their fair share. */
+@media (max-width: 380px) {
+  .mastheadLogo img {
+    height: 26px;
+  }
+}
+
+/* Borderless on purpose: the outlined CTA beside it is the loud element, and a
+   second outlined pill next to it reads as a matching twin rather than a
+   quieter control. */
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-pana-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.menuButton:hover {
+  color: var(--color-pana-flame);
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+  width: 22px;
+}
+
+.bars i {
+  display: block;
+  height: 2.5px;
+  border-radius: 2px;
+  background-color: currentColor;
+  transform-origin: center;
+  transition:
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease;
+}
+
+/* Short middle bar — the asymmetry is what makes the closed state read as a
+   menu rather than an equals sign. */
+.bars i:nth-child(2) {
+  width: 70%;
+  justify-self: start;
+}
+
+/* Bars morph into an X while the drawer is open, so the toggle confirms the
+   click even before the panel has finished sliding. */
+.menuButton[aria-expanded='true'] .bars i:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.menuButton[aria-expanded='true'] .bars i:nth-child(2) {
+  opacity: 0;
+}
+
+.menuButton[aria-expanded='true'] .bars i:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* Halved, not removed: an in-place rotation of a 22px bar is not the kind of
+   travel reduced-motion guards against, and this is the click's only
+   confirmation. */
+@media (prefers-reduced-motion: reduce) {
+  .bars i {
+    transition:
+      transform 0.2s ease,
+      opacity 0.15s ease;
+  }
+}
+
+/* Flame pill. Ink text, not cream — cream on flame is 2.42:1 and fails. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 9999px;
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.cta:hover {
+  background-color: var(--color-pana-burnt);
+}
+
+/* Borderless text action so the right column stays narrow enough to keep the
+   logo centered. */
+.login {
+  padding: 0.5rem 0.25rem;
+  color: var(--color-pana-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.login:hover {
+  color: var(--color-pana-burnt);
+  text-decoration: underline;
+}
+
+/* Below this width the right column outgrows its 1fr share and pushes the logo
+   off centre. Both the menu word and the login link are mirrored inside the
+   drawer, so nothing becomes unreachable. */
+@media (max-width: 559px) {
+  .menuLabel,
+  .login {
+    display: none;
+  }
+}
+
+.drawerCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 14px 28px;
+  border: 2px solid currentColor;
+  border-radius: 9999px;
+  color: var(--color-pana-cream);
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.3s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.drawerCta:hover {
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-indigo);
+  transform: translateY(-2px);
+}
+
+/* Mirrors the masthead sign-in, which is hidden on phones — this keeps the
+   action reachable at every width. */
+.drawerLogin {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13.5px;
+  opacity: 0.8;
+}
+
+.drawerLogin a {
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.drawerLogin a:hover {
+  color: var(--color-pana-cream);
+}
+
+.drawerMeta {
+  margin-top: 16px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.62;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawerCta {
+    transition: none;
+  }
+}
+
 @media only screen and (min-width: 600px) {
   .burger {
     order: 4;

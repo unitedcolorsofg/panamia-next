@@ -1,4 +1,19 @@
 {
+  "identity": {
+    "account": "Account",
+    "actingAs": "Acting as",
+    "backToYou": "Back to you",
+    "business": "Business",
+    "inactive": "Draft",
+    "listBusiness": "List your business",
+    "listBusinessHint": "Add a shop, studio or service",
+    "manager": "Manager",
+    "owner": "Owner",
+    "settings": "Account settings",
+    "switchAccount": "Switch account",
+    "you": "You",
+    "yourProfile": "Your profile"
+  },
   "nav": {
     "jumpTo": "Jump To",
     "explore": "Explore",
@@ -30,7 +45,15 @@
     "signOut": "Sign Out",
     "becomeAPana": "Become a Pana",
     "signUp": "Sign Up",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "alreadyAPana": "Already a Pana? <a>Log in</a>",
+    "regions": "Miami-Dade · Broward · Palm Beach"
+  },
+  "onboarding": {
+    "screennameTitle": "Pick your screenname",
+    "screennameDescription": "This is how you'll show up across Pana MIA — on your profile, on anything you post, and anywhere people find you. You can skip for now, but you'll need one before you can post or follow."
   },
   "footer": {
     "panaMia": "PanaMia",

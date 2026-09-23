@@ -4,6 +4,9 @@ import { PrivacyAtAGlance } from '@/components/legal/PrivacyAtAGlance';
 import { LegalJsonLd } from '@/components/legal/JsonLd';
 import { tiers, policyVersion, policyStatus } from '@/lib/legal/privacy-policy';
 
+// Live web origin for this app — not a stale federation value to "correct".
+// Never find-and-replace `pana.social`; most occurrences are federated
+// identity and repointing those is permanent. See docs/DOMAINS.md.
 const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {

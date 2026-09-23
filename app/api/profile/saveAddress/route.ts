@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { getActiveProfile } from '@/lib/server/active-profile';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -16,12 +17,10 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { primary_address, counties } = body;
+  const { primary_address, counties, online_only } = body;
 
-  // Find user's profile
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-  });
+  // The profile being acted as - their own, or a business listing they administer
+  const existingProfile = await getActiveProfile(session.user.id);
 
   if (!existingProfile) {
     return NextResponse.json({
@@ -35,16 +34,53 @@ export async function POST(request: NextRequest) {
     counties: counties || null,
   };
 
-  // Map primary_address to flattened address fields
+  // Guarded on the type rather than coerced, so a caller that omits the field
+  // leaves it alone instead of silently switching the listing to physical.
+  if (typeof online_only === 'boolean') {
+    updateData.onlineOnly = online_only;
+  }
+
+  // Map primary_address to flattened address fields.
+  //
+  // Two shapes reach this endpoint: the address form posts street1/street2/
+  // city/state/zipcode/hours, while other callers use line1/locality/region/
+  // postalCode. Only street2 and city previously lined up, so saving the form
+  // wrote NULL over street, state and zip every time.
+  //
+  // Columns are also written only when the payload actually carries them.
+  // Assigning unconditionally nulled out every field the sender omitted —
+  // addressName and addressCountry appear on no form at all, so any save
+  // silently erased them.
   if (primary_address) {
-    updateData.addressName = primary_address.name || null;
-    updateData.addressLine1 = primary_address.line1 || null;
-    updateData.addressLine2 = primary_address.line2 || null;
-    updateData.addressLocality =
-      primary_address.city || primary_address.locality || null;
-    updateData.addressRegion = primary_address.region || null;
-    updateData.addressPostalCode = primary_address.postalCode || null;
-    updateData.addressCountry = primary_address.country || null;
+    const field = (...keys: string[]): string | null | undefined => {
+      for (const key of keys) {
+        const value = primary_address[key];
+        if (value !== undefined) {
+          return typeof value === 'string' && value.trim() === ''
+            ? null
+            : value;
+        }
+      }
+      return undefined;
+    };
+
+    const assign = (
+      column: keyof typeof profiles.$inferInsert,
+      value: string | null | undefined
+    ) => {
+      if (value !== undefined) {
+        (updateData as Record<string, unknown>)[column] = value;
+      }
+    };
+
+    assign('addressName', field('name'));
+    assign('addressLine1', field('street1', 'line1'));
+    assign('addressLine2', field('street2', 'line2'));
+    assign('addressLocality', field('city', 'locality'));
+    assign('addressRegion', field('state', 'region'));
+    assign('addressPostalCode', field('zipcode', 'postalCode'));
+    assign('addressCountry', field('country'));
+    assign('addressHours', field('hours'));
 
     // Set geo coordinates if available
     if (primary_address.lat && primary_address.lng) {

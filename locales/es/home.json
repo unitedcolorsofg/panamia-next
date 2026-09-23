@@ -1,33 +1,79 @@
 {
   "hero": {
-    "headline": "El Futuro es Local",
-    "subheadline": "Busca en el Primer Directorio Local del Sur de la Florida",
+    "headline": "El Futuro<br/>Es <em>Local</em>",
+    "subheadline": "El primer directorio local del sur de la Florida — un archivo vivo de las personas creativas, emprendedoras y los pequeños negocios que hacen de este lugar lo que es.",
     "searchPlaceholder": "Busca por nombre, categoría, productos",
     "searchLabel": "Buscar directorio",
     "searchAriaLabel": "Buscar en el directorio",
-    "searchButton": "Buscar"
+    "searchButton": "Buscar",
+    "meta": "Desplázate ↓ · Explora el directorio",
+    "scrollNote": "Desplázate ↓ · Explora el directorio"
+  },
+  "comingSoon": "Próximamente",
+  "directory": {
+    "eyebrow": "El Directorio",
+    "title": "Encuentra a Tu<br/><em>Gente</em>",
+    "lede": "Cada categoría de abajo es un filtro activo del directorio. Elige un camino y conoce a los locales que trabajan en él.",
+    "browseAll": "Explorar el directorio completo"
+  },
+  "about": {
+    "eyebrow": "Nuestra Misión",
+    "title": "¿Qué Tal,<br/>Pana?",
+    "tagline": "Ser dueño de un pequeño negocio puede ser abrumador y solitario, pero no estás solo.",
+    "body": "Miami está llena de pequeños vendedores, todos con diferentes fortalezas y habilidades. Creamos Pana Mia para unir a todos—compartiendo recursos, ideas y estrategias. A medida que los consumidores reconocen los beneficios de comprar local, estamos creando un espacio centralizado para explorar y enamorarse de las marcas locales.",
+    "ctaJoin": "Conviértete en Pana",
+    "ctaBrowse": "Explorar el directorio",
+    "imageAlt": "La comunidad de Pana MIA"
+  },
+  "statement": {
+    "eyebrow": "Nuestro Trabajo",
+    "text": "La comunidad es una forma de <em>poder</em>.",
+    "gather": {
+      "title": "Reunir",
+      "body": "Eventos pensados para la conexión real y no para hacer contactos por hacerlos: cenas, mercados, talleres y noches por todo el Sur de la Florida."
+    },
+    "connect": {
+      "title": "Conectar",
+      "body": "Un directorio con búsqueda que convierte apoyar lo local de una consigna en algo que puedes hacer, por nombre, categoría y vecindario."
+    },
+    "celebrate": {
+      "title": "Celebrar",
+      "body": "Historias, reportajes y una plataforma que dejan constancia de los creativos y pequeños negocios locales ante nuevas audiencias."
+    }
+  },
+  "collective": {
+    "eyebrow": "El Colectivo",
+    "title": "Panas<br/>Destacados",
+    "lede": "Una mirada rotativa a los creativos, organizaciones y pequeños negocios que están en el directorio ahora mismo.",
+    "cta": "Conoce a todo el colectivo"
   },
   "events": {
     "badge": "Próximos Eventos",
-    "title": "Eventos Comunitarios",
+    "title": "Eventos<br/>Comunitarios",
     "description": "Pana MIA organiza eventos intencionados centrados en la conexión significativa y la celebración de la cultura y el arte local.",
-    "viewEvents": "Ver Eventos"
+    "viewEvents": "Ver Eventos",
+    "imageAlt": "Panas reunidos en un evento comunitario de Pana MIA"
   },
   "articles": {
-    "title": "Artículos Recientes",
-    "subtitle": "Historias de la comunidad Pana MIA",
+    "eyebrow": "Despachos",
+    "title": "Historias Del<br/>Colectivo",
+    "subtitle": "Lecturas más largas de quienes construyen la economía local del Sur de la Florida.",
     "viewAll": "Ver Todos",
     "noArticles": "¡Aún no hay artículos!",
     "noArticlesDesc": "Sé el primero en compartir una historia con la comunidad.",
     "writeArticle": "Escribe un Artículo"
   },
-  "about": {
-    "title": "¿Que Tal, Pana?",
-    "tagline": "Ser dueño de un pequeño negocio puede ser abrumador y solitario, pero no estás solo.",
-    "body": "Miami está llena de pequeños vendedores, todos con diferentes fortalezas y habilidades. Creamos Pana Mia para unir a todos—compartiendo recursos, ideas y estrategias. A medida que los consumidores reconocen los beneficios de comprar local, estamos creando un espacio centralizado para explorar y enamorarse de las marcas locales."
+  "impact": {
+    "eyebrow": "En Números",
+    "title": "Cultura,<br/>En El Registro",
+    "lede": "La prueba de lo que el sur de la Florida construye cuando lo construye junto. Estamos conectando los conteos en vivo.",
+    "panas": "Panas",
+    "events": "Eventos",
+    "partners": "Aliados"
   },
   "faq": {
-    "title": "Preguntas Frecuentes",
+    "eyebrow": "Preguntas Frecuentes",
+    "title": "Preguntas",
     "q1": "¿Qué significa Pana?",
     "a1": "Pana es un término latinoamericano para amigo o compañero.",
     "qWhatIsAPana": "¿Qué <em>es</em> un Pana?",
@@ -54,5 +100,18 @@
     "q9": "¿Cuáles son los Términos y Condiciones?",
     "a9_1": "Mantenemos la autoridad para eliminar individuos del directorio si incurren en comportamientos dañinos y odiosos hacia otros o hacia la comunidad en general.",
     "a9_2": "Convertirse en miembro es sencillo. Solo necesitas ser local del Sur de la Florida y completar nuestro formulario de perfil."
+  },
+  "closing": {
+    "eyebrow": "El Punto",
+    "statement": "El futuro no está por llegar. Está <em>al lado</em>.",
+    "lede": "Pana MIA está hecho por y para creativos, organizaciones y pequeños negocios con base local en Broward, Miami-Dade y Palm Beach. Únete al directorio, o empieza por encontrar a alguien que ya esté en él.",
+    "ctaJoin": "Conviértete en Pana",
+    "ctaBrowse": "Buscar en el directorio"
+  },
+  "newsletter": {
+    "eyebrow": "Nuestro Boletín",
+    "lede": "Recibe nuevos Panas, eventos y despachos en tu correo. Sin ruido.",
+    "placeholder": "tu@correo.com",
+    "cta": "Suscríbete"
   }
 }

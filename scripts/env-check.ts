@@ -35,11 +35,17 @@ const wranglerPath = resolve(process.cwd(), 'wrangler.jsonc');
  * Strip JSONC comments (// line and / * block * /) so JSON.parse can consume the file.
  * Naive but sufficient for our wrangler.jsonc — does not attempt to preserve comments
  * inside string literals (we control the file and have none).
+ *
+ * Trailing commas are stripped too. JSONC permits them and wrangler.jsonc uses
+ * them throughout, but JSON.parse rejects them, so without this the whole check
+ * dies on the first `},` rather than reporting drift. It stayed hidden because
+ * the hook only runs this when wrangler.jsonc or env.config.ts is staged.
  */
 function parseJsonc<T = unknown>(source: string): T {
   const stripped = source
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+    .replace(/,(\s*[}\]])/g, '$1');
   return JSON.parse(stripped) as T;
 }
 

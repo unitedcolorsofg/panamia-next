@@ -6,8 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { profiles, socialActors } from '@/lib/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { socialActors } from '@/lib/schema';
+import { inArray } from 'drizzle-orm';
+import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { createStatus, getPublicTimeline } from '@/lib/federation';
 import { createNotification } from '@/lib/notifications';
 
@@ -17,10 +18,7 @@ export async function GET(request: NextRequest) {
   const session = await auth();
 
   if (session?.user?.id) {
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, session.user.id),
-      with: { socialActor: true },
-    });
+    const profile = await getActiveProfileWithActor(session.user.id);
     viewerActorId = profile?.socialActor?.id;
   }
 
@@ -46,10 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Get user's actor
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
-    with: { socialActor: true },
-  });
+  const profile = await getActiveProfileWithActor(session.user.id);
 
   if (!profile?.socialActor) {
     return NextResponse.json(

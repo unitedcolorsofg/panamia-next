@@ -12,11 +12,14 @@ import {
   DEFAULT_IMAGE_SIZES,
 } from 'vinext/server/image-optimization';
 import handler from 'vinext/server/app-router-entry';
-import { getDb, runWithDb } from '../lib/db';
+import { runWithDb } from '../lib/db';
 import { getEmail, type SendEmail } from '../lib/email';
 import { getStorage } from '../lib/r2';
 import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
+import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
+import { assertPanaverseConfigured } from '../lib/panaverse/boot';
+import { PATHNAME_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
@@ -57,61 +60,115 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // Prime the db and R2 caches with CF bindings before any application code runs.
-    // The db instance is bound to this request via runWithDb() below, so concurrent
-    // requests never share a postgres.js socket.
-    const dbInstance = getDb(env);
+    /* Configuration that must hold before this deployment serves anybody.
+     *
+     * Runs here rather than at module scope because Worker bindings are not
+     * populated until an invocation exists — top-level code would read an
+     * empty environment and pass regardless of how it is configured. Memoised
+     * inside, so this is one string comparison per request after the first.
+     *
+     * Throwing takes the deployment down on its first public request. That is
+     * the intent: the failure it guards against is silent and permanent (see
+     * lib/panaverse/boot.ts), and an outage is recoverable in a way that
+     * orphaned fediverse identities are not. */
+    assertPanaverseConfigured(request.headers.get('host'));
+
+    // Prime the R2/email/relay caches with CF bindings before any application
+    // code runs. These hold plain binding objects, which are safe to reuse.
     getEmail(env);
     getStorage(env);
     getRelay(env);
     // Shared secret for app/api/internal/* — the bearer fallback for a caller
     // that reaches those routes over HTTP rather than the Service Binding.
     setInternalAuthToken(env);
-    const url = new URL(request.url);
 
-    // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
-    if (url.pathname.startsWith('/ws/signaling/')) {
-      const roomId = url.pathname.split('/')[3];
-      if (!roomId) {
-        return new Response('Room ID required', { status: 400 });
+    // The DB client is the exception: postgres.js sockets belong to the request
+    // that opened them, so it is scoped to this request rather than shared.
+    // Everything downstream must run inside this callback for `db` to resolve.
+    return runWithDb(env, async () => {
+      const url = new URL(request.url);
+
+      // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
+      if (url.pathname.startsWith('/ws/signaling/')) {
+        const roomId = url.pathname.split('/')[3];
+        if (!roomId) {
+          return new Response('Room ID required', { status: 400 });
+        }
+        const id = env.SIGNALING_ROOM.idFromName(roomId);
+        const stub = env.SIGNALING_ROOM.get(id);
+        return stub.fetch(request);
       }
-      const id = env.SIGNALING_ROOM.idFromName(roomId);
-      const stub = env.SIGNALING_ROOM.get(id);
-      return stub.fetch(request);
-    }
 
-    // Image optimization via Cloudflare Images binding.
-    // The parseImageParams validation inside handleImageOptimization
-    // normalizes backslashes and validates the origin hasn't changed.
-    // Match both /_next/image (emitted by the next/image shim) and the
-    // /_vinext/image alias — matching only one path 404s the other.
-    if (isImageOptimizationPath(url.pathname)) {
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      const images = env.IMAGES;
-      return handleImageOptimization(
-        request,
-        {
-          fetchAsset: (path) =>
-            env.ASSETS.fetch(new Request(new URL(path, request.url))),
-          // Omitted when the binding is absent: handleImageOptimization then
-          // serves the source image through its passthrough path directly,
-          // instead of throwing once per request and logging the failure.
-          transformImage: images
-            ? async (body, { width, format, quality }) => {
-                const result = await images
-                  .input(body)
-                  .transform(width > 0 ? { width } : {})
-                  .output({ format, quality });
-                return result.response();
-              }
-            : undefined,
-        },
-        allowedWidths
-      );
-    }
+      // Image optimization via Cloudflare Images binding.
+      // The parseImageParams validation inside handleImageOptimization
+      // normalizes backslashes and validates the origin hasn't changed.
+      // Match both /_next/image (emitted by the next/image shim) and the
+      // /_vinext/image alias — matching only one path 404s the other.
+      if (isImageOptimizationPath(url.pathname)) {
+        const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+        const images = env.IMAGES;
+        return handleImageOptimization(
+          request,
+          {
+            fetchAsset: (path) =>
+              env.ASSETS.fetch(new Request(new URL(path, request.url))),
+            // Omitted when the binding is absent: handleImageOptimization then
+            // serves the source image through its passthrough path directly,
+            // instead of throwing once per request and logging the failure.
+            transformImage: images
+              ? async (body, { width, format, quality }) => {
+                  const result = await images
+                    .input(body)
+                    .transform(width > 0 ? { width } : {})
+                    .output({ format, quality });
+                  return result.response();
+                }
+              : undefined,
+          },
+          allowedWidths
+        );
+      }
 
-    // Delegate everything else to vinext, inside this request's db scope so the
-    // `db` proxy resolves to the client created for this request.
-    return runWithDb(dbInstance, () => handler.fetch(request));
+      // Panaverse host routing: a surface hostname serves that surface's front
+      // door. Only the root path is touched — every other route stays reachable
+      // from every hostname, so /api, /.well-known, and shared pages behave
+      // identically no matter which surface a request arrives on.
+      //
+      // A redirect rather than a rewrite: vinext has no middleware-rewrite
+      // signalling, so serving /s under the URL "/" would leave the client
+      // router fetching RSC payloads for the wrong path. The end state is
+      // moving these routes into a route group so the surface root is "/".
+      const surface = resolveSurface(url.hostname);
+      if (url.pathname === '/' && surface.rootPath !== '/') {
+        const target = new URL(url.toString());
+        target.pathname = surface.rootPath;
+
+        // Visitors who type the fediverse identity domain get handed to the
+        // real UI host; that domain stays a thin identity endpoint serving
+        // WebFinger and actor JSON, which pass through untouched above.
+        const canonicalHost = hostnameFor(surface);
+        if (
+          url.hostname !== canonicalHost &&
+          !url.hostname.endsWith('.localhost')
+        ) {
+          target.protocol = 'https:';
+          target.hostname = canonicalHost;
+          target.port = '';
+        }
+
+        return Response.redirect(target.toString(), 307);
+      }
+
+      // Delegate everything else to vinext, telling the server renderer which
+      // path it is about to serve. The runtime hands it Host but not the path,
+      // so without this the root layout cannot tell a doorway like /signin from
+      // an ordinary page (see lib/panaverse/chrome.ts).
+      //
+      // `set`, never `append`: clients can send this header too, and a spoofed
+      // value would let anyone strip the chrome off any page.
+      const routed = new Request(request);
+      routed.headers.set(PATHNAME_HEADER, url.pathname);
+      return handler.fetch(routed);
+    });
   },
 };

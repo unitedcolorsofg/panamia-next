@@ -11,7 +11,13 @@
  */
 
 import crypto from 'crypto';
-import { generate } from 'peggy';
+import peggy from 'peggy';
+
+// peggy is CommonJS, and Node's ESM loader cannot statically detect its named
+// exports, so `import { generate }` resolves under Vite but throws anywhere
+// else. Taking the default export and destructuring works in both, which is
+// what lets scripts import this module's dependents outside the dev server.
+const { generate } = peggy;
 
 // Ported from external/activities.next/lib/utils/signature.ts (lines 13–17)
 export const SIGNATURE_GRAMMAR = `

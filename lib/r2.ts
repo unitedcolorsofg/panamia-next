@@ -15,12 +15,7 @@ export interface R2Bucket {
   put(
     key: string,
     value:
-      | ReadableStream
-      | ArrayBuffer
-      | ArrayBufferView
-      | string
-      | null
-      | Blob,
+      ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob,
     options?: { httpMetadata?: { contentType?: string } }
   ): Promise<unknown>;
   delete(keys: string | string[]): Promise<void>;

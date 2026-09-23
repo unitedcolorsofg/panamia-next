@@ -13,7 +13,12 @@ import {
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 import { GhlClient } from '@/lib/ghl';
+import {
+  addProfileOwner,
+  notBusinessListing,
+} from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
+import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -661,7 +666,16 @@ async function claimProfileForUser(
     const email = user.email.toLowerCase();
 
     const unclaimedProfile = await db.query.profiles.findFirst({
-      where: and(eq(profiles.email, email), isNull(profiles.userId)),
+      where: and(
+        eq(profiles.email, email),
+        isNull(profiles.userId),
+        // Business listings from /form/list-your-business are deliberately
+        // excluded: attaching one here would make this human *be* the
+        // business and consume their single profiles.userId slot. They are
+        // claimed explicitly instead, which grants ownership without
+        // overwriting identity. See lib/server/profile-owners.ts.
+        notBusinessListing
+      ),
     });
 
     if (unclaimedProfile) {
@@ -670,6 +684,9 @@ async function claimProfileForUser(
         .update(profiles)
         .set({ userId })
         .where(eq(profiles.id, unclaimedProfile.id));
+      // Keep the ownership table in step with the identity link so permission
+      // checks have one consistent answer.
+      await addProfileOwner(unclaimedProfile.id, userId);
       console.log('Profile claimed successfully');
     }
 
@@ -744,6 +761,30 @@ let _betterAuthInstance: BetterAuthInstance | null = null;
 function getBetterAuth(): BetterAuthInstance {
   if (_betterAuthInstance) return _betterAuthInstance;
 
+  // Panaverse surfaces (panamia.club, social.panamia.club, …) are subdomains of
+  // one registrable domain, so one session can cover all of them. Opt-in: with
+  // the var unset the cookie stays host-only, exactly as every existing session
+  // was issued. Setting it re-scopes cookies, which signs current users out once.
+  //
+  // This cannot reach the fediverse identity domain — a different registrable
+  // domain needs a real OAuth handoff, not a shared cookie.
+  const panaverseCookieDomain = process.env.PANAVERSE_COOKIE_DOMAIN?.trim();
+
+  const authBaseURL =
+    process.env.NEXT_PUBLIC_HOST_URL ||
+    process.env.BETTER_AUTH_URL ||
+    'http://localhost:3000';
+
+  // Parsed defensively: this runs at instance construction, so a malformed
+  // value here would take down every auth route rather than one callback.
+  const authBaseHost = (() => {
+    try {
+      return new URL(authBaseURL).host;
+    } catch {
+      return null;
+    }
+  })();
+
   _betterAuthInstance = betterAuth<BetterAuthOptions>({
     database: drizzleAdapter(db, {
       provider: 'pg',
@@ -774,17 +815,31 @@ function getBetterAuth(): BetterAuthInstance {
         // with max:1. Was `experimental: { joins: true }` before better-auth 1.7.
         joins: true,
       },
+      ...(panaverseCookieDomain
+        ? {
+            crossSubDomainCookies: {
+              enabled: true,
+              domain: panaverseCookieDomain,
+            },
+          }
+        : {}),
     },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
-    baseURL:
-      process.env.NEXT_PUBLIC_HOST_URL ||
-      process.env.BETTER_AUTH_URL ||
-      'http://localhost:3000',
+    baseURL: authBaseURL,
     trustedOrigins: [
       process.env.NEXT_PUBLIC_HOST_URL,
       process.env.BETTER_AUTH_URL,
+      // Every surface signs in against this one auth instance, so each surface
+      // origin has to be trusted or its sign-in requests get rejected.
+      ...SURFACES.map((surface) => originFor(surface)),
+      // Those name the configured root domain, so away from production they all
+      // point at pana.social and no local surface is trusted. Deriving them from
+      // the host actually being served covers dev, where a callback to
+      // http://social.localhost:3003 is otherwise rejected with a bare 403.
+      // In production this resolves to the same origins as above.
+      ...SURFACES.map((surface) => originForFrom(surface, authBaseHost)),
       'http://localhost:3000',
       'http://localhost:3001',
     ].filter(Boolean) as string[],

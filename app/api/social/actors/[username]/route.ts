@@ -4,9 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { getActorByScreenname, getFollowRelationship } from '@/lib/federation';
 
 export async function GET(
@@ -29,10 +27,7 @@ export async function GET(
   const session = await auth();
 
   if (session?.user?.id) {
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, session.user.id),
-      with: { socialActor: true },
-    });
+    const profile = await getActiveProfileWithActor(session.user.id);
     viewerActorId = profile?.socialActor?.id || null;
   }
 

@@ -1,13 +1,19 @@
 /**
  * Drizzle Database Client
  *
- * getDb(env) must be called from the Cloudflare Worker entry point (worker/index.ts)
- * at the start of every request. In production a fresh postgres.js client is created
- * on each call — Hyperdrive manages the actual Supabase connection pool, so a new
- * local socket to Hyperdrive is cheap and avoids stale-connection failures.
+ * runWithDb(env, fn) must wrap request handling in the Cloudflare Worker entry
+ * point (worker/index.ts). It creates a client for that request and scopes it
+ * with AsyncLocalStorage, so the `db` proxy resolves to the current request's
+ * client. A shared module-level client is unsafe: concurrent requests in one
+ * isolate would use each other's sockets, which workerd rejects as
+ * cross-request I/O and then cancels the request as hung.
+ *
+ * In production a fresh postgres.js client is created per request — Hyperdrive
+ * manages the actual Supabase connection pool, so a new local socket to
+ * Hyperdrive is cheap and avoids stale-connection failures.
  *
  * - Production (CF Workers): env.HYPERDRIVE.connectionString via Hyperdrive, max: 1
- * - Local dev (vinext dev): env.POSTGRES_URL secret binding (from .dev.vars), cached
+ * - Local dev (vinext dev): env.POSTGRES_URL secret binding (from .dev.vars)
  * - Local dev (plain Node.js): process.env.POSTGRES_URL, cached
  *
  * Priority: env.POSTGRES_URL > HYPERDRIVE > process.env.POSTGRES_URL
@@ -17,7 +23,6 @@
  * a simple 'includes localhost' guard can't reliably detect the placeholder Hyperdrive.
  * In production env.POSTGRES_URL is never set, so Hyperdrive is always used there.
  */
-
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -36,27 +41,33 @@ export type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 // don't have the workerd cross-request I/O restriction so sharing is safe there.
 const nodeDevInstance: { instance: DbInstance | null } = { instance: null };
 
-// Request-scoped storage for the DB instance primed by the Worker entry point.
+// Holds the DB instance for the current request.
 //
-// A module-scope variable CANNOT be used for this: workerd runs multiple requests
-// concurrently in the same isolate, so every in-flight request would overwrite it and
-// handlers would read another request's client. Because postgres.js sockets are bound to
-// the request that created them, that produces "Cannot perform I/O on behalf of a
-// different request" and the request fails. AsyncLocalStorage keeps each request on its
-// own client across await boundaries.
-const requestDbStore = new AsyncLocalStorage<DbInstance>();
+// A plain module-level variable cannot do this job: workerd serves concurrent
+// requests from a single isolate, so request A would read the client that
+// request B installed a moment earlier. postgres.js sockets are bound to the
+// request context that opened them, so using another request's client trips
+// workerd's cross-request I/O guard, the request hangs, and the runtime
+// cancels it with "your Worker's code had hung and would never generate a
+// response" (surfacing as an intermittent 500).
+//
+// AsyncLocalStorage keeps the instance scoped to the request that created it
+// and propagates across awaits. Requires the `nodejs_compat` flag, which
+// wrangler.jsonc already sets.
+const dbStore = new AsyncLocalStorage<DbInstance>();
+
+// Retained only as a fallback for code that runs outside a request scope
+// (see getDb below). Request-scoped code resolves via dbStore first.
+let cachedInstance: DbInstance | null = null;
 
 /**
- * Run `fn` with `instance` as the request-scoped DB client.
- * Called by the Worker entry point so the `db` proxy resolves per request.
+ * Run `fn` with a DB client scoped to the current request. The worker entry
+ * point wraps every request in this so `db` resolves per request instead of
+ * through shared mutable state.
  */
-export function runWithDb<T>(instance: DbInstance, fn: () => T): T {
-  return requestDbStore.run(instance, fn);
+export function runWithDb<T>(env: CloudflareEnv, fn: () => T): T {
+  return dbStore.run(getDb(env), fn);
 }
-
-// Fallback for contexts with no AsyncLocalStorage scope (e.g. scripts, tests).
-// Never relied on for concurrent request handling — see requestDbStore above.
-let cachedInstance: DbInstance | null = null;
 
 export function getDb(env?: CloudflareEnv): DbInstance {
   // Local dev (vinext dev): env.POSTGRES_URL is set from .dev.vars.
@@ -98,10 +109,11 @@ export function getDb(env?: CloudflareEnv): DbInstance {
     return instance;
   }
 
-  // No env provided: called via the `db` proxy. Prefer this request's instance.
-  const scoped = requestDbStore.getStore();
+  // No env provided: called via `db` proxy. Prefer the current request's
+  // client; fall back to the last one created only for code paths that run
+  // outside runWithDb (scheduled handlers, Durable Objects).
+  const scoped = dbStore.getStore();
   if (scoped) return scoped;
-
   if (cachedInstance) return cachedInstance;
 
   // Plain Node.js dev server (server.js) — process.env.POSTGRES_URL is available and

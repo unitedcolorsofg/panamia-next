@@ -5,6 +5,9 @@ import { LegalJsonLd } from '@/components/legal/JsonLd';
 // Static legal content — cache at the edge, revalidate hourly (Workers Cache).
 export const revalidate = 3600;
 
+// Live web origin for this app — not a stale federation value to "correct".
+// Never find-and-replace `pana.social`; most occurrences are federated
+// identity and repointing those is permanent. See docs/DOMAINS.md.
 const SITE = 'https://pana.social';
 
 export const metadata: Metadata = {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { profiles } from '@/lib/schema';
-import { eq, sql } from 'drizzle-orm';
+import { profiles, users } from '@/lib/schema';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 import { sendTemplateEmail } from '@/lib/email';
 
 interface ProfileStatus {
@@ -20,7 +21,24 @@ export async function POST(request: NextRequest) {
     const [countResult] = await db
       .select({ count: sql<string>`count(*)` })
       .from(profiles)
-      .where(eq(profiles.active, true));
+      .where(
+        and(
+          eq(profiles.active, true),
+          // This count is the membership number in the welcome email. Now that
+          // every signed-in member has an active profile, counting `active`
+          // alone would report the whole user base rather than the listings.
+          or(
+            isNull(profiles.userId),
+            inArray(
+              profiles.userId,
+              db
+                .select({ id: users.id })
+                .from(users)
+                .where(inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES))
+            )
+          )
+        )
+      );
     totalProfiles = Number(countResult?.count ?? 0);
   } catch {
     console.log('profile.count failed');
