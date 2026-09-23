@@ -11,9 +11,12 @@ export default function Status401_Unauthorized() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Redirect to sign in with callback to current page
+    // Redirect to the branded sign-in page. This pointed at
+    // /api/auth/signin, which is a NextAuth convention that does not exist in
+    // better-auth -- measured 404 in production against /api/auth/ok 200, so
+    // the handler is mounted and this path simply is not one of its routes.
     const callbackUrl = encodeURIComponent(pathname || '/account/user');
-    router.replace(`/api/auth/signin?callbackUrl=${callbackUrl}`);
+    router.replace(`/signin?callbackUrl=${callbackUrl}`);
   }, [router, pathname]);
 
   return (

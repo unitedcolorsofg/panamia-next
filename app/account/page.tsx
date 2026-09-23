@@ -14,7 +14,7 @@ export default function AccountPage() {
       router.replace('/account/user');
     } else if (status === 'unauthenticated') {
       // Redirect to sign in page
-      router.replace('/api/auth/signin?callbackUrl=/account/user');
+      router.replace('/signin?callbackUrl=/account/user');
     }
   }, [status, router]);
 
