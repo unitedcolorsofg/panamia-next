@@ -4617,6 +4617,22 @@ body:has([data-density]) {
     animation-timeline: --home-hero;
     animation-range: exit 30% exit 85%;
   }
+
+  /* The masthead's hairline goes with it. The rule exists to separate a
+     sticky bar from content scrolling underneath, which is a real job — but
+     at rest there is nothing to separate: the masthead and this card are the
+     same cream, so the only thing the line divides is one flat field from
+     itself, and that is exactly what makes the card look cut out and laid on
+     top. So the masthead stops being a bar while the hero is on screen and
+     becomes one on the way out, on the same timeline as the wordmark.
+
+     Only the colour animates. The width stays put, so the border keeps
+     holding its 0.67px and nothing below it ever shifts. */
+  body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+    animation: home-masthead-rule linear both;
+    animation-timeline: --home-hero;
+    animation-range: exit 30% exit 85%;
+  }
 }
 
 @keyframes home-masthead-wordmark {
@@ -4629,6 +4645,17 @@ body:has([data-density]) {
   100% {
     opacity: 1;
     visibility: visible;
+  }
+}
+
+@keyframes home-masthead-rule {
+  0%,
+  55% {
+    border-bottom-color: rgb(17 13 13 / 0);
+  }
+
+  100% {
+    border-bottom-color: rgb(17 13 13 / 0.08);
   }
 }
 

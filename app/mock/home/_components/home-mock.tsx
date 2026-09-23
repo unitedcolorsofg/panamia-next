@@ -100,16 +100,17 @@ function HeroCard() {
   };
 
   return (
-    /* The scallop is cut in the hero's own colour: it is the hero's top edge,
-       not the underside of the control bar above it.
+    /* No scalloped trim across the top. The scallop is a good edge when two
+       different colours meet and the seam is worth decorating — it is how
+       `.point` announces itself against the section above. Here the masthead
+       is cream and this card is cream, so there is no seam to dress: the
+       trim was drawing an edge rather than finishing one, which made the
+       card read as a shape pasted onto the page instead of the top of it.
 
        Nothing behind the search but light — see `.home-hero-field`. The
        background is pure CSS now, so there is no full-bleed JPEG sitting in
        front of the one thing this card is for. */
-    <section
-      className="home-hero-banner home-hero-field scallop"
-      style={{ '--scallop': 'var(--color-pana-cream)' } as CSSProperties}
-    >
+    <section className="home-hero-banner home-hero-field">
       <div className="home-hero-grain" aria-hidden="true" />
 
       <div className="relative z-10 container mx-auto px-4">
