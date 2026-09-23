@@ -142,7 +142,16 @@ export async function signIn(
     [key: string]: unknown;
   }
 ): Promise<void> {
-  const callbackURL = options?.callbackUrl ?? '/';
+  // better-auth resolves a relative callbackURL against the server's baseURL,
+  // which is one fixed origin. A member signing in on social.pana.social is
+  // therefore redirected to pana.social — the surface they weren't using.
+  // Resolving against the surface in hand keeps them where they started; the
+  // origin is accepted because every surface is in trustedOrigins.
+  const requestedCallback = options?.callbackUrl ?? '/';
+  const callbackURL =
+    typeof window === 'undefined'
+      ? requestedCallback
+      : new URL(requestedCallback, window.location.origin).toString();
 
   if (provider === 'email' || provider === 'nodemailer') {
     // Magic link sign-in. better-auth returns { error } instead of throwing,
