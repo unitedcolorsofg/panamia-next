@@ -4339,11 +4339,16 @@ button.bizprofile-update-action:hover {
   --home-head-stack: 1.25rem;
   --home-display-max: 4.375rem;
   --home-hero-min: 100svh;
-  --home-hero-pad-top: clamp(96px, min(10vw, 14svh), 124px);
+  /* Deliberately large. The sky above the wordmark is the page's opening
+     shot, and it needs somewhere to be: the gradient on the body resolves to
+     paper at 360px, and the chrome above the hero is 121px of that, so this
+     is what keeps the wordmark below the weather rather than in it. */
+  --home-hero-pad-top: clamp(196px, 26svh, 300px);
   --home-hero-pad-bottom: clamp(36px, min(4vw, 6svh), 58px);
-  --home-note-gap: 2.75rem;
-  --home-note-pad: 1.6rem;
-  --home-photo-w: 17rem;
+  /* How far apart consecutive stops on the walk sit, and how wide the art
+     half of a stop is allowed to get before it starts crowding the words. */
+  --home-beat-gap: 5.5rem;
+  --home-beat-art: 24rem;
 }
 
 [data-density='compact'] {
@@ -4360,11 +4365,13 @@ button.bizprofile-update-action:hover {
      the viewport reserves 1000. The top padding stays, because that is what
      clears the fixed header rather than decoration. */
   --home-hero-min: 0;
-  --home-hero-pad-top: clamp(84px, min(8vw, 12svh), 104px);
+  /* Same reasoning as `roomy` — the sky is not slack space, so it does not
+     compress with the rest of the rhythm. It is a little shorter only because
+     the compact hero has less below it to balance against. */
+  --home-hero-pad-top: clamp(184px, 24svh, 262px);
   --home-hero-pad-bottom: 2.25rem;
-  --home-note-gap: 1.85rem;
-  --home-note-pad: 1.35rem;
-  --home-photo-w: 13.5rem;
+  --home-beat-gap: 3.75rem;
+  --home-beat-art: 20rem;
 }
 
 @media (min-width: 48rem) {
@@ -4396,10 +4403,6 @@ button.bizprofile-update-action:hover {
 
 [data-density] .section-display {
   font-size: clamp(2rem, 5.1vw, var(--home-display-max));
-}
-
-[data-density] .stickynote-photo {
-  width: min(100%, var(--home-photo-w));
 }
 
 /* Overrides the live hero's own min-height and padding, scoped to the mock so
@@ -4445,89 +4448,214 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-cream);
 }
 
-/* --- The hero as a colour field ----------------------------------------- */
+/* --- The palette -------------------------------------------------------- */
 
-/* The seam. The hero's bottom edge resolves to this, and so does the info
-   card's own surface, so the two can never drift apart into a visible line.
-   It has to track whatever surface the info card is using — `surface-butter-2`
-   today. Change one and change this. */
-[data-density] {
-  --home-seam: var(--color-pana-butter-2);
+/* The six colours the panas handed over, and the only six this page draws
+   with.
+ *
+ * It is a tightening of the refresh palette rather than a departure from it —
+ * indigo becomes a true blue, the ink goes cooler, flame and burnt become
+ * orange and coral — with one real loss: there is no butter. Everything on
+ * this page that used to lean on butter (the hero's pool of light, the notes,
+ * the newsletter block) is re-cut below.
+ *
+ * Scoped to `body:has(...)` rather than `:root` for two reasons. Nothing
+ * outside /mock/home should inherit a palette that has not been signed off;
+ * and this page reaches into the masthead, which is not a descendant of the
+ * mock's own wrapper, so a `[data-density]` scope would not reach the rules
+ * that need these.
+ *
+ * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
+ * registry, and adding to it would be a mock quietly redefining site-wide
+ * tokens ahead of the decision it exists to inform. */
+body:has([data-density]) {
+  --story-blue: #3565f2;
+  --story-ink: #020811;
+  --story-cream: #fcf2e7;
+  --story-orange: #f2882f;
+  --story-coral: #f27457;
+  --story-red: #f4374f;
+
+  /* Blue let down towards cream. Two fixed mixes rather than `color-mix()`
+     calls repeated at every use: these are specific values that were picked
+     against the masthead's ink text, and they want to be readable as numbers
+     when someone checks that maths later. */
+  --story-sky-high: rgb(103 136 239); /* blue 78% — ink on this is ~5.6:1 */
+  --story-sky-low: rgb(146 172 244); /* blue 52% — the haze at the horizon */
 }
 
-/* The live hero is a photograph under an orange multiply wash. It works, but
-   it gives the page a hard seam — the photo stops, the info card's butter
-   starts, and the two read as separate pages stacked rather than one page
-   continuing. It also puts a full-bleed JPEG in front of the one thing the
-   hero is for, which is the search box.
+/* --- The sky ------------------------------------------------------------ */
+
+/* The page opens outdoors.
  *
- * So: nothing behind the search but light. Cream at the top, warming as it
- * falls into a pool of butter centred behind the search box, and settling
- * over the last stretch into `--home-seam` — which is the info card's own
- * surface. The hero does not end so much as stop being the hero.
+ * The gradient is on the body rather than on the hero, because the top of the
+ * document is not the top of the hero: there is a call-to-action bar and the
+ * masthead above it. Painting the sky on the hero would have left a cream bar
+ * sitting across it, which is the cut-out seam this page has already been
+ * through once. On the body it runs behind everything, and the masthead is
+ * made transparent below so the sky simply continues through it.
  *
- * The glow is doing one job: it puts the light source directly behind the
- * search box, which is where the eye should land first. */
+ * Measured in pixels, in page coordinates, so the bands land in fixed places:
+ * the CTA bar occupies 0–56 and the masthead 56–121, and the sky holds one
+ * flat tone across all of that so the bar sits on a single colour instead of
+ * a ramp. Full strength only *below* the chrome, where nothing has to be read
+ * on it, and back to paper before the hero's wordmark arrives — orange on
+ * vivid blue is a poor pairing, and the wordmark is not negotiable.
+ *
+ * `--story-sky-high` is capped at 78% blue for exactly one reason: the
+ * masthead's own ink type sits on it. */
+body:has([data-density]) {
+  background-color: var(--story-cream);
+  background-repeat: no-repeat;
+  background-image: linear-gradient(
+    180deg,
+    var(--story-sky-high) 0,
+    var(--story-sky-high) 121px,
+    var(--story-blue) 190px,
+    var(--story-sky-low) 285px,
+    var(--story-cream) 360px
+  );
+}
+
+/* The masthead stops being a cream bar and becomes a pane of the sky. It is
+   only safe because of the cap above: the type inside it is unchanged ink,
+   and it still clears AA on `--story-sky-high`.
+
+   Transparent is only correct while there is nothing scrolling underneath —
+   which is true for as long as the hero is on screen. The handover animation
+   further down puts the cream back on the way out, and it now carries the
+   background as well as the rule. */
+body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
+  background-color: transparent;
+}
+
+/* The mock's own control bar is a full-width dark band, and it sits in the
+   one place on this page that cannot take one: between the masthead and the
+   hero, straight across the sky. So on this page it comes out of the flow and
+   floats at the bottom of the viewport instead.
+ *
+ * Scoped on `.home-hero-field`, not `[data-density]` — the bar is shared with
+   two other mocks and none of this should follow it there. */
+body:has(.home-hero-field) .bizprofile-mockbar {
+  position: fixed;
+  z-index: 60;
+  /* The base rule is `position: sticky; top: 0`, and that `top` survives the
+     switch to fixed — with a `bottom` as well it stretches the bar over the
+     whole viewport instead of sitting at the foot of it. */
+  top: auto;
+  right: 0;
+  bottom: 1rem;
+  left: 0;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin-inline: auto;
+  /* Not `999px`: on a narrow screen the row wraps to three lines and a pill
+     radius turns the whole bar into an ellipse. 1.75rem is still more than
+     half the one-line height, so it reads as a pill when it fits on one. */
+  border-radius: 1.75rem;
+  padding-block: 0.4rem;
+  box-shadow: 0 10px 34px rgb(2 8 17 / 0.34);
+}
+
+/* The bar's inner wrapper is a Tailwind `container`, which is a fixed width at
+   every breakpoint — inside a `fit-content` parent that is what the pill would
+   size to. This lets it shrink to what is actually in it. */
+body:has(.home-hero-field) .bizprofile-mockbar > div {
+  width: auto;
+  max-width: none;
+  margin-inline: 0;
+  justify-content: center;
+}
+
+/* The compare link is a nowrap flex row wider than a phone, which pushes the
+   bar past its own max-width and puts a scrollbar on the document. */
+body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+}
+
+/* --- The hero as a colour field ----------------------------------------- */
+
+/* The seam. The hero's bottom edge resolves to this, and so does the section
+   below it, so the two can never drift apart into a visible line. */
+[data-density] {
+  --home-seam: var(--story-cream);
+}
+
+/* The hero used to be a photograph under an orange wash, then a field of
+ * cream. It is neither now: it is the bottom of the sky.
+ *
+ * Its own background starts fully transparent so the body's gradient shows
+ * straight through the top of it, then fades up to paper over the first
+ * stretch — which is what turns a hard horizon into a haze. Everything below
+ * that point is cream, so the wordmark, the headline and the search all sit
+ * on paper where they belong, and the section after this one can meet it
+ * without a line.
+ *
+ * The one piece of the old field that survives is the pool of light behind
+ * the search box, re-cut in orange now that there is no butter. It does one
+ * job: put the light source directly behind the thing the eye should find
+ * first. */
 .home-hero-field {
-  background-color: var(--color-pana-cream);
-  color: var(--color-pana-ink);
-  /* Named so the masthead wordmark can react to this card leaving, from a
-     different subtree entirely. See the handover rule below. */
+  background-color: transparent;
+  color: var(--story-ink);
+  /* Named so the masthead can react to this card leaving, from a different
+     subtree entirely. See the handover rule below. */
   view-timeline-name: --home-hero;
   view-timeline-axis: block;
   background-image:
-    /* Levels the bottom edge to the seam colour right across the width. The
-       radial below falls off towards the corners, so without this the hero's
-       bottom-left and bottom-right are still cream where the info card has
-       already started at full butter — which shows up as a step at either
-       end of an otherwise invisible join. Fading through `/ 0` rather than
-       `transparent` keeps the interpolation in the same hue; `transparent`
-       is transparent *black*, and ramping to it greys the middle. */
+    /* The haze. Zero alpha at the top edge — anything else would put back the
+       hard line this exists to remove — reaching full paper by 250px, which
+       is a little before the body's own gradient gets there, so the two
+       overlap rather than meet. Fixed pixels, because it is an effect at an
+       edge and should be the same depth whether the hero is 600px tall or
+       1000px. */
     linear-gradient(
       180deg,
-      rgb(251 247 210 / 0) 72%,
-      rgb(251 247 210 / 0.72) 90%,
-      var(--home-seam) 100%
+      rgb(252 242 231 / 0) 0,
+      rgb(252 242 231 / 0.45) 130px,
+      var(--story-cream) 250px
     ),
     /* the pool of light, centred behind the search. Sitting just below the
        bottom edge so the hero catches the top of the falloff, not the hot
        centre. */
     radial-gradient(
         118% 72% at 50% 104%,
-        rgb(246 240 153 / 0.92) 0%,
-        rgb(246 240 153 / 0.58) 32%,
-        rgb(246 240 153 / 0.19) 58%,
-        rgb(246 240 153 / 0) 78%
-      ),
-    /* a cool wash up top, so the field reads as air above the light rather
-       than as one flat sheet of cream */
-    radial-gradient(
-        96% 58% at 50% -14%,
-        rgb(48 62 140 / 0.1),
-        rgb(48 62 140 / 0) 74%
+        rgb(242 136 47 / 0.34) 0%,
+        rgb(242 136 47 / 0.2) 32%,
+        rgb(242 136 47 / 0.07) 58%,
+        rgb(242 136 47 / 0) 78%
       );
 }
 
-/* Without a photograph underneath, the grain's job changes. The vertical ink
-   scrim existed to buy the headline contrast over the busier parts of the
-   image; there is no image now, and leaving it in would only dirty the cream.
-   What is left is the dot screen, flipped to ink because cream dots on a
-   cream field are nothing at all, and faded out before it reaches the light. */
+/* The grain's mask now has to dodge the sky as well as the light. Ink dots
+   scattered over the blue read as dirt on the lens rather than as tooth on
+   paper, so it starts clear, comes in once the haze has resolved to cream,
+   and is gone again before the pool of light. */
 .home-hero-field .home-hero-grain {
-  background-image: radial-gradient(rgb(17 13 13 / 0.055) 1px, transparent 1px);
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
   background-size: 4px 4px;
   -webkit-mask-image: linear-gradient(
     180deg,
-    #000 0%,
-    #000 44%,
-    transparent 78%
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
   );
-  mask-image: linear-gradient(180deg, #000 0%, #000 44%, transparent 78%);
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 26%,
+    #000 58%,
+    transparent 86%
+  );
 }
 
 /* Everything below here is the cost of turning the field over. All of it was
-   cream because the hero used to be dark, and every one of these is the same
-   fix — put the ink back. */
+   cream because the hero used to be dark; all of it is now re-cut onto the
+   six colours the panas handed over. */
 
 /* The drop shadow existed to lift cream type off a photograph. Ink on cream
    needs no help, and a shadow at this size just reads as a smudge. */
@@ -4535,20 +4663,22 @@ button.bizprofile-update-action:hover {
   text-shadow: none;
 }
 
-/* Butter on cream is a highlighter drawn on a highlighter. Burnt picks up the
-   pool of light underneath it instead. */
+/* Coral rather than orange, and for a specific reason: the wordmark directly
+   above it is orange, and an accent in the same colour 80px below it reads as
+   a second logo. Coral is the next step round the palette and picks up the
+   pool of light underneath it. */
 .home-hero-field .accent-word {
-  color: var(--color-pana-burnt);
+  color: var(--story-coral);
 }
 
 .home-hero-field .hero-meta {
-  border-top-color: rgb(17 13 13 / 0.16);
+  border-top-color: rgb(2 8 17 / 0.16);
 }
 
 /* A cream chip on a cream field is not a chip. Outlining them also squares
    them up with `.hero-donate`, which already carried a 2px border. */
 .home-hero-field .tagpill {
-  border: 2px solid rgb(17 13 13 / 0.22);
+  border: 2px solid rgb(2 8 17 / 0.22);
   background-color: transparent;
   box-shadow: none;
 }
@@ -4556,22 +4686,22 @@ button.bizprofile-update-action:hover {
 /* `.tagpill:hover` is only (0,2,0) and sits far earlier in the file, so the
    rule above would otherwise win on hover and kill the fill. */
 .home-hero-field .tagpill:hover {
-  border-color: var(--color-pana-indigo);
-  background-color: var(--color-pana-indigo);
-  color: var(--color-pana-cream);
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: var(--story-cream);
 }
 
 /* Donate stays filled while the counties go outline, which is what keeps it
    reading as an aside rather than as a fourth county. */
 .home-hero-field .hero-donate {
-  border-color: var(--color-pana-ink);
-  background-color: var(--color-pana-ink);
-  color: var(--color-pana-cream);
+  border-color: var(--story-ink);
+  background-color: var(--story-ink);
+  color: var(--story-cream);
 }
 
 .home-hero-field .hero-donate:hover {
-  border-color: var(--color-pana-indigo);
-  background-color: var(--color-pana-indigo);
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
 }
 
 /* A cream pill on a cream field is an outline of a search box. This is the
@@ -4579,8 +4709,92 @@ button.bizprofile-update-action:hover {
    light surface. The old one was a 34px spread tuned to read against ink,
    which over cream is just a grey bruise. */
 .home-hero-field .directory-suggest-pill {
-  border: 2px solid rgb(17 13 13 / 0.14);
-  box-shadow: 0 10px 30px rgb(17 13 13 / 0.07);
+  border: 2px solid rgb(2 8 17 / 0.14);
+  box-shadow: 0 10px 30px rgb(2 8 17 / 0.07);
+}
+
+/* --- Clouds ------------------------------------------------------------- */
+
+/* The band the clouds fly in: the top of the hero, which is where the body's
+   gradient is still blue. It is `absolute` and clipped by the hero, so a
+   cloud that drifts past the edge is cut off by the sky rather than by the
+   viewport — which is what keeps the page from growing a horizontal scrollbar
+   when one of them travels.
+
+   `pointer-events: none` because it covers the whole top of the hero and the
+   masthead's dropdowns open into it. */
+.sky-clouds {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: clamp(150px, 26svh, 280px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-hero-field {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Each cloud is one colour in `currentColor`, so its overlapping parts cannot
+   show as seams. Depth is size and opacity only — a blurred cloud on a flat
+   sky reads as a rendering fault rather than as distance. */
+.sky-cloud {
+  position: absolute;
+  width: auto;
+  color: var(--story-cream);
+}
+
+.sky-cloud-1 {
+  top: 8%;
+  left: -4%;
+  height: 54px;
+  opacity: 0.9;
+  --drift: 46px;
+}
+
+.sky-cloud-2 {
+  top: 34%;
+  left: 24%;
+  height: 34px;
+  opacity: 0.55;
+  --drift: 18px;
+}
+
+.sky-cloud-3 {
+  top: 4%;
+  left: 56%;
+  height: 44px;
+  opacity: 0.72;
+  --drift: 30px;
+}
+
+.sky-cloud-4 {
+  top: 44%;
+  left: 78%;
+  height: 62px;
+  opacity: 0.95;
+  --drift: 58px;
+}
+
+.sky-cloud-5 {
+  top: 22%;
+  left: 40%;
+  height: 26px;
+  opacity: 0.4;
+  --drift: 10px;
+}
+
+@media (max-width: 48rem) {
+  /* Two of the five come out on a phone. At this width the remaining three
+     are already most of the sky, and five would read as overcast. */
+  .sky-cloud-2,
+  .sky-cloud-5 {
+    display: none;
+  }
 }
 
 /* The hero card carries the wordmark now, which makes the one in the masthead
@@ -4618,16 +4832,17 @@ body:has([data-density]) {
     animation-range: exit 30% exit 85%;
   }
 
-  /* The masthead's hairline goes with it. The rule exists to separate a
-     sticky bar from content scrolling underneath, which is a real job — but
-     at rest there is nothing to separate: the masthead and this card are the
-     same cream, so the only thing the line divides is one flat field from
-     itself, and that is exactly what makes the card look cut out and laid on
-     top. So the masthead stops being a bar while the hero is on screen and
-     becomes one on the way out, on the same timeline as the wordmark.
+  /* The masthead's hairline and its background both go with it. The rule
+     exists to separate a sticky bar from content scrolling underneath, which
+     is a real job — but at rest there is nothing to separate: the masthead is
+     a pane of the sky, and the only thing the line would divide is one field
+     from itself. So the masthead stops being a bar while the hero is on
+     screen and becomes one on the way out.
 
-     Only the colour animates. The width stays put, so the border keeps
-     holding its 0.67px and nothing below it ever shifts. */
+     Both properties animate, the background from transparent to cream, so
+     that by the time anything is actually scrolling underneath there is
+     something opaque in the way. Width never animates — the border keeps
+     holding its 0.67px, so nothing below it ever shifts. */
   body:has([data-density]) header > div:has(a[aria-label='Pana Mia']) {
     animation: home-masthead-rule linear both;
     animation-timeline: --home-hero;
@@ -4649,280 +4864,660 @@ body:has([data-density]) {
 }
 
 @keyframes home-masthead-rule {
-  0%,
+  0% {
+    background-color: rgb(252 242 231 / 0);
+    border-bottom-color: rgb(2 8 17 / 0);
+  }
+
   55% {
-    border-bottom-color: rgb(17 13 13 / 0);
+    background-color: rgb(252 242 231 / 0.72);
+    border-bottom-color: rgb(2 8 17 / 0);
   }
 
   100% {
-    border-bottom-color: rgb(17 13 13 / 0.08);
+    background-color: var(--story-cream);
+    border-bottom-color: rgb(2 8 17 / 0.08);
   }
 }
 
-/* The receiving end of the seam. There is no line left to hide — this section
-   and the hero's bottom edge both resolve to `--home-seam` — so what is left
-   is the light. It swells in just below the boundary and fades out, which
-   reads as the glow passing through the edge rather than stopping at it.
- *
- * It has to start at zero alpha. Anything else would put back exactly the
- * step this is here to avoid. Fixed pixels, not a percentage: this is an
- * effect at an edge, so it should be the same depth whether the section is
- * 600px or 1600px tall, and it has to stay clear of the heading either way. */
-.home-handoff {
-  background-image: linear-gradient(
-    180deg,
-    rgb(246 240 153 / 0) 0,
-    rgb(246 240 153 / 0.5) 74px,
-    rgb(246 240 153 / 0) 230px
-  );
-}
+/* --- The street --------------------------------------------------------- */
 
-/* --- The info card: pinned notes ---------------------------------------- */
+/* The band the rest of the page stands on. It is paper, like the bottom of
+   the hero above it, so the two meet with no join at all — the drawing is the
+   only thing that marks the change, which is the point: you do not cross into
+   a new section, you arrive at ground level.
 
-.stickyboard {
-  display: grid;
-  gap: var(--home-note-gap, clamp(2rem, 4vw, 2.75rem));
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 52rem) {
-  .stickyboard {
-    grid-template-columns: repeat(3, 1fr);
-    /* start, not stretch: an opened note grows downward on its own rather
-       than dragging its two closed neighbours to the same height. */
-    align-items: start;
-  }
-}
-
-.stickynote {
+   The padding at the top is where the scroll hint lives. Without it the hint
+   would sit across the tall end of the block. */
+.story-street {
   position: relative;
+  background-color: var(--story-cream);
+  padding-top: clamp(2.25rem, 6vw, 4.5rem);
+}
+
+.story-street-note {
+  position: absolute;
+  top: clamp(0.5rem, 2.5vw, 1.6rem);
+  right: 0;
+  left: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+.street-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The back row. One muted tone via `currentColor`, which every shape in that
+   group inherits, so depth is a single value rather than a colour per
+   building. */
+.street-back {
+  color: rgb(53 101 242 / 0.17);
+}
+
+/* Windows in the back row would otherwise come through at full strength and
+   undo the depth the group just bought. */
+.street-back .street-window-lit,
+.street-back .street-window-dark {
+  fill: var(--story-cream);
+  opacity: 0.55;
+}
+
+.street-window-lit {
+  fill: var(--story-orange);
+}
+
+.street-window-dark {
+  fill: rgb(2 8 17 / 0.3);
+}
+
+.street-door {
+  fill: var(--story-ink);
+}
+
+/* Opaque rather than a tint, because a translucent blue takes the colour of
+   whatever wall it is cut into — over the red shopfront it mixed to a purple
+   that is in no palette here. */
+.street-glass {
+  fill: var(--story-sky-low);
+}
+
+/* Ink at low alpha rather than a colour, so the same stripe reads on an
+   orange awning and on a cream one without a second rule. */
+.street-awning-stripe {
+  fill: rgb(2 8 17 / 0.16);
+}
+
+.street-trunk,
+.street-bench {
+  fill: var(--story-ink);
+}
+
+.street-kerb {
+  fill: rgb(2 8 17 / 0.2);
+}
+
+/* --- The three stops ---------------------------------------------------- */
+
+.story-basics {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code the old indigo and
+   are unlayered, so they have to be overridden by name rather than by a
+   utility on the element. */
+.story-basics .section-eyebrow,
+.story-basics .display-accent {
+  color: var(--story-blue);
+}
+
+/* The search pill is the shared directory component, so its indigo button and
+   its slightly different cream come from the old palette. Re-pointed inside
+   the mock only — the real directory page keeps what it has. */
+[data-density] .directory-suggest-pill {
+  background-color: var(--story-cream);
+}
+
+[data-density] .directory-suggest-pill-button {
+  background-color: var(--story-blue);
+  color: var(--story-cream);
+}
+
+.beats {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: calc(var(--home-note-pad, 1.6rem) + 0.65rem)
-    var(--home-note-pad, 1.6rem) var(--home-note-pad, 1.6rem);
-  color: var(--color-pana-ink);
-  border: 2px solid rgb(17 13 13 / 0.14);
-  /* Barely rounded. Paper has corners; cards have radii. */
-  border-radius: 3px;
-  box-shadow: 0 14px 30px rgb(17 13 13 / 0.16);
-  transform: rotate(var(--tilt, 0deg));
-  transition:
-    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.28s ease;
+  gap: var(--home-beat-gap, 5.5rem);
+  /* The per-side arrival offset pushes a stop past the viewport mid-animation,
+     which on a phone is enough to put a scrollbar on the document. `clip`
+     rather than `hidden` so no scroll container is created — a scroll
+     container here would re-root the `view()` timelines below. */
+  overflow-x: clip;
 }
 
-/* The tilt is charm, not information, so anything that signals intent —
-   hovering, tabbing in, opening the note — straightens it out and gets the
-   text level before it has to be read. */
-.stickynote:hover,
-.stickynote:focus-within,
-.stickynote[data-open='true'] {
-  transform: rotate(0deg) translateY(-4px);
-  box-shadow: 0 22px 44px rgb(17 13 13 / 0.22);
+.beat {
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: center;
+  width: min(100% - 2rem, 66rem);
+  margin-inline: auto;
+  padding-block: calc(var(--home-pad, 3rem) * 0.7);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .stickynote {
-    transform: none;
-    transition: box-shadow 0.28s ease;
+/* One accent per stop, set once here and read by the sign, the disclosure and
+   anything else in the stop that needs to agree with it. `--beat-on-accent`
+   exists because the three fills do not take the same text colour: ink clears
+   AA on orange and coral and fails on blue, cream is the other way round. */
+.beat[data-accent='orange'] {
+  --beat-accent: var(--story-orange);
+  --beat-on-accent: var(--story-ink);
+}
+
+.beat[data-accent='blue'] {
+  --beat-accent: var(--story-blue);
+  --beat-on-accent: var(--story-cream);
+}
+
+.beat[data-accent='paper'] {
+  --beat-accent: var(--story-coral);
+  --beat-on-accent: var(--story-ink);
+}
+
+/* Below 60rem everything stacks and the artwork leads, so `data-side` stops
+   meaning anything — there is only one column to be on. */
+@media (min-width: 60rem) {
+  .beat {
+    grid-template-columns:
+      minmax(0, var(--home-beat-art, 27rem))
+      minmax(0, 1fr);
   }
 
-  .stickynote:hover,
-  .stickynote:focus-within,
-  .stickynote[data-open='true'] {
-    transform: none;
+  /* `order`, not a column assignment, so the DOM keeps artwork-then-copy in
+     both directions. A screen reader and a keyboard both get the same
+     sequence at every stop; only the painting alternates. */
+  .beat[data-side='right'] {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, var(--home-beat-art, 27rem));
   }
 
-  .stickynote-photo,
-  .stickynote:hover .stickynote-photo,
-  .stickynote:focus-within .stickynote-photo,
-  .stickynote[data-open='true'] .stickynote-photo {
-    transform: none;
-    transition: none;
+  .beat[data-side='right'] .beat-art {
+    order: 2;
   }
 }
 
-/* A torn strip of tape across the top edge.
-
-   `data-paper`, not `data-tone` — `[data-tone='flame']` is already claimed by
-   the surface-token registry above, and a note that quietly redefined
-   `--surface-tone` for its whole subtree would be a trap for the next person. */
-.stickynote-tape {
-  position: absolute;
-  top: -0.7rem;
-  left: 50%;
-  width: 5.5rem;
-  height: 1.4rem;
-  transform: translateX(-50%) rotate(-1.5deg);
-  background-color: rgb(255 247 236 / 0.72);
-  border-left: 1px dashed rgb(17 13 13 / 0.18);
-  border-right: 1px dashed rgb(17 13 13 / 0.18);
-  box-shadow: 0 1px 3px rgb(17 13 13 / 0.12);
+/* Which way a stop arrives from. Read by the arrival keyframes so the walk
+   alternates left-right instead of everything rising out of the floor. */
+.beat[data-side='left'] {
+  --beat-in: -34px;
 }
 
-.stickynote[data-paper='butter'] {
-  background-color: var(--color-pana-butter);
+/* The ring needs more room than a collage or a map: it is a circle with a
+   wrapping label on each side of it, and the side labels are what run out of
+   width first. */
+.beat:has(.beat-ring) {
+  --home-beat-art: 28rem;
 }
 
-.stickynote[data-paper='flame'] {
-  background-color: var(--color-pana-flame);
+.beat[data-side='right'] {
+  --beat-in: 34px;
 }
 
-/* Cream on butter-2 is only a shade apart, so this one needs the border to do
-   the separating that fill does for the other two. */
-.stickynote[data-paper='cream'] {
-  background-color: var(--color-pana-cream);
-  border-color: rgb(17 13 13 / 0.2);
-}
-
-/* Cream tape on a cream note is nothing at all, so this one gets a grey. */
-.stickynote[data-paper='cream'] .stickynote-tape {
-  background-color: rgb(17 13 13 / 0.1);
-}
-
-/* The polaroid stuck to each note. Counter-rotates against the note's own
-   `--tilt` so the two angles disagree slightly, which is what makes it read
-   as a separate piece of paper instead of a printed panel. */
-.stickynote-photo {
-  align-self: center;
-  width: min(100%, 17rem);
-  margin-bottom: 1.25rem;
-  padding: 0.5rem 0.5rem 0;
-  background-color: #fffdf8;
-  box-shadow: 0 8px 20px rgb(17 13 13 / 0.26);
-  /* The cream note is nearly the same colour as the frame, so the polaroid
-     needs an edge of its own or it dissolves into the paper. */
-  outline: 1px solid rgb(17 13 13 / 0.12);
-  transform: rotate(calc(var(--tilt, 0deg) * -1.4));
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Straighten with the note, but keep a degree of disagreement so the photo
-   never looks welded on. */
-.stickynote:hover .stickynote-photo,
-.stickynote:focus-within .stickynote-photo,
-.stickynote[data-open='true'] .stickynote-photo {
-  transform: rotate(calc(var(--tilt, 0deg) * -0.5));
-}
-
-.stickynote-photo-frame {
-  position: relative;
-  display: block;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  background-color: rgb(17 13 13 / 0.1);
-}
-
-.stickynote-photo-caption {
-  padding: 0.5rem 0.25rem 0.55rem;
-  color: var(--color-pana-ink);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-align: center;
-  opacity: 0.62;
-}
-
-.stickynote-q {
-  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+/* The question, hung like a sign outside the shop it belongs to. Still an h3
+   underneath — the tilt and the fill are paint, not structure. */
+.beat-sign {
+  display: inline-block;
+  transform: rotate(-1.2deg);
+  border: 2px solid var(--story-ink);
+  border-radius: 4px;
+  background-color: var(--beat-accent, var(--story-orange));
+  box-shadow: 0 8px 20px rgb(2 8 17 / 0.14);
+  padding: 0.5rem 1rem;
+  color: var(--beat-on-accent, var(--story-ink));
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
   font-weight: 900;
-  line-height: 1.12;
-  letter-spacing: -0.015em;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
-.stickynote-aside {
-  margin-top: 0.3rem;
-  font-size: 0.875rem;
+.beat-aside {
+  margin-top: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  font-style: italic;
-  opacity: 0.6;
-}
-
-.stickynote-a {
-  margin-top: 0.85rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
   line-height: 1.5;
-  opacity: 0.86;
+  color: rgb(2 8 17 / 0.55);
 }
 
-.stickynote-toggle {
+.beat-answer {
+  margin-top: 0.85rem;
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.6;
+  color: rgb(2 8 17 / 0.86);
+  max-width: 34rem;
+}
+
+.beat-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  /* Pushed to the bottom so three notes of unequal copy still line their
-     buttons up when the row stretches. */
-  margin-top: auto;
-  padding-top: 1.25rem;
+  margin-top: 1.4rem;
+  border: 2px solid rgb(2 8 17 / 0.2);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
   font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-pana-ink);
-  opacity: 0.72;
-  transition: opacity 0.2s ease;
+  color: var(--story-ink);
   cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.stickynote-toggle:hover {
-  opacity: 1;
+.beat-toggle:hover {
+  border-color: var(--beat-accent, var(--story-orange));
+  background-color: var(--beat-accent, var(--story-orange));
+  color: var(--beat-on-accent, var(--story-ink));
 }
 
-.stickynote-detail {
-  margin-top: 1.1rem;
-  padding-top: 1.1rem;
-  border-top: 2px dashed rgb(17 13 13 / 0.2);
+/* The long version. Ruled off against the accent rather than boxed, so it
+   reads as more of the same answer instead of a second card. */
+.beat-detail {
+  margin-top: 1.4rem;
+  border-left: 3px solid var(--beat-accent, var(--story-orange));
+  padding-left: 1.1rem;
+  max-width: 36rem;
   font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.55;
+  font-weight: 500;
+  line-height: 1.65;
+  color: rgb(2 8 17 / 0.78);
 }
 
-.stickynote-detail > * + * {
-  margin-top: 0.85rem;
+.beat-detail > * + * {
+  margin-top: 0.9rem;
 }
 
-.stickynote-label {
+.beat-label {
   font-size: 0.6875rem;
   font-weight: 900;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.6;
+  color: rgb(2 8 17 / 0.5);
 }
 
-.stickynote-label + ol,
-.stickynote-label + ul {
-  margin-top: 0.45rem;
+.beat-label + ol,
+.beat-label + ul {
+  margin-top: 0.5rem;
 }
 
-.stickynote-numbered {
+.beat-numbered {
   list-style: decimal;
   padding-left: 1.15rem;
 }
 
-.stickynote-list {
+.beat-list {
   list-style: disc;
   padding-left: 1.15rem;
 }
 
-.stickynote-numbered > li + li,
-.stickynote-list > li + li {
+.beat-numbered > li + li,
+.beat-list > li + li {
   margin-top: 0.4rem;
 }
 
-.stickynote-tags {
+.beat-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-.stickynote-tags > li {
-  padding: 0.3rem 0.7rem;
-  border: 2px solid rgb(17 13 13 / 0.22);
-  border-radius: 9999px;
+.beat-tags > li {
+  border: 2px solid rgb(2 8 17 / 0.16);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.7);
+}
+
+/* --- Stop one: the collage ---------------------------------------------- */
+
+.collage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.7rem, 1.8vw, 1.2rem);
+  width: min(100%, 30rem);
+  margin-inline: auto;
+}
+
+/* The fan lives on the `<li>`; hovering moves `.collage-frame` instead. Two
+   separate elements because the arrival animation fills the `<li>`'s
+   transform, and a filled animation beats a transition — a hover on the same
+   element would simply never take. */
+.collage-print {
+  position: relative;
+  transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0));
+}
+
+.collage-print:nth-child(even) {
+  margin-top: 1.25rem;
+}
+
+.collage-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  /* A print, not a card: white border, square corners, hard shadow. */
+  border: 6px solid #fff;
+  border-radius: 2px;
+  background-color: rgb(2 8 17 / 0.06);
+  box-shadow: 0 10px 24px rgb(2 8 17 / 0.18);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.28s ease;
+}
+
+.collage-print:hover {
+  z-index: 2;
+}
+
+.collage-print:hover .collage-frame {
+  transform: scale(1.045);
+  box-shadow: 0 16px 34px rgb(2 8 17 / 0.26);
+}
+
+.collage-img {
+  object-fit: cover;
+}
+
+.collage-caption {
+  display: block;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.5);
+}
+
+/* --- Stop two: the ring ------------------------------------------------- */
+
+/* A three-by-three grid with the dial in the middle cell and a label on each
+   side of it. Grid rather than absolute positioning around a circle, because
+   the labels are real wrapping text of unequal length: placed absolutely they
+   would collide at exactly the widths nobody tests. */
+.beat-ring {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.ring-dial {
+  grid-area: 2 / 2;
+  width: 100%;
+  height: auto;
+}
+
+.ring-arc {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.ring-hub {
+  fill: var(--story-cream);
+}
+
+.ring-hairline {
+  fill: none;
+  stroke: rgb(2 8 17 / 0.12);
+  stroke-width: 2;
+}
+
+/* Sits in the same cell as the dial and on top of it. */
+.ring-centre {
+  position: relative;
+  z-index: 1;
+  grid-area: 2 / 2;
+  display: grid;
+  place-items: center;
+  width: 46%;
+}
+
+.ring-centre-name {
+  max-width: 7ch;
+  color: var(--story-ink);
+  font-size: clamp(0.95rem, 1.9vw, 1.3rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* `display: contents` so the four `<li>`s become grid items of `.beat-ring`
+   itself. They stay a list for anything reading the page linearly — these are
+   the four things the club exists to produce, and that is worth having as a
+   list rather than as four labels that happen to be near a circle. */
+.ring-labels {
+  display: contents;
+}
+
+.ring-label {
+  position: relative;
+  max-width: 11rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 900;
+  line-height: 1.3;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* A dot in the arc's own colour, so each label is tied to its quarter without
+   having to colour the text itself — four coloured labels at this size would
+   be four things shouting. */
+.ring-label::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: 0 auto 0.4rem;
+  border-radius: 50%;
+  background-color: var(--dot, var(--story-orange));
+}
+
+.ring-label[data-at='top'] {
+  grid-area: 1 / 2;
+}
+
+.ring-label[data-at='right'] {
+  grid-area: 2 / 3;
+}
+
+.ring-label[data-at='bottom'] {
+  grid-area: 3 / 2;
+}
+
+.ring-label[data-at='left'] {
+  grid-area: 2 / 1;
+}
+
+/* On a phone the side cells squeeze the dial to nothing. Below 40rem the ring
+   goes on top and the four labels become a two-up list under it. */
+@media (max-width: 40rem) {
+  .beat-ring {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
+  .ring-dial,
+  .ring-centre {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+
+  .ring-dial {
+    width: min(100%, 17rem);
+    justify-self: center;
+  }
+
+  .ring-centre {
+    width: 7.8rem;
+    justify-self: center;
+  }
+
+  .ring-label[data-at='top'],
+  .ring-label[data-at='right'],
+  .ring-label[data-at='bottom'],
+  .ring-label[data-at='left'] {
+    grid-area: auto;
+  }
+}
+
+/* --- Stop three: the map ------------------------------------------------ */
+
+.statemap {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  margin: 0;
+}
+
+/* `overflow: hidden` is what the rise is animating against: the map starts
+   below its own frame and comes up into it. */
+.statemap-frame {
+  width: min(100%, 24rem);
+  overflow: hidden;
+  border: 2px solid rgb(2 8 17 / 0.12);
+  border-radius: 10px;
+  background-color: var(--story-cream);
+  box-shadow: 0 14px 32px rgb(2 8 17 / 0.14);
+}
+
+/* The map ships on a white background. Multiply drops the white to whatever
+   is behind it — cream here — while leaving the ink silhouette and the three
+   county marks alone, which is cheaper and safer than re-cutting the asset. */
+.statemap-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.statemap-counties {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.statemap-county {
+  border: 2px solid var(--beat-accent, var(--story-coral));
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--story-ink);
+}
+
+/* --- The last two bands ------------------------------------------------- */
+
+.story-pillars {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* `.section-eyebrow` and `.display-accent` both hard-code indigo and are
+   unlayered, so they have to be overridden by name rather than by a utility
+   on the element. */
+.story-pillars .section-eyebrow,
+.story-pillars .display-accent {
+  color: var(--story-blue);
+}
+
+.story-point {
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+/* `.display-accent` hard-codes the old indigo, which on this ink band is
+   almost invisible. Coral rather than orange, so the accent word and the
+   eyebrow above it are not the same colour. */
+.story-point .section-eyebrow {
+  color: var(--story-orange);
+}
+
+.story-point .display-accent,
+.story-point .section-statement em {
+  color: var(--story-coral);
+}
+
+.story-point-body {
+  color: rgb(252 242 231 / 0.85);
+}
+
+.story-point-rule {
+  border-top-color: rgb(252 242 231 / 0.2);
+}
+
+.story-point-input {
+  border-color: rgb(252 242 231 / 0.25);
+  background-color: rgb(252 242 231 / 0.05);
+  color: var(--story-cream);
+}
+
+.story-point-input::placeholder {
+  color: rgb(252 242 231 / 0.45);
+}
+
+.story-point-accent {
+  color: var(--story-orange);
+}
+
+.story-btn-solid {
+  background-color: var(--story-orange);
+  color: var(--story-ink);
+}
+
+.story-btn-solid:hover {
+  background-color: var(--story-coral);
+  color: var(--story-ink);
+}
+
+.story-btn-ghost {
+  border-color: rgb(252 242 231 / 0.4);
+  background-color: transparent;
+  color: var(--story-cream);
+}
+
+.story-btn-ghost:hover {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.story-colophon {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
 }
 
 /* --- The three pillars: expanding panels -------------------------------- */
@@ -4937,30 +5532,34 @@ body:has([data-density]) {
    scroll past without registering that there were three of anything, so the
    closed state now carries its own fill and its own text colour, and the open
    state swaps the body to paper while the head keeps the pillar's colour. */
-.pillar[data-accent='indigo'] {
-  --pillar-fill: var(--color-pana-indigo);
-  --pillar-ink: var(--color-pana-cream);
+/* Re-cut for the story palette. Three fills that are each unmistakable at a
+   glance across a row, and each one takes the text colour that clears AA on
+   it: ink on orange (7.7:1), cream on blue (4.7:1), cream on red (5.1:1 the
+   other way round is what fails, so red carries ink). */
+.pillar[data-accent='blue'] {
+  --pillar-fill: var(--story-blue);
+  --pillar-ink: var(--story-cream);
 }
 
-.pillar[data-accent='butter'] {
-  --pillar-fill: var(--color-pana-butter);
-  --pillar-ink: var(--color-pana-ink);
+.pillar[data-accent='orange'] {
+  --pillar-fill: var(--story-orange);
+  --pillar-ink: var(--story-ink);
 }
 
-.pillar[data-accent='ink'] {
-  --pillar-fill: var(--color-pana-ink);
-  --pillar-ink: var(--color-pana-cream);
+.pillar[data-accent='coral'] {
+  --pillar-fill: var(--story-coral);
+  --pillar-ink: var(--story-ink);
 }
 
 .pillar {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 2px solid rgb(17 13 13 / 0.55);
+  border: 2px solid rgb(2 8 17 / 0.55);
   border-radius: 1.1rem;
   background-color: var(--pillar-fill);
   color: var(--pillar-ink);
-  box-shadow: 0 12px 28px rgb(17 13 13 / 0.2);
+  box-shadow: 0 12px 28px rgb(2 8 17 / 0.2);
   transition:
     background-color 0.35s ease,
     flex-basis 0.45s cubic-bezier(0.16, 1, 0.3, 1),
@@ -4970,8 +5569,8 @@ body:has([data-density]) {
 /* Paper laid over the peel. The head stays the pillar's colour so the open
    panel still says which of the three it is. */
 .pillar[data-open='true'] {
-  background-color: var(--color-pana-cream);
-  box-shadow: 0 18px 40px rgb(17 13 13 / 0.26);
+  background-color: var(--story-cream);
+  box-shadow: 0 18px 40px rgb(2 8 17 / 0.26);
 }
 
 .pillar-head {
@@ -4984,13 +5583,13 @@ body:has([data-density]) {
 /* Butter against cream is barely a change of colour, so the open head is
    separated by an edge rather than by fill alone. */
 .pillar[data-open='true'] .pillar-head {
-  border-bottom: 2px solid rgb(17 13 13 / 0.35);
+  border-bottom: 2px solid rgb(2 8 17 / 0.35);
 }
 
 .pillar-body {
   padding: 0 1.35rem 1.5rem;
   padding-top: 1.35rem;
-  color: var(--color-pana-ink);
+  color: var(--story-ink);
 }
 
 .pillar-trigger {
@@ -5069,9 +5668,9 @@ body:has([data-density]) {
   display: grid;
   gap: 0.25rem;
   padding: 0.9rem 1rem;
-  border: 2px solid rgb(17 13 13 / 0.14);
+  border: 2px solid rgb(2 8 17 / 0.14);
   border-radius: 0.85rem;
-  background-color: rgb(17 13 13 / 0.03);
+  background-color: rgb(2 8 17 / 0.03);
 }
 
 /* Only the linked rows light up. A hover state on a programme that goes
@@ -5084,7 +5683,7 @@ a.pillar-program {
 }
 
 a.pillar-program:hover {
-  border-color: var(--color-pana-indigo);
+  border-color: var(--story-blue);
   background-color: rgb(48 62 140 / 0.06);
   transform: translateY(-2px);
 }
@@ -5116,14 +5715,14 @@ a.pillar-program:hover {
 }
 
 .pillar-program-status[data-status='live'] {
-  background-color: var(--color-pana-indigo);
-  color: var(--color-pana-cream);
+  background-color: var(--story-blue);
+  color: var(--story-cream);
 }
 
 /* "Building" is a dashed outline rather than a second fill, so the two states
    are told apart by shape and not only by colour. */
 .pillar-program-status[data-status='building'] {
-  border: 2px dashed rgb(17 13 13 / 0.3);
+  border: 2px dashed rgb(2 8 17 / 0.3);
   opacity: 0.7;
 }
 
@@ -5214,8 +5813,9 @@ a.pillar-program:hover {
 /* --- Scroll-driven motion ----------------------------------------------- */
 
 /*
- * The notes and the pillars arrive as you scroll to them, and the photographs
- * pinned to the notes drift inside their frames the whole way past.
+ * The page moves as you walk down it: clouds drift at their own rates as the
+ * sky leaves, each stop arrives as you reach it, the collage fans open, the
+ * ring draws itself, the map rises into its frame, and the pillars square up.
  *
  * This is `animation-timeline: view()` rather than a scroll handler: progress
  * is tied to where the element sits in the viewport by the compositor, so
@@ -5229,8 +5829,8 @@ a.pillar-program:hover {
  *    animating while it is on screen is a card that slides out from under the
  *    cursor as you reach for it, and these are all buttons. They settle by the
  *    time they are fully in view and then hold still while you read and click.
- *    The photographs are the single exception: they pan for the whole pass,
- *    because they are decorative, clipped by their own frame, and not targets.
+ *    The clouds and the map are the exceptions: they run for the whole pass,
+ *    because they are scenery, clipped by their own frames, and not targets.
  *
  * 2. It is an enhancement and never a requirement. Browsers without view
  *    timelines keep the `[data-rv]` fade they already had, which is why the
@@ -5248,52 +5848,105 @@ a.pillar-program:hover {
  */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
+    /* The clouds ride the hero's own named timeline rather than their own.
+       They sit at the very top of the document, so at load they are already
+       on screen and a `view()` of their own would start them halfway through
+       their range — the hero's `contain → exit` is the run that actually
+       corresponds to "the sky is going past". */
+    .sky-cloud {
+      animation: home-cloud-drift linear both;
+      animation-timeline: --home-hero;
+      animation-range: contain 0% exit 100%;
+    }
+
     /* The handoff. `[data-rv]` holds its element at opacity 0 until the sweep
        reaches it, which would fight the timeline for the same two properties;
        this hands both over. More specific than the `[data-rv-ready] [data-rv]`
        rule it is overriding, so it wins without `!important`. */
-    [data-rv-ready] .stickyboard > [data-rv] {
+    [data-rv-ready] .beat > [data-rv] {
       opacity: 1;
       transform: none;
       transition: none;
     }
 
-    .stickyboard > li {
-      animation: home-note-arrive linear both;
+    /* Artwork first, words a beat behind it. The offset is small on purpose:
+       any further apart and the two halves of one stop stop reading as one
+       stop. */
+    .beat-art {
+      animation: home-beat-art linear both;
       animation-timeline: view();
-    }
-
-    /* Three notes, three arrivals. The lift and the turn differ per column so
-       they land like three separate pieces of paper rather than one row of
-       three; the middle one comes from furthest away and lands last, which is
-       what stops the group reading as a single block sliding up. */
-    .stickyboard > li:nth-child(1) {
-      --note-lift: 44px;
-      --note-turn: -2.6deg;
       animation-range: entry 4% entry 62%;
     }
 
-    .stickyboard > li:nth-child(2) {
-      --note-lift: 70px;
-      --note-turn: 2.2deg;
-      animation-range: entry 10% entry 78%;
-    }
-
-    .stickyboard > li:nth-child(3) {
-      --note-lift: 52px;
-      --note-turn: -1.5deg;
-      animation-range: entry 1% entry 58%;
-    }
-
-    /* The photograph drifts inside its frame for the whole pass — the one
-       continuous effect here. `.stickynote-photo-frame` is `overflow: hidden`
-       and the image is scaled past its box, so the pan never exposes an edge.
-       Targeting the element `next/image` renders rather than a class of ours,
-       because `fill` owns that element's positioning entirely. */
-    .stickynote-photo-frame img {
-      animation: home-photo-drift linear both;
+    .beat-copy {
+      animation: home-beat-copy linear both;
       animation-timeline: view();
-      animation-range: cover 0% cover 100%;
+      animation-range: entry 12% entry 76%;
+    }
+
+    /* The stack opens out. Each print carries its own `--fan`, and the
+       keyframes end on it rather than on zero, so the pile settles into its
+       resting fan instead of squaring up into a grid. */
+    .collage-print {
+      animation: home-print-settle linear both;
+      animation-timeline: view();
+    }
+
+    .collage-print:nth-child(1) {
+      animation-range: entry 6% entry 58%;
+    }
+
+    .collage-print:nth-child(2) {
+      animation-range: entry 12% entry 68%;
+    }
+
+    .collage-print:nth-child(3) {
+      animation-range: entry 9% entry 63%;
+    }
+
+    .collage-print:nth-child(4) {
+      animation-range: entry 16% entry 76%;
+    }
+
+    /* The ring draws itself. `pathLength="100"` is set on the paths in the
+       markup, so the dash maths is in percent and does not have to be redone
+       if the radius ever changes. */
+    .ring-arc {
+      animation: home-ring-draw linear both;
+      animation-timeline: view();
+    }
+
+    .ring-arc:nth-of-type(1) {
+      animation-range: entry 8% entry 56%;
+    }
+
+    .ring-arc:nth-of-type(2) {
+      animation-range: entry 14% entry 64%;
+    }
+
+    .ring-arc:nth-of-type(3) {
+      animation-range: entry 20% entry 72%;
+    }
+
+    .ring-arc:nth-of-type(4) {
+      animation-range: entry 26% entry 80%;
+    }
+
+    .ring-centre {
+      animation: home-ring-hub linear both;
+      animation-timeline: view();
+      animation-range: entry 22% entry 70%;
+    }
+
+    /* Florida arrives. This one runs for the whole pass rather than settling
+       on entry, because it is the only piece of motion on the page making an
+       argument instead of a flourish — the state keeps rising for as long as
+       you are looking at the reason it matters. `.statemap-frame` clips it,
+       so nothing is ever seen outside the border. */
+    .statemap-img {
+      animation: home-map-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 100%;
     }
 
     .pillar {
@@ -5315,31 +5968,94 @@ a.pillar-program:hover {
   }
 }
 
-/* Paper landing on a board: up, a little askew, settling flat. The rotation
-   is on the `<li>`, which has no transform of its own — `.stickynote` is
-   already using its own to hold the tilt and to straighten on hover, and two
-   rules cannot share one `transform`. */
-@keyframes home-note-arrive {
+/* Sideways only. A cloud that also moved vertically would race or lag the
+   page, and at these sizes that reads as a bug rather than as depth; the
+   whole of the parallax is that `--drift` differs per cloud. */
+@keyframes home-cloud-drift {
+  from {
+    transform: translateX(calc(var(--drift, 24px) * -1));
+  }
+
+  to {
+    transform: translateX(var(--drift, 24px));
+  }
+}
+
+/* The artwork comes in from the side it lives on, which is what makes the
+   alternation read as walking past rather than as a list assembling. The
+   direction is set per stop below. */
+@keyframes home-beat-art {
   from {
     opacity: 0;
-    transform: translateY(var(--note-lift, 54px)) rotate(var(--note-turn, 0deg));
+    transform: translate(var(--beat-in, 0px), 38px) scale(0.972);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) rotate(0deg);
+    transform: translate(0, 0) scale(1);
   }
 }
 
-/* A slow vertical pan. `scale` is what buys the travel: at 1.12 there is 6%
-   of overflow at each edge, and the pan uses 4% of it. */
-@keyframes home-photo-drift {
+@keyframes home-beat-copy {
   from {
-    transform: scale(1.12) translateY(-4%);
+    opacity: 0;
+    transform: translate(calc(var(--beat-in, 0px) * -0.5), 26px);
   }
 
   to {
-    transform: scale(1.12) translateY(4%);
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+/* Paper landing on a pile: up, over-rotated, settling onto its resting fan. */
+@keyframes home-print-settle {
+  from {
+    opacity: 0;
+    transform: rotate(calc(var(--fan, 0deg) * 2.8))
+      translateY(calc(var(--lift, 0px) + 44px));
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0px));
+  }
+}
+
+@keyframes home-ring-draw {
+  from {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes home-ring-hub {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 16% of the image's own height. Enough to read as arriving, not so much that
+   the frame is empty when the section first appears. It finishes at zero
+   rather than past it, so the map is never short of its own frame. */
+@keyframes home-map-rise {
+  from {
+    transform: translateY(16%);
+  }
+
+  to {
+    transform: translateY(0);
   }
 }
 

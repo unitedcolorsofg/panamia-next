@@ -9,9 +9,9 @@
  * argument.
  *
  * Source slides, in deck order:
- *  - "THE LOCAL MOVEMENT"      → the "Why local?" note
+ *  - "THE LOCAL MOVEMENT"      → the "Why local?" place, and the benefits ring
  *  - "THE FUTURE IS LOCAL!"    → the mission line in "Why was Pana MIA started?"
- *  - "BUT WHAT IS A PANA?"     → the "What's a pana?" note, both sides
+ *  - "BUT WHAT IS A PANA?"     → the "What's a pana?" place, both sides
  *  - "THE FUTURE OF PANA MIA"  → all three pillars and their programme lists
  *  - "FINAL MESSAGE FROM US"   → the ground-zero line
  *
@@ -23,55 +23,98 @@
  */
 
 /* -------------------------------------------------------------------------
-   The info card — sticky notes
+   The three places on the street
    ------------------------------------------------------------------------- */
 
-/** A block inside an opened note. A tagged union rather than four optional
-    fields, so the note body is a `switch` instead of a pile of `&&`. */
+/** A block inside an opened place. A tagged union rather than four optional
+    fields, so the body is a `switch` instead of a pile of `&&`. */
 export type NoteBlock =
   | { kind: 'paragraph'; text: string }
   | { kind: 'numbered'; label: string; items: string[] }
   | { kind: 'list'; label: string; items: string[] }
   | { kind: 'tags'; label: string; items: string[] };
 
-export interface StickyNote {
+/**
+ * The artwork that answers each question.
+ *
+ * A tagged union rather than a shared `image` field, because these three are
+ * not the same kind of picture doing three jobs — they are three different
+ * arguments. A photograph of a room proves a word means people; a diagram
+ * proves a claim has parts; a map proves a place is a real place. Giving
+ * them one shape would have meant one renderer hedging across all three.
+ */
+export type BeatScene =
+  | {
+      /** Overlapping photographs, fanned out. "What is a pana" is answered
+          better by a room full of them than by any definition. */
+      kind: 'collage';
+      photos: { src: string; alt: string; caption: string }[];
+    }
+  | {
+      /** The circular diagram from the deck's "THE LOCAL MOVEMENT" slide,
+          rebuilt as vector so it stays crisp and can draw itself in. */
+      kind: 'ring';
+      centre: string;
+      items: string[];
+    }
+  | {
+      /** The branded state map, rising into frame on scroll. */
+      kind: 'map';
+      src: string;
+      alt: string;
+      counties: string[];
+    };
+
+export interface StoryBeat {
   id: string;
-  /** Sticky-note colour. Warm tones only — all three carry ink text. */
-  tone: 'butter' | 'flame' | 'cream';
-  /** Degrees of tilt on the pinned note. Straightens on hover and focus. */
-  tilt: number;
-  /** The snapshot stuck to the note. Real photographs from the impact report
-      rather than stock: the question "what's a pana" is answered better by a
-      room full of them than by any definition underneath it. The polaroid
-      counter-rotates against `tilt`, so these two fields are related. */
-  photo: {
-    src: string;
-    alt: string;
-    /** The line in the polaroid's bottom band. Short — it is a caption on a
-        photograph, not a second answer. */
-    caption: string;
-  };
-  /** The question the way a first-time visitor would actually ask it. */
+  /** Which side of the street this one sits on. Alternating puts the artwork
+      left, right, left as you walk down, instead of three identical rows. */
+  side: 'left' | 'right';
+  /** Panel colour. One warm, one blue, one paper — so the three read as
+      three different buildings rather than a repeated card. */
+  accent: 'orange' | 'blue' | 'paper';
+  /** The sign over the door, phrased the way a first-time visitor would ask. */
   question: string;
   /** Pronunciation or aside printed under the question. */
   aside?: string;
-  /** The answer on the face of the note, readable without opening anything. */
+  /** The answer on the face of the building, readable without opening it. */
   answer: string;
-  /** Label on the disclosure button, so each note names its own payoff. */
+  /** Label on the disclosure, so each place names its own payoff. */
   more: string;
-  /** Revealed when the note is opened. */
+  /** What is inside, revealed when the place is opened. */
   detail: NoteBlock[];
+  scene: BeatScene;
 }
 
-export const stickyNotes: StickyNote[] = [
+export const storyBeats: StoryBeat[] = [
   {
     id: 'pana',
-    tone: 'butter',
-    tilt: -2.2,
-    photo: {
-      src: '/img/impact/hero-mixer.webp',
-      alt: 'Panas gathered around a table at a Pana Mia community mixer',
-      caption: 'Mixer night · Miami-Dade',
+    side: 'left',
+    accent: 'orange',
+    scene: {
+      kind: 'collage',
+      photos: [
+        {
+          src: '/img/impact/hero-mixer.webp',
+          alt: 'Panas gathered around a table at a Pana Mia community mixer',
+          caption: 'Mixer night',
+        },
+        {
+          src: '/img/impact/pana-social-dinner.webp',
+          alt: 'A long communal dinner table filled with Pana Mia members',
+          caption: 'Long table',
+        },
+        {
+          src: '/img/impact/community-group.webp',
+          alt: 'A group of Pana Mia members together at a community gathering',
+          caption: 'The whole room',
+        },
+        {
+          src: '/img/about/clari_and_anette.webp',
+          alt: 'Two Pana Mia organisers together at an event',
+          caption: 'Organisers',
+        },
+      ],
     },
     question: "What's a pana?",
     aside: '/pah·nah/',
@@ -103,12 +146,24 @@ export const stickyNotes: StickyNote[] = [
   },
   {
     id: 'why',
-    tone: 'flame',
-    tilt: 1.6,
-    photo: {
-      src: '/img/impact/pana-social-dinner.webp',
-      alt: 'A long communal dinner table filled with Pana Mia members',
-      caption: 'Long table · Allapattah',
+    side: 'right',
+    accent: 'blue',
+    /* The deck draws this ring on the "THE LOCAL MOVEMENT" slide, where it
+       sits beside the "why local" argument. It is carried here instead, on
+       the ask of the panas who walked through the deck: read as artwork it
+       is the club's own thesis — the four things the whole project exists to
+       produce, with the logo in the middle of them — which is a better
+       answer to "why was this started" than to "why local". The four labels
+       are therefore no longer repeated as tags on the third place. */
+    scene: {
+      kind: 'ring',
+      centre: 'Pana MIA Club',
+      items: [
+        'Economic Resilience',
+        'Equitable Wealth',
+        'Environmental Benefits',
+        'Community Well-Being',
+      ],
     },
     question: 'Why was Pana MIA started?',
     answer:
@@ -138,12 +193,19 @@ export const stickyNotes: StickyNote[] = [
   },
   {
     id: 'local',
-    tone: 'cream',
-    tilt: -1.1,
-    photo: {
+    side: 'left',
+    accent: 'paper',
+    scene: {
+      kind: 'map',
+      // `floridamap_panamia.jpg` is the other candidate and it is the more
+      // heavily branded of the two, but its highlighted counties are hot pink
+      // — a colour that is not in this palette. This one is the ink silhouette
+      // with the three counties marked in red, orange and blue, which is the
+      // palette almost exactly. It carries its own county labels, so the tag
+      // row underneath is dropped rather than repeated.
       src: '/img/impact/county-map.webp',
-      alt: 'Map of the three South Florida counties Pana Mia covers',
-      caption: 'Broward · Miami-Dade · Palm Beach',
+      alt: 'Map of Florida with the three South Florida counties Pana Mia covers picked out',
+      counties: [],
     },
     question: 'Why local?',
     answer:
@@ -158,16 +220,6 @@ export const stickyNotes: StickyNote[] = [
           'Businesses stay beholden to the community, and are easier to hold accountable.',
           'More authentic art that preserves the culture of place. It should be a point of pride for our artists not to be starving.',
           'Local food sources, which make all of us more resilient.',
-        ],
-      },
-      {
-        kind: 'tags',
-        label: 'What it adds up to',
-        items: [
-          'Economic resilience',
-          'Equitable wealth',
-          'Environmental benefits',
-          'Community well-being',
         ],
       },
     ],
@@ -194,10 +246,10 @@ export interface Pillar {
   /** The deck's name for the pillar. */
   name: string;
   /** Fill colour for the panel. Each pillar is a solid block rather than a
-      tint of the wash behind it — a 7%-ink panel on citrus was easy to scroll
-      straight past. Kept to the three refresh-palette colours that hold up
-      against orange: `red` is a neighbour of burnt and disappears into it. */
-  accent: 'indigo' | 'butter' | 'ink';
+      tint of the band behind it — a 7%-ink panel on cream was easy to scroll
+      straight past. Three fills that stay apart from each other in a row, and
+      each takes the text colour that clears AA on it. */
+  accent: 'blue' | 'orange' | 'coral';
   /** The condition this pillar answers, in the deck's words. */
   problem: string;
   /** What Pana MIA does about it, in the deck's words. */
@@ -209,7 +261,7 @@ export const pillars: Pillar[] = [
   {
     id: 'tech',
     name: 'Collective Tech',
-    accent: 'indigo',
+    accent: 'blue',
     problem: 'Current tech prioritizes shareholder values.',
     answer:
       'We’re developing platforms that prioritize genuine connection, user data privacy, and ecological wellbeing.',
@@ -234,9 +286,9 @@ export const pillars: Pillar[] = [
   {
     id: 'community',
     name: 'Community Building',
-    /* Light between the two darks, so the row alternates rather than putting
-       indigo and ink next to each other. */
-    accent: 'butter',
+    /* The light one in the middle, so the row alternates rather than putting
+       the two strongest fills next to each other. */
+    accent: 'orange',
     problem: 'People feel disconnected from each other and the land.',
     answer:
       'Our programming focuses on bringing people together to build people power and develop a community’s agency to flourish.',
@@ -257,7 +309,7 @@ export const pillars: Pillar[] = [
   {
     id: 'culture',
     name: 'Culture Work',
-    accent: 'ink',
+    accent: 'coral',
     problem: 'Cultural change is lasting change.',
     answer:
       'We support arts projects that encourage collective dreaming and shift the narrative towards celebrating interconnectedness and joy.',

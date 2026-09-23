@@ -10,31 +10,44 @@ import ScrollReveal from '@/components/scroll-reveal';
 import { countyList } from '@/lib/lists';
 import { searchPath } from '@/lib/directory-search-path';
 import { MockControls, type Density } from './mock-controls';
-import { StickyBoard } from './sticky-board';
+import { StoryBeats } from './story-beats';
+import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
-import { pillars, stickyNotes } from '../_data';
+import { pillars, storyBeats } from '../_data';
 
 /**
- * Design mock for the homepage, four cards deep.
+ * Design mock for the homepage, told as one continuous scene.
  *
  * The live page runs eleven sections. This one runs four, because the panas
  * who came over with the Community Connectors deck were describing a front
  * page that answers three questions in order and then asks for something:
  *
  *   1. Search        — what are you looking for? (unchanged, it already works)
- *   2. The notes     — what is this place, and why does it exist?
+ *   2. The street    — what is this place, and why does it exist?
  *   3. The pillars   — what is actually being built?
  *   4. The point     — so join, or subscribe.
  *
- * What that costs, and where it goes:
+ * The scene is the newer idea and the load-bearing one. Pana MIA's whole
+ * argument is about a physical place — these counties, these blocks, the
+ * people on them — and the page was making that argument entirely in prose
+ * on a flat background. So the page now starts in the sky, comes down past a
+ * row of houses, shops and a park, and walks you along it. The sections did
+ * not move; the ground under them arrived.
+ *
+ * That also fixes something the sticky notes could not. Three small squares
+ * could hold a photograph or a sentence, but the club's case for itself is a
+ * room full of people, a diagram, and a map — and none of those fit on a
+ * square. Each answer now gets a full-width stop with its own artwork.
+ *
+ * What the four-card cut costs, and where it goes:
  *
  * - The category index, Featured Panas and the events band all restate the
  *   directory, which the search at the top already opens. They belong on
  *   /directory/search, which is where someone who used the search lands
  *   anyway.
- * - The FAQ's first three rows are now the notes; the rest are onboarding
- *   questions (cost, eligibility, terms) that belong next to the join form,
- *   not on a front page.
+ * - The FAQ's first three rows are now the three stops; the rest are
+ *   onboarding questions (cost, eligibility, terms) that belong next to the
+ *   join form, not on a front page.
  * - The impact band's figures are still unset, and a row of em dashes is not
  *   worth a fold. It comes back when there is a counts endpoint.
  * - "Community is a form of power" (Gather / Connect / Celebrate) is replaced
@@ -66,13 +79,14 @@ export function HomeMock() {
 
       <div className="flex min-h-screen flex-col" data-density={density}>
         <HeroCard />
+        <StreetBand />
         <InfoCard />
         <PillarsCard />
         <PointCard />
 
         {/* Every mock says where it came from, so a screenshot taken out of
             context still names its own route. */}
-        <p className="surface-cream py-6 text-center text-xs font-bold tracking-wider uppercase opacity-55">
+        <p className="story-colophon py-6 text-center text-xs font-bold tracking-wider uppercase opacity-55">
           Design mock · /mock/home · not a live page
         </p>
       </div>
@@ -103,14 +117,19 @@ function HeroCard() {
     /* No scalloped trim across the top. The scallop is a good edge when two
        different colours meet and the seam is worth decorating — it is how
        `.point` announces itself against the section above. Here the masthead
-       is cream and this card is cream, so there is no seam to dress: the
-       trim was drawing an edge rather than finishing one, which made the
-       card read as a shape pasted onto the page instead of the top of it.
+       and the top of this card are the same colour, so there is no seam to
+       dress: the trim was drawing an edge rather than finishing one, which
+       made the card read as a shape pasted onto the page instead of the top
+       of it.
 
-       Nothing behind the search but light — see `.home-hero-field`. The
-       background is pure CSS now, so there is no full-bleed JPEG sitting in
-       front of the one thing this card is for. */
+       The field behind the search is sky — see `.home-hero-field`. It runs
+       vivid blue at the very top and eases to paper by the time it reaches
+       the headline, so the page opens outdoors but the wordmark, the type
+       and the search all sit on cream where they are legible. Orange on that
+       blue is a poor pairing and the search is the one thing this card is
+       for; the gradient exists so the sky never gets near it. */
     <section className="home-hero-banner home-hero-field">
+      <SkyClouds />
       <div className="home-hero-grain" aria-hidden="true" />
 
       <div className="relative z-10 container mx-auto px-4">
@@ -190,12 +209,35 @@ function HeroCard() {
                 Donate
               </Link>
             </div>
-            <div className="hero-meta-note">
-              Scroll ↓ · Start with the basics
-            </div>
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   The street
+   ------------------------------------------------------------------------- */
+
+/**
+ * The block the rest of the page stands on.
+ *
+ * It is its own band rather than decoration bolted to the bottom of the hero
+ * or the top of the next section, because it belongs to neither: it is the
+ * horizon the search sits above and the ground the three stops sit on, and
+ * making it a section of its own is what lets both of those be true without
+ * either one owning it.
+ *
+ * The scroll hint moved down here from the hero's meta line. It was competing
+ * with the county chips for the same corner; on the street it has a job,
+ * which is to say that the drawing is not the end of the page.
+ */
+function StreetBand() {
+  return (
+    <section className="story-street" aria-label="Pana Mia's neighbourhood">
+      <StreetScene />
+      <p className="story-street-note">Scroll ↓ · Start with the basics</p>
     </section>
   );
 }
@@ -206,14 +248,7 @@ function HeroCard() {
 
 function InfoCard() {
   return (
-    /* `home-handoff` catches the hero's glow and carries it a little way down
-       into the butter, so the two sections share an edge instead of meeting
-       at one. Both ends of that ramp resolve to `--home-seam`, so they cannot
-       drift apart. */
-    <section
-      id="what-is-this"
-      className="home-section home-handoff surface-butter-2"
-    >
+    <section id="what-is-this" className="home-section story-basics">
       <div className="container mx-auto px-4">
         <div className="home-sectionhead max-w-3xl" data-rv>
           <span className="section-eyebrow">Start Here</span>
@@ -223,14 +258,17 @@ function InfoCard() {
             <em className="display-accent">the basics</em>
           </h2>
           <p className="section-lede">
-            Three questions everyone asks in their first minute here. The
-            answers are on the front of each note — open one for the long
-            version.
+            Three questions everyone asks in their first minute here. Each one
+            gets a stop on the block — the answer is right there, and there is
+            more behind it if you want it.
           </p>
         </div>
-
-        <StickyBoard notes={stickyNotes} />
       </div>
+
+      {/* Out of the container on purpose. These run the full width so the
+          artwork on each one has room to be artwork rather than a thumbnail
+          in a column. */}
+      <StoryBeats beats={storyBeats} />
     </section>
   );
 }
@@ -241,12 +279,12 @@ function InfoCard() {
 
 function PillarsCard() {
   return (
-    <section id="pillars" className="home-section surface-citrus">
+    <section id="pillars" className="home-section story-pillars">
       <div className="container mx-auto px-4">
         <div className="home-sectionhead" data-rv>
           {/* No colour utility here: `.section-eyebrow` hard-codes indigo and
-              is unlayered, so it beats one anyway. Indigo on the citrus wash
-              is the pairing the rest of the site already uses. */}
+              is unlayered, so it beats one anyway. The section overrides it
+              by name in CSS instead. */}
           <span className="section-eyebrow">The Future Of Pana MIA</span>
           <h2 className="section-display">
             Three ways
@@ -282,8 +320,8 @@ function PillarsCard() {
 function PointCard() {
   return (
     <section
-      className="home-section surface-indigo scallop"
-      style={{ '--scallop': 'var(--color-pana-burnt)' } as CSSProperties}
+      className="home-section story-point scallop"
+      style={{ '--scallop': 'var(--story-cream)' } as CSSProperties}
     >
       <div className="container mx-auto px-4" data-rv>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -294,7 +332,7 @@ function PointCard() {
             </h2>
           </div>
           <div>
-            <p className="section-lede text-white/85">
+            <p className="section-lede story-point-body">
               Pana MIA is built by and for locally based creatives,
               organizations and small businesses across Broward, Miami-Dade and
               Palm Beach. Join the directory, or start by finding someone
@@ -304,7 +342,7 @@ function PointCard() {
               <Button
                 size="lg"
                 asChild
-                className="bg-pana-flame text-pana-ink hover:bg-pana-burnt rounded-full font-extrabold"
+                className="story-btn story-btn-solid rounded-full font-extrabold"
               >
                 <Link href="/form/become-a-pana">Become a Pana</Link>
               </Button>
@@ -312,15 +350,15 @@ function PointCard() {
                 size="lg"
                 variant="outline"
                 asChild
-                className="text-pana-cream hover:text-pana-ink hover:bg-pana-cream rounded-full border-2 border-white/40 bg-transparent font-extrabold"
+                className="story-btn story-btn-ghost rounded-full border-2 font-extrabold"
               >
                 <Link href="/directory/search">Search the directory</Link>
               </Button>
             </div>
 
-            <div className="mt-10 border-t border-white/20 pt-8">
+            <div className="story-point-rule mt-10 border-t pt-8">
               <span className="section-eyebrow">Our Newsletter</span>
-              <p className="section-lede mt-4 text-white/85">
+              <p className="section-lede story-point-body mt-4">
                 Get new Panas, events and dispatches in your inbox. No noise.
               </p>
               <div className="mt-5 flex max-w-lg flex-wrap items-center gap-3">
@@ -329,25 +367,25 @@ function PointCard() {
                   disabled
                   aria-describedby="mock-newsletter-status"
                   placeholder="you@email.com"
-                  className="text-pana-cream min-w-0 flex-1 rounded-full border-2 border-white/25 bg-white/5 px-5 py-3 font-semibold placeholder:text-white/45 disabled:cursor-not-allowed"
+                  className="story-point-input min-w-0 flex-1 rounded-full border-2 px-5 py-3 font-semibold disabled:cursor-not-allowed"
                 />
                 <Button
                   size="lg"
                   disabled
-                  className="bg-pana-butter text-pana-ink rounded-full font-extrabold"
+                  className="story-btn story-btn-solid rounded-full font-extrabold"
                 >
                   Subscribe
                 </Button>
               </div>
               <span
                 id="mock-newsletter-status"
-                className="coming-soon text-pana-butter mt-4"
+                className="coming-soon story-point-accent mt-4"
               >
                 Coming soon
               </span>
             </div>
 
-            <Link href="/a" className="link-arrow text-pana-butter mt-10">
+            <Link href="/a" className="link-arrow story-point-accent mt-10">
               Read the dispatches
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
