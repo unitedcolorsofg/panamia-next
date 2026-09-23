@@ -74,6 +74,10 @@ export async function GET(request: NextRequest) {
       .leftJoin(users, eq(profiles.userId, users.id))
       .where(
         and(
+          // Also the gate on two classes of row the widened userId check below
+          // now admits: intake writes active: false, so an unapproved public
+          // submission cannot reach the homepage, and delete-account clears it
+          // on a tombstoned profile. Not merely "is this listing live".
           eq(profiles.active, true),
           // A card links to /p/[handle], so a profile with no handle on either
           // side has nowhere to point.

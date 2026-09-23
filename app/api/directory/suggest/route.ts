@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, asc, eq, inArray, isNotNull, or, sql, SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, sql, SQL } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 /**
@@ -56,6 +56,13 @@ export async function GET(request: NextRequest) {
   const fiveWords = sql<string | null>`${profiles.descriptions}->>'fiveWords'`;
   const tags = sql<string | null>`${profiles.descriptions}->>'tags'`;
 
+  // /p/[handle] resolves the profile's own screenname first and falls back to
+  // its owner's, the same order lib/server/directory.ts uses. A business
+  // listing carries its handle here because it has no user row to carry one.
+  const handle = sql<
+    string | null
+  >`COALESCE(${profiles.screenname}, ${users.screenname})`;
+
   const matches = (column: SQL<string | null> | typeof profiles.name) =>
     sql`${column} ILIKE ${contains} ESCAPE '\\'`;
 
@@ -64,21 +71,32 @@ export async function GET(request: NextRequest) {
       .select({
         id: profiles.id,
         name: profiles.name,
-        screenname: users.screenname,
+        screenname: handle,
         primaryImageCdn: profiles.primaryImageCdn,
         addressLocality: profiles.addressLocality,
         fiveWords,
       })
       .from(profiles)
-      // Inner join, not left: /p/[user] resolves through users.screenname, so a
-      // profile without one has nowhere for a suggestion to navigate to.
-      .innerJoin(users, eq(profiles.userId, users.id))
+      // Left, not inner: a business listing submitted through
+      // /form/list-your-business keeps profiles.userId NULL permanently and is
+      // administered through profileOwners, so an inner join drops the
+      // directory's main content type before any filter below runs.
+      .leftJoin(users, eq(profiles.userId, users.id))
       .where(
         and(
+          // Also the gate on unapproved submissions: intake writes
+          // active: false, so nothing reaches the typeahead until it is live.
           eq(profiles.active, true),
-          isNotNull(users.screenname),
-          // Personal accounts search the directory; they don't appear in it.
-          inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES),
+          // A suggestion navigates to /p/[handle], so a profile with no handle
+          // on either side has nowhere to go.
+          sql`COALESCE(${profiles.screenname}, ${users.screenname}) IS NOT NULL`,
+          // Personal accounts search the directory; they don't appear in it. A
+          // listing with no user carries no account type to test and is a
+          // listing by definition — the same reasoning getSearch() applies.
+          or(
+            isNull(profiles.userId),
+            inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+          ),
           or(matches(profiles.name), matches(fiveWords), matches(tags))
         )
       )
