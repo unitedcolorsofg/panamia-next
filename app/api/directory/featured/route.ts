@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
 
 /**
@@ -16,6 +16,16 @@ import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
  * adding one would mean the section sat empty until somebody populated it.
  * Rotation shows a different slice of the community on each cache cycle, which
  * is the behaviour the design is after.
+ *
+ * Eligibility deliberately mirrors `getSearch()`. Anything the directory can
+ * return, this can feature. That is not a stylistic preference: business
+ * listings submitted through /form/list-your-business keep `profiles.userId`
+ * NULL permanently and are administered through `profileOwners`, because
+ * `userId` is unique and would otherwise cap a Pana at one listing (see
+ * lib/server/profile-owners.ts). An inner join on `users` therefore excluded
+ * every business listing in the directory — claimed or not — and left this
+ * endpoint able to surface only sole traders whose own identity profile was
+ * their listing.
  */
 
 // Three across at desktop. More than one row buries everything below it.
@@ -41,29 +51,43 @@ export async function GET(request: NextRequest) {
   // `descriptions` is jsonb, so the display text comes out via ->>.
   const fiveWords = sql<string | null>`${profiles.descriptions}->>'fiveWords'`;
 
+  // /p/[handle] resolves the profile's own screenname first and falls back to
+  // its owner's, the same order lib/server/directory.ts uses. A business
+  // listing carries its handle here because it has no user row to carry one.
+  const screenname = sql<
+    string | null
+  >`COALESCE(${profiles.screenname}, ${users.screenname})`;
+
   try {
     const rows = await db
       .select({
         id: profiles.id,
         name: profiles.name,
-        screenname: users.screenname,
+        screenname,
         primaryImageCdn: profiles.primaryImageCdn,
         addressLocality: profiles.addressLocality,
         fiveWords,
       })
       .from(profiles)
-      // Inner join, not left: /p/[user] resolves through users.screenname, so
-      // a profile without one has nowhere for a card to link to.
-      .innerJoin(users, eq(profiles.userId, users.id))
+      // Left, not inner: a business listing has no user row at all, so an
+      // inner join drops it before any filter below gets to run.
+      .leftJoin(users, eq(profiles.userId, users.id))
       .where(
         and(
           eq(profiles.active, true),
-          isNotNull(users.screenname),
+          // A card links to /p/[handle], so a profile with no handle on either
+          // side has nowhere to point.
+          sql`COALESCE(${profiles.screenname}, ${users.screenname}) IS NOT NULL`,
           // A card is mostly photograph, so a profile without one would render
           // as an empty box beside two real ones.
           isNotNull(profiles.primaryImageCdn),
           // Personal accounts search the directory; they don't appear in it.
-          inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+          // A listing with no user has no account type to test, and is a
+          // listing by definition — the same reasoning getSearch() applies.
+          or(
+            isNull(profiles.userId),
+            inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+          )
         )
       )
       .orderBy(sql`RANDOM()`)
