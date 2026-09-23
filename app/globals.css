@@ -5028,7 +5028,7 @@ body:has([data-density]) {
 
   display: flex;
   flex-direction: column;
-  height: calc(100svh - var(--masthead-h));
+  height: calc(100svh - var(--masthead-h) - var(--mock-chrome-h, 0px));
   min-height: min-content;
 }
 
@@ -5041,6 +5041,41 @@ body:has([data-density]) {
 .home-first .story-street {
   flex: 1 1 auto;
   min-height: 8rem;
+}
+
+/* Short screens. A 768-tall laptop is the tightest case on the desktop side,
+   and it got tighter when the first screen started ending above the mock
+   bar rather than behind it. Of the three things sharing that height the
+   card is the only one with slack: the town has a floor below which it
+   stops being a town, and the hint is a single line. So here the card gives
+   up the difference — smaller wordmark, smaller headline, less air above it
+   — rather than the composition spilling past the fold and pushing the hint
+   somewhere nobody will read it.
+
+   Desktop only. Narrow screens are already below every one of these clamps,
+   and a phone held in portrait is not short. */
+@media (max-height: 56rem) and (min-width: 48rem) {
+  [data-density] {
+    --home-display-max: 2.75rem;
+    --home-hero-pad-top: 24px;
+    --home-hero-pad-bottom: 0.75rem;
+  }
+
+  /* Beats the `mb-8 md:mb-10` and `max-w-` utilities on the wordmark: rules
+     here are unlayered, so they win against Tailwind regardless of order. */
+  [data-density] .flower-power-logo {
+    max-width: min(19rem, 60vw);
+    margin-bottom: 1.25rem;
+  }
+
+  /* The headline is the largest single item on the card — two lines at
+     13svh is 188px of a 768-tall screen, more than the town gets. The
+     ceiling comes down to roughly a tenth of the screen here; the floor and
+     the width term are untouched, so nothing changes on any screen tall
+     enough not to need it. */
+  [data-density] .home-hero-field .hero-headline {
+    font-size: clamp(38px, min(8.4vw, 9.8svh), 126px);
+  }
 }
 
 /* Out of flow, anchored to the bottom of the band, filling its height. Out
@@ -5056,21 +5091,23 @@ body:has([data-density]) {
   height: 100%;
 }
 
-.home-first .street-svg {
-  height: 100%;
-}
-
 /* The drawing is out of flow and fills the band, so there is nothing left
-   for padding to space away from. */
+   for padding to space away from. `position: relative` is what it is
+   positioned against — without it the drawing anchors to the viewport. */
 .story-street {
   position: relative;
   background-color: var(--story-cream);
 }
 
-/* Static, on the card. It used to be absolutely positioned across the top of
-   the street band, which only worked while that band had spare sky in it. */
+/* Static, below the town, and the last thing on the first screen — the town
+   is what it is telling you to scroll past, so it has to come after it.
+   Cream so it reads as more pavement rather than as a band under the
+   drawing, and `flex: none` so the street gives up the height for it rather
+   than the card, which has none to give. */
 .story-street-note {
-  margin-top: 1.1rem;
+  flex: 0 0 auto;
+  padding-block: 0.55rem 0.7rem;
+  background-color: var(--story-cream);
   text-align: center;
   font-size: 0.75rem;
   font-weight: 800;
