@@ -80,7 +80,7 @@ export function PostActions({
           variant="ghost"
           size="sm"
           aria-label={replyLabel}
-          className="text-muted-foreground hover:text-foreground h-8 px-2"
+          className="text-muted-foreground hover:text-foreground h-8 px-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
           onClick={onReply}
         >
           <MessageCircle className="mr-1 h-4 w-4" />
@@ -93,7 +93,7 @@ export function PostActions({
         size="sm"
         aria-label={likeLabel}
         aria-pressed={liked}
-        className={`h-8 px-2 ${
+        className={`h-8 px-2 pointer-coarse:h-11 pointer-coarse:min-w-11 ${
           liked
             ? 'text-red-500 hover:text-red-600'
             : 'text-muted-foreground hover:text-red-500'
@@ -109,7 +109,7 @@ export function PostActions({
         variant="ghost"
         size="sm"
         aria-label="Copy link to post"
-        className="text-muted-foreground hover:text-foreground h-8 px-2"
+        className="text-muted-foreground hover:text-foreground h-8 px-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
         onClick={handleShare}
       >
         <Share2 className="h-4 w-4" />

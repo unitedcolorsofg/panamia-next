@@ -2025,6 +2025,31 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-burnt);
 }
 
+/* Touch targets.
+ *
+ * .post-action sizes itself to its own content — an icon and a two-digit
+ * count — which lands at roughly 30x20. That is a comfortable click with a
+ * mouse and well under every published minimum for a finger (44px), and these
+ * are the primary gestures of the whole feed: reply, like, boost.
+ *
+ * Gated on `pointer: coarse` rather than a width breakpoint, because the
+ * question is what is doing the pointing, not how wide the screen is. A phone
+ * in landscape is still a finger; a small desktop window is still a mouse.
+ * Desktop keeps its tight rhythm and only touch devices pay the extra height.
+ *
+ * Sized with padding and min-height rather than a transparent ::after overlay:
+ * an overlay would leave the row visually unchanged, but at this gap the
+ * expanded hit areas of adjacent actions would overlap and start stealing each
+ * other's taps — trading a small target for a wrong one. */
+@media (pointer: coarse) {
+  .post-action {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    padding-inline: 0.5rem;
+  }
+}
+
 /* Reserved module. Dashed and unfilled on purpose: it has to read as space
    held open for a feature, never as a card that failed to load. */
 .reserved-slot {
@@ -2779,6 +2804,34 @@ button.bizprofile-update-action:hover {
   position: sticky;
   top: 0;
   z-index: 40;
+}
+
+/* Safe areas.
+ *
+ * The root layout sets `viewport-fit: cover`, without which every
+ * env(safe-area-inset-*) resolves to 0 and any padding written against them
+ * silently does nothing. That flag is what makes an installed app reach the
+ * edges of a notched screen — and it is also what lets a sticky masthead slide
+ * under the notch if nothing compensates, so these rules are the other half of
+ * it rather than a refinement.
+ *
+ * `max()` rather than addition: the inset is a floor, not a surcharge. On a
+ * device with no notch every one of these resolves to 0 and the existing
+ * padding is what applies, so this is inert everywhere it is not needed. */
+.panaverse-masthead {
+  padding-left: max(1.125rem, env(safe-area-inset-left));
+  padding-right: max(1.125rem, env(safe-area-inset-right));
+}
+
+.panaverse-masthead[data-sticky='true'] {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+/* The home indicator floats over the foot of the viewport, so the last thing
+   in a scrolling column needs clearance to stay tappable rather than merely
+   visible. */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Full bleed, the bar spans the viewport but its contents must line up with

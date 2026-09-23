@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
 import '../styles/flower-power.css';
@@ -13,6 +13,7 @@ import {
   originForFrom,
   surfaceForPath,
   getRootDomain,
+  DEFAULT_SURFACE,
 } from '@/lib/panaverse/surfaces';
 import { SURFACE_DESCRIPTION } from '@/lib/panaverse/branding';
 import {
@@ -63,9 +64,45 @@ export async function generateMetadata(): Promise<Metadata> {
     ? surfaceForPath(pathname as string)
     : null;
 
+  /* Which app this page would install as, which is not always the surface the
+   * hostname names.
+   *
+   * `resolveSurface` reads the Host header alone, and that is the right answer
+   * once a surface has a hostname of its own: social.pana.social owns its
+   * origin, so every page on it installs as Pana Social. But while
+   * PANAVERSE_SUBDOMAINS is off — the configuration we actually ship — Pana
+   * Social lives at pana.social/s, where the host resolves to the default
+   * surface. Keying the install off the host there hands a member who installs
+   * from the feed a tile labelled Pana Mia that opens the directory.
+   *
+   * So the host decides whenever it names a surface, and the path decides when
+   * it cannot. This is the same rule `wearsGuestChrome` already applies: a
+   * non-default hostname owns its origin outright. */
+  const installSurface =
+    surface.id === DEFAULT_SURFACE.id && pathname
+      ? surfaceForPath(pathname)
+      : surface;
+
   return {
     title: surface.name,
     description: SURFACE_DESCRIPTION[surface.id],
+    /* The surface is passed explicitly because a manifest request carries the
+     * origin but not the path that asked for it, and while PANAVERSE_SUBDOMAINS
+     * is off both surfaces answer on one origin — so the Host header alone
+     * cannot tell Pana Social from Pana Mia. See
+     * app/manifest.webmanifest/route.ts. */
+    manifest: `/manifest.webmanifest?s=${installSurface.id}`,
+    appleWebApp: {
+      capable: true,
+      /* The home screen label, and so part of the install identity rather than
+       * the page's chrome: it follows installSurface for the same reason the
+       * manifest does. */
+      title: installSurface.name,
+      /* Translucent rather than 'default': the masthead already paints to the
+       * top of the viewport, so an opaque status bar would sit on a second
+       * band of background above it. */
+      statusBarStyle: 'black-translucent',
+    },
     ...(owner && pathname
       ? {
           /* Both halves are load-bearing, and the second is the one that
@@ -88,6 +125,28 @@ export async function generateMetadata(): Promise<Metadata> {
       : {}),
   };
 }
+
+/**
+ * Viewport and installed-app chrome.
+ *
+ * `viewportFit: 'cover'` is the half that is easy to miss: the safe-area-inset
+ * env() variables all resolve to 0 without it, so any padding written against
+ * them silently does nothing. It is what lets content reach the edges of a
+ * notched screen while the CSS keeps controls clear of the notch and the home
+ * indicator — which matters the moment this is installed and runs without
+ * browser chrome to absorb those areas.
+ *
+ * `themeColor` is the shared Pana orange rather than a per-surface value:
+ * every surface flies the same mark in the same orange on purpose (see
+ * lib/panaverse/branding.ts), so the browser UI tint is genuinely common to
+ * all of them and does not need to be resolved per request.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#ff8100',
+};
 
 export default async function RootLayout({
   children,

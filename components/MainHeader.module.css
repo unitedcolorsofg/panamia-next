@@ -305,6 +305,22 @@
   color: var(--color-pana-flame);
 }
 
+/* Touch pointers get the full 44px target.
+ *
+ * Gated on pointer type rather than a width breakpoint, for the same reason
+ * the post actions are: the question is what is doing the pointing, not how
+ * wide the screen is. A phone in landscape is still a finger, and a narrow
+ * desktop window is still a mouse — so the desktop masthead keeps its tighter
+ * rhythm untouched. */
+@media (pointer: coarse) {
+  .menuButton {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    padding-inline: 10px;
+  }
+}
+
 .bars {
   display: grid;
   gap: 4px;
