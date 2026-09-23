@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import type { NoteBlock, StoryBeat } from './content';
 import { BeatSceneArt } from './beat-scenes';
+import { RailNav, useRail } from './rail';
 
 interface StoryBeatsProps {
   beats: StoryBeat[];
@@ -19,18 +20,17 @@ interface StoryBeatsProps {
  * knowing what a pana is has to scroll past everything the site sells before
  * finding out what it is selling.
  *
- * So the answers come up to second position, directly under the search. They
- * were briefly three sticky notes on a board; they are now three full-width
- * stops, because the notes had a ceiling. A note is a small square, and a
- * small square can hold a photograph or a sentence but not an argument. The
- * club's case for itself is a diagram and a map and a room full of people,
- * and none of those fit on a square.
+ * So the answers come up to second position, directly under the search, and
+ * all three fit one screen: three shopfronts on a block rather than three
+ * full-width stops stacked down the page. Three questions that a visitor is
+ * weighing against each other should be visible at the same time — stacked,
+ * the third one was 1,700px below the first and most people never learned it
+ * was there.
  *
- * The sides alternate — artwork left, right, left — so scrolling through them
- * reads as walking past three shopfronts rather than reading three rows of a
- * table. Nothing here requires a click: the face of each stop answers its
- * question outright, and opening one adds the deck's full text for anyone who
- * wants it. That is a different promise from an accordion, where the click
+ * Below 60rem the block becomes a horizontal rail with the next card showing
+ * at the edge. Nothing here requires a click: the face of each stop answers
+ * its question outright, and opening one draws the deck's full text over the
+ * shop window. That is a different promise from an accordion, where the click
  * *is* the answer.
  */
 export function StoryBeats({ beats }: StoryBeatsProps) {
@@ -39,66 +39,106 @@ export function StoryBeats({ beats }: StoryBeatsProps) {
   // keep closing one to read the other.
   const [open, setOpen] = useState<string[]>([]);
 
+  const { railRef, rail, syncRail, nudge } = useRail<HTMLDivElement>('.beat');
+  const toggleRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
   const toggle = (id: string) =>
     setOpen((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
 
+  const close = (id: string) => {
+    setOpen((prev) => prev.filter((item) => item !== id));
+    // Back to the control that opened it, rather than dumping focus at the
+    // top of the document.
+    toggleRefs.current[id]?.focus();
+  };
+
   return (
-    <div className="beats">
-      {beats.map((beat) => {
-        const isOpen = open.includes(beat.id);
-        return (
-          <section
-            key={beat.id}
-            id={beat.anchor}
-            className="beat"
-            data-side={beat.side}
-            data-accent={beat.accent}
-          >
-            <div className="beat-art" data-rv>
-              <BeatSceneArt scene={beat.scene} />
-            </div>
+    <div className="beats-rail">
+      <div className="beats" ref={railRef} onScroll={syncRail}>
+        {beats.map((beat) => {
+          const isOpen = open.includes(beat.id);
+          return (
+            <section
+              key={beat.id}
+              id={beat.anchor}
+              className="beat"
+              data-side={beat.side}
+              data-accent={beat.accent}
+            >
+              <div className="beat-art" data-rv>
+                <BeatSceneArt scene={beat.scene} />
+              </div>
 
-            <div className="beat-copy" data-rv>
-              {/* The question is hung like a shop sign rather than set as a
-                  heading, because on a street that is what it is. It stays a
-                  real h3 underneath. */}
-              <h3 className="beat-sign">{beat.question}</h3>
+              <div className="beat-copy" data-rv>
+                {/* The question is hung like a shop sign rather than set as a
+                    heading, because on a street that is what it is. It stays a
+                    real h3 underneath. */}
+                <h3 className="beat-sign">{beat.question}</h3>
 
-              {beat.aside && <p className="beat-aside">{beat.aside}</p>}
-              <p className="beat-answer">{beat.answer}</p>
+                {beat.aside && <p className="beat-aside">{beat.aside}</p>}
+                <p className="beat-answer">{beat.answer}</p>
 
-              <button
-                type="button"
-                className="beat-toggle"
-                aria-expanded={isOpen}
-                aria-controls={`beat-${beat.id}`}
-                onClick={() => toggle(beat.id)}
-              >
-                {isOpen ? (
-                  <Minus className="h-4 w-4" aria-hidden="true" />
-                ) : (
+                <button
+                  type="button"
+                  className="beat-toggle"
+                  ref={(node) => {
+                    toggleRefs.current[beat.id] = node;
+                  }}
+                  aria-expanded={isOpen}
+                  aria-controls={`beat-${beat.id}`}
+                  onClick={() => toggle(beat.id)}
+                >
                   <Plus className="h-4 w-4" aria-hidden="true" />
-                )}
-                {isOpen ? 'Close' : beat.more}
-              </button>
+                  {beat.more}
+                </button>
+              </div>
 
-              {/* `hidden` rather than unmounting, so the id the button points
+              {/* Drawn over the card rather than pushed under it. The three
+                  cards are one row of a grid, so a panel that grows its own
+                  card grows all three — open the shortest note and the other
+                  two gain a third of a screen of nothing. Over the top, the
+                  row never changes size and the section keeps its promise of
+                  fitting one screen.
+
+                  `hidden` rather than unmounting, so the id the button points
                   at with aria-controls exists whether or not it is open. */}
               <div
                 id={`beat-${beat.id}`}
                 className="beat-detail"
                 hidden={!isOpen}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') close(beat.id);
+                }}
               >
-                {beat.detail.map((block, index) => (
-                  <BeatBlockView key={index} block={block} />
-                ))}
+                <div className="beat-detail-body">
+                  {beat.detail.map((block, index) => (
+                    <BeatBlockView key={index} block={block} />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="beat-detail-close"
+                  onClick={() => close(beat.id)}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">Close</span>
+                </button>
               </div>
-            </div>
-          </section>
-        );
-      })}
+            </section>
+          );
+        })}
+      </div>
+
+      <RailNav
+        rail={rail}
+        nudge={nudge}
+        className="beats-nav"
+        prevLabel="Previous question"
+        nextLabel="Next question"
+      />
     </div>
   );
 }

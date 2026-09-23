@@ -49,11 +49,12 @@ export type NoteBlock =
 /**
  * The artwork that answers each question.
  *
- * A tagged union rather than a shared `image` field, because these three are
- * not the same kind of picture doing three jobs — they are three different
- * arguments. A photograph of a room proves a word means people; a diagram
- * proves a claim has parts; a map proves a place is a real place. Giving them
- * one shape would have meant one renderer hedging across all three.
+ * A tagged union rather than a shared `image` field, because these are not
+ * the same kind of picture doing one job — they are four different arguments.
+ * A photograph of a room proves a word means people; a diagram proves a claim
+ * has parts; a map proves a place is a real place; a banner is how a slogan
+ * is actually said out loud. Giving them one shape would have meant one
+ * renderer hedging across all four.
  */
 export type BeatScene =
   | {
@@ -75,6 +76,15 @@ export type BeatScene =
       src: string;
       alt: string;
       counties: string[];
+    }
+  | {
+      /** The vision, strung up as cloth. It is one short shout — "the future
+          is local!" — and a shout wants a banner over the street, not a
+          diagram. Drawn rather than photographed so the words stay real
+          text: selectable, translatable and legible to a screen reader. */
+      kind: 'banner';
+      headline: string;
+      caption: string;
     };
 
 export interface StoryBeat {
@@ -86,11 +96,12 @@ export interface StoryBeat {
       those visitors at the top of the page. */
   anchor?: string;
   /** Which side of the street this one sits on. Alternating puts the artwork
-      left, right, left as you walk down, instead of three identical rows. */
+      right, left, right, left as you walk down, instead of four identical
+      rows all arriving from the same direction. */
   side: 'left' | 'right';
-  /** Panel colour. One warm, one blue, one paper — so the three read as three
-      different buildings rather than a repeated card. */
-  accent: 'orange' | 'blue' | 'paper';
+  /** Panel colour. One red, one warm, one blue, one paper — so the four read
+      as four different buildings rather than a repeated card. */
+  accent: 'orange' | 'blue' | 'paper' | 'red';
   /** The sign over the door, phrased the way a first-time visitor would ask. */
   question: string;
   /** Pronunciation or aside printed under the question. */
@@ -214,6 +225,28 @@ export function useStoryBeats(): StoryBeat[] {
 
   return [
     {
+      id: 'panamia',
+      side: 'right',
+      accent: 'red',
+      question: t('beats.panamia.question'),
+      answer: t('beats.panamia.answer'),
+      more: t('beats.panamia.more'),
+      scene: {
+        kind: 'banner',
+        headline: t('beats.panamia.banner.headline'),
+        caption: t('beats.panamia.banner.caption'),
+      },
+      /* The mission lives here rather than under "why was this started",
+         where it used to sit. It is the answer to what the club *is* — a
+         community connector — so on a stop actually named after the club it
+         is the payoff, while on the origin story it was a second, drier
+         version of a question already answered. It is only said once. */
+      detail: [
+        { kind: 'paragraph', text: t('beats.panamia.mission') },
+        { kind: 'paragraph', text: t('beats.panamia.promise') },
+      ],
+    },
+    {
       id: 'pana',
       anchor: 'faq-what-is-a-pana',
       side: 'left',
@@ -263,7 +296,6 @@ export function useStoryBeats(): StoryBeat[] {
         items: list('beats.why.ring.items'),
       },
       detail: [
-        { kind: 'paragraph', text: t('beats.why.mission') },
         { kind: 'paragraph', text: t('beats.why.invitation') },
         {
           kind: 'tags',

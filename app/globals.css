@@ -4475,10 +4475,10 @@ button.bizprofile-update-action:hover {
      and the card comes up the page by about 150px. */
   --home-hero-pad-top: clamp(40px, 9svh, 148px);
   --home-hero-pad-bottom: clamp(20px, min(2.4vw, 3.5svh), 34px);
-  /* How far apart consecutive stops on the walk sit, and how wide the art
-     half of a stop is allowed to get before it starts crowding the words. */
-  --home-beat-gap: 5.5rem;
-  --home-beat-art: 24rem;
+  /* The gap between shopfronts, and the height of the window each one's
+     artwork sits in. One height for all three so the signs hang level. */
+  --home-beat-gap: 1.75rem;
+  --home-beat-art: 13rem;
 }
 
 [data-density='compact'] {
@@ -4500,8 +4500,8 @@ button.bizprofile-update-action:hover {
      is inside it, so this padding is a much larger share of the whole. */
   --home-hero-pad-top: clamp(24px, 6svh, 96px);
   --home-hero-pad-bottom: 1.25rem;
-  --home-beat-gap: 3.75rem;
-  --home-beat-art: 20rem;
+  --home-beat-gap: 1.25rem;
+  --home-beat-art: 11rem;
 }
 
 @media (min-width: 48rem) {
@@ -5012,6 +5012,89 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   }
 }
 
+/* Reduced motion has to park them, not just stop them.
+
+   `left: 100%` is set in the `no-preference` block above, because it is the
+   lap's starting edge. That means it is the *animation* that was giving each
+   cloud a horizontal position at all — the base rule sets only `top`. Switch
+   the animation off and all five resolve to `left: auto`, which puts them on
+   the sky's left edge, stacked into one lump in the corner with the rest of
+   the sky empty. It reads as a broken image rather than as a still one.
+
+   So place them explicitly. The order and spacing mirror the lap: cloud 5
+   leads and 4 brings up the rear, the same sequence the delays produce, at
+   roughly the same fifth-of-a-lap spacing. The `top` values already differ,
+   so this lands as a scattered sky rather than a row.
+
+   Centred on each point with `translate` so the two outermost cannot be
+   clipped by `.sky-clouds` on a narrow viewport — at 375px the three clouds
+   that survive the phone breakpoint all clear both edges. `translate` is
+   free to use here: the float animation owns that property, and under this
+   query it does not exist. */
+@media (prefers-reduced-motion: reduce) {
+  .sky-cloud {
+    translate: -50%;
+  }
+
+  .sky-cloud-5 {
+    left: 10%;
+  }
+
+  .sky-cloud-3 {
+    left: 27%;
+  }
+
+  .sky-cloud-1 {
+    left: 45%;
+  }
+
+  .sky-cloud-2 {
+    left: 62%;
+  }
+
+  .sky-cloud-4 {
+    left: 78%;
+  }
+}
+
+/* Below the phone breakpoint only clouds 1, 3 and 4 survive, and their widths
+   add up to 410px — more than a 360px viewport holds. The lap normally solves
+   this by moving them through each other's space over time; a still sky has to
+   solve it with geometry.
+
+   So two tiers. Down to ~544px the three are simply pushed out to the full
+   width of the sky, which leaves a comfortable gap between each. Below that
+   the three no longer fit with any margin to spare, so the middle one goes
+   and the remaining pair re-centres — two clouds still cover three quarters
+   of a phone's sky, which reads as weather rather than as a gap. */
+@media (prefers-reduced-motion: reduce) and (max-width: 48rem) {
+  .sky-cloud-3 {
+    left: 16%;
+  }
+
+  .sky-cloud-1 {
+    left: 46%;
+  }
+
+  .sky-cloud-4 {
+    left: 82%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (max-width: 34rem) {
+  .sky-cloud-1 {
+    display: none;
+  }
+
+  .sky-cloud-3 {
+    left: 25%;
+  }
+
+  .sky-cloud-4 {
+    left: 72%;
+  }
+}
+
 @media (max-width: 48rem) {
   /* Two of the five come out on a phone. At this width the remaining three
      are already most of the sky, and five would read as overcast. */
@@ -5233,8 +5316,16 @@ body:has([data-density]) {
    Cream so it reads as more pavement rather than as a band under the
    drawing, and `flex: none` so the street gives up the height for it rather
    than the card, which has none to give. */
+/* A control, not a caption. It was already an instruction to scroll, and an
+   instruction that cannot be acted on is just a label — so it does the thing
+   it asks for. Full width because the whole strip under the town is the
+   target: on a phone a 12px line of letter-spaced caps is not a tap target,
+   the band it sits in is. */
 .story-street-note {
+  display: block;
   flex: 0 0 auto;
+  width: 100%;
+  border: 0;
   padding-block: 0.55rem 0.7rem;
   background-color: var(--story-cream);
   text-align: center;
@@ -5243,6 +5334,12 @@ body:has([data-density]) {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(2 8 17 / 0.5);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.story-street-note:hover {
+  color: var(--story-blue);
 }
 
 .street-svg {
@@ -5460,6 +5557,22 @@ body:has([data-density]) {
   }
 }
 
+/* Same problem as the clouds, same shape of fix. A walker's position along
+   the block comes entirely from `translate` in the lap below, so with the
+   animation gone all six collapse onto their raw drawing position — which
+   is off the left edge of the viewBox, because that is where a lap starts.
+   The result is a street with its walkers heaped in the gutter.
+
+   `--walk-park` is where the figure would have been on the first frame,
+   worked out from its own negative delay, so a still street is exactly the
+   composed scene the animation opens on rather than a second arrangement
+   that has to be maintained alongside it. */
+@media (prefers-reduced-motion: reduce) {
+  .street-walk {
+    translate: var(--walk-park, 0) 0;
+  }
+}
+
 @keyframes street-walk {
   from {
     translate: var(--walk-from) 0;
@@ -5513,9 +5626,20 @@ body:has([data-density]) {
 
 /* --- The three stops ---------------------------------------------------- */
 
+/* As tall as what is in it. This was pinned to one screen and centred, which
+   on anything but a short laptop meant padding a 500px row out to 900px and
+   calling the difference design. The cards are the section; the air around
+   them was the thing being measured, so it goes. */
 .story-basics {
   background-color: var(--story-cream);
   color: var(--story-ink);
+}
+
+/* Centred, because what it now introduces is a row rather than a column: a
+   left-aligned heading over three centred shopfronts leaves the page with two
+   different ideas of where its edge is. */
+.story-basics .home-sectionhead {
+  text-align: center;
 }
 
 /* `.section-eyebrow` and `.display-accent` both hard-code the old indigo and
@@ -5546,24 +5670,100 @@ body:has([data-density]) {
   color: var(--story-ink);
 }
 
+/* The three stops stand side by side as a row of shopfronts rather than as
+   three full-width rows down the page. That is a content decision before it
+   is a spatial one: these are the three questions a first-time visitor asks,
+   and they work as an invitation only if they can be taken in at a glance
+   directly under the search — the obvious next thing to do, rather than three
+   screens of scrolling that have to be earned. */
+.beats-rail {
+  position: relative;
+}
+
+/* Nothing to page through when all three stand on screen at once. These come
+   back with the rail below 60rem. Shared with the pillars, which become a
+   rail at their own breakpoint — hence the base rule here rather than one
+   `display: none` per section. */
+.rail-nav {
+  display: none;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.rail-nav-btn {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 2px solid var(--story-ink);
+  border-radius: 999px;
+  background-color: #fff;
+  color: var(--story-ink);
+  box-shadow: 0 6px 14px rgb(2 8 17 / 0.1);
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.rail-nav-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.rail-nav-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Dimmed rather than removed. A control that disappears at the end of the
+   rail takes the other one with it as the row re-centres, and the arrows
+   move under the cursor mid-click. */
+.rail-nav-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
 .beats {
-  display: flex;
-  flex-direction: column;
-  gap: var(--home-beat-gap, 5.5rem);
-  /* The per-side arrival offset pushes a stop past the viewport mid-animation,
-     which on a phone is enough to put a scrollbar on the document. `clip`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--home-beat-gap, 1.25rem);
+  /* Wider than the other sections because four shopfronts have to stand in
+     the row that used to hold three. At the narrow end of this layout each
+     card is about 265px, which is the floor: any narrower and the questions
+     start wrapping to three lines and the row stops reading as a street. The
+     rail below takes over before that happens. */
+  width: min(100% - 2rem, 84rem);
+  margin-inline: auto;
+  /* Stretched, so the four shopfronts are the same size whatever their copy
+     does. The signs hang level either way — the shop windows above them are a
+     fixed height — but four cards of four different depths standing in a
+     row read as four unfinished cards rather than as a block of shops.
+     Nothing is lost by it: the open note is drawn over its card rather than
+     pushed under it, so no stop can grow the row it stands in. */
+  align-items: stretch;
+  /* The per-side arrival offset pushes a stop sideways mid-animation. `clip`
      rather than `hidden` so no scroll container is created — a scroll
-     container here would re-root the `view()` timelines below. */
+     container here would re-root the `view()` timelines below. The phone
+     layout deliberately does create one, and switches those timelines off to
+     match. */
   overflow-x: clip;
 }
 
 .beat {
-  display: grid;
-  gap: clamp(1.75rem, 4vw, 3.5rem);
-  align-items: center;
-  width: min(100% - 2rem, 66rem);
-  margin-inline: auto;
-  padding-block: calc(var(--home-pad, 3rem) * 0.7);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--story-ink);
+  /* The awning. Each stop keeps its own accent, but as the top edge of its
+     shopfront rather than as a wash behind the artwork: coral over paper at
+     low alpha goes pink, and pink is not in the palette. */
+  border-top: 10px solid var(--beat-accent, var(--story-orange));
+  border-radius: 14px;
+  background-color: #fff;
+  padding: clamp(0.9rem, 1.5vw, 1.35rem);
+  box-shadow: 0 12px 26px rgb(2 8 17 / 0.07);
+  /* Keeps the open note inside the card's rounded corners. */
+  overflow: hidden;
 }
 
 /* One accent per stop, set once here and read by the sign, the disclosure and
@@ -5585,44 +5785,96 @@ body:has([data-density]) {
   --beat-on-accent: var(--story-ink);
 }
 
-/* Below 60rem everything stacks and the artwork leads, so `data-side` stops
-   meaning anything — there is only one column to be on. */
-@media (min-width: 60rem) {
-  .beat {
-    grid-template-columns:
-      minmax(0, var(--home-beat-art, 27rem))
-      minmax(0, 1fr);
-  }
-
-  /* `order`, not a column assignment, so the DOM keeps artwork-then-copy in
-     both directions. A screen reader and a keyboard both get the same
-     sequence at every stop; only the painting alternates. */
-  .beat[data-side='right'] {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(0, var(--home-beat-art, 27rem));
-  }
-
-  .beat[data-side='right'] .beat-art {
-    order: 2;
-  }
+/* Ink on red, not cream: cream on this red is 3.45:1, which is under AA for
+   the sign's body weight, while ink is 5.27:1. */
+.beat[data-accent='red'] {
+  --beat-accent: var(--story-red);
+  --beat-on-accent: var(--story-ink);
 }
 
-/* Which way a stop arrives from. Read by the arrival keyframes so the walk
-   alternates left-right instead of everything rising out of the floor. */
+/* The artwork sits in a shop window: one fixed height across all three, so
+   the three signs hang at the same level and the row reads as a street rather
+   than as three cards that happen to be adjacent. Cream rather than an accent
+   tint, for the same reason the accent went on the awning. */
+.beat-art {
+  display: grid;
+  place-items: center;
+  height: var(--home-beat-art, 12rem);
+  border-radius: 9px;
+  background-color: var(--story-cream);
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+/* Takes the rest of the card so the disclosure can sit on the floor of it,
+   which keeps the three toggles on one line when the answers wrap to
+   different depths. */
+.beat-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  padding-top: 0.95rem;
+}
+
+/* Which way a stop arrives from. In a row of three this staggers the entrance
+   left-centre-right instead of having all three rise out of the floor
+   together. */
 .beat[data-side='left'] {
   --beat-in: -34px;
 }
 
-/* The ring needs more room than a collage or a map: it is a circle with a
-   wrapping label on each side of it, and the side labels are what run out of
-   width first. */
-.beat:has(.beat-ring) {
-  --home-beat-art: 28rem;
-}
-
 .beat[data-side='right'] {
   --beat-in: 34px;
+}
+
+/* Below four-across, the row becomes a swipeable rail rather than a stack:
+   the four questions stay one gesture apart instead of four screens, and
+   the half-visible neighbour is the affordance that says so.
+
+   The cutover is 72rem rather than the 60rem it was at three cards. Four
+   columns in 1024px leaves each card about 230px, which is narrower than the
+   artwork wants and tall enough to cost the section its one-screen fit; a
+   rail at that width keeps all four one gesture apart and the section one
+   screen. Laptops that used to get three-across now swipe. */
+@media (max-width: 71.99rem) {
+  .beats {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: min(80vw, 22rem);
+    gap: 1rem;
+    width: 100%;
+    /* This is exactly the scroll container the desktop layout goes out of its
+       way not to create. It re-roots every `view()` timeline inside a stop
+       onto an axis that never scrolls, which would leave the artwork frozen
+       at frame zero — so the block below switches those off here and lets the
+       resting state stand. */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* `start`, not `center`: the last card's centre sits past the end of the
+       scroll range, and a mandatory centre snap with an unreachable target is
+       how a rail ends up refusing to show its last item. */
+    scroll-padding-inline-start: 1rem;
+    padding-inline: 1rem;
+    padding-block: 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .beats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .beat {
+    scroll-snap-align: start;
+  }
+
+  /* The rail hides its scrollbar, which is right on a phone and wrong on a
+     narrow desktop window: there is no swipe there, and a trackpad's
+     horizontal gesture is not something most people know they have. Without
+     these two buttons the second and third questions are unreachable for
+     anyone driving with a mouse. */
+  .beats-nav {
+    display: flex;
+  }
 }
 
 /* The question, hung like a sign outside the shop it belongs to. Still an h3
@@ -5636,34 +5888,38 @@ body:has([data-density]) {
   box-shadow: 0 8px 20px rgb(2 8 17 / 0.14);
   padding: 0.5rem 1rem;
   color: var(--beat-on-accent, var(--story-ink));
-  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
   font-weight: 900;
   line-height: 1.15;
   letter-spacing: -0.01em;
 }
 
 .beat-aside {
-  margin-top: 1.1rem;
-  font-size: 0.95rem;
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.45;
   color: rgb(2 8 17 / 0.55);
 }
 
 .beat-answer {
-  margin-top: 0.85rem;
-  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  margin-top: 0.7rem;
+  font-size: clamp(0.9rem, 0.95vw, 1rem);
   font-weight: 600;
-  line-height: 1.6;
+  line-height: 1.55;
   color: rgb(2 8 17 / 0.86);
-  max-width: 34rem;
+  margin-bottom: 1.25rem;
 }
 
+/* Pushed to the floor of the card so the three toggles line up even when the
+   answers wrap to different depths. The gap above it is the answer's bottom
+   margin, since an auto margin can go to zero. */
 .beat-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  margin-top: 1.4rem;
+  margin-top: auto;
+  align-self: flex-start;
   border: 2px solid rgb(2 8 17 / 0.2);
   border-radius: 999px;
   padding: 0.45rem 1rem;
@@ -5687,19 +5943,66 @@ body:has([data-density]) {
 
 /* The long version. Ruled off against the accent rather than boxed, so it
    reads as more of the same answer instead of a second card. */
+/* Drawn over the shop window, not appended under it. In a row of three the
+   card is a grid item, and a panel that grows its own card grows all three —
+   open the shortest note and the other two gain a screenful of nothing. Over
+   the top, the row cannot change size at all, which is what lets this section
+   promise one screen and keep it. */
 .beat-detail {
-  margin-top: 1.4rem;
-  border-left: 3px solid var(--beat-accent, var(--story-orange));
-  padding-left: 1.1rem;
-  max-width: 36rem;
-  font-size: 0.9375rem;
+  position: absolute;
+  /* Inset from the padding box, so the awning stays visible and the card is
+     still recognisably itself with the note open. */
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  padding: clamp(0.9rem, 1.5vw, 1.35rem);
+  padding-top: 2.4rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 1.65;
+  line-height: 1.6;
   color: rgb(2 8 17 / 0.78);
 }
 
-.beat-detail > * + * {
+/* `display: flex` above would otherwise beat the `hidden` attribute's own
+   `display: none`, and the panel would never close. */
+.beat-detail[hidden] {
+  display: none;
+}
+
+/* The scroll lives on the body rather than the panel so the close button can
+   stay pinned while the text moves under it. `contain` stops a note that has
+   run to its end from handing the gesture to the page — or, on a phone, to
+   the horizontal rail the card is sitting in. */
+.beat-detail-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-left: 3px solid var(--beat-accent, var(--story-orange));
+  padding-left: 1rem;
+}
+
+.beat-detail-body > * + * {
   margin-top: 0.9rem;
+}
+
+.beat-detail-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  background-color: var(--beat-accent, var(--story-orange));
+  color: var(--beat-on-accent, var(--story-ink));
+  transition: transform 0.15s ease;
+}
+
+.beat-detail-close:hover {
+  transform: scale(1.08);
 }
 
 .beat-label {
@@ -5798,43 +6101,100 @@ body:has([data-density]) {
   object-fit: cover;
 }
 
+/* A strip of prints rather than a two-by-two pile. In the shop window there
+   is far more width than height, so four across fans out where a square block
+   of four would simply not fit, and the fan still reads as a handful of
+   photos rather than as a grid. */
+.collage {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  /* Capped against the height of the window it sits in, not just its width.
+     A strip of four 4:5 prints is about a third as tall as it is wide, so on
+     a short laptop — where the window gives up height first — the cap is what
+     stops the bottom row of prints being sliced off. */
+  width: min(100%, calc((var(--home-beat-art, 12rem) - 2.2rem) * 2.55));
+}
+
+/* Decorative in a window this size: four captions at 11px under four thumbs
+   is more type than picture. The alt text still carries them. */
 .collage-caption {
-  display: block;
-  margin-top: 0.5rem;
-  text-align: center;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(2 8 17 / 0.5);
+  display: none;
+}
+
+/* The stagger was 18/8/26 pixels plus a fixed row offset, sized for a
+   two-by-two pile. As percentages of each print's own column it survives the
+   window losing height on a short laptop, where fixed pixels went on pushing
+   the lowest print through the floor. Percentage block margins on a grid item
+   resolve against its grid area's inline size, which is exactly the column
+   that is shrinking. */
+.collage-print {
+  --lift: 0px;
+}
+
+.collage-print:nth-child(1) {
+  margin-top: 0;
+}
+
+.collage-print:nth-child(2) {
+  margin-top: 12%;
+}
+
+.collage-print:nth-child(3) {
+  margin-top: 5%;
+}
+
+.collage-print:nth-child(4) {
+  margin-top: 16%;
+}
+
+.collage-frame {
+  border-width: 3px;
+  box-shadow: 0 5px 12px rgb(2 8 17 / 0.18);
 }
 
 /* --- Stop two: the ring ------------------------------------------------- */
 
-/* A three-by-three grid with the dial in the middle cell and a label on each
-   side of it. Grid rather than absolute positioning around a circle, because
-   the labels are real wrapping text of unequal length: placed absolutely they
-   would collide at exactly the widths nobody tests. */
+/* The dial on top with its four labels in a row beneath it. This used to be a
+   three-by-three grid with a label either side of the circle, which needed
+   about 26rem of width; a shopfront gives it 22rem at most, and the window is
+   wider than it is tall. Four across keeps all four labels — they are the
+   four things the club exists to produce, and dropping any to fit would have
+   cost the artwork its argument. */
 .beat-ring {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: center;
   justify-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem 0.4rem;
   width: 100%;
   margin-inline: auto;
 }
 
+.ring-dial,
+.ring-centre {
+  grid-area: 1 / 1 / 2 / 5;
+}
+
 .ring-dial {
-  grid-area: 2 / 2;
-  width: 100%;
+  /* Same reasoning as the collage: the four labels under the circle are a
+     fixed cost, so the circle is what gives when the window loses height. */
+  width: min(100%, 6.25rem, calc(var(--home-beat-art, 12rem) - 4.8rem));
   height: auto;
+  justify-self: center;
 }
 
 .ring-arc {
   fill: none;
   stroke-width: 13;
   stroke-linecap: round;
+}
+
+/* The heads. Four arrows chasing each other is the deck's diagram and the
+   deck's argument: the four benefits are a loop that feeds itself, not a list
+   of four things. Drawn as bare arcs it became a segmented ring, which says
+   "four parts of a whole" instead — true, but not the point being made. */
+.ring-arrow {
+  stroke: none;
 }
 
 .ring-hub {
@@ -5851,19 +6211,19 @@ body:has([data-density]) {
 .ring-centre {
   position: relative;
   z-index: 1;
-  grid-area: 2 / 2;
   display: grid;
   place-items: center;
-  width: 46%;
+  width: 2.95rem;
+  justify-self: center;
 }
 
 .ring-centre-name {
   max-width: 7ch;
   color: var(--story-ink);
-  font-size: clamp(0.95rem, 1.9vw, 1.3rem);
+  font-size: 0.5rem;
   font-weight: 900;
   line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   text-align: center;
   text-wrap: balance;
 }
@@ -5878,12 +6238,20 @@ body:has([data-density]) {
 
 .ring-label {
   position: relative;
-  max-width: 11rem;
+  /* Bounded by its own column rather than by a fixed ceiling. The four-across
+     row leaves each column about 58px, and an 11rem ceiling let the longer
+     labels spill sideways into their neighbours. "Environmental" is 81px at
+     this size, so it has to break: `hyphens` alone does not do it here, and
+     `anywhere` is the only value that guarantees a word wider than its column
+     wraps instead of painting over the label beside it. */
+  max-width: 100%;
+  hyphens: auto;
+  overflow-wrap: anywhere;
   text-align: center;
-  font-size: 0.8125rem;
+  font-size: 0.5625rem;
   font-weight: 900;
-  line-height: 1.3;
-  letter-spacing: 0.02em;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--story-ink);
 }
@@ -5894,58 +6262,11 @@ body:has([data-density]) {
 .ring-label::before {
   content: '';
   display: block;
-  width: 9px;
-  height: 9px;
-  margin: 0 auto 0.4rem;
+  width: 7px;
+  height: 7px;
+  margin: 0 auto 0.25rem;
   border-radius: 50%;
   background-color: var(--dot, var(--story-orange));
-}
-
-.ring-label[data-at='top'] {
-  grid-area: 1 / 2;
-}
-
-.ring-label[data-at='right'] {
-  grid-area: 2 / 3;
-}
-
-.ring-label[data-at='bottom'] {
-  grid-area: 3 / 2;
-}
-
-.ring-label[data-at='left'] {
-  grid-area: 2 / 1;
-}
-
-/* On a phone the side cells squeeze the dial to nothing. Below 40rem the ring
-   goes on top and the four labels become a two-up list under it. */
-@media (max-width: 40rem) {
-  .beat-ring {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem 0.75rem;
-  }
-
-  .ring-dial,
-  .ring-centre {
-    grid-area: 1 / 1 / 2 / 3;
-  }
-
-  .ring-dial {
-    width: min(100%, 17rem);
-    justify-self: center;
-  }
-
-  .ring-centre {
-    width: 7.8rem;
-    justify-self: center;
-  }
-
-  .ring-label[data-at='top'],
-  .ring-label[data-at='right'],
-  .ring-label[data-at='bottom'],
-  .ring-label[data-at='left'] {
-    grid-area: auto;
-  }
 }
 
 /* --- Stop three: the map ------------------------------------------------ */
@@ -5953,19 +6274,123 @@ body:has([data-density]) {
 .statemap {
   display: grid;
   justify-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   margin: 0;
+  width: 100%;
 }
 
 /* `overflow: hidden` is what the rise is animating against: the map starts
    below its own frame and comes up into it. */
+/* -------------------------------------------------------------------------
+   Banner scene — "what is Pana MIA?"
+   ------------------------------------------------------------------------- */
+
+.banner-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  padding-inline: 0.5rem;
+}
+
+/* Bunting. A row of pennants rather than a drawn string, because the flags
+   are the only part that has to survive being squeezed: at the narrow end of
+   the four-across row this is 240px wide, and nine flexed triangles shrink
+   evenly where a fixed-width SVG would clip. */
+.banner-bunting {
+  display: flex;
+  justify-content: center;
+  gap: 0.28rem;
+  width: 100%;
+  /* Sits on the line the flags hang from, which is the top of the cloth. */
+  margin-bottom: -0.15rem;
+}
+
+.banner-flag {
+  flex: 1 1 0;
+  max-width: 1.15rem;
+  aspect-ratio: 1 / 1.35;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  /* Four colours cycling across nine flags, so no two neighbours match and
+     the run never reads as a repeating pair. */
+  background: var(--flag);
+}
+
+.banner-flag:nth-child(4n + 1) {
+  --flag: var(--story-orange);
+}
+
+.banner-flag:nth-child(4n + 2) {
+  --flag: var(--story-blue);
+}
+
+.banner-flag:nth-child(4n + 3) {
+  --flag: var(--story-coral);
+}
+
+.banner-flag:nth-child(4n + 4) {
+  --flag: var(--story-red);
+}
+
+/* Every other flag hangs a touch lower, the way bunting does when the string
+   is not taut. */
+.banner-flag:nth-child(odd) {
+  margin-top: 0.22rem;
+}
+
+/* The cloth. Hung at a slight angle, because a banner pinned up straight and
+   square reads as a web component and a crooked one reads as something a
+   person put up.
+
+   Square-cornered with a real border rather than clipped into a pennant dip:
+   `clip-path` cuts the border box, so a dipped banner loses its bottom edge
+   and reads as an unfinished box. Faking the outline back on with stacked
+   drop-shadows works in principle but goes soft and grey along the rotated
+   edges, which is worse than not having the dip at all. The border also
+   matches the sign below it, so the card reads as two things on one wall. */
+.banner-cloth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: min(100% - 0.75rem, 20rem);
+  padding: 0.95rem 1.1rem 0.85rem;
+  background: var(--story-cream);
+  border: 3px solid var(--story-ink);
+  box-shadow: 4px 4px 0 rgb(2 8 17 / 0.16);
+  transform: rotate(-1.4deg);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.banner-headline {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.15rem, 2.4vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--story-blue);
+}
+
+.banner-caption {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(2 8 17 / 0.62);
+}
+
 .statemap-frame {
-  width: min(100%, 24rem);
+  width: min(100%, calc((var(--home-beat-art, 12rem) - 1.5rem) * 1.32));
   overflow: hidden;
   border: 2px solid rgb(2 8 17 / 0.12);
   border-radius: 10px;
   background-color: var(--story-cream);
-  box-shadow: 0 14px 32px rgb(2 8 17 / 0.14);
+  box-shadow: 0 8px 18px rgb(2 8 17 / 0.14);
 }
 
 /* The map ships on a white background. Multiply drops the white to whatever
@@ -5998,27 +6423,37 @@ body:has([data-density]) {
 
 /* --- The last two bands ------------------------------------------------- */
 
+/* As tall as the three panels, same as the questions above it. Pinning this
+   to a screen bought nothing the panels did not already give: all three are
+   visible either way, and on a tall window the difference was spent entirely
+   on air above and below them. */
 .story-pillars {
   background-color: var(--story-cream);
   color: var(--story-ink);
 }
 
-/* `.section-eyebrow` and `.display-accent` both hard-code indigo and are
-   unlayered, so they have to be overridden by name rather than by a utility
-   on the element. */
-.story-pillars .section-eyebrow,
+/* `.display-accent` hard-codes indigo and is unlayered, so it has to be
+   overridden by name rather than by a utility on the element. */
 .story-pillars .display-accent {
   color: var(--story-blue);
 }
 
+/* Deep ocean blue rather than the near-black ink. The ink band read as a
+   footer — a place where a page stops — which is the wrong signal for the
+   one section that asks you to do something. This is the brand blue taken
+   40% toward ink: dark enough to still be the page's floor, blue enough to
+   be a colour. Cream on it is 8.4:1, so the body copy clears AAA even at the
+   0.85 alpha below, and both accents clear AA Large. */
 .story-point {
-  background-color: var(--story-ink);
+  --point-bg: #214098;
+  background-color: var(--point-bg);
   color: var(--story-cream);
 }
 
-/* `.display-accent` hard-codes the old indigo, which on this ink band is
-   almost invisible. Coral rather than orange, so the accent word and the
-   eyebrow above it are not the same colour. */
+/* `.display-accent` hard-codes the old indigo, which on this blue band is
+   almost invisible. Orange for the eyebrow (3.7:1) and coral for the accent
+   word (3.3:1) — both large, bold text, and each one warm against the blue
+   rather than competing with it. */
 .story-point .section-eyebrow {
   color: var(--story-orange);
 }
@@ -6159,6 +6594,97 @@ body:has([data-density]) {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: 1fr;
+}
+
+/* Below the spine breakpoint the three pillars become a rail, matching the
+   questions above them.
+   
+   It was a vertical accordion, and the accordion is what broke the
+   one-screen promise on a phone: an open panel plus two closed bars plus the
+   heading measured 1,117px against an 844px viewport, and no amount of
+   padding removed closes a 273px gap. On a rail only one pillar is on screen
+   at a time, so it gets the whole height rather than a third of it and
+   nothing has to be squeezed to fit.
+   
+   Every card is open here — there is no room for a closed state that saves
+   nothing — which is why the trigger stops being a button at this width. */
+@media (max-width: 63.99rem) {
+  .pillars {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Snap points line up with the padding edge rather than the box edge, so
+       a card lands where the gutter is rather than flush to the screen. */
+    scroll-padding-inline-start: 1rem;
+    padding-inline: 1rem;
+    padding-block: 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .pillars::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pillar {
+    /* Sized against the viewport, not the container. The rail sits inside a
+       gutter that is already inside the page gutter, so a percentage here
+       measures a box two indents deep and hands back a card barely two
+       thirds of the screen — narrow enough that the programme rows wrap into
+       a 975px tower. Measuring in `vw` skips both indents. */
+    flex: 0 0 min(88vw, 23rem);
+    /* `start`, not `center`: the last card's centre sits past the end of the
+       scroll range, so centre-snapping leaves it permanently unreachable. */
+    scroll-snap-align: start;
+    /* The spine transition is for the desktop accordion. Here it would animate
+       the card's width on every resize. */
+    transition: none;
+  }
+
+  /* No disclosure, so no affordance pointing at one. */
+  .pillar-chev {
+    display: none;
+  }
+
+  .pillars-nav {
+    display: flex;
+  }
+
+  /* The blurb is what makes a pillar 800px tall on a phone: three programmes
+     with three lines of explanation each is 500px of the card on its own.
+     Cut to a name and a status, the row still says what the programme is
+     called and whether it is running, and the linked ones still lead
+     somewhere that explains the rest. It is a real loss, and the smallest one
+     available — the alternative is a section called "three ways we build"
+     that takes a screen and a half to count to three. */
+  .pillar-program {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .pillar-program-note {
+    display: none;
+  }
+
+  .pillar-program-status {
+    margin-top: 0;
+  }
+
+  .pillar-programs {
+    margin-top: 1rem;
+    gap: 0.5rem;
+  }
+
+  .pillar-body {
+    padding: 1.1rem 1.1rem 1.25rem;
+  }
+}
+
+/* The trigger is a plain span on the rail, where there is nothing to press. */
+span.pillar-trigger {
+  cursor: default;
 }
 
 /* Each pillar is a solid block. A tinted panel on the citrus wash was easy to
@@ -6304,6 +6830,15 @@ body:has([data-density]) {
   border: 2px solid rgb(2 8 17 / 0.14);
   border-radius: 0.85rem;
   background-color: rgb(2 8 17 / 0.03);
+
+  /* Anchors the visually-hidden status text inside the row. `.sr-only` is
+     `position: absolute`, so without a positioned ancestor here it resolves
+     against whatever is furthest up the tree — which put it ~47px past the
+     right edge of a 360px viewport and gave the whole page a horizontal
+     scrollbar. It only showed under `prefers-reduced-motion: reduce`, because
+     the panel animation was otherwise making an ancestor a containing block
+     and hiding the missing anchor. Pinning it here fixes it in both. */
+  position: relative;
 }
 
 /* Only the linked rows light up. A hover state on a programme that goes
@@ -6577,6 +7112,31 @@ a.pillar-program:hover {
       animation-range: entry 26% entry 80%;
     }
 
+    /* The heads land as their own arc finishes drawing, which is what makes
+       the ring read as four arrows chasing each other rather than four
+       stripes that happen to have points on them. */
+    .ring-arrow {
+      opacity: 0;
+      animation: home-ring-arrow linear both;
+      animation-timeline: view();
+    }
+
+    .ring-arrow:nth-of-type(1) {
+      animation-range: entry 44% entry 58%;
+    }
+
+    .ring-arrow:nth-of-type(2) {
+      animation-range: entry 52% entry 66%;
+    }
+
+    .ring-arrow:nth-of-type(3) {
+      animation-range: entry 60% entry 74%;
+    }
+
+    .ring-arrow:nth-of-type(4) {
+      animation-range: entry 68% entry 82%;
+    }
+
     .ring-centre {
       animation: home-ring-hub linear both;
       animation-timeline: view();
@@ -6592,6 +7152,30 @@ a.pillar-program:hover {
       animation: home-map-rise linear both;
       animation-timeline: view();
       animation-range: entry 0% cover 100%;
+    }
+
+    /* Every timeline above resolves against the nearest scroll container, and
+       at this width that is the horizontal rail — an axis the stops never
+       travel along, so each of these would sit at 0% forever. Turned off
+       rather than re-ranged: each one's resting state is its own base style,
+       so switching the animation off is what shows the finished artwork. */
+    @media (max-width: 71.99rem) {
+      .beat-art,
+      .beat-copy,
+      .collage-print,
+      .ring-arc,
+      .ring-centre,
+      .statemap-img {
+        animation: none;
+      }
+
+      /* The one exception to "the base style is the resting state": the heads
+         are hidden by this block's own `opacity: 0`, so dropping the
+         animation has to put it back or the ring loses its arrows. */
+      .ring-arrow {
+        animation: none;
+        opacity: 1;
+      }
     }
 
     .pillar {
@@ -6664,6 +7248,19 @@ a.pillar-program:hover {
   to {
     opacity: 1;
     transform: rotate(var(--fan, 0deg)) translateY(var(--lift, 0px));
+  }
+}
+
+/* Opacity only. A scale would need a `transform-origin` per head — these are
+   polygons in user space, not centred boxes — and four heads winking in is
+   enough to read as arrival. */
+@keyframes home-ring-arrow {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 

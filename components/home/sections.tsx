@@ -1,6 +1,5 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
@@ -80,8 +79,30 @@ export function HomeFirstScreen() {
       <StreetBand />
       {/* Last line on the first screen, under the town rather than over it:
           the town is the thing you are being told to scroll past, so the
-          instruction reads after it. */}
-      <p className="story-street-note">{t('hero.scrollNote')}</p>
+          instruction reads after it.
+
+          It is a button because it was already an instruction — telling
+          someone to scroll and then making them do it by hand is a worse
+          version of the same thing. It lands on the next section's top edge
+          rather than jumping a viewport, so the answer card arrives framed
+          rather than halfway up the screen. */}
+      <button
+        type="button"
+        className="story-street-note"
+        onClick={() => {
+          const next = document.getElementById('what-is-this');
+          if (!next) return;
+          const reduced = window.matchMedia(
+            '(prefers-reduced-motion: reduce)'
+          ).matches;
+          next.scrollIntoView({
+            behavior: reduced ? 'auto' : 'smooth',
+            block: 'start',
+          });
+        }}
+      >
+        {t('hero.scrollNote')}
+      </button>
     </div>
   );
 }
@@ -189,16 +210,20 @@ export function HomeBasics() {
   return (
     <section id="what-is-this" className="home-section story-basics">
       <div className="container mx-auto px-4">
-        <div className="home-sectionhead max-w-3xl" data-rv>
-          <span className="section-eyebrow">{t('basics.eyebrow')}</span>
+        {/* Just the question. This section used to open with an eyebrow, a
+            two-line display heading and a lede explaining that three
+            questions follow — three lines of preamble in front of three
+            cards that ask and answer their own questions perfectly well.
+            The preamble was the least useful thing on the screen and it was
+            the thing costing the most height. */}
+        <div className="home-sectionhead" data-rv>
           <h2 className="section-display">
             <Trans
               i18nKey="basics.title"
               t={t}
-              components={{ br: <br />, em: <em className="display-accent" /> }}
+              components={{ em: <em className="display-accent" /> }}
             />
           </h2>
-          <p className="section-lede">{t('basics.lede')}</p>
         </div>
       </div>
 
@@ -222,10 +247,6 @@ export function HomePillars() {
     <section id="pillars" className="home-section story-pillars">
       <div className="container mx-auto px-4">
         <div className="home-sectionhead" data-rv>
-          {/* No colour utility here: `.section-eyebrow` hard-codes indigo and
-              is unlayered, so it beats one anyway. The section overrides it by
-              name in CSS instead. */}
-          <span className="section-eyebrow">{t('pillarsBand.eyebrow')}</span>
           <h2 className="section-display">
             <Trans
               i18nKey="pillarsBand.title"
@@ -259,10 +280,7 @@ export function HomePoint() {
   const { t } = useTranslation('home');
 
   return (
-    <section
-      className="home-section story-point scallop"
-      style={{ '--scallop': 'var(--story-cream)' } as CSSProperties}
-    >
+    <section className="home-section story-point">
       <div className="container mx-auto px-4" data-rv>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
