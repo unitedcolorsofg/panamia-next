@@ -186,15 +186,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Mirror the handle onto the profile. Resolvers (webfinger, nostr.json, the
-  // actor endpoint) read profiles.screenname, so leaving this stale would make
-  // @name resolve to the old identity. Covers both branches above: userId is
-  // set by now whether the profile was just claimed, just created, or already
-  // existed.
+  // Mirror the handle and name onto the profile. Resolvers (webfinger,
+  // nostr.json, the actor endpoint) read profiles.screenname, so leaving that
+  // stale would make @name resolve to the old identity; the account menu and
+  // listings read profiles.name, so leaving that stale would keep showing the
+  // creation-time screenname fallback after a real name arrives. Covers both
+  // branches above: userId is set by now whether the profile was just claimed,
+  // just created, or already existed.
+  //
+  // The name is only written when supplied, because profiles.name is NOT NULL
+  // and must never be blanked. notBusinessListing keeps a business that was
+  // welded to profiles.userId from being renamed out from under its owner.
   await db
     .update(profiles)
-    .set({ screenname: newScreenname })
-    .where(eq(profiles.userId, session.user.id));
+    .set({
+      screenname: newScreenname,
+      ...(displayName?.trim() ? { name: displayName.trim() } : {}),
+    })
+    .where(and(eq(profiles.userId, session.user.id), notBusinessListing));
 
   // Sync screenname to SocialActor if one exists
   const socialActorId = currentUser?.profile?.socialActor?.id;
