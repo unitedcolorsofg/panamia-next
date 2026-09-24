@@ -3,11 +3,11 @@ import { OfferingFrontPage } from '@/components/offerings/offering-front-page';
 /**
  * Pana Ink Press's front page.
  *
- * The press itself is not built, so this page carries the "coming soon" note
- * the shared component renders for any offering whose `appHref` is null. The
- * primary button still goes somewhere real — the dispatches at `/a` are the
- * writing the press will eventually print — because a front page with one
- * dead button and one live one is worse than one with two live ones.
+ * The press itself is not printing yet, but the page does not say so — the
+ * call was vision-first, and an offering that apologises for itself in its own
+ * headline is not selling anything. Both buttons go somewhere real: the
+ * dispatches at `/a` are the writing the press will put on paper first, which
+ * is also the honest version of "already underway".
  */
 
 // Static marketing page — cache at the edge, revalidate hourly (Workers Cache).

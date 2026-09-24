@@ -13,10 +13,10 @@ import { PANA_OFFERINGS, getOffering } from '@/lib/panaverse/offerings';
  *
  * The homepage answers "what is this place?" in bands — a first screen, the
  * basics, the pillars, then the ask. An offering's front page is the same
- * shape one level down: what it is, what you get, and where to go. It reuses
- * the homepage's type (`.hero-headline`, `.section-display`, `.section-lede`),
- * its closing band (`.story-point`) and its palette rather than restating any
- * of them, so the six pages cannot drift away from the page they hang off.
+ * shape one level down. It reuses the homepage's type (`.hero-headline`,
+ * `.section-display`, `.section-lede`), its closing band (`.story-point`) and
+ * its palette rather than restating any of them, so the six pages cannot drift
+ * away from the page they hang off.
  *
  * What it deliberately does *not* borrow is the first screen. The street scene
  * and the search card are the homepage's own argument — the physical place,
@@ -24,9 +24,28 @@ import { PANA_OFFERINGS, getOffering } from '@/lib/panaverse/offerings';
  * offering look like another copy of the front door rather than a room behind
  * it. These open on the headline instead.
  *
- * One component rather than six pages of markup: the copy differs, the
- * structure does not, and six hand-written variants are six chances for one of
- * them to quietly lose a heading level or a landmark.
+ * ## Why the middle of the page is optional
+ *
+ * The first version of this rendered one fixed shape six times: headline,
+ * three cards titled "What You Get", closing band. Every page therefore made
+ * the same argument in the same order, which is a brochure — it lists what a
+ * thing has without ever saying what is wrong today or how the thing works.
+ *
+ * The homepage does not do that. Its pillars run problem → answer → programs
+ * and its beats run question → answer → detail. So two optional bands are
+ * available here in the same spirit:
+ *
+ * - `problem` — the tension. What is broken if this offering does not exist.
+ * - `steps`   — the mechanism. How the thing actually works, in order.
+ *
+ * Both render only when the offering's locale file defines them, which is what
+ * lets these pages be written one at a time instead of needing all six
+ * rewritten at once. An offering with neither falls back to exactly the shape
+ * it had before.
+ *
+ * The shapes are deliberately different from each other — a statement with
+ * symptoms, then a stacked walkthrough, then a row of cards — because three
+ * three-across grids in a column is the other way to be monotonous.
  */
 
 export interface OfferingActions {
@@ -37,6 +56,8 @@ export interface OfferingActions {
 }
 
 const HIGHLIGHT_KEYS = ['one', 'two', 'three'] as const;
+const SYMPTOM_KEYS = ['one', 'two', 'three'] as const;
+const STEP_KEYS = ['one', 'two', 'three'] as const;
 
 export function OfferingFrontPage({
   id,
@@ -54,9 +75,14 @@ export function OfferingFrontPage({
    */
   actions: OfferingActions;
 }) {
-  const { t } = useTranslation('offerings');
+  const { t, i18n } = useTranslation('offerings');
   const offering = getOffering(id);
-  const isBuilt = offering.appHref !== null;
+
+  // Both middle bands are opt-in per offering. `exists` is checked against one
+  // required leaf rather than the parent object, because i18next reports a
+  // parent as existing as soon as any descendant does.
+  const hasProblem = i18n.exists(`offerings:${id}.problem.statement`);
+  const hasSteps = i18n.exists(`offerings:${id}.steps.title`);
 
   const buttons = [
     { href: actions.primary, label: t(`${id}.ctaPrimary`), solid: true },
@@ -67,7 +93,10 @@ export function OfferingFrontPage({
     <>
       <ScrollReveal />
 
-      <div className="offering">
+      {/* The id is on the element so a single page can be adjusted without a
+          new class or a new component — these are being designed one at a
+          time, and most of what separates them is spacing and emphasis. */}
+      <div className="offering" data-offering={offering.id}>
         <section className="offering-hero">
           <div className="container mx-auto px-4">
             <span className="section-eyebrow">{t(`${id}.eyebrow`)}</span>
@@ -81,19 +110,6 @@ export function OfferingFrontPage({
             </h1>
 
             <p className="hero-subheadline offering-lede">{t(`${id}.lede`)}</p>
-
-            {/* An offering with nothing to open says so here, once, rather
-                than becoming a dead button further down. The badge is the one
-                the rest of the site already uses for designed-but-unwired
-                work: a promise, not a broken state. */}
-            {!isBuilt && (
-              <p className="offering-pending">
-                <span className="coming-soon">{t('comingSoon')}</span>
-                <span className="offering-pending-note">
-                  {t('notBuiltYet')}
-                </span>
-              </p>
-            )}
 
             <div className="offering-actions">
               {buttons.map((button) => (
@@ -114,6 +130,9 @@ export function OfferingFrontPage({
           </div>
         </section>
 
+        {hasProblem && <OfferingProblem id={id} />}
+        {hasSteps && <OfferingSteps id={id} />}
+
         <section className="home-section offering-highlights">
           <div className="container mx-auto px-4">
             <div className="home-sectionhead" data-rv>
@@ -127,11 +146,8 @@ export function OfferingFrontPage({
             </div>
 
             <ul className="offering-cards" data-rv>
-              {HIGHLIGHT_KEYS.map((key, index) => (
+              {HIGHLIGHT_KEYS.map((key) => (
                 <li key={key} className="offering-card">
-                  <span className="offering-card-num" aria-hidden="true">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
                   <h3 className="offering-card-title">
                     {t(`${id}.highlights.${key}.title`)}
                   </h3>
@@ -189,6 +205,103 @@ export function OfferingFrontPage({
         <OfferingSwitch currentId={id} />
       </div>
     </>
+  );
+}
+
+/**
+ * The tension, before any of the good news.
+ *
+ * Nothing on these pages used to say what is wrong today, so every offering
+ * arrived as a list of features answering a question the reader had not been
+ * asked yet. This band asks it.
+ *
+ * It is a statement plus three symptoms rather than a paragraph, because the
+ * complaint is usually three separate complaints and running them together is
+ * what turns them into throat-clearing. Each symptom is marked rather than
+ * bulleted — the mark is coral, the one warm colour in the palette that reads
+ * as a fault without being an error state.
+ */
+function OfferingProblem({ id }: { id: string }) {
+  const { t } = useTranslation('offerings');
+
+  return (
+    <section className="home-section offering-problem">
+      <div className="container mx-auto px-4">
+        <div className="offering-problem-head" data-rv>
+          <span className="section-eyebrow">{t(`${id}.problem.eyebrow`)}</span>
+          <h2 className="section-display offering-problem-statement">
+            <Trans
+              i18nKey={`${id}.problem.statement`}
+              t={t}
+              components={{ br: <br />, em: <em className="display-accent" /> }}
+            />
+          </h2>
+        </div>
+
+        <ul className="offering-symptoms" data-rv>
+          {SYMPTOM_KEYS.map((key) => (
+            <li key={key} className="offering-symptom">
+              <span className="offering-symptom-mark" aria-hidden="true" />
+              <h3 className="offering-symptom-title">
+                {t(`${id}.problem.${key}.title`)}
+              </h3>
+              <p className="offering-symptom-body">
+                {t(`${id}.problem.${key}.body`)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * How the thing actually works, in the order it happens to you.
+ *
+ * Stacked rows rather than a third grid of three. The two bands around it are
+ * already three-across, and a page whose every section is the same row of
+ * three reads as a template no matter how good the words in it are. A
+ * walkthrough is also genuinely sequential in a way a feature list is not —
+ * step two only makes sense after step one — so the numerals are load-bearing
+ * rather than decoration, and a rule runs between them to say so.
+ */
+function OfferingSteps({ id }: { id: string }) {
+  const { t } = useTranslation('offerings');
+
+  return (
+    <section className="home-section offering-steps">
+      <div className="container mx-auto px-4">
+        <div className="home-sectionhead" data-rv>
+          <h2 className="section-display">
+            <Trans
+              i18nKey={`${id}.steps.title`}
+              t={t}
+              components={{ br: <br />, em: <em className="display-accent" /> }}
+            />
+          </h2>
+          <p className="section-lede max-w-2xl">{t(`${id}.steps.lede`)}</p>
+        </div>
+
+        <ol className="offering-steplist" data-rv>
+          {STEP_KEYS.map((key, index) => (
+            <li key={key} className="offering-step">
+              <span className="offering-step-num" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div className="offering-step-copy">
+                <h3 className="offering-step-title">
+                  {t(`${id}.steps.${key}.title`)}
+                </h3>
+                <p className="offering-step-body">
+                  {t(`${id}.steps.${key}.body`)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }
 

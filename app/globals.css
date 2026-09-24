@@ -8129,6 +8129,54 @@ body:has(.dirsearch) header {
   --home-head-gap: 1.75rem;
   --home-head-stack: 0.85rem;
   --home-display-max: 3.5rem;
+
+  /* The hue each page's opening is lit with, as an unwrapped rgb triple so the
+     alpha can be varied at each stop of the gradient below.
+
+     It exists because these six pages share one component and one stylesheet,
+     and without it they share one face as well: the same cream, the same
+     left-aligned column, six times over. Light is the cheapest way to tell
+     them apart that does not need six commissioned illustrations — and unlike
+     tinting the type, a wash at this alpha carries no contrast burden, so the
+     palette's warm hues are usable here even though they fail against cream
+     as text.
+
+     Orange is the default because it is the light the homepage's own hero is
+     lit with; an offering that has not been given a hue reads as a room in
+     the same building rather than as a mistake. */
+  --offering-glow: 242 136 47;
+  --offering-glow-alpha: 0.22;
+}
+
+/* Blue for the one that is about people talking to each other — it is already
+   this page's accent word and its primary button, so the light agrees with
+   the type instead of arguing with it. Green for the directory, which is the
+   palette's foliage and the closest thing it has to a colour for local
+   growth. Orange stays on events. Coral for the broadcast, red for the press,
+   and butter for the invitation.
+
+   Butter is much paler than the rest — at the shared alpha it would not read
+   at all against cream, since it differs from it mostly in the blue channel —
+   so it is the one hue that carries its own. */
+.offering[data-offering='social'] {
+  --offering-glow: 53 101 242;
+}
+
+.offering[data-offering='directory'] {
+  --offering-glow: 47 158 87;
+}
+
+.offering[data-offering='vizion'] {
+  --offering-glow: 242 116 87;
+}
+
+.offering[data-offering='ink'] {
+  --offering-glow: 244 55 79;
+}
+
+.offering[data-offering='getInvolved'] {
+  --offering-glow: 246 240 153;
+  --offering-glow-alpha: 0.55;
 }
 
 @media (min-width: 48rem) {
@@ -8152,10 +8200,87 @@ body:has(.dirsearch) header {
    per offering, would make every offering look like another front door
    rather than a room behind one.
 
-   So this opens on the headline, on paper, with the top padding doing what
-   it does on the homepage — clearing the fixed masthead, not decorating. */
+   So this opens on the headline, on paper — but on paper that has been lit
+   and has a tooth to it, which is the part it was missing. Measured against
+   the homepage's first screen it was nine nodes and no background at all,
+   filling two thirds of the first viewport with flat cream: the one band on
+   the page with no device on it, in the one position where that shows. */
 .offering-hero {
-  padding-block: clamp(6rem, 14svh, 9.5rem) calc(var(--home-pad) * 0.75);
+  /* Both of the below are drawn on pseudo-elements at a negative index, so
+     they need a stacking context of their own to sit inside — otherwise they
+     fall behind `.offering`'s cream and never appear. */
+  position: relative;
+  isolation: isolate;
+
+  /* Trimmed from `clamp(6rem, 14svh, 9.5rem)`. The old top stop put 112px of
+     nothing under a 65px masthead before the eyebrow, which is most of the
+     reason the opening read as empty rather than as spacious. */
+  padding-block: clamp(4.75rem, 11svh, 7.5rem) calc(var(--home-pad) * 0.9);
+}
+
+/* The pool of light. Anchored low and to the left rather than centred: this
+   column is left-aligned, so centred light would pool in the empty half and
+   light nothing. Sitting low also means it is at its warmest close to where
+   the hero meets the next band, which softens a join between two sections
+   that are otherwise the same cream with no rule between them.
+
+   The geometry is arithmetic, not taste. A gradient still at any alpha when
+   it is cut by the edge of its box draws a hard line there — the homepage
+   hero documents shipping exactly that once. Centred at 80% with a 22%
+   y-radius, the transparent stop lands at 80 + (22 x 0.78) = 97.2% of the
+   hero: inside the box, with room to spare. The first draft of this rule
+   centred it at 88% with a 30% radius, which resolves to 110.8% and drew
+   the line.
+
+   It is kept this low for a second reason. Peaking any higher puts the
+   densest part of the wash behind the lede, and a tint under body copy is
+   the one place on the page where it costs something. Down here it sits
+   behind the buttons, which are solid shapes and do not care. */
+.offering-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image: radial-gradient(
+    92% 22% at 22% 80%,
+    rgb(var(--offering-glow) / var(--offering-glow-alpha)) 0%,
+    rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.6)) 34%,
+    rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.2)) 60%,
+    rgb(var(--offering-glow) / 0) 78%
+  );
+}
+
+/* Tooth. The same dot, size and opacity the homepage uses, so the two read as
+   the same paper rather than as two textures.
+
+   Masked at both ends for the reason the homepage gives: the masthead above
+   is this identical cream and carries no grain, so grain that reached the top
+   edge would draw a visible seam on that join. It clears at the bottom too,
+   to stay out of the light. */
+.offering-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 62%,
+    transparent 92%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 62%,
+    transparent 92%
+  );
 }
 
 /* `.hero-headline` carries a text-shadow, which is there to hold white type
@@ -8180,30 +8305,6 @@ body:has(.dirsearch) header {
   margin-top: 1.5rem;
   max-width: 54ch;
   opacity: 0.86;
-}
-
-/* --- The "not built yet" note ------------------------------------------ */
-
-/* Two of the six have no software behind them yet. Saying so once, here, is
-   the alternative to a primary button that goes nowhere — and it is said in
-   the badge the rest of the site already uses for designed-but-unwired work,
-   so it reads as a promise rather than an error. */
-.offering-pending {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  margin-top: 1.75rem;
-  color: var(--story-blue);
-}
-
-.offering-pending-note {
-  max-width: 48ch;
-  font-size: 0.9rem;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--story-ink);
-  opacity: 0.7;
 }
 
 /* --- The calls to action ----------------------------------------------- */
@@ -8298,11 +8399,19 @@ body:has(.dirsearch) header {
   }
 }
 
-.offering-card-num {
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  color: var(--story-blue);
+/* Highlights are a set, not a sequence — the three payoffs are true at the
+   same time and in any order. They used to be numbered 01/02/03, which was
+   harmless while this band was the only list on the page. Once the steps band
+   arrived directly above it, every offering stacked two blue 01/02/03 columns
+   back to back, and the numerals stopped meaning "in this order" anywhere.
+   The sequence keeps the numbers; the set gets a rule. */
+.offering-card::before {
+  content: '';
+  display: block;
+  width: 2.25rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--story-blue);
 }
 
 .offering-card-title {
@@ -8327,4 +8436,170 @@ body:has(.dirsearch) header {
    be the thing the eye lands on rather than the word above them. */
 .offering-switch .localrow-label {
   opacity: 0.45;
+}
+
+/* --- The problem ------------------------------------------------------- */
+
+/* Cream, like the bands either side of it. The temptation with a section
+   about what is broken is to paint it dark, but this page already has a dark
+   band at the bottom doing the closing, and two dark bands turn a page into
+   stripes. The contrast here comes from the shape instead: a centred
+   statement over a row of three marked faults, against the left-aligned
+   column above it and the stacked walkthrough below. */
+.offering-problem {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-problem-head {
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.offering-problem .section-eyebrow {
+  color: var(--story-coral);
+}
+
+.offering-problem-statement {
+  margin-top: 1rem;
+}
+
+/* Coral, not the blue used for accents elsewhere on the page. Blue is this
+   page's approving colour — it is on the accent word, the primary button and
+   the section headings — and using it to say "this is broken" would be the
+   one place it means the opposite of everywhere else. */
+.offering-problem .display-accent {
+  color: var(--story-coral);
+}
+
+.offering-symptoms {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin: 0;
+  margin-top: calc(var(--home-head-gap) * 1.15);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .offering-symptoms {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* No card, no border. The band below this one is a row of outlined cards and
+   the band above is plain text, so leaving these open keeps the page from
+   reading as three identical boxes stacked three times — the mark does the
+   work a border would have done. */
+.offering-symptom {
+  position: relative;
+  padding-top: 1.5rem;
+}
+
+/* A short coral rule rather than a bullet or an icon. It is the same gesture
+   as the eyebrow's dash, which is already the page's way of pointing at
+   something without narrating it. */
+.offering-symptom-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.25rem;
+  height: 3px;
+  border-radius: 999px;
+  background-color: var(--story-coral);
+}
+
+.offering-symptom-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--story-ink);
+}
+
+.offering-symptom-body {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--story-ink);
+  opacity: 0.78;
+}
+
+/* --- How it works ------------------------------------------------------ */
+
+.offering-steps {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-steps .display-accent {
+  color: var(--story-blue);
+}
+
+.offering-steplist {
+  margin: 0;
+  margin-top: var(--home-head-gap);
+  padding: 0;
+  list-style: none;
+}
+
+/* Rows, not a grid. These are sequential — step two only means anything once
+   step one has happened — and a three-across grid states them as three
+   parallel options, which is the wrong claim as well as the third identical
+   row of three on one page. */
+.offering-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  padding-block: 1.5rem;
+}
+
+@media (min-width: 48rem) {
+  .offering-step {
+    gap: 2rem;
+    padding-block: 1.75rem;
+  }
+}
+
+/* The rule between steps, drawn as a border on every row but the last so the
+   list reads as one connected run rather than three separated blocks. */
+.offering-step + .offering-step {
+  border-top: 1px solid rgb(2 8 17 / 0.1);
+}
+
+/* Big enough to be the thing you navigate by. The drawer numbers its six
+   entries the same way and the pillars number their three, so a reader
+   arriving from either already knows a zero-padded numeral here means
+   "position in a sequence" rather than decoration. */
+.offering-step-num {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--story-blue);
+  opacity: 0.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.offering-step-copy {
+  max-width: 62ch;
+}
+
+.offering-step-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--story-ink);
+}
+
+.offering-step-body {
+  margin-top: 0.65rem;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--story-ink);
+  opacity: 0.8;
 }

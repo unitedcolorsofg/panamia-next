@@ -1,7 +1,5 @@
 {
-  "comingSoon": "Muy pronto",
   "switchLabel": "Lo demás",
-  "notBuiltYet": "Esto todavía no está construido. Aparece aquí porque es una promesa, no un relleno — cuando abra, abrirá desde esta página.",
   "social": {
     "name": "Pana Social",
     "eyebrow": "Tecnología Colectiva",
@@ -9,19 +7,51 @@
     "lede": "Una red social local y federada, para que la comunidad sea dueña de su propio timeline en vez de alquilárselo a una empresa que se lo revende.",
     "ctaPrimary": "Abrir el feed",
     "ctaSecondary": "Hazte Pana",
-    "highlights": {
-      "title": "Lo Que <em>Tienes</em>",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "No es <em>tuyo</em>. Nada.",
       "one": {
-        "title": "Publica en tu cuadra",
-        "body": "Texto, fotos y notas de voz, vistas por los panas que te siguen — en el orden en que se publicaron, nunca en el orden que prefiere un sistema de anuncios."
+        "title": "Tu alcance es alquilado",
+        "body": "Publicas para mil seguidores y lo ven cuarenta. El resto es una tarifa que nadie te cotizó."
       },
       "two": {
-        "title": "Federado por defecto",
-        "body": "Pana Social habla ActivityPub, así que tus publicaciones llegan a Mastodon y al resto del fediverso, y tu usuario sigue siendo tuyo si algún día te vas."
+        "title": "Tu público no es tuyo",
+        "body": "Si te vas de la plataforma, dejas a la gente. La lista nunca estuvo en tus manos."
       },
       "three": {
-        "title": "Sobre el directorio",
-        "body": "La gente de tu feed son los mismos creativos, organizaciones y pequeños negocios del directorio. Vecinos, no desconocidos."
+        "title": "Tus vecinos son desconocidos",
+        "body": "Un feed afinado para la indignación a escala global no tiene cómo saber que la tienda que enterró queda a cuatro cuadras."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>Funciona</em>",
+      "lede": "Pasan tres cosas, en este orden, y la tercera no te la ofrece nadie más.",
+      "one": {
+        "title": "Reclama tu usuario",
+        "body": "Tu perfil es una dirección: @tu@panamia.club. Es tuya, es donde te encuentran, y se va contigo si algún día te vas."
+      },
+      "two": {
+        "title": "Sigue a tus panas",
+        "body": "Los creadores, negocios y organizadores que ya están en el directorio. Tu timeline es la cuadra, en el orden en que pasaron las cosas."
+      },
+      "three": {
+        "title": "Llega más allá de nosotros",
+        "body": "Pana Social habla ActivityPub, así que lo que publicas aquí aparece en Mastodon y en todo el fediverso. Una cuenta, no un público nuevo que reconstruir."
+      }
+    },
+    "highlights": {
+      "title": "Lo Que <em>Obtienes</em>",
+      "one": {
+        "title": "Un timeline en orden",
+        "body": "Texto, fotos y video de los panas que sigues, lo más nuevo primero. Sin ranking, sin nada promocionado, sin preguntarte por qué desapareció un post."
+      },
+      "two": {
+        "title": "Espacios para el trabajo",
+        "body": "Grupos por barrio, por oficio o por proyecto — con la misma gente que ya contrataste, reservaste o con la que ya construiste algo."
+      },
+      "three": {
+        "title": "Mensajes que se quedan",
+        "body": "Habla con un pana sobre una reserva sin entregarle la conversación al buzón de un desconocido."
       }
     },
     "closing": {
@@ -34,22 +64,54 @@
     "name": "Directorio",
     "eyebrow": "Tecnología Colectiva",
     "headline": "Encuentra A<br/><em>Tu Gente</em>",
-    "lede": "El archivo vivo del sur de la Florida: los creativos, emprendedores y pequeños negocios que hacen este lugar lo que es — buscable por nombre, categoría y barrio.",
+    "lede": "El archivo vivo del sur de la Florida: los creativos, emprendedores y pequeños negocios que hacen este lugar lo que es — escrito por ellos, no copiado de otro lado.",
     "ctaPrimary": "Buscar en el directorio",
     "ctaSecondary": "Hazte Pana",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "El tope de la página <em>se vende</em>.",
+      "one": {
+        "title": "Los resultados están comprados",
+        "body": "Buscas “cerca de mí” y la primera pantalla es de quien tiene presupuesto. Ahí la cercanía es un filtro, nunca el orden."
+      },
+      "two": {
+        "title": "Tu página la escribió otro",
+        "body": "Un sitio de reseñas decide qué es tu negocio, con palabras ajenas, debajo de unas estrellas que nunca aceptaste."
+      },
+      "three": {
+        "title": "Los más chiquitos ni aparecen",
+        "body": "Sin local, sin letrero, sin pauta: una cocina, un puesto, un cuarto. Invisibles para un mapa que solo conoce direcciones."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>Funciona</em>",
+      "lede": "Pasan tres cosas antes de que un nombre te llegue, y en todas hay una persona metida.",
+      "one": {
+        "title": "Los panas se anotan",
+        "body": "Tu nombre, cinco palabras, tus etiquetas, tu barrio. Tú describes lo que haces — nadie te resume."
+      },
+      "two": {
+        "title": "Una persona lo aprueba",
+        "body": "Cada solicitud se lee antes de publicarse, y la regla es corta: vives o trabajas en Broward, Miami-Dade o Palm Beach."
+      },
+      "three": {
+        "title": "Y ahí sí lo encuentras",
+        "body": "Busca por palabra, categoría, condado o distancia — y aparecen Café, Bodegón y Lucía, hayas puesto el acento o no."
+      }
+    },
     "highlights": {
       "title": "Lo Que <em>Tienes</em>",
       "one": {
-        "title": "Busca en serio",
-        "body": "Palabra clave, categoría, condado y distancia. \"Apoya lo local\" deja de ser un eslogan en cuanto puedes hacerlo por nombre."
+        "title": "Alguien a quien llamar",
+        "body": "Cada resultado es una persona o un negocio con nombre, barrio y una forma de contactarlo. No un formulario."
       },
       "two": {
-        "title": "Tres condados, un mapa",
-        "body": "Broward, Miami-Dade y Palm Beach. Todos los listados viven o trabajan aquí — esa es toda la regla de elegibilidad."
+        "title": "Visible sin presupuesto",
+        "body": "Aquí el lugar no se compra. Una persona sola aparece en la misma lista que todos los demás."
       },
       "three": {
-        "title": "Tu perfil, tus palabras",
-        "body": "Reclama un perfil o créalo desde cero, y describe lo que haces tú mismo en vez de dejárselo a una página de reseñas."
+        "title": "Un registro de quién estuvo aquí",
+        "body": "El directorio es tanto archivo como buscador: los pequeños del sur de la Florida, en sus propias palabras, año tras año."
       }
     },
     "closing": {
@@ -65,19 +127,51 @@
     "lede": "Mercados, talleres, obras de arte y cenas largas por todo el sur de la Florida — organizados junto a quienes ya están haciendo el trabajo.",
     "ctaPrimary": "Ver eventos",
     "ctaSecondary": "Organiza un evento",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "Siempre te enteras <em>después</em>.",
+      "one": {
+        "title": "Se anuncia y desaparece",
+        "body": "La noche vive en una historia que se borra en veinticuatro horas. Si no abriste la app ese día, para ti nunca pasó."
+      },
+      "two": {
+        "title": "El flyer no dice lo que hace falta",
+        "body": "Fecha y ninguna dirección, o dirección y ninguna hora. Nunca si todavía queda espacio cuando llegues."
+      },
+      "three": {
+        "title": "Te enteras el lunes",
+        "body": "Los que fueron se enteraron por un grupo en el que no estás. Tú lo ves después, en las fotos de otro."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>Funciona</em>",
+      "lede": "Tres cosas, y la primera está tan abierta para ti como para cualquiera.",
+      "one": {
+        "title": "Un pana lo publica",
+        "body": "Cualquier pana puede subir un evento: la fecha, el lugar y qué es de verdad. No necesitas local propio ni presupuesto para empezar."
+      },
+      "two": {
+        "title": "Dices que vas",
+        "body": "Confirma sin tener cuenta. Te llega un enlace al correo, lo abres y quedas contado: voy, tal vez, o no puedo."
+      },
+      "three": {
+        "title": "Te queda en el calendario",
+        "body": "Un toque y entra al calendario que ya usas, para que aparecer deje de depender de que te acuerdes."
+      }
+    },
     "highlights": {
       "title": "Lo Que <em>Tienes</em>",
       "one": {
-        "title": "Encuentros, no networking",
-        "body": "Eventos hechos para conectar de verdad y no para repartir tarjetas: cenas, mercados, talleres y noches en las que vale la pena quedarse."
+        "title": "Noches en las que te quedas",
+        "body": "Mercados, talleres, obras de arte y cenas largas. Encuentros hechos para hablar con la gente, no para repartir tarjetas."
       },
       "two": {
-        "title": "Organiza el tuyo",
-        "body": "Cualquier pana puede poner algo en el calendario, recibir confirmaciones y manejar la entrada. No hace falta local ni presupuesto para empezar."
+        "title": "Si vas, vas",
+        "body": "Las confirmaciones paran en el límite real del lugar — la capacidad de bomberos, no el cálculo de alguien — así que un cupo confirmado es un cupo de verdad."
       },
       "three": {
-        "title": "Los tres condados",
-        "body": "Mira qué hay cerca esta semana, o encuentra ese evento por el que vale la pena manejar costa arriba o costa abajo."
+        "title": "Cerca, o vale el viaje",
+        "body": "Broward, Miami-Dade y Palm Beach en un solo calendario. Lo de esta semana a la vuelta, o eso que vale una hora por la costa."
       }
     },
     "closing": {
@@ -90,22 +184,54 @@
     "name": "PanaVizión",
     "eyebrow": "Trabajo Cultural",
     "headline": "Lo Local, En<br/>El <em>Registro</em>",
-    "lede": "Conversaciones con la gente que construye la economía local del sur de la Florida, con su propia voz y con el tiempo que haga falta.",
+    "lede": "Una serie en video con la gente que construye la economía local del sur de la Florida — dos panas a la vez, hablando entre ellos y no hacia un micrófono.",
     "ctaPrimary": "Escuchar episodios",
     "ctaSecondary": "Leer los despachos",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "A Miami lo cubren como unas <em>vacaciones</em>.",
+      "one": {
+        "title": "La historia llega de afuera",
+        "body": "La cobertura nacional del sur de la Florida es playas, dinero y vida nocturna. La gente que de verdad sostiene el lugar sale de extra."
+      },
+      "two": {
+        "title": "Te dan una nota, no una conversación",
+        "body": "La prensa local cubre la apertura y el cierre. Los años del medio — que son el trabajo de verdad — no quedan registrados."
+      },
+      "three": {
+        "title": "Y después el enlace se pudre",
+        "body": "Sale el artículo, sube el tráfico un día y desaparece. No queda nada que alguien pueda encontrar en cinco años."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>Funciona</em>",
+      "lede": "Tres decisiones sobre cómo se graba, y ninguna es la que tomaría un noticiero.",
+      "one": {
+        "title": "Dos panas, un cuarto",
+        "body": "Cada episodio junta a dos creadores locales y los deja hablar entre ellos: una tatuadora con un músico, una ceramista con un agricultor. La entrevista es entre ellos. Nosotros solo grabamos."
+      },
+      "two": {
+        "title": "Con el tiempo que haga falta",
+        "body": "Sin segmento de cuatro minutos y sin frase de cajón. La conversación dura hasta que termina, porque los tropiezos toman rato en contarse."
+      },
+      "three": {
+        "title": "Y se queda ahí",
+        "body": "Cada episodio se publica y ahí se queda: se puede ver, buscar y enlazar mucho después de la semana en que salió."
+      }
+    },
     "highlights": {
       "title": "Lo Que <em>Tienes</em>",
       "one": {
-        "title": "El podcast",
-        "body": "Conversaciones largas con panas sobre el trabajo, los tropiezos y lo que de verdad cuesta construir algo aquí."
+        "title": "Nombres por los que ya pasas",
+        "body": "Episodios con la gente detrás de Easy Peasy Tattoos, Earth Pallas, Folktale San Pedro, Dear Eleanor y Golden Flora — lugares donde podrías entrar esta semana."
       },
       "two": {
         "title": "Un archivo, no un feed",
-        "body": "Cada episodio se queda y se puede encontrar mucho después de la semana en que salió, porque lo importante es el registro y no el estreno."
+        "body": "Todo sigue encontrable mucho después de la semana en que salió, porque lo que importa es el registro y no el estreno."
       },
       "three": {
-        "title": "Trae tu micrófono",
-        "body": "A los panas los proponemos, los destacamos y los entrevistamos. Si estás haciendo el trabajo, queremos dejarlo registrado en tus palabras."
+        "title": "Tu turno en el registro",
+        "body": "Los panas proponen, salen y se entrevistan. Si estás haciendo el trabajo aquí, va al archivo con tus propias palabras."
       }
     },
     "closing": {
@@ -118,18 +244,50 @@
     "name": "Pana Ink Press",
     "eyebrow": "Trabajo Cultural",
     "headline": "Palabras Que<br/>Puedes <em>Entregar</em>",
-    "lede": "Fanzines, panfletos e impresos que explican el movimiento local en un formato que cualquiera puede pasarle a cualquiera — sin login, sin algoritmo, sin batería.",
+    "lede": "Fanzines, panfletos e impresos que sacan el movimiento local de la pantalla y lo ponen en las manos de alguien.",
     "ctaPrimary": "Leer los despachos",
     "ctaSecondary": "Hazte Pana",
-    "highlights": {
-      "title": "Lo Que <em>Será</em>",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "Todo lo demás que hacemos necesita <em>batería</em>.",
       "one": {
-        "title": "Fanzines y panfletos",
-        "body": "Tiradas cortas hechas con artistas y escritores locales, pensadas para regalarse y no para venderse."
+        "title": "Un enlace necesita una razón para abrirse",
+        "body": "Puedes mandarle el directorio a alguien. Si lo abre es otra cosa, y casi siempre la respuesta es después."
+      },
+      "two": {
+        "title": "Un feed no alcanza a todos",
+        "body": "Mucha de la gente que hace funcionar este lugar no está en ninguna plataforma donde publicamos. Buscarlos por ahí es no buscarlos."
+      },
+      "three": {
+        "title": "Las plataformas cambian de opinión",
+        "body": "Lo que alojamos puede ser limitado, bloqueado o apagado por otro. El papel no se descontinúa."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>Funciona</em>",
+      "lede": "Tres cosas, y empieza por lo que ya está escrito.",
+      "one": {
+        "title": "Imprimimos lo que ya existe",
+        "body": "Los despachos — las lecturas largas sobre los panas que construyen esta economía — se escriben y se publican primero. La imprenta empieza por ponerlos en papel."
+      },
+      "two": {
+        "title": "Hecho con artistas locales",
+        "body": "Tiradas cortas diseñadas junto a panas que dibujan, rotulan y diagraman. Un fanzine es una colaboración, y quienes lo hacen están en el directorio."
+      },
+      "three": {
+        "title": "Se entrega, no se vende",
+        "body": "Los paquetes van a mercados, tiendas y eventos para regalarse. No hay lista de suscriptores, porque la gracia es justamente que viaje sin una."
+      }
+    },
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "Algo que puedes entregar",
+        "body": "Un fanzine que le pones en la mano a alguien en un mercado. Sin enlace que mandar, sin app que instalar, sin razón para decir después."
       },
       "two": {
         "title": "Los despachos",
-        "body": "Lecturas largas de la gente que construye la economía local del sur de la Florida. Ya se publican en el sitio mientras la imprenta arranca."
+        "body": "Lecturas largas de la gente que construye la economía local del sur de la Florida — publicadas ya, y la materia prima de lo que se imprime primero."
       },
       "three": {
         "title": "El papel como infraestructura",
@@ -146,22 +304,54 @@
     "name": "Participa",
     "eyebrow": "Construcción Comunitaria",
     "headline": "Empieza Donde<br/><em>Estás</em>",
-    "lede": "Pana MIA la construye la gente que está dentro. Hay una manera de entrar con lo que tengas para dar — una hora, una habilidad, un espacio o unos dólares al mes.",
+    "lede": "Pana MIA la construye la gente que está en ella. Hay una manera de entrar de cualquier tamaño, y la primera no cuesta más que aparecer.",
     "ctaPrimary": "Hazte Pana",
     "ctaSecondary": "Donar",
-    "highlights": {
-      "title": "Maneras De <em>Entrar</em>",
+    "problem": {
+      "eyebrow": "El Problema",
+      "statement": "Querer ayudar no es lo <em>difícil</em>.",
       "one": {
-        "title": "Hazte Pana",
-        "body": "Únete al directorio para que tus vecinos te encuentren, y para que el club tenga un nombre local más respaldándolo."
+        "title": "Casi nunca hay una puerta",
+        "body": "La mayoría de los grupos que hacen buen trabajo aquí no tienen una forma clara de sumarse. Te enteras después, por alguien que ya estaba adentro."
       },
       "two": {
-        "title": "Conectores Comunitarios",
-        "body": "Grupos en Miami-Dade, Broward y Palm Beach que llevan proyectos para sus propios barrios. Tres niveles de participación, y todos empiezan en el primero."
+        "title": "Siempre piden plata",
+        "body": "Mucha gente tiene una hora, una camioneta, un local o un oficio y ningún lugar donde ofrecerlo, porque el único botón de la página dice donar."
       },
       "three": {
-        "title": "Mantenlo funcionando",
-        "body": "El directorio, el feed y los eventos los pagan los miembros y las donaciones, no la venta de la atención de nadie."
+        "title": "Nunca sabes si sirvió",
+        "body": "La ayuda que desaparece dentro de una organización es difícil de repetir. La gente vuelve cuando ve en qué se convirtió su hora."
+      }
+    },
+    "steps": {
+      "title": "Maneras de <em>Entrar</em>",
+      "lede": "Tres, ordenadas por lo que piden.",
+      "one": {
+        "title": "Aparecer",
+        "body": "Cae a un mercado, un taller o un encuentro. Sin formulario, sin membresía, sin plata — los eventos son abiertos, y así empezó la mayoría de los panas."
+      },
+      "two": {
+        "title": "Hazte pana",
+        "body": "Llena el formulario y ten tu perfil en el directorio. Toma unos minutos, una persona lo revisa, y te escribimos cuando estés en vivo."
+      },
+      "three": {
+        "title": "Lleva un pod",
+        "body": "Los Community Connectors son pods de barrio en Miami-Dade, Broward y Palm Beach que arman sus propios proyectos. Tres niveles, y todos empiezan en el primero."
+      }
+    },
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "Vecinos que te encuentran",
+        "body": "Un perfil que tu comunidad puede buscar por nombre, oficio o barrio — y un nombre local más respaldando al club."
+      },
+      "two": {
+        "title": "Gente cerca que ya lo hace",
+        "body": "Un pod en tu propio condado trabajando en la calle donde vives, en vez de una lista de voluntarios a dos ciudades."
+      },
+      "three": {
+        "title": "Algo que sigue siendo tuyo",
+        "body": "Los miembros y las donaciones pagan el directorio, el feed y los eventos. Por eso nada de esto tiene que vender tu atención."
       }
     },
     "closing": {
