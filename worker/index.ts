@@ -19,6 +19,7 @@ import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 import { assertPanaverseConfigured } from '../lib/panaverse/boot';
+import { runExpiryPurge } from '../lib/jobs/purge-expired';
 import { PATHNAME_HEADER, SEARCH_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
@@ -170,6 +171,38 @@ export default {
       routed.headers.set(PATHNAME_HEADER, url.pathname);
       routed.headers.set(SEARCH_HEADER, url.search);
       return handler.fetch(routed);
+    });
+  },
+
+  /**
+   * Nightly maintenance. Expiry across this app is a read filter, so rows
+   * whose `expiresAt` has passed are invisible but still stored -- along with
+   * their R2 media, which nothing else ever reclaims. See lib/jobs/purge-expired.ts.
+   *
+   * Bindings are primed here exactly as in fetch(): a scheduled invocation is
+   * a separate entry point and gets none of that setup for free. runWithDb
+   * matters most -- postgres.js sockets are scoped to the invocation that
+   * opened them, so the job has to run inside it.
+   */
+  async scheduled(event: { cron: string }, env: Env): Promise<void> {
+    getStorage(env);
+
+    // Awaited rather than handed to ctx.waitUntil, and errors are rethrown.
+    // Both matter for observability: waitUntil lets the handler return before
+    // the work finishes, so Cloudflare records the run as a success in a few
+    // milliseconds regardless of outcome. Awaiting makes the dashboard's
+    // duration and failure columns mean something.
+    await runWithDb(env, async () => {
+      const report = await runExpiryPurge();
+      console.log('[purge]', event.cron, JSON.stringify(report));
+
+      // Logged individually rather than left inside the report blob. A
+      // deferred story means an R2 object outlived the row that pointed at
+      // it; it retries tomorrow, but a run of them is a bucket problem and
+      // should be greppable.
+      for (const error of report.errors) {
+        console.error('[purge]', error);
+      }
     });
   },
 };

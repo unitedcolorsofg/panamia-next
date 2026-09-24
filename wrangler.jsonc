@@ -8,6 +8,17 @@
     "directory": "dist/client",
     "binding": "ASSETS",
   },
+  // Nightly maintenance at 04:10 UTC. Expiry in this app is a read filter,
+  // so expired stories and notifications stay in Postgres (and their photos
+  // stay in R2) until something deletes them -- see lib/jobs/purge-expired.ts
+  // and the scheduled() handler in worker/index.ts.
+  //
+  // Off-peak and deliberately not on the hour: shared cron minutes are the
+  // busiest, and this job competes with nothing if it runs slightly late.
+  "triggers": {
+    "crons": ["10 4 * * *"],
+  },
+
   // Workers Cache: regional tiered cache in front of the Worker.
   // https://blog.cloudflare.com/workers-cache/
   //

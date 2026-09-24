@@ -14,6 +14,7 @@ const PostComposer = dynamic(
 );
 import { AttachmentGrid } from './AttachmentGrid';
 import { CollapsibleContent } from './CollapsibleContent';
+import { StoryRing } from './StoryRing';
 import { SocialStatusDisplay } from '@/lib/interfaces';
 import { getVisibilityFromRecipients } from '@/lib/utils/getVisibility';
 import { formatDistanceToNow } from 'date-fns';
@@ -60,12 +61,16 @@ export function PostCard({
       <CardContent className={isDetail ? 'px-0 pt-0' : 'pt-4'}>
         {/* Header */}
         <div className="flex items-start gap-3">
-          <Link href={`/p/${status.actor.username}`}>
+          <StoryRing
+            username={status.actor.username}
+            href={`/p/${status.actor.username}`}
+            size="sm"
+          >
             <Avatar className="h-10 w-10">
               <AvatarImage src={status.actor.iconUrl || undefined} />
               <AvatarFallback>{actorInitials}</AvatarFallback>
             </Avatar>
-          </Link>
+          </StoryRing>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

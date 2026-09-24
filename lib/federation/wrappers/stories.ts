@@ -38,7 +38,7 @@ import {
   PUBLIC_ACTOR_COLUMNS,
   STATUS_TYPE_STORY,
 } from '@/lib/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { canPost, GateResult } from '../gates';
 import { getFollowersUrl } from '../index';
 import { generateStatusUri } from './status';
@@ -119,6 +119,19 @@ export interface StoryTray {
   isOwner: boolean;
 }
 
+/**
+ * The lightweight answer to "should this avatar have a ring, and what colour".
+ *
+ * Deliberately carries no media and no story ids: this is what a list of
+ * fifty avatars needs, and shipping the tray fifty times over to render a
+ * coloured border would be the whole payload wasted.
+ */
+export interface StorySummary {
+  hasStories: boolean;
+  hasUnseen: boolean;
+  isOwner: boolean;
+}
+
 function storyExpiry(from: Date = new Date()): Date {
   return new Date(from.getTime() + STORY_LIFETIME_HOURS * 60 * 60 * 1000);
 }
@@ -177,7 +190,7 @@ export async function createStory(
 
   // Rate limit by live count rather than by time. A burst of twelve stories in
   // a minute is normal use; two hundred is someone scripting the endpoint, and
-  // each one costs an R2 object that nothing currently reclaims.
+  // each one costs an R2 object that is not reclaimed until it expires.
   const [{ count: activeCount }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(socialStatuses)
@@ -281,6 +294,87 @@ export async function createStory(
  * exist but have nothing live. The caller renders those differently: a missing
  * pana is an error, a pana with no stories is just a plain profile picture.
  */
+/**
+ * Whether each of several panas has stories worth ringing, in a fixed number
+ * of queries.
+ *
+ * Exists because of where rings are drawn. One ring on a profile can afford
+ * getActiveStories -- one actor, full media, one request. A feed or a pana
+ * list draws twenty or fifty, and doing that per avatar means twenty or fifty
+ * round trips for data that is thrown away: the list only needs to know
+ * whether to draw a ring and what colour. The media is fetched when someone
+ * actually taps.
+ *
+ * Three queries regardless of list length. Not one -- the grouped aggregate
+ * that would collapse them has to left-join views and count distinct statuses
+ * in the same pass, and that reads far worse than it performs.
+ */
+export async function getStorySummaries(
+  usernames: string[],
+  viewerActorId?: string
+): Promise<Record<string, StorySummary>> {
+  const wanted = [...new Set(usernames.filter(Boolean))];
+  if (wanted.length === 0) return {};
+
+  const actors = await db.query.socialActors.findMany({
+    where: inArray(socialActors.username, wanted),
+    columns: { id: true, username: true },
+  });
+  if (actors.length === 0) return {};
+
+  const actorIds = actors.map((a) => a.id);
+
+  const rows = await db
+    .select({ id: socialStatuses.id, actorId: socialStatuses.actorId })
+    .from(socialStatuses)
+    .where(
+      and(
+        inArray(socialStatuses.actorId, actorIds),
+        eq(socialStatuses.type, STATUS_TYPE_STORY),
+        sql`${socialStatuses.expiresAt} > NOW()`
+      )
+    )
+    .limit(MAX_ACTIVE_STORIES * actorIds.length);
+
+  // Only asked when there is a viewer to have seen anything. Signed out, every
+  // ring with stories is unseen, which is the correct answer anyway.
+  let seenIds = new Set<string>();
+  if (viewerActorId && rows.length > 0) {
+    const views = await db
+      .select({ statusId: socialStoryViews.statusId })
+      .from(socialStoryViews)
+      .where(
+        and(
+          eq(socialStoryViews.viewerActorId, viewerActorId),
+          inArray(
+            socialStoryViews.statusId,
+            rows.map((r) => r.id)
+          )
+        )
+      );
+    seenIds = new Set(views.map((v) => v.statusId));
+  }
+
+  const byActor = new Map<string, { total: number; unseen: number }>();
+  for (const row of rows) {
+    const entry = byActor.get(row.actorId) ?? { total: 0, unseen: 0 };
+    entry.total += 1;
+    if (!seenIds.has(row.id)) entry.unseen += 1;
+    byActor.set(row.actorId, entry);
+  }
+
+  const result: Record<string, StorySummary> = {};
+  for (const actor of actors) {
+    const entry = byActor.get(actor.id);
+    result[actor.username] = {
+      hasStories: (entry?.total ?? 0) > 0,
+      hasUnseen: (entry?.unseen ?? 0) > 0,
+      isOwner: viewerActorId != null && viewerActorId === actor.id,
+    };
+  }
+  return result;
+}
+
 export async function getActiveStories(
   username: string,
   viewerActorId?: string
@@ -517,11 +611,18 @@ export async function getStoryViewers(
 /**
  * Delete a story before it expires. Author only.
  *
- * The view rows go with it through the FK cascade. The R2 object does not --
- * nothing in this codebase reclaims R2 yet (expired DMs have the same
- * problem), so this leaves the media orphaned. Noted rather than solved here:
- * a purge job needs to handle expired stories too, and that is a larger job
- * than this feature.
+ * The view rows go with it through the FK cascade. The R2 object does not:
+ * this deletes the row while the media stays in the bucket. That is not a
+ * leak any more but it is a delay -- the nightly purge in lib/jobs/
+ * purge-expired.ts only sweeps rows it can still see, so media orphaned by an
+ * early delete is invisible to it.
+ *
+ * Left this way deliberately. Reclaiming inline would put a network call to
+ * R2 inside a user-facing delete, where a slow or failing bucket turns a
+ * button press into a hang or a false error, and the row would have to be
+ * kept on failure to stay sweepable. The cost of not doing it is bounded:
+ * only stories deleted early, only until someone extends the purge to sweep
+ * attachments with no status.
  */
 export async function deleteStory(
   statusId: string,
