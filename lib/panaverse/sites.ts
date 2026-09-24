@@ -1,4 +1,5 @@
 import {
+  frontDoorPath,
   originForFrom,
   resolveSurface,
   surfaceForPath,
@@ -97,14 +98,30 @@ export function resolvePanaSites(
 
     const owner = surfaceForPath(site.href);
     const origin = originForFrom(owner, host, rootDomain);
-    if (origin === currentOrigin) return site;
+    const sameOrigin = origin === currentOrigin;
 
-    /* Crossing to a surface's own origin means landing on a host where its
-     * front door is "/", not its prefix — so the Pana Social tile reads
-     * https://social.pana.social/ rather than .../s. Both serve the feed; only
-     * one of them is the URL a member would repeat out loud. Relative links
-     * above keep their prefix, because on this host that prefix is the route. */
-    const path = site.href === owner.rootPath ? '/' : site.href;
+    /* A surface's front door is "/" on its own origin, so the tile should name
+     * that rather than the prefix: https://social.pana.social/ and, from the
+     * social host itself, a plain "/". Both serve the feed; only one of them is
+     * the URL a member would repeat out loud.
+     *
+     * The two cases differ in which host decides. A cross-origin link lands on
+     * the owner's hostname by construction, so its front door is always "/". A
+     * same-origin link stays on the host in hand, which is the owner's only
+     * sometimes — from pana.social the social tile is still /s, because that is
+     * genuinely where the feed is on this host. Only paths that *are* the
+     * surface's root are touched; /d and /e are rooms, not front doors. */
+    const path =
+      site.href === owner.rootPath
+        ? sameOrigin
+          ? frontDoorPath(owner, host, rootDomain)
+          : '/'
+        : site.href;
+
+    if (sameOrigin) {
+      return path === site.href ? site : { ...site, href: path };
+    }
+
     return { ...site, href: `${origin}${path}` };
   });
 }
