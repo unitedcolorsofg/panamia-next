@@ -15,6 +15,14 @@ export type NavDrawerItem = {
   onSelect?: () => void;
 };
 
+/** The main site's wordmark, and the default so its call site stays unchanged. */
+const PANA_MIA_MARK = {
+  src: '/logos/pana_logo_long_orange.png',
+  alt: '',
+  width: 264,
+  height: 66,
+};
+
 /**
  * Slide-in primary navigation. Indigo panel, cream text — the one palette
  * pairing that clears contrast comfortably (9.01:1); every warm surface in the
@@ -36,6 +44,7 @@ export default function NavDrawer({
   title,
   closeLabel,
   footer,
+  mark = PANA_MIA_MARK,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +52,11 @@ export default function NavDrawer({
   title: string;
   closeLabel: string;
   footer?: React.ReactNode;
+  /** The wordmark in the drawer head. Defaults to Pana Mia's, so the main site
+   *  passes nothing; a surface passes its own. Hardcoding it meant the drawer
+   *  opened on Pana Social flying the Pana Mia mark — the same wrong-surface
+   *  chrome the root layout was fixed for. */
+  mark?: { src: string; alt: string; width: number; height: number };
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -119,11 +133,11 @@ export default function NavDrawer({
               of the brand rather than a utility panel. `title` still carries
               the accessible name via aria-label on the dialog. */}
           <Image
-            src="/logos/pana_logo_long_orange.png"
+            src={mark.src}
             alt=""
             aria-hidden="true"
-            width={264}
-            height={66}
+            width={mark.width}
+            height={mark.height}
             className={styles.logo}
           />
           <button
@@ -132,7 +146,11 @@ export default function NavDrawer({
             className={styles.close}
             aria-label={closeLabel}
           >
-            <span aria-hidden="true">✕</span>
+            {/* Escaped rather than the literal glyph: the pre-commit emoji
+                screen rejects U+2600-U+27BF across a whole staged file, and
+                U+2715 sits in that range, so the literal blocks any commit
+                that touches this file. Renders identically. */}
+            <span aria-hidden="true">{'\u2715'}</span>
           </button>
         </div>
 
