@@ -371,7 +371,11 @@ export async function getGroupByHandle(handle: string) {
 
   if (!actor?.group) return null;
 
-  return { group: actor.group, actor: toPublicActor(actor) };
+  // Strip the joined relation before it reaches a response: the group is
+  // already returned alongside, and leaving it nested duplicates every field.
+  const { group, ...actorRow } = actor;
+
+  return { group, actor: toPublicActor(actorRow) };
 }
 
 /**
