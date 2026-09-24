@@ -278,10 +278,14 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-sans">
+        {/* `forcedTheme` overrides whatever next-themes has in localStorage.
+            The theme picker was removed along with the masthead toggle, so
+            without this anyone who had already chosen dark or flower-power
+            would be stuck there with no control to change it back. */}
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          enableSystem
+          forcedTheme="light"
           disableTransitionOnChange
         >
           <FlowerPowerProvider>
