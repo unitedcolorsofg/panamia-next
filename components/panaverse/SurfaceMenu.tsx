@@ -1,9 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { useSession, signOut } from '@/lib/auth-client';
 import NavDrawer, { type NavDrawerItem } from '@/components/NavDrawer';
 
 /**
@@ -11,7 +9,7 @@ import NavDrawer, { type NavDrawerItem } from '@/components/NavDrawer';
  *
  * `SurfaceMemberHeader` is a server component — it resolves cross-surface
  * origins where PANAVERSE_ROOT_DOMAIN actually exists — so the drawer's open
- * state and the sign-out call have to live in a client island. The items are
+ * state has to live in a client island. The items are
  * built on the server and arrive already resolved, which is what keeps the
  * cross-surface hrefs honest: computing them here would mean guessing the root
  * domain from the browser.
@@ -31,7 +29,6 @@ export function SurfaceMenu({
 }) {
   const { t, i18n } = useTranslation();
   const isEs = i18n.language === 'es';
-  const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
 
@@ -60,32 +57,17 @@ export function SurfaceMenu({
         title={t('nav.menu')}
         closeLabel={t('nav.closeMenu')}
         footer={
-          /* Sign Out exists in exactly one place in this app — a drawer footer.
-             The main site put it here when its identity menu was retired, and
-             Pana Social had no route to it at all: a member signed in on the
-             feed could not sign out without going back to the main site.
+          /* The language switch is all this footer carries. Account Settings
+             and Sign Out moved up to the masthead identity menu when Pana
+             Social adopted the main site's account bubble, which is where that
+             menu keeps them — and keeping a second copy here would be two
+             Sign Outs in one shell to hold in step.
 
-             The language switch sits outside the signed-in branch for the same
-             reason it does on the main site: it used to live in the theme menu,
-             which #188 removed, and it is not an account control — a visitor
-             reading the feed signed out still needs it. */
+             The switch itself sits outside any signed-in branch for the same
+             reason it does on the main site: it used to live in the theme
+             menu, which #188 removed, and it is not an account control — a
+             visitor reading the feed signed out still needs it. */
           <div className="panaverse-drawer-account">
-            {status !== 'loading' && session && (
-              <>
-                <Link href="/account/user/edit" onClick={close}>
-                  {t('nav.accountSettings')}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    close();
-                    void signOut({ redirect: true, callbackUrl: '/' });
-                  }}
-                >
-                  {t('nav.signOut')}
-                </button>
-              </>
-            )}
             <button
               type="button"
               onClick={() => {

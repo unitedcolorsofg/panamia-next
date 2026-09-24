@@ -12,7 +12,7 @@ import {
   SURFACE_TONE,
 } from '@/lib/panaverse/branding';
 import { type NavDrawerItem } from '@/components/NavDrawer';
-import { SurfaceMemberAvatar } from '@/components/panaverse/SurfaceMemberAvatar';
+import { SurfaceIdentity } from '@/components/panaverse/SurfaceIdentity';
 import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
 
 /**
@@ -36,6 +36,13 @@ import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
  * in a switcher beside the avatar. That follows the main masthead, which moved
  * its own cross-site menu into the drawer for the same reason: a bar carrying
  * four controls on a phone has no room left for the mark.
+ *
+ * They stay in the drawer even though the account menu now lists the Pana
+ * sites too, because the two lists cross different boundaries. `PANA_SITES`
+ * is deliberately relative — it keeps a member on the hostname they already
+ * chose — so it cannot carry anyone from social.pana.social back to the main
+ * site. Only these `originForFrom` links do, and that route home was the
+ * reason the drawer grew them.
  *
  * Rendered server-side so the cross-surface origins are resolved where
  * PANAVERSE_ROOT_DOMAIN actually exists. Only the controls that need session
@@ -104,7 +111,7 @@ export function SurfaceMemberHeader({
         </Link>
 
         <div className="panaverse-masthead-right">
-          <SurfaceMemberAvatar />
+          <SurfaceIdentity />
         </div>
       </div>
     </header>
