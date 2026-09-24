@@ -302,7 +302,7 @@ export const envConfig: Record<string, EnvVarConfig> = {
   NEXT_PUBLIC_STADIA_API_KEY: {
     description:
       'Stadia Maps API key for the directory and profile basemaps (public). ' +
-      'Currently inert: the basemap is Esri World Light Gray Base, which needs ' +
+      'Currently inert: the basemap is Esri World Street Map, which needs ' +
       'no key, because every Stadia request for this account returns 401 by ' +
       'domain auth and by API key alike, on tiles and on unrelated endpoints, ' +
       'so the property is not authorised yet. Once it is, set this only if ' +
