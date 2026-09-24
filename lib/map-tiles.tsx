@@ -23,8 +23,10 @@
  * still get real tiles, which makes the failure look domain-shaped when it is
  * not.
  *
- * So the live basemap is Esri's World Light Gray Base: the same quiet canvas,
- * keyless, unwatermarked. See the bottom of this file to swap back.
+ * So the live basemap is Esri's World Street Map: keyless, unwatermarked, and
+ * labelled. Esri's Light Gray was the first pick and is still exported below,
+ * but the Canvas family splits base tiles from label tiles, and pigeon-maps
+ * draws a single layer, so it put no place names on the map at all.
  */
 
 /**
@@ -94,25 +96,52 @@ export function StadiaAttribution() {
 /* ---------------------------------------------------------------- Esri ---- */
 
 /**
- * Esri's World Light Gray Base, served without a key or an account.
+ * Esri's ArcGIS basemaps, served without a key or an account.
  *
  * Two traps here. The path is z/y/x, not the z/x/y every other provider uses,
  * so transposing it returns tiles from the wrong part of the world rather than
  * an error. And there is no file extension and no @2x variant, so retina
  * screens get the 256px tile: pigeon-maps passes dpr, and we ignore it.
  */
-const esriLightGray: TileProvider = (x, y, z) =>
-  `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
+const esri =
+  (service: string): TileProvider =>
+  (x, y, z) =>
+    `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/${z}/${y}/${x}`;
 
-/** Required credit for the Esri tiles. */
+/** Cream land, coral highways, full place labels. The live basemap. */
+const esriStreet = esri('World_Street_Map');
+
+/**
+ * Pale grey, no labels whatsoever — the Canvas family keeps place names in a
+ * separate reference layer that pigeon-maps has nowhere to draw.
+ */
+export const mapTilesEsriLightGray = esri('Canvas/World_Light_Gray_Base');
+
+/**
+ * Required credit for the Esri tiles.
+ *
+ * Esri's full `copyrightText` for this service names thirteen data partners
+ * and wrapped to two lines across the bottom of the map pane, which is a lot
+ * of furniture for a 678px column. The visible credit is trimmed to the two
+ * parties who require it — Esri for the tiles, OpenStreetMap for the ODbL
+ * data inside them — and the full list is one hover away in the title.
+ *
+ * Re-read it from `.../World_Street_Map/MapServer?f=json` before editing; the
+ * source list changes as their data partners do.
+ */
+const ESRI_SOURCES =
+  'Sources: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, ' +
+  'Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), ' +
+  'NGCC, (c) OpenStreetMap contributors, and the GIS User Community';
+
 function EsriAttribution() {
   return (
-    <span>
+    <span title={ESRI_SOURCES}>
       Tiles ©{' '}
       <a href="https://www.esri.com/" target="_blank" rel="noreferrer">
         Esri
-      </a>{' '}
-      — Esri, HERE, Garmin, ©{' '}
+      </a>
+      , ©{' '}
       <a
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
@@ -120,7 +149,7 @@ function EsriAttribution() {
       >
         OpenStreetMap
       </a>{' '}
-      contributors, and the GIS user community
+      contributors
     </span>
   );
 }
@@ -129,8 +158,9 @@ function EsriAttribution() {
 
 /**
  * The basemap actually in use. Swap this pair to `mapTilesStadia` and
- * `StadiaAttribution` once the Stadia property is authorised — nothing else in
- * the app changes, because both maps import only these two names.
+ * `StadiaAttribution` once the Stadia property is authorised, or to
+ * `mapTilesEsriLightGray` for the unlabelled grey canvas — nothing else in the
+ * app changes, because both maps import only these two names.
  */
-export const mapTiles = esriLightGray;
+export const mapTiles = esriStreet;
 export const MapAttribution = EsriAttribution;
