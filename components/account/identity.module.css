@@ -18,7 +18,12 @@
   font-size: 12.5px;
   font-weight: 900;
   letter-spacing: 0.02em;
-  background-color: var(--color-pana-flame);
+  /* The true brand orange rather than flame: this is the one element that has
+     to be findable in a crowded masthead, and #ff8100 is the more saturated of
+     the two. Ink text, not white — see the CONTRAST RULE in app/globals.css.
+     Warm surfaces carry ink: ink/orange is 7.50:1, white/orange only 2.50:1,
+     which fails AA for 12.5px initials. */
+  background-color: var(--color-pana-orange);
   color: var(--color-pana-ink);
   overflow: hidden;
   user-select: none;
