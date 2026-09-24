@@ -297,6 +297,56 @@ equivalent to grant an exception.
 These are stand-ins. Replace them with real photography from the businesses as
 it arrives, and drop the credit line when the last stock photo is gone.
 
+### `reseed-directory-content.ts`
+
+Rewrites the name, screenname, category, copy and photos of the 100 seeded
+directory listings so a listing describes one coherent business.
+
+```bash
+npx tsx scripts/reseed-directory-content.ts                 # dry run
+npx tsx scripts/reseed-directory-content.ts --apply         # write
+npx tsx scripts/reseed-directory-content.ts --postgres <url>
+```
+
+The same `--postgres` / localhost warning as `seed-business-photos.ts` applies;
+read that section first.
+
+**What was wrong.** The seeded rows were generated combinatorially, so the name,
+the category and the three description fields were each drawn independently.
+That produced three separate failures: categories that contradict the business
+(`Clave Sound` filed under Food), copy that describes someone else entirely
+(`Telar Forge`, a forge, selling hand-poured candles; `Ceiba Ceramics` doing
+leather work), and one brand split across unrelated trades (`Ceiba Ceramics` /
+`Ceiba Craft` / `Ceiba Workshop`). There is no generator in this repo to repair
+— the rows were written straight into the database — so this script is the
+source of truth for them.
+
+**Archetypes, not heuristics.** Each listing is pinned to one of ~48 archetypes
+that bundle a category, a photo theme and the copy together, so those three
+agree by construction. Guessing from the business name, the way
+`seed-business-photos.ts` has to, can only ever be as good as its keyword list.
+
+**Renames keep the trailing noun.** Splitting `Ceiba Craft` off gives
+`Madera Craft`, never `Madera Goods`. Only the brand word moves, so the
+category, photo and copy stay valid and the row still reads as the same kind of
+business. `descriptions.background` embeds the old name and carries a real
+neighborhood and founding year, so the name inside it is substituted rather
+than the sentence regenerated.
+
+**Branches are kept paired.** Eight rows are a second location of another row
+(`Trenza Studio` / `Trenza Studio Aventura`). They deliberately share an
+archetype and a copy variant, because they are one business.
+
+**Copy variants.** Four supper clubs reciting the same paragraph is what gave
+the original data away, so archetypes that several unrelated businesses share
+carry alternates, selected per listing through `Listing.v`. The script refuses
+to run if a variant index is out of range, and reports any two unrelated
+businesses that would end up with the same paragraph — branches excepted.
+
+It also refuses to run if a new screenname is already taken by a row it is not
+renaming, since `profiles.screenname` is uniquely indexed and the rows are
+updated one at a time.
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:
