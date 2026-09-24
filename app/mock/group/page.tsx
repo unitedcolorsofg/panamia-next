@@ -16,8 +16,9 @@ import type { MockSurface } from '../_data/panaverse';
         importing the feed's post card rather than drawing a new one.
      2. A group is an actor. The hero is the profile hero with a privacy state
         and a join button.
-     3. Chat and posts are different products that happen to share a
-        membership table. They sit one tab apart so the difference is visible.
+     3. Real-time chat is not a group-page concern. It is being designed as
+        its own feature on its own surface, so this page stays slow: posts,
+        events, roster.
 
    The viewer switch in the toolbar is the point of the page. Groups look
    different depending on who is asking, and the private state is where the

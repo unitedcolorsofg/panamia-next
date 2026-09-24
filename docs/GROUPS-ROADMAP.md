@@ -14,13 +14,11 @@
 - [Overview](#overview)
 - [What Already Exists](#what-already-exists)
 - [Why Relay Groups Are Not The Answer](#why-relay-groups-are-not-the-answer)
-- [Why Nostr Cannot Back In-App Chat](#why-nostr-cannot-back-in-app-chat)
 - [Proposed Design](#proposed-design)
 - [Schema](#schema)
 - [Feed Integration](#feed-integration)
 - [Search](#search)
 - [Events](#events)
-- [Chat](#chat)
 - [Roadmap](#roadmap)
 - [Risks & Open Questions](#risks--open-questions)
 
@@ -41,6 +39,10 @@ decides several arguments below:
 That single constraint is what rules out the existing relay-group approach, which works by handing
 people a deeplink to a third-party Nostr client.
 
+> **Real-time chat is out of scope for this document.** It is its own feature on its own surface —
+> see `docs/CHAT-ROADMAP.md`. Groups ship without it. A group page is a slow surface: posts, events,
+> roster.
+
 ### Goals
 
 - Any pana can create a group around any interest, with no admin approval
@@ -48,7 +50,6 @@ people a deeplink to a third-party Nostr client.
 - Group posts appear in the home timeline of members, alongside posts from people they follow
 - Groups can host events, exactly as profiles do now
 - Group membership count appears next to the Panas count in the feed rail
-- Group conversation happens **inside pana.social** — no app install, no client handoff
 
 ### Non-Goals
 
@@ -56,7 +57,7 @@ people a deeplink to a third-party Nostr client.
   for panas who want censorship-resistant Nostr rooms. This feature does not depend on Nostr at all.
 - Federated group membership in v1. Remote actors can _follow_ a group actor and receive its public
   posts, but joining is local-only until the visibility rules have proven themselves.
-- Threaded chat, reactions, read receipts, or typing indicators in the first chat release.
+- Real-time chat of any kind. Tracked separately in `docs/CHAT-ROADMAP.md`.
 
 ---
 
@@ -110,43 +111,15 @@ Setting aside the Nostr enrollment requirement, relay groups fail four of the si
 - **Cannot host events.** No relationship to the `events` table exists.
 - **Messages are not in Postgres.** They live on the relay, so they cannot appear in a timeline
   query, be moderated here, or be included in an account-deletion sweep.
-- **There is no chat UI in this repo.** `components/relay/groups/GroupDetail.tsx` renders a name,
-  an about line, a member count, a member roster, and an invite box. No message list, no composer.
-  `components/relay/ImportInstructions.tsx:7` hardcodes a deeplink to
+- **There is no group content surface in this repo.** `components/relay/groups/GroupDetail.tsx`
+  renders a name, an about line, a member count, a member roster, and an invite box — and nothing
+  else. `components/relay/ImportInstructions.tsx:7` hardcodes a deeplink to
   `https://web.nostrord.com/?relay=relay.pana.social&group=panamia-test`.
 
 That last point is the whole argument. Relay groups send panas to Nostrord, Amethyst, or 0xchat to
-do the actual talking, which is precisely the outcome the product owner ruled out.
-
----
-
-## Why Nostr Cannot Back In-App Chat
-
-The obvious shortcut is to keep the relay and build a chat UI on top of it here. That is blocked,
-and the block is deliberate.
-
-`components/relay/EnrollSection.tsx:450` tells every enrolling pana:
-
-> _"Your secret key (nsec) is shown once. We don't store it."_
-
-And `:398` — _"never sent to or stored on our servers."_ The schema backs the promise: `profiles`
-carries `nostrPubkey` and `nostrPubkeySource` and no secret-key column anywhere.
-
-Signing a kind-9 group message requires that secret in the browser on **every visit**. Every way to
-put it there is unacceptable:
-
-| Approach                    | Why it fails                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------ |
-| Paste the nsec each session | Trains panas to type secret keys into web forms — the exact habit that gets people drained |
-| Keep it in `localStorage`   | Any XSS anywhere on the origin becomes total, permanent identity compromise                |
-| Store it server-side        | Breaks a promise made in the product UI                                                    |
-| Require a NIP-07 extension  | Another install — back to "leave the pana system"                                          |
-
-`lib/nostr/sign.ts` and `lib/nostr/publish-browser.ts` are both capable — browser schnorr signing
-and a NIP-42 AUTH WebSocket publisher already exist. Capability was never the problem. **Key
-custody is.**
-
-**Conclusion: in-app group chat must be native Postgres + Durable Object.** See [Chat](#chat).
+do the actual talking, which is precisely the outcome the product owner ruled out. The key-custody
+reason a Nostr-backed surface cannot simply be rebuilt here is documented in
+`docs/CHAT-ROADMAP.md`.
 
 ---
 
@@ -157,24 +130,25 @@ Model a group as an **ActivityPub `Group` actor**. This is not an invention; `Gr
 handle, an inbox, an outbox, followers, and an avatar for free, because `socialActors` already
 provides all of it.
 
-A group then exposes **two surfaces over one membership table**:
+A group then exposes **one surface gated by one membership table**:
 
 ```mermaid
 graph TB
-    M["social_group_members<br/>one membership, gates both"]
+    M["social_group_members<br/>one membership, one gate"]
     M --> P["POSTS surface<br/>Postgres + ActivityPub"]
-    M --> C["CHAT surface<br/>Durable Object + Postgres"]
     P --> F["Home feed · events<br/>federation · search"]
-    C --> R["Realtime room<br/>in-app only"]
 ```
 
-The split matters because **chat and posts are different products** and it is easy to conflate them.
-Four of the six goals — feed, events, membership counts, search — are async _post_ semantics. Chat
-delivers none of them: chat messages do not belong in a timeline, cannot be liked or replied to
-three days later, and do not federate. Building chat first would satisfy the "don't leave the site"
-constraint while leaving every original requirement unmet.
+Chat was cut out of this design rather than deferred inside it, because **chat and posts are
+different products** and it is easy to conflate them. Four of the five goals — feed, events,
+membership counts, search — are async _post_ semantics. Chat delivers none of them: chat messages do
+not belong in a timeline, cannot be liked or replied to three days later, and do not federate.
+Building chat first would satisfy the "don't leave the site" constraint while leaving every original
+requirement unmet.
 
-**Posts ship first. Chat is phase 5.**
+If chat later turns out to be scoped to groups, it reads `social_group_members` like everything else
+here does. That is the only coupling this document assumes, and `docs/CHAT-ROADMAP.md` is free to
+reject it.
 
 ---
 
@@ -200,28 +174,28 @@ JSON, and federation will quietly treat every group as a Person.
 ### `social_groups`
 
 ```ts
-export const socialGroups = pgTable("social_groups", {
-  id: text("id")
+export const socialGroups = pgTable('social_groups', {
+  id: text('id')
     .primaryKey()
     .$defaultFn(() => createId()),
-  actorId: text("actor_id")
+  actorId: text('actor_id')
     .notNull()
     .unique()
-    .references(() => socialActors.id, { onDelete: "cascade" }),
-  createdByProfileId: text("created_by_profile_id").references(
+    .references(() => socialActors.id, { onDelete: 'cascade' }),
+  createdByProfileId: text('created_by_profile_id').references(
     () => profiles.id,
-    { onDelete: "set null" },
+    { onDelete: 'set null' }
   ),
-  name: text("name").notNull(),
-  summary: text("summary"),
-  topics: jsonb("topics").$type<Record<string, boolean>>().default({}),
-  visibility: groupVisibilityEnum("visibility").notNull().default("public"),
-  joinPolicy: groupJoinPolicyEnum("join_policy").notNull().default("open"),
-  memberCount: integer("member_count").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
+  name: text('name').notNull(),
+  summary: text('summary'),
+  topics: jsonb('topics').$type<Record<string, boolean>>().default({}),
+  visibility: groupVisibilityEnum('visibility').notNull().default('public'),
+  joinPolicy: groupJoinPolicyEnum('join_policy').notNull().default('open'),
+  memberCount: integer('member_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
+  updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
@@ -238,30 +212,30 @@ search vector.
 
 ```ts
 export const socialGroupMembers = pgTable(
-  "social_group_members",
+  'social_group_members',
   {
-    id: text("id")
+    id: text('id')
       .primaryKey()
       .$defaultFn(() => createId()),
-    groupId: text("group_id")
+    groupId: text('group_id')
       .notNull()
-      .references(() => socialGroups.id, { onDelete: "cascade" }),
-    actorId: text("actor_id")
+      .references(() => socialGroups.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id')
       .notNull()
-      .references(() => socialActors.id, { onDelete: "cascade" }),
-    role: groupRoleEnum("role").notNull().default("member"),
-    status: groupMemberStatusEnum("status").notNull().default("active"),
-    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    role: groupRoleEnum('role').notNull().default('member'),
+    status: groupMemberStatusEnum('status').notNull().default('active'),
+    joinedAt: timestamp('joined_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => ({
-    uniqueMember: unique("social_group_members_group_actor_key").on(
+    uniqueMember: unique('social_group_members_group_actor_key').on(
       t.groupId,
-      t.actorId,
+      t.actorId
     ),
-    actorIdx: index("social_group_members_actor_idx").on(t.actorId),
-  }),
+    actorIdx: index('social_group_members_actor_idx').on(t.actorId),
+  })
 );
 ```
 
@@ -292,11 +266,11 @@ accepted `social_follows` plus self, then filters statuses on `isNotNull(publish
 ```ts
 or(
   jsonbArrayContains(recipientTo, PUBLIC),
-  jsonbArrayContains(recipientCc, PUBLIC),
+  jsonbArrayContains(recipientCc, PUBLIC)
 );
 ```
 
-> ### ⚠️ The trap
+> ### The trap
 >
 > A private group's posts are **not** PUBLIC-addressed. Adding `groupId` to the existing `WHERE`
 > clause means every private group post is silently filtered out, and the bug presents as "groups
@@ -311,13 +285,13 @@ where: or(
     isNull(socialStatuses.groupId), // don't double-render group posts
     or(
       jsonbArrayContains(socialStatuses.recipientTo, PUBLIC),
-      jsonbArrayContains(socialStatuses.recipientCc, PUBLIC),
-    ),
+      jsonbArrayContains(socialStatuses.recipientCc, PUBLIC)
+    )
   ),
   and(
-    inArray(socialStatuses.groupId, memberGroupIds),
+    inArray(socialStatuses.groupId, memberGroupIds)
     // no public-addressing requirement — membership is the authorization
-  ),
+  )
 );
 ```
 
@@ -370,111 +344,10 @@ impossible.
 
 ---
 
-## Chat
-
-### Precedent
-
-`worker/signaling-room.ts` is a SQLite-backed Durable Object that already implements WebSocket
-handling, a `chat` table, a `participants` table, join-with-reconnect that refreshes `joined_at`, a
-30-minute stale purge, broadcast, and `cleanupIfEmpty()` teardown. `wrangler.jsonc` describes the
-binding as _"Durable Objects for WebSocket-based real-time features (signaling, chat)"_.
-
-Routing is established at `worker/index.ts:95`:
-
-```ts
-if (url.pathname.startsWith("/ws/signaling/")) {
-  const roomId = url.pathname.split("/")[3];
-  const id = env.SIGNALING_ROOM.idFromName(roomId);
-  return env.SIGNALING_ROOM.get(id).fetch(request);
-}
-```
-
-A `GroupRoom` DO is a copy of a pattern already running in production in this repo.
-
-### Durable Object for fan-out, Postgres for truth
-
-```ts
-export const groupMessages = pgTable("group_messages", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  groupId: text("group_id")
-    .notNull()
-    .references(() => socialGroups.id, { onDelete: "cascade" }),
-  actorId: text("actor_id")
-    .notNull()
-    .references(() => socialActors.id),
-  body: text("body").notNull(),
-  replyToId: text("reply_to_id").references(
-    (): AnyPgColumn => groupMessages.id,
-  ),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
-```
-
-The DO holds a hot buffer in its own SQLite so a joining member gets `room-state` instantly, then
-persists through to Postgres via `app/api/internal/*` — the route family
-`setInternalAuthToken` (`worker/index.ts`) already exists to serve.
-
-Postgres is authoritative because DO-only history would be invisible to moderation, invisible to
-search, and invisible to account-deletion sweeps. That also matches the posture
-`docs/RESILIENCE-ROADMAP.md:309` sets for the relay: panamia is the source of truth.
-
-`deletedAt` is a soft delete. Moderation needs to remove a message from the room without destroying
-the evidence of what was removed — and unlike Nostr, where `GroupDetail.tsx:290` has to warn that
-messages cannot be retracted, a native store can actually honor a takedown.
-
-**One deliberate divergence from `SignalingRoom`:** it wipes its tables in `cleanupIfEmpty()` when
-the last participant disconnects. Correct for an ephemeral three-person video call, catastrophic for
-a group room. Group chat history survives an empty room.
-
-### ⚠️ Do not copy the signaling auth model
-
-`/ws/signaling/:roomId` performs **no authentication**. It routes straight through to the DO, and
-the DO trusts `data.userId` from the client's own `join` message. For a mentoring proof-of-concept
-behind unguessable room IDs that is survivable. For group chat it is a hole: anyone could open
-`/ws/group/:groupId` and claim to be any member.
-
-Browsers cannot set headers on a WebSocket, so the check belongs in the Worker — which **can** set
-headers on the inner `stub.fetch`:
-
-```ts
-if (url.pathname.startsWith("/ws/group/")) {
-  const groupId = url.pathname.split("/")[3];
-  const session = await auth(); // cookies ARE sent on same-origin WS upgrade
-  if (!session?.user?.id) return new Response("Unauthorized", { status: 401 });
-
-  const member = await getGroupMembership(groupId, session.user.id);
-  if (!member || member.status !== "active") {
-    return new Response("Forbidden", { status: 403 });
-  }
-
-  // The client cannot forge these: they are set server-side on the inner fetch.
-  const authed = new Request(request);
-  authed.headers.set("X-Pana-Actor-Id", member.actorId);
-  authed.headers.set("X-Pana-Group-Role", member.role);
-
-  const id = env.GROUP_ROOM.idFromName(groupId);
-  return env.GROUP_ROOM.get(id).fetch(authed);
-}
-```
-
-The DO reads identity from the header and **ignores any identity in the message payload**. Build it
-this way in the first commit; retrofitting identity into a live chat protocol means a flag day.
-
-> **Free-plan constraint:** the `wrangler.jsonc` migration entry for `GroupRoom` must use
-> `new_sqlite_classes`, not `new_classes`. The existing `SignalingRoom` migration tag `v1` shows the
-> shape.
-
----
-
 ## Roadmap
 
-Each phase is independently shippable. Phases 1–4 are pure Postgres and ActivityPub and add no
-infrastructure; phase 5 is the only one that touches Worker configuration.
+Each phase is independently shippable. All four are pure Postgres and ActivityPub — none of them
+touch Worker configuration or add infrastructure.
 
 ### Phase 1 — Groups exist
 
@@ -499,13 +372,6 @@ infrastructure; phase 5 is the only one that touches Worker configuration.
 
 - `events.host_group_id`, `DROP NOT NULL`, and the single-host `CHECK`
 - Event creation UI gains a host selector for groups the pana can administer
-
-### Phase 5 — In-app chat
-
-- `group_messages` table; `GroupRoom` Durable Object; `GROUP_ROOM` binding with
-  `new_sqlite_classes`
-- Authenticated `/ws/group/:groupId` upgrade per the snippet above
-- Chat panel inside the group page
 
 ---
 
@@ -541,7 +407,8 @@ Phase 3 should enumerate these call sites explicitly and add a test per path.
   separate? Staying separate is simpler and is the assumption throughout this document.
   Note that `docs/RESILIENCE-ROADMAP.md:551` already plans a Nostr→ActivityPub bridge in the
   opposite direction, which may make this moot.
-- **Does chat need federation at all?** Assumed no. Chat is explicitly the "stay on the site"
-  surface, and ActivityPub has no good realtime chat story.
-- **Member cap per group.** `SignalingRoom` caps at `MAX_PARTICIPANTS = 3`; a group room needs a
-  real number, and the DO broadcast loop is O(members) per message.
+- **Do groups need a `rules` column?** The mock at `/mock/group` renders group rules in the rail,
+  but no column is proposed in [Schema](#schema). Either add one in phase 1 or drop it from the
+  design.
+- **Is chat eventually scoped to groups?** If it is, it reads `social_group_members` and nothing in
+  this document changes. Tracked in `docs/CHAT-ROADMAP.md`, which is not obliged to land there.

@@ -8,7 +8,6 @@ import type { MockSurface } from '../../_data/panaverse';
 import { SurfaceMasthead } from '../../_components/surface-masthead';
 import { FeedPostCard } from '../../feed/_components/feed-post-card';
 import {
-  MOCK_CHAT,
   MOCK_EVENTS,
   MOCK_GROUP,
   MOCK_GROUP_POSTS,
@@ -20,7 +19,6 @@ import {
 } from '../_data/mock-group';
 import { GroupHero } from './group-hero';
 import { GroupRail } from './group-rail';
-import { GroupChat } from './group-chat';
 import { EventCard, MemberRow } from './group-panels';
 
 /* Design mock for a Pana Social group home page.
@@ -51,16 +49,14 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
   const current =
     surfaces.find((surface) => surface.id === 'social') ?? surfaces[0];
 
-  /* Chat is a members-only tab, so a visitor should not be looking at an empty
-     room with a greyed-out box. Hiding the tab entirely is the honest version:
-     the room is not a thing they have. */
+  /* Three tabs, the same three for everyone who can see the group at all.
+     Real-time chat is deliberately not one of them — it is being designed as
+     its own feature on its own surface, so this page stays a slow surface:
+     posts, events, roster. */
   const tabs: { id: GroupTab; label: string; count: number }[] = [
     { id: 'posts', label: 'Posts', count: MOCK_GROUP_POSTS.length },
     { id: 'events', label: 'Events', count: MOCK_EVENTS.length },
     { id: 'members', label: 'Members', count: MOCK_MEMBERS.length },
-    ...(isMember
-      ? [{ id: 'chat' as const, label: 'Chat', count: MOCK_CHAT.length }]
-      : []),
   ];
 
   const selectViewer = (next: ViewerState) => {
@@ -140,8 +136,8 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
                           the mock honest about it. */}
                       {!isMember && (
                         <p className="text-pana-ink/60 border-pana-ink/10 rounded-2xl border border-dashed px-4 py-3 text-[13px] leading-snug font-bold">
-                          You&apos;re reading a public group. Join to post,
-                          reply, or open the chat.
+                          You&apos;re reading a public group. Join to post or
+                          reply.
                         </p>
                       )}
                       {MOCK_GROUP_POSTS.map((post) => (
@@ -167,14 +163,6 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
                         <MemberRow key={member.id} member={member} />
                       ))}
                     </div>
-                  )}
-
-                  {activeTab === 'chat' && (
-                    <GroupChat
-                      messages={MOCK_CHAT}
-                      viewer={viewer}
-                      joined={joined}
-                    />
                   )}
                 </div>
               </>
@@ -224,8 +212,8 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
  * posts land in a stranger's feed. A risk written in a document is easy to
  * nod at; a risk drawn on screen is something a reviewer can actually check.
  *
- * So the rule is visible rather than described: no posts, no roster, no chat,
- * no event location, no post or event counts. Name, summary, admins, member
+ * So the rule is visible rather than described: no posts, no roster, no event
+ * location, no post or event counts. Name, summary, admins, member
  * count, and a way in. If a future change causes anything else to appear here,
  * the mock has caught a bug. */
 function LockedPanel() {
@@ -237,8 +225,8 @@ function LockedPanel() {
           This group is private
         </p>
         <p className="text-pana-ink/70 max-w-prose text-[14px] leading-relaxed font-medium">
-          Posts, members, events, and chat are only visible to people who have
-          been approved. An admin reviews every request.
+          Posts, members, and events are only visible to people who have been
+          approved. An admin reviews every request.
         </p>
         <p className="text-pana-ink/50 max-w-prose text-[13px] leading-snug font-medium">
           Nothing from inside this group is loaded on this page — not in the

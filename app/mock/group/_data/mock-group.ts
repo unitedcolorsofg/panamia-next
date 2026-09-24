@@ -31,7 +31,7 @@ import type { MockPost } from '../../feed/_data/mock-feed';
 export type { MockPost };
 
 /** Which tab the group page is showing. */
-export type GroupTab = 'posts' | 'events' | 'members' | 'chat';
+export type GroupTab = 'posts' | 'events' | 'members';
 
 /**
  * Who is looking. This is the most important control on the page.
@@ -75,20 +75,6 @@ export interface MockGroupEvent {
   interested: number;
   /** True when the viewer is already on the list. */
   rsvped?: boolean;
-}
-
-export interface MockChatMessage {
-  id: string;
-  /** group_messages.actor_id, resolved to a display name. */
-  author: string;
-  /** social_actors.icon_url */
-  avatar: string;
-  /** group_messages.body */
-  body: string;
-  /** group_messages.created_at, pre-formatted. */
-  sent: string;
-  /** True when the author is the viewer — flips the bubble alignment. */
-  mine?: boolean;
 }
 
 export interface MockGroup {
@@ -261,47 +247,6 @@ export const MOCK_EVENTS: MockGroupEvent[] = [
 ];
 
 /* --------------------------------------------------------------------------
-   Chat
-   -------------------------------------------------------------------------- */
-
-/* Phase 5 in the roadmap, mocked here so the two surfaces can be compared side
-   by side. The roadmap argues in prose that chat and posts are different
-   products; this is where it becomes obvious. Nothing below would make sense
-   in a timeline, and none of it wants to be liked, boosted, or replied to
-   three days later. */
-export const MOCK_CHAT: MockChatMessage[] = [
-  {
-    id: 'chat-1',
-    author: 'Bee María',
-    avatar: '/img/about/bee_maria.jpg',
-    body: 'does anyone have a spare drum for the RZ? mine finally gave out mid-run',
-    sent: '2:14 PM',
-  },
-  {
-    id: 'chat-2',
-    author: 'G. Barrios',
-    avatar: '/img/about/gbarrios.jpg',
-    body: 'i have a spare blue, not using it til november',
-    sent: '2:16 PM',
-  },
-  {
-    id: 'chat-3',
-    author: 'You',
-    avatar: '/img/about/claribel_avila.jpg',
-    body: 'bee if you can get to lemon city tomorrow i can hand you mine too',
-    sent: '2:18 PM',
-    mine: true,
-  },
-  {
-    id: 'chat-4',
-    author: 'Bee María',
-    avatar: '/img/about/bee_maria.jpg',
-    body: 'you two are lifesavers. tomorrow works, i will bring cafecito',
-    sent: '2:19 PM',
-  },
-];
-
-/* --------------------------------------------------------------------------
    Posts
    -------------------------------------------------------------------------- */
 
@@ -443,7 +388,7 @@ export const RESERVED_MODULES: { title: string; description: string }[] = [
   {
     title: 'Shared files',
     description:
-      'Templates, setup guides, and the bilingual handout, kept somewhere other than a chat scroll.',
+      'Templates, setup guides, and the bilingual handout, kept where a new member can find them.',
   },
   {
     title: 'Member map',
