@@ -314,10 +314,11 @@ export interface PanasResponse {
 }
 
 export interface ProfileGroupSummary {
-  groupId: string;
+  id: string;
+  handle: string;
   name: string;
-  about: string | null;
-  picture: string | null;
+  summary: string | null;
+  iconUrl: string | null;
   memberCount: number;
 }
 

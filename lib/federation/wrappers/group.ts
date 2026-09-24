@@ -27,7 +27,7 @@ import type {
   SocialGroupJoinPolicy,
   SocialGroupVisibility,
 } from '@/lib/schema';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
 import { validateScreennameFull } from '@/lib/screenname';
 import {
@@ -397,4 +397,62 @@ export async function getMembership(
       ),
     })) ?? null
   );
+}
+
+export interface PublicGroupMembership {
+  id: string;
+  handle: string;
+  name: string;
+  summary: string | null;
+  iconUrl: string | null;
+  memberCount: number;
+}
+
+/**
+ * Public groups an actor is an active member of.
+ *
+ * Feeds the Groups stat in the feed rail and the group cards on a profile, so
+ * it is read by anyone looking at anyone -- which is exactly why both filters
+ * below are load-bearing:
+ *
+ *   - visibility 'public' only. A private group appearing on someone's public
+ *     profile tells a stranger both that the group exists and that this
+ *     person is in it. That is a membership disclosure the person never
+ *     agreed to, and it is the reason GroupCard can safely render no privacy
+ *     marker at all.
+ *   - status 'active' only. A pending request is not a membership, and
+ *     showing it would advertise that someone asked to join somewhere before
+ *     the admins have decided.
+ */
+export async function listPublicGroupsForActor(
+  actorId: string
+): Promise<PublicGroupMembership[]> {
+  const rows = await db
+    .select({
+      id: socialGroups.id,
+      handle: socialActors.username,
+      name: socialActors.name,
+      summary: socialActors.summary,
+      iconUrl: socialActors.iconUrl,
+      memberCount: socialGroups.memberCount,
+    })
+    .from(socialGroupMembers)
+    .innerJoin(socialGroups, eq(socialGroups.id, socialGroupMembers.groupId))
+    .innerJoin(socialActors, eq(socialActors.id, socialGroups.actorId))
+    .where(
+      and(
+        eq(socialGroupMembers.actorId, actorId),
+        eq(socialGroupMembers.status, 'active'),
+        eq(socialGroups.visibility, 'public')
+      )
+    )
+    .orderBy(asc(socialActors.name));
+
+  // name is nullable on social_actors because remote actors may omit it, but
+  // a card with no title is not renderable -- fall back to the handle, which
+  // always exists.
+  return rows.map((row) => ({
+    ...row,
+    name: row.name ?? row.handle,
+  }));
 }

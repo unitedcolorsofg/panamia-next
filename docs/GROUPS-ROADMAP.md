@@ -315,18 +315,42 @@ Copy the directory pattern wholesale — migrations `0040_profile_search_vector.
 `0041_profile_name_trigram.sql` already solved this problem for profiles, and
 `docs/SEARCH-ROADMAP.md` documents the outcome with measured results.
 
-- A stored `tsvector` on `social_groups`, weighted `A` name → `B` topics → `C` summary, generated
-  across the same three configs migration `0040` uses — `english`, `spanish`, and `simple`
-- `pana_jsonb_flags` already flattens `{key: true}` JSONB maps into text, so `topics` drops straight
-  into the vector with no new helper
-- `pana_unaccent` is already `IMMUTABLE` and reusable as-is
-- `pg_trgm` trigram fallback on `name`, fired **only when full-text returns zero rows** — Phase 2 of
-  the search roadmap explains why "zero" beats "few" as the trigger
+**Shipped as `0044_group_search_vector.sql`**, with one change forced by Phase 1's schema.
+
+The original plan called for a single `tsvector` on `social_groups` weighted
+`A` name → `B` topics → `C` summary. That is not buildable: Phase 1 put `name` and `summary` on
+`social_actors` (a group **is** an actor, and those are the actor's own fields) while `topics` lives
+on `social_groups`, and a `GENERATED` column can only read its own row. Denormalising a copy of the
+name onto `social_groups` was considered and rejected — a second copy is a second thing to keep in
+step on rename, and when it drifts the symptom is "search finds the old name" with nothing logged.
+
+As built, each table gets a generated vector over the fields it actually owns:
+
+| Vector                        | Weight | Fields    |
+| ----------------------------- | ------ | --------- |
+| `social_actors.search_vector` | `A`    | `name`    |
+|                               | `C`    | `summary` |
+| `social_groups.search_vector` | `B`    | `topics`  |
+
+Both are `GENERATED ALWAYS ... STORED`, both are GIN-indexed, and both are generated across the same
+three configs migration `0040` uses — `english`, `spanish`, and `simple`. `pana_jsonb_flags` and
+`pana_unaccent` are reused as-is with no new helper. Indexing **all** actors rather than only
+`type = 'Group'` is deliberate: a partial index would force every query to repeat the whole weighted
+expression verbatim to be used at all, and people search gets the same index for free later.
+
+- `pg_trgm` trigram fallback on `social_actors.name`, fired **only when full-text returns zero rows**
+  — Phase 2 of the search roadmap explains why "zero" beats "few" as the trigger
 - `word_similarity_threshold` at `0.5`, not the Postgres default of `0.6`
 
 > **Gotcha, already paid for once:** `pg_trgm` and `unaccent` must be schema-qualified (`public.` or
 > `extensions.`) in **three separate places** or the index and operators fail at migration time.
 > `docs/SEARCH-ROADMAP.md` has the specifics.
+
+> **Ranking gotcha, specific to the two-vector split:** `setweight` only orders terms _within_ one
+> `tsvector`. Across the join the `A`/`B`/`C` labels are not automatically comparable — what makes
+> them line up is that `lib/server/group-search.ts` passes the **same** weight array to both
+> `ts_rank_cd` calls and sums the results. Giving the group vector its own weights would silently
+> reorder results.
 
 ---
 
@@ -376,12 +400,30 @@ to strand or corrupt a group: the last active admin cannot leave, a banned membe
 (deleting the row would let them rejoin an open group in one tap — the row _is_ the ban), and
 joining twice returns the existing membership instead of inflating `member_count`.
 
-### Phase 2 — Discovery
+### Phase 2 — Discovery (shipped, minus UI)
 
-- `search_vector` + trigram fallback on `social_groups`, per [Search](#search)
-- Topic browse and group search UI
-- **Repoint** `app/api/social/actors/[username]/groups/route.ts` at `social_group_members`.
-  `feed-rail.tsx` needs no change — the Groups stat starts counting the new groups on its own.
+- Migration `0044`: generated `search_vector` on **both** `social_actors` and `social_groups`, GIN
+  indexes on each, and `social_actors_name_trgm_idx` for the fallback arm — see [Search](#search)
+  for why the single-vector plan above could not be built
+- `lib/server/group-search.ts`: `searchGroups`, `browseGroups`, `trigramSearch`, mirroring
+  `lib/server/directory.ts`
+- `GET /api/social/groups` — searches on `?q=`, browses newest-first when `q` is empty
+- **Repointed** `app/api/social/actors/[username]/groups/route.ts` at `social_group_members`.
+  `feed-rail.tsx` needed no change — the Groups stat started counting social groups on its own.
+- `tests-db/group-search.test.ts` covers ranking order, accent folding, stemming, the trigram
+  fallback, and both profile-privacy filters
+
+Two decisions worth knowing before building the UI on top:
+
+- **Private groups are returned by search**, identity fields only — never posts, roster, or events.
+  A `joinPolicy: 'request'` group nobody can find is a group nobody can request. The rationale lives
+  in the `GROUP_COLUMNS` docblock so it can be reversed in one place if `invite`-only groups should
+  stop being enumerable.
+- **`listPublicGroupsForActor` filters to public + active**, a deliberately stricter rule than
+  search uses. A private group on a public profile leaks both that the group exists and that this
+  person is in it. That invariant is what lets `GroupCard` render no privacy marker at all.
+
+Still open: topic browse and group search UI.
 
 ### Phase 3 — Group updates in the feed
 

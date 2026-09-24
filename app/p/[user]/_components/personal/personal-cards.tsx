@@ -45,17 +45,17 @@ export function PanaCard({ pana }: { pana: PanaSummary }) {
 
 /* A group this person belongs to.
  *
- * There is no privacy flag on this card, unlike the design mock: only
- * discoverable groups ever reach it, so an "Open" marker would be on every
- * card and a "Private" one could never appear. */
+ * There is no privacy flag on this card, unlike the design mock: only public
+ * groups ever reach it, so an "Open" marker would be on every card and a
+ * "Private" one could never appear. */
 export function GroupCard({ group }: { group: ProfileGroupSummary }) {
   return (
     <article className="profile-card overflow-hidden">
       <div className="bg-pana-indigo/10 relative aspect-[16/7]">
-        {group.picture && (
+        {group.iconUrl && (
           <>
             <Image
-              src={group.picture}
+              src={group.iconUrl}
               alt=""
               fill
               sizes="(min-width: 640px) 20rem, 100vw"
@@ -71,9 +71,9 @@ export function GroupCard({ group }: { group: ProfileGroupSummary }) {
 
       <div className="p-4">
         <h3 className="text-[15px] font-extrabold">{group.name}</h3>
-        {group.about && (
+        {group.summary && (
           <p className="text-pana-ink/70 mt-1 line-clamp-2 text-[13px] leading-snug font-medium">
-            {group.about}
+            {group.summary}
           </p>
         )}
         <p className="text-pana-ink/45 mt-2 inline-flex items-center gap-1.5 text-xs font-bold">

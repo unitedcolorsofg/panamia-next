@@ -1,21 +1,23 @@
 /**
- * GET /api/social/actors/[username]/groups - discoverable groups for a profile
+ * GET /api/social/actors/[username]/groups - public groups a profile belongs to
  *
- * Lives under the social actor namespace because the profile page is the only
- * consumer and a handle is the key, but it reads relay group space. The bridge
- * between the two is profiles.nostr_pubkey, which is nullable — an unenrolled
- * account has no pubkey and therefore belongs to no groups. That is an empty
- * list, not an error, so the tab renders its empty state rather than failing.
+ * Serves the Groups stat in the feed rail and the group cards on a profile.
  *
- * Only discoverable groups are returned; see listPublicGroupsForPubkey for why
- * invite-only membership must not appear here.
+ * This used to read relay group space (NIP-29) through profiles.nostr_pubkey.
+ * It now reads social_group_members, because Pana Social groups are the ones
+ * panas actually join in-app. Relay groups keep their own surface at
+ * /r/groups and are no longer surfaced on profiles.
+ *
+ * Only public groups an actor is an *active* member of are returned; see
+ * listPublicGroupsForActor for why both filters are a privacy requirement
+ * rather than a nicety.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getPubkeyForScreenname,
-  listPublicGroupsForPubkey,
-} from '@/lib/server/relay-groups';
+  getActorByScreenname,
+  listPublicGroupsForActor,
+} from '@/lib/federation';
 
 export async function GET(
   _request: NextRequest,
@@ -23,13 +25,15 @@ export async function GET(
 ) {
   const { username } = await params;
 
-  const pubkey = await getPubkeyForScreenname(username);
+  const actor = await getActorByScreenname(username);
 
-  if (!pubkey) {
+  // An account with no actor has joined nothing. That is an empty list, not
+  // an error, so the rail renders 0 and the tab renders its empty state.
+  if (!actor) {
     return NextResponse.json({ success: true, data: { groups: [] } });
   }
 
-  const groups = await listPublicGroupsForPubkey(pubkey);
+  const groups = await listPublicGroupsForActor(actor.id);
 
   return NextResponse.json({ success: true, data: { groups } });
 }

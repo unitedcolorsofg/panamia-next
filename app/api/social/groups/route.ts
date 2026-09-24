@@ -1,5 +1,8 @@
 /**
- * POST /api/social/groups - Create a group
+ * /api/social/groups
+ *
+ * GET  - Search and browse groups
+ * POST - Create a group
  *
  * Creating a group mints an actor, so the caller must already have one of
  * their own: a group needs a founding admin, and an admin is an actor.
@@ -9,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { createGroup } from '@/lib/federation';
+import { searchGroups } from '@/lib/server/group-search';
 import type {
   SocialGroupJoinPolicy,
   SocialGroupVisibility,
@@ -32,6 +36,39 @@ function asStringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   if (!value.every((v) => typeof v === 'string')) return null;
   return value as string[];
+}
+
+/**
+ * GET /api/social/groups?q=&limit=&offset=
+ *
+ * Deliberately unauthenticated. Discovery is how a pana finds a group to ask
+ * to join, and requiring a session to search would make a private group with
+ * joinPolicy 'request' undiscoverable by exactly the people meant to request
+ * it. Only identity fields are returned -- never posts, roster or events --
+ * which matches what the [handle] route already serves to a stranger.
+ *
+ * An absent or empty `q` is browse, not an error, so the discovery page and
+ * the search box are the same endpoint.
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+
+  const term = searchParams.get('q') ?? '';
+  const limitParam = searchParams.get('limit');
+  const offsetParam = searchParams.get('offset');
+
+  // Left unvalidated on purpose: searchGroups clamps both, so a junk value
+  // falls back to the default rather than 400-ing a discovery page over a
+  // malformed query string.
+  const limit = limitParam ? Number(limitParam) : undefined;
+  const offset = offsetParam ? Number(offsetParam) : undefined;
+
+  const groups = await searchGroups({ term, limit, offset });
+
+  return NextResponse.json({
+    success: true,
+    data: { groups, query: term.trim() },
+  });
 }
 
 export async function POST(request: NextRequest) {
