@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePanas, useProfileGroups } from '@/lib/query/social';
@@ -128,10 +129,13 @@ export function FeedRail({ actor }: { actor: SocialActor }) {
       <p className="text-pana-ink/45 text-[12px] leading-snug font-bold">
         Pana Social is part of the Panaverse, sharing your Pana account with
         Pana Mia.{' '}
-        <Link href="/directory/search" className="link-arrow text-pana-indigo">
+        <SurfaceLink
+          href="/directory/search"
+          className="link-arrow text-pana-indigo"
+        >
           Browse the directory
           <ArrowRight className="h-3 w-3" aria-hidden="true" />
-        </Link>
+        </SurfaceLink>
       </p>
     </aside>
   );

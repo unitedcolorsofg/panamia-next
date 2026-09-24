@@ -259,3 +259,36 @@ export function surfaceForPath(pathname: string): PanaverseSurface {
   );
   return match ?? DEFAULT_SURFACE;
 }
+
+/** Drop the query and hash, then any trailing slash, so `/s/?x=1` reads `/s`. */
+function pathOnly(href: string): string {
+  const path = href.split('?')[0].split('#')[0];
+  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+}
+
+/**
+ * Would following `href` from `fromPath` change which surface's chrome the
+ * page wears?
+ *
+ * Callers use this to choose between `next/link` and a plain anchor, and the
+ * distinction is not cosmetic. The chrome is chosen in the root layout from
+ * the request headers, and the App Router does not re-render a shared root
+ * layout on a client navigation — so a `<Link>` that crosses a surface
+ * boundary lands on the new path still wearing the old surface's masthead.
+ * Pana Mia's wordmark sat over the Pana Social feed until the member
+ * refreshed, which reads as a broken page rather than as a stale layout.
+ *
+ * Only same-origin relative paths can hit that: an absolute href is another
+ * origin and the browser reloads the document anyway. That is also why this
+ * needs no knowledge of PANAVERSE_SUBDOMAINS. With the flag on, cross-surface
+ * hrefs are absolute and take the first branch; with it off they are relative
+ * and the path comparison decides. Turning the flag on therefore changes which
+ * branch runs, not what the member sees.
+ */
+export function crossesSurface(href: string, fromPath: string): boolean {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//')) return true;
+  if (!href.startsWith('/')) return false;
+  return (
+    surfaceForPath(pathOnly(href)).id !== surfaceForPath(pathOnly(fromPath)).id
+  );
+}

@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, type CSSProperties } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 
 import styles from './NavDrawer.module.css';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { cn } from '@/lib/utils';
 
 export type NavDrawerItem = {
@@ -158,7 +158,7 @@ export default function NavDrawer({
           <ul className={styles.list}>
             {items.map((item, index) => (
               <li key={item.href}>
-                <Link
+                <SurfaceLink
                   href={item.href}
                   className={styles.link}
                   onClick={() => {
@@ -176,7 +176,7 @@ export default function NavDrawer({
                   <span className={styles.arrow} aria-hidden="true">
                     →
                   </span>
-                </Link>
+                </SurfaceLink>
               </li>
             ))}
           </ul>

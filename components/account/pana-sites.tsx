@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import {
   CalendarDays,
@@ -14,6 +13,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 import { PANA_SITES } from '@/lib/panaverse/sites';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import styles from './identity.module.css';
 import { cn } from '@/lib/utils';
 
@@ -89,7 +89,7 @@ export function PanaSites({
           }
 
           return (
-            <Link
+            <SurfaceLink
               key={site.id}
               href={site.href}
               role="menuitem"
@@ -101,7 +101,7 @@ export function PanaSites({
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <span className={styles.tileLabel}>{label}</span>
-            </Link>
+            </SurfaceLink>
           );
         })}
       </div>

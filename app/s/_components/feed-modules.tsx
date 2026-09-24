@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import {
   ArrowRight,
   CalendarDays,
@@ -93,12 +94,12 @@ export function EventsModule() {
             Markets, workshops, and dinners hosted by Panas.
           </p>
         </div>
-        <Link
+        <SurfaceLink
           href="/e"
           className="text-pana-indigo hidden flex-none text-[12px] font-extrabold tracking-wider uppercase sm:block"
         >
           See all
-        </Link>
+        </SurfaceLink>
       </div>
 
       <div className="feed-strip">

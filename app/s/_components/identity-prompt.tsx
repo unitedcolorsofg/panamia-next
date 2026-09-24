@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { useTranslation } from 'react-i18next';
 import { ImagePlus, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -94,18 +94,18 @@ export function IdentityPrompt({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {needsName && (
           <Button asChild size="sm">
-            <Link href="/account/user/edit">
+            <SurfaceLink href="/account/user/edit">
               <UserRound className="mr-1.5 h-4 w-4" />
               {t('onboarding.identityAddName')}
-            </Link>
+            </SurfaceLink>
           </Button>
         )}
         {needsAvatar && (
           <Button asChild size="sm" variant={needsName ? 'outline' : 'default'}>
-            <Link href="/account/profile/images">
+            <SurfaceLink href="/account/profile/images">
               <ImagePlus className="mr-1.5 h-4 w-4" />
               {t('onboarding.identityAddPhoto')}
-            </Link>
+            </SurfaceLink>
           </Button>
         )}
         <Button size="sm" variant="ghost" onClick={dismiss}>
