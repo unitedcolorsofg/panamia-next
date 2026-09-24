@@ -5,7 +5,6 @@ import {
   AtSign,
   Database,
   KeyRound,
-  MapPin,
   Megaphone,
   Scale,
 } from 'lucide-react';
@@ -15,7 +14,6 @@ import type { SettingScope } from './settings-primitives';
 export type SectionId =
   | 'identity'
   | 'signin'
-  | 'place'
   | 'publishing'
   | 'messages'
   | 'data';
@@ -56,14 +54,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     lede: 'One email signs you into every surface. Your Nostr keys sign what you publish, and only you hold them.',
     scope: 'everywhere',
     icon: KeyRound,
-  },
-  {
-    id: 'place',
-    label: 'Where you are',
-    heading: 'Where you are',
-    lede: 'A ZIP code is enough to sort the directory and the events near you. It is never shown on your profile.',
-    scope: 'everywhere',
-    icon: MapPin,
   },
   {
     id: 'publishing',
