@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { Crosshair, MapPin, Search } from 'lucide-react';
 import type { LocationStatus } from '@/app/p/[user]/_lib/use-viewer-location';
+import { COUNTY_FILTER_ID } from './filter-bar';
 
 interface SearchBandProps {
   term: string;
@@ -124,10 +125,18 @@ export function SearchBand({
           ) : locationStatus === 'denied' ? (
             <>
               <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {/* Not a dead end. A declined permission is sticky and usually
+                  deliberate, so "turn it on in your browser" is advice most
+                  people will not take and some cannot. The county chips answer
+                  the same question — what is near me — and need no permission
+                  at all, so that is the offer worth leading with. */}
               <span>
-                Location is off — distances are hidden. Turn it on in your
-                browser to sort by what is closest.
+                Location is off, so distances are hidden. Narrowing by county
+                works just as well.
               </span>
+              <a className="dirsearch-locshare" href={`#${COUNTY_FILTER_ID}`}>
+                Pick a county
+              </a>
             </>
           ) : (
             <>
