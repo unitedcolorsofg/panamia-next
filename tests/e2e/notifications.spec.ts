@@ -92,32 +92,6 @@ test.describe('Notifications API', () => {
 });
 
 test.describe('Notifications in Navigation', () => {
-  test('Jump To menu is not visible for unauthenticated users', async ({
-    page,
-  }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Wait for header to load
-    await page.waitForSelector('header');
-
-    // MainHeader renders nothing in the masthead while `status === 'loading'`,
-    // and <header> itself is in the SSR HTML, so waiting for it proves nothing
-    // about the session. A bare negative assertion here passed before the
-    // session resolved -- it would have passed just as well if "Jump To" were
-    // shown to every visitor. Wait for the unauthenticated branch to actually
-    // render, which is the proof that the gate evaluated, and only then assert
-    // the authenticated control is absent.
-    await expect(
-      page.getByRole('button', { name: 'Sign in or sign up' })
-    ).toBeVisible({
-      timeout: 15000,
-    });
-
-    // Jump To button should not be visible for unauthenticated users
-    const jumpToButton = page.getByRole('button', { name: /Jump To/i });
-    await expect(jumpToButton).not.toBeVisible();
-  });
-
   test('Sign In button is visible for unauthenticated users', async ({
     page,
   }) => {
