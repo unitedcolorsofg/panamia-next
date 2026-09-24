@@ -258,10 +258,45 @@ function loadPool(): Map<string, Credit[]> {
   return pool;
 }
 
+// Never print the connection URL itself: it carries the password. Host, port
+// and database name are all you need to tell local from production apart.
+function describeTarget(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const name = parsed.pathname.replace(/^\//, '') || '(default)';
+    return `${parsed.hostname}:${parsed.port || '5432'}/${name}`;
+  } catch {
+    return '(unparseable connection URL)';
+  }
+}
+
+function isLocalTarget(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return (
+      hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const apply = argv.includes('--apply');
   const explain = argv.includes('--explain');
+
+  // --postgres <url> mirrors migrate-from-mongodb.ts. It matters more here than
+  // it looks: every worktree's .env.local points at the same local
+  // 127.0.0.1:5433/panamia, so a bare --apply rewrites the dev database and
+  // leaves the live site untouched, which reads exactly like the script having
+  // silently done nothing.
+  const pgFlag = argv.indexOf('--postgres');
+  const pgArg = pgFlag === -1 ? undefined : argv[pgFlag + 1];
+  if (pgFlag !== -1 && (!pgArg || pgArg.startsWith('--'))) {
+    console.error('Error: --postgres needs a connection URL');
+    process.exit(1);
+  }
 
   const pool = loadPool();
   console.log(
@@ -272,7 +307,7 @@ async function main() {
   // is the only way to sanity-check the matcher before pointing it at
   // production. Accepts "Name" or "Name#category,category".
   if (explain) {
-    const specs = argv.filter((a) => !a.startsWith('--'));
+    const specs = argv.filter((a) => !a.startsWith('--') && a !== pgArg);
     if (specs.length === 0) {
       console.error('  --explain needs one or more "Name" or "Name#cat,cat"');
       process.exit(1);
@@ -297,12 +332,23 @@ async function main() {
     return;
   }
 
-  if (!process.env.POSTGRES_URL) {
+  const postgresUrl = pgArg ?? process.env.POSTGRES_URL;
+
+  if (!postgresUrl) {
     console.error('Error: POSTGRES_URL environment variable is required');
+    console.error('  or pass --postgres <url> to target a specific database');
     process.exit(1);
   }
 
-  const client = postgres(process.env.POSTGRES_URL);
+  // Name the target before touching it. "Which database did that write to?" is
+  // not a question you want to be asking after the fact, and the local and
+  // production URLs differ by very little at a glance.
+  console.log(`  database: ${describeTarget(postgresUrl)}`);
+  if (apply && isLocalTarget(postgresUrl)) {
+    console.log('  note: this is the local dev database, not the live site');
+  }
+
+  const client = postgres(postgresUrl);
   const db = drizzle(client, { schema });
 
   try {
