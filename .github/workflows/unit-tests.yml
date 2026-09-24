@@ -1,0 +1,48 @@
+name: Unit Tests
+
+# Tests that need neither a database nor secrets. They run on every pull
+# request, including ones from forks, which cannot read repository secrets and
+# so can never run the Playwright job.
+#
+# Kept separate from playwright.yml deliberately. That workflow serialises on a
+# single shared Supabase project (`concurrency: playwright-shared-db`), so a
+# run can sit queued behind an unrelated one for a long time. The checks here
+# take seconds, need no such lock, and should not wait on it -- a change that
+# reopens a data-disclosure bug ought to go red immediately, not eventually.
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+
+jobs:
+  test:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Runs Postgres compiled to WASM (PGlite) in-process, so there is no
+      # service container, no connection string, and nothing shared between
+      # runs. See tests-db/visibility.test.ts.
+      - name: Status visibility
+        run: yarn test:db

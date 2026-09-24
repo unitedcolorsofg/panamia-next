@@ -829,6 +829,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@electric-sql/pglite@npm:^0.5.8":
+  version: 0.5.8
+  resolution: "@electric-sql/pglite@npm:0.5.8"
+  checksum: 10c0/02af377bb73428c1fb4559683dac0a4236d62320d5cda62ad4fc45d662a74fb011f767a161cb52b9160df734066376fc80f0d1506c2bbe9506490753fa12b532
+  languageName: node
+  linkType: hard
+
 "@emnapi/core@npm:^1.11.1":
   version: 1.11.2
   resolution: "@emnapi/core@npm:1.11.2"
@@ -7782,6 +7789,7 @@ __metadata:
     "@cloudflare/vite-plugin": "npm:1.55.0"
     "@commitlint/cli": "npm:21.2.2"
     "@commitlint/config-conventional": "npm:^21.2.2"
+    "@electric-sql/pglite": "npm:^0.5.8"
     "@ffmpeg/ffmpeg": "npm:^0.12.15"
     "@ffmpeg/util": "npm:^0.12.2"
     "@hookform/resolvers": "npm:^5.9.1"
