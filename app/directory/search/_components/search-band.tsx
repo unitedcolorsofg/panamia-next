@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from 'react';
 import { Crosshair, MapPin, Search } from 'lucide-react';
+import { SkyClouds, StreetScene } from '@/components/home/scene-art';
 import type { LocationStatus } from '@/app/p/[user]/_lib/use-viewer-location';
 import { COUNTY_FILTER_ID } from './filter-bar';
 
@@ -30,6 +31,17 @@ interface SearchBandProps {
  * 3. Offer location. This is the one control that turns a list of businesses
  *    into a list of businesses you can actually get to, so it sits in the
  *    header rather than behind a filter dialog where it would never be found.
+ *
+ * The surface underneath all three is the homepage's, not a band of its own.
+ * This page used to open on a full-width indigo slab, which put a door
+ * between the homepage and the screen it hands you to. Cream here means the
+ * masthead, this header, the filters and the results read as one continuous
+ * sheet — so the search box needs its own reason to be the first thing you
+ * look at, and gets the homepage's pool of orange light behind it rather than
+ * a colour change around it. The street is the same drawing the homepage ends
+ * its first screen with, and is the strongest single cue that this is the same
+ * place. Clouds and street are both `aria-hidden` and non-interactive; they
+ * are scenery, and nothing here depends on them being seen.
  */
 export function SearchBand({
   term,
@@ -56,8 +68,15 @@ export function SearchBand({
   const shared = locationStatus === 'granted';
 
   return (
-    <section className="surface-indigo dirsearch-band">
-      <div className="container mx-auto px-4">
+    <section className="dirsearch-band">
+      <SkyClouds />
+
+      {/* Grain over the light, under the type. The pool of orange is a wide
+          soft gradient, and wide soft gradients band on 8-bit displays; the
+          texture is what breaks the steps up. */}
+      <span className="dirsearch-bandgrain" aria-hidden="true" />
+
+      <div className="dirsearch-bandhead container mx-auto px-4">
         <span className="section-eyebrow">Directory</span>
 
         <h1 className="dirsearch-title">
@@ -153,6 +172,13 @@ export function SearchBand({
             </>
           )}
         </div>
+      </div>
+
+      {/* In flow rather than absolutely placed, so the header is always as
+          tall as its own content plus the street — the results below can never
+          be overlapped by a rooftop on a screen size nobody tested. */}
+      <div className="dirsearch-street">
+        <StreetScene />
       </div>
     </section>
   );
