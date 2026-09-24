@@ -3305,7 +3305,7 @@ body {
 }
 
 .panaverse-menu-button:hover {
-  color: var(--color-pana-flame);
+  color: var(--surface-tone, var(--color-pana-indigo));
 }
 
 /* Touch pointers get the full 44px target. Gated on pointer type rather than a
