@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import Image from 'next/image';
 import { BadgeCheck, CalendarDays, MapPin } from 'lucide-react';
 import type { PersonalProfileView } from '@/lib/server/personal-profile';
+import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import type { PersonalTab, StatDef } from './types';
 
 interface PersonalHeroProps {
@@ -45,6 +46,7 @@ export function PersonalHero({
             priority
             sizes="100vw"
             className="object-cover"
+            unoptimized={isUnoptimizableImageSrc(profile.cover)}
           />
         ) : (
           // Accounts that never enrolled in social have no header image. A
@@ -68,6 +70,7 @@ export function PersonalHero({
                 priority
                 sizes="(min-width: 768px) 184px, 152px"
                 className="object-cover"
+                unoptimized={isUnoptimizableImageSrc(profile.avatar)}
               />
             ) : (
               <div className="bg-pana-butter text-pana-ink flex h-full w-full items-center justify-center text-4xl font-black">

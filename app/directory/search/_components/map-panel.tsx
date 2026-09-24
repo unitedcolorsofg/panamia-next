@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Map, Marker, Overlay, ZoomControl } from 'pigeon-maps';
 import { ArrowRight, BadgeCheck, Globe, MapPin } from 'lucide-react';
 import type { SearchResultsInterface } from '@/lib/query/directory';
+import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import { distanceInMiles, type Coords } from '@/app/p/[user]/_lib/profile-view';
 import { formatDistance, resultCoords, resultHref } from '../_lib/format';
 
@@ -144,6 +145,7 @@ export function MapPanel({ results, viewerCoords }: MapPanelProps) {
                 width={40}
                 height={40}
                 aria-hidden="true"
+                unoptimized={isUnoptimizableImageSrc(result.images?.primaryCDN)}
               />
               <span className="min-w-0 flex-1 text-left">
                 <span className="dirsearch-maprow-name">
@@ -214,6 +216,9 @@ export function MapPanel({ results, viewerCoords }: MapPanelProps) {
                   width={34}
                   height={34}
                   aria-hidden="true"
+                  unoptimized={isUnoptimizableImageSrc(
+                    result.images?.primaryCDN
+                  )}
                 />
               </button>
             </Overlay>
@@ -228,6 +233,9 @@ export function MapPanel({ results, viewerCoords }: MapPanelProps) {
               width={44}
               height={44}
               aria-hidden="true"
+              unoptimized={isUnoptimizableImageSrc(
+                selected.result.images?.primaryCDN
+              )}
             />
             <div className="min-w-0 flex-1">
               <p className="dirsearch-map-card-name">{selected.result.name}</p>
