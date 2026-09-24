@@ -93,7 +93,15 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // `/p` is social's for chrome, but it does not own every page under it:
     // a business or unclaimed listing at /p/<user> is directory content and
     // says so with its own canonical. See app/p/[user]/page.tsx.
-    paths: ['/s', '/p', '/timeline', '/inbox'],
+    //
+    // `/g` and `/search` are top level rather than under `/s` on purpose, and
+    // for the same reason `/p` and `/inbox` already are: the end state noted
+    // in worker/index.ts is moving these routes into a route group so the
+    // surface root is "/". A group nested at /s/g/<handle> would have to move
+    // when that happens and break every link minted in the meantime, while
+    // /g/<handle> is already where it will live. It also keeps the pair
+    // legible -- /p/<user> is a person, /g/<handle> is a group.
+    paths: ['/s', '/p', '/g', '/search', '/timeline', '/inbox'],
   },
 ];
 

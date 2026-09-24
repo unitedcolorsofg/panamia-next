@@ -400,7 +400,7 @@ to strand or corrupt a group: the last active admin cannot leave, a banned membe
 (deleting the row would let them rejoin an open group in one tap — the row _is_ the ban), and
 joining twice returns the existing membership instead of inflating `member_count`.
 
-### Phase 2 — Discovery (shipped, minus UI)
+### Phase 2 — Discovery (shipped)
 
 - Migration `0044`: generated `search_vector` on **both** `social_actors` and `social_groups`, GIN
   indexes on each, and `social_actors_name_trgm_idx` for the fallback arm — see [Search](#search)
@@ -413,7 +413,7 @@ joining twice returns the existing membership instead of inflating `member_count
 - `tests-db/group-search.test.ts` covers ranking order, accent folding, stemming, the trigram
   fallback, and both profile-privacy filters
 
-Two decisions worth knowing before building the UI on top:
+Two decisions worth knowing before building on top:
 
 - **Private groups are returned by search**, identity fields only — never posts, roster, or events.
   A `joinPolicy: 'request'` group nobody can find is a group nobody can request. The rationale lives
@@ -423,7 +423,23 @@ Two decisions worth knowing before building the UI on top:
   search uses. A private group on a public profile leaks both that the group exists and that this
   person is in it. That invariant is what lets `GroupCard` render no privacy marker at all.
 
-Still open: topic browse and group search UI.
+The UI that sits on this:
+
+- `/search` — Panas and Groups tabs, reached from the masthead field, which stopped pointing at
+  `/directory/search`. Only the open tab is mounted, so a search costs one request and the tabs
+  carry no counts. Panas shows the top six and hands off to the directory, which owns the filters
+  and the map; groups are answered in full, because this is their only search surface.
+- `/g/<handle>` — the group home, following `app/mock/group` minus the posts, events and roster
+  tabs that need Phase 3. A private group renders its identity block and a locked panel.
+- Both sit at the **top level rather than under `/s`**, joining `/p` and `/inbox`. `worker/index.ts`
+  notes the end state is moving the social routes into a route group so the surface root is `/`;
+  `/g/<handle>` is already where it will live then, and `/s/g/<handle>` would have to move and break
+  every link minted in the meantime. `/p/<user>` is a person, `/g/<handle>` is a group.
+- `/search` is **`noindex`**. Private groups being discoverable assumes a person doing the searching;
+  a crawlable results page turns that into bulk enumeration. A private group page is `noindex` too,
+  so it is reachable by handle and nowhere else.
+
+Still open: topic browse (the chips on a group are not yet links).
 
 ### Phase 3 — Group updates in the feed
 

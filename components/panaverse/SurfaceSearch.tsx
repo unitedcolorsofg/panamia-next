@@ -9,17 +9,19 @@ import { Search } from 'lucide-react';
  * problem `SurfaceLink` exists for — the server picks the chrome again on the
  * way in.
  *
- * It points at the directory search because that is the search that exists
- * today. The placeholder names groups and events as well, which the directory
- * does not yet cover: this is the mock stating the intent while the surface
- * has one real destination to offer. Point `action` at a social-native search
- * once there is one, and the copy stops being aspirational.
+ * It points at Pana Social's own search, which covers Panas and groups. The
+ * placeholder still names events, which discovery does not cover yet: that
+ * arrives with group-hosted events in Phase 4 of docs/GROUPS-ROADMAP.md, and
+ * the copy is one word ahead of the index on purpose rather than by neglect.
+ *
+ * `/search` is deliberately not `/s/search` — see the note on the social
+ * surface's `paths` in lib/panaverse/surfaces.ts.
  */
 export function SurfaceSearch({ surfaceName }: { surfaceName: string }) {
   return (
     <form
       role="search"
-      action="/directory/search"
+      action="/search"
       method="get"
       className="panaverse-search"
     >

@@ -8,7 +8,12 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SocialStatusDisplay, SocialActorDisplay } from '@/lib/interfaces';
-import type { SocialActor } from '@/lib/schema';
+import type {
+  SocialActor,
+  SocialGroup,
+  SocialGroupJoinPolicy,
+  SocialGroupVisibility,
+} from '@/lib/schema';
 
 export const socialQueryKey = ['social'];
 
@@ -351,6 +356,137 @@ export const useProfileGroups = (username: string) => {
     queryKey: [socialQueryKey, 'actor', username, 'groups'],
     queryFn: () => fetchProfileGroups(username),
     enabled: !!username,
+  });
+};
+
+/**
+ * One group as discovery returns it.
+ *
+ * Identity only. The search endpoint never returns posts, roster or events,
+ * which is what lets private groups appear in results at all — see
+ * GROUP_COLUMNS in lib/server/group-search.ts for that reasoning.
+ */
+export interface GroupSearchSummary {
+  id: string;
+  actorId: string;
+  handle: string;
+  domain: string;
+  name: string | null;
+  summary: string | null;
+  iconUrl: string | null;
+  topics: Record<string, boolean>;
+  visibility: SocialGroupVisibility;
+  joinPolicy: SocialGroupJoinPolicy;
+  memberCount: number;
+}
+
+export interface GroupSearchResponse {
+  groups: GroupSearchSummary[];
+  /** Echoed back so a stale render can tell which term it is showing. */
+  query: string;
+}
+
+async function fetchGroupSearch(
+  term: string
+): Promise<GroupSearchResponse | null> {
+  return getSocialData(
+    `/api/social/groups?q=${encodeURIComponent(term)}&limit=${GROUP_SEARCH_LIMIT}`
+  );
+}
+
+/** How many groups a search page asks for. Server clamps at 50 regardless. */
+const GROUP_SEARCH_LIMIT = 24;
+
+/**
+ * Group discovery.
+ *
+ * An empty term is not an error and is not disabled: the endpoint browses the
+ * liveliest groups instead, which is what makes the Groups tab worth opening
+ * before anybody has typed anything.
+ */
+export const useGroupSearch = (term: string) => {
+  return useQuery<GroupSearchResponse | null, Error>({
+    queryKey: [socialQueryKey, 'groups', 'search', term],
+    queryFn: () => fetchGroupSearch(term),
+  });
+};
+
+/** What the viewer is allowed to do with a group, decided by the server. */
+export interface GroupViewer {
+  canRead: boolean;
+  canPost: boolean;
+  isMember: boolean;
+  isPending: boolean;
+  role: string | null;
+  /** Null when signed out -- "we do not know you yet", not "you may not". */
+  canJoin: boolean | null;
+}
+
+export interface GroupDetailResponse {
+  group: SocialGroup;
+  actor: SocialActor;
+  viewer: GroupViewer;
+}
+
+async function fetchGroup(handle: string): Promise<GroupDetailResponse | null> {
+  return getSocialData(`/api/social/groups/${encodeURIComponent(handle)}`);
+}
+
+/**
+ * One group, plus what the viewer may do with it.
+ *
+ * Returns null for a missing group rather than throwing, because
+ * `getSocialData` folds 404 into null -- so a caller checks `data` and not
+ * `isError` to tell "no such group" from "the request failed".
+ */
+export const useGroup = (handle: string) => {
+  return useQuery<GroupDetailResponse | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle],
+    queryFn: () => fetchGroup(handle),
+    enabled: Boolean(handle),
+  });
+};
+
+/**
+ * Join a group, or ask to.
+ *
+ * No optimistic update, unlike `useFollowActor`. Following always lands the
+ * same way, so guessing the result is safe; joining resolves to either a
+ * membership or a pending request depending on the group's join policy, and
+ * that is the server's call. Flashing "Joined" before a request-to-join group
+ * answers "Requested" is a worse experience than waiting for the truth.
+ */
+export const useJoinGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (handle: string) =>
+      axios.post(`/api/social/groups/${encodeURIComponent(handle)}/join`),
+    onSettled: (_data, _error, handle) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      // The member count moved, so any list showing this group is now stale.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'groups'],
+      });
+    },
+  });
+};
+
+/** Leave a group, or withdraw a pending request. */
+export const useLeaveGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (handle: string) =>
+      axios.delete(`/api/social/groups/${encodeURIComponent(handle)}/join`),
+    onSettled: (_data, _error, handle) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'groups'],
+      });
+    },
   });
 };
 
