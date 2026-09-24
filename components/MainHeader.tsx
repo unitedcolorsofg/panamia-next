@@ -14,7 +14,6 @@ import { useUnreadCount } from '@/lib/query/notifications';
 import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
-import { ThemeToggle } from './theme-toggle';
 import { IdentityProvider } from './account/identity-provider';
 import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
@@ -43,7 +42,8 @@ export default function MainHeader({
 }: {
   isProductionSite: boolean;
 }) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const isEs = i18n.language === 'es';
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
@@ -203,8 +203,6 @@ export default function MainHeader({
               {status !== 'loading' && !session && (
                 <AuthMenu triggerClassName={styles.cta} />
               )}
-
-              <ThemeToggle />
             </div>
           </div>
 
@@ -219,55 +217,70 @@ export default function MainHeader({
           title={t('nav.menu')}
           closeLabel={t('nav.closeMenu')}
           footer={
-            status !== 'loading' && !session ? (
-              <>
-                <Link
-                  href="/form/become-a-pana"
-                  className={styles.drawerCta}
-                  onClick={closeDrawer}
-                >
-                  {t('nav.becomeAPana')}
-                </Link>
-                {/* Mirrors the masthead sign-in button, which stays visible at
-                  every width — this is the in-drawer path to the same page. */}
-                <p className={styles.drawerLogin}>
-                  <Trans
-                    i18nKey="nav.alreadyAPana"
-                    t={t}
-                    components={{
-                      a: <Link href="/signin" onClick={closeDrawer} />,
-                    }}
-                  />
-                </p>
-                <p className={styles.drawerMeta}>{t('nav.regions')}</p>
-              </>
-            ) : (
-              <>
-                {/* Sign Out had no home once the masthead identity menu was
-                    removed, and it exists nowhere else in the app. Settings
-                    rides along because it sat directly above it there. */}
-                <div className={styles.drawerAccount}>
+            <>
+              {status !== 'loading' && !session && (
+                <>
                   <Link
-                    href="/account/user/edit"
-                    className={styles.drawerAccountLink}
+                    href="/form/become-a-pana"
+                    className={styles.drawerCta}
                     onClick={closeDrawer}
                   >
-                    {t('nav.accountSettings')}
+                    {t('nav.becomeAPana')}
                   </Link>
-                  <button
-                    type="button"
-                    className={styles.drawerAccountLink}
-                    onClick={() => {
-                      closeDrawer();
-                      void signOut({ redirect: true, callbackUrl: '/' });
-                    }}
-                  >
-                    {t('nav.signOut')}
-                  </button>
-                </div>
-                <p className={styles.drawerMeta}>{t('nav.regions')}</p>
-              </>
-            )
+                  {/* Mirrors the masthead sign-in button, which stays visible at
+                  every width -- this is the in-drawer path to the same page. */}
+                  <p className={styles.drawerLogin}>
+                    <Trans
+                      i18nKey="nav.alreadyAPana"
+                      t={t}
+                      components={{
+                        a: <Link href="/signin" onClick={closeDrawer} />,
+                      }}
+                    />
+                  </p>
+                </>
+              )}
+
+              {/* Settings and Sign Out had no home once the masthead identity
+                  menu was removed, and Sign Out exists nowhere else in the app.
+                  The language switch is here for the same reason: it used to
+                  live in the theme menu, which is also gone. */}
+              <div className={styles.drawerAccount}>
+                {status !== 'loading' && session && (
+                  <>
+                    <Link
+                      href="/account/user/edit"
+                      className={styles.drawerAccountLink}
+                      onClick={closeDrawer}
+                    >
+                      {t('nav.accountSettings')}
+                    </Link>
+                    <button
+                      type="button"
+                      className={styles.drawerAccountLink}
+                      onClick={() => {
+                        closeDrawer();
+                        void signOut({ redirect: true, callbackUrl: '/' });
+                      }}
+                    >
+                      {t('nav.signOut')}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className={styles.drawerAccountLink}
+                  onClick={() => {
+                    void i18n.changeLanguage(isEs ? 'en' : 'es');
+                    closeDrawer();
+                  }}
+                >
+                  {isEs ? 'in English' : 'en Español'}
+                </button>
+              </div>
+
+              <p className={styles.drawerMeta}>{t('nav.regions')}</p>
+            </>
           }
         />
       </header>
