@@ -12,6 +12,7 @@ import {
   Store,
 } from 'lucide-react';
 import type { SearchResultsInterface } from '@/lib/query/directory';
+import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import { distanceInMiles, type Coords } from '@/app/p/[user]/_lib/profile-view';
 import { useDirectoryViewer } from './directory-viewer';
 import { DirectoryFollowButton } from './directory-follow-button';
@@ -85,6 +86,7 @@ export function ResultCard({ result, viewerCoords }: ResultCardProps) {
           fill
           sizes="(max-width: 900px) 100vw, 260px"
           className="object-cover"
+          unoptimized={isUnoptimizableImageSrc(cover)}
         />
         {result.certified && (
           <span className="dirsearch-card-cert">
@@ -104,6 +106,7 @@ export function ResultCard({ result, viewerCoords }: ResultCardProps) {
                 width={52}
                 height={52}
                 aria-hidden="true"
+                unoptimized={isUnoptimizableImageSrc(logo)}
               />
             </span>
           )}
@@ -177,6 +180,7 @@ export function ResultCard({ result, viewerCoords }: ResultCardProps) {
                     alt=""
                     width={26}
                     height={26}
+                    unoptimized={isUnoptimizableImageSrc(avatar)}
                   />
                 ))}
               </span>

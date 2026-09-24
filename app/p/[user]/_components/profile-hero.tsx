@@ -14,6 +14,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import { LINK_ICON, LINK_TITLE } from './link-icons';
 import { useProfileViewer } from './profile-viewer';
 import { distanceInMiles, type ProfileView } from '../_lib/profile-view';
@@ -87,6 +88,7 @@ export function ProfileHero({
             priority
             sizes="100vw"
             className="object-cover"
+            unoptimized={isUnoptimizableImageSrc(profile.coverImage)}
           />
         )}
       </div>
@@ -105,6 +107,7 @@ export function ProfileHero({
                 alt={`${profile.name} logo`}
                 width={220}
                 height={220}
+                unoptimized={isUnoptimizableImageSrc(profile.logo)}
               />
             </div>
           )}
@@ -245,6 +248,7 @@ export function ProfileHero({
                       width={40}
                       height={40}
                       aria-hidden="true"
+                      unoptimized={isUnoptimizableImageSrc(src)}
                     />
                   ))}
                 </div>
