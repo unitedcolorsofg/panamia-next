@@ -222,6 +222,73 @@ This is why the verification block asserts specific `seed_`-prefixed ids
 rather than row counts. A count is not stable in a database someone else is
 writing to; an id is.
 
+### `fetch-directory-photos.ts`
+
+Builds the stock photo pool in `public/img/directory/` from the Pexels API.
+This is a sourcing tool, not part of the app — nothing at runtime talks to
+Pexels, and the pool is committed.
+
+```bash
+PEXELS_API_KEY=... npm run photos:fetch
+```
+
+`PEXELS_API_KEY` is deliberately **not** in `lib/env.config.ts`. That file
+drives Cloudflare deployment config and the CI env checks; a key only ever
+needed to regenerate a committed fixture does not belong in either, and adding
+it would make every deploy expect a variable the running app never reads.
+
+**Why there are food sub-themes.** Twelve of the twenty seeded businesses are
+tagged Food. Keying photos on category alone stapled three near-identical
+plates of food across a whole results page, so the food category is split into
+food-truck, bakery, cafe, market and supper-club. Eleven categories plus five
+sub-themes at three photos each is the 48-file pool.
+
+**Compression is optional and self-healing.** `sharp` is present transitively
+(`@cloudflare/vite-plugin` → `miniflare`), not declared as a dependency, so the
+script loads it through a guarded dynamic import and skips compression if it
+resolves to nothing rather than failing the run. With it, the pool is 4.4 MB
+instead of 5.9 MB; the worst single file drops from 1120 KB to 111 KB.
+
+Each run rewrites `credits.json` with the photographer, source URL and alt text
+per file. The Pexels **API** terms require visible attribution even though the
+photo licence itself does not, which is what the credit line under the
+directory results is for. Do not remove it while these photos are in use.
+
+### `seed-business-photos.ts`
+
+Assigns pooled photos to directory listings, replacing the generated
+`data:image/png;base64` gradients that were standing in for real covers.
+
+```bash
+npx tsx scripts/seed-business-photos.ts            # dry run, prints the plan
+npx tsx scripts/seed-business-photos.ts --apply    # write
+npx tsx scripts/seed-business-photos.ts --explain  # matcher only, no database
+npm run db:photos                                  # alias for the dry run
+```
+
+**Which column is the cover.** There isn't one. `lib/server/directory.ts` reads
+`coverImage` out of the `galleryImages` JSONB as `gallery1CDN`, and
+`profiles.primaryImageCdn` is the **logo**. The script therefore writes
+`gallery1CDN` and clears `primaryImageCdn` to null: these are stock
+photographs, and the same photo rendered both as the card cover and in the 52px
+logo circle beside it reads as a bug. `result-card.tsx` renders the logo
+conditionally, so null degrades to a cover-only card.
+
+**Name keywords are checked before categories, on purpose.** The seeded data is
+mis-tagged — "Clave Sound" (music) and "Raiz Bodywork" (breathwork) are both
+filed under Food, and a skincare market is Food,Products. Matching on category
+first gives all three a photograph of dinner. Where categories are trusted, a
+priority order lets a specific one beat a broad one. `--explain` runs the whole
+matcher against a table of real listing names with no database connection, which
+is how that behaviour is checked.
+
+Photos live in `public/` rather than R2 because `lib/image-src.ts` refuses to
+optimize any `src` that is not root-relative, and there is no `remotePatterns`
+equivalent to grant an exception.
+
+These are stand-ins. Replace them with real photography from the businesses as
+it arrives, and drop the credit line when the last stock photo is gone.
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:
@@ -254,6 +321,8 @@ Scripts typically need access to:
 
 - `POSTGRES_URL` or `DATABASE_URL` - PostgreSQL connection
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` - Cloudflare R2 access
+- `PEXELS_API_KEY` - only for `fetch-directory-photos.ts`, and only when
+  regenerating the committed photo pool. Not part of `lib/env.config.ts`.
 - Other service-specific credentials
 
 Load from `.env.local` or set in shell environment.

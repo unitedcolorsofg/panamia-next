@@ -1,0 +1,386 @@
+[
+  {
+    "file": "/img/directory/food-01.jpg",
+    "theme": "food",
+    "alt": "A vibrant plate of seafood and crispy plantains garnished with lemon slices, ready to savor.",
+    "photographer": "Jesus Cabrera",
+    "photographerUrl": "https://www.pexels.com/@jcabrera",
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-of-plate-full-of-seafood-5041487/"
+  },
+  {
+    "file": "/img/directory/food-02.jpg",
+    "theme": "food",
+    "alt": "A savory plate of rice and beans with fried plantains on a white plate, garnished with parsley.",
+    "photographer": "Snappr",
+    "photographerUrl": "https://www.pexels.com/@snappr",
+    "pexelsUrl": "https://www.pexels.com/photo/traditional-caribbean-cuisine-27556972/"
+  },
+  {
+    "file": "/img/directory/food-03.jpg",
+    "theme": "food",
+    "alt": "Tantalizing Caribbean jerk chicken served with rice and beans and fried plantains on a square plate.",
+    "photographer": "Snappr",
+    "photographerUrl": "https://www.pexels.com/@snappr",
+    "pexelsUrl": "https://www.pexels.com/photo/traditional-caribbean-cuisine-27556985/"
+  },
+  {
+    "file": "/img/directory/products-01.jpg",
+    "theme": "products",
+    "alt": "Charming outdoor shop with a display of woven baskets against glass walls.",
+    "photographer": "Yusuf Çelik",
+    "photographerUrl": "https://www.pexels.com/@zandatsu",
+    "pexelsUrl": "https://www.pexels.com/photo/woven-baskets-hanging-outside-the-shop-14939967/"
+  },
+  {
+    "file": "/img/directory/products-02.jpg",
+    "theme": "products",
+    "alt": "Explore handcrafted goods displayed outdoors at a cozy market stall.",
+    "photographer": "Phát Trương",
+    "photographerUrl": "https://www.pexels.com/@phat-tr-ng-1662052981",
+    "pexelsUrl": "https://www.pexels.com/photo/charming-outdoor-market-display-of-handcrafted-goods-36696806/"
+  },
+  {
+    "file": "/img/directory/products-03.jpg",
+    "theme": "products",
+    "alt": "Street vendor at night market booth with colorful crafts and accessories.",
+    "photographer": "Nguyen Duc Toan",
+    "photographerUrl": "https://www.pexels.com/@tonderue",
+    "pexelsUrl": "https://www.pexels.com/photo/street-vendor-at-night-market-booth-selling-crafts-34845994/"
+  },
+  {
+    "file": "/img/directory/services-01.jpg",
+    "theme": "services",
+    "alt": "Concentrated female florist with dark hair standing in floral shop with tablet near flowers in wrapper while checking order during work",
+    "photographer": "Amina Filkins",
+    "photographerUrl": "https://www.pexels.com/@amina-filkins",
+    "pexelsUrl": "https://www.pexels.com/photo/pensive-woman-near-flowers-in-wrapper-5410081/"
+  },
+  {
+    "file": "/img/directory/services-02.jpg",
+    "theme": "services",
+    "alt": "African American seamstress smiling at work with a 'Support Small Businesses' sign.",
+    "photographer": "Gustavo Fring",
+    "photographerUrl": "https://www.pexels.com/@gustavo-fring",
+    "pexelsUrl": "https://www.pexels.com/photo/portrait-of-a-smiling-woman-sitting-at-the-desk-5934226/"
+  },
+  {
+    "file": "/img/directory/services-03.jpg",
+    "theme": "services",
+    "alt": "Smiling young female florist in apron writing notes while working in cozy flower shop",
+    "photographer": "Amina Filkins",
+    "photographerUrl": "https://www.pexels.com/@amina-filkins",
+    "pexelsUrl": "https://www.pexels.com/photo/cheerful-asian-woman-working-in-floral-shop-5410107/"
+  },
+  {
+    "file": "/img/directory/venue-01.jpg",
+    "theme": "Venue",
+    "alt": "Spacious indoor restaurant with tree-themed decor and arranged tables under natural lighting.",
+    "photographer": "Matheus Bertelli",
+    "photographerUrl": "https://www.pexels.com/@bertellifotografia",
+    "pexelsUrl": "https://www.pexels.com/photo/tree-in-decorated-restaurant-hall-17056998/"
+  },
+  {
+    "file": "/img/directory/venue-02.jpg",
+    "theme": "Venue",
+    "alt": "Interior of an upscale event venue with decorative lighting and empty seating area, perfect for weddings or parties.",
+    "photographer": "Vidal Balielo Jr.",
+    "photographerUrl": "https://www.pexels.com/@vidalbalielojrfotografia",
+    "pexelsUrl": "https://www.pexels.com/photo/stage-lights-test-in-empty-venue-12688989/"
+  },
+  {
+    "file": "/img/directory/venue-03.jpg",
+    "theme": "Venue",
+    "alt": "Dimly lit modern venue with industrial design elements and vibrant lighting.",
+    "photographer": "Zişan  Özdemir",
+    "photographerUrl": "https://www.pexels.com/@zisan-ozdemir-53442109",
+    "pexelsUrl": "https://www.pexels.com/photo/a-dark-room-with-blue-lights-and-a-large-table-27806695/"
+  },
+  {
+    "file": "/img/directory/music-01.jpg",
+    "theme": "music",
+    "alt": "Anonymous male musician performing melody with guitar on stage near microphone and DJ in dark club with spotlights",
+    "photographer": "Brett Sayles",
+    "photographerUrl": "https://www.pexels.com/@brett-sayles",
+    "pexelsUrl": "https://www.pexels.com/photo/unrecognizable-guitarist-playing-on-stage-near-microphone-and-dj-8186275/"
+  },
+  {
+    "file": "/img/directory/music-02.jpg",
+    "theme": "music",
+    "alt": "Energetic performance by jazz musicians with guitar and piano, creating soulful entertainment.",
+    "photographer": "ANTONI SHKRABA production",
+    "photographerUrl": "https://www.pexels.com/@anthonyshkraba-production",
+    "pexelsUrl": "https://www.pexels.com/photo/musicians-playing-musical-instrument-8040838/"
+  },
+  {
+    "file": "/img/directory/music-03.jpg",
+    "theme": "music",
+    "alt": "Dynamic live music performance featuring a rock band with singer and instruments on stage.",
+    "photographer": "Alena Darmel",
+    "photographerUrl": "https://www.pexels.com/@a-darmel",
+    "pexelsUrl": "https://www.pexels.com/photo/rock-band-performing-on-stage-7715754/"
+  },
+  {
+    "file": "/img/directory/apparel-01.jpg",
+    "theme": "apparel",
+    "alt": "Close-up of clothing on hangers inside a fashion store window.",
+    "photographer": "Mathias Reding",
+    "photographerUrl": "https://www.pexels.com/@matreding",
+    "pexelsUrl": "https://www.pexels.com/photo/clothes-in-store-behind-window-13532891/"
+  },
+  {
+    "file": "/img/directory/apparel-02.jpg",
+    "theme": "apparel",
+    "alt": "Chic fashion display at a clothing store with stylish reflections.",
+    "photographer": "Mathias Reding",
+    "photographerUrl": "https://www.pexels.com/@matreding",
+    "pexelsUrl": "https://www.pexels.com/photo/clothes-hanged-on-clothing-racks-11911863/"
+  },
+  {
+    "file": "/img/directory/apparel-03.jpg",
+    "theme": "apparel",
+    "alt": "A modern clothing display featuring black and white shirts on hangers inside a fashion store.",
+    "photographer": "Star Zhang",
+    "photographerUrl": "https://www.pexels.com/@star-zhang-3254790",
+    "pexelsUrl": "https://www.pexels.com/photo/black-and-white-clothing-display-in-retail-shop-29906028/"
+  },
+  {
+    "file": "/img/directory/art-01.jpg",
+    "theme": "art",
+    "alt": "An artist uses a brush to paint abstract patterns on a large canvas placed on the floor.",
+    "photographer": "cottonbro studio",
+    "photographerUrl": "https://www.pexels.com/@cottonbro",
+    "pexelsUrl": "https://www.pexels.com/photo/a-white-pants-painting-on-white-textile-with-a-large-brush-7896648/"
+  },
+  {
+    "file": "/img/directory/art-02.jpg",
+    "theme": "art",
+    "alt": "Artist using spray paint to create vibrant graffiti on canvas indoors.",
+    "photographer": "Felicity Tai",
+    "photographerUrl": "https://www.pexels.com/@felicity-tai",
+    "pexelsUrl": "https://www.pexels.com/photo/person-holding-a-spray-paint-7951596/"
+  },
+  {
+    "file": "/img/directory/art-03.jpg",
+    "theme": "art",
+    "alt": "Woman artist painting a blue ocean scene on a skateboard in a cozy art studio.",
+    "photographer": "Yaroslav Shuraev",
+    "photographerUrl": "https://www.pexels.com/@yaroslav-shuraev",
+    "pexelsUrl": "https://www.pexels.com/photo/a-woman-working-in-an-art-studio-4362304/"
+  },
+  {
+    "file": "/img/directory/tech-01.jpg",
+    "theme": "tech",
+    "alt": "Two young adults working together on laptops in an office setting, focusing on tasks.",
+    "photographer": "MART  PRODUCTION",
+    "photographerUrl": "https://www.pexels.com/@mart-production",
+    "pexelsUrl": "https://www.pexels.com/photo/a-busy-man-using-a-laptop-7550304/"
+  },
+  {
+    "file": "/img/directory/tech-02.jpg",
+    "theme": "tech",
+    "alt": "Group of young professionals working together in a modern office setting, using laptops and technology.",
+    "photographer": "Ofspace LLC, Culture",
+    "photographerUrl": "https://www.pexels.com/@ofspace",
+    "pexelsUrl": "https://www.pexels.com/photo/men-working-on-laptop-in-coworking-space-16323454/"
+  },
+  {
+    "file": "/img/directory/tech-03.jpg",
+    "theme": "tech",
+    "alt": "Group of colleagues collaborating on laptops at a modern office table.",
+    "photographer": "Airam Dato-on",
+    "photographerUrl": "https://www.pexels.com/@airamdphoto",
+    "pexelsUrl": "https://www.pexels.com/photo/hands-of-men-working-on-laptop-20044382/"
+  },
+  {
+    "file": "/img/directory/wellness-01.jpg",
+    "theme": "wellness",
+    "alt": "Women of different ages and ethnicities participating in a yoga class indoors, showcasing diversity and wellness.",
+    "photographer": "Yan Krukau",
+    "photographerUrl": "https://www.pexels.com/@yankrukov",
+    "pexelsUrl": "https://www.pexels.com/photo/women-in-a-yoga-class-8436684/"
+  },
+  {
+    "file": "/img/directory/wellness-02.jpg",
+    "theme": "wellness",
+    "alt": "A diverse group of senior women practicing yoga indoors with mats.",
+    "photographer": "Kampus Production",
+    "photographerUrl": "https://www.pexels.com/@kampus",
+    "pexelsUrl": "https://www.pexels.com/photo/women-exercising-together-5992885/"
+  },
+  {
+    "file": "/img/directory/wellness-03.jpg",
+    "theme": "wellness",
+    "alt": "Three senior women meditate on yoga mats in a bright, serene studio.",
+    "photographer": "Kampus Production",
+    "photographerUrl": "https://www.pexels.com/@kampus",
+    "pexelsUrl": "https://www.pexels.com/photo/women-meditating-5992856/"
+  },
+  {
+    "file": "/img/directory/non-profit-01.jpg",
+    "theme": "non_profit",
+    "alt": "Two volunteers wear masks and visit community homes, engaging in outreach activities.",
+    "photographer": "RDNE Stock project",
+    "photographerUrl": "https://www.pexels.com/@rdne",
+    "pexelsUrl": "https://www.pexels.com/photo/two-men-wearing-white-volunteer-t-shirt-6647027/"
+  },
+  {
+    "file": "/img/directory/non-profit-02.jpg",
+    "theme": "non_profit",
+    "alt": "Volunteers move aid boxes for a charity event, emphasizing community support and social impact.",
+    "photographer": "RDNE Stock project",
+    "photographerUrl": "https://www.pexels.com/@rdne",
+    "pexelsUrl": "https://www.pexels.com/photo/two-men-carrying-boxes-6647015/"
+  },
+  {
+    "file": "/img/directory/non-profit-03.jpg",
+    "theme": "non_profit",
+    "alt": "Group of diverse volunteers organizing donated clothing and supplies in a bright, airy warehouse.",
+    "photographer": "Julia M Cameron",
+    "photographerUrl": "https://www.pexels.com/@julia-m-cameron",
+    "pexelsUrl": "https://www.pexels.com/photo/people-sorting-clothes-6994869/"
+  },
+  {
+    "file": "/img/directory/artisanal-01.jpg",
+    "theme": "artisanal",
+    "alt": "Close-up of hands sculpting clay pottery on a wheel, pottery-making art.",
+    "photographer": "RIAN ANDRIANI",
+    "photographerUrl": "https://www.pexels.com/@rian-andriani-2160798467",
+    "pexelsUrl": "https://www.pexels.com/photo/hands-crafting-pottery-on-a-spinning-wheel-38933740/"
+  },
+  {
+    "file": "/img/directory/artisanal-02.jpg",
+    "theme": "artisanal",
+    "alt": "Close-up of an artisan's hand crafting a smoking decorative vase with intricate designs.",
+    "photographer": "Mehmet Turgut  Kirkgoz",
+    "photographerUrl": "https://www.pexels.com/@tkirkgoz",
+    "pexelsUrl": "https://www.pexels.com/photo/person-making-a-vase-14732545/"
+  },
+  {
+    "file": "/img/directory/artisanal-03.jpg",
+    "theme": "artisanal",
+    "alt": "Close-up of hands molding and decorating a clay pot, showcasing craftsmanship in pottery making.",
+    "photographer": "Kampus Production",
+    "photographerUrl": "https://www.pexels.com/@kampus",
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-shot-of-a-person-molding-a-clay-6023614/"
+  },
+  {
+    "file": "/img/directory/food-truck-01.jpg",
+    "theme": "food-truck",
+    "alt": "A view of a worker inside a food truck at night, captured through an open window.",
+    "photographer": "女子 正真",
+    "photographerUrl": "https://www.pexels.com/@1433506698",
+    "pexelsUrl": "https://www.pexels.com/photo/nighttime-food-truck-window-with-worker-32897258/"
+  },
+  {
+    "file": "/img/directory/food-truck-02.jpg",
+    "theme": "food-truck",
+    "alt": "A food truck with staff serving at an outdoor festival with colorful tents.",
+    "photographer": "Immanuel MacCarthy",
+    "photographerUrl": "https://www.pexels.com/@thisismitchhere",
+    "pexelsUrl": "https://www.pexels.com/photo/a-woman-working-in-a-food-truck-17372455/"
+  },
+  {
+    "file": "/img/directory/food-truck-03.jpg",
+    "theme": "food-truck",
+    "alt": "A couple enjoys ordering food from a vibrant street food truck at night.",
+    "photographer": "RDNE Stock project",
+    "photographerUrl": "https://www.pexels.com/@rdne",
+    "pexelsUrl": "https://www.pexels.com/photo/man-and-woman-standing-in-front-of-the-food-truck-5779660/"
+  },
+  {
+    "file": "/img/directory/bakery-01.jpg",
+    "theme": "bakery",
+    "alt": "Delicious display of lemon bars and brownies in a bakery with price tags.",
+    "photographer": "James Collington",
+    "photographerUrl": "https://www.pexels.com/@james-collington-2147687246",
+    "pexelsUrl": "https://www.pexels.com/photo/assorted-pastries-in-bakery-display-case-31132630/"
+  },
+  {
+    "file": "/img/directory/bakery-02.jpg",
+    "theme": "bakery",
+    "alt": "Delicious assortment of macarons and cupcakes in a showcase at a Brussels bakery.",
+    "photographer": "Daniel Nouri",
+    "photographerUrl": "https://www.pexels.com/@danielnouri",
+    "pexelsUrl": "https://www.pexels.com/photo/assorted-pastries-on-glass-showcase-8253114/"
+  },
+  {
+    "file": "/img/directory/bakery-03.jpg",
+    "theme": "bakery",
+    "alt": "Assorted pastries including croissants and tarts displayed in a bakery case.",
+    "photographer": "Nati",
+    "photographerUrl": "https://www.pexels.com/@nati-87264186",
+    "pexelsUrl": "https://www.pexels.com/photo/delicious-pastries-in-a-bakery-display-30681620/"
+  },
+  {
+    "file": "/img/directory/cafe-01.jpg",
+    "theme": "cafe",
+    "alt": "A barista wearing an apron serves an iced coffee to a customer inside a coffee shop.",
+    "photographer": "Emre  Akyol",
+    "photographerUrl": "https://www.pexels.com/@emre-akyol-320381804",
+    "pexelsUrl": "https://www.pexels.com/photo/employee-hand-holding-coffee-cup-17609723/"
+  },
+  {
+    "file": "/img/directory/cafe-02.jpg",
+    "theme": "cafe",
+    "alt": "Baristas prepare coffee in a cozy café with a rustic interior design, offering a lively atmosphere.",
+    "photographer": "Rachel Claire",
+    "photographerUrl": "https://www.pexels.com/@rachel-claire",
+    "pexelsUrl": "https://www.pexels.com/photo/man-and-woman-bartenders-at-coffee-shop-counter-5865209/"
+  },
+  {
+    "file": "/img/directory/cafe-03.jpg",
+    "theme": "cafe",
+    "alt": "A barista skillfully prepares coffee at a busy café counter, showcasing expert technique.",
+    "photographer": "Rachel Claire",
+    "photographerUrl": "https://www.pexels.com/@rachel-claire",
+    "pexelsUrl": "https://www.pexels.com/photo/a-person-working-at-a-cafe-5865195/"
+  },
+  {
+    "file": "/img/directory/market-01.jpg",
+    "theme": "market",
+    "alt": "Bustling farmers market with fresh fruits, vegetables and people exploring vibrant stalls.",
+    "photographer": "@coldbeer",
+    "photographerUrl": "https://www.pexels.com/@coldbeer-277046249",
+    "pexelsUrl": "https://www.pexels.com/photo/people-on-canadian-bazaar-17309031/"
+  },
+  {
+    "file": "/img/directory/market-02.jpg",
+    "theme": "market",
+    "alt": "Colorful fruit and vegetable market stall displaying a variety of fresh produce with visible price tags.",
+    "photographer": "Emma Cate",
+    "photographerUrl": "https://www.pexels.com/@emmacate",
+    "pexelsUrl": "https://www.pexels.com/photo/variety-of-fruits-on-fruit-stand-11831458/"
+  },
+  {
+    "file": "/img/directory/market-03.jpg",
+    "theme": "market",
+    "alt": "A rustic display of fresh fruits and vegetables at an outdoor market stall.",
+    "photographer": "tamira kanemägi",
+    "photographerUrl": "https://www.pexels.com/@tamira-kanemagi-2159935915",
+    "pexelsUrl": "https://www.pexels.com/photo/fresh-organic-fruit-and-vegetable-market-36567404/"
+  },
+  {
+    "file": "/img/directory/supper-club-01.jpg",
+    "theme": "supper-club",
+    "alt": "A multiethnic couple dining indoors, enjoying a Middle Eastern meal.",
+    "photographer": "Jack Sparrow",
+    "photographerUrl": "https://www.pexels.com/@jack-sparrow",
+    "pexelsUrl": "https://www.pexels.com/photo/muslim-couple-eating-in-restaurant-4046760/"
+  },
+  {
+    "file": "/img/directory/supper-club-02.jpg",
+    "theme": "supper-club",
+    "alt": "A happy group of friends and family enjoying a meal together indoors. Perfect for themes of togetherness and joy.",
+    "photographer": "fauxels",
+    "photographerUrl": "https://www.pexels.com/@fauxels",
+    "pexelsUrl": "https://www.pexels.com/photo/sharing-food-3184177/"
+  },
+  {
+    "file": "/img/directory/supper-club-03.jpg",
+    "theme": "supper-club",
+    "alt": "Two people enjoying a brunch meal indoors, creating a warm, cozy atmosphere.",
+    "photographer": "Ahmad Taba",
+    "photographerUrl": "https://www.pexels.com/@ahmad-taba-160660922",
+    "pexelsUrl": "https://www.pexels.com/photo/casual-dining-brunch-with-friends-indoors-28753151/"
+  }
+]
