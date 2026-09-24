@@ -17,30 +17,15 @@ import {
   PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
 import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
-import { and, eq, sql, or, type SQL } from 'drizzle-orm';
+import { and, eq, sql, or } from 'drizzle-orm';
 import { countyShortLabel } from '@/lib/county';
 import { socialConfig } from '../index';
-
-const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
-
-/**
- * Drizzle SQL condition to exclude expired statuses (soft delete).
- */
-function notExpired() {
-  return sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`;
-}
-
-/**
- * Check if a JSONB array column contains a specific string value.
- * PostgreSQL: column @> to_jsonb(value::text)
- */
-
-function jsonbArrayContains(
-  column: SQL<unknown> | { getSQL(): SQL<unknown> },
-  value: string
-) {
-  return sql`${column} @> to_jsonb(${value}::text)`;
-}
+import {
+  PUBLIC,
+  jsonbArrayContains,
+  notExpired,
+  visibleTo,
+} from './visibility';
 
 export type PublicActorWithCounty = PublicSocialActor & {
   /**
@@ -184,6 +169,7 @@ export async function getActorPosts(
         eq(s.actorId, actorId),
         isNotNull(s.published),
         includeReplies ? undefined : isNull(s.inReplyToId),
+        visibleTo(viewerActorId),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
@@ -431,7 +417,11 @@ export async function getStatusWithLikeStatus(
   viewerActorId?: string
 ): Promise<StatusWithActorAndLike | null> {
   const row = await db.query.socialStatuses.findFirst({
-    where: eq(socialStatuses.id, statusId),
+    where: and(
+      eq(socialStatuses.id, statusId),
+      visibleTo(viewerActorId),
+      notExpired()
+    ),
     with: {
       actor: ACTOR_WITH,
       attachments: true,

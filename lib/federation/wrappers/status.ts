@@ -19,6 +19,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
+import { notExpired, visibleTo } from './visibility';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import type { JsonValue } from '@/lib/types';
 
@@ -364,9 +365,13 @@ export async function deleteStatus(
 
 /**
  * Get replies to a status
+ *
+ * Replies carry their own addressing, so a reply is filtered on what the
+ * viewer may see rather than on the visibility of the parent.
  */
 export async function getStatusReplies(
   statusId: string,
+  viewerActorId?: string,
   cursor?: string,
   limit: number = 20
 ): Promise<{ replies: StatusWithActor[]; nextCursor: string | null }> {
@@ -375,8 +380,9 @@ export async function getStatusReplies(
       and(
         eq(s.inReplyToId, statusId),
         isNotNull(s.published),
+        visibleTo(viewerActorId),
         cursor ? gt(s.id, cursor) : undefined,
-        sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`
+        notExpired()
       ),
     with: { actor: { columns: PUBLIC_ACTOR_COLUMNS }, attachments: true },
     orderBy: (s, { asc }) => [asc(s.published), asc(s.id)],
