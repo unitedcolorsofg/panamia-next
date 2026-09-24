@@ -6,6 +6,45 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
+/* ProfileInterface promises a nested `images` object, and the settings avatar
+   and the images page both read it, but this route answers with the raw
+   Drizzle row -- where the picture is a flat `primary_image_cdn` column and
+   the rest live in `gallery_images`. Nothing ever built `images`, so every one
+   of those reads came back undefined and no uploaded picture could appear
+   anywhere, however correctly it had been stored. useQuery<ProfileInterface>
+   is an unchecked assertion, so the type promised a field the response never
+   carried and the compiler had no reason to object.
+
+   The row is still spread through untouched: other pages read the flat
+   camelCase columns straight off it, and those keep working. This only adds
+   the shape the interface already describes. */
+function withLegacyImages<
+  T extends {
+    primaryImageId?: string | null;
+    primaryImageCdn?: string | null;
+    galleryImages?: unknown;
+  },
+>(profile: T) {
+  const gallery = (profile.galleryImages ?? {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  return {
+    ...profile,
+    images: {
+      primary: profile.primaryImageId ?? undefined,
+      primaryCDN: profile.primaryImageCdn ?? undefined,
+      gallery1: gallery.gallery1,
+      gallery1CDN: gallery.gallery1CDN,
+      gallery2: gallery.gallery2,
+      gallery2CDN: gallery.gallery2CDN,
+      gallery3: gallery.gallery3,
+      gallery3CDN: gallery.gallery3CDN,
+    },
+  };
+}
+
 export async function GET(_request: NextRequest) {
   const session = await auth();
 
@@ -25,7 +64,10 @@ export async function GET(_request: NextRequest) {
       where: eq(profiles.id, activeId),
     });
     if (active) {
-      return NextResponse.json({ success: true, data: active });
+      return NextResponse.json({
+        success: true,
+        data: withLegacyImages(active),
+      });
     }
   }
 
@@ -46,7 +88,10 @@ export async function GET(_request: NextRequest) {
   });
 
   if (existingProfile) {
-    return NextResponse.json({ success: true, data: existingProfile });
+    return NextResponse.json({
+      success: true,
+      data: withLegacyImages(existingProfile),
+    });
   }
 
   return NextResponse.json({ success: true });
