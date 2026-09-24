@@ -28,6 +28,16 @@ const SORT_OPTIONS: { key: DirectorySort; label: string }[] = [
   { key: 'name', label: 'A–Z' },
 ];
 
+/**
+ * Anchor for the county chips.
+ *
+ * Exported because the search band links here when a member has declined the
+ * location prompt: counties are the answer to "what is near me" that needs no
+ * permission, and the two components are siblings with no other way to point
+ * at each other.
+ */
+export const COUNTY_FILTER_ID = 'directory-county-filter';
+
 interface FilterBarProps {
   filters: FilterState;
   onChange: (next: FilterState) => void;
@@ -99,7 +109,11 @@ export function FilterBar({
           </ul>
         </div>
 
-        <div className="dirsearch-filterrow">
+        <div
+          className="dirsearch-filterrow scroll-mt-24"
+          id={COUNTY_FILTER_ID}
+          tabIndex={-1}
+        >
           <span className="dirsearch-filterlabel">Where</span>
           <ul className="dirsearch-chiprow">
             {[...countyList].reverse().map((county) => {

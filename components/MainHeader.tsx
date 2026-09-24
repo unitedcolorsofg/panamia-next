@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -14,6 +14,7 @@ import { useUnreadCount } from '@/lib/query/notifications';
 import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
+import { IdentityMenu } from './account/identity-menu';
 import { IdentityProvider } from './account/identity-provider';
 import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
@@ -203,6 +204,8 @@ export default function MainHeader({
               {status !== 'loading' && !session && (
                 <AuthMenu triggerClassName={styles.cta} />
               )}
+
+              {status !== 'loading' && session && <IdentityMenu />}
             </div>
           </div>
 
@@ -241,32 +244,10 @@ export default function MainHeader({
                 </>
               )}
 
-              {/* Settings and Sign Out had no home once the masthead identity
-                  menu was removed, and Sign Out exists nowhere else in the app.
-                  The language switch is here for the same reason: it used to
-                  live in the theme menu, which is also gone. */}
+              {/* The language switch lives here because it used to sit in the
+                  theme menu, which is gone. Settings and Sign Out are not
+                  duplicated here — the masthead identity menu owns those. */}
               <div className={styles.drawerAccount}>
-                {status !== 'loading' && session && (
-                  <>
-                    <Link
-                      href="/account/user/edit"
-                      className={styles.drawerAccountLink}
-                      onClick={closeDrawer}
-                    >
-                      {t('nav.accountSettings')}
-                    </Link>
-                    <button
-                      type="button"
-                      className={styles.drawerAccountLink}
-                      onClick={() => {
-                        closeDrawer();
-                        void signOut({ redirect: true, callbackUrl: '/' });
-                      }}
-                    >
-                      {t('nav.signOut')}
-                    </button>
-                  </>
-                )}
                 <button
                   type="button"
                   className={styles.drawerAccountLink}

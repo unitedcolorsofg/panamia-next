@@ -82,6 +82,47 @@ export function IdentityMenu() {
           </span>
         )
       }
+      /* Pinned rather than last in the list. The account list grows with every
+         business a member helps run, and the Pana sites sit above these two, so
+         on a short phone Sign Out was the row that fell below the fold — on the
+         one menu that exists partly to provide it. */
+      footer={(close) => (
+        <>
+          <div className={styles.separator} />
+
+          <Link
+            href="/account/user/edit"
+            role="menuitem"
+            data-menu-row
+            onClick={() => close(false)}
+            className={cn(styles.row, styles.rowQuiet)}
+          >
+            <Settings className="h-4 w-4 opacity-70" aria-hidden="true" />
+            <span className={styles.rowMeta}>
+              <span className={styles.rowName}>{t('identity.settings')}</span>
+            </span>
+          </Link>
+
+          {/* Last, and tinted, because it is the one row here you cannot undo
+              by clicking again — and it sits directly under Settings, which is
+              where the cursor already is. */}
+          <button
+            type="button"
+            role="menuitem"
+            data-menu-row
+            onClick={() => {
+              close(false);
+              void signOut({ redirect: true, callbackUrl: '/' });
+            }}
+            className={cn(styles.row, styles.rowQuiet, styles.rowSignOut)}
+          >
+            <LogOut className="h-4 w-4 opacity-70" aria-hidden="true" />
+            <span className={styles.rowMeta}>
+              <span className={styles.rowName}>{t('nav.signOut')}</span>
+            </span>
+          </button>
+        </>
+      )}
     >
       {(close) => {
         async function onPick(profileId: string) {
@@ -196,40 +237,6 @@ export function IdentityMenu() {
             {/* Everything above is "who am I"; everything below is "where am
                 I going". */}
             <PanaSites onNavigate={() => close(false)} />
-
-            <div className={styles.separator} />
-
-            <Link
-              href="/account/user/edit"
-              role="menuitem"
-              data-menu-row
-              onClick={() => close(false)}
-              className={cn(styles.row, styles.rowQuiet)}
-            >
-              <Settings className="h-4 w-4 opacity-70" aria-hidden="true" />
-              <span className={styles.rowMeta}>
-                <span className={styles.rowName}>{t('identity.settings')}</span>
-              </span>
-            </Link>
-
-            {/* Last, and tinted, because it is the one row here you cannot undo
-                by clicking again — and it sits directly under Settings, which
-                is where the cursor already is. */}
-            <button
-              type="button"
-              role="menuitem"
-              data-menu-row
-              onClick={() => {
-                close(false);
-                void signOut({ redirect: true, callbackUrl: '/' });
-              }}
-              className={cn(styles.row, styles.rowQuiet, styles.rowSignOut)}
-            >
-              <LogOut className="h-4 w-4 opacity-70" aria-hidden="true" />
-              <span className={styles.rowMeta}>
-                <span className={styles.rowName}>{t('nav.signOut')}</span>
-              </span>
-            </button>
           </>
         );
       }}
