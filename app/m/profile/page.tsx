@@ -99,6 +99,8 @@ export default async function MentoringProfilePage() {
                 <video
                   src={mentoring.videoIntroUrl}
                   controls
+                  playsInline
+                  preload="metadata"
                   className="w-full"
                 />
               </div>

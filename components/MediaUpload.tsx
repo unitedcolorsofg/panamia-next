@@ -17,13 +17,9 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { transcodeToWebMVideo } from '@/lib/media/transcode';
+import { transcodeToMp4Video } from '@/lib/media/transcode';
 import { isVideoUrl } from '@/lib/media/is-video-url';
 import { cn } from '@/lib/utils';
-
-const isSafari = () =>
-  typeof navigator !== 'undefined' &&
-  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const IMAGE_TYPES = 'image/jpeg,image/png,image/webp,image/gif';
 const VIDEO_TYPES = 'video/*';
@@ -33,7 +29,7 @@ const EXT_BY_TYPE: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
-  'video/webm': 'webm',
+  'video/mp4': 'mp4',
 };
 
 interface MediaUploadProps {
@@ -59,7 +55,6 @@ export default function MediaUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
-  const [safariNotice, setSafariNotice] = useState(false);
   const { toast } = useToast();
 
   const acceptAttr =
@@ -109,13 +104,12 @@ export default function MediaUpload({
     try {
       let url: string;
       if (file.type.startsWith('video/')) {
-        if (isSafari()) setSafariNotice(true);
         setVideoProgress(0);
-        const webm = await transcodeToWebMVideo(file, (ratio) =>
+        const mp4 = await transcodeToMp4Video(file, (ratio) =>
           setVideoProgress(Math.round(ratio * 100))
         );
         setVideoProgress(null);
-        url = await uploadToR2(webm, 'video/webm', 'webm');
+        url = await uploadToR2(mp4, 'video/mp4', 'mp4');
       } else if (file.type.startsWith('image/')) {
         const ext = EXT_BY_TYPE[file.type];
         if (!ext) throw new Error(`Unsupported image type: ${file.type}`);
@@ -163,6 +157,7 @@ export default function MediaUpload({
             <video
               src={value}
               controls
+              playsInline
               preload="metadata"
               className="max-h-64 w-full bg-black object-contain"
             />
@@ -200,12 +195,6 @@ export default function MediaUpload({
               ? 'Uploading…'
               : label}
         </Button>
-      )}
-
-      {safariNotice && (
-        <p className="text-muted-foreground text-xs">
-          {`Video playback requires Chrome or Firefox — your upload will succeed but the preview won't play on this device.`}
-        </p>
       )}
     </div>
   );
