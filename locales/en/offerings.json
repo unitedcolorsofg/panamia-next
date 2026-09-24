@@ -1,0 +1,173 @@
+{
+  "comingSoon": "Coming soon",
+  "switchLabel": "The rest of it",
+  "notBuiltYet": "This one is not built yet. It is named here because it is a promise, not a placeholder — when it opens, it opens from this page.",
+  "social": {
+    "name": "Pana Social",
+    "eyebrow": "Collective Tech",
+    "headline": "A Feed<br/>That Is <em>Ours</em>",
+    "lede": "A local social network that federates, so the community owns its own timeline instead of renting one from a company that sells it back.",
+    "ctaPrimary": "Open the feed",
+    "ctaSecondary": "Become a Pana",
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Post to the block",
+        "body": "Text, photos and voice notes, seen by the panas who follow you — in the order they were posted, never in the order an ad system would prefer."
+      },
+      "two": {
+        "title": "Federated by default",
+        "body": "Pana Social speaks ActivityPub, so your posts reach Mastodon and the rest of the fediverse, and your handle stays yours if you ever leave."
+      },
+      "three": {
+        "title": "Built on the directory",
+        "body": "The people in your feed are the same creatives, organizations and small businesses listed in the directory. Neighbors, not strangers."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Own your <em>feed</em>.",
+      "lede": "Every other timeline you read belongs to someone whose business is selling your attention back to you. This one belongs to the people in it."
+    }
+  },
+  "directory": {
+    "name": "Directory",
+    "eyebrow": "Collective Tech",
+    "headline": "Find Your<br/><em>People</em>",
+    "lede": "South Florida's living archive of the creatives, entrepreneurs and small businesses who make this place what it is — searchable by name, category and neighborhood.",
+    "ctaPrimary": "Search the directory",
+    "ctaSecondary": "Become a Pana",
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Search like you mean it",
+        "body": "Keyword, category, county and distance. \"Support local\" stops being a slogan the moment you can act on it by name."
+      },
+      "two": {
+        "title": "Three counties, one map",
+        "body": "Broward, Miami-Dade and Palm Beach. Everyone listed lives or works here — that is the whole of the eligibility rule."
+      },
+      "three": {
+        "title": "Your listing, your words",
+        "body": "Claim a listing or start one from scratch, and describe what you do yourself rather than leaving it to a review site."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Somebody local already does <em>that</em>.",
+      "lede": "The directory exists so that the next time you need something, the answer is a neighbor with a name rather than whoever paid the most for the top of the page."
+    }
+  },
+  "events": {
+    "name": "Events",
+    "eyebrow": "Community Building",
+    "headline": "Show Up<br/><em>Somewhere</em>",
+    "lede": "Markets, workshops, art builds and long dinners across South Florida — co-hosted with the people already doing the work.",
+    "ctaPrimary": "Browse events",
+    "ctaSecondary": "Host an event",
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Gatherings, not networking",
+        "body": "Events built for real connection rather than for handing out cards: dinners, markets, workshops and nights out worth staying at."
+      },
+      "two": {
+        "title": "Host your own",
+        "body": "Any pana can put something on the calendar, take RSVPs and run the door. You do not need a venue or a budget to start."
+      },
+      "three": {
+        "title": "All three counties",
+        "body": "See what is happening near you this week, or find the one that is worth the drive up or down the coast."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "The calendar is the <em>club</em>.",
+      "lede": "A directory tells you who is out there. An event is where you actually meet them. Come to one, then host the next."
+    }
+  },
+  "vizion": {
+    "name": "PanaVizión",
+    "eyebrow": "Culture Work",
+    "headline": "Local, On<br/>The <em>Record</em>",
+    "lede": "Conversations with the people building South Florida's local economy, in their own voices and at their own length.",
+    "ctaPrimary": "Listen to episodes",
+    "ctaSecondary": "Read the dispatches",
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "The podcast",
+        "body": "Long-form conversations with panas about the work, the setbacks, and what it actually takes to build something here."
+      },
+      "two": {
+        "title": "An archive, not a feed",
+        "body": "Every episode stays up and stays findable long after the week it aired, because the point is the record rather than the release."
+      },
+      "three": {
+        "title": "Bring your own mic",
+        "body": "Panas get pitched, featured and interviewed. If you are doing the work, we want it on the record in your own words."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Cultural change is <em>lasting</em> change.",
+      "lede": "Who gets recorded is who gets remembered. PanaVizión exists so that the people holding South Florida together are in the archive, not just in the traffic."
+    }
+  },
+  "ink": {
+    "name": "Pana Ink Press",
+    "eyebrow": "Culture Work",
+    "headline": "Words You<br/>Can <em>Hand Over</em>",
+    "lede": "Zines, pamphlets and print that explain the local movement in a form anyone can pass to anyone — no login, no algorithm, no battery.",
+    "ctaPrimary": "Read the dispatches",
+    "ctaSecondary": "Become a Pana",
+    "highlights": {
+      "title": "What It <em>Will Be</em>",
+      "one": {
+        "title": "Zines and pamphlets",
+        "body": "Short print runs made with local artists and writers, designed to be given away rather than sold."
+      },
+      "two": {
+        "title": "The dispatches",
+        "body": "Longer reads from the people building South Florida's local economy. These are already published on the site while the press gets going."
+      },
+      "three": {
+        "title": "Print as infrastructure",
+        "body": "Paper keeps working when a platform changes its mind. That is the whole argument for a community having a press of its own."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Some things belong on <em>paper</em>.",
+      "lede": "A zine handed to someone at a market reaches further than a post does, and it is still there next year. The press is how the movement travels off the screen."
+    }
+  },
+  "getInvolved": {
+    "name": "Get Involved",
+    "eyebrow": "Community Building",
+    "headline": "Start Where<br/>You <em>Are</em>",
+    "lede": "Pana MIA is built by the people in it. There is a way in whatever you have to give — an hour, a skill, a room, or a few dollars a month.",
+    "ctaPrimary": "Become a Pana",
+    "ctaSecondary": "Donate",
+    "highlights": {
+      "title": "Ways <em>In</em>",
+      "one": {
+        "title": "Become a Pana",
+        "body": "Join the directory so your neighbors can find you, and so the club has one more local name standing behind it."
+      },
+      "two": {
+        "title": "Community Connectors",
+        "body": "Pods across Miami-Dade, Broward and Palm Beach running projects for their own neighborhoods. Three tiers of involvement, and everyone starts at tier one."
+      },
+      "three": {
+        "title": "Keep it running",
+        "body": "The directory, the feed and the events are paid for by members and donations rather than by selling anybody's attention."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Nobody starts at <em>ground zero</em>.",
+      "lede": "Pana MIA was started so that anyone with an idea for making South Florida better had somewhere to bring it. Bring yours."
+    }
+  }
+}

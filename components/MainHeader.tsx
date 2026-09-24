@@ -10,7 +10,6 @@ import axios from 'axios';
 
 import styles from './MainHeader.module.css';
 import { isOnboardingRoute } from '@/lib/onboarding';
-import { useUnreadCount } from '@/lib/query/notifications';
 import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
@@ -18,6 +17,7 @@ import { IdentityMenu } from './account/identity-menu';
 import { IdentityProvider } from './account/identity-provider';
 import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
+import { PANA_OFFERINGS } from '@/lib/panaverse/offerings';
 
 // https://www.a11ymatters.com/pattern/mobile-nav/
 
@@ -29,14 +29,33 @@ type NavSection = {
   href: string;
 };
 
-const NAV_SECTIONS: NavSection[] = [
-  { key: 'directory', labelKey: 'nav.directory', href: '/directory' },
-  { key: 'events', labelKey: 'nav.events', href: '/e' },
-  { key: 'articles', labelKey: 'nav.articles', href: '/a' },
-  { key: 'mentoring', labelKey: 'nav.mentoring', href: '/m' },
-  { key: 'community', labelKey: 'nav.community', href: '/about-us' },
-  { key: 'account', labelKey: 'nav.myAccount', href: '/account' },
-];
+/**
+ * The drawer is the six offerings, and nothing else.
+ *
+ * It used to be a route list — directory, events, articles, mentoring,
+ * community, account, then Home, Updates, Timeline and the admin panel
+ * appended on top. That is a sitemap, not a menu: it mixed the club's actual
+ * offerings with two inbox views and a staff tool, ordered them by nothing in
+ * particular, and changed length depending on who you were, so no two people
+ * saw the same menu.
+ *
+ * These six are what Pana MIA offers. Each one now has a front page that
+ * explains it, so every row in the drawer answers the same question — "what
+ * is this?" — and answers it the same way. `PANA_OFFERINGS` is the order, and
+ * it is the same order on every page for every visitor.
+ *
+ * What left: Updates and Timeline, which belong to a signed-in member and are
+ * reachable from the identity menu, and the admin panel, which was a staff
+ * link in a public menu. Home left too — the wordmark in the masthead has
+ * always been the way home, and a menu whose first row duplicates the logo
+ * above it is spending its best slot on the one destination nobody has
+ * trouble finding.
+ */
+const NAV_SECTIONS: NavSection[] = PANA_OFFERINGS.map((offering) => ({
+  key: offering.id,
+  labelKey: `${offering.id}.name`,
+  href: offering.href,
+}));
 
 export default function MainHeader({
   isProductionSite,
@@ -44,77 +63,27 @@ export default function MainHeader({
   isProductionSite: boolean;
 }) {
   const { t, i18n } = useTranslation('common');
+  const { t: tOffering } = useTranslation('offerings');
   const isEs = i18n.language === 'es';
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
-  // Get admin status directly from session (no API call needed)
-  const isAdmin = session?.user?.isAdmin || false;
-
-  // Unread notifications drive the Updates cue in the drawer. Only poll for
-  // signed-in users.
-  const { data: unreadCount = 0 } = useUnreadCount({
-    enabled: !!session?.user,
-  });
-  const hasUnread = unreadCount > 0;
-  const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
-
-  // One-time opt-in for desktop notifications, tied to a click (a user
-  // gesture): opening Updates signals interest in being alerted. No-op if the
-  // user already granted or denied.
-  const requestDesktopPermission = useCallback(() => {
-    if (
-      typeof window !== 'undefined' &&
-      'Notification' in window &&
-      Notification.permission === 'default'
-    ) {
-      void Notification.requestPermission();
-    }
-  }, []);
-
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
-  // Primary navigation lives in the drawer for every visitor. "My Account" only
-  // applies once signed in, so it drops out and the 01..N numbering closes up
-  // on its own. Updates, Timeline and the admin panel are appended here because
-  // the masthead "Jump To" menu that used to carry them is gone -- the drawer is
-  // now the only way to reach them.
-  const drawerItems = useMemo<NavDrawerItem[]>(() => {
-    const sections = NAV_SECTIONS.filter(
-      (section) => section.key !== 'account' || !!session?.user
-    );
-    return [
-      { href: '/', label: t('nav.home') },
-      ...sections.map((section) => ({
+  // The same six rows for everybody. Nothing here depends on the session, so
+  // the drawer no longer changes length when you sign in — which is the point
+  // of a menu that lists what the club *is* rather than what you can currently
+  // reach.
+  const drawerItems = useMemo<NavDrawerItem[]>(
+    () =>
+      NAV_SECTIONS.map((section) => ({
         href: section.href,
-        label: t(section.labelKey),
+        label: tOffering(section.labelKey),
       })),
-      ...(session?.user
-        ? [
-            {
-              href: '/updates',
-              label: hasUnread
-                ? `${t('nav.updates')} (${unreadLabel})`
-                : t('nav.updates'),
-              onSelect: requestDesktopPermission,
-            },
-            { href: '/timeline', label: t('nav.timelinePosts') },
-          ]
-        : []),
-      ...(isAdmin
-        ? [{ href: '/account/admin/users', label: t('nav.adminPanel') }]
-        : []),
-    ];
-  }, [
-    session?.user,
-    isAdmin,
-    hasUnread,
-    unreadLabel,
-    requestDesktopPermission,
-    t,
-  ]);
+    [tOffering]
+  );
 
   // Check if authenticated user has a profile
   useEffect(() => {

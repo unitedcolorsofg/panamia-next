@@ -1,0 +1,173 @@
+{
+  "comingSoon": "Muy pronto",
+  "switchLabel": "Lo demás",
+  "notBuiltYet": "Esto todavía no está construido. Aparece aquí porque es una promesa, no un relleno — cuando abra, abrirá desde esta página.",
+  "social": {
+    "name": "Pana Social",
+    "eyebrow": "Tecnología Colectiva",
+    "headline": "Un Feed<br/>Que Es <em>Nuestro</em>",
+    "lede": "Una red social local y federada, para que la comunidad sea dueña de su propio timeline en vez de alquilárselo a una empresa que se lo revende.",
+    "ctaPrimary": "Abrir el feed",
+    "ctaSecondary": "Hazte Pana",
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "Publica en tu cuadra",
+        "body": "Texto, fotos y notas de voz, vistas por los panas que te siguen — en el orden en que se publicaron, nunca en el orden que prefiere un sistema de anuncios."
+      },
+      "two": {
+        "title": "Federado por defecto",
+        "body": "Pana Social habla ActivityPub, así que tus publicaciones llegan a Mastodon y al resto del fediverso, y tu usuario sigue siendo tuyo si algún día te vas."
+      },
+      "three": {
+        "title": "Sobre el directorio",
+        "body": "La gente de tu feed son los mismos creativos, organizaciones y pequeños negocios del directorio. Vecinos, no desconocidos."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "Tu <em>feed</em> es tuyo.",
+      "lede": "Cualquier otro timeline que leas le pertenece a alguien cuyo negocio es revenderte tu propia atención. Este le pertenece a la gente que está en él."
+    }
+  },
+  "directory": {
+    "name": "Directorio",
+    "eyebrow": "Tecnología Colectiva",
+    "headline": "Encuentra A<br/><em>Tu Gente</em>",
+    "lede": "El archivo vivo del sur de la Florida: los creativos, emprendedores y pequeños negocios que hacen este lugar lo que es — buscable por nombre, categoría y barrio.",
+    "ctaPrimary": "Buscar en el directorio",
+    "ctaSecondary": "Hazte Pana",
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "Busca en serio",
+        "body": "Palabra clave, categoría, condado y distancia. \"Apoya lo local\" deja de ser un eslogan en cuanto puedes hacerlo por nombre."
+      },
+      "two": {
+        "title": "Tres condados, un mapa",
+        "body": "Broward, Miami-Dade y Palm Beach. Todos los listados viven o trabajan aquí — esa es toda la regla de elegibilidad."
+      },
+      "three": {
+        "title": "Tu perfil, tus palabras",
+        "body": "Reclama un perfil o créalo desde cero, y describe lo que haces tú mismo en vez de dejárselo a una página de reseñas."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "Alguien local ya hace <em>eso</em>.",
+      "lede": "El directorio existe para que la próxima vez que necesites algo, la respuesta sea un vecino con nombre y no quien más pagó por aparecer arriba."
+    }
+  },
+  "events": {
+    "name": "Eventos",
+    "eyebrow": "Construcción Comunitaria",
+    "headline": "Aparece En<br/><em>Algún Lado</em>",
+    "lede": "Mercados, talleres, obras de arte y cenas largas por todo el sur de la Florida — organizados junto a quienes ya están haciendo el trabajo.",
+    "ctaPrimary": "Ver eventos",
+    "ctaSecondary": "Organiza un evento",
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "Encuentros, no networking",
+        "body": "Eventos hechos para conectar de verdad y no para repartir tarjetas: cenas, mercados, talleres y noches en las que vale la pena quedarse."
+      },
+      "two": {
+        "title": "Organiza el tuyo",
+        "body": "Cualquier pana puede poner algo en el calendario, recibir confirmaciones y manejar la entrada. No hace falta local ni presupuesto para empezar."
+      },
+      "three": {
+        "title": "Los tres condados",
+        "body": "Mira qué hay cerca esta semana, o encuentra ese evento por el que vale la pena manejar costa arriba o costa abajo."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "El calendario es el <em>club</em>.",
+      "lede": "Un directorio te dice quién está ahí afuera. Un evento es donde de verdad los conoces. Ven a uno, y luego organiza el siguiente."
+    }
+  },
+  "vizion": {
+    "name": "PanaVizión",
+    "eyebrow": "Trabajo Cultural",
+    "headline": "Lo Local, En<br/>El <em>Registro</em>",
+    "lede": "Conversaciones con la gente que construye la economía local del sur de la Florida, con su propia voz y con el tiempo que haga falta.",
+    "ctaPrimary": "Escuchar episodios",
+    "ctaSecondary": "Leer los despachos",
+    "highlights": {
+      "title": "Lo Que <em>Tienes</em>",
+      "one": {
+        "title": "El podcast",
+        "body": "Conversaciones largas con panas sobre el trabajo, los tropiezos y lo que de verdad cuesta construir algo aquí."
+      },
+      "two": {
+        "title": "Un archivo, no un feed",
+        "body": "Cada episodio se queda y se puede encontrar mucho después de la semana en que salió, porque lo importante es el registro y no el estreno."
+      },
+      "three": {
+        "title": "Trae tu micrófono",
+        "body": "A los panas los proponemos, los destacamos y los entrevistamos. Si estás haciendo el trabajo, queremos dejarlo registrado en tus palabras."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "El cambio cultural es el cambio <em>duradero</em>.",
+      "lede": "A quien se registra es a quien se recuerda. PanaVizión existe para que la gente que sostiene el sur de la Florida esté en el archivo y no solo en el tráfico."
+    }
+  },
+  "ink": {
+    "name": "Pana Ink Press",
+    "eyebrow": "Trabajo Cultural",
+    "headline": "Palabras Que<br/>Puedes <em>Entregar</em>",
+    "lede": "Fanzines, panfletos e impresos que explican el movimiento local en un formato que cualquiera puede pasarle a cualquiera — sin login, sin algoritmo, sin batería.",
+    "ctaPrimary": "Leer los despachos",
+    "ctaSecondary": "Hazte Pana",
+    "highlights": {
+      "title": "Lo Que <em>Será</em>",
+      "one": {
+        "title": "Fanzines y panfletos",
+        "body": "Tiradas cortas hechas con artistas y escritores locales, pensadas para regalarse y no para venderse."
+      },
+      "two": {
+        "title": "Los despachos",
+        "body": "Lecturas largas de la gente que construye la economía local del sur de la Florida. Ya se publican en el sitio mientras la imprenta arranca."
+      },
+      "three": {
+        "title": "El papel como infraestructura",
+        "body": "El papel sigue funcionando cuando una plataforma cambia de opinión. Ese es todo el argumento para que una comunidad tenga su propia imprenta."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "Algunas cosas van en <em>papel</em>.",
+      "lede": "Un fanzine que le entregas a alguien en un mercado llega más lejos que una publicación, y el año que viene sigue ahí. La imprenta es cómo el movimiento viaja fuera de la pantalla."
+    }
+  },
+  "getInvolved": {
+    "name": "Participa",
+    "eyebrow": "Construcción Comunitaria",
+    "headline": "Empieza Donde<br/><em>Estás</em>",
+    "lede": "Pana MIA la construye la gente que está dentro. Hay una manera de entrar con lo que tengas para dar — una hora, una habilidad, un espacio o unos dólares al mes.",
+    "ctaPrimary": "Hazte Pana",
+    "ctaSecondary": "Donar",
+    "highlights": {
+      "title": "Maneras De <em>Entrar</em>",
+      "one": {
+        "title": "Hazte Pana",
+        "body": "Únete al directorio para que tus vecinos te encuentren, y para que el club tenga un nombre local más respaldándolo."
+      },
+      "two": {
+        "title": "Conectores Comunitarios",
+        "body": "Grupos en Miami-Dade, Broward y Palm Beach que llevan proyectos para sus propios barrios. Tres niveles de participación, y todos empiezan en el primero."
+      },
+      "three": {
+        "title": "Mantenlo funcionando",
+        "body": "El directorio, el feed y los eventos los pagan los miembros y las donaciones, no la venta de la atención de nadie."
+      }
+    },
+    "closing": {
+      "eyebrow": "El Punto",
+      "statement": "Nadie empieza desde <em>cero</em>.",
+      "lede": "Pana MIA nació para que cualquiera con una idea para mejorar el sur de la Florida tuviera a dónde llevarla. Trae la tuya."
+    }
+  }
+}
