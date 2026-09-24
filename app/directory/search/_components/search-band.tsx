@@ -2,7 +2,6 @@
 
 import { type FormEvent, useEffect, useState } from 'react';
 import { Crosshair, MapPin, Search } from 'lucide-react';
-import { SkyClouds, StreetScene } from '@/components/home/scene-art';
 import type { LocationStatus } from '@/app/p/[user]/_lib/use-viewer-location';
 import { COUNTY_FILTER_ID } from './filter-bar';
 
@@ -19,7 +18,7 @@ interface SearchBandProps {
 }
 
 /**
- * The top of the results page.
+ * The top of the results column.
  *
  * Three jobs, in order of how often they matter:
  *
@@ -32,16 +31,17 @@ interface SearchBandProps {
  *    into a list of businesses you can actually get to, so it sits in the
  *    header rather than behind a filter dialog where it would never be found.
  *
- * The surface underneath all three is the homepage's, not a band of its own.
- * This page used to open on a full-width indigo slab, which put a door
- * between the homepage and the screen it hands you to. Cream here means the
- * masthead, this header, the filters and the results read as one continuous
- * sheet — so the search box needs its own reason to be the first thing you
- * look at, and gets the homepage's pool of orange light behind it rather than
- * a colour change around it. The street is the same drawing the homepage ends
- * its first screen with, and is the strongest single cue that this is the same
- * place. Clouds and street are both `aria-hidden` and non-interactive; they
- * are scenery, and nothing here depends on them being seen.
+ * All three now fit in roughly the height of the search box itself. This used
+ * to be a hero: an eyebrow, a display-sized headline, a count, the box, the
+ * location row, and a full-bleed drawing of a town — around 570px before the
+ * first result. That is a fine way to open a page you arrive on once and a bad
+ * way to open one you refine five times in a row. With the map now holding the
+ * right half of the screen, height taken here is height taken from the
+ * results rather than from empty space, so the headline and the count became
+ * one sentence, the scenery went, and what is left is a toolbar.
+ *
+ * The window does not scroll on this page, so nothing here can be scrolled
+ * away from. That is the other reason it has to be small.
  */
 export function SearchBand({
   term,
@@ -68,38 +68,63 @@ export function SearchBand({
   const shared = locationStatus === 'granted';
 
   return (
-    <section className="dirsearch-band">
-      <SkyClouds />
+    <section className="dirsearch-tools">
+      <form onSubmit={handleSubmit} className="dirsearch-searchrow">
+        <label htmlFor="dirsearch-input" className="sr-only">
+          Search the Pana Mia directory
+        </label>
+        <div className="dirsearch-pill">
+          <Search className="h-5 w-5 shrink-0 opacity-45" aria-hidden="true" />
+          <input
+            id="dirsearch-input"
+            type="search"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Try food, art, Hialeah, bike repair…"
+            autoComplete="off"
+          />
+          <button type="submit">Search</button>
+        </div>
+      </form>
 
-      {/* Grain over the light, under the type. The pool of orange is a wide
-          soft gradient, and wide soft gradients band on 8-bit displays; the
-          texture is what breaks the steps up. */}
-      <span className="dirsearch-bandgrain" aria-hidden="true" />
+      <div className="dirsearch-toolsline">
+        {/* The page's heading is the page's heading, not its result count.
+            This h1 used to be the big "Find your people" hero line; the hero
+            is gone but the stable, route-describing heading it carried still
+            has to exist for screen readers and crawlers. Hiding it visually
+            keeps that contract at zero vertical cost. */}
+        <h1 className="sr-only">Find your people</h1>
 
-      <div className="dirsearch-bandhead container mx-auto px-4">
-        <span className="section-eyebrow">Directory</span>
-
-        <h1 className="dirsearch-title">
-          {term ? (
-            <>
-              <em>{term}</em> in South Florida
-            </>
-          ) : (
-            <>Find your people</>
-          )}
-        </h1>
-
-        <p className="dirsearch-count">
+        {/* Headline and count in one sentence. Two lines of type that each
+            said half of "24 results for food" cost more height than they
+            earned. It's a status message, not a heading — it says what the
+            search is doing right now, so it announces itself when the answer
+            changes instead of silently rewriting the page title. */}
+        <p className="dirsearch-summary" role="status" aria-live="polite">
           {loading ? (
             <>Searching…</>
           ) : resultCount === 0 ? (
-            <>No matches yet — try a broader search</>
+            <>
+              No matches
+              {term ? (
+                <>
+                  {' '}
+                  for <em>{term}</em>
+                </>
+              ) : null}{' '}
+              yet — try a broader search
+            </>
           ) : (
             <>
               <strong>{resultCount}</strong>
-              {resultCount === totalCount
-                ? ' local businesses'
-                : ` of ${totalCount} local businesses`}
+              {resultCount === totalCount ? ' businesses' : ` of ${totalCount}`}
+              {term ? (
+                <>
+                  {' '}
+                  for <em>{term}</em>
+                </>
+              ) : null}{' '}
+              in South Florida
               {/* Only claim an ordering the page is actually using. Saying
                   "closest first" under Best match is the kind of small lie
                   that makes people stop trusting the sort. */}
@@ -109,27 +134,6 @@ export function SearchBand({
           )}
         </p>
 
-        <form onSubmit={handleSubmit} className="dirsearch-searchrow">
-          <label htmlFor="dirsearch-input" className="sr-only">
-            Search the Pana Mia directory
-          </label>
-          <div className="dirsearch-pill">
-            <Search
-              className="h-5 w-5 shrink-0 opacity-45"
-              aria-hidden="true"
-            />
-            <input
-              id="dirsearch-input"
-              type="search"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Try food, art, Hialeah, bike repair…"
-              autoComplete="off"
-            />
-            <button type="submit">Search</button>
-          </div>
-        </form>
-
         {/* The local-first control. One sentence and one button rather than a
             permissions-style dialog, because the honest ask is small: we want
             to sort a list, and the coordinates never leave the browser. */}
@@ -138,7 +142,7 @@ export function SearchBand({
             <>
               <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>
-                Showing distances from <strong>your location</strong>
+                Distances from <strong>your location</strong>
               </span>
             </>
           ) : locationStatus === 'denied' ? (
@@ -149,10 +153,7 @@ export function SearchBand({
                   people will not take and some cannot. The county chips answer
                   the same question — what is near me — and need no permission
                   at all, so that is the offer worth leading with. */}
-              <span>
-                Location is off, so distances are hidden. Narrowing by county
-                works just as well.
-              </span>
+              <span>Location is off, so distances are hidden.</span>
               <a className="dirsearch-locshare" href={`#${COUNTY_FILTER_ID}`}>
                 Pick a county
               </a>
@@ -160,7 +161,7 @@ export function SearchBand({
           ) : (
             <>
               <Crosshair className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>Share your location to see what is closest to you</span>
+              <span>See what is closest to you</span>
               <button
                 type="button"
                 className="dirsearch-locshare"
@@ -172,13 +173,6 @@ export function SearchBand({
             </>
           )}
         </div>
-      </div>
-
-      {/* In flow rather than absolutely placed, so the header is always as
-          tall as its own content plus the street — the results below can never
-          be overlapped by a rooftop on a screen size nobody tested. */}
-      <div className="dirsearch-street">
-        <StreetScene />
       </div>
     </section>
   );

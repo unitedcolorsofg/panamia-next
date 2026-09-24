@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -168,97 +168,156 @@ export function DirectorySearchContent({
 
   const showEmpty = !isLoading && results.length === 0;
 
+  // Which card the cursor is over, so the matching pin can light up. Held here
+  // rather than in either pane because it is the one piece of state the list
+  // and the map both need, and the whole point of showing them together.
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // A new result set means the old scroll position is about a different list.
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: 0 });
+  }, [searchResult]);
+
+  // Clicking a pin has to move the list, or the map is a lookup table you
+  // cannot act on: you learn a logo is three blocks away and then have to find
+  // it again by hand among twenty cards.
+  const handlePinSelect = useCallback((id: string) => {
+    const card = document.getElementById(`dirsearch-result-${id}`);
+    card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setHoveredId(id);
+  }, []);
+
   return (
     <DirectoryViewerProvider profileIds={profileIds}>
-      <main className="dirsearch">
-        <SearchBand
-          term={params.searchTerm}
-          resultCount={results.length}
-          totalCount={totalResults}
-          loading={isLoading}
-          locationStatus={locationStatus}
-          nearestFirst={sort === 'nearest'}
-          onSearch={handleSearch}
-          onShareLocation={request}
-        />
+      {/* data-view is read by CSS below the split's breakpoint, where the two
+          panes cannot both fit and the List/Map toggle decides which one the
+          screen belongs to. Above it the attribute is inert: both panes show,
+          and the toggle is hidden. */}
+      <main className="dirsearch dirsearch-split" data-view={params.view}>
+        <div className="dirsearch-panes">
+          <section className="dirsearch-listpane" aria-label="Search results">
+            {/* Outside the scroller on purpose. The controls that change the
+                results are the ones you reach for after reading a few, and a
+                header you have to scroll back up to find is a header that gets
+                used once. */}
+            <div className="dirsearch-listhead">
+              <SearchBand
+                term={params.searchTerm}
+                resultCount={results.length}
+                totalCount={totalResults}
+                loading={isLoading}
+                locationStatus={locationStatus}
+                nearestFirst={sort === 'nearest'}
+                onSearch={handleSearch}
+                onShareLocation={request}
+              />
 
-        <FilterBar
-          filters={filters}
-          onChange={applyFilters}
-          view={params.view}
-          onViewChange={(next) =>
-            patch({ view: next === 'map' ? 'map' : null })
-          }
-          locationShared={locationShared}
-        />
-
-        <div className="container mx-auto px-4">
-          {isLoading ? (
-            <div className="dirsearch-results">
-              <ul className="dirsearch-grid" aria-busy="true">
-                {[0, 1, 2].map((index) => (
-                  <li key={index} className="dirsearch-skeleton" />
-                ))}
-              </ul>
+              <FilterBar
+                filters={filters}
+                onChange={applyFilters}
+                view={params.view}
+                onViewChange={(next) =>
+                  patch({ view: next === 'map' ? 'map' : null })
+                }
+                locationShared={locationShared}
+              />
             </div>
-          ) : showEmpty ? (
-            <EmptyState
-              term={params.searchTerm}
-              filters={filters}
-              onChange={applyFilters}
-              onTermChange={handleSearch}
+
+            <div className="dirsearch-listscroll" ref={listRef}>
+              <div className="dirsearch-listbody">
+                {isLoading ? (
+                  <div className="dirsearch-results">
+                    <ul className="dirsearch-grid" aria-busy="true">
+                      {[0, 1, 2].map((index) => (
+                        <li key={index} className="dirsearch-skeleton" />
+                      ))}
+                    </ul>
+                  </div>
+                ) : showEmpty ? (
+                  <EmptyState
+                    term={params.searchTerm}
+                    filters={filters}
+                    onChange={applyFilters}
+                    onTermChange={handleSearch}
+                  />
+                ) : (
+                  <div className="dirsearch-results">
+                    <ul className="dirsearch-grid">
+                      {results.map((result) => (
+                        <li
+                          key={result._id}
+                          id={`dirsearch-result-${result._id}`}
+                          data-on={result._id === hoveredId}
+                          onMouseEnter={() => setHoveredId(result._id)}
+                          onMouseLeave={() => setHoveredId(null)}
+                          onFocus={() => setHoveredId(result._id)}
+                          onBlur={() => setHoveredId(null)}
+                        >
+                          <ResultCard result={result} viewerCoords={coords} />
+                        </li>
+                      ))}
+                    </ul>
+
+                    {totalPages > 1 && (
+                      <SearchPagination
+                        currentPage={params.pageNum}
+                        totalPages={totalPages}
+                        totalResults={totalResults}
+                        onPageChange={(page) => patch({ p: page.toString() })}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* The two standing invitations the old page buried among four
+                    stacked cards. Kept, but once each, and after the results
+                    rather than competing with them. The page footer is gone at
+                    this width, so this is also the last thing in the column —
+                    which is the right place for an ask you only act on once
+                    the search has failed to find you what you came for. */}
+                <aside className="dirsearch-cta">
+                  <div>
+                    <h2>Not listed yet?</h2>
+                    <p>
+                      A listing is how South Florida finds you — free, and yours
+                      to run.
+                    </p>
+                    <Link
+                      href="/form/list-your-business"
+                      className="link-arrow"
+                    >
+                      List your business
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                  <div>
+                    <h2>Missing someone?</h2>
+                    <p>
+                      Tell us about a local spot you love and we will reach out
+                      to them.
+                    </p>
+                    <Link href="/form/contact-us" className="link-arrow">
+                      Send a recommendation
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </section>
+
+          {/* Always mounted. Below the breakpoint CSS collapses this pane to
+              nothing unless the toggle asks for it, and a zero-size map loads
+              no tiles — so keeping it in the tree costs nothing and spares the
+              map a remount, and a re-frame, every time the toggle is used. */}
+          <aside className="dirsearch-mappane" aria-label="Results on a map">
+            <MapPanel
+              results={results}
+              viewerCoords={coords}
+              highlightId={hoveredId}
+              onPinSelect={handlePinSelect}
             />
-          ) : params.view === 'map' ? (
-            <div className="dirsearch-results">
-              <MapPanel results={results} viewerCoords={coords} />
-            </div>
-          ) : (
-            <div className="dirsearch-results">
-              <ul className="dirsearch-grid">
-                {results.map((result) => (
-                  <li key={result._id}>
-                    <ResultCard result={result} viewerCoords={coords} />
-                  </li>
-                ))}
-              </ul>
-
-              {totalPages > 1 && (
-                <SearchPagination
-                  currentPage={params.pageNum}
-                  totalPages={totalPages}
-                  totalResults={totalResults}
-                  onPageChange={(page) => patch({ p: page.toString() })}
-                />
-              )}
-            </div>
-          )}
-
-          {/* The two standing invitations the old page buried among four
-              stacked cards. Kept, but once each, and after the results rather
-              than competing with them. */}
-          <aside className="dirsearch-cta">
-            <div>
-              <h2>Not listed yet?</h2>
-              <p>
-                A listing is how South Florida finds you — free, and yours to
-                run.
-              </p>
-              <Link href="/form/list-your-business" className="link-arrow">
-                List your business
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-            <div>
-              <h2>Missing someone?</h2>
-              <p>
-                Tell us about a local spot you love and we will reach out to
-                them.
-              </p>
-              <Link href="/form/contact-us" className="link-arrow">
-                Send a recommendation
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
           </aside>
         </div>
       </main>

@@ -78,7 +78,7 @@ export function FilterBar({
 
   return (
     <div className="dirsearch-filters">
-      <div className="container mx-auto px-4">
+      <div className="dirsearch-filterinner">
         <div className="dirsearch-filterrow">
           <span className="dirsearch-filterlabel">Category</span>
           <ul className="dirsearch-chiprow">
@@ -227,8 +227,10 @@ export function FilterBar({
           )}
 
           {/* A map is how you answer "what is near me" when you do not yet
-              know what you are looking for, which is most of the time. It is
-              a peer of the list, not a setting, so it sits here. */}
+              know what you are looking for, which is most of the time. On a
+              wide screen it is not a choice at all: the list and the map are
+              side by side and this toggle is hidden. It exists for the widths
+              where only one of them fits. */}
           <div className="dirsearch-viewtoggle">
             <button
               type="button"

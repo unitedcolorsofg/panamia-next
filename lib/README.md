@@ -164,6 +164,7 @@ deploy. Call sites ask for a role, never an address. See
 | ---------------- | -------------------------------- |
 | `email.ts`       | CF Email Sending (transactional) |
 | `geolocation.ts` | Geocoding utilities              |
+| `map-tiles.tsx`  | Stadia Maps basemap tiles        |
 | `auth-api.ts`    | Auth helper functions            |
 
 > WebSocket realtime (WebRTC signaling, chat, whiteboard sync) lives in the
