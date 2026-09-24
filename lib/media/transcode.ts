@@ -28,6 +28,11 @@ export async function transcodeToOpus(blob: Blob): Promise<Blob> {
   await ffmpeg.exec([
     '-i',
     'input.webm',
+    // See transcodeToMp4Video: ffmpeg copies source metadata by default, and
+    // a recording picked from a phone's files carries the device and date it
+    // was made on.
+    '-map_metadata',
+    '-1',
     '-c:a',
     'libopus',
     '-b:a',
@@ -81,6 +86,12 @@ export async function transcodeToMp4Video(
   await ffmpeg.exec([
     '-i',
     inputName,
+    // Drop the source's metadata instead of carrying it into the output,
+    // which is ffmpeg's default. A clip recorded on a phone stores the
+    // coordinates it was recorded at in a `©xyz` atom, alongside the device
+    // model and capture time; re-encoding the video does not remove them.
+    '-map_metadata',
+    '-1',
     '-vf',
     'scale=-2:min(720\\,ih)', // cap at 720p, no upscaling, preserve aspect ratio
     '-c:v',

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { transcodeToMp4Video } from '@/lib/media/transcode';
+import { stripImageBlob, MetadataStripError } from '@/lib/media/strip-metadata';
 import { isVideoUrl } from '@/lib/media/is-video-url';
 import { cn } from '@/lib/utils';
 
@@ -113,7 +114,11 @@ export default function MediaUpload({
       } else if (file.type.startsWith('image/')) {
         const ext = EXT_BY_TYPE[file.type];
         if (!ext) throw new Error(`Unsupported image type: ${file.type}`);
-        url = await uploadToR2(file, file.type, ext);
+        /* This upload goes straight to R2 on a presigned URL, so the server
+           never sees the bytes and cannot strip the photo's location and
+           camera details the way it does for uploads that pass through it. */
+        const cleaned = await stripImageBlob(file, file.type);
+        url = await uploadToR2(cleaned, file.type, ext);
       } else {
         throw new Error('Please choose an image or video file.');
       }
@@ -123,9 +128,11 @@ export default function MediaUpload({
       toast({
         title: 'Upload failed',
         description:
-          error instanceof Error
-            ? error.message
-            : 'Upload failed. Please try again.',
+          error instanceof MetadataStripError
+            ? 'That image could not be read, so it was not uploaded. It may be damaged, or saved in a different format from the one its name suggests.'
+            : error instanceof Error
+              ? error.message
+              : 'Upload failed. Please try again.',
         variant: 'destructive',
       });
     } finally {

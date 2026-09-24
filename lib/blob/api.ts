@@ -12,6 +12,7 @@
  */
 
 import { getStorage } from '@/lib/r2';
+import { stripImageMetadata } from '@/lib/media/strip-metadata';
 import { AwsClient } from 'aws4fetch';
 
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
@@ -54,6 +55,14 @@ function objectUrl(key: string): string {
 
 /**
  * Upload a file to R2 storage.
+ *
+ * Images have their EXIF/XMP/IPTC metadata removed on the way through. This
+ * sits here rather than in the routes because it is the one place every
+ * server-side upload passes, so a new upload path cannot forget it and start
+ * publishing the coordinates its photos were taken at. Uploads that go
+ * straight to R2 on a presigned URL never reach this function and are stripped
+ * in the browser instead -- see lib/media/strip-metadata.ts.
+ *
  * @param fileName - Object key (e.g. "profile/handle/primary123.jpg")
  * @param file - File data as Buffer
  * @returns The public URL of the uploaded file, or null on failure
@@ -66,14 +75,32 @@ export const uploadFile = async (
     const contentType = inferContentType(fileName);
     const bucket = getStorage();
 
+    /* Refused rather than stored as-is when it will not parse: the promise
+       made to members is that we do not keep this metadata, and storing a
+       file we could not read is not a promise we could keep. In practice
+       this only rejects bytes that are not the format their extension
+       claims, which is not something worth storing either. */
+    let body: Uint8Array;
+    try {
+      body = stripImageMetadata(file, contentType);
+    } catch (error) {
+      console.error(
+        `R2:PUT:REJECTED:${fileName} - could not strip image metadata:`,
+        error
+      );
+      return null;
+    }
+
     if (bucket) {
       // CF Workers: native binding (no credentials needed)
-      await bucket.put(fileName, file, { httpMetadata: { contentType } });
+      await bucket.put(fileName, body, { httpMetadata: { contentType } });
     } else {
       // Node.js fallback: S3-compatible API signed with aws4fetch.
       const res = await getR2Client().fetch(objectUrl(fileName), {
         method: 'PUT',
-        body: new Uint8Array(file),
+        // Copied into a fresh view so the type carries a concrete ArrayBuffer,
+        // which is what fetch will accept as a body.
+        body: new Uint8Array(body),
         headers: { 'Content-Type': contentType },
       });
       if (!res.ok) {

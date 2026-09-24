@@ -46,3 +46,9 @@ jobs:
       # runs. See tests-db/visibility.test.ts.
       - name: Status visibility
         run: yarn test:db
+
+      # Builds JPEG, PNG and WebP fixtures carrying GPS, camera and XMP data,
+      # then checks the stripper removes them without altering a pixel. See
+      # tests-unit/strip-metadata.test.ts.
+      - name: Image metadata stripping
+        run: yarn test:unit
