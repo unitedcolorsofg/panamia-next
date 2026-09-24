@@ -21,15 +21,17 @@ import { SurfaceSearch } from '@/components/panaverse/SurfaceSearch';
  * the first thing done on a social feed and never the first thing done on a
  * directory landing page.
  *
- * NAV IS DELIBERATELY ABSENT. The MENU drawer that used to sit on the left
- * carried the surface nav, the shared rooms, and — via `originForFrom` — the
- * only link that can cross from social.pana.social back to the main site.
- * `PANA_SITES` in the account menu cannot stand in for that last one: it is
- * relative on purpose, so it keeps a member on the hostname they already
- * chose. While PANAVERSE_SUBDOMAINS is off and Pana Social is served from
- * `/s`, the account menu's relative links do reach Pana Mia and nothing is
- * stranded. Before that flag is turned on, this surface needs a route home
- * again. See `SurfaceMenu` in the history of this directory for what was here.
+ * NAV IS DELIBERATELY ABSENT, but the route home is not. The MENU drawer that
+ * used to sit on the left carried the surface nav, the shared rooms, and — via
+ * `originForFrom` — the only link that could cross from social.pana.social
+ * back to the main site. That last one now comes from `PANA_SITES` in the
+ * account menu instead: its paths are resolved server-side by
+ * `resolvePanaSites`, so a site on another surface links to that surface's
+ * origin. Until PANAVERSE_SUBDOMAINS was turned on those links were relative
+ * and a member could not leave this hostname through them; they can now.
+ *
+ * What is still missing is the surface nav proper — the rooms of Pana Social
+ * itself. See `SurfaceMenu` in the history of this directory for what was here.
  *
  * Rendered server-side. Only the controls that need session state are client
  * components.
