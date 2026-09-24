@@ -7594,134 +7594,279 @@ a.pillar-program:hover {
   color: var(--story-ink);
 }
 
-/* --- The header band ---------------------------------------------------- */
+/* --- The toolbar -------------------------------------------------------- */
 
-/* Paper, not navy. The vertical rhythm moves to `.dirsearch-bandhead` below,
-   because the street has to reach the band's bottom edge — padding here would
-   leave a strip of empty cream under the rooflines and put back the very
-   boundary this is removing. */
-.dirsearch .dirsearch-band {
-  position: relative;
-  overflow: hidden;
-  padding-block: 0;
-  background-color: var(--story-cream);
-  color: var(--story-ink);
-  background-repeat: no-repeat;
-  /* The homepage's pool of light, re-aimed. Centred on the search box rather
-     than on the card, and stopped short of the bottom edge so the falloff has
-     reached zero before it meets the rooflines — a live gradient cut off at
-     the horizon draws a hard orange line straight across the street. */
-  background-image: radial-gradient(
-    86% 30% at 50% 62%,
-    rgb(242 136 47 / 0.28) 0%,
-    rgb(242 136 47 / 0.17) 34%,
-    rgb(242 136 47 / 0.06) 58%,
-    rgb(242 136 47 / 0) 76%
-  );
+/* What the header band became.
+
+   It used to be a hero: an eyebrow, a display-sized headline, a count, the
+   search box, the location row and a full-bleed drawing of a town — about
+   570px of page before the first result. That is a reasonable way to open a
+   screen you arrive on once. It is a bad way to open one you refine five times
+   in a row, and with the map now holding the right half of the window, height
+   spent here is height taken off the results rather than off empty cream.
+
+   So the count moved into the headline, the headline dropped to body size, the
+   scenery went, and the whole thing is a toolbar about as tall as the box
+   inside it. Nothing here scrolls away, which is the other reason it has to be
+   small. */
+.dirsearch-tools {
+  padding: 0.8rem 1rem 0.65rem;
 }
 
-/* Tooth on the paper. Masked at both ends: the masthead above is the same
-   cream and carries no grain, so grain running to the top edge would draw the
-   very boundary this variant exists to remove, and it has to clear before the
-   street so the drawing stays clean. */
-.dirsearch-bandgrain {
+/* The base rules put the box a third of the way down a hero. There is no hero
+   now — the box is the first thing in the column. */
+.dirsearch .dirsearch-searchrow {
+  margin-top: 0;
+  max-width: none;
+}
+
+/* Count on the left, the location offer on the right; one line where there is
+   room for one and two where there is not. Both are asides to the box above
+   them and neither earns a line of its own. */
+.dirsearch-toolsline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1.25rem;
+  margin-top: 0.6rem;
+}
+
+/* An h1 at body size. Still the page's heading and still the first thing read,
+   but 3rem was a title for a page you arrive at rather than a label on a list
+   you are working through. */
+.dirsearch-summary {
+  font-family: var(--font-montserrat);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  opacity: 0.76;
+}
+
+.dirsearch-summary strong {
+  font-weight: 900;
+  opacity: 1;
+}
+
+/* Coral rather than orange for the searched term, for the reason the homepage
+   uses it — orange under an orange wordmark reads as a second logo. */
+.dirsearch-summary em {
+  font-style: normal;
+  font-weight: 900;
+  color: var(--story-coral);
+}
+
+.dirsearch .dirsearch-locbar {
+  margin-top: 0;
+  font-size: 0.8125rem;
+}
+
+/* --- The split ---------------------------------------------------------- */
+
+/* Below the wide breakpoint this is an ordinary page that scrolls: toolbar,
+   filters, then whichever of the list and the map the toggle asks for.
+   Everything that makes it a split lives in the media query at the end. */
+.dirsearch-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dirsearch-listpane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dirsearch-listhead {
+  flex: none;
+  min-width: 0;
+}
+
+.dirsearch-listscroll {
+  min-width: 0;
+}
+
+/* The gutter the results used to get from `.container`. Held out here rather
+   than on the cards so that when the column scrolls, the scrollbar runs down
+   the edge of the pane instead of down the middle of the padding. */
+.dirsearch-listbody {
+  padding-inline: 1rem;
+}
+
+.dirsearch-mappane {
+  min-width: 0;
+}
+
+@media (max-width: 71.999rem) {
+  .dirsearch-mappane {
+    padding: 0 1rem clamp(2rem, 6vw, 3rem);
+  }
+
+  /* One at a time down here, because neither is worth much at half a phone.
+     The toolbar and the filters stay put either way — they are how you get
+     back. */
+  .dirsearch-split[data-view='list'] .dirsearch-mappane {
+    display: none;
+  }
+
+  .dirsearch-split[data-view='map'] .dirsearch-listscroll {
+    display: none;
+  }
+}
+
+/* Two panes pinned to the viewport, only the results scrolling.
+
+   The reason to lock it is the map. A map that scrolls away is a map you
+   consult once and then forget — which is what the List/Map toggle it replaces
+   really cost: you left the results to find out where anything was, and left
+   the map to read anything about it. Side by side, neither question costs the
+   other, but only if the map is still there after four cards. So the window
+   stops scrolling and the column starts.
+
+   65px is the masthead, which is `position: sticky; top: 0`. Being a few
+   pixels out moves the bottom edge of the scroll area; it does not break the
+   layout. */
+@media (min-width: 72rem) {
+  .dirsearch-split {
+    --dirsearch-chrome: 65px;
+  }
+
+  .dirsearch-panes {
+    /* A little wider on the left. The results are the page and the map is how
+       you read them. Cards cap at 58rem and centre in whatever this leaves,
+       so on a very wide screen the surplus goes to the map, where it is worth
+       something. */
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    height: calc(100svh - var(--dirsearch-chrome));
+  }
+
+  .dirsearch-listpane {
+    min-height: 0;
+  }
+
+  .dirsearch-listscroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* Stop a flick at the end of the results from scrolling the window and
+       dragging the map up off the screen. */
+    overscroll-behavior: contain;
+  }
+
+  /* Sticky is for a bar with content moving under it. This one sits outside
+     the scroll area now, so it is already where sticky was trying to put it,
+     and the shadow it grew for that job is just a smudge across the top of the
+     column. */
+  .dirsearch .dirsearch-filters {
+    position: static;
+    box-shadow: none;
+    padding-block: 0.4rem 0.35rem;
+  }
+
+  .dirsearch-tools {
+    padding: 0.6rem 1rem 0.4rem;
+  }
+
+  /* Every row above the results is a row of results you cannot see. Stacked,
+     the toolbar and the filters came to 282px of a 900px window — two and a
+     bit cards — so Sort and Clear move out of a row of their own and into the
+     space to the right of the chips, which was empty. Worth about 48px, or
+     most of another card. */
+  .dirsearch-split .dirsearch-filterinner {
+    display: grid;
+    /* Capped, not `auto`. The sort track sizes to its widest option, and
+       "Nearest — share location first" is 280px of chip row surrendered to a
+       control that shows "Best match". */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
+    align-items: center;
+    column-gap: 0.85rem;
+  }
+
+  .dirsearch-split .dirsearch-filterrow {
+    grid-column: 1;
+    padding-block: 0.1rem;
+  }
+
+  .dirsearch-split .dirsearch-filterfoot {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    padding-top: 0;
+    padding-left: 0.85rem;
+    margin-top: 0;
+    border-top: 0;
+    border-left: 1px solid rgb(2 8 17 / 0.1);
+  }
+
+  .dirsearch-split .dirsearch-filterfoot .dirsearch-sort {
+    max-width: 100%;
+  }
+
+  .dirsearch-split .dirsearch-filterfoot select {
+    min-width: 0;
+  }
+
+  /* Both panes are on screen. There is nothing left to toggle. */
+  .dirsearch-split .dirsearch-viewtoggle {
+    display: none;
+  }
+
+  .dirsearch-mappane {
+    border-left: 1px solid rgb(2 8 17 / 0.1);
+  }
+
+  /* Edge to edge. A rounded card of map inside a pane that is already a pane
+     draws a second border around the same rectangle. */
+  .dirsearch-mappane .dirsearch-map {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* The site footer would sit below a full-height main and put the window
+     straight back into scrolling, which is the one thing this layout exists to
+     stop. It is out of reach here by design, the way it is on every map search
+     anyone has used, and the tail of the results column carries the two links
+     that were worth keeping. */
+  body:has(.dirsearch-split) > footer {
+    display: none;
+  }
+}
+
+/* --- Hover, both ways ---------------------------------------------------- */
+
+/* A card and its pin are one business seen twice, and nothing says so unless
+   both react. Border only: the card already has a hover state, and a second
+   lift stacked on it reads as a glitch rather than as a link. */
+.dirsearch-grid > li[data-on='true'] .dirsearch-card {
+  border-color: rgb(242 136 47 / 0.6);
+}
+
+/* The off-map caveat used to sit under the map's own list of pinned results.
+   That list is gone — the results column is the list now — so the note floats
+   on the map instead. Top right: the zoom control owns the top left and the
+   selected-result card owns the bottom. */
+.dirsearch .dirsearch-mapoffmap {
   position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
-  background-size: 4px 4px;
-  -webkit-mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    #000 24%,
-    #000 54%,
-    transparent 78%
-  );
-  mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    #000 24%,
-    #000 54%,
-    transparent 78%
-  );
-}
-
-/* Above the clouds (z-index 0) and the grain (1). Carries the band's vertical
-   rhythm, which the section itself has given up. */
-.dirsearch-bandhead {
-  position: relative;
-  z-index: 2;
-  padding-top: clamp(1.75rem, 4.5vw, 3rem);
-  padding-bottom: clamp(1.25rem, 3vw, 2rem);
-}
-
-/* --- The town ----------------------------------------------------------- */
-
-/* In flow and last, so the band is always tall enough for it and the results
-   below can never be overlapped by a roof.
-
-   The drawing is 1440x310 and `slice`s from `xMidYMax`, so constraining the
-   height crops sky off the top and leaves the kerb on the kerb — which is
-   exactly what is wanted here. This is a horizon under the search box, not
-   the homepage's full-height establishing shot. */
-.dirsearch-street {
-  position: relative;
-  z-index: 1;
-  display: block;
-  pointer-events: none;
-}
-
-/* Tall enough for the far skyline to survive the crop. Below roughly 150px
-   the pale back row is the first thing `slice` takes, and without it the
-   near buildings sit straight on the paper with no depth behind them — the
-   drawing stops being a town and becomes a border. */
-.dirsearch-street .street-svg {
-  display: block;
-  width: 100%;
-  height: clamp(150px, 17vw, 244px);
-}
-
-/* Below this width the global `.street-svg` rule switches to a fixed
-   `--street-w` crop, and that variable is declared on `.story-street` — which
-   this is not. Declaring it here keeps the narrow-screen behaviour: hold the
-   drawing at a usable size and centre it on the market rather than scaling a
-   1440-wide street down to a smudge.
-
-   Width and margin have to be restated rather than left to the global rule.
-   The base rule above is `.dirsearch-street .street-svg` and outranks a bare
-   `.street-svg`, so `width: 100%` would otherwise survive into this range
-   while the global negative margin still applied — a full-width drawing
-   shunted 273px off the left edge of a phone. */
-@media (max-width: 60rem) {
-  .dirsearch-street {
-    --street-w: clamp(760px, 240vw, 1000px);
-    overflow-x: clip;
-  }
-
-  .dirsearch-street .street-svg {
-    width: var(--street-w);
-    max-width: none;
-    margin-left: calc(50% - var(--street-w) / 2);
-    height: clamp(132px, 26vw, 190px);
-  }
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 3;
+  max-width: min(20rem, calc(100% - 1.7rem));
+  margin-top: 0;
+  background-color: rgb(255 255 255 / 0.94);
+  box-shadow: 0 8px 20px rgb(2 8 17 / 0.12);
 }
 
 /* --- Type, re-cut for paper --------------------------------------------- */
 
-/* Butter on navy was the accent; butter on cream is invisible. Coral rather
-   than orange for the searched term, for the same reason the homepage uses it
-   — orange under an orange wordmark reads as a second logo. */
-.dirsearch .dirsearch-title em {
-  color: var(--story-coral);
-}
-
-.dirsearch .dirsearch-count strong,
+/* Butter on navy was the accent; butter on cream is invisible. */
 .dirsearch .dirsearch-locbar strong {
   color: var(--story-ink);
 }
 
-.dirsearch .dirsearch-count,
 .dirsearch .dirsearch-locbar {
   opacity: 0.72;
 }

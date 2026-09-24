@@ -297,6 +297,23 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // MAPS (Stadia Maps)
+  // =============================================================================
+  NEXT_PUBLIC_STADIA_API_KEY: {
+    description:
+      'Stadia Maps API key for the directory and profile basemaps (public). ' +
+      'Public by design — it travels in every tile URL — so lock it to the ' +
+      'site domain in the Stadia dashboard rather than treating it as a secret. ' +
+      'Unset is fine for local development: Stadia serves localhost keyless. ' +
+      'Unset in production means watermarked tiles. ' +
+      'Baked into the bundle by Vite at build time, so it must be in CF Build ' +
+      'variables (not Runtime).',
+    location: 'VAR',
+    required: false,
+    docsUrl: 'https://client.stadiamaps.com/dashboard/',
+  },
+
+  // =============================================================================
   // EMAIL (Cloudflare Email Sending)
   // https://developers.cloudflare.com/email-service/
   // =============================================================================

@@ -3,6 +3,7 @@
 import { useTranslation } from 'react-i18next';
 import { MapPin } from 'lucide-react';
 import { Map, Marker, ZoomControl } from 'pigeon-maps';
+import { mapTiles, MapAttribution } from '@/lib/map-tiles';
 
 interface ProfileLocationProps {
   address: {
@@ -98,7 +99,14 @@ export function ProfileLocation({ address, geo }: ProfileLocationProps) {
         {/* Map */}
         {coords && (
           <div className="mt-8 overflow-hidden rounded-2xl border-2 border-[rgb(17_13_13/0.08)]">
-            <Map height={300} defaultCenter={coords} defaultZoom={12}>
+            <Map
+              height={300}
+              defaultCenter={coords}
+              defaultZoom={12}
+              provider={mapTiles}
+              attribution={<MapAttribution />}
+              attributionPrefix={false}
+            >
               <ZoomControl />
               <Marker
                 width={40}
