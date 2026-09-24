@@ -121,6 +121,27 @@ export function originFor(
 }
 
 /**
+ * Where this surface's front door is, as a path, from the host in hand.
+ *
+ * A surface's root path is fixed in the registry; the URL its front door
+ * actually wears is not. On its own hostname the surface is served at `/` —
+ * social.pana.social/ is the feed, see app/page.tsx — and only from elsewhere
+ * does it need its prefix. A masthead that always linked `rootPath` would send
+ * a member on social.pana.social from `/` to `/s`, the same page one URL
+ * uglier; one that always linked `/` would send a member reading pana.social/s
+ * to the main site's homepage instead of back to the feed.
+ */
+export function frontDoorPath(
+  surface: PanaverseSurface,
+  host: string | null | undefined,
+  rootDomain = getRootDomain()
+): string {
+  return resolveSurface(host, rootDomain).id === surface.id
+    ? '/'
+    : surface.rootPath;
+}
+
+/**
  * The origin of `target` as reached from the host currently being served.
  *
  * `originFor` always points at the configured root domain, which is right in

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { type PanaverseSurface } from '@/lib/panaverse/surfaces';
+import { frontDoorPath, type PanaverseSurface } from '@/lib/panaverse/surfaces';
 import { SURFACE_MARK, SURFACE_TONE } from '@/lib/panaverse/branding';
 import { SurfaceIdentity } from '@/components/panaverse/SurfaceIdentity';
 import { SurfaceSearch } from '@/components/panaverse/SurfaceSearch';
@@ -38,9 +38,12 @@ import { SurfaceSearch } from '@/components/panaverse/SurfaceSearch';
  */
 export function SurfaceMemberHeader({
   surface,
+  host,
 }: {
   /** The surface being served — its mark flies here. */
   surface: PanaverseSurface;
+  /** The hostname in hand, which decides where this surface's front door is. */
+  host: string | null | undefined;
 }) {
   const mark = SURFACE_MARK[surface.id];
 
@@ -56,7 +59,7 @@ export function SurfaceMemberHeader({
         data-layout="search"
       >
         <Link
-          href={surface.rootPath}
+          href={frontDoorPath(surface, host)}
           className="panaverse-guest-home"
           aria-label={`${surface.name} home`}
         >

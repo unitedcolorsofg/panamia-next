@@ -315,7 +315,7 @@ export default async function RootLayout({
                   />
                 )}
                 {ownSurface && pathname && (
-                  <SurfaceMemberHeader surface={chromeSurface} />
+                  <SurfaceMemberHeader surface={chromeSurface} host={host} />
                 )}
                 <div id="layout-main">{children}</div>
                 {wearsMainChrome && <MainFooter />}
