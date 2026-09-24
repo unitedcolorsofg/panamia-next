@@ -27,7 +27,7 @@ export function FlowerPowerProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { theme } = useTheme();
+  const { theme, forcedTheme } = useTheme();
   const [isMuted, setIsMuted] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -35,8 +35,10 @@ export function FlowerPowerProvider({
     setMounted(true);
   }, []);
 
-  // Derive isActive from theme instead of storing in state
-  const isActive = mounted && theme === 'flower-power';
+  // Derive isActive from theme instead of storing in state. A forced theme
+  // wins over the stored preference, so the evading buttons stay off for
+  // anyone who had flower-power selected before the picker was removed.
+  const isActive = mounted && !forcedTheme && theme === 'flower-power';
 
   const toggleMute = () => setIsMuted(!isMuted);
 

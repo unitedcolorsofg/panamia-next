@@ -116,7 +116,7 @@ export default function AccountProfileImages() {
                   <Input
                     type="file"
                     id="images_primary"
-                    name="images_primary"
+                    name="primary"
                     accept="image/png, image/jpeg, image/webp"
                   />
                   <p className="text-sm text-gray-500">
@@ -153,7 +153,7 @@ export default function AccountProfileImages() {
                   <Input
                     type="file"
                     id="images_gallery1"
-                    name="images_gallery1"
+                    name="gallery1"
                     accept="image/png, image/jpeg, image/webp"
                   />
                   <p className="text-sm text-gray-500">
@@ -190,7 +190,7 @@ export default function AccountProfileImages() {
                   <Input
                     type="file"
                     id="images_gallery2"
-                    name="images_gallery2"
+                    name="gallery2"
                     accept="image/png, image/jpeg, image/webp"
                   />
                   <p className="text-sm text-gray-500">
@@ -227,7 +227,7 @@ export default function AccountProfileImages() {
                   <Input
                     type="file"
                     id="images_gallery3"
-                    name="images_gallery3"
+                    name="gallery3"
                     accept="image/png, image/jpeg, image/webp"
                   />
                   <p className="text-sm text-gray-500">
