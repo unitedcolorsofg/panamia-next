@@ -327,6 +327,14 @@ export async function getStorySummaries(
   const rows = await db
     .select({ id: socialStatuses.id, actorId: socialStatuses.actorId })
     .from(socialStatuses)
+    // Inner join, so a story with no media is not counted. getActiveStories
+    // skips those rows when building the tray (media is a separate insert, so
+    // a half-written row is possible). Counting them here would draw a ring
+    // that opens an empty viewer.
+    .innerJoin(
+      socialAttachments,
+      eq(socialAttachments.statusId, socialStatuses.id)
+    )
     .where(
       and(
         inArray(socialStatuses.actorId, actorIds),
@@ -356,10 +364,20 @@ export async function getStorySummaries(
   }
 
   const byActor = new Map<string, { total: number; unseen: number }>();
+  const counted = new Set<string>();
   for (const row of rows) {
+    // The join yields one row per attachment. createStory enforces exactly one,
+    // but dedupe anyway so a stray second attachment cannot double-count.
+    if (counted.has(row.id)) continue;
+    counted.add(row.id);
     const entry = byActor.get(row.actorId) ?? { total: 0, unseen: 0 };
     entry.total += 1;
-    if (!seenIds.has(row.id)) entry.unseen += 1;
+    // Matches getActiveStories: the author is never shown an unwatched ring on
+    // their own stories. Not cosmetic parity -- markStoryViewed skips the
+    // author's own views on purpose, so an owner's unseen count here could
+    // never be worked off and the ring would stay lit until the story expired.
+    const isOwn = viewerActorId != null && row.actorId === viewerActorId;
+    if (!isOwn && !seenIds.has(row.id)) entry.unseen += 1;
     byActor.set(row.actorId, entry);
   }
 
