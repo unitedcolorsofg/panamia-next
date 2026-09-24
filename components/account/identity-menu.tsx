@@ -19,17 +19,49 @@ function initialsOf(name: string): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function Avatar({ identity, large }: { identity: Identity; large?: boolean }) {
+/** First word only — the masthead has room for a name, not a full one. */
+function firstNameOf(name: string): string {
+  return name.trim().split(/\s+/).filter(Boolean)[0] ?? '';
+}
+
+/**
+ * The picture if there is one, initials otherwise.
+ *
+ * `primaryImageCdn` has been travelling from listAdministeredProfiles through
+ * to this component the whole time without ever being drawn, so a member who
+ * set a photo in settings still saw their initials here.
+ */
+function Avatar({
+  identity,
+  large,
+  bare,
+}: {
+  identity: Identity;
+  large?: boolean;
+  /** Skip the coloured disc — the tile it sits in already draws one. */
+  bare?: boolean;
+}) {
   return (
     <span
       className={cn(
         styles.avatar,
         !identity.isPersonal && styles.avatarBusiness,
-        large && styles.avatarLg
+        large && styles.avatarLg,
+        bare && styles.avatarBare
       )}
       aria-hidden="true"
     >
-      {initialsOf(identity.name ?? '?')}
+      {identity.primaryImageCdn ? (
+        // Plain <img>: the same call directory-suggest makes for these CDN
+        // avatars, and next/image would want a configured remote pattern.
+        <img
+          src={identity.primaryImageCdn}
+          alt=""
+          className={styles.avatarImg}
+        />
+      ) : (
+        initialsOf(identity.name ?? '?')
+      )}
     </span>
   );
 }
@@ -59,8 +91,16 @@ export function IdentityMenu() {
      created. MainHeader is what keeps it away from signed-out visitors. */
   if (!identity) return null;
 
-  const { identities, activeId, switching, error, failed, loading, switchTo } =
-    identity;
+  const {
+    identities,
+    activeId,
+    personal,
+    switching,
+    error,
+    failed,
+    loading,
+    switchTo,
+  } = identity;
 
   // Only claim the account is unfinished once we have actually heard back.
   const needsSetup = !loading && !failed && identities.length === 0;
@@ -74,38 +114,34 @@ export function IdentityMenu() {
       }
       triggerClassName={styles.trigger}
       trigger={
-        active ? (
-          <Avatar identity={active} />
-        ) : (
-          <span className={styles.avatar} aria-hidden="true">
-            ?
-          </span>
-        )
+        <>
+          {active ? (
+            <Avatar identity={active} />
+          ) : (
+            <span className={styles.avatar} aria-hidden="true">
+              ?
+            </span>
+          )}
+          {active && (
+            <span className={styles.triggerName}>
+              {firstNameOf(active.name ?? '')}
+            </span>
+          )}
+        </>
       }
       /* Pinned rather than last in the list. The account list grows with every
-         business a member helps run, and the Pana sites sit above these two, so
-         on a short phone Sign Out was the row that fell below the fold — on the
-         one menu that exists partly to provide it. */
+         business a member helps run, and the destination tiles sit above this,
+         so on a short phone Sign Out was the row that fell below the fold — on
+         the one menu that exists partly to provide it.
+
+         Account settings used to sit here too; it is now the Account tile at
+         the head of the grid, which is where the member's own face already is. */
       footer={(close) => (
         <>
           <div className={styles.separator} />
 
-          <Link
-            href="/account/user/edit"
-            role="menuitem"
-            data-menu-row
-            onClick={() => close(false)}
-            className={cn(styles.row, styles.rowQuiet)}
-          >
-            <Settings className="h-4 w-4 opacity-70" aria-hidden="true" />
-            <span className={styles.rowMeta}>
-              <span className={styles.rowName}>{t('identity.settings')}</span>
-            </span>
-          </Link>
-
-          {/* Last, and tinted, because it is the one row here you cannot undo
-              by clicking again — and it sits directly under Settings, which is
-              where the cursor already is. */}
+          {/* The one row in this menu you cannot undo by clicking again, so it
+              is tinted — a speed bump, not an alarm. */}
           <button
             type="button"
             role="menuitem"
@@ -235,8 +271,31 @@ export function IdentityMenu() {
             </Link>
 
             {/* Everything above is "who am I"; everything below is "where am
-                I going". */}
-            <PanaSites onNavigate={() => close(false)} />
+                I going" — and the member's own account is the first of those
+                places, so it leads the grid rather than hiding in the footer. */}
+            <PanaSites
+              onNavigate={() => close(false)}
+              leading={
+                <Link
+                  href="/account/user/edit"
+                  role="menuitem"
+                  data-menu-row
+                  onClick={() => close(false)}
+                  className={styles.tile}
+                >
+                  <span className={styles.tileIcon} aria-hidden="true">
+                    {personal ? (
+                      <Avatar identity={personal} bare />
+                    ) : (
+                      <Settings className="h-[18px] w-[18px]" />
+                    )}
+                  </span>
+                  <span className={styles.tileLabel}>
+                    {t('identity.account')}
+                  </span>
+                </Link>
+              }
+            />
           </>
         );
       }}
