@@ -60,10 +60,21 @@ async function main(): Promise<void> {
   process.env.POSTGRES_URL = connectionString;
 
   const target = connectionString.replace(/\/\/[^@]*@/, '//***@').split('?')[0];
-  if (!/localhost|127\.0\.0\.1/.test(connectionString)) {
+  const isLocal = /localhost|127\.0\.0\.1/.test(connectionString);
+  const allowRemote = process.env.SEED_ALLOW_REMOTE === '1';
+  if (!isLocal && !allowRemote) {
     console.error('Refusing to run: this only targets a local database.');
     console.error('Database:', target);
+    console.error(
+      'Set SEED_ALLOW_REMOTE=1 to override, but only for a disposable database\n' +
+        'you own. This script creates a known-credential test account; never\n' +
+        'point it at a database serving real users.'
+    );
     process.exit(1);
+  }
+  if (!isLocal) {
+    console.warn('SEED_ALLOW_REMOTE=1 set — seeding a REMOTE database.');
+    console.warn('Database:', target);
   }
 
   // lib/federation decides which actors count as local by reading
