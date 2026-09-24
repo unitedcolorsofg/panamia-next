@@ -1805,6 +1805,17 @@ button.bizprofile-update-action:hover {
   object-fit: cover;
 }
 
+/* A group wears the same avatar frame as a person, at the same size and in
+   the same position, but squared off. The shape is the only thing carrying
+   "this is a collective, not somebody" at a glance — a circular avatar reads
+   as a face whatever is inside it, and a group page being mistaken for a
+   profile is the one confusion this layout cannot afford. Squircle rather
+   than a hard square so it still belongs to the same family as the scallop
+   and the pill. */
+.profile-avatar[data-shape='group'] {
+  border-radius: 28%;
+}
+
 @media (min-width: 768px) {
   .profile-avatar {
     --pa-size: 11.5rem;
