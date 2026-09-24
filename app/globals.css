@@ -5018,7 +5018,9 @@ body {
   grid-template-columns: 1fr;
   max-width: 58rem;
   margin-inline: auto;
-  padding-block: clamp(1rem, 3vw, 1.5rem) clamp(3rem, 7vw, 5rem);
+  /* The trailing space belongs to .dirsearch-photocredit now, which follows
+     this block as the last thing in the column. */
+  padding-block: clamp(1rem, 3vw, 1.5rem) clamp(1.5rem, 4vw, 2.25rem);
 }
 
 @media (min-width: 48rem) {
@@ -5051,6 +5053,29 @@ body {
 .dirsearch-cta .link-arrow {
   margin-top: 0.9rem;
   display: inline-flex;
+}
+
+/* Attribution for the seeded listing photography. Sized to sit quietly under
+   the CTA — it is an obligation, not a message — but kept legible rather than
+   hidden, since the Pexels terms ask for a prominent link. */
+.dirsearch-photocredit {
+  max-width: 58rem;
+  margin-inline: auto;
+  padding-bottom: clamp(2rem, 5vw, 3.5rem);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(17 13 13 / 0.45);
+  text-align: center;
+}
+
+.dirsearch-photocredit a {
+  color: rgb(17 13 13 / 0.62);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dirsearch-photocredit a:hover {
+  color: var(--color-pana-ink);
 }
 
 /* ---------------------------------------------------------------------------
