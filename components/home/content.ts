@@ -49,26 +49,24 @@ export type NoteBlock =
 /**
  * The artwork that answers each question.
  *
- * A tagged union rather than a shared `image` field, because these are not
- * the same kind of picture doing one job — they are four different arguments.
- * A photograph of a room proves a word means people; a diagram proves a claim
- * has parts; a map proves a place is a real place; a banner is how a slogan
- * is actually said out loud. Giving them one shape would have meant one
- * renderer hedging across all four.
+ * A tagged union rather than a shared `image` field, because a photograph and
+ * the map are not the same kind of picture doing the same job. A photograph
+ * of a room proves a word means people and needs nothing around it; the map
+ * proves a place is a real place, and to do that it has to arrive on scroll
+ * and carry its county labels. Giving them one shape would have meant one
+ * renderer hedging across both.
  */
 export type BeatScene =
   | {
-      /** Overlapping photographs, fanned out. "What is a pana" is answered
-          better by a room full of them than by any definition. */
-      kind: 'collage';
-      photos: { src: string; alt: string; caption: string }[];
-    }
-  | {
-      /** The circular diagram from the deck's "THE LOCAL MOVEMENT" slide,
-          rebuilt as vector so it stays crisp and can draw itself in. */
-      kind: 'ring';
-      centre: string;
-      items: string[];
+      /** One photograph, filling the card.
+       *
+       *  These stops were a fanned collage, a row of portraits and a drawn
+       *  banner. They are single frames now, on the ask of the panas: a
+       *  composition of four prints is a design, and what they wanted on this
+       *  band was pictures of people. */
+      kind: 'photo';
+      src: string;
+      alt: string;
     }
   | {
       /** The branded state map, rising into frame on scroll. */
@@ -76,15 +74,6 @@ export type BeatScene =
       src: string;
       alt: string;
       counties: string[];
-    }
-  | {
-      /** The vision, strung up as cloth. It is one short shout — "the future
-          is local!" — and a shout wants a banner over the street, not a
-          diagram. Drawn rather than photographed so the words stay real
-          text: selectable, translatable and legible to a screen reader. */
-      kind: 'banner';
-      headline: string;
-      caption: string;
     };
 
 export interface StoryBeat {
@@ -149,14 +138,18 @@ export interface Pillar {
    Structure
    ------------------------------------------------------------------------- */
 
-/** Photographs for the "what's a pana" collage. Paths are structure; the alt
-    text and captions underneath them are copy. */
-const PANA_PHOTOS = [
-  '/img/impact/hero-mixer.webp',
-  '/img/impact/pana-social-dinner.webp',
-  '/img/impact/community-group.webp',
-  '/img/about/clari_and_anette.webp',
-] as const;
+/* One photograph per stop, and all three are of people. The band used to run
+   a fanned collage, a row of portraits and a drawn banner; it is three single
+   frames now because that is what was asked for — pictures, not compositions.
+
+   Picked to be three different kinds of gathering, so three photographic
+   stops in a row do not read as one scene repeated: a crowd outdoors in
+   daylight, a table indoors at night, and two people sitting down. The last
+   is Clari and Anette, which is also the literal answer to the question that
+   stop asks. */
+const PANAMIA_PHOTO_SRC = '/img/impact/filmfest-collab-right.webp';
+const PANA_PHOTO_SRC = '/img/impact/pana-social-dinner.webp';
+const WHY_PHOTO_SRC = '/img/about/clari_and_anette.webp';
 
 /* `floridamap_panamia.jpg` is the other candidate and it is the more heavily
    branded of the two, but its highlighted counties are hot pink — a colour
@@ -232,9 +225,9 @@ export function useStoryBeats(): StoryBeat[] {
       answer: t('beats.panamia.answer'),
       more: t('beats.panamia.more'),
       scene: {
-        kind: 'banner',
-        headline: t('beats.panamia.banner.headline'),
-        caption: t('beats.panamia.banner.caption'),
+        kind: 'photo',
+        src: PANAMIA_PHOTO_SRC,
+        alt: t('beats.panamia.photoAlt'),
       },
       /* The mission lives here rather than under "why was this started",
          where it used to sit. It is the answer to what the club *is* — a
@@ -256,12 +249,9 @@ export function useStoryBeats(): StoryBeat[] {
       answer: t('beats.pana.answer'),
       more: t('beats.pana.more'),
       scene: {
-        kind: 'collage',
-        photos: PANA_PHOTOS.map((src, index) => ({
-          src,
-          alt: t(`beats.pana.photos.${index}.alt`),
-          caption: t(`beats.pana.photos.${index}.caption`),
-        })),
+        kind: 'photo',
+        src: PANA_PHOTO_SRC,
+        alt: t('beats.pana.photoAlt'),
       },
       detail: [
         {
@@ -283,20 +273,23 @@ export function useStoryBeats(): StoryBeat[] {
       question: t('beats.why.question'),
       answer: t('beats.why.answer'),
       more: t('beats.why.more'),
-      /* The deck draws this ring on the "THE LOCAL MOVEMENT" slide, where it
-         sits beside the "why local" argument. It is carried here instead, on
-         the ask of the panas who walked through the deck: read as artwork it
-         is the club's own thesis — the four things the whole project exists
-         to produce, with the logo in the middle of them — which is a better
-         answer to "why was this started" than to "why local". The four labels
-         are therefore no longer repeated as tags on the third stop. */
+      /* This stop used to carry the deck's benefits ring, rebuilt as vector,
+         and then a row of five portraits. It is one photograph now — the two
+         founders — which is the most direct answer this question has: it was
+         started by these two. The ring's four benefits were the only copy it
+         ever carried, so they stayed behind in the panel below. */
       scene: {
-        kind: 'ring',
-        centre: t('beats.why.ring.centre'),
-        items: list('beats.why.ring.items'),
+        kind: 'photo',
+        src: WHY_PHOTO_SRC,
+        alt: t('beats.why.photoAlt'),
       },
       detail: [
         { kind: 'paragraph', text: t('beats.why.invitation') },
+        {
+          kind: 'tags',
+          label: t('beats.why.builds.label'),
+          items: list('beats.why.builds.items'),
+        },
         {
           kind: 'tags',
           label: t('beats.why.values.label'),

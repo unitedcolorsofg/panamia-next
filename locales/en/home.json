@@ -127,10 +127,7 @@
       "question": "What is Pana MIA?",
       "answer": "A club that connects South Florida to its own: the small businesses, creatives and organizations who make this place what it is.",
       "more": "Read the mission",
-      "banner": {
-        "headline": "The future is local!",
-        "caption": "Pana MIA Club"
-      },
+      "photoAlt": "Panas gathered outdoors in front of hand-painted Pana Mia banners",
       "mission": "Pana MIA Club serves as a community connector to promote everything local in South Florida — small businesses, creatives, and organizations — in order to achieve a more regenerative future.",
       "promise": "That is the whole idea. Everything else on this page is a way of doing it."
     },
@@ -139,24 +136,7 @@
       "aside": "/pah·nah/",
       "answer": "South American and Caribbean slang for friend. Around here it also means someone who shows up for the place they live.",
       "more": "See the full definition",
-      "photos": [
-        {
-          "alt": "Panas gathered around a table at a Pana Mia community mixer",
-          "caption": "Mixer night"
-        },
-        {
-          "alt": "A long communal dinner table filled with Pana Mia members",
-          "caption": "Long table"
-        },
-        {
-          "alt": "A group of Pana Mia members together at a community gathering",
-          "caption": "The whole room"
-        },
-        {
-          "alt": "Two Pana Mia organisers together at an event",
-          "caption": "Organisers"
-        }
-      ],
+      "photoAlt": "Panas around a long dinner table, leaning in together for the photo",
       "definition": {
         "label": "Pana, noun",
         "items": [
@@ -180,8 +160,10 @@
       "question": "Why was Pana MIA started?",
       "answer": "So that nobody with an idea for how to make South Florida better had to start at ground zero.",
       "more": "Read why it exists",
-      "ring": {
-        "centre": "Pana MIA Club",
+      "photoAlt": "Claribel Avila and Anette Mago, who started Pana MIA Club, sitting together",
+      "invitation": "Use this community to launch your ideas, get feedback, and grow skills, all for the benefit of South Florida. We don’t believe in competition and we reject the scarcity mindset.",
+      "builds": {
+        "label": "What this builds",
         "items": [
           "Economic Resilience",
           "Equitable Wealth",
@@ -189,7 +171,6 @@
           "Community Well-Being"
         ]
       },
-      "invitation": "Use this community to launch your ideas, get feedback, and grow skills, all for the benefit of South Florida. We don’t believe in competition and we reject the scarcity mindset.",
       "values": {
         "label": "What we hold to",
         "items": [
