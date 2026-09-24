@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Check, LogOut, Plus, Settings, UserPlus } from 'lucide-react';
+import { Check, LogOut, Plus, Settings, UserPlus, Users } from 'lucide-react';
 
 import { signOut } from '@/lib/auth-client';
+import { useMyGroups } from '@/lib/query/social';
 import { useIdentity, type Identity } from './identity-provider';
 import { MenuSurface } from './menu-surface';
 import { PanaSites } from './pana-sites';
@@ -63,6 +64,81 @@ function Avatar({
         initialsOf(identity.name ?? '?')
       )}
     </span>
+  );
+}
+
+/**
+ * The groups this member runs, plus a way into the rest of them.
+ *
+ * These are links, not identities. The acting-as list above changes whose
+ * voice the app speaks in; this does not. A group post is authored by the
+ * member and merely attributed to the group, so "acting as a group" is not a
+ * state this system has — putting groups in the switcher would promise one.
+ *
+ * Only groups the member administers are listed, mirroring the business
+ * listings above: this section is the set of things you are responsible for,
+ * not everything you belong to. The "All groups" row carries the rest.
+ */
+function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
+  const { t } = useTranslation('common');
+  const { data } = useMyGroups();
+
+  const run = (data?.groups ?? []).filter(
+    (group) => group.role === 'admin' || group.role === 'moderator'
+  );
+
+  return (
+    <>
+      <div className={styles.separator} />
+
+      {run.length > 0 && (
+        <>
+          <div className={styles.menuHeading}>{t('identity.yourGroups')}</div>
+          {run.map((group) => (
+            <Link
+              key={group.id}
+              href={`/g/${group.handle}`}
+              role="menuitem"
+              data-menu-row
+              onClick={onNavigate}
+              className={styles.row}
+            >
+              <span className={styles.addIcon} aria-hidden="true">
+                <Users className="h-4 w-4" />
+              </span>
+              <span className={styles.rowMeta}>
+                <span className={styles.rowName}>{group.name}</span>
+                <span className={styles.rowHandle}>@{group.handle}</span>
+              </span>
+              {/* The role is worth saying: an admin can do things here a
+                  moderator cannot, and the group page will not repeat it. */}
+              <span className={styles.badge}>{group.role}</span>
+            </Link>
+          ))}
+        </>
+      )}
+
+      {/* Always present, including for a member in no groups at all — this is
+          the only route into /groups from the masthead, and someone with no
+          groups is exactly who needs it most. */}
+      <Link
+        href="/groups"
+        role="menuitem"
+        data-menu-row
+        onClick={onNavigate}
+        className={styles.row}
+      >
+        <span className={styles.addIcon} aria-hidden="true">
+          <Users className="h-4 w-4" />
+        </span>
+        <span className={styles.rowMeta}>
+          <span className={styles.rowName}>{t('identity.allGroups')}</span>
+          <span className={styles.rowHandle}>
+            {t('identity.allGroupsHint')}
+          </span>
+        </span>
+      </Link>
+    </>
   );
 }
 
@@ -269,6 +345,8 @@ export function IdentityMenu() {
                 </span>
               </span>
             </Link>
+
+            <MenuGroups onNavigate={() => close(false)} />
 
             {/* Everything above is "who am I"; everything below is "where am
                 I going" — and the member's own account is the first of those

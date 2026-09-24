@@ -490,7 +490,42 @@ we have handed over the only thing enforcing who may read it. See phase 3.5 belo
 - Decide whether private groups federate at all, or whether the group actor publishes only public
   groups' posts.
 
-### Phase 4 — Group-hosted events
+### Phase 4 — The front door — **shipped**
+
+Phases 1–3 built the engine and no way in. `POST /api/social/groups` was complete, tested and
+**unreachable**: nothing in the UI called it, no page linked to groups, and the database held zero
+of them. A phase plan organised by layer can ship every layer and still leave the feature unusable
+— worth remembering the next time one of these documents is written.
+
+- `listMyGroups(actorId)` and `GET /api/social/actors/me/groups` — the member's own list.
+- `/groups` — your groups above a browse/search section, and `/groups/new` — the create form.
+- `useMyGroups` / `useCreateGroup`.
+- A **"Groups you run"** section in the identity menu, placed **below** the acting-as list and
+  outside it. Groups are navigation, not an identity: phase 3 made a group post authored by the
+  member and merely _attributed_ to the group, so putting groups in the identity switcher would
+  promise a "post as the group" mode this system does not have.
+- The feed rail's Groups stat now links to `/groups`.
+
+**The two-list rule.** `listPublicGroupsForActor` and `listMyGroups` are deliberate opposites and
+must never be swapped:
+
+|                            | answers                                      | visibility       |
+| -------------------------- | -------------------------------------------- | ---------------- |
+| `listPublicGroupsForActor` | "what may a stranger know about this person" | public only      |
+| `listMyGroups`             | "where do I belong"                          | all, plus `role` |
+
+The rail was using the **public** list for the member's own count, so anyone in a private group was
+told they were in fewer groups than they are, on their own feed. Fixed here, and pinned by two
+tests. `listMyGroups` takes **no `viewerActorId`** — there is no parameter to point at someone
+else, so the safety is structural rather than remembered.
+
+**Join policy is capped at `open` for now.** `joinGroup` already honours `request` and `invite`,
+but nothing exists to approve a request or send an invite, and **there is no edit endpoint** — so
+either choice would be a permanent dead end, with an invite-only group unable to ever gain a second
+member. Both options render in the create form, disabled and labelled, so the roadmap is visible
+without being a trap.
+
+### Phase 5 — Group-hosted events
 
 - `events.host_group_id`, `DROP NOT NULL`, and the single-host `CHECK`
 - Event creation UI gains a host selector for groups the pana can administer

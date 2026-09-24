@@ -12,6 +12,7 @@ import type {
   SocialActor,
   SocialGroup,
   SocialGroupJoinPolicy,
+  SocialGroupRole,
   SocialGroupVisibility,
 } from '@/lib/schema';
 
@@ -486,6 +487,113 @@ export const useLeaveGroup = () => {
       queryClient.invalidateQueries({
         queryKey: [socialQueryKey, 'groups'],
       });
+    },
+  });
+};
+
+/**
+ * One of the signed-in member's own groups.
+ *
+ * Carries `visibility` and `role`, which ProfileGroupSummary deliberately
+ * does not — that list renders on pages strangers read, so admitting a group
+ * is private would disclose both the group and the membership.
+ */
+export interface MyGroupSummary {
+  id: string;
+  handle: string;
+  name: string;
+  summary: string | null;
+  iconUrl: string | null;
+  memberCount: number;
+  visibility: SocialGroupVisibility;
+  joinPolicy: SocialGroupJoinPolicy;
+  role: SocialGroupRole;
+}
+
+interface MyGroupsResponse {
+  groups: MyGroupSummary[];
+}
+
+async function fetchMyGroups(): Promise<MyGroupsResponse | null> {
+  return getSocialData('/api/social/actors/me/groups');
+}
+
+/**
+ * Every group the signed-in member belongs to, private ones included.
+ *
+ * Not interchangeable with `useProfileGroups`. That one asks "what may a
+ * stranger know about this person" and hides private groups; this one asks
+ * "where do I belong", which is the member asking about themselves. Using the
+ * public one for the member's own surfaces is why the feed rail used to
+ * undercount anyone in a private group.
+ */
+export const useMyGroups = () => {
+  return useQuery<MyGroupsResponse | null, Error>({
+    queryKey: [socialQueryKey, 'me', 'groups'],
+    queryFn: fetchMyGroups,
+  });
+};
+
+/** What the create form collects. Mirrors the POST body the route validates. */
+export interface NewGroupInput {
+  handle: string;
+  name: string;
+  summary?: string;
+  topics?: string[];
+  rules?: string[];
+  visibility?: SocialGroupVisibility;
+  joinPolicy?: SocialGroupJoinPolicy;
+}
+
+/** What POST /api/social/groups hands back on success. */
+export interface CreatedGroup {
+  group: SocialGroup;
+  /** The group's actor. `username` is the handle it is reachable by. */
+  actor: SocialActor;
+}
+
+/**
+ * Create a group. The creator becomes its founding admin.
+ *
+ * Resolves to the group *and* its actor, because the handle a caller needs to
+ * navigate to lives on the actor rather than the group row -- a group is an
+ * actor, and `username` is where its address is kept.
+ *
+ * The server's rejection messages are unwrapped rather than collapsed into a
+ * generic failure, because they are the ones worth reading: "that handle is
+ * taken" and "handles may not contain spaces" are different problems with
+ * different fixes, and a form that says only "could not create group" leaves
+ * the member guessing which one they hit.
+ */
+export const useCreateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation<CreatedGroup, Error, NewGroupInput>({
+    mutationFn: async (input) => {
+      try {
+        const response = await axios.post<ApiEnvelope<CreatedGroup>>(
+          '/api/social/groups',
+          input
+        );
+        const created = response.data?.data;
+        if (!created?.group) {
+          throw new Error(response.data?.error ?? 'Group was not created');
+        }
+        return created;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const message = (error.response?.data as ApiEnvelope<never>)?.error;
+          if (message) throw new Error(message);
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // The founder is a member the moment the group exists, so both the
+      // menu and the rail count are stale.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'me', 'groups'],
+      });
+      queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'groups'] });
     },
   });
 };

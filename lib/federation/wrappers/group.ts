@@ -25,6 +25,7 @@ import type {
   SocialGroup,
   SocialGroupMember,
   SocialGroupJoinPolicy,
+  SocialGroupRole,
   SocialGroupVisibility,
 } from '@/lib/schema';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
@@ -451,6 +452,62 @@ export async function listPublicGroupsForActor(
   // name is nullable on social_actors because remote actors may omit it, but
   // a card with no title is not renderable -- fall back to the handle, which
   // always exists.
+  return rows.map((row) => ({
+    ...row,
+    name: row.name ?? row.handle,
+  }));
+}
+
+export interface MyGroupMembership extends PublicGroupMembership {
+  visibility: SocialGroupVisibility;
+  joinPolicy: SocialGroupJoinPolicy;
+  role: SocialGroupRole;
+}
+
+/**
+ * Every group an actor is an active member of, private ones included.
+ *
+ * The deliberate opposite of listPublicGroupsForActor, and the two must never
+ * be swapped. That one answers "what may a stranger know about this person",
+ * so it hides private groups; this one answers "where do I belong", asked by
+ * the member about themselves. Hiding a private group from its own member is
+ * not privacy, it is a missing group -- they would have no way back to a room
+ * they are standing in.
+ *
+ * Because of that, every caller must already have established that the viewer
+ * IS this actor. There is no viewerActorId parameter to get wrong: the route
+ * resolves the actor from the session and passes only that.
+ *
+ * Still 'active' only. A pending request is not yet a membership, and listing
+ * it under "your groups" would promise access that the admins have not
+ * granted.
+ */
+export async function listMyGroups(
+  actorId: string
+): Promise<MyGroupMembership[]> {
+  const rows = await db
+    .select({
+      id: socialGroups.id,
+      handle: socialActors.username,
+      name: socialActors.name,
+      summary: socialActors.summary,
+      iconUrl: socialActors.iconUrl,
+      memberCount: socialGroups.memberCount,
+      visibility: socialGroups.visibility,
+      joinPolicy: socialGroups.joinPolicy,
+      role: socialGroupMembers.role,
+    })
+    .from(socialGroupMembers)
+    .innerJoin(socialGroups, eq(socialGroups.id, socialGroupMembers.groupId))
+    .innerJoin(socialActors, eq(socialActors.id, socialGroups.actorId))
+    .where(
+      and(
+        eq(socialGroupMembers.actorId, actorId),
+        eq(socialGroupMembers.status, 'active')
+      )
+    )
+    .orderBy(asc(socialActors.name));
+
   return rows.map((row) => ({
     ...row,
     name: row.name ?? row.handle,

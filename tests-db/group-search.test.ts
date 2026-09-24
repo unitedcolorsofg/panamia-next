@@ -28,8 +28,9 @@ config({ path: '.env.local' });
 
 const { db } = await import('@/lib/db');
 const { eq } = await import('drizzle-orm');
-const { profiles, socialActors } = await import('@/lib/schema');
-const { createGroup, joinGroup, listPublicGroupsForActor } =
+const { profiles, socialActors, socialGroupMembers } =
+  await import('@/lib/schema');
+const { createGroup, joinGroup, listPublicGroupsForActor, listMyGroups } =
   await import('@/lib/federation/wrappers/group');
 const { searchGroups } = await import('@/lib/server/group-search');
 
@@ -280,6 +281,33 @@ test('listPublicGroupsForActor hides private groups', async () => {
   );
 });
 
+test('listMyGroups shows a member the private groups the public list hides', async () => {
+  // The two lists are deliberate opposites, and the bug they guard against is
+  // real: the feed rail once counted a member's groups with the public list
+  // and quietly under-reported anyone in a private group. Hiding a private
+  // group from its own member is not privacy, it is a missing group.
+  const mine = await listMyGroups(founderId);
+  const handles = mine.map((g) => g.handle);
+
+  assert.ok(handles.includes(zineHandle), 'own public group should be listed');
+  assert.ok(
+    handles.includes(privateHandle),
+    'a member must see their own private group'
+  );
+
+  // The same actor, asked about publicly, must still not disclose it.
+  const publicly = await listPublicGroupsForActor(founderId);
+  assert.ok(
+    !publicly.map((g) => g.handle).includes(privateHandle),
+    'the public list must still hide what the private one shows'
+  );
+
+  // The role travels with it -- the menu badges an admin differently, and the
+  // founder of a group is its admin.
+  const priv = mine.find((g) => g.handle === privateHandle);
+  assert.equal(priv?.role, 'admin');
+});
+
 test('listPublicGroupsForActor hides pending membership', async () => {
   // Joining a 'request' group yields pending, which is not a membership and
   // must not advertise that someone asked.
@@ -306,4 +334,19 @@ test('listPublicGroupsForActor hides pending membership', async () => {
 
   const after = await listPublicGroupsForActor(joinerId);
   assert.equal(after.length, 0, 'pending membership must not be listed');
+});
+
+test('listMyGroups excludes a group someone has only asked to join', async () => {
+  // Runs after the test above, which is what gives this actor a pending
+  // membership -- so a zero here means "pending was excluded", not "this
+  // actor had nothing". Asserting the row exists first keeps that honest: if
+  // the fixture ever stops being created, this fails loudly rather than
+  // passing vacuously.
+  const pending = await db.query.socialGroupMembers.findFirst({
+    where: eq(socialGroupMembers.actorId, joinerId),
+  });
+  assert.equal(pending?.status, 'pending', 'fixture should be pending');
+
+  const mine = await listMyGroups(joinerId);
+  assert.equal(mine.length, 0, 'a pending request is not a group you are in');
 });

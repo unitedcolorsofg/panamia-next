@@ -4,7 +4,7 @@ import Link from 'next/link';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { usePanas, useProfileGroups } from '@/lib/query/social';
+import { usePanas, useMyGroups } from '@/lib/query/social';
 import type { SocialActor } from '@/lib/schema';
 
 /* Held-open space, same treatment as the mock: designed in now so the rail
@@ -50,7 +50,11 @@ export function FeedRail({ actor }: { actor: SocialActor }) {
   /* Panas are mutual follows, which is its own endpoint rather than either
      follower count — following 400 people does not make 400 Panas. */
   const { data: panas } = usePanas(actor.username);
-  const { data: groups } = useProfileGroups(actor.username);
+  /* The member's own list, not the public one. useProfileGroups is filtered to
+     public groups because it renders on pages strangers read, and using it
+     here made this rail undercount anyone in a private group — telling a
+     member they are in fewer groups than they are, on their own feed. */
+  const { data: groups } = useMyGroups();
 
   const displayName = actor.name || actor.username;
   const initials = actor.name
@@ -89,12 +93,15 @@ export function FeedRail({ actor }: { actor: SocialActor }) {
             </span>
             <span className="stat-rail-label">Panas</span>
           </div>
-          <div className="stat-rail-item">
+          {/* The one stat that leads somewhere. Panas and Posts both already
+              have a home on the profile this card links to; groups do not,
+              and /groups is where a member both finds them and starts one. */}
+          <Link href="/groups" className="stat-rail-item">
             <span className="stat-rail-value">
               {groups?.groups.length ?? 0}
             </span>
             <span className="stat-rail-label">Groups</span>
-          </div>
+          </Link>
           <div className="stat-rail-item">
             <span className="stat-rail-value">
               {(actor.statusCount ?? 0).toLocaleString('en-US')}
