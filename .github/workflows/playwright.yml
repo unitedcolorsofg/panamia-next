@@ -98,6 +98,16 @@ jobs:
         env:
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
+      # Data-layer tests (tests-db/) run here rather than in their own job so
+      # they reuse the database the step above just migrated. They are fast,
+      # need no browser, and failing now skips a Playwright install that was
+      # going to fail anyway. Fixtures are namespaced per run and cleaned up,
+      # so they do not disturb the Playwright specs that follow.
+      - name: Run database tests
+        run: yarn test:db
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+
       - name: Validate environment variables
         run: npm run env:check
         env:

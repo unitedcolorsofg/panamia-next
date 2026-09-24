@@ -14,6 +14,7 @@
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
     "test:relay": "node --import tsx --test tests-relay/*.test.ts",
+    "test:db": "node --import tsx --test tests-db/*.test.ts",
     "prepare": "husky && (git remote get-url activities-upstream 2>/dev/null || git remote add activities-upstream https://github.com/llun/activities.next.git)",
     "subtree:pull": "git subtree pull --prefix=external/activities.next activities-upstream main --squash",
     "env:check": "npx tsx scripts/env-check.ts check",
