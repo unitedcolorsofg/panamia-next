@@ -7,7 +7,7 @@
  * Supported types:
  *   - Images: image/jpeg, image/png, image/webp, image/gif
  *   - Audio:  audio/ogg (Opus, transcoded client-side from webm)
- *   - Video:  video/webm (VP8/VP9, transcoded client-side)
+ *   - Video:  video/mp4 (H.264/AAC, transcoded client-side)
  *
  * Max file size: 10 MB
  */
@@ -28,7 +28,9 @@ const ACCEPTED_IMAGE_TYPES = [
 
 const ACCEPTED_AUDIO_TYPES = ['audio/ogg'];
 
-const ACCEPTED_VIDEO_TYPES = ['video/webm'];
+// video/webm is legacy — posts made before the H.264 switch. New uploads are
+// all video/mp4, which is the only format Apple hardware-decodes.
+const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
 const ACCEPTED_TYPES = [
   ...ACCEPTED_IMAGE_TYPES,
@@ -52,6 +54,7 @@ function getExtension(mimeType: string): string {
     'image/webp': 'webp',
     'image/gif': 'gif',
     'audio/ogg': 'ogg',
+    'video/mp4': 'mp4',
     'video/webm': 'webm',
   };
   return map[mimeType] || 'bin';

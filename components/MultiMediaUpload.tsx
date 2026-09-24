@@ -21,8 +21,10 @@ import { Button } from '@/components/ui/button';
 import { ImagePlus, X, Volume2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import { transcodeToOpus, transcodeToWebMVideo } from '@/lib/media/transcode';
+import { transcodeToOpus, transcodeToMp4Video } from '@/lib/media/transcode';
 
+/* Audio only. Video is H.264/AAC MP4, which every Safari plays; Opus in an
+   Ogg container is still unreliable on iOS, so the audio warning stays. */
 const isSafari = () =>
   typeof navigator !== 'undefined' &&
   /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -117,10 +119,8 @@ export default function MultiMediaUpload({
     if (available <= 0) return;
     const filesToUpload = Array.from(files).slice(0, available);
 
-    // Warn Safari users that audio/video playback won't work on their device.
-    const hasMedia = filesToUpload.some(
-      (f) => f.type.startsWith('audio/') || f.type.startsWith('video/')
-    );
+    // Warn Safari users that audio playback won't work on their device.
+    const hasMedia = filesToUpload.some((f) => f.type.startsWith('audio/'));
     if (hasMedia && isSafari()) setSafariNotice(true);
 
     setUploading(true);
@@ -138,14 +138,14 @@ export default function MultiMediaUpload({
           });
         } else if (file.type.startsWith('video/')) {
           setVideoProgress(0);
-          const webm = await transcodeToWebMVideo(file, (ratio) =>
+          const mp4 = await transcodeToMp4Video(file, (ratio) =>
             setVideoProgress(Math.round(ratio * 100))
           );
           setVideoProgress(null);
-          const url = await presignPut(webm, 'video/webm', 'webm');
+          const url = await presignPut(mp4, 'video/mp4', 'mp4');
           added.push({
             type: 'video',
-            mediaType: 'video/webm',
+            mediaType: 'video/mp4',
             url,
             name: file.name,
           });
@@ -231,7 +231,7 @@ export default function MultiMediaUpload({
 
       {safariNotice && (
         <p className="composer-media-block text-muted-foreground rounded-md border px-3 py-2 text-sm">
-          {`Audio/video playback requires Chrome or Firefox \u{1F49B} — your upload will succeed but won't play on this device.`}
+          {`Audio playback requires Chrome or Firefox \u{1F49B} — your upload will succeed but won't play on this device.`}
         </p>
       )}
 

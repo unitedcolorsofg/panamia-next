@@ -13,7 +13,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AwsClient } from 'aws4fetch';
 import { auth } from '@/auth';
 
-const ALLOWED_TYPES = ['audio/ogg', 'video/webm'];
+// video/webm is still accepted so an upload already in flight when this
+// deployed does not 400; new uploads are all video/mp4.
+const ALLOWED_TYPES = ['audio/ogg', 'video/mp4', 'video/webm'];
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 const PRESIGN_TTL = 300; // seconds
 

@@ -100,6 +100,8 @@ export function MentoringSection({ mentoring, handle }: MentoringSectionProps) {
             <video
               src={mentoring.videoIntroUrl}
               controls
+              playsInline
+              preload="metadata"
               className="w-full rounded-lg"
             />
           </CardContent>

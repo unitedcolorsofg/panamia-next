@@ -366,28 +366,43 @@ The current media implementation has two gaps to address:
 
 **FLOSS codec philosophy**: The project favors royalty-free, open codecs consistent with `docs/FLOSS-ALTERNATIVES.md`. H.264/AAC (MP4) carries patent licensing obligations through at least 2028. HLS is an Apple-controlled proprietary container format. WebM, VP9, AV1, and Opus are royalty-free and have no patent encumbrances.
 
-**Safari coverage**: Safari's WebM/VP9 support remains incomplete and requires Apple to ship. Rather than building an HLS transcoding pipeline to accommodate one proprietary browser, audio/video playback will explicitly target Chromium-based browsers and Firefox. Safari users will see a clear unsupported-browser message for audio/video content. This matches the project's FLOSS sensibilities and keeps infrastructure simple.
+**Safari coverage**: Superseded — see "Video: H.264 switch" below. The original plan targeted Chromium and Firefox only and showed Safari users an unsupported-browser message. That reasoning no longer holds for video: WebKit shipped full WebM support in Safari 17.4 (March 2024), and H.264/AAC MP4 plays on every Safari ever shipped. Video now targets all browsers. Audio (Opus in Ogg) is still Chromium/Firefox-only and keeps its fallback message.
+
+**Video: H.264 switch**: Video is transcoded to H.264/AAC MP4, not VP8/WebM. Two reasons:
+
+1. **Hardware decode.** iOS 17.4+ can play VP8-in-WebM, but WebKit lists hardware decode for VP9/H.264/HEVC/AV1 only. VP8 decodes in software — battery drain and dropped frames, which matters most in a feed that decodes several clips at once.
+2. **It unlocks Cloudflare Media Transformations**, whose documented input is H.264 MP4. That is the route to poster frames (`mode=frame`, 1 unit each) for `social_attachments.preview_url`, which is still unused.
+
+No new dependency: the `@ffmpeg/core@0.12.10` build already loaded is configured `--enable-gpl --enable-libx264` and carries FFmpeg's native AAC encoder. The project was already distributing that GPL core to encode VP8, so H.264 adds no new license obligation.
+
+Encoder flags that are load-bearing (`lib/media/transcode.ts`):
+
+- `-pix_fmt yuv420p` — Safari/QuickTime reject 4:2:2 and 4:4:4, which libx264 will otherwise inherit from the source.
+- `-movflags +faststart` — moves the moov atom to the front so playback starts before the full file arrives.
+- `-preset veryfast` — this core is built `--disable-asm`, so x264's hand-written SIMD is absent and slow presets cost far more here than natively.
+
+`playsInline` is required on every `<video>`: without it iPhone forces playback into native fullscreen.
 
 **Codec stack**:
 
-| Format | Codec | Container            | Use                                     |
-| ------ | ----- | -------------------- | --------------------------------------- |
-| Audio  | Opus  | `.ogg` / `.webm`     | Voice memos, audio posts                |
-| Video  | VP9   | `.webm`              | Short video clips                       |
-| Video  | AV1   | `.webm`              | Future: higher quality at lower bitrate |
-| Images | —     | jpeg, png, webp, gif | Unchanged                               |
+| Format | Codec        | Container            | Use                                     |
+| ------ | ------------ | -------------------- | --------------------------------------- |
+| Audio  | Opus         | `.ogg` / `.webm`     | Voice memos, audio posts                |
+| Video  | H.264 + AAC  | `.mp4`               | Short video clips                       |
+| Video  | VP8 + Opus   | `.webm`              | Legacy: posts predating the H.264 switch |
+| Images | —            | jpeg, png, webp, gif | Unchanged                               |
 
 **Playback compatibility**:
 
-| Browser       | audio/ogg (Opus) | video/webm (VP9) |
-| ------------- | ---------------- | ---------------- |
-| Chrome / Edge | (yes)            | (yes)            |
-| Firefox       | (yes)            | (yes)            |
-| Safari / iOS  | (no)             | (no)             |
+| Browser       | audio/ogg (Opus) | video/mp4 (H.264) |
+| ------------- | ---------------- | ----------------- |
+| Chrome / Edge | (yes)            | (yes)             |
+| Firefox       | (yes)            | (yes)             |
+| Safari / iOS  | (no)             | (yes)             |
 
 **Client-side transcoding with ffmpeg.wasm**:
 
-[`@ffmpeg/ffmpeg`](https://github.com/ffmpegwasm/ffmpeg.wasm) runs a WebAssembly build of ffmpeg in the browser. Transcoding happens before upload — the server receives a finished `.webm` file and stores it without any server-side processing. ffmpeg.wasm is LGPL licensed.
+[`@ffmpeg/ffmpeg`](https://github.com/ffmpegwasm/ffmpeg.wasm) runs a WebAssembly build of ffmpeg in the browser. Transcoding happens before upload — the server receives a finished `.mp4` file and stores it without any server-side processing. The `@ffmpeg/ffmpeg` JS wrapper is MIT; the `@ffmpeg/core` wasm binary it loads is GPL-2.0-or-later, because it is built `--enable-gpl` with x264/x265.
 
 Audio pipeline:
 
@@ -398,24 +413,14 @@ MediaRecorder (audio/webm, browser-native) → ffmpeg.wasm → audio/ogg (Opus) 
 Video pipeline:
 
 ```
-<input type="file"> (any format) → ffmpeg.wasm → video/webm (VP9+Opus) → upload
+<input type="file"> (any format) → ffmpeg.wasm → video/mp4 (H.264+AAC) → upload
 ```
 
 The ffmpeg.wasm WASM binary (~31 MB) is loaded on demand only when the user selects a file to upload, not on page load.
 
-**Video playback with Vidstack**:
+**Video playback**:
 
-[Vidstack](https://www.vidstack.io/) (MIT license) is a React-native video player with accessible controls, poster image support, and a minimal API. It uses the browser's native `<video>` element for WebM playback — no HLS required.
-
-```tsx
-// AttachmentGrid.tsx — video attachment rendering
-import { MediaPlayer, MediaProvider } from '@vidstack/react';
-
-<MediaPlayer src={attachment.url} title={attachment.description ?? 'Video'}>
-  <MediaProvider />
-  {/* default accessible controls */}
-</MediaPlayer>;
-```
+Plain `<video controls playsInline preload="metadata">` with a `<source>` whose `type` comes from the stored `mediaType`, so legacy WebM attachments keep announcing themselves correctly. A faststart H.264 MP4 needs no player library and no HLS for clips of this length.
 
 **Updated accepted MIME types** (`app/api/social/media/route.ts`):
 
@@ -426,7 +431,8 @@ const ACCEPTED_TYPES = [
   'image/webp',
   'image/gif',
   'audio/ogg', // Opus audio (replaces audio/webm)
-  'video/webm', // VP9 video
+  'video/mp4', // H.264/AAC video
+  'video/webm', // legacy: posts predating the H.264 switch
 ];
 ```
 
@@ -436,11 +442,11 @@ The existing `audio/webm` MIME type accepted by `VoiceMemoComposer` will be remo
 
 - [x] Add `@ffmpeg/ffmpeg`, `@ffmpeg/util`, `@ffmpeg/core`, and `@vidstack/react` to dependencies
 - [x] Create `scripts/copy-ffmpeg-wasm.js` — copies WASM to `public/ffmpeg/` via postinstall
-- [x] Create `lib/media/transcode.ts` — `transcodeToOpus` and `transcodeToWebMVideo` via ffmpeg.wasm singleton
+- [x] Create `lib/media/transcode.ts` — `transcodeToOpus` and `transcodeToMp4Video` via ffmpeg.wasm singleton
 - [x] Update `PostComposer.tsx` — run audio/video through transcode before upload, show "Transcoding… X%"
 - [x] Update `VoiceMemoComposer.tsx` — replace raw `audio/webm` upload with Opus transcode, Safari guard
-- [x] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/webm`, remove `audio/webm`
-- [x] Update `AttachmentGrid.tsx` — Vidstack player for `video/webm`, Safari fallback for audio and video
+- [x] Update `app/api/social/media/route.ts` — accept `audio/ogg` and `video/mp4`, remove `audio/webm`
+- [x] Update `AttachmentGrid.tsx` — native `<video>` for all browsers, Safari fallback for audio only
 - [x] Add Safari/iOS "Please use Chrome or Firefox" notice for audio/video playback
 
 ### Phase 4C: Voice Memo Direct Messages

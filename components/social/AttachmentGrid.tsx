@@ -4,6 +4,10 @@ import Image from 'next/image';
 import { Volume2 } from 'lucide-react';
 import { WaveformPlayer } from './WaveformPlayer';
 
+/* Audio only. Opus in an Ogg container is still unreliable on iOS — Safari's
+   Opus support was CAF-only until 17.4 — so the audio fallback stays. Video no
+   longer needs one: it is H.264/AAC MP4, which every Safari has played since
+   iOS 3.2. */
 const isSafari = () =>
   typeof navigator !== 'undefined' &&
   /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -61,24 +65,23 @@ function AudioPlayer({ attachment }: { attachment: AttachmentDisplay }) {
 }
 
 function VideoPlayer({ attachment }: { attachment: AttachmentDisplay }) {
-  if (isSafari()) {
-    return (
-      <div className="bg-muted flex items-center justify-center rounded-lg border p-6 text-sm">
-        <span className="text-muted-foreground">
-          Please use Chrome or Firefox 💛
-        </span>
-      </div>
-    );
-  }
-
   return (
     <video
       controls
+      /* Without playsInline, iPhone yanks every playback into native
+         fullscreen the moment it starts. */
+      playsInline
       preload="metadata"
       className="w-full rounded-lg border"
       aria-label={attachment.name ?? 'Video'}
     >
-      <source src={attachment.url} type="video/webm" />
+      {/* Trusts the stored mediaType instead of asserting video/webm. Posts
+          made before the H.264 switch are still WebM in R2, and telling Safari
+          an MP4 is WebM makes it refuse a file it can play. media_type is
+          nullable, and guessing on those rows would break the other direction,
+          so when it is absent the attribute is dropped and the browser sniffs
+          the file itself. */}
+      <source src={attachment.url} type={attachment.mediaType ?? undefined} />
     </video>
   );
 }

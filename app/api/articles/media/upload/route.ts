@@ -27,6 +27,8 @@ const ALLOWED_TYPES = [
   'image/png',
   'image/webp',
   'image/gif',
+  'video/mp4',
+  // Legacy: covers an upload already in flight across the H.264 switch.
   'video/webm',
 ];
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
