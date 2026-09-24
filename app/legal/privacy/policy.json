@@ -104,7 +104,7 @@
           "name": "social_graph",
           "label": "Social Graph",
           "module": "social",
-          "data": ["follows", "followers", "likes"],
+          "data": ["follows", "followers", "likes", "group_memberships"],
           "source": "user_action",
           "purpose": "social_features",
           "retention": "active_account_lifetime",
@@ -114,8 +114,8 @@
             "purpose": "Social features",
             "retention": "Account lifetime",
             "sharedWith": "ActivityPub peers",
-            "prose": "Social graph (follows, followers, likes)",
-            "blurb": "Who you follow and the posts you've liked."
+            "prose": "Social graph (follows, followers, likes, group memberships)",
+            "blurb": "Who you follow, the posts you've liked, and the groups you've joined or started."
           }
         },
         {

@@ -186,11 +186,13 @@ export const socialGroups = pgTable('social_groups', {
     () => profiles.id,
     { onDelete: 'set null' }
   ),
-  name: text('name').notNull(),
-  summary: text('summary'),
-  topics: jsonb('topics').$type<Record<string, boolean>>().default({}),
-  visibility: groupVisibilityEnum('visibility').notNull().default('public'),
-  joinPolicy: groupJoinPolicyEnum('join_policy').notNull().default('open'),
+  topics: jsonb('topics')
+    .$type<Record<string, boolean>>()
+    .notNull()
+    .default({}),
+  rules: jsonb('rules').$type<string[]>().notNull().default([]),
+  visibility: socialGroupVisibility('visibility').notNull().default('public'),
+  joinPolicy: socialGroupJoinPolicy('join_policy').notNull().default('open'),
   memberCount: integer('member_count').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
@@ -204,9 +206,18 @@ export const socialGroups = pgTable('social_groups', {
 `socialActors.profileId` is `.unique()` but nullable, so group actors carry `NULL` there. Postgres
 permits many NULLs in a unique index — the same pattern `profiles.userId` already documents.
 
+The group's name and description are **not** columns here. They live on the actor as
+`socialActors.name` and `socialActors.summary`, which is where every other actor in the system
+already keeps them and what the ActivityPub serialiser already reads. Duplicating them onto
+`social_groups` would create two places to change a group's name and, eventually, two different
+answers to what it is called.
+
 `topics` follows the established JSONB `{key: true}` flag-map convention (`categories`, `counties`
 on `profiles`), which means `pana_jsonb_flags` from migration `0040` can already flatten it into a
 search vector.
+
+`rules` is a JSONB **array**, not a flag map, because house rules are numbered when displayed and
+order carries meaning. They are prose rather than facets, so they are never searched or aggregated.
 
 ### `social_group_members`
 
@@ -223,11 +234,9 @@ export const socialGroupMembers = pgTable(
     actorId: text('actor_id')
       .notNull()
       .references(() => socialActors.id, { onDelete: 'cascade' }),
-    role: groupRoleEnum('role').notNull().default('member'),
-    status: groupMemberStatusEnum('status').notNull().default('active'),
-    joinedAt: timestamp('joined_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    role: socialGroupRole('role').notNull().default('member'),
+    status: socialGroupMemberStatus('status').notNull().default('active'),
+    joinedAt: timestamp('joined_at', { withTimezone: true }),
   },
   (t) => ({
     uniqueMember: unique('social_group_members_group_actor_key').on(
@@ -349,11 +358,23 @@ impossible.
 Each phase is independently shippable. All four are pure Postgres and ActivityPub — none of them
 touch Worker configuration or add infrastructure.
 
-### Phase 1 — Groups exist
+### Phase 1 — Groups exist (shipped)
 
-- Migration `0043`: `social_actors.type`, `social_groups`, `social_group_members`, enums
+- Migration `0043`: `social_actors.type`, `social_groups`, `social_group_members`, four enums
+  (`socialGroupVisibility`, `socialGroupJoinPolicy`, `socialGroupRole`, `socialGroupMemberStatus`,
+  named to match the existing `relayGroupJoinPolicy` convention rather than the `*Enum` suffix
+  sketched above)
 - `PUBLIC_ACTOR_COLUMNS` gains `type`; the actor route reads the column instead of the literal
-- Create / join / leave API routes; group handles registered through `lib/screenname.ts`
+- `lib/federation/wrappers/group.ts`: `createGroup`, `joinGroup`, `leaveGroup`, `getGroupByHandle`,
+  `getMembership`
+- `POST /api/social/groups`, `GET /api/social/groups/[handle]`,
+  `POST|DELETE /api/social/groups/[handle]/join`
+- Group handles registered through `lib/screenname.ts`, closing the collision risk below
+
+Three rules were enforced in the wrapper rather than left to callers, because each of them is a way
+to strand or corrupt a group: the last active admin cannot leave, a banned member cannot leave
+(deleting the row would let them rejoin an open group in one tap — the row _is_ the ban), and
+joining twice returns the existing membership instead of inflating `member_count`.
 
 ### Phase 2 — Discovery
 
@@ -377,7 +398,7 @@ touch Worker configuration or add infrastructure.
 
 ## Risks & Open Questions
 
-### Handle namespace collision — fix in phase 1
+### Handle namespace collision — fixed in phase 1
 
 `lib/screenname.ts` enforces a **flat** namespace across `users.screenname`, `profiles.screenname`,
 and `screenname_history`, via `RESERVED_SCREENNAMES`, `isScreennameAvailable`, and
@@ -385,7 +406,9 @@ and `screenname_history`, via `RESERVED_SCREENNAMES`, `isScreennameAvailable`, a
 handle a pana already has, and `/p/:handle` plus WebFinger become ambiguous — with WebFinger
 ambiguity visible to every federated server, not just to us.
 
-This is cheap in phase 1 and expensive after groups have handles in the wild.
+`isScreennameAvailable` now checks a fourth source: `social_groups` joined to `social_actors`, so
+the lookup can only ever match a local group and never a remote actor that happens to share a
+username. `createGroup` runs every handle through `validateScreennameFull` before minting anything.
 
 ### Private group leakage — the highest-severity risk
 
@@ -407,8 +430,8 @@ Phase 3 should enumerate these call sites explicitly and add a test per path.
   separate? Staying separate is simpler and is the assumption throughout this document.
   Note that `docs/RESILIENCE-ROADMAP.md:551` already plans a Nostr→ActivityPub bridge in the
   opposite direction, which may make this moot.
-- **Do groups need a `rules` column?** The mock at `/mock/group` renders group rules in the rail,
-  but no column is proposed in [Schema](#schema). Either add one in phase 1 or drop it from the
-  design.
+- **Do groups need a `rules` column?** Resolved in phase 1: yes, as a JSONB array. The mock renders
+  numbered house rules in the rail, and a group with no stated rules is a moderation problem waiting
+  to happen.
 - **Is chat eventually scoped to groups?** If it is, it reads `social_group_members` and nothing in
   this document changes. Tracked in `docs/CHAT-ROADMAP.md`, which is not obliged to land there.

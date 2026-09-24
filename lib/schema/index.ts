@@ -299,6 +299,67 @@ export const profileSignalKind = pgEnum('profile_signal_kind', [
   'recommend',
 ]);
 
+/**
+ * Who can read a social group's posts and roster.
+ *
+ * A 'public' group is readable by anyone and its posts are PUBLIC-addressed,
+ * so they federate and reach the home timeline through the existing path. A
+ * 'private' group is readable only by active members and its posts are never
+ * PUBLIC-addressed, which is exactly why this is a stored column rather than
+ * something derived from join_policy: every read path has to be able to ask
+ * "may this viewer see this at all" without first reasoning about admission.
+ *
+ * See the private-group leakage risk in docs/GROUPS-ROADMAP.md.
+ */
+export const socialGroupVisibility = pgEnum('social_group_visibility', [
+  'public',
+  'private',
+]);
+
+/**
+ * How a social group admits people.
+ *
+ * 'open'    — joining takes effect immediately, membership lands 'active'.
+ * 'request' — joining creates a 'pending' row an admin or moderator approves.
+ * 'invite'  — cannot be joined on request at all; someone has to add you.
+ *
+ * Deliberately three values where relay_group_join_policy has two. An interest
+ * group usually wants "anyone may ask, we decide", which open/invite_only has
+ * no way to express.
+ */
+export const socialGroupJoinPolicy = pgEnum('social_group_join_policy', [
+  'open',
+  'request',
+  'invite',
+]);
+
+/**
+ * Ordered by power. 'admin' can change group settings, manage roles and delete
+ * the group; 'moderator' can approve join requests and remove posts; 'member'
+ * can only post and leave.
+ */
+export const socialGroupRole = pgEnum('social_group_role', [
+  'admin',
+  'moderator',
+  'member',
+]);
+
+/**
+ * Whether a membership row grants access.
+ *
+ * Only 'active' authorises reading a private group or posting to any group,
+ * and only 'active' rows are counted in social_groups.member_count.
+ *
+ * 'banned' is retained rather than deleted on purpose: an open group is one
+ * click to join, so a removed row would let a banned pana walk straight back
+ * in. The row is the enforcement.
+ */
+export const socialGroupMemberStatus = pgEnum('social_group_member_status', [
+  'active',
+  'pending',
+  'banned',
+]);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -321,6 +382,13 @@ export type SessionType = (typeof sessionType.enumValues)[number];
 export type SessionStatus = (typeof sessionStatus.enumValues)[number];
 export type IntakeFormType = (typeof intakeFormType.enumValues)[number];
 export type SocialFollowStatus = (typeof socialFollowStatus.enumValues)[number];
+export type SocialGroupVisibility =
+  (typeof socialGroupVisibility.enumValues)[number];
+export type SocialGroupJoinPolicy =
+  (typeof socialGroupJoinPolicy.enumValues)[number];
+export type SocialGroupRole = (typeof socialGroupRole.enumValues)[number];
+export type SocialGroupMemberStatus =
+  (typeof socialGroupMemberStatus.enumValues)[number];
 export type EventStatus = (typeof eventStatus.enumValues)[number];
 export type EventVisibility = (typeof eventVisibility.enumValues)[number];
 export type EventMode = (typeof eventMode.enumValues)[number];
@@ -1126,6 +1194,21 @@ export const socialActors = pgTable(
       .$onUpdateFn(() => new Date()),
     username: text('username').notNull(),
     domain: text('domain').notNull(),
+    /**
+     * The ActivityPub actor type -- 'Person', 'Group', 'Service', and so on.
+     *
+     * Text rather than a pgEnum because this table also holds remote actors,
+     * and a remote server may legitimately serve a type this codebase has
+     * never heard of. An enum would reject the row at insert and drop the
+     * actor entirely, which is a worse outcome than storing a string we do not
+     * recognise.
+     *
+     * The default is 'Person' because that is the literal
+     * app/api/federation/actor/[user]/route.ts served before groups existed,
+     * so every row that predates this column keeps the exact behaviour it
+     * already had.
+     */
+    type: text('type').notNull().default('Person'),
     profileId: text('profile_id')
       .unique()
       .references(() => profiles.id, { onDelete: 'set null' }),
@@ -1181,6 +1264,7 @@ export const PUBLIC_ACTOR_COLUMNS = {
   updatedAt: true,
   username: true,
   domain: true,
+  type: true,
   profileId: true,
   uri: true,
   inboxUrl: true,
@@ -1364,6 +1448,128 @@ export const socialLikes = pgTable(
     ),
     actorIdIdx: index('social_likes_actor_id_idx').on(table.actorId),
     statusIdIdx: index('social_likes_status_id_idx').on(table.statusId),
+  })
+);
+
+/**
+ * An interest group panas can join.
+ *
+ * A group is not a second kind of account bolted on beside actors -- it IS an
+ * actor, with its own row in social_actors carrying type='Group', its own
+ * handle in the flat screenname namespace, and its own signing keypair. That
+ * is what lets a group be followed, mentioned and addressed by the federation
+ * code that already exists, instead of needing a parallel delivery path.
+ *
+ * The group's display name, summary and avatar live on the actor, not here.
+ * This table holds only what is true of a group and meaningless for a person.
+ *
+ * @see docs/GROUPS-ROADMAP.md
+ */
+export const socialGroups = pgTable('social_groups', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+  /**
+   * The actor this group is. Unique because the relationship is one-to-one,
+   * and cascading because an actor without its group row is an actor nothing
+   * can describe.
+   */
+  actorId: text('actor_id')
+    .notNull()
+    .unique()
+    .references(() => socialActors.id, { onDelete: 'cascade' }),
+  /**
+   * Who started it, kept for moderation history. Nullable and 'set null' so
+   * deleting the founder's profile does not delete a group other people are
+   * still using.
+   */
+  createdByProfileId: text('created_by_profile_id').references(
+    () => profiles.id,
+    { onDelete: 'set null' }
+  ),
+  /**
+   * What the group is about, as a `{ topic: true }` flag map rather than an
+   * array, so pana_jsonb_flags (migration 0040) can flatten it into a search
+   * vector the same way it already does for profile categories. An array would
+   * need its own indexing path for no gain.
+   */
+  topics: jsonb('topics')
+    .$type<Record<string, boolean>>()
+    .notNull()
+    .default({}),
+  /**
+   * House rules, rendered in order on the group page. A JSONB array rather
+   * than a flag map because order carries meaning here -- rules are numbered
+   * when displayed -- and rules are prose, not facets, so they are never
+   * searched or aggregated.
+   */
+  rules: jsonb('rules').$type<string[]>().notNull().default([]),
+  visibility: socialGroupVisibility('visibility').notNull().default('public'),
+  joinPolicy: socialGroupJoinPolicy('join_policy').notNull().default('open'),
+  /**
+   * Count of 'active' members, denormalised. The feed rail shows this next to
+   * the Panas count on every render, and counting social_group_members rows
+   * for that would put a query on the hottest path in the app.
+   */
+  memberCount: integer('member_count').notNull().default(0),
+});
+
+/**
+ * Who is in a group, and in what capacity.
+ *
+ * Keyed on actorId rather than profileId on purpose. Membership has to be
+ * answerable from an actor alone, because the hot question is "every group
+ * this actor belongs to" and it is asked on every timeline fetch -- going
+ * through profiles would mean a join on the one query that cannot afford one.
+ * It also leaves the door open for a remote actor to join a group without
+ * needing a local profile invented for them.
+ */
+export const socialGroupMembers = pgTable(
+  'social_group_members',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => socialGroups.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    role: socialGroupRole('role').notNull().default('member'),
+    status: socialGroupMemberStatus('status').notNull().default('active'),
+    /**
+     * When the row became 'active'. Null while a join request is pending, so
+     * "member since" never claims someone joined on the day they asked.
+     */
+    joinedAt: timestamp('joined_at', { withTimezone: true }),
+  },
+  (table) => ({
+    groupActorUnique: uniqueIndex('social_group_members_group_actor_unique').on(
+      table.groupId,
+      table.actorId
+    ),
+    actorIdIdx: index('social_group_members_actor_id_idx').on(table.actorId),
+    // Composite rather than group_id alone: it serves both "the roster" and
+    // "the pending queue", which are the only two ways this is read per group.
+    groupStatusIdx: index('social_group_members_group_status_idx').on(
+      table.groupId,
+      table.status
+    ),
   })
 );
 
@@ -1826,6 +2032,13 @@ export const socialActorsRelations = relations(
     incomingFollows: many(socialFollows, { relationName: 'followTarget' }),
     likes: many(socialLikes),
     announcements: many(articleAnnouncements),
+    // The group this actor IS, when type === 'Group'. Null for people.
+    group: one(socialGroups, {
+      fields: [socialActors.id],
+      references: [socialGroups.actorId],
+    }),
+    // The groups this actor is IN. Unrelated to the above.
+    groupMemberships: many(socialGroupMembers),
   })
 );
 
@@ -1905,6 +2118,35 @@ export const socialLikesRelations = relations(socialLikes, ({ one }) => ({
     references: [socialStatuses.id],
   }),
 }));
+
+export const socialGroupsRelations = relations(
+  socialGroups,
+  ({ one, many }) => ({
+    actor: one(socialActors, {
+      fields: [socialGroups.actorId],
+      references: [socialActors.id],
+    }),
+    createdByProfile: one(profiles, {
+      fields: [socialGroups.createdByProfileId],
+      references: [profiles.id],
+    }),
+    members: many(socialGroupMembers),
+  })
+);
+
+export const socialGroupMembersRelations = relations(
+  socialGroupMembers,
+  ({ one }) => ({
+    group: one(socialGroups, {
+      fields: [socialGroupMembers.groupId],
+      references: [socialGroups.id],
+    }),
+    actor: one(socialActors, {
+      fields: [socialGroupMembers.actorId],
+      references: [socialActors.id],
+    }),
+  })
+);
 
 export const socialAttachmentsRelations = relations(
   socialAttachments,
@@ -2223,6 +2465,8 @@ export function toPublicActor<T extends { privateKey?: string | null }>(
 export type SocialStatus = typeof socialStatuses.$inferSelect;
 export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;
+export type SocialGroup = typeof socialGroups.$inferSelect;
+export type SocialGroupMember = typeof socialGroupMembers.$inferSelect;
 export type SocialLike = typeof socialLikes.$inferSelect;
 export type SocialAttachment = typeof socialAttachments.$inferSelect;
 export type SocialTag = typeof socialTags.$inferSelect;
