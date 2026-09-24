@@ -97,6 +97,10 @@ export const inventory: Record<TableExport, Classification> = {
   socialFollows: ['social_graph'],
   socialLikes: ['social_graph'],
   socialAttachments: ['uploads', 'social_posts'],
+  // Who watched whose story. An interaction record between two actors, same
+  // shape as a like, and surfaced to the story's author as a viewer list --
+  // so it is personal data about the viewer, not just the author.
+  socialStoryViews: ['social_graph'],
   socialTags: ['social_posts'],
   articleAnnouncements: ['activitypub_federated_content'],
 

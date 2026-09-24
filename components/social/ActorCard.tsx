@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FollowButton } from './FollowButton';
+import { StoryRing } from './StoryRing';
 import { SocialActorDisplay } from '@/lib/interfaces';
 
 interface ActorCardProps {
@@ -34,12 +35,12 @@ export function ActorCard({
     <Card>
       <CardContent className="pt-4">
         <div className="flex items-start gap-3">
-          <Link href={`/p/${actor.username}`}>
+          <StoryRing username={actor.username} href={`/p/${actor.username}`} size="sm">
             <Avatar className="h-12 w-12">
               <AvatarImage src={actor.iconUrl || undefined} />
               <AvatarFallback>{actorInitials}</AvatarFallback>
             </Avatar>
-          </Link>
+          </StoryRing>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
