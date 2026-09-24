@@ -28,6 +28,8 @@ import { SurfaceGuestHeader } from '@/components/panaverse/SurfaceGuestHeader';
 import { SurfaceGuestFooter } from '@/components/panaverse/SurfaceGuestFooter';
 import { SurfaceMemberHeader } from '@/components/panaverse/SurfaceMemberHeader';
 import { SurfaceMemberFooter } from '@/components/panaverse/SurfaceMemberFooter';
+import { PanaSitesProvider } from '@/components/panaverse/PanaSitesProvider';
+import { resolvePanaSites } from '@/lib/panaverse/sites';
 
 /**
  * Title and description for any page that does not set its own.
@@ -213,6 +215,13 @@ export default async function RootLayout({
     requestHeaders.get(SEARCH_HEADER)
   );
 
+  /* Where the account menu's tiles point, resolved here because this is where
+   * the host is known and where the Worker's env is readable. Keyed on the
+   * hostname rather than on `chromeSurface`: the question a tile answers is
+   * "which origin am I on now", and a borrowed page is still served from the
+   * hostname the member chose. */
+  const panaSites = resolvePanaSites(host);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -290,30 +299,35 @@ export default async function RootLayout({
         >
           <FlowerPowerProvider>
             <Providers>
-              {wearsMainChrome && (
-                <MainHeader isProductionSite={isProductionSite} />
-              )}
-              {guest && pathname && (
-                <SurfaceGuestHeader
-                  surface={chromeSurface}
-                  host={host}
-                  pathname={pathname}
-                  owner={surfaceForPath(pathname)}
-                />
-              )}
-              {ownSurface && pathname && (
-                <SurfaceMemberHeader surface={chromeSurface} />
-              )}
-              <div id="layout-main">{children}</div>
-              {wearsMainChrome && <MainFooter />}
-              {guest && pathname && (
-                <SurfaceGuestFooter
-                  surface={chromeSurface}
-                  owner={surfaceForPath(pathname)}
-                />
-              )}
-              {ownSurface && <SurfaceMemberFooter surface={chromeSurface} />}
-              <ScreennameGate />
+              {/* Wraps both mastheads: the account menu is reached through
+                  MainHeader on the main site and SurfaceIdentity on a
+                  surface, and it needs the same resolved tiles either way. */}
+              <PanaSitesProvider sites={panaSites}>
+                {wearsMainChrome && (
+                  <MainHeader isProductionSite={isProductionSite} />
+                )}
+                {guest && pathname && (
+                  <SurfaceGuestHeader
+                    surface={chromeSurface}
+                    host={host}
+                    pathname={pathname}
+                    owner={surfaceForPath(pathname)}
+                  />
+                )}
+                {ownSurface && pathname && (
+                  <SurfaceMemberHeader surface={chromeSurface} />
+                )}
+                <div id="layout-main">{children}</div>
+                {wearsMainChrome && <MainFooter />}
+                {guest && pathname && (
+                  <SurfaceGuestFooter
+                    surface={chromeSurface}
+                    owner={surfaceForPath(pathname)}
+                  />
+                )}
+                {ownSurface && <SurfaceMemberFooter surface={chromeSurface} />}
+                <ScreennameGate />
+              </PanaSitesProvider>
             </Providers>
           </FlowerPowerProvider>
         </ThemeProvider>

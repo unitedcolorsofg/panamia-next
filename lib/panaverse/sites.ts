@@ -1,3 +1,10 @@
+import {
+  originForFrom,
+  resolveSurface,
+  surfaceForPath,
+  getRootDomain,
+} from '@/lib/panaverse/surfaces';
+
 /**
  * The other Pana sites, as the masthead account menu lists them.
  *
@@ -12,19 +19,33 @@
  * unbuilt offering is a promise, so it renders as a dimmed, unclickable row
  * with a "coming soon" badge: nothing here is ever a link to a 404.
  *
- * Paths are relative on purpose. Pana Social has a hostname of its own, but
- * resolving it needs PANAVERSE_ROOT_DOMAIN, which is a Worker var and absent
- * from a client bundle — a link built here would silently fall back to the
- * compiled-in default and be wrong the moment the root domain is configured.
- * `/s` keeps the member on the hostname they already chose, which is the same
- * call SHARED_ROOMS makes.
+ * Paths are stored relative, and resolved against the host being served by
+ * `resolvePanaSites` — a server call, because `originForFrom` reads
+ * PANAVERSE_ROOT_DOMAIN, which is a Worker var and not a NEXT_PUBLIC_ one. In
+ * a client bundle that var is simply absent and the helper would silently fall
+ * back to the compiled-in default, which is a class of bug that only appears
+ * in the environment you cannot test locally. So the env read stays where the
+ * env exists, and the answer travels down as data.
+ *
+ * A site on the surface already being served keeps its relative path and
+ * navigates on the client. One belonging to another surface is made absolute,
+ * because crossing surfaces really does mean crossing origins now that each
+ * has a hostname of its own. Before PANAVERSE_SUBDOMAINS was turned on these
+ * were relative unconditionally, which was right then and became a trap the
+ * moment the flag flipped: a member on social.pana.social following `/d` got
+ * the directory without ever leaving the social hostname.
  */
 export interface PanaSite {
   /** Stable key for React and for tests. */
   id: string;
   /** i18n key under `common:identity.sites`. */
   labelKey: string;
-  /** The route it lives at today, or null when it is not built yet. */
+  /**
+   * Where it lives, or null when it is not built yet.
+   *
+   * Relative in this registry; `resolvePanaSites` returns an absolute URL for
+   * anything that crosses a surface boundary.
+   */
   href: string | null;
 }
 
@@ -38,3 +59,45 @@ export const PANA_SITES: readonly PanaSite[] = [
   { id: 'events', labelKey: 'events', href: '/e' },
   { id: 'getInvolved', labelKey: 'getInvolved', href: null },
 ];
+
+/**
+ * `PANA_SITES` with every cross-surface path resolved against the host being
+ * served. Call this on the server and pass the result down.
+ *
+ * A site the current surface already owns is left relative, so it still
+ * navigates on the client and does not reload the document for a move within
+ * the same room. Everything else becomes an absolute URL on its owning
+ * surface's origin — which is also what gives a member on social.pana.social a
+ * route back to the main site, the thing that went missing when the masthead
+ * drawer was removed and PANAVERSE_SUBDOMAINS was turned on.
+ *
+ * Unbuilt sites (`href: null`) pass through untouched: there is no origin to
+ * resolve, and they are announced rather than linked.
+ */
+export function resolvePanaSites(
+  host: string | null | undefined,
+  rootDomain = getRootDomain()
+): readonly PanaSite[] {
+  /* The origin this request is already being served from. Comparing against
+   * this rather than against surface ids is what keeps the fallback honest:
+   * while PANAVERSE_SUBDOMAINS is off every surface shares one origin, so an
+   * id comparison would have called `/d` "cross-surface" from
+   * social.pana.social and handed back an absolute URL pointing at the host it
+   * was already on — turning a client navigation into a full document load for
+   * no crossing at all. Same origin, same relative path, whatever the flag
+   * says. */
+  const currentOrigin = originForFrom(
+    resolveSurface(host, rootDomain),
+    host,
+    rootDomain
+  );
+
+  return PANA_SITES.map((site) => {
+    if (!site.href) return site;
+
+    const origin = originForFrom(surfaceForPath(site.href), host, rootDomain);
+    if (origin === currentOrigin) return site;
+
+    return { ...site, href: `${origin}${site.href}` };
+  });
+}

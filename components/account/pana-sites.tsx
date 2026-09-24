@@ -12,15 +12,15 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import { PANA_SITES } from '@/lib/panaverse/sites';
+import { usePanaSites } from '@/components/panaverse/PanaSitesProvider';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import styles from './identity.module.css';
 import { cn } from '@/lib/utils';
 
 /**
  * Icons live here rather than in the registry: `lib/panaverse/sites.ts` is
- * dependency-free so the Worker and any future server caller can read it, and
- * importing lucide there would drag a React package into that path.
+ * free of React dependencies so the Worker and any server caller can read it,
+ * and importing lucide there would drag a React package into that path.
  */
 const SITE_ICONS: Record<string, LucideIcon> = {
   social: MessageCircle,
@@ -57,6 +57,9 @@ export function PanaSites({
   leading?: ReactNode;
 }) {
   const { t } = useTranslation('common');
+  /* Resolved on the server against the host being served, so a site on
+     another surface links to that surface's origin. See PanaSitesProvider. */
+  const sites = usePanaSites();
 
   return (
     <>
@@ -65,7 +68,7 @@ export function PanaSites({
       <div className={styles.tileGrid}>
         {leading}
 
-        {PANA_SITES.map((site) => {
+        {sites.map((site) => {
           const Icon = SITE_ICONS[site.id] ?? Compass;
           const label = t(`identity.sites.${site.labelKey}`);
 
