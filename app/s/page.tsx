@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { useSession } from '@/lib/auth-client';
 import { SocialEligibilityGate } from '@/components/social';
 import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
@@ -305,13 +305,13 @@ function FeedEmpty() {
           You&apos;re not following anyone yet, so there is nothing to show.
           Find Panas in the directory, or post something and let them find you.
         </p>
-        <Link
+        <SurfaceLink
           href="/directory/search"
           className="link-arrow text-pana-indigo mt-2 text-[13px] font-extrabold"
         >
           Browse the directory
           <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </Link>
+        </SurfaceLink>
       </div>
 
       <SuggestionsModule />
