@@ -3351,11 +3351,80 @@ body {
   justify-self: center;
 }
 
-.panaverse-masthead-left {
+/* Surface layout: mark | search | account.
+ *
+ * `auto minmax(0, 1fr) auto` rather than the main site's equal outer columns.
+ * Nothing needs centring here — the mark is the head of the row again — and
+ * the field should take every pixel the mark and the avatar do not, which is
+ * what `minmax(0, 1fr)` buys that a plain `1fr` does not: it lets the column
+ * shrink below the input's intrinsic width instead of forcing the row wider
+ * than the phone it is on. */
+.panaverse-masthead-inner[data-layout='search'] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+/* A white pill on the cream bar. The field reads as a place to type rather
+   than as another button, which matters on a bar where the only other
+   controls are the mark and the avatar. */
+.panaverse-search {
   display: flex;
   min-width: 0;
+  max-width: 28rem;
   align-items: center;
-  justify-self: start;
+  gap: 0.5rem;
+  justify-self: center;
+  width: 100%;
+  height: 2.125rem;
+  padding-inline: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-pana-ink) 12%, transparent);
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.panaverse-search:focus-within {
+  border-color: color-mix(in srgb, var(--color-pana-orange) 55%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-pana-orange) 18%, transparent);
+}
+
+.panaverse-search-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: color-mix(in srgb, var(--color-pana-ink) 45%, transparent);
+}
+
+/* `min-width: 0` on the input as well as the column: an <input> carries a
+   default intrinsic size that survives a shrinking grid track and would push
+   the avatar off a 360px screen. */
+.panaverse-search-input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  color: var(--color-pana-ink);
+  /* The placeholder names three things and the phone has room for one. Let it
+     ellipsize so a narrow bar reads as an abbreviation rather than as text
+     that ran off the end. */
+  text-overflow: ellipsis;
+}
+
+.panaverse-search-input:focus {
+  outline: none;
+}
+
+.panaverse-search-input::placeholder {
+  color: color-mix(in srgb, var(--color-pana-ink) 45%, transparent);
+}
+
+/* Safari paints its own clear button and reserves room for it. */
+.panaverse-search-input::-webkit-search-decoration,
+.panaverse-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .panaverse-masthead-right {
@@ -3363,97 +3432,6 @@ body {
   align-items: center;
   gap: 0.5rem;
   justify-self: end;
-}
-
-/* Mirrors the main masthead's MENU control — components/MainHeader.module.css,
-   `.menuButton`. Written out rather than imported: that file is a CSS module
-   scoped to a component the surfaces never render, so importing it would couple
-   Pana Social to a private class name that is free to be renamed. The values
-   are the coupling that matters and they are stated here. */
-.panaverse-menu-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  padding: 8px 4px;
-  border: 0;
-  background: transparent;
-  color: var(--color-pana-ink);
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.panaverse-menu-button:hover {
-  color: var(--surface-tone, var(--color-pana-indigo));
-}
-
-/* Touch pointers get the full 44px target. Gated on pointer type rather than a
-   width breakpoint, because the question is what is doing the pointing: a phone
-   in landscape is still a finger, a narrow desktop window is still a mouse. */
-@media (pointer: coarse) {
-  .panaverse-menu-button {
-    min-height: 44px;
-  }
-}
-
-.panaverse-menu-bars {
-  display: grid;
-  gap: 4px;
-  width: 22px;
-}
-
-.panaverse-menu-bars i {
-  display: block;
-  height: 2.5px;
-  border-radius: 2px;
-  background-color: currentColor;
-}
-
-/* Short middle bar — the asymmetry is what makes the closed state read as a
-   menu rather than an equals sign. */
-.panaverse-menu-bars i:nth-child(2) {
-  width: 70%;
-  justify-self: start;
-}
-
-/* Same breakpoint and same reason as the main masthead: below this the right
-   column outgrows its 1fr share and pushes the mark off centre. The word is
-   mirrored in the drawer's own heading, so nothing becomes unreachable. */
-@media (max-width: 559px) {
-  .panaverse-menu-label {
-    display: none;
-  }
-}
-
-/* Account controls in the drawer footer. Butter on the indigo panel, matching
-   the main site's — and the only route to Sign Out that Pana Social has. */
-.panaverse-drawer-account {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 20px;
-  margin-top: 14px;
-}
-
-.panaverse-drawer-account a,
-.panaverse-drawer-account button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-pana-butter);
-  font-size: 13.5px;
-  font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.panaverse-drawer-account a:hover,
-.panaverse-drawer-account button:hover {
-  color: var(--color-pana-cream);
 }
 
 .panaverse-nav {

@@ -297,16 +297,20 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
-  // MAPS (Stadia Maps)
+  // MAPS (Esri active; Stadia parked)
   // =============================================================================
   NEXT_PUBLIC_STADIA_API_KEY: {
     description:
       'Stadia Maps API key for the directory and profile basemaps (public). ' +
+      'Currently inert: the basemap is Esri World Street Map, which needs ' +
+      'no key, because every Stadia request for this account returns 401 by ' +
+      'domain auth and by API key alike, on tiles and on unrelated endpoints, ' +
+      'so the property is not authorised yet. Once it is, set this only if ' +
+      'domain auth cannot apply (callers with no Origin/Referer, such as ' +
+      'server-side or native); browser traffic should authenticate by domain. ' +
       'Public by design — it travels in every tile URL — so lock it to the ' +
-      'site domain in the Stadia dashboard rather than treating it as a secret. ' +
-      'Unset is fine for local development: Stadia serves localhost keyless. ' +
-      'Unset in production means watermarked tiles. ' +
-      'Baked into the bundle by Vite at build time, so it must be in CF Build ' +
+      'site domain in the Stadia dashboard rather than treating it as a ' +
+      'secret. Inlined at build time, so if set it must be in CF Build ' +
       'variables (not Runtime).',
     location: 'VAR',
     required: false,

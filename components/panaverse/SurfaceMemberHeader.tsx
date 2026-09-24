@@ -1,19 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  SURFACES,
-  originForFrom,
-  type PanaverseSurface,
-} from '@/lib/panaverse/surfaces';
-import {
-  SHARED_ROOMS,
-  SURFACE_MARK,
-  SURFACE_NAV,
-  SURFACE_TONE,
-} from '@/lib/panaverse/branding';
-import { type NavDrawerItem } from '@/components/NavDrawer';
+import { type PanaverseSurface } from '@/lib/panaverse/surfaces';
+import { SURFACE_MARK, SURFACE_TONE } from '@/lib/panaverse/branding';
 import { SurfaceIdentity } from '@/components/panaverse/SurfaceIdentity';
-import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
+import { SurfaceSearch } from '@/components/panaverse/SurfaceSearch';
 
 /**
  * The masthead a surface wears over its own rooms.
@@ -25,57 +15,34 @@ import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
  * between the two, so a signed-in member at social.pana.social/s got a bare
  * page: no mark, no nav, no account, and no route back to Pana Mia.
  *
- * Wears the main site's shape — MENU on the left, mark centred, account on the
- * right, cream bar under a hairline rule. Two sites that share an account and
- * differ in chrome read as two products; the thing that makes them one is that
- * the furniture sits where you last left it. What still changes per surface is
- * which mark flies and where the links go, which is as much difference as a
- * timeline and a directory need.
+ * Mark on the left, search in the middle, account on the right: the shape a
+ * timeline wears, rather than the main site's centred mark. The two surfaces
+ * share an account and a palette, and diverge here because finding a Pana is
+ * the first thing done on a social feed and never the first thing done on a
+ * directory landing page.
  *
- * The cross-surface links and the shared rooms live in the drawer rather than
- * in a switcher beside the avatar. That follows the main masthead, which moved
- * its own cross-site menu into the drawer for the same reason: a bar carrying
- * four controls on a phone has no room left for the mark.
+ * NAV IS DELIBERATELY ABSENT, but the route home is not. The MENU drawer that
+ * used to sit on the left carried the surface nav, the shared rooms, and — via
+ * `originForFrom` — the only link that could cross from social.pana.social
+ * back to the main site. That last one now comes from `PANA_SITES` in the
+ * account menu instead: its paths are resolved server-side by
+ * `resolvePanaSites`, so a site on another surface links to that surface's
+ * origin. Until PANAVERSE_SUBDOMAINS was turned on those links were relative
+ * and a member could not leave this hostname through them; they can now.
  *
- * They stay in the drawer even though the account menu now lists the Pana
- * sites too, because the two lists cross different boundaries. `PANA_SITES`
- * is deliberately relative — it keeps a member on the hostname they already
- * chose — so it cannot carry anyone from social.pana.social back to the main
- * site. Only these `originForFrom` links do, and that route home was the
- * reason the drawer grew them.
+ * What is still missing is the surface nav proper — the rooms of Pana Social
+ * itself. See `SurfaceMenu` in the history of this directory for what was here.
  *
- * Rendered server-side so the cross-surface origins are resolved where
- * PANAVERSE_ROOT_DOMAIN actually exists. Only the controls that need session
- * state are client components.
+ * Rendered server-side. Only the controls that need session state are client
+ * components.
  */
 export function SurfaceMemberHeader({
   surface,
-  host,
 }: {
-  /** The surface being served — its mark flies here and its nav leads the drawer. */
+  /** The surface being served — its mark flies here. */
   surface: PanaverseSurface;
-  /** Raw Host header. Keeps cross-surface links on the scheme and port in hand
-   *  rather than sending a developer out to the live site. */
-  host: string | null | undefined;
 }) {
   const mark = SURFACE_MARK[surface.id];
-
-  /* Everything the switcher used to hold, in the order a member reads it:
-     where they already are, the rooms they can reach without crossing an
-     origin, then the other surface. Built on the server because that is where
-     PANAVERSE_ROOT_DOMAIN is — the same reason the switcher took resolved
-     hrefs rather than building them in the browser. */
-  const menuItems: NavDrawerItem[] = [
-    ...(SURFACE_NAV[surface.id] ?? []).map((item) => ({
-      href: item.href,
-      label: item.label,
-    })),
-    ...SHARED_ROOMS.map((room) => ({ href: room.path, label: room.name })),
-    ...SURFACES.filter((s) => s.id !== surface.id).map((s) => ({
-      href: `${originForFrom(s, host)}${s.rootPath}`,
-      label: s.name,
-    })),
-  ];
 
   return (
     <header
@@ -86,12 +53,8 @@ export function SurfaceMemberHeader({
     >
       <div
         className="panaverse-masthead-inner container mx-auto max-w-6xl px-4"
-        data-layout="centered"
+        data-layout="search"
       >
-        <div className="panaverse-masthead-left">
-          <SurfaceMenu items={menuItems} mark={mark} />
-        </div>
-
         <Link
           href={surface.rootPath}
           className="panaverse-guest-home"
@@ -109,6 +72,8 @@ export function SurfaceMemberHeader({
             className="panaverse-logo"
           />
         </Link>
+
+        <SurfaceSearch surfaceName={surface.name} />
 
         <div className="panaverse-masthead-right">
           <SurfaceIdentity />
