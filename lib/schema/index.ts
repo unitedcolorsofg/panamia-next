@@ -1199,6 +1199,23 @@ export const PUBLIC_ACTOR_COLUMNS = {
   manuallyApprovesFollowers: true,
 } as const;
 
+/**
+ * The `type` value that marks a status as a story rather than a post.
+ *
+ * Stories share `social_statuses` with ordinary notes -- they needed expiry
+ * and attachments, and both were already built and proven here. The price of
+ * that reuse is that `type` is now load-bearing for visibility: every read
+ * path that means "posts" has to exclude this value, or a story surfaces as a
+ * permanent post in the feed it was never meant to reach.
+ *
+ * It is a constant rather than a literal so the exclusions and the writer
+ * cannot drift apart by a typo. `'story'` and `'Story'` would both look
+ * plausible in review; only one of them hides anything.
+ *
+ * @see excludeStories() in lib/federation/wrappers/timeline.ts
+ */
+export const STATUS_TYPE_STORY = 'Story';
+
 export const socialStatuses = pgTable(
   'social_statuses',
   {
@@ -1393,6 +1410,46 @@ export const socialAttachments = pgTable(
   },
   (table) => ({
     statusIdIdx: index('social_attachments_status_id_idx').on(table.statusId),
+  })
+);
+
+/**
+ * Who has seen which story.
+ *
+ * Powers two things: the ring on a pana's avatar is "solid" until the viewer
+ * has seen everything currently active, and the owner gets a view count on
+ * their own story.
+ *
+ * Only signed-in viewers holding a social actor are recorded. An anonymous
+ * visitor can read a story -- the profile page is public -- but there is no
+ * stable identity to attribute the view to, and manufacturing one from an IP
+ * or a fingerprint to power a decoration would be tracking the privacy policy
+ * does not cover. Anonymous reads are simply not counted.
+ *
+ * Rows die with the story via ON DELETE CASCADE, so purging expired stories
+ * takes their view log with them and needs no second pass.
+ */
+export const socialStoryViews = pgTable(
+  'social_story_views',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    statusId: text('status_id')
+      .notNull()
+      .references(() => socialStatuses.id, { onDelete: 'cascade' }),
+    viewerActorId: text('viewer_actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    viewedAt: timestamp('viewed_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    statusViewerUnique: uniqueIndex(
+      'social_story_views_status_viewer_unique'
+    ).on(table.statusId, table.viewerActorId),
+    viewerIdx: index('social_story_views_viewer_idx').on(table.viewerActorId),
   })
 );
 
@@ -1849,6 +1906,7 @@ export const socialStatusesRelations = relations(
     attachments: many(socialAttachments),
     tags: many(socialTags),
     likes: many(socialLikes),
+    storyViews: many(socialStoryViews),
     articleAnnouncement: one(articleAnnouncements, {
       fields: [socialStatuses.id],
       references: [articleAnnouncements.statusId],
@@ -1912,6 +1970,20 @@ export const socialAttachmentsRelations = relations(
     status: one(socialStatuses, {
       fields: [socialAttachments.statusId],
       references: [socialStatuses.id],
+    }),
+  })
+);
+
+export const socialStoryViewsRelations = relations(
+  socialStoryViews,
+  ({ one }) => ({
+    status: one(socialStatuses, {
+      fields: [socialStoryViews.statusId],
+      references: [socialStatuses.id],
+    }),
+    viewer: one(socialActors, {
+      fields: [socialStoryViews.viewerActorId],
+      references: [socialActors.id],
     }),
   })
 );
@@ -2225,6 +2297,7 @@ export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;
 export type SocialLike = typeof socialLikes.$inferSelect;
 export type SocialAttachment = typeof socialAttachments.$inferSelect;
+export type SocialStoryView = typeof socialStoryViews.$inferSelect;
 export type SocialTag = typeof socialTags.$inferSelect;
 export type ScreennameHistory = typeof screennameHistory.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
