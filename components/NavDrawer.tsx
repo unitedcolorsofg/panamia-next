@@ -7,7 +7,13 @@ import Image from 'next/image';
 import styles from './NavDrawer.module.css';
 import { cn } from '@/lib/utils';
 
-export type NavDrawerItem = { href: string; label: string };
+export type NavDrawerItem = {
+  href: string;
+  label: string;
+  /** Runs alongside the drawer close, on the same click. Used for permission
+      prompts that browsers only grant from a user gesture. */
+  onSelect?: () => void;
+};
 
 /**
  * Slide-in primary navigation. Indigo panel, cream text — the one palette
@@ -137,7 +143,10 @@ export default function NavDrawer({
                 <Link
                   href={item.href}
                   className={styles.link}
-                  onClick={onClose}
+                  onClick={() => {
+                    item.onSelect?.();
+                    onClose();
+                  }}
                   // Staggered entrance. Set per item rather than with
                   // nth-child because the item count varies with auth state.
                   style={{ '--d': `${0.1 + index * 0.05}s` } as CSSProperties}

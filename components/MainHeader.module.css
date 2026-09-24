@@ -4,30 +4,6 @@
   display: contents;
 }
 
-/* Collapsible "Jump To" module sections. Animate the open/close with a
-   grid-rows 0fr→1fr transition so the sub-items slide without a fixed height.
-   The inner wrapper clips the overflow while collapsed. */
-.section {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
-}
-
-.section.sectionOpen {
-  grid-template-rows: 1fr;
-}
-
-.sectionInner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .section {
-    transition: none;
-  }
-}
-
 .panaButton button {
   order: 3 !important;
 }
@@ -459,6 +435,33 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.62;
+}
+
+/* Settings and Sign Out. Both used to live in the masthead identity menu; with
+   that gone this is the only place either can be reached, so they sit on their
+   own row rather than being folded into the numbered nav list above. */
+.drawerAccount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 14px;
+}
+
+.drawerAccountLink {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--color-pana-butter);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.drawerAccountLink:hover {
+  color: var(--color-pana-cream);
 }
 
 @media (prefers-reduced-motion: reduce) {
