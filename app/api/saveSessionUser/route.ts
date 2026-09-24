@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { users, screennameHistory, socialActors } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { users, screennameHistory, socialActors, profiles } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
+import { notBusinessListing } from '@/lib/server/profile-owners';
 import { validateScreennameFull } from '@/lib/screenname';
 import type { User } from '@/lib/schema';
 
@@ -120,6 +121,39 @@ export async function POST(request: NextRequest) {
     .set(updateData)
     .where(eq(users.id, existingUser.id))
     .returning();
+
+  // Mirror identity onto the personal profile.
+  //
+  // profiles carries its own name and screenname, and it — not the users row —
+  // is what the account menu, posts, and listings render. Leaving it stale is
+  // why a member could set a name here and still see their handle everywhere
+  // else: profiles.name is NOT NULL, so it gets a screenname fallback at
+  // creation time and nothing ever revised it.
+  //
+  // The screenname matters for more than labels. Webfinger, nostr.json, and
+  // the actor endpoint all resolve on profiles.screenname, so a handle change
+  // that stopped at the users row would leave @name pointing at the old
+  // identity. app/api/user/screenname/set/route.ts has always mirrored for
+  // exactly that reason; this route is the other half of the same story.
+  //
+  // notBusinessListing guards a legacy shape: a business welded to
+  // profiles.userId instead of profile_owners (see scripts/audit-profile-
+  // claims.ts). Without it, renaming yourself would rename the business.
+  const profileUpdate: { name?: string; screenname?: string } = {};
+  const mirroredName = typeof name === 'string' ? name.trim() : '';
+  if (mirroredName) {
+    profileUpdate.name = mirroredName;
+  }
+  if (newScreenname) {
+    profileUpdate.screenname = newScreenname;
+  }
+
+  if (Object.keys(profileUpdate).length > 0) {
+    await db
+      .update(profiles)
+      .set(profileUpdate)
+      .where(and(eq(profiles.userId, existingUser.id), notBusinessListing));
+  }
 
   // Sync screenname to SocialActor if one exists and screenname changed
   if (isScreennameChanging && actorId) {
