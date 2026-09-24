@@ -85,11 +85,22 @@ const NAME_THEMES: [RegExp, string][] = [
   [/\bbodega\b|\bgrocer/i, 'market'],
   [/\bsupper\s*club\b|\bcocina\b|\bkitchen\b|\bcomedor\b/i, 'supper-club'],
   // Non-food hints. These matter because the seeded categories are unreliable
-  // — "Raiz Bodywork" and "Clave Sound" are both tagged Food — and a name is
-  // the more honest signal when the two disagree.
-  [/\bbodywork\b|\bmassage\b|\byoga\b|\bbreathwork\b|\bhealing\b/i, 'wellness'],
+  // — "Raiz Bodywork" and "Clave Sound" are both tagged Food, and "Cafecito
+  // Code Works" is tagged Wellness — and a name is the more honest signal when
+  // the two disagree.
+  [
+    /\bcode\b|\bbyte\b|\bsystems\b|\bsoftware\b|\bdigital\b|\bdev\b|\bdata\b|\bcloud\b|\btech\b|\bapp\b/i,
+    'tech',
+  ],
+  [
+    /\bbodywork\b|\bmassage\b|\byoga\b|\bbreathwork\b|\bhealing\b|\bwellness\b|\bspa\b|\btherapy\b|\bbienestar\b/i,
+    'wellness',
+  ],
   [/\bsound\b|\brecords\b|\bband\b|\bson\b|\britmo\b/i, 'music'],
   [/\bgallery\b|\bstudio\s*art\b|\bmural\b/i, 'art'],
+  // Venue names are distinctive enough to trust: the same "La Terraza Loft"
+  // brand is tagged venue in one row and artisanal in another.
+  [/\bloft\b|\bhall\b|\bevent\s*space\b|\bballroom\b|\bcourtyard\b/i, 'venue'],
 ];
 
 /**
