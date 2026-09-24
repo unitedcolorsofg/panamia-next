@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import {
   DEFAULT_SURFACE,
+  frontDoorPath,
   originForFrom,
   type PanaverseSurface,
 } from '@/lib/panaverse/surfaces';
@@ -57,7 +58,7 @@ export function SurfaceGuestHeader({
     >
       <div className="panaverse-masthead-inner container mx-auto max-w-6xl px-4">
         <Link
-          href={surface.rootPath}
+          href={frontDoorPath(surface, host)}
           className="panaverse-guest-home"
           aria-label={`${surface.name} home`}
         >

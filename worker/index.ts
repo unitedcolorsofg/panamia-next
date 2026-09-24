@@ -130,32 +130,36 @@ export default {
       }
 
       // Panaverse host routing: a surface hostname serves that surface's front
-      // door. Only the root path is touched — every other route stays reachable
-      // from every hostname, so /api, /.well-known, and shared pages behave
-      // identically no matter which surface a request arrives on.
+      // door at its own root, so social.pana.social/ is the feed and the URL
+      // says so. The page is chosen from the hostname in app/page.tsx — one
+      // route tree, two front doors — so the canonical host needs no redirect
+      // here. Every other route stays reachable from every hostname, so /api,
+      // /.well-known, and shared pages behave identically no matter which
+      // surface a request arrives on.
       //
-      // A redirect rather than a rewrite: vinext has no middleware-rewrite
-      // signalling, so serving /s under the URL "/" would leave the client
-      // router fetching RSC payloads for the wrong path. The end state is
-      // moving these routes into a route group so the surface root is "/".
+      // Branching in the route rather than rewriting here is forced: vinext
+      // has no middleware-rewrite signalling, so serving /s under the URL "/"
+      // would leave the client router fetching RSC payloads for the wrong
+      // path. A route group cannot express it either — app/(social)/page.tsx
+      // still resolves to "/" and collides with app/page.tsx, because both
+      // surfaces share one route tree and only the hostname tells them apart.
+      //
+      // What does still redirect is an alias host. Visitors who type the
+      // fediverse identity domain get handed to the real UI host; that domain
+      // stays a thin identity endpoint serving WebFinger and actor JSON, which
+      // pass through untouched above. *.localhost counts as canonical so dev
+      // mirrors the production split instead of being bounced to the live site.
       const surface = resolveSurface(url.hostname);
-      if (url.pathname === '/' && surface.rootPath !== '/') {
+      if (
+        url.pathname === '/' &&
+        surface.rootPath !== '/' &&
+        !url.hostname.endsWith('.localhost') &&
+        url.hostname !== hostnameFor(surface)
+      ) {
         const target = new URL(url.toString());
-        target.pathname = surface.rootPath;
-
-        // Visitors who type the fediverse identity domain get handed to the
-        // real UI host; that domain stays a thin identity endpoint serving
-        // WebFinger and actor JSON, which pass through untouched above.
-        const canonicalHost = hostnameFor(surface);
-        if (
-          url.hostname !== canonicalHost &&
-          !url.hostname.endsWith('.localhost')
-        ) {
-          target.protocol = 'https:';
-          target.hostname = canonicalHost;
-          target.port = '';
-        }
-
+        target.protocol = 'https:';
+        target.hostname = hostnameFor(surface);
+        target.port = '';
         return Response.redirect(target.toString(), 307);
       }
 
