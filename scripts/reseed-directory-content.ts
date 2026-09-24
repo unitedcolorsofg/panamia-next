@@ -1575,6 +1575,7 @@ async function main() {
         screenname: profiles.screenname,
         descriptions: profiles.descriptions,
         galleryImages: profiles.galleryImages,
+        socials: profiles.socials,
       })
       .from(profiles);
 
@@ -1586,13 +1587,24 @@ async function main() {
     console.log(`  listings in table: ${LISTINGS.length}`);
     console.log('');
 
+    // A listing is keyed by the screenname it had when this script was
+    // written, but after a run the row answers to its new slug instead. Try
+    // both so the script stays re-runnable and idempotent.
+    const rowFor = (l: Listing) => bySlug.get(l.from) ?? bySlug.get(l.slug);
+
     // screenname is uniquely indexed, and the rows are updated one at a time.
     // A new slug that some other profile currently holds would collide part
     // way through and leave the table half rewritten, so check up front.
+    // A slug held by the very row being renamed is fine — that is what a
+    // second run of this script looks like once the rename has landed.
     const claimed = new Set(LISTINGS.map((l) => l.from));
-    const collisions = LISTINGS.filter(
-      (l) => l.slug !== l.from && bySlug.has(l.slug) && !claimed.has(l.slug)
-    );
+    const collisions = LISTINGS.filter((l) => {
+      if (l.slug === l.from) return false;
+      const holder = bySlug.get(l.slug);
+      if (!holder) return false;
+      if (claimed.has(l.slug)) return false;
+      return holder.id !== rowFor(l)?.id;
+    });
     if (collisions.length > 0) {
       console.error(
         `  new slugs already taken: ${collisions.map((c) => c.slug).join(', ')}`
@@ -1632,10 +1644,12 @@ async function main() {
 
     let updated = 0;
     let renamed = 0;
+    let socialsFixed = 0;
+    const staleSocials: string[] = [];
     const absent: string[] = [];
 
     for (const [index, listing] of LISTINGS.entries()) {
-      const row = bySlug.get(listing.from);
+      const row = rowFor(listing);
       if (!row) {
         absent.push(listing.from);
         continue;
@@ -1660,10 +1674,36 @@ async function main() {
       const photos = photosFor(archetype.theme, index);
 
       const isRename = listing.slug !== listing.from;
-      if (isRename) renamed += 1;
+      // Count what this run actually changes, not what the listing table
+      // describes — on a second run the rename has already landed.
+      const renaming = row.screenname !== listing.slug;
+      if (renaming) renamed += 1;
+
+      // The seeded socials are derived from the old screenname, so a renamed
+      // listing otherwise advertises the brand it used to be:
+      // "Website: el-fogon-cafe.example.com" under the heading Ventanita Cafe.
+      // Instagram and TikTok handles drop the hyphens, so both spellings go.
+      const socials = { ...((row.socials ?? {}) as Record<string, unknown>) };
+      if (isRename) {
+        const fromFlat = listing.from.split('-').join('');
+        const slugFlat = listing.slug.split('-').join('');
+        for (const [key, value] of Object.entries(socials)) {
+          if (typeof value !== 'string') continue;
+          const next = value
+            .split(listing.from)
+            .join(listing.slug)
+            .split(fromFlat)
+            .join(slugFlat);
+          if (next !== value) socialsFixed += 1;
+          if (next.toLowerCase().includes(fromFlat)) {
+            staleSocials.push(`${listing.name} ${key}: ${next}`);
+          }
+          socials[key] = next;
+        }
+      }
 
       console.log(
-        `  ${(isRename ? `${oldName} -> ${listing.name}` : listing.name)
+        `  ${(renaming ? `${oldName} -> ${listing.name}` : listing.name)
           .padEnd(46)
           .slice(0, 46)} ${archetype.category.padEnd(10)} ${listing.type}`
       );
@@ -1689,6 +1729,7 @@ async function main() {
               gallery3CDN: photos[2],
             },
             primaryImageCdn: null,
+            socials,
           })
           .where(eq(profiles.id, row.id));
       }
@@ -1702,12 +1743,17 @@ async function main() {
     for (const [key, names] of shared) {
       console.warn(`  shared copy (${key}): ${names.join(', ')}`);
     }
+    for (const stale of staleSocials) {
+      console.warn(`  socials still mention the old name — ${stale}`);
+    }
 
     if (apply) {
-      console.log(`  updated ${updated} listings (${renamed} renamed)`);
+      console.log(
+        `  updated ${updated} listings (${renamed} renamed, ${socialsFixed} social links rewritten)`
+      );
     } else {
       console.log(
-        `  dry run: ${updated} listings would change (${renamed} renamed)`
+        `  dry run: ${updated} listings would change (${renamed} renamed, ${socialsFixed} social links rewritten)`
       );
       console.log('  re-run with --apply to write');
     }

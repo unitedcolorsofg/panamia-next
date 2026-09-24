@@ -347,6 +347,19 @@ It also refuses to run if a new screenname is already taken by a row it is not
 renaming, since `profiles.screenname` is uniquely indexed and the rows are
 updated one at a time.
 
+**Social links follow the rename.** The seeded `socials` are derived from the
+screenname, so a renamed listing would otherwise advertise the brand it used to
+be — "Website: el-fogon-cafe.example.com" under the heading Ventanita Cafe.
+Both spellings are replaced, since Instagram and TikTok handles drop the
+hyphens, and the script reports any value that still mentions the old name
+afterwards.
+
+**Re-running is safe.** A listing is keyed by the screenname it had when this
+script was written, but the row answers to its new slug once a run has landed,
+so the lookup tries both. A second run reports `0 renamed` and changes nothing
+else — the name substitution and the social rewrite are both no-ops the second
+time.
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:
