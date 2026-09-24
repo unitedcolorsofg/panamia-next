@@ -9,7 +9,6 @@ import {
   BadgeCheck,
   Check,
   Fingerprint,
-  ImagePlus,
   Loader2,
   Mail,
   Trash2,
@@ -46,6 +45,7 @@ import {
   SettingsRow,
 } from './settings-primitives';
 import { SETTINGS_SECTIONS, SettingsNav, type SectionId } from './settings-nav';
+import { AvatarEditor } from './avatar-editor';
 
 // Channels the app manages, spelled as GHL requires. Mirrors GHL_DND_CHANNELS
 // in lib/ghl.ts; kept local so this client component does not pull in the
@@ -174,9 +174,9 @@ export function UserSettingsView({
   const [changingEmail, setChangingEmail] = useState(false);
 
   // The profile record. Backs two things here: the default publishing licence
-  // below, and the avatar signposted from Identity — both live on the profile
-  // rather than the account, which is exactly why they need explaining.
-  const { data: profile } = useProfile();
+  // below, and the avatar in the header — both live on the profile rather than
+  // the account, which is why the page has to fetch it at all.
+  const { data: profile, refetch: refetchProfile } = useProfile();
   const avatarUrl = profile?.images?.primaryCDN ?? null;
   const mutateDefaultLicense = useMutateDefaultLicense();
   const [defaultLicense, setDefaultLicense] =
@@ -699,14 +699,26 @@ export function UserSettingsView({
       <div className="container mx-auto max-w-5xl px-4 pt-8">
         <header>
           <span className="section-eyebrow">Account</span>
-          <h1 className="mt-3 text-2xl font-black tracking-tight">
-            {userData?.name || userData?.screenname || 'Your account'}
-          </h1>
-          {userData?.screenname && (
-            <p className="text-pana-ink/60 mt-1 truncate text-[13px] font-extrabold">
-              @{userData.screenname}@{federationDomain}
-            </p>
-          )}
+          {/* The picture sits with the name because it is the same kind of
+              fact, and because this is the first place a member looks to
+              confirm whose account they are in. */}
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <AvatarEditor
+              name={userData?.name || userData?.screenname || ''}
+              avatarUrl={avatarUrl}
+              onUploaded={refetchProfile}
+            />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black tracking-tight">
+                {userData?.name || userData?.screenname || 'Your account'}
+              </h1>
+              {userData?.screenname && (
+                <p className="text-pana-ink/60 truncate text-[13px] font-extrabold">
+                  @{userData.screenname}@{federationDomain}
+                </p>
+              )}
+            </div>
+          </div>
           <p className="settings-note mt-4 max-w-2xl">
             There is one of these for your whole account. Everything below
             applies on Pana Mia and Pana Social alike — each section says so
@@ -721,34 +733,6 @@ export function UserSettingsView({
             {/* ---- Identity ---------------------------------------------- */}
             <Section id="identity">
               <SettingsCard>
-                {/* First, because it is the only part of "who you are" this
-                    page cannot edit. Leaving it out is what sent members
-                    hunting through the profile pages for it. */}
-                <SettingsRow
-                  label="Profile picture"
-                  note="One image is your avatar everywhere — beside everything you post, on your listing in directory search, and on other fediverse servers. It belongs to your profile rather than your account, so it is changed on a page of its own."
-                  control={
-                    <Link
-                      href="/account/profile/images"
-                      className="settings-btn"
-                      data-variant="quiet"
-                    >
-                      {avatarUrl ? 'Change picture' : 'Add a picture'}
-                      <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  }
-                >
-                  <div className="settings-avatar">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Your current profile picture" />
-                    ) : (
-                      <span className="settings-avatar-empty">
-                        <ImagePlus className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                    )}
-                  </div>
-                </SettingsRow>
-
                 <SettingsRow
                   label="Name"
                   htmlFor="name"

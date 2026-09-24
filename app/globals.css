@@ -2712,41 +2712,112 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-ink);
 }
 
-/* The profile picture, previewed on a page that cannot change it.
+/* The avatar in the page header, and the only way to change it.
    
-   The avatar is stored on the profile record rather than the account, so this
-   row is a signpost. The preview is what stops it reading as one: a member who
-   can see their own face here believes the link goes somewhere relevant, where
-   a bare "Edit images" link is one more thing to gamble a click on. */
-.settings-avatar {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-.settings-avatar img {
-  width: 4rem;
-  height: 4rem;
+   It sits beside the name rather than in a row of its own because a picture is
+   the same kind of fact as a name and a handle, and the header is where the
+   page already answers "whose account is this". A row labelled "Profile
+   picture" made it a setting you had to go and find; here it is simply part of
+   who you are, in the place you are already looking.
+   
+   The circle is drawn whether or not there is a picture in it. An avatar that
+   appears only once you have one gives you nothing to aim at when you have
+   none — which is the exact moment you need the target. */
+.avatar-edit {
+  position: relative;
   flex: none;
-  border-radius: 999px;
-  border: 2px solid rgb(17 13 13 / 0.14);
-  background-color: var(--color-pana-butter-2);
-  object-fit: cover;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
-/* No picture yet. A dashed edge over butter, so an empty avatar reads as a
-   slot waiting to be filled rather than as an image that failed to load. */
-.settings-avatar-empty {
+.avatar-edit-bubble {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  overflow: hidden;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: 2px solid rgb(17 13 13 / 0.15);
+  background-color: var(--color-pana-butter);
+  /* The fallback is the member's own initial rather than a silhouette. It is
+     already theirs before they have uploaded anything, where a generic figure
+     is a picture of nobody. */
+  font-size: 1.375rem;
+  font-weight: 900;
+  line-height: 1;
+  color: rgb(17 13 13 / 0.55);
+  transition: filter 0.15s ease;
+}
+
+.avatar-edit-bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* A circle on its own does not say it can be clicked. The pencil is the whole
+   affordance, ringed in the page background so it reads as sitting on top of
+   the avatar rather than as a hole punched out of it. */
+.avatar-edit-badge {
+  position: absolute;
+  right: -0.125rem;
+  bottom: -0.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-pana-cream);
+  background-color: var(--color-pana-indigo);
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+
+.avatar-edit:hover .avatar-edit-bubble {
+  filter: brightness(0.96);
+}
+
+.avatar-edit:hover .avatar-edit-badge {
+  transform: scale(1.08);
+}
+
+.avatar-edit:focus-visible {
+  outline: 3px solid var(--color-pana-indigo);
+  outline-offset: 3px;
+}
+
+/* The overlay's preview, larger than the header bubble on purpose: the point
+   of opening it is to look at the picture before committing to it, and at
+   header size you cannot tell a good crop from a bad one. */
+.avatar-dialog-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 8rem;
+  height: 8rem;
   flex: none;
-  border-radius: 999px;
-  border: 2px dashed rgb(17 13 13 / 0.22);
+  border-radius: 50%;
+  border: 2px solid rgb(17 13 13 / 0.15);
   background-color: var(--color-pana-butter-2);
   color: rgb(17 13 13 / 0.35);
+}
+
+.avatar-dialog-preview[data-empty='true'] {
+  border-style: dashed;
+}
+
+.avatar-dialog-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Where a setting takes effect. The load-bearing element of the redesign:
