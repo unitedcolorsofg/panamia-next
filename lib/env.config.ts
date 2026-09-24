@@ -302,12 +302,14 @@ export const envConfig: Record<string, EnvVarConfig> = {
   NEXT_PUBLIC_STADIA_API_KEY: {
     description:
       'Stadia Maps API key for the directory and profile basemaps (public). ' +
-      'Public by design — it travels in every tile URL — so lock it to the ' +
-      'site domain in the Stadia dashboard rather than treating it as a secret. ' +
-      'Unset is fine for local development: Stadia serves localhost keyless. ' +
-      'Unset in production means watermarked tiles. ' +
-      'Baked into the bundle by Vite at build time, so it must be in CF Build ' +
-      'variables (not Runtime).',
+      'Usually unnecessary: production authenticates by domain instead, so ' +
+      'registering the site host in the Stadia dashboard needs no key and no ' +
+      'build variable, and Stadia serves localhost keyless for development. ' +
+      'Set it only for callers with no Origin/Referer, such as server-side ' +
+      'or native requests. Public by design — it travels in every tile URL — ' +
+      'so lock it to the site domain in the Stadia dashboard rather than ' +
+      'treating it as a secret. Baked into the bundle by Vite at build time, ' +
+      'so if set it must be in CF Build variables (not Runtime).',
     location: 'VAR',
     required: false,
     docsUrl: 'https://client.stadiamaps.com/dashboard/',

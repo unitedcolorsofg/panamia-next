@@ -16,12 +16,20 @@
  */
 
 /**
- * Public by design — it travels in every tile URL, so there is nothing to
- * leak. Stadia scopes it by domain allowlist instead.
+ * Optional. The production path is domain-based authentication: register
+ * pana.social in the Stadia dashboard and browser requests authenticate on
+ * their Origin and Referer headers, with no key in the bundle at all. That
+ * needs proxy.ts to keep sending a Referer — it sets
+ * Referrer-Policy: strict-origin-when-cross-origin, which is exactly what
+ * Stadia asks for. A no-referrer policy would silently break it.
  *
- * Left unset it is simply absent from the URL, which is the correct behaviour
- * locally: Stadia serves localhost keyless. In production an absent key means
- * watermarked tiles, so set it before shipping.
+ * So leaving this unset is correct in every environment we ship: Stadia
+ * serves localhost keyless for development, and domain auth covers
+ * production. Set it only for requests that carry no Origin/Referer — server
+ * side or native — where domain auth has nothing to match on.
+ *
+ * Public by design if you do set it: it travels in every tile URL, so there
+ * is nothing to leak. Stadia scopes it by domain allowlist instead.
  */
 const API_KEY = process.env.NEXT_PUBLIC_STADIA_API_KEY;
 
