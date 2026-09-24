@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { deleteFile, uploadFile } from '@/lib/blob/api';
+import { getActiveProfileId } from '@/lib/server/active-profile';
+import { ensureProfile } from '@/lib/server/profile';
 
 const cacheRand = () => {
   return Math.floor((Math.random() + 1) * 10000)
@@ -15,24 +17,30 @@ const cacheRand = () => {
 export async function POST(request: NextRequest) {
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({
       success: false,
       error: 'No user session available',
     });
   }
-  const email = session.user?.email;
-  if (!email) {
-    return NextResponse.json(
-      { success: false, error: 'No valid email' },
-      { status: 200 }
-    );
-  }
 
-  const existingProfile = await db.query.profiles.findFirst({
-    where: eq(profiles.email, email),
-    with: { user: { columns: { screenname: true } } },
-  });
+  /* Resolve the same row the rest of the account does. This looked the profile
+     up by email, while /api/getProfile -- which is what the settings page and
+     the images page read back from -- resolves the *active* profile for the
+     signed-in user: a cookie selection they can administer, else their own row
+     by userId. Those are not always the same record. Anyone acting as a
+     business listing wrote their picture to one profile and then displayed
+     another, and several rows can share an email, so findFirst could pick a
+     different one on either side. Writing where the page is looking is the
+     difference between a saved picture appearing and vanishing. */
+  const activeId = await getActiveProfileId(session.user.id);
+
+  const existingProfile = activeId
+    ? await db.query.profiles.findFirst({
+        where: eq(profiles.id, activeId),
+        with: { user: { columns: { screenname: true } } },
+      })
+    : await ensureProfile(session.user.id, session.user.email ?? undefined);
 
   if (!existingProfile) {
     return NextResponse.json(
