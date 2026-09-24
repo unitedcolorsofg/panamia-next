@@ -75,7 +75,12 @@
   padding: 3px;
   border: 2px solid rgb(17 13 13 / 0.14);
   border-radius: 999px;
-  background: transparent;
+  /* Solid, not transparent: this is the one masthead control that has to be
+     findable at a glance, and an outline-only pill disappeared into the cream
+     page. Ink text, never white — app/globals.css sets the rule that warm
+     surfaces carry ink, and white on #ff8100 is 2.50:1, which fails AA for the
+     13px label. Ink on orange is 7.50:1. */
+  background: var(--color-pana-orange);
   color: var(--color-pana-ink);
   cursor: pointer;
   transition:
@@ -85,7 +90,21 @@
 
 .trigger:hover {
   border-color: rgb(17 13 13 / 0.34);
-  background-color: rgb(17 13 13 / 0.04);
+  /* Burnt reads as the same chip pressed rather than a different one, and
+     holds ink at 5.18:1. */
+  background-color: var(--color-pana-burnt);
+}
+
+/* The disc would vanish into the pill now that both are orange, so inside the
+   trigger it goes cream — which also gives a photo a clean ring to sit in.
+   Only here: in the menu's account list the disc sits on a cream surface and
+   needs to stay orange to be visible at all.
+
+   :not() so a business keeps its indigo squircle. A bare `.trigger .avatar`
+   outranks `.avatarBusiness` on specificity and would quietly erase the one
+   cue that says "this is a business, not you". */
+.trigger .avatar:not(.avatarBusiness) {
+  background-color: var(--color-pana-cream);
 }
 
 .trigger:focus-visible {
