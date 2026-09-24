@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 
 const ACCEPTED = 'image/png, image/jpeg, image/webp';
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_BYTES = 8 * 1024 * 1024;
 
 /* Mock mirror of the live AvatarEditor in
@@ -49,6 +50,13 @@ export function AvatarEditor({
 
   function choose(next: File | undefined) {
     if (!next) return;
+
+    if (!ACCEPTED_TYPES.includes(next.type)) {
+      setError(
+        `${next.type || 'That file type'} will not work. Use a JPG, PNG, or WebP.`
+      );
+      return;
+    }
 
     if (next.size > MAX_BYTES) {
       setError('That image is over 8MB. Try a smaller one.');

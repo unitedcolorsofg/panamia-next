@@ -15,6 +15,12 @@ import {
 
 const ACCEPTED = 'image/png, image/jpeg, image/webp';
 
+/* The accept attribute above is a filter on the file picker, not a rule -- a
+   member can switch it to "All files" and choose a HEIC straight off an
+   iPhone. Checking here means they are told which file was the problem
+   instead of watching a save appear to succeed. */
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
 /* Large enough for anything off a phone camera, small enough that a member
    finds out here rather than after waiting on a doomed upload. */
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -67,6 +73,13 @@ export function AvatarEditor({
   function choose(next: File | undefined) {
     if (!next) return;
 
+    if (!ACCEPTED_TYPES.includes(next.type)) {
+      setError(
+        `${next.type || 'That file type'} will not work. Use a JPG, PNG, or WebP.`
+      );
+      return;
+    }
+
     if (next.size > MAX_BYTES) {
       setError('That image is over 8MB. Try a smaller one.');
       return;
@@ -100,8 +113,16 @@ export function AvatarEditor({
       await onUploaded();
       clearChoice();
       setOpen(false);
-    } catch {
-      setError('That did not save. Please try again.');
+    } catch (err) {
+      /* The endpoint answers some failures with a non-2xx, which axios throws
+         on, so its explanation is in the response body rather than in hand.
+         Passing it through is the difference between a member knowing their
+         file was the wrong format and being told to try again forever. */
+      const fromServer =
+        axios.isAxiosError(err) && typeof err.response?.data?.error === 'string'
+          ? err.response.data.error
+          : '';
+      setError(fromServer || 'That did not save. Please try again.');
     } finally {
       setUploading(false);
     }
