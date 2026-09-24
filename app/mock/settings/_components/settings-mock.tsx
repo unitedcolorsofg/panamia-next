@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Lock, Sparkles, Undo2 } from 'lucide-react';
 import type { MockSurface } from '../../_data/panaverse';
@@ -14,6 +13,7 @@ import {
   type LicenseOption,
 } from '../_data/mock-settings';
 import { SettingsNav } from './settings-nav';
+import { AvatarEditor } from './avatar-editor';
 import {
   DataSection,
   IdentitySection,
@@ -70,6 +70,12 @@ export function SettingsMock({ surfaces }: { surfaces: MockSurface[] }) {
   const [screenname, setScreenname] = useState(MOCK_ACCOUNT.screenname);
   const [zip, setZip] = useState(MOCK_ACCOUNT.zipCode);
 
+  /* The avatar writes on save rather than through the save bar, because it is
+     the one field here that is a file rather than a value. Nullable so the
+     toolbar can show the empty bubble, which is the state worth reviewing:
+     a member with no picture is exactly who this affordance is for. */
+  const [avatar, setAvatar] = useState<string | null>(MOCK_ACCOUNT.avatar);
+
   /* Fields that write on change, as they already do in the live page. */
   const [license, setLicense] =
     useState<LicenseOption['value']>(DEFAULT_LICENSE);
@@ -103,6 +109,8 @@ export function SettingsMock({ surfaces }: { surfaces: MockSurface[] }) {
         currentId={current.id}
         onSelectSurface={setSurfaceId}
         hostname={current.hostname}
+        hasPicture={avatar !== null}
+        onPicture={(has) => setAvatar(has ? MOCK_ACCOUNT.avatar : null)}
       />
 
       {/* The same masthead component every other surface mock wears. Swapping
@@ -116,7 +124,12 @@ export function SettingsMock({ surfaces }: { surfaces: MockSurface[] }) {
       />
 
       <div className="container mx-auto max-w-5xl px-4 pt-8">
-        <PageHead surfaceName={current.name} />
+        <PageHead
+          surfaceName={current.name}
+          name={name}
+          avatar={avatar}
+          onAvatar={setAvatar}
+        />
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
           <SettingsNav />
@@ -212,22 +225,24 @@ function flash(set: (state: 'idle' | 'saving' | 'saved') => void) {
  * with the member and the handle answers the question most people arrive with
  * — "is this the right account, and what am I called here" — before they have
  * scrolled to a single field. */
-function PageHead({ surfaceName }: { surfaceName: string }) {
+function PageHead({
+  surfaceName,
+  name,
+  avatar,
+  onAvatar,
+}: {
+  surfaceName: string;
+  name: string;
+  avatar: string | null;
+  onAvatar: (url: string) => void;
+}) {
   return (
     <header>
       <span className="section-eyebrow">Account</span>
       <div className="mt-3 flex flex-wrap items-center gap-4">
-        <Image
-          src={MOCK_ACCOUNT.avatar}
-          alt=""
-          width={56}
-          height={56}
-          className="chrome-avatar h-14 w-14 flex-none"
-        />
+        <AvatarEditor name={name} avatarUrl={avatar} onSave={onAvatar} />
         <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight">
-            {MOCK_ACCOUNT.name}
-          </h1>
+          <h1 className="text-2xl font-black tracking-tight">{name}</h1>
           <p className="text-pana-ink/60 truncate text-[13px] font-extrabold">
             {MOCK_ACCOUNT.fediverseHandle}
           </p>
@@ -281,11 +296,15 @@ function MockToolbar({
   currentId,
   onSelectSurface,
   hostname,
+  hasPicture,
+  onPicture,
 }: {
   surfaces: MockSurface[];
   currentId: string;
   onSelectSurface: (id: string) => void;
   hostname: string;
+  hasPicture: boolean;
+  onPicture: (has: boolean) => void;
 }) {
   return (
     <div className="mock-toolbar">
@@ -310,6 +329,25 @@ function MockToolbar({
             From {surface.name}
           </button>
         ))}
+      </div>
+
+      {/* The empty bubble is the state worth being able to look at: a member
+          who already has a picture is not the one this affordance is for. */}
+      <div className="mock-switch">
+        <button
+          type="button"
+          data-active={hasPicture}
+          onClick={() => onPicture(true)}
+        >
+          With picture
+        </button>
+        <button
+          type="button"
+          data-active={!hasPicture}
+          onClick={() => onPicture(false)}
+        >
+          No picture
+        </button>
       </div>
 
       <Link href="/mock/panaverse" className="mock-toolbar-link">
