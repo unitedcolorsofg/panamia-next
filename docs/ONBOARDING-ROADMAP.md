@@ -216,7 +216,10 @@ Three details settled during the build:
 ### Phase 3 — contextual asks
 
 - **Display name and avatar** — shipped. See below.
-- **Who to follow** — see Known Gaps; this one is not a wiring job.
+- **Who to follow** — already works. `listSuggestedActors` falls back to
+  recently-joined local actors when the mutual-follow walk returns nothing, and
+  the card labels that tier "New to Pana Social". An earlier draft of this
+  document claimed the opposite; see Known Gaps for what was actually wrong.
 
 #### Shipped: the first-post ask
 
@@ -295,11 +298,14 @@ but nothing says so at that moment. That is a discoverability fix in
 
 ## Known Gaps
 
-- **Follow suggestions cannot seed a first run.** `/api/social/suggestions`
-  ranks by `mutualCount` and returns an empty array for an actor with no
-  follows, which is every new member by definition. A first-run "panas to
-  follow" needs a different signal — recently-active local actors, or a curated
-  list — and is a backend change, not a UI one.
+- **~~Follow suggestions cannot seed a first run.~~** Withdrawn — this was a
+  misreading. `listSuggestedActors` runs the friend-of-friend query first, and
+  when it comes back short it tops the list up from recently-joined local actors
+  (`lib/federation/wrappers/follow.ts`, the `fresh` query). A member with zero
+  follows gets that second tier, and `SuggestionsModule` flags those cards "New
+  to Pana Social" rather than claiming a mutual that does not exist. The note is
+  kept rather than deleted because the claim reached a PR description before
+  anyone read past the first query.
 - **`hasProfile` fails closed.** `components/MainHeader.tsx` catches a failed
   `/api/getProfile` with `setHasProfile(false)`, so a network blip shows an
   established member the complete-profile bar.
