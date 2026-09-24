@@ -8216,21 +8216,29 @@ body:has(.dirsearch) header {
      nothing under a 65px masthead before the eyebrow, which is most of the
      reason the opening read as empty rather than as spacious. */
   padding-block: clamp(4.75rem, 11svh, 7.5rem) calc(var(--home-pad) * 0.9);
+
+  /* Centred to match the homepage hero, which is the page every one of these
+     is entered from. A left column here read as a different kind of page
+     rather than as the same front door one level down. Everything below the
+     hero stays left-aligned: centring is the greeting, not the document. */
+  text-align: center;
 }
 
-/* The pool of light. Anchored low and to the left rather than centred: this
-   column is left-aligned, so centred light would pool in the empty half and
-   light nothing. Sitting low also means it is at its warmest close to where
-   the hero meets the next band, which softens a join between two sections
-   that are otherwise the same cream with no rule between them.
+/* The pool of light. Centred under the column and sitting low.
 
-   The geometry is arithmetic, not taste. A gradient still at any alpha when
-   it is cut by the edge of its box draws a hard line there — the homepage
-   hero documents shipping exactly that once. Centred at 80% with a 22%
-   y-radius, the transparent stop lands at 80 + (22 x 0.78) = 97.2% of the
+   Low, because that puts it at its warmest close to where the hero meets the
+   next band, which softens a join between two sections that are otherwise the
+   same cream with no rule between them.
+
+   The vertical geometry is arithmetic, not taste. A gradient still at any
+   alpha when it is cut by the edge of its box draws a hard line there — the
+   homepage hero documents shipping exactly that once. Centred at 80% with a
+   22% y-radius, the transparent stop lands at 80 + (22 x 0.78) = 97.2% of the
    hero: inside the box, with room to spare. The first draft of this rule
-   centred it at 88% with a 30% radius, which resolves to 110.8% and drew
-   the line.
+   centred it at 88% with a 30% radius, which resolves to 110.8% and drew the
+   line. Being cut by the left and right edges is fine and is not the same
+   bug: those are the edges of the screen, where a wash running off the side
+   reads as light rather than as a seam.
 
    It is kept this low for a second reason. Peaking any higher puts the
    densest part of the wash behind the lede, and a tint under body copy is
@@ -8244,7 +8252,7 @@ body:has(.dirsearch) header {
   pointer-events: none;
   background-repeat: no-repeat;
   background-image: radial-gradient(
-    92% 22% at 22% 80%,
+    92% 22% at 50% 80%,
     rgb(var(--offering-glow) / var(--offering-glow-alpha)) 0%,
     rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.6)) 34%,
     rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.2)) 60%,
@@ -8288,6 +8296,7 @@ body:has(.dirsearch) header {
 .offering-headline {
   text-shadow: none;
   max-width: 18ch;
+  margin-inline: auto;
 }
 
 /* `.accent-word` is butter — legible on the hero's dark image, invisible on
@@ -8297,11 +8306,10 @@ body:has(.dirsearch) header {
   color: var(--story-blue);
 }
 
-/* `.hero-subheadline` centres itself on the homepage, where the hero copy is
-   centred over the street. This column is left-aligned, so the auto margins
-   have to go or the lede floats away from the headline above it. */
+/* Measure still has to be capped — a 54ch lede centred under an 18ch headline
+   is the shape; a full-width one is a paragraph that happens to be centred. */
 .offering-lede {
-  margin-inline: 0;
+  margin-inline: auto;
   margin-top: 1.5rem;
   max-width: 54ch;
   opacity: 0.86;
@@ -8312,6 +8320,7 @@ body:has(.dirsearch) header {
 .offering-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.85rem;
   margin-top: 2.25rem;
 }
