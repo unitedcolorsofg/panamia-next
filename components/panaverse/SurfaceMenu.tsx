@@ -29,7 +29,8 @@ export function SurfaceMenu({
    *  looked up here so the drawer never has to know which surface it is in. */
   mark: { src: string; alt: string; width: number; height: number };
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEs = i18n.language === 'es';
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
@@ -62,23 +63,39 @@ export function SurfaceMenu({
           /* Sign Out exists in exactly one place in this app — a drawer footer.
              The main site put it here when its identity menu was retired, and
              Pana Social had no route to it at all: a member signed in on the
-             feed could not sign out without going back to the main site. */
-          status !== 'loading' && session ? (
-            <div className="panaverse-drawer-account">
-              <Link href="/account/user/edit" onClick={close}>
-                {t('nav.accountSettings')}
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  close();
-                  void signOut({ redirect: true, callbackUrl: '/' });
-                }}
-              >
-                {t('nav.signOut')}
-              </button>
-            </div>
-          ) : null
+             feed could not sign out without going back to the main site.
+
+             The language switch sits outside the signed-in branch for the same
+             reason it does on the main site: it used to live in the theme menu,
+             which #188 removed, and it is not an account control — a visitor
+             reading the feed signed out still needs it. */
+          <div className="panaverse-drawer-account">
+            {status !== 'loading' && session && (
+              <>
+                <Link href="/account/user/edit" onClick={close}>
+                  {t('nav.accountSettings')}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    close();
+                    void signOut({ redirect: true, callbackUrl: '/' });
+                  }}
+                >
+                  {t('nav.signOut')}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                void i18n.changeLanguage(isEs ? 'en' : 'es');
+                close();
+              }}
+            >
+              {isEs ? 'in English' : 'en Español'}
+            </button>
+          </div>
         }
       />
     </>

@@ -14,7 +14,6 @@ import {
 import { type NavDrawerItem } from '@/components/NavDrawer';
 import { SurfaceMemberAvatar } from '@/components/panaverse/SurfaceMemberAvatar';
 import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 /**
  * The masthead a surface wears over its own rooms.
@@ -106,7 +105,6 @@ export function SurfaceMemberHeader({
 
         <div className="panaverse-masthead-right">
           <SurfaceMemberAvatar />
-          <ThemeToggle />
         </div>
       </div>
     </header>
