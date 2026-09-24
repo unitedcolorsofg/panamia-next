@@ -4463,16 +4463,29 @@ button.bizprofile-update-action:hover {
  * this page that used to lean on butter (the hero's pool of light, the notes,
  * the newsletter block) is re-cut below.
  *
- * Scoped to `body:has(...)` rather than `:root` for two reasons. Nothing
- * outside /mock/home should inherit a palette that has not been signed off;
- * and this page reaches into the masthead, which is not a descendant of the
- * mock's own wrapper, so a `[data-density]` scope would not reach the rules
- * that need these.
+ * Scoped to `body:has(...)` rather than `:root` because this page reaches
+ * into the masthead, which is not a descendant of the page's own wrapper, so
+ * a `[data-density]` scope would not reach the rules that need these.
+ *
+ * `body:has(.dirsearch)` is the second consumer, added when the directory
+ * results page took the same surface treatment. It is listed here rather than
+ * given its own copy of the seven values so the two pages cannot drift apart
+ * — if the palette is corrected, both move together. Scoped to the body for
+ * the same reason as the homepage: the directory paints the masthead to match
+ * its paper, and the masthead is not a descendant of that page's `<main>`.
+ *
+ * It deliberately opts in to the palette *only*: the rest of the
+ * `body:has([data-density])` block hides the test-site warning bar and hands
+ * the masthead over to a view timeline that only the homepage's hero
+ * declares, and neither of those belongs on a results page.
  *
  * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
- * registry, and adding to it would be a mock quietly redefining site-wide
- * tokens ahead of the decision it exists to inform. */
-body:has([data-density]) {
+ * registry, and these landed as a proposal ahead of the decision they existed
+ * to inform. They have since shipped on the homepage and here; folding them
+ * into the registry is a rename worth doing on its own, not as a side effect
+ * of a page redesign. */
+body:has([data-density]),
+body:has(.dirsearch) {
   --story-blue: #3565f2;
   --story-ink: #020811;
   --story-cream: #fcf2e7;
@@ -6590,4 +6603,300 @@ a.pillar-program:hover {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ========================================================================
+   Directory search — the warm surface
+   ========================================================================
+   The results page used to be four full-width colour blocks — navy band,
+   cream filters, cream results, butter tail — with pure-white cards on
+   cream. That is a different way of building depth from the one the
+   homepage uses, and putting the two side by side is what prompted this:
+   the homepage builds depth out of *light and drawing* on a single sheet
+   of paper, and this page built it out of *stacked colour*.
+
+   So the blocks go, the homepage's pool of light and its street arrive
+   under the search box, and the cards stop being a different colour from
+   the page they sit on.
+
+   Everything is scoped under `.dirsearch` — the `<main>` this page renders
+   into — rather than editing the `.dirsearch-*` rules earlier in this file
+   in place. Those rules are shared with `/mock/directory`, which is the
+   before-picture this change was reviewed against; leaving them alone keeps
+   that fixture intact and keeps the whole of this change readable as one
+   block instead of a dozen scattered edits.
+
+   `.dirsearch` also opts in to the `--story-*` palette, at its declaration
+   further up. The palette is the homepage's, and the drawing below is built
+   entirely from it — which is why the band is `--story-cream` and not
+   `--color-pana-cream`. The two creams are not the same value, and mixing
+   them puts a visible seam across the horizon.
+
+   Unlayered on purpose, matching the directory block above: these rules
+   have to beat Tailwind utilities without `!important`.
+   ======================================================================== */
+
+/* The sheet of paper. One colour from the masthead to the tail, so nothing
+   below draws an edge the eye has to cross. */
+.dirsearch {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* --- The header band ---------------------------------------------------- */
+
+/* Paper, not navy. The vertical rhythm moves to `.dirsearch-bandhead` below,
+   because the street has to reach the band's bottom edge — padding here would
+   leave a strip of empty cream under the rooflines and put back the very
+   boundary this is removing. */
+.dirsearch .dirsearch-band {
+  position: relative;
+  overflow: hidden;
+  padding-block: 0;
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+  background-repeat: no-repeat;
+  /* The homepage's pool of light, re-aimed. Centred on the search box rather
+     than on the card, and stopped short of the bottom edge so the falloff has
+     reached zero before it meets the rooflines — a live gradient cut off at
+     the horizon draws a hard orange line straight across the street. */
+  background-image: radial-gradient(
+    86% 30% at 50% 62%,
+    rgb(242 136 47 / 0.28) 0%,
+    rgb(242 136 47 / 0.17) 34%,
+    rgb(242 136 47 / 0.06) 58%,
+    rgb(242 136 47 / 0) 76%
+  );
+}
+
+/* Tooth on the paper. Masked at both ends: the masthead above is the same
+   cream and carries no grain, so grain running to the top edge would draw the
+   very boundary this variant exists to remove, and it has to clear before the
+   street so the drawing stays clean. */
+.dirsearch-bandgrain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 54%,
+    transparent 78%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 54%,
+    transparent 78%
+  );
+}
+
+/* Above the clouds (z-index 0) and the grain (1). Carries the band's vertical
+   rhythm, which the section itself has given up. */
+.dirsearch-bandhead {
+  position: relative;
+  z-index: 2;
+  padding-top: clamp(1.75rem, 4.5vw, 3rem);
+  padding-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+/* --- The town ----------------------------------------------------------- */
+
+/* In flow and last, so the band is always tall enough for it and the results
+   below can never be overlapped by a roof.
+
+   The drawing is 1440x310 and `slice`s from `xMidYMax`, so constraining the
+   height crops sky off the top and leaves the kerb on the kerb — which is
+   exactly what is wanted here. This is a horizon under the search box, not
+   the homepage's full-height establishing shot. */
+.dirsearch-street {
+  position: relative;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+}
+
+/* Tall enough for the far skyline to survive the crop. Below roughly 150px
+   the pale back row is the first thing `slice` takes, and without it the
+   near buildings sit straight on the paper with no depth behind them — the
+   drawing stops being a town and becomes a border. */
+.dirsearch-street .street-svg {
+  display: block;
+  width: 100%;
+  height: clamp(150px, 17vw, 244px);
+}
+
+/* Below this width the global `.street-svg` rule switches to a fixed
+   `--street-w` crop, and that variable is declared on `.story-street` — which
+   this is not. Declaring it here keeps the narrow-screen behaviour: hold the
+   drawing at a usable size and centre it on the market rather than scaling a
+   1440-wide street down to a smudge.
+
+   Width and margin have to be restated rather than left to the global rule.
+   The base rule above is `.dirsearch-street .street-svg` and outranks a bare
+   `.street-svg`, so `width: 100%` would otherwise survive into this range
+   while the global negative margin still applied — a full-width drawing
+   shunted 273px off the left edge of a phone. */
+@media (max-width: 60rem) {
+  .dirsearch-street {
+    --street-w: clamp(760px, 240vw, 1000px);
+    overflow-x: clip;
+  }
+
+  .dirsearch-street .street-svg {
+    width: var(--street-w);
+    max-width: none;
+    margin-left: calc(50% - var(--street-w) / 2);
+    height: clamp(132px, 26vw, 190px);
+  }
+}
+
+/* --- Type, re-cut for paper --------------------------------------------- */
+
+/* Butter on navy was the accent; butter on cream is invisible. Coral rather
+   than orange for the searched term, for the same reason the homepage uses it
+   — orange under an orange wordmark reads as a second logo. */
+.dirsearch .dirsearch-title em {
+  color: var(--story-coral);
+}
+
+.dirsearch .dirsearch-count strong,
+.dirsearch .dirsearch-locbar strong {
+  color: var(--story-ink);
+}
+
+.dirsearch .dirsearch-count,
+.dirsearch .dirsearch-locbar {
+  opacity: 0.72;
+}
+
+.dirsearch .dirsearch-locshare {
+  border-color: rgb(2 8 17 / 0.22);
+  color: var(--story-ink);
+}
+
+.dirsearch .dirsearch-locshare:hover {
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+/* A cream pill on cream paper is not a control. The homepage solves this on
+   its own search box with a hairline and a soft shadow rather than a fill, so
+   the box reads as raised paper instead of as a different material. */
+.dirsearch .dirsearch-pill {
+  background-color: #fff;
+  border: 2px solid rgb(2 8 17 / 0.14);
+  box-shadow: 0 10px 24px rgb(2 8 17 / 0.1);
+}
+
+/* Blue, matching the homepage's own search button rather than inventing a
+   third accent. Orange was the obvious warm choice and the wrong one: it is
+   the wordmark's colour and it is what the pool of light behind the box is
+   already made of, so an orange button sat in an orange glow and stopped
+   being the brightest thing in it. Blue is the only cool note on the page —
+   it is what makes the button findable. */
+.dirsearch .dirsearch-pill button {
+  background-color: var(--story-blue);
+  color: #fff;
+}
+
+.dirsearch .dirsearch-pill button:hover {
+  background-color: var(--story-ink);
+}
+
+/* --- Filters ------------------------------------------------------------ */
+
+/* The filter bar keeps its sticky behaviour and loses its edge: same paper as
+   the band above and the results below, with a hairline instead of a 2px
+   indigo rule. The shadow only appears once something is actually scrolling
+   underneath, which is the job the rule was doing badly. */
+.dirsearch .dirsearch-filters {
+  background-color: var(--story-cream);
+  border-bottom: 1px solid rgb(2 8 17 / 0.08);
+  box-shadow: 0 8px 20px rgb(2 8 17 / 0.04);
+}
+
+.dirsearch .dirsearch-chip {
+  border-width: 1px;
+  border-color: rgb(2 8 17 / 0.16);
+  color: var(--story-ink);
+}
+
+.dirsearch .dirsearch-chip:hover {
+  border-color: rgb(2 8 17 / 0.4);
+}
+
+.dirsearch .dirsearch-chip[data-on='true'] {
+  background-color: var(--story-ink);
+  border-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+.dirsearch .dirsearch-chipdivide {
+  width: 1px;
+  background-color: rgb(2 8 17 / 0.14);
+}
+
+/* --- Cards -------------------------------------------------------------- */
+
+/* The headline change. #fff on cream is a 4% step in lightness *and* a hue
+   change, and with a 2px indigo border around it every card announces itself
+   as a separate object before you have read a word of it — eleven of those
+   down a page is the "colour separation" in the brief.
+
+   Warmed to sit just above the paper instead: a near-white that is still on
+   the cream hue, a hairline in ink rather than indigo, and the separation
+   carried by a soft shadow. The card is lifted off the page, not cut out of
+   a different one. Hover keeps the existing lift and warms the edge, so the
+   thing under the cursor is still unambiguous. */
+.dirsearch .dirsearch-card {
+  background-color: color-mix(in srgb, var(--story-cream) 34%, #fff);
+  border: 1px solid rgb(2 8 17 / 0.09);
+  box-shadow: 0 6px 18px rgb(2 8 17 / 0.05);
+}
+
+.dirsearch .dirsearch-card:hover {
+  border-color: rgb(242 136 47 / 0.5);
+  box-shadow: 0 16px 34px rgb(2 8 17 / 0.09);
+}
+
+/* --- Tail --------------------------------------------------------------- */
+
+/* The two standing invitations. They ask rather than answer, so they keep an
+   edge when everything else has lost one — but a dashed indigo box on warm
+   paper is the last of the old palette left on the page. Same idea, re-cut:
+   butter let down towards the paper, and ink at a hairline. */
+.dirsearch .dirsearch-cta > div {
+  border: 1px solid rgb(2 8 17 / 0.12);
+  background-color: color-mix(
+    in srgb,
+    var(--color-pana-butter) 22%,
+    var(--story-cream)
+  );
+}
+
+.dirsearch .dirsearch-cta p {
+  color: rgb(2 8 17 / 0.66);
+}
+
+/* --- Masthead ----------------------------------------------------------- */
+
+/* The header is not a descendant of `.dirsearch`, so it keeps the site's
+   default white. At the top of the page that meets the band on a horizontal
+   edge directly above the title, which is exactly the seam this change exists
+   to remove. Match it to the paper.
+
+   The background sits on `<header>` itself — the inner masthead row is
+   already transparent — so that is what is overridden here.
+
+   Only the resting bar is touched. Unlike the homepage, this page does not
+   set `data-density`, so it never picks up the masthead's view-timeline
+   handover and there is nothing here to neutralise. */
+body:has(.dirsearch) header {
+  background-color: var(--story-cream);
 }
