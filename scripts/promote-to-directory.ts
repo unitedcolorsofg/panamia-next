@@ -30,13 +30,15 @@
  *
  * Usage:
  *   # Audit. READ ONLY — explains what the directory can and cannot see.
- *   POSTGRES_URL=... npx tsx scripts/promote-to-directory.ts
+ *   npx tsx scripts/promote-to-directory.ts
  *
  *   # Dry run for specific accounts, by email or @screenname.
- *   POSTGRES_URL=... npx tsx scripts/promote-to-directory.ts ana@shop.com @anabakes
+ *   npx tsx scripts/promote-to-directory.ts ana@shop.com @anabakes
  *
  *   # Write.
- *   POSTGRES_URL=... npx tsx scripts/promote-to-directory.ts ana@shop.com --apply
+ *   npx tsx scripts/promote-to-directory.ts ana@shop.com --apply
+ *
+ * Reads POSTGRES_URL from .env.local, or from the environment if set there.
  *
  * On PowerShell, quote screenname arguments — a bare @name is parsed as the
  * splat operator and the run dies before reaching this script:
@@ -56,11 +58,18 @@
  * Idempotent: re-running changes nothing once an account is eligible.
  */
 
+import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq, inArray, or, sql } from 'drizzle-orm';
 import * as schema from '../lib/schema';
 import { DIRECTORY_ACCOUNT_TYPES } from '../lib/accounts';
+
+// drizzle.config.ts and both seed scripts already read .env.local. Without the
+// same call here the script aborts with "POSTGRES_URL is required" on a machine
+// that is otherwise fully configured, which reads as a broken database rather
+// than a missing export.
+config({ path: '.env.local', quiet: true });
 
 const { users, profiles } = schema;
 
