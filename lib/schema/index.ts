@@ -1330,6 +1330,19 @@ export const socialStatuses = pgTable(
     eventId: text('event_id').references((): AnyPgColumn => events.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The group this status was posted into, or NULL for an ordinary
+     * personal post.
+     *
+     * This column is an authorization input, not decoration. A status in a
+     * private group is readable only by that group's members, so every path
+     * that reads social_statuses has to account for it — see
+     * `lib/federation/wrappers/group-visibility.ts`, which exists so no call
+     * site has to spell the rule itself.
+     */
+    groupId: text('group_id').references((): AnyPgColumn => socialGroups.id, {
+      onDelete: 'cascade',
+    }),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-4'),
   },
   (table) => ({
@@ -1345,6 +1358,10 @@ export const socialStatuses = pgTable(
       table.inReplyToId
     ),
     eventIdIdx: index('social_statuses_event_id_idx').on(table.eventId),
+    groupPublishedIdx: index('social_statuses_group_published_idx').on(
+      table.groupId,
+      table.published
+    ),
   })
 );
 
@@ -2069,6 +2086,10 @@ export const socialStatusesRelations = relations(
     event: one(events, {
       fields: [socialStatuses.eventId],
       references: [events.id],
+    }),
+    group: one(socialGroups, {
+      fields: [socialStatuses.groupId],
+      references: [socialGroups.id],
     }),
   })
 );

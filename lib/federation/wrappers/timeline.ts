@@ -14,12 +14,23 @@ import {
   socialFollows,
   socialActors,
   socialLikes,
+  socialGroupMembers,
   PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
-import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
+import type {
+  SocialStatus,
+  PublicSocialActor,
+  SocialGroupVisibility,
+} from '@/lib/schema';
 import { and, eq, sql, or, type SQL } from 'drizzle-orm';
 import { countyShortLabel } from '@/lib/county';
 import { socialConfig } from '../index';
+import {
+  getViewerGroupIds,
+  visibleGroupStatuses,
+  personalStatusesOnly,
+  canViewStatusGroup,
+} from './group-visibility';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
@@ -51,9 +62,25 @@ export type PublicActorWithCounty = PublicSocialActor & {
   county: string | null;
 };
 
+/**
+ * Which group a post came from, for the "posted in …" line above it.
+ *
+ * Deliberately not the whole group row. A timeline needs to name the group and
+ * link to it, and nothing more; forwarding the row would put every column
+ * added to social_groups later into a feed response nobody re-reviewed.
+ */
+export type StatusGroupContext = {
+  id: string;
+  handle: string;
+  name: string | null;
+  visibility: SocialGroupVisibility;
+};
+
 export type StatusWithActorAndLike = SocialStatus & {
   actor: PublicActorWithCounty;
   liked: boolean;
+  /** Null for an ordinary personal post, which is most of them. */
+  group: StatusGroupContext | null;
 };
 
 /**
@@ -84,6 +111,53 @@ function publicActor(actor: {
   return {
     ...(rest as unknown as PublicSocialActor),
     county: countyShortLabel(profile?.counties),
+  };
+}
+
+/**
+ * The group columns every read path selects, for the same reason ACTOR_WITH
+ * exists: seven call sites, one spelling.
+ */
+const GROUP_WITH = {
+  columns: { id: true, visibility: true },
+  with: { actor: { columns: { username: true, name: true } } },
+} as const;
+
+type GroupRow = {
+  id: string;
+  visibility: SocialGroupVisibility;
+  actor: { username: string; name: string | null } | null;
+};
+
+function groupContext(group?: GroupRow | null): StatusGroupContext | null {
+  if (!group?.actor) return null;
+  return {
+    id: group.id,
+    handle: group.actor.username,
+    name: group.actor.name,
+    visibility: group.visibility,
+  };
+}
+
+/**
+ * Flatten one queried row into the shape every timeline returns.
+ *
+ * Written once because the seven read paths below were each mapping their own
+ * rows, and the mappers had already drifted — some read `likes.length > 0`
+ * directly while others guarded it. A field added to the response in six of
+ * seven places is a field that is mysteriously absent on the seventh.
+ */
+function toStatus(row: {
+  actor: { profile?: { counties: unknown } | null };
+  likes?: { id: string }[];
+  group?: GroupRow | null;
+}): StatusWithActorAndLike {
+  const { likes, actor, group, ...rest } = row;
+  return {
+    ...(rest as unknown as SocialStatus),
+    actor: publicActor(actor),
+    liked: likes ? likes.length > 0 : false,
+    group: groupContext(group),
   };
 }
 
@@ -128,25 +202,64 @@ export async function getHomeTimeline(
   const followedActorIds = follows.map((f) => f.targetActorId);
   const timelineActorIds = [...followedActorIds, actorId];
 
-  const rows = await db.query.socialStatuses.findMany({
-    where: (s, { and, isNotNull, isNull }) =>
+  // Groups this person is actually in. Their posts reach the feed on
+  // membership alone, with no follow and no public addressing involved.
+  const memberGroupIds = await db
+    .select({ groupId: socialGroupMembers.groupId })
+    .from(socialGroupMembers)
+    .where(
       and(
-        sql`${s.actorId} = ANY(ARRAY[${sql.join(
-          timelineActorIds.map((id) => sql`${id}`),
-          sql`, `
-        )}]::text[])`,
+        eq(socialGroupMembers.actorId, actorId),
+        eq(socialGroupMembers.status, 'active')
+      )
+    )
+    .then((rows) => rows.map((r) => r.groupId));
+
+  const rows = await db.query.socialStatuses.findMany({
+    /**
+     * Two arms, not one filter with an extra clause.
+     *
+     * The follow arm requires public addressing, as it always has. A private
+     * group's posts are not PUBLIC-addressed — that is the entire point of
+     * them — so folding `group_id` into that arm would silently drop every
+     * private group post and present as "groups just don't work", with no
+     * error anywhere to explain it.
+     *
+     * The group arm therefore carries no addressing requirement at all.
+     * Membership is the authorization, which is why `memberGroupIds` is read
+     * from `status = 'active'` rows and nowhere else.
+     *
+     * `isNull(groupId)` on the follow arm is not redundant: without it, a post
+     * to a group you are in, written by someone you also follow, matches both
+     * arms and renders twice.
+     */
+    where: (s, { and: andOp, inArray, isNotNull, isNull }) =>
+      andOp(
+        or(
+          andOp(
+            sql`${s.actorId} = ANY(ARRAY[${sql.join(
+              timelineActorIds.map((id) => sql`${id}`),
+              sql`, `
+            )}]::text[])`,
+            isNull(s.groupId),
+            or(
+              jsonbArrayContains(socialStatuses.recipientTo, PUBLIC),
+              jsonbArrayContains(socialStatuses.recipientCc, PUBLIC)
+            )
+          ),
+          memberGroupIds.length > 0
+            ? inArray(s.groupId, memberGroupIds)
+            : sql`false`
+        ),
         isNotNull(s.published),
         isNull(s.inReplyToId),
-        or(
-          jsonbArrayContains(socialStatuses.recipientTo, PUBLIC),
-          jsonbArrayContains(socialStatuses.recipientCc, PUBLIC)
-        ),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
       actor: ACTOR_WITH,
       attachments: true,
+      group: GROUP_WITH,
       likes: {
         where: eq(socialLikes.actorId, actorId),
         columns: { id: true },
@@ -160,12 +273,7 @@ export async function getHomeTimeline(
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, actor, ...rest } = row;
-    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
-  });
-
-  return { statuses, nextCursor };
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
@@ -178,18 +286,25 @@ export async function getActorPosts(
   limit: number = 20,
   includeReplies: boolean = false
 ): Promise<TimelineResult> {
+  const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, eq, isNotNull, isNull }) =>
       and(
         eq(s.actorId, actorId),
         isNotNull(s.published),
         includeReplies ? undefined : isNull(s.inReplyToId),
+        // Without this a private group post appears on its author's profile,
+        // to anyone, which is the leak the group feature is most able to cause:
+        // the author is public, so nothing else here would have stopped it.
+        visibleGroupStatuses(viewerGroupIds),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
       actor: ACTOR_WITH,
       attachments: true,
+      group: GROUP_WITH,
       ...(viewerActorId && {
         likes: {
           where: eq(socialLikes.actorId, viewerActorId),
@@ -205,17 +320,56 @@ export async function getActorPosts(
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-    const { likes, actor, ...rest } = rowWithLikes;
-    return {
-      ...rest,
-      actor: publicActor(actor),
-      liked: likes ? likes.length > 0 : false,
-    };
+  return { statuses: items.map(toStatus), nextCursor };
+}
+
+/**
+ * Get posts in a group.
+ *
+ * The visibility predicate does the authorization rather than a separate
+ * `canRead` check before the call: for a public group it passes everything,
+ * and for a private one it matches only when the viewer holds active
+ * membership. A non-member therefore gets an empty timeline rather than an
+ * error, which is also the right answer for a group they cannot see into.
+ */
+export async function getGroupTimeline(
+  groupId: string,
+  viewerActorId?: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResult> {
+  const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+
+  const rows = await db.query.socialStatuses.findMany({
+    where: (s, { and, eq: eqOp, isNotNull, isNull }) =>
+      and(
+        eqOp(s.groupId, groupId),
+        isNotNull(s.published),
+        isNull(s.inReplyToId),
+        visibleGroupStatuses(viewerGroupIds),
+        notExpired(),
+        cursor ? sql`${s.id} < ${cursor}` : undefined
+      ),
+    with: {
+      actor: ACTOR_WITH,
+      attachments: true,
+      group: GROUP_WITH,
+      ...(viewerActorId && {
+        likes: {
+          where: eq(socialLikes.actorId, viewerActorId),
+          columns: { id: true },
+        },
+      }),
+    },
+    orderBy: (s, { desc }) => [desc(s.published), desc(s.id)],
+    limit: limit + 1,
   });
 
-  return { statuses, nextCursor };
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
@@ -226,18 +380,26 @@ export async function getPublicTimeline(
   cursor?: string,
   limit: number = 20
 ): Promise<TimelineResult> {
+  const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, isNotNull, isNull }) =>
       and(
         isNotNull(s.published),
         isNull(s.inReplyToId),
         jsonbArrayContains(socialStatuses.recipientTo, PUBLIC),
+        // Public addressing already excludes private group posts, so this is
+        // belt and braces — but the two conditions are independent, and the
+        // day someone posts a PUBLIC-addressed note into a private group this
+        // is the line that keeps the town square from being the leak.
+        visibleGroupStatuses(viewerGroupIds),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
       actor: ACTOR_WITH,
       attachments: true,
+      group: GROUP_WITH,
       ...(viewerActorId && {
         likes: {
           where: eq(socialLikes.actorId, viewerActorId),
@@ -260,17 +422,7 @@ export async function getPublicTimeline(
   const items = hasMore ? localRows.slice(0, limit) : localRows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-    const { likes, actor, ...rest } = rowWithLikes;
-    return {
-      ...rest,
-      actor: publicActor(actor),
-      liked: likes ? likes.length > 0 : false,
-    };
-  });
-
-  return { statuses, nextCursor };
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
@@ -297,6 +449,9 @@ export async function getReceivedDirectMessages(
         ne(s.actorId, actorId),
         jsonbArrayContains(socialStatuses.recipientTo, actor.uri),
         sql`NOT (${jsonbArrayContains(socialStatuses.recipientTo, PUBLIC)} OR ${jsonbArrayContains(socialStatuses.recipientCc, PUBLIC)})`,
+        // "Not publicly addressed" is how this view finds DMs, and it is also
+        // true of every private group post. Membership content is not mail.
+        personalStatusesOnly(),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
@@ -316,12 +471,7 @@ export async function getReceivedDirectMessages(
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, actor, ...rest } = row;
-    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
-  });
-
-  return { statuses, nextCursor };
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
@@ -338,6 +488,10 @@ export async function getSentDirectMessages(
         eq(s.actorId, actorId),
         isNotNull(s.published),
         sql`NOT (${jsonbArrayContains(socialStatuses.recipientTo, PUBLIC)} OR ${jsonbArrayContains(socialStatuses.recipientCc, PUBLIC)})`,
+        // Same reason as the inbox, and this one bites immediately: without
+        // it, every private group post you write turns up in your own Sent
+        // messages, because it is by definition not publicly addressed.
+        personalStatusesOnly(),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
@@ -357,12 +511,7 @@ export async function getSentDirectMessages(
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, actor, ...rest } = row;
-    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
-  });
-
-  return { statuses, nextCursor };
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
@@ -382,6 +531,8 @@ export async function getAtMeTimeline(
     return { statuses: [], nextCursor: null };
   }
 
+  const viewerGroupIds = await getViewerGroupIds(actorId);
+
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, isNotNull, ne }) =>
       and(
@@ -396,12 +547,16 @@ export async function getAtMeTimeline(
             AND st.href = ${actor.uri}
           )`
         ),
+        // A mention is an invitation to read the post, so without this a
+        // non-member is handed private group content by being named in it.
+        visibleGroupStatuses(viewerGroupIds),
         notExpired(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
       actor: ACTOR_WITH,
       attachments: true,
+      group: GROUP_WITH,
       likes: {
         where: eq(socialLikes.actorId, actorId),
         columns: { id: true },
@@ -415,16 +570,15 @@ export async function getAtMeTimeline(
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const statuses: StatusWithActorAndLike[] = items.map((row) => {
-    const { likes, actor, ...rest } = row;
-    return { ...rest, actor: publicActor(actor), liked: likes.length > 0 };
-  });
-
-  return { statuses, nextCursor };
+  return { statuses: items.map(toStatus), nextCursor };
 }
 
 /**
  * Get a single status with like status for viewer.
+ *
+ * Returns null for a status the viewer may not read, so a permalink to a
+ * private group post is a 404 to a non-member rather than a 403 — a 403 would
+ * confirm the post exists, which is half of what the group was keeping.
  */
 export async function getStatusWithLikeStatus(
   statusId: string,
@@ -435,6 +589,7 @@ export async function getStatusWithLikeStatus(
     with: {
       actor: ACTOR_WITH,
       attachments: true,
+      group: GROUP_WITH,
       ...(viewerActorId && {
         likes: {
           where: eq(socialLikes.actorId, viewerActorId),
@@ -445,12 +600,7 @@ export async function getStatusWithLikeStatus(
   });
 
   if (!row) return null;
+  if (!(await canViewStatusGroup(row.groupId, viewerActorId))) return null;
 
-  const rowWithLikes = row as typeof row & { likes?: { id: string }[] };
-  const { likes, actor, ...rest } = rowWithLikes;
-  return {
-    ...rest,
-    actor: publicActor(actor),
-    liked: likes ? likes.length > 0 : false,
-  };
+  return toStatus(row);
 }

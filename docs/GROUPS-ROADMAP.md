@@ -441,11 +441,54 @@ The UI that sits on this:
 
 Still open: topic browse (the chips on a group are not yet links).
 
-### Phase 3 — Group updates in the feed
+### Phase 3 — Group updates in the feed — shipped
 
-- `social_statuses.group_id` + partial index
-- The two-arm `getHomeTimeline` rewrite in [Feed Integration](#feed-integration)
-- **Audit every status-reading path for group visibility** — see [Risks](#risks--open-questions)
+- `social_statuses.group_id` + partial index (migration `0045`). `ON DELETE CASCADE`, not `SET
+NULL`: nulling the column would strip the only marker making those posts private and quietly
+  promote every one of them into a personal post on the author's public profile.
+- The two-arm `getHomeTimeline` rewrite in [Feed Integration](#feed-integration). `isNull(groupId)`
+  on the follow arm is load-bearing — without it a post in a group you are in, by someone you also
+  follow, matches both arms and renders twice.
+- `lib/federation/wrappers/group-visibility.ts` holds the rule **once**. Twelve hand-written copies
+  of a security predicate is twelve chances to write `OR` where `AND` belongs, and the eleven
+  correct copies give no warning about the twelfth.
+- `POST /api/social/groups/[handle]/posts` for writing, `GET` for reading, and the group's posts now
+  render on `/g/[handle]` with a composer for members.
+- A "Posted in …" line on the feed card, carrying a lock for private groups so a member can tell
+  what is safe to quote elsewhere.
+- `tests-db/group-feed.test.ts` — 24 tests, one per read path.
+
+**The audit found three leaks beyond the documented trap:**
+
+1. **`getActorPosts` had no addressing filter at all.** A private group post rendered on its
+   author's public profile to anyone. The author is public, so nothing else in the query would have
+   stopped it. The most severe of the three.
+2. **`getSentDirectMessages` finds DMs by "not publicly addressed"** — which is also true of every
+   private group post, so they filed themselves into the author's Sent list. Only leaks to
+   yourself, but it proves the "not public" heuristic is now ambiguous and cannot be trusted alone.
+3. **`getAtMeTimeline`** — a mention inside a private group post handed the content to a non-member
+   by naming them.
+
+Also gated: `getPublicTimeline`, `getReceivedDirectMessages`, `getStatusWithLikeStatus`,
+`getStatusReplies`, `likeStatus`/`unlikeStatus`, and the federation outbox.
+
+`getStatusByUri` is deliberately **not** filtered — it is how federation resolves a URI it was
+handed, where the caller is the system and returning null breaks delivery rather than protecting
+anything. Any path showing its result to a human must gate with `canViewStatusGroup`.
+
+Permalinks return **404, not 403**: a 403 confirms the post exists, which is half of what the group
+was keeping.
+
+Still open: group actors do not federate at all yet — the outbox excludes **every** group post,
+public ones included. A remote server has no notion of our membership table, so once a post leaves
+we have handed over the only thing enforcing who may read it. See phase 3.5 below.
+
+### Phase 3.5 — Group federation
+
+- Audit the inbox side before letting group posts out: delivery, `Announce`, and reply threading
+  all resolve statuses by URI, which is ungated by design.
+- Decide whether private groups federate at all, or whether the group actor publishes only public
+  groups' posts.
 
 ### Phase 4 — Group-hosted events
 
@@ -477,13 +520,21 @@ and any future export. The timeline is simply the most obvious one.
 
 The failure mode is silent and unrecoverable: a private post rendered once to a non-member cannot be
 un-rendered, and if it leaked through an outbox it has already been fetched by remote servers.
-Phase 3 should enumerate these call sites explicitly and add a test per path.
+
+**Resolved in phase 3.** Every path listed above is gated through
+`lib/federation/wrappers/group-visibility.ts`, and `tests-db/group-feed.test.ts` holds one test per
+path. Three leaks that were not in the original list turned up during the audit and are recorded
+under [Phase 3](#phase-3--group-updates-in-the-feed--shipped). The lesson worth keeping: two of the
+three were paths nobody would have thought to check, because they were not _about_ groups — they
+matched private group posts as a side effect of a heuristic ("not publicly addressed", "mentions
+me") that was accurate before groups existed.
 
 ### Open questions
 
 - **Should a group actor be followable by remote servers before local visibility rules are proven?**
   Recommendation: no. Ship public group posts locally in phase 3, enable federation in a phase 3.5
-  once the outbox filter has been audited.
+  once the outbox filter has been audited. **Phase 3 took the strict reading**: the outbox now
+  carries no group posts at all, public groups included.
 - **Do relay groups eventually bind to social groups** via a `relayGroupId` column, or stay fully
   separate? Staying separate is simpler and is the assumption throughout this document.
   Note that `docs/RESILIENCE-ROADMAP.md:551` already plans a Nostr→ActivityPub bridge in the

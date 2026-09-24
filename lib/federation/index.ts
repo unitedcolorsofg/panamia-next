@@ -17,6 +17,7 @@ export * from './wrappers/actor';
 export * from './wrappers/status';
 export * from './wrappers/follow';
 export * from './wrappers/group';
+export * from './wrappers/group-visibility';
 export * from './wrappers/timeline';
 export {
   verify as verifyHttpSignature,

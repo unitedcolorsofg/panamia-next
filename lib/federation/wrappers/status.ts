@@ -12,13 +12,24 @@ import {
   socialActors,
   socialAttachments,
   socialLikes,
+  socialGroups,
+  socialGroupMembers,
   PUBLIC_ACTOR_COLUMNS,
 } from '@/lib/schema';
-import type { SocialStatus, PublicSocialActor } from '@/lib/schema';
+import type {
+  SocialStatus,
+  PublicSocialActor,
+  SocialGroupVisibility,
+} from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { marked } from 'marked';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
+import {
+  getViewerGroupIds,
+  visibleGroupStatuses,
+  canViewStatusGroup,
+} from './group-visibility';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import type { JsonValue } from '@/lib/types';
 
@@ -84,8 +95,22 @@ export async function createStatus(
   }>,
   recipientActorIds?: string[],
   location?: StatusLocation,
-  ccLicense: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' = 'cc-by-4'
+  ccLicense: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' = 'cc-by-4',
+  /**
+   * Trailing options rather than a tenth positional argument. Nine positions
+   * is already past the point where a call site reads as a list of mysteries,
+   * and `undefined, undefined, groupId` is how the wrong value lands in the
+   * wrong slot.
+   */
+  options?: { groupId?: string }
 ): Promise<CreateStatusResult> {
+  const groupId = options?.groupId;
+  let groupRow: {
+    id: string;
+    visibility: SocialGroupVisibility;
+    actor: { username: string } | null;
+  } | null = null;
+
   // Fetch the actor with profile
   const actor = await db.query.socialActors.findFirst({
     where: eq(socialActors.id, actorId),
@@ -94,6 +119,47 @@ export async function createStatus(
 
   if (!actor) {
     return { success: false, error: 'Actor not found' };
+  }
+
+  /**
+   * Posting into a group is gated on active membership, checked here rather
+   * than at the route, because this is the only door into the table. A caller
+   * that could pass an arbitrary group id would otherwise be able to write
+   * into a private group it has never joined — and since membership is also
+   * what authorizes *reading*, that post would then be visible to everyone in
+   * a group the author was never admitted to.
+   */
+  if (groupId) {
+    const membership = await db.query.socialGroupMembers.findFirst({
+      where: and(
+        eq(socialGroupMembers.groupId, groupId),
+        eq(socialGroupMembers.actorId, actorId),
+        eq(socialGroupMembers.status, 'active')
+      ),
+      columns: { id: true },
+    });
+
+    if (!membership) {
+      return { success: false, error: 'You are not a member of this group' };
+    }
+
+    if (visibility === 'direct') {
+      return {
+        success: false,
+        error: 'A direct message cannot be posted to a group',
+      };
+    }
+
+    groupRow =
+      (await db.query.socialGroups.findFirst({
+        where: eq(socialGroups.id, groupId),
+        columns: { id: true, visibility: true },
+        with: { actor: { columns: { username: true } } },
+      })) ?? null;
+
+    if (!groupRow) {
+      return { success: false, error: 'Group not found' };
+    }
   }
 
   // Check gate (profile must exist for local actors)
@@ -146,6 +212,7 @@ export async function createStatus(
       isDraft: false,
       inReplyToId: inReplyToId || null,
       inReplyToUri: inReplyToUri || null,
+      groupId: groupId || null,
       uri: '',
       url: '',
       ccLicense,
@@ -208,6 +275,23 @@ export async function createStatus(
       recipientTo = [followersUrl];
       recipientCc = [PUBLIC];
       break;
+  }
+
+  /**
+   * A private group's post is addressed to the group, never to PUBLIC.
+   *
+   * The visibility argument describes how the *author* wanted to post; it does
+   * not get to widen the audience of a room they were let into. Leaving the
+   * default `unlisted` addressing in place would stamp the Public collection
+   * onto a private group's post, which is both a false statement about who may
+   * read it and the exact value a future reader path might trust.
+   *
+   * Public groups keep the author's chosen addressing: the group is readable
+   * by anyone, so there is nothing to narrow.
+   */
+  if (groupRow && groupRow.visibility === 'private' && groupRow.actor) {
+    recipientTo = [getFollowersUrl(groupRow.actor.username)];
+    recipientCc = [];
   }
 
   const [updatedStatus] = await db
@@ -298,20 +382,35 @@ export async function createStatus(
 
 /**
  * Get a status by ID with actor information
+ *
+ * Group-aware: a status in a private group resolves to null for anyone who is
+ * not an active member. Callers that pass no viewer are treated as anonymous,
+ * which is the safe default and the correct one for the public permalink.
  */
 export async function getStatus(
-  statusId: string
+  statusId: string,
+  viewerActorId?: string
 ): Promise<StatusWithActor | null> {
-  return (
+  const status =
     (await db.query.socialStatuses.findFirst({
       where: eq(socialStatuses.id, statusId),
       with: { actor: { columns: PUBLIC_ACTOR_COLUMNS } },
-    })) ?? null
-  );
+    })) ?? null;
+
+  if (!status) return null;
+  if (!(await canViewStatusGroup(status.groupId, viewerActorId))) return null;
+
+  return status;
 }
 
 /**
  * Get a status by URI
+ *
+ * Deliberately NOT group-filtered. This is the lookup federation uses to
+ * resolve a URI it was handed — dereferencing an inbox activity, threading a
+ * reply — where the caller is the system rather than a person, and returning
+ * null would break delivery rather than protect anything. Any path that shows
+ * the result to a human must gate it with `canViewStatusGroup` first.
  */
 export async function getStatusByUri(
   uri: string
@@ -364,17 +463,26 @@ export async function deleteStatus(
 
 /**
  * Get replies to a status
+ *
+ * A reply inherits its parent's group, so this needs the same gate the parent
+ * did. Without it a thread inside a private group is readable by anyone who
+ * can guess a status id, which is the cheapest possible way to defeat the
+ * group's privacy.
  */
 export async function getStatusReplies(
   statusId: string,
   cursor?: string,
-  limit: number = 20
+  limit: number = 20,
+  viewerActorId?: string
 ): Promise<{ replies: StatusWithActor[]; nextCursor: string | null }> {
+  const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+
   const replies = await db.query.socialStatuses.findMany({
     where: (s, { and, eq, isNotNull, gt }) =>
       and(
         eq(s.inReplyToId, statusId),
         isNotNull(s.published),
+        visibleGroupStatuses(viewerGroupIds),
         cursor ? gt(s.id, cursor) : undefined,
         sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`
       ),
@@ -407,6 +515,17 @@ export async function likeStatus(
   });
 
   if (!status) {
+    return {
+      success: false,
+      liked: false,
+      likesCount: 0,
+      error: 'Status not found',
+    };
+  }
+
+  // Liking is a read you can feel. Without this gate a non-member can probe a
+  // private group's post ids and learn which ones exist from the like counts.
+  if (!(await canViewStatusGroup(status.groupId, actorId))) {
     return {
       success: false,
       liked: false,
@@ -478,6 +597,18 @@ export async function unlikeStatus(
   });
 
   if (!status) {
+    return {
+      success: false,
+      liked: false,
+      likesCount: 0,
+      error: 'Status not found',
+    };
+  }
+
+  // Same gate as liking. This path returns `likesCount` even when there was
+  // nothing to remove, so without it an unlike is a free read of a private
+  // group post's like count by anyone willing to guess the id.
+  if (!(await canViewStatusGroup(status.groupId, actorId))) {
     return {
       success: false,
       liked: false,

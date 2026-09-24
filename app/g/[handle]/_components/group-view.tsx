@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   CalendarDays,
   Check,
@@ -8,12 +8,16 @@ import {
   Globe,
   Loader2,
   Lock,
+  Send,
   UserPlus,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FeedPostCard } from '@/app/s/_components/feed-post-card';
 import {
+  useCreateGroupPost,
   useGroup,
+  useGroupPosts,
   useJoinGroup,
   useLeaveGroup,
   type GroupDetailResponse,
@@ -23,10 +27,11 @@ import {
  * A group home page, as far as Phases 1 and 2 can honestly render it.
  *
  * Follows app/mock/group: cover, square avatar, identity block with a privacy
- * pill, summary, topics, join action. What the mock has and this does not is
- * posts, events and a roster -- those need the group timeline from Phase 3,
- * and showing empty tabs for them would advertise features that are not wired
- * rather than features that are quiet.
+ * pill, summary, topics, join action, and the group's posts.
+ *
+ * What the mock has and this does not is events and a roster -- those are
+ * later phases, and showing empty tabs for them would advertise features that
+ * are not wired rather than features that are quiet.
  *
  * The mock's stat rail is dropped for the same reason. With Posts and Events
  * unbuilt it would be a single Members figure, which the line above it already
@@ -195,22 +200,96 @@ function GroupBody({
               </section>
             )}
 
-            <section className="border-pana-ink/10 rounded-2xl border border-dashed p-6">
-              <h2 className="text-pana-ink text-[15px] font-extrabold">
-                Posts are coming
-              </h2>
-              <p className="text-pana-ink/65 mt-1.5 text-[13px] leading-snug font-medium">
-                This group exists and you can join it. Posting, events and the
-                member roster land next, and anything posted here will show up
-                in your feed.
-              </p>
-            </section>
+            <GroupPosts handle={handle} canPost={viewer.canPost} />
           </div>
         ) : (
           <LockedPanel isPending={viewer.isPending} />
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * The group's posts, plus a composer for members.
+ *
+ * The composer is gated on `canPost` rather than `canRead`, because a public
+ * group is readable by a stranger and writable only by a member -- offering a
+ * box that will 403 on submit is worse than not offering one.
+ *
+ * The empty state does not distinguish "no posts yet" from "nothing you may
+ * see", and must not: the server returns an empty timeline in both cases on
+ * purpose, and a client that guessed the difference would be reporting on
+ * content it was never given.
+ */
+function GroupPosts({ handle, canPost }: { handle: string; canPost: boolean }) {
+  const { data, isLoading } = useGroupPosts(handle);
+  const create = useCreateGroupPost();
+  const [draft, setDraft] = useState('');
+
+  const statuses = data?.statuses ?? [];
+
+  const submit = () => {
+    const content = draft.trim();
+    if (!content || create.isPending) return;
+    create.mutate({ handle, content }, { onSuccess: () => setDraft('') });
+  };
+
+  return (
+    <div className="space-y-4">
+      {canPost && (
+        <section className="border-pana-ink/10 rounded-2xl border bg-white p-4">
+          <label htmlFor="group-composer" className="sr-only">
+            Write a post in this group
+          </label>
+          <textarea
+            id="group-composer"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Share something with the group"
+            rows={3}
+            className="text-pana-ink placeholder:text-pana-ink/40 w-full resize-none bg-transparent text-[15px] font-medium outline-none"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              onClick={submit}
+              disabled={!draft.trim() || create.isPending}
+              className="bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full font-extrabold"
+            >
+              {create.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="h-4 w-4" aria-hidden="true" />
+              )}
+              Post
+            </Button>
+          </div>
+          {create.isError && (
+            <p className="mt-2 text-[13px] font-bold text-red-700">
+              That did not post. Try again.
+            </p>
+          )}
+        </section>
+      )}
+
+      {isLoading ? (
+        <div className="bg-pana-ink/10 h-28 animate-pulse rounded-2xl" />
+      ) : statuses.length === 0 ? (
+        <section className="border-pana-ink/10 rounded-2xl border border-dashed p-6 text-center">
+          <p className="text-pana-ink/65 text-[14px] leading-snug font-medium">
+            {canPost
+              ? 'No posts yet. Yours would be the first.'
+              : 'No posts yet.'}
+          </p>
+        </section>
+      ) : (
+        <div className="space-y-4">
+          {statuses.map((status) => (
+            <FeedPostCard key={status.id} status={status} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

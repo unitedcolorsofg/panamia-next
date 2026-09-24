@@ -490,6 +490,64 @@ export const useLeaveGroup = () => {
   });
 };
 
+async function fetchGroupPosts(
+  handle: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResponse | null> {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  params.set('limit', String(limit));
+  return getSocialData(
+    `/api/social/groups/${encodeURIComponent(handle)}/posts?${params}`
+  );
+}
+
+/**
+ * A group's posts.
+ *
+ * A non-member reading a private group gets an empty timeline rather than an
+ * error, because that is the honest answer -- the server will not say whether
+ * there was anything to miss. Callers should render the locked panel off
+ * `viewer.canRead` from `useGroup` instead of inferring it from emptiness.
+ */
+export const useGroupPosts = (
+  handle: string,
+  cursor?: string,
+  limit: number = 20
+) => {
+  return useQuery<TimelineResponse | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle, 'posts', cursor, limit],
+    queryFn: () => fetchGroupPosts(handle, cursor, limit),
+    enabled: Boolean(handle),
+  });
+};
+
+/**
+ * Post into a group.
+ *
+ * Separate from `useCreatePost` because the endpoint is different: the group
+ * route re-checks membership and owns the addressing of a private group's
+ * posts, neither of which the generic status endpoint can do from a groupId
+ * it was handed by a client.
+ */
+export const useCreateGroupPost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ handle, content }: { handle: string; content: string }) =>
+      axios.post(`/api/social/groups/${encodeURIComponent(handle)}/posts`, {
+        content,
+      }),
+    onSettled: (_data, _error, { handle }) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      // The post also belongs in the author's own feed and profile.
+      queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'timeline'] });
+    },
+  });
+};
+
 export interface SuggestedPana extends PanaSummary {
   /**
    * Panas shared with the viewer. Zero means the server had no graph to walk
