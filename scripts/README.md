@@ -266,6 +266,14 @@ npx tsx scripts/seed-business-photos.ts --explain  # matcher only, no database
 npm run db:photos                                  # alias for the dry run
 ```
 
+**Check which database it names before you trust an `--apply`.** Every
+worktree's `.env.local` points at the same local `127.0.0.1:5433/panamia`, so a
+bare `--apply` rewrites the dev database and leaves the live site untouched —
+which reads exactly like the script having silently done nothing. Pass
+`--postgres <url>` to target production explicitly. Every run prints the host
+and database name it resolved (never the URL, which carries the password), and
+says so out loud when an `--apply` is pointed at localhost.
+
 **Which column is the cover.** There isn't one. `lib/server/directory.ts` reads
 `coverImage` out of the `galleryImages` JSONB as `gallery1CDN`, and
 `profiles.primaryImageCdn` is the **logo**. The script therefore writes
