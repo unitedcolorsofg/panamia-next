@@ -163,6 +163,42 @@ function intendedPath(search: string | null | undefined): string | null {
 }
 
 /**
+ * Which surface's chrome this request should wear.
+ *
+ * The three chrome predicates below all key off the surface the *hostname*
+ * names, which is right once every surface has an origin and wrong until then.
+ * While PANAVERSE_SUBDOMAINS is off — the configuration we actually ship —
+ * pana.social/s resolves to the default surface, so `wearsGuestChrome` and
+ * `wearsSurfaceChrome` both return false on their first line and the feed falls
+ * through to `wearsMainChrome`. Pana Social renders wearing the Pana Mia
+ * masthead, its newsletter bar and its footer: the exact "a section of the main
+ * site" reading the surface chrome was built to dispel, produced by the surface
+ * chrome being switched off.
+ *
+ * It also takes the safe-area padding with it. Those rules are written against
+ * `.panaverse-masthead`, so an installed app on a notched phone put the main
+ * site's bar under the status bar with nothing compensating — a layout bug with
+ * no layout cause, inherited entirely from resolving the wrong surface.
+ *
+ * This is the rule `resolveInstallSurface` already applies, and the mismatch is
+ * what made the bug visible: install identity follows the path, chrome follows
+ * the host, so the feed installs as Pana Social and then opens as Pana Mia.
+ * Lifting the shared part here keeps the two answers from drifting again.
+ *
+ * Inert once the subdomains land: a non-default host returns immediately, so
+ * with PANAVERSE_SUBDOMAINS on this is the identity function and every
+ * predicate sees exactly what it sees today.
+ */
+export function resolveChromeSurface(
+  surface: PanaverseSurface,
+  pathname: string | null | undefined
+): PanaverseSurface {
+  if (surface.id !== DEFAULT_SURFACE.id) return surface;
+  if (!pathname) return surface;
+  return surfaceForPath(normalisePath(pathname));
+}
+
+/**
  * Which app an install started from this request would create.
  *
  * Three rules, narrowing:
@@ -200,13 +236,13 @@ export function resolveInstallSurface(
   pathname: string | null | undefined,
   search?: string | null
 ): PanaverseSurface {
-  if (surface.id !== DEFAULT_SURFACE.id) return surface;
+  /* Rules one and two, shared with the chrome predicates so the tile a member
+   * installs and the masthead it opens under cannot disagree. */
+  const byChrome = resolveChromeSurface(surface, pathname);
+  if (byChrome.id !== DEFAULT_SURFACE.id) return byChrome;
   if (!pathname) return surface;
 
   const path = normalisePath(pathname);
-  const byPath = surfaceForPath(path);
-  if (byPath.id !== DEFAULT_SURFACE.id) return byPath;
-
   if (!wearsOwnChrome(path)) return surface;
   const intended = intendedPath(search);
   return intended ? surfaceForPath(intended) : surface;
