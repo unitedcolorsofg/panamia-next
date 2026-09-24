@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { deleteFile, uploadFile } from '@/lib/blob/api';
 import { getActiveProfileId } from '@/lib/server/active-profile';
 import { ensureProfile } from '@/lib/server/profile';
+import { syncActorFromProfile } from '@/lib/federation/wrappers/actor';
 
 const cacheRand = () => {
   return Math.floor((Math.random() + 1) * 10000)
@@ -199,6 +200,27 @@ export async function POST(request: NextRequest) {
       .returning();
 
     console.log('save');
+
+    /* Pana Social draws avatars from social_actors.icon_url, a copy of the
+       picture kept alongside the actor because federation serves it to other
+       servers from there. That copy was written once, when the actor was
+       created, and never again: syncActorFromProfile exists for precisely this
+       and had no callers anywhere in the codebase. So a picture set or changed
+       after enrolling stayed on the profile and never reached the feed, the
+       composer, or anyone following from another server -- the account chrome
+       reads the profile directly, which is why it was the only place the new
+       picture appeared. */
+    if (primaryImageUpdate.primaryImageCdn) {
+      try {
+        await syncActorFromProfile(existingProfile.id);
+      } catch (error) {
+        /* The picture is already stored and the profile already updated, so
+           failing the request here would be its own kind of lie. Log it and
+           let the save stand: the avatar is correct everywhere that reads the
+           profile, and stale only on the social copy. */
+        console.error('Actor icon sync failed:', error);
+      }
+    }
 
     return NextResponse.json(
       { success: true, data: updatedProfile },
