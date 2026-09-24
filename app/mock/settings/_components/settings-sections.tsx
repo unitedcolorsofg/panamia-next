@@ -5,9 +5,11 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Check,
   Fingerprint,
+  ImagePlus,
   Loader2,
   Mail,
   RefreshCw,
@@ -150,6 +152,37 @@ export function IdentitySection({
   return (
     <Section id="identity">
       <SettingsCard>
+        {/* First, because it is the only part of "who you are" this page
+            cannot edit. Leaving it out is what sent members hunting through
+            the profile pages for it. */}
+        <SettingsRow
+          label="Profile picture"
+          note="One image is your avatar everywhere — beside everything you post, on your listing in directory search, and on other fediverse servers. It belongs to your profile rather than your account, so it is changed on a page of its own."
+          control={
+            <Link
+              href="/account/profile/images"
+              className="settings-btn"
+              data-variant="quiet"
+            >
+              Change picture
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          }
+        >
+          <div className="settings-avatar">
+            {MOCK_ACCOUNT.avatar ? (
+              <img
+                src={MOCK_ACCOUNT.avatar}
+                alt="Your current profile picture"
+              />
+            ) : (
+              <span className="settings-avatar-empty">
+                <ImagePlus className="h-5 w-5" aria-hidden="true" />
+              </span>
+            )}
+          </div>
+        </SettingsRow>
+
         <SettingsRow
           label="Name"
           htmlFor="settings-name"
@@ -251,6 +284,24 @@ export function IdentitySection({
             </div>
           )}
         </SettingsRow>
+
+        {/* The rest of the profile, named so members stop looking for it here.
+            Bio and links are the next two things people arrive on this page
+            hoping to change. */}
+        <SettingsRow
+          label="Your public profile"
+          note="Your bio, links, categories, and the location shown on your listing are part of your profile, and are edited together in one place."
+          control={
+            <Link
+              href="/account/profile/edit"
+              className="settings-btn"
+              data-variant="quiet"
+            >
+              Edit profile
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          }
+        />
       </SettingsCard>
     </Section>
   );
