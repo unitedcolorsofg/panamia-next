@@ -6,15 +6,15 @@ import {
   type PanaverseSurface,
 } from '@/lib/panaverse/surfaces';
 import {
+  SHARED_ROOMS,
   SURFACE_MARK,
   SURFACE_NAV,
   SURFACE_TONE,
 } from '@/lib/panaverse/branding';
-import {
-  SurfaceSwitcher,
-  type SurfaceLink,
-} from '@/components/panaverse/SurfaceSwitcher';
+import { type NavDrawerItem } from '@/components/NavDrawer';
 import { SurfaceMemberAvatar } from '@/components/panaverse/SurfaceMemberAvatar';
+import { SurfaceMenu } from '@/components/panaverse/SurfaceMenu';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 /**
  * The masthead a surface wears over its own rooms.
@@ -26,48 +26,50 @@ import { SurfaceMemberAvatar } from '@/components/panaverse/SurfaceMemberAvatar'
  * between the two, so a signed-in member at social.pana.social/s got a bare
  * page: no mark, no nav, no account, and no route back to Pana Mia.
  *
- * Three things are constant across every surface masthead and one changes. The
- * constants are the mark's lettering family, the switcher, and the avatar —
- * enough to read as one organisation across an origin boundary. What changes is
- * which mark, which nav, and the accent rule. That split is the whole design:
- * constant enough to be one org, different enough that a timeline does not
- * carry a directory nav.
+ * Wears the main site's shape — MENU on the left, mark centred, account on the
+ * right, cream bar under a hairline rule. Two sites that share an account and
+ * differ in chrome read as two products; the thing that makes them one is that
+ * the furniture sits where you last left it. What still changes per surface is
+ * which mark flies and where the links go, which is as much difference as a
+ * timeline and a directory need.
+ *
+ * The cross-surface links and the shared rooms live in the drawer rather than
+ * in a switcher beside the avatar. That follows the main masthead, which moved
+ * its own cross-site menu into the drawer for the same reason: a bar carrying
+ * four controls on a phone has no room left for the mark.
  *
  * Rendered server-side so the cross-surface origins are resolved where
- * PANAVERSE_ROOT_DOMAIN actually exists — see SurfaceLink. Only the two
- * controls that need session state are client components.
+ * PANAVERSE_ROOT_DOMAIN actually exists. Only the controls that need session
+ * state are client components.
  */
 export function SurfaceMemberHeader({
   surface,
   host,
-  pathname,
 }: {
-  /** The surface being served — its mark flies here and its nav is rendered. */
+  /** The surface being served — its mark flies here and its nav leads the drawer. */
   surface: PanaverseSurface;
   /** Raw Host header. Keeps cross-surface links on the scheme and port in hand
    *  rather than sending a developer out to the live site. */
   host: string | null | undefined;
-  /** Path being served, used only to mark the active nav item. */
-  pathname: string;
 }) {
   const mark = SURFACE_MARK[surface.id];
-  const nav = SURFACE_NAV[surface.id] ?? [];
 
-  const links: SurfaceLink[] = SURFACES.map((s) => {
-    const href = `${originForFrom(s, host)}${s.rootPath}`;
-    return {
-      id: s.id,
-      name: s.name,
-      /* The host actually being linked to, not `hostnameFor(s)`. The two are
-       * the same string in production, but `hostnameFor` always names the
-       * configured root domain, so in dev the panel read "social.pana.social"
-       * under a link that went to social.localhost:3003 — a label describing
-       * somewhere the click does not go. Reading it back off the href cannot
-       * disagree with the destination. */
-      hostname: new URL(href).host,
-      href,
-    };
-  });
+  /* Everything the switcher used to hold, in the order a member reads it:
+     where they already are, the rooms they can reach without crossing an
+     origin, then the other surface. Built on the server because that is where
+     PANAVERSE_ROOT_DOMAIN is — the same reason the switcher took resolved
+     hrefs rather than building them in the browser. */
+  const menuItems: NavDrawerItem[] = [
+    ...(SURFACE_NAV[surface.id] ?? []).map((item) => ({
+      href: item.href,
+      label: item.label,
+    })),
+    ...SHARED_ROOMS.map((room) => ({ href: room.path, label: room.name })),
+    ...SURFACES.filter((s) => s.id !== surface.id).map((s) => ({
+      href: `${originForFrom(s, host)}${s.rootPath}`,
+      label: s.name,
+    })),
+  ];
 
   return (
     <header
@@ -76,7 +78,14 @@ export function SurfaceMemberHeader({
       data-sticky="true"
       data-contained="true"
     >
-      <div className="panaverse-masthead-inner container mx-auto max-w-6xl px-4">
+      <div
+        className="panaverse-masthead-inner container mx-auto max-w-6xl px-4"
+        data-layout="centered"
+      >
+        <div className="panaverse-masthead-left">
+          <SurfaceMenu items={menuItems} mark={mark} />
+        </div>
+
         <Link
           href={surface.rootPath}
           className="panaverse-guest-home"
@@ -95,28 +104,9 @@ export function SurfaceMemberHeader({
           />
         </Link>
 
-        {nav.length > 0 && (
-          <nav className="panaverse-nav" aria-label={`${surface.name}`}>
-            {nav.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  data-active={active || undefined}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
-
-        <div className="ml-auto flex flex-none items-center gap-2">
-          <SurfaceSwitcher surfaces={links} currentId={surface.id} />
+        <div className="panaverse-masthead-right">
           <SurfaceMemberAvatar />
+          <ThemeToggle />
         </div>
       </div>
     </header>
