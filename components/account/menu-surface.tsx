@@ -114,19 +114,25 @@ export function MenuSurface({
     first?.focus();
   }, [open]);
 
-  // Roving arrow-key focus across the rows.
+  /* Roving arrow-key focus across the rows.
+     Left/Right are aliases for Up/Down rather than true grid movement: part
+     of this menu is a list and part is a three-column grid, so a real
+     two-axis walk would need to know which is which. Document order is
+     already correct in both, and a horizontal press in a grid mostly means
+     "the neighbouring tile" — which is the adjacent row here. */
   const onListKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+    const back = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+    if (!forward && !back) return;
     const rows = Array.from(
       listRef.current?.querySelectorAll<HTMLElement>(`[${MENU_ROW}]`) ?? []
     );
     if (rows.length === 0) return;
     e.preventDefault();
     const at = rows.indexOf(document.activeElement as HTMLElement);
-    const next =
-      e.key === 'ArrowDown'
-        ? rows[(at + 1) % rows.length]
-        : rows[(at - 1 + rows.length) % rows.length];
+    const next = forward
+      ? rows[(at + 1) % rows.length]
+      : rows[(at - 1 + rows.length) % rows.length];
     next?.focus();
   };
 
