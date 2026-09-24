@@ -7636,6 +7636,7 @@ a.pillar-program:hover {
    but 3rem was a title for a page you arrive at rather than a label on a list
    you are working through. */
 .dirsearch-summary {
+  margin: 0;
   font-family: var(--font-montserrat);
   font-size: 0.9375rem;
   font-weight: 700;

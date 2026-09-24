@@ -88,10 +88,19 @@ export function SearchBand({
       </form>
 
       <div className="dirsearch-toolsline">
+        {/* The page's heading is the page's heading, not its result count.
+            This h1 used to be the big "Find your people" hero line; the hero
+            is gone but the stable, route-describing heading it carried still
+            has to exist for screen readers and crawlers. Hiding it visually
+            keeps that contract at zero vertical cost. */}
+        <h1 className="sr-only">Find your people</h1>
+
         {/* Headline and count in one sentence. Two lines of type that each
             said half of "24 results for food" cost more height than they
-            earned. */}
-        <h1 className="dirsearch-summary">
+            earned. It's a status message, not a heading — it says what the
+            search is doing right now, so it announces itself when the answer
+            changes instead of silently rewriting the page title. */}
+        <p className="dirsearch-summary" role="status" aria-live="polite">
           {loading ? (
             <>Searching…</>
           ) : resultCount === 0 ? (
@@ -123,7 +132,7 @@ export function SearchBand({
                 (nearestFirst ? ', closest first' : ', with distances')}
             </>
           )}
-        </h1>
+        </p>
 
         {/* The local-first control. One sentence and one button rather than a
             permissions-style dialog, because the honest ask is small: we want
