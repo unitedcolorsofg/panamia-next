@@ -40,6 +40,7 @@ export function MenuSurface({
   trigger,
   triggerClassName,
   children,
+  footer,
 }: {
   /** Accessible name for both the trigger and the mobile sheet. */
   label: string;
@@ -47,6 +48,16 @@ export function MenuSurface({
   triggerClassName?: string;
   /** Receives `close` so a row can dismiss the menu as it navigates. */
   children: (close: (returnFocus?: boolean) => void) => ReactNode;
+  /**
+   * Rows that must stay reachable without scrolling.
+   *
+   * On phones the sheet is capped at 84vh, and the list above it grows with
+   * every business a member helps run — so Sign Out, which is last, is the
+   * first thing to fall off the bottom. Anything passed here is pinned below
+   * the scrolling region instead. On desktop there is nothing to pin and it
+   * simply renders after `children`, which is where it already was.
+   */
+  footer?: (close: (returnFocus?: boolean) => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -119,9 +130,27 @@ export function MenuSurface({
     next?.focus();
   };
 
+  /* Both halves stay inside the one role="menu" element, so the roving
+     arrow-key walk below still crosses from the list into the pinned rows in
+     document order. */
   const rows = (
-    <div ref={listRef} onKeyDown={onListKeyDown} role="menu">
-      {children(close)}
+    <div
+      ref={listRef}
+      onKeyDown={onListKeyDown}
+      role="menu"
+      className={isMobile ? styles.sheetRows : undefined}
+    >
+      {isMobile ? (
+        <>
+          <div className={styles.sheetScroll}>{children(close)}</div>
+          {footer && <div className={styles.sheetFooter}>{footer(close)}</div>}
+        </>
+      ) : (
+        <>
+          {children(close)}
+          {footer?.(close)}
+        </>
+      )}
     </div>
   );
 
