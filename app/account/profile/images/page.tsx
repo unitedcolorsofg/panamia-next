@@ -32,12 +32,27 @@ export default function AccountProfileImages() {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
 
     try {
-      await axios.post('/api/profile/upload', formData, {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const { data: result } = await axios.post(
+        '/api/profile/upload',
+        formData,
+        {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      /* A 200 from this endpoint does not on its own mean anything was
+         stored, so the body is what decides. Reporting success on the
+         absence of a thrown error is how uploads appeared to work here for
+         a long time while saving nothing. */
+      if (!result?.success) {
+        setUploadError(
+          result?.error || 'Failed to upload images. Please try again.'
+        );
+        return;
+      }
 
       setUploadSuccess(true);
       await refetch();
@@ -47,7 +62,12 @@ export default function AccountProfileImages() {
       form.reset();
     } catch (error) {
       console.error(error);
-      setUploadError('Failed to upload images. Please try again.');
+      const fromServer =
+        axios.isAxiosError(error) &&
+        typeof error.response?.data?.error === 'string'
+          ? error.response.data.error
+          : '';
+      setUploadError(fromServer || 'Failed to upload images. Please try again.');
     } finally {
       setUploading(false);
     }

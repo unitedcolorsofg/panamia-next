@@ -56,37 +56,72 @@ export async function POST(request: NextRequest) {
 
     const acceptedFields = ['primary', 'gallery1', 'gallery2', 'gallery3'];
 
+    /* R2 needs an extension to serve the file back with a usable content
+       type, so anything not in here cannot be stored. It is reported rather
+       than skipped: quietly dropping a file the member chose, and then
+       answering "success", is what let this endpoint look like it worked
+       while saving nothing at all. */
+    const extByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+
+    const rejected: string[] = [];
+
     // Process each form entry
     for (const [fieldname, value] of formData.entries()) {
-      if (value instanceof File && acceptedFields.includes(fieldname)) {
-        console.log('onFile', fieldname, value.name, value.type, value.size);
-
-        // Convert File to Buffer
-        const arrayBuffer = await value.arrayBuffer();
-        const data = Buffer.from(arrayBuffer);
-
-        // Determine file extension from MIME type
-        const ext =
-          value.type === 'image/jpeg'
-            ? 'jpg'
-            : value.type === 'image/png'
-              ? 'png'
-              : value.type === 'image/webp'
-                ? 'webp'
-                : '';
-
-        if (ext) {
-          console.log('mimeType', value.type);
-          const fileName = `profile/${handle}/${fieldname}${cacheRand()}.${ext}`;
-          console.log('fileName', fileName);
-          uploadedFiles.push({
-            data: data,
-            filename: fileName,
-            fieldname: fieldname,
-            ext: ext,
-          });
-        }
+      if (!(value instanceof File) || !acceptedFields.includes(fieldname)) {
+        continue;
       }
+
+      /* An untouched file input still submits, as an empty file. That is not
+         a member choosing something unusable, so it is passed over without
+         complaint -- the images page posts four slots at once and usually
+         means only one of them. */
+      if (value.size === 0) {
+        continue;
+      }
+
+      console.log('onFile', fieldname, value.name, value.type, value.size);
+
+      const ext = extByType[value.type];
+      if (!ext) {
+        rejected.push(
+          `${value.name || fieldname} (${value.type || 'unrecognised type'})`
+        );
+        continue;
+      }
+
+      // Convert File to Buffer
+      const arrayBuffer = await value.arrayBuffer();
+      const data = Buffer.from(arrayBuffer);
+
+      const fileName = `profile/${handle}/${fieldname}${cacheRand()}.${ext}`;
+      console.log('fileName', fileName);
+      uploadedFiles.push({
+        data: data,
+        filename: fileName,
+        fieldname: fieldname,
+        ext: ext,
+      });
+    }
+
+    if (rejected.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Could not use ${rejected.join(', ')}. Images need to be JPG, PNG, or WebP.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (uploadedFiles.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No image was received.' },
+        { status: 400 }
+      );
     }
 
     // Track updates for primary image and gallery images
@@ -101,8 +136,17 @@ export async function POST(request: NextRequest) {
     // Process all uploaded files
     for (const file of uploadedFiles) {
       const filePath = await uploadFile(file.filename, file.data);
+      /* Storage refusing the file used to be skipped over, which meant the
+         member was told the picture had saved while nothing had been
+         written. If it cannot be stored, say so. */
       if (!filePath) {
-        continue;
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'The image could not be saved to storage. Please try again.',
+          },
+          { status: 500 }
+        );
       }
       console.log('filePath', filePath);
 
