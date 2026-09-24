@@ -14,6 +14,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StoryRing } from '@/components/social/StoryRing';
 import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import { LINK_ICON, LINK_TITLE } from './link-icons';
 import { useProfileViewer } from './profile-viewer';
@@ -102,13 +103,15 @@ export function ProfileHero({
         <div className="-mt-16 flex flex-col gap-6 md:-mt-24 md:flex-row md:items-end md:gap-8">
           {profile.logo && (
             <div className="bizprofile-logo">
-              <Image
-                src={profile.logo}
-                alt={`${profile.name} logo`}
-                width={220}
-                height={220}
-                unoptimized={isUnoptimizableImageSrc(profile.logo)}
-              />
+              <StoryRing username={profile.handle} size="lg">
+                <Image
+                  src={profile.logo}
+                  alt={`${profile.name} logo`}
+                  width={220}
+                  height={220}
+                  unoptimized={isUnoptimizableImageSrc(profile.logo)}
+                />
+              </StoryRing>
             </div>
           )}
 

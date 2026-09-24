@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { BadgeCheck, CalendarDays, MapPin } from 'lucide-react';
 import type { PersonalProfileView } from '@/lib/server/personal-profile';
 import { isUnoptimizableImageSrc } from '@/lib/image-src';
+import { StoryRing } from '@/components/social/StoryRing';
 import type { PersonalTab, StatDef } from './types';
 
 interface PersonalHeroProps {
@@ -61,23 +62,29 @@ export function PersonalHero({
 
       <div className="container mx-auto max-w-4xl px-4">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:gap-7">
-          <div className="profile-avatar">
-            {profile.avatar ? (
-              <Image
-                src={profile.avatar}
-                alt={`${profile.name}'s profile picture`}
-                fill
-                priority
-                sizes="(min-width: 768px) 184px, 152px"
-                className="object-cover"
-                unoptimized={isUnoptimizableImageSrc(profile.avatar)}
-              />
-            ) : (
-              <div className="bg-pana-butter text-pana-ink flex h-full w-full items-center justify-center text-4xl font-black">
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
+          <StoryRing
+            username={profile.handle}
+            size="lg"
+            className="mt-[-92px] [&_.profile-avatar]:!mt-0"
+          >
+            <div className="profile-avatar">
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt={`${profile.name}'s profile picture`}
+                  fill
+                  priority
+                  sizes="(min-width: 768px) 184px, 152px"
+                  className="object-cover"
+                  unoptimized={isUnoptimizableImageSrc(profile.avatar)}
+                />
+              ) : (
+                <div className="bg-pana-butter text-pana-ink flex h-full w-full items-center justify-center text-4xl font-black">
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </StoryRing>
 
           <div className="min-w-0 flex-1 md:pb-1">
             <h1 className="profile-name">{profile.name}</h1>

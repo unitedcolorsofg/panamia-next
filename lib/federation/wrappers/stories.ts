@@ -38,7 +38,6 @@ import {
   PUBLIC_ACTOR_COLUMNS,
   STATUS_TYPE_STORY,
 } from '@/lib/schema';
-import type { PublicSocialActor } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { canPost, GateResult } from '../gates';
 import { getFollowersUrl } from '../index';
@@ -53,7 +52,16 @@ const MAX_ACTIVE_STORIES = 20;
 /** Caption length. Far shorter than a post -- this overlays the image. */
 const MAX_CAPTION_LENGTH = 280;
 
-const STORY_MEDIA_TYPES = ['Image', 'Video'] as const;
+/**
+ * Media types a story accepts.
+ *
+ * Lowercase, not the ActivityPub 'Image'/'Video' casing, because that is what
+ * this codebase actually stores: /api/social/media returns a lowercase
+ * category and AttachmentGrid filters on it. Matching ActivityPub here would
+ * be more correct on paper and would make story media invisible to every
+ * existing renderer.
+ */
+const STORY_MEDIA_TYPES = ['image', 'video'] as const;
 
 export interface StoryMediaInput {
   type: string;
@@ -64,7 +72,7 @@ export interface StoryMediaInput {
 
 export interface StoryAttachment {
   id: string;
-  /** ActivityPub attachment type -- 'Image' or 'Video'. Drives the viewer. */
+  /** Media category -- 'image' or 'video'. Drives the viewer. */
   type: string;
   /** MIME type. Nullable in the schema, so the viewer keys off `type`. */
   mediaType: string | null;
@@ -99,6 +107,16 @@ export interface StoryTray {
   stories: Story[];
   /** True when at least one story is unwatched by this viewer. */
   hasUnseen: boolean;
+  /**
+   * Whether the requester is the author.
+   *
+   * Reported here rather than left to the caller because the two profile heroes
+   * differ: the business hero is a client component with useProfileViewer(), the
+   * personal one is server-rendered and has no viewer context at all. Deriving
+   * it server-side from the session means both get the same answer from the
+   * same comparison, and neither has to plumb it down.
+   */
+  isOwner: boolean;
 }
 
 function storyExpiry(from: Date = new Date()): Date {
@@ -145,7 +163,7 @@ export async function createStory(
     return { success: false, error: 'A story needs a photo or video' };
   }
 
-  if (!STORY_MEDIA_TYPES.includes(media.type as 'Image' | 'Video')) {
+  if (!STORY_MEDIA_TYPES.includes(media.type as 'image' | 'video')) {
     return { success: false, error: 'Stories support photos and videos only' };
   }
 
@@ -276,6 +294,8 @@ export async function getActiveStories(
     return null;
   }
 
+  const isOwner = viewerActorId != null && viewerActorId === actor.id;
+
   const rows = await db.query.socialStatuses.findMany({
     where: and(
       eq(socialStatuses.actorId, actor.id),
@@ -297,10 +317,10 @@ export async function getActiveStories(
       },
       stories: [],
       hasUnseen: false,
+      isOwner,
     };
   }
 
-  const isOwner = viewerActorId != null && viewerActorId === actor.id;
   const statusIds = rows.map((r) => r.id);
 
   // Which of these has the viewer already watched? Signed-out visitors skip
@@ -385,6 +405,7 @@ export async function getActiveStories(
     },
     stories,
     hasUnseen: stories.some((s) => !s.seen),
+    isOwner,
   };
 }
 
