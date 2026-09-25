@@ -1784,8 +1784,8 @@ button.bizprofile-update-action:hover {
 }
 
 /* Two washes over the photo: a flame tint so any cover image still reads as
-   Pana, and a bottom fade into the cream body so the scallop has something to
-   bite into regardless of what the photograph is doing down there. */
+   Pana, and a bottom fade into the cream body so the band dissolves into the
+   page regardless of what the photograph is doing down there. */
 .profile-cover::after {
   content: '';
   position: absolute;
