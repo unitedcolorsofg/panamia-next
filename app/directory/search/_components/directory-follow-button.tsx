@@ -10,21 +10,30 @@ interface DirectoryFollowButtonProps {
 /**
  * Follow button for directory search results.
  * Only renders if both the viewer and the profile have social actors enabled.
+ *
+ * The viewer is resolved first and the target fetch waits on it. A signed-out
+ * visitor can't follow anyone, so asking the server about each business on the
+ * page only to render nothing costs a request per card — seventeen of them on
+ * a full page of results.
  */
 export function DirectoryFollowButton({
   screenname,
 }: DirectoryFollowButtonProps) {
   const { data: myActorData, isLoading: myActorLoading } = useMyActor();
-  const { data: targetActorData, isLoading: targetActorLoading } =
-    useActor(screenname);
+  const viewerHasActor = Boolean(myActorData?.actor);
 
-  // Don't render while loading
-  if (myActorLoading || targetActorLoading) {
+  const { data: targetActorData, isLoading: targetActorLoading } = useActor(
+    screenname,
+    viewerHasActor
+  );
+
+  // Don't render if the viewer doesn't have an actor, or we don't know yet
+  if (myActorLoading || !viewerHasActor) {
     return null;
   }
 
-  // Don't render if viewer doesn't have an actor
-  if (!myActorData?.actor) {
+  // Don't render while the target is still loading
+  if (targetActorLoading) {
     return null;
   }
 

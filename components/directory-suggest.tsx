@@ -27,6 +27,14 @@ interface DirectorySuggestBaseProps {
   /** Visible-to-screen-readers-only label for the input. */
   label: string;
   placeholder: string;
+  /**
+   * Cycles these phrases in place of `placeholder`, one at a time.
+   *
+   * The caller decides whether a rotation is wanted at all — this component
+   * does not look at the viewport or at `prefers-reduced-motion`, it just
+   * rotates what it is handed. Pass nothing to keep the static placeholder.
+   */
+  placeholderRotation?: string[];
   ariaLabel: string;
   /** Applied to the <form>, so callers keep control of width and placement. */
   className?: string;
@@ -95,6 +103,77 @@ const KIND_IMAGE_SHAPE: Record<SuggestionKind, string> = {
   event: 'rounded-lg',
 };
 
+// One phrase is readable in well under a second; the rest of the dwell is so
+// the box is not visibly churning in the corner of someone's eye while they
+// read the headline above it.
+const ROTATION_MS = 2600;
+
+/**
+ * A placeholder that rolls through several phrases instead of stating one.
+ *
+ * On a phone the field is about 140px wide, which is too narrow to list what
+ * the directory holds in a single line — so the line takes turns instead.
+ *
+ * It is a real element rather than a swapped `placeholder` attribute because
+ * the attribute can only be cut between values, and a hard cut inside a form
+ * field reads as a glitch. It is `aria-hidden` and the input keeps its own
+ * `aria-label`, so nothing here reaches assistive tech as moving text.
+ */
+function RotatingPlaceholder({
+  phrases,
+  paused,
+}: {
+  phrases: string[];
+  paused: boolean;
+}) {
+  // `previous` is the phrase on its way out and `tick` restarts the
+  // animations, so all three move together in one update rather than as
+  // separate states that can land a frame apart.
+  const [state, setState] = useState({ index: 0, previous: -1, tick: 0 });
+
+  useEffect(() => {
+    if (paused) return;
+    const id = window.setInterval(() => {
+      setState((current) => ({
+        index: (current.index + 1) % phrases.length,
+        previous: current.index,
+        tick: current.tick + 1,
+      }));
+    }, ROTATION_MS);
+    return () => window.clearInterval(id);
+  }, [paused, phrases.length]);
+
+  // A language switch can hand over a shorter list than the index was built
+  // against, so the first phrase stands in rather than rendering nothing.
+  const phraseAt = (index: number) => phrases[index] ?? phrases[0];
+
+  return (
+    <span className="directory-suggest-rotator" aria-hidden="true">
+      <span className="directory-suggest-rotator-window">
+        <span
+          key={`in-${state.tick}`}
+          className={
+            state.tick === 0
+              ? 'directory-suggest-rotator-line'
+              : 'directory-suggest-rotator-line is-entering'
+          }
+        >
+          {phraseAt(state.index)}
+        </span>
+
+        {state.previous >= 0 && (
+          <span
+            key={`out-${state.tick}`}
+            className="directory-suggest-rotator-line is-leaving"
+          >
+            {phraseAt(state.previous)}
+          </span>
+        )}
+      </span>
+    </span>
+  );
+}
+
 /**
  * Search box with a typeahead dropdown over the whole club.
  *
@@ -119,6 +198,7 @@ const KIND_IMAGE_SHAPE: Record<SuggestionKind, string> = {
 export function DirectorySuggest({
   label,
   placeholder,
+  placeholderRotation,
   ariaLabel,
   buttonLabel,
   className,
@@ -149,6 +229,14 @@ export function DirectorySuggest({
   // -1 means "nothing highlighted": Enter then submits the typed term rather
   // than picking a row the visitor never moved to.
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Only used to freeze the rotating placeholder. Once someone is in the box,
+  // a hint that keeps moving is competing with what they came to type.
+  const [focused, setFocused] = useState(false);
+
+  const rotationPhrases = placeholderRotation ?? [];
+  // The rotation stands in for the placeholder, so it lives by the same rule:
+  // gone the moment there is a term to read underneath it.
+  const rotating = rotationPhrases.length > 1 && term.length === 0;
 
   const rootRef = useRef<HTMLFormElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -354,10 +442,16 @@ export function DirectorySuggest({
     },
     onKeyDown: handleKeyDown,
     onFocus: () => {
+      setFocused(true);
       if (!seeded && trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
       revealOnSmallScreens();
     },
-    placeholder,
+    onBlur: () => setFocused(false),
+    // Blanked while the rotation is up so the two are never drawn on top of
+    // each other. The accessible name comes from `aria-label` either way, so
+    // screen readers get one stable string rather than a placeholder that
+    // changes under them.
+    placeholder: rotating ? '' : placeholder,
     'aria-label': ariaLabel,
   };
 
@@ -415,7 +509,7 @@ export function DirectorySuggest({
         {layout === 'pill' && (
           <Search
             className={cn(
-              'text-pana-ink h-5 w-5 shrink-0 opacity-45',
+              'directory-suggest-pill-icon text-pana-ink h-5 w-5 shrink-0 opacity-45',
               // The inset is the pill's own padding when something leads it.
               !leading && 'ml-6',
             )}
@@ -434,23 +528,34 @@ export function DirectorySuggest({
             to name the field to keep the dropdown anchored to the whole pill
             instead of to the magnifier. */}
         <div className="directory-suggest-field relative w-full">
-          {layout === 'masthead' ? (
-            <input
-              {...inputProps}
-              className={cn('panaverse-search-input', inputClassName)}
-            />
-          ) : (
-            // `text-pana-ink` because the field paints a white background but
-            // would otherwise inherit its colour: dropped into `.surface-indigo`
-            // — the hero, and now every scope page band — it inherits cream and
-            // types invisibly on white. Only shows once the field holds a
-            // value, which is why it survived until the scope pages started
-            // seeding one.
-            <Input
-              {...inputProps}
-              className={cn('text-pana-ink', inputClassName)}
-            />
-          )}
+          {/* The shell is the rotating placeholder's positioning context. It
+              wraps the input alone, never the listbox below — the listbox
+              deliberately resolves against the whole pill so it spans the bar
+              rather than stopping at the field. */}
+          <div className="directory-suggest-input-shell">
+            {layout === 'masthead' ? (
+              <input
+                {...inputProps}
+                className={cn('panaverse-search-input', inputClassName)}
+              />
+            ) : (
+              // `text-pana-ink` because the field paints a white background but
+              // would otherwise inherit its colour: dropped into `.surface-indigo`
+              // — the hero, and now every scope page band — it inherits cream and
+              // types invisibly on white. Only shows once the field holds a
+              // value, which is why it survived until the scope pages started
+              // seeding one.
+              <Input
+                {...inputProps}
+                className={cn('text-pana-ink', inputClassName)}
+              />
+            )}
+
+            {rotating && (
+              <RotatingPlaceholder phrases={rotationPhrases} paused={focused} />
+            )}
+          </div>
+
           {showList && (
             <ul
               id={listboxId}

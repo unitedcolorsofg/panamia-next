@@ -299,6 +299,101 @@ export const profileSignalKind = pgEnum('profile_signal_kind', [
   'recommend',
 ]);
 
+/**
+ * Who can read a social group's posts and roster.
+ *
+ * A 'public' group is readable by anyone and its posts are PUBLIC-addressed,
+ * so they federate and reach the home timeline through the existing path. A
+ * 'private' group is readable only by active members and its posts are never
+ * PUBLIC-addressed, which is exactly why this is a stored column rather than
+ * something derived from join_policy: every read path has to be able to ask
+ * "may this viewer see this at all" without first reasoning about admission.
+ *
+ * See the private-group leakage risk in docs/GROUPS-ROADMAP.md.
+ */
+export const socialGroupVisibility = pgEnum('social_group_visibility', [
+  'public',
+  'private',
+]);
+
+/**
+ * How a social group admits people.
+ *
+ * 'open'    — joining takes effect immediately, membership lands 'active'.
+ * 'request' — joining creates a 'pending' row an admin or moderator approves.
+ * 'invite'  — cannot be joined on request at all; someone has to add you.
+ *
+ * Deliberately three values where relay_group_join_policy has two. An interest
+ * group usually wants "anyone may ask, we decide", which open/invite_only has
+ * no way to express.
+ */
+export const socialGroupJoinPolicy = pgEnum('social_group_join_policy', [
+  'open',
+  'request',
+  'invite',
+]);
+
+/**
+ * Ordered by power. 'admin' can change group settings, manage roles and delete
+ * the group; 'moderator' can approve join requests and remove posts; 'member'
+ * can only post and leave.
+ */
+export const socialGroupRole = pgEnum('social_group_role', [
+  'admin',
+  'moderator',
+  'member',
+]);
+
+/**
+ * Whether a membership row grants access.
+ *
+ * Only 'active' authorises reading a private group or posting to any group,
+ * and only 'active' rows are counted in social_groups.member_count.
+ *
+ * 'banned' is retained rather than deleted on purpose: an open group is one
+ * click to join, so a removed row would let a banned pana walk straight back
+ * in. The row is the enforcement.
+ */
+export const socialGroupMemberStatus = pgEnum('social_group_member_status', [
+  'active',
+  'pending',
+  'banned',
+]);
+
+/**
+ * Who may read a recommendation list.
+ *
+ * - `private`  — the owner and nobody else. The default, because a list with
+ *                one entry and a half-written note is a draft, and publishing
+ *                on create would push it to the profile page mid-thought.
+ * - `unlisted` — reachable by direct URL, excluded from listings and from the
+ *                owner's public collection. Same meaning as
+ *                `event_visibility.unlisted`, deliberately so: one word should
+ *                not mean two things across two features.
+ * - `public`   — listed, federated, anyone.
+ *
+ * ## Why there is no "panas-only"
+ *
+ * Because it could not be enforced. A followers-only *status* works because
+ * visibility there is addressing on a push path — the post is delivered to a
+ * follower's inbox and never sent anywhere else. A list is the opposite shape:
+ * remote servers GET it. Gating a pull endpoint on "is the fetcher a follower"
+ * requires authenticating the fetcher, i.e. signed GETs, which this codebase
+ * does not implement (see lib/federation/crypto/sign.ts — signing exists for
+ * outbound POSTs only, and inbound signature verification has no replay
+ * protection yet).
+ *
+ * Shipping a `panas_only` value we cannot honour would be worse than not
+ * offering it: the owner would believe the list was restricted while every
+ * unauthenticated crawler read it. It is also precisely the sort of parallel
+ * half-mechanism SOCIAL-ROADMAP Phase 3.5 removed the previous lists feature
+ * to avoid. Revisit when signed fetches land.
+ */
+export const recommendationListVisibility = pgEnum(
+  'recommendation_list_visibility',
+  ['private', 'unlisted', 'public']
+);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -321,6 +416,15 @@ export type SessionType = (typeof sessionType.enumValues)[number];
 export type SessionStatus = (typeof sessionStatus.enumValues)[number];
 export type IntakeFormType = (typeof intakeFormType.enumValues)[number];
 export type SocialFollowStatus = (typeof socialFollowStatus.enumValues)[number];
+export type SocialGroupVisibility =
+  (typeof socialGroupVisibility.enumValues)[number];
+export type SocialGroupJoinPolicy =
+  (typeof socialGroupJoinPolicy.enumValues)[number];
+export type SocialGroupRole = (typeof socialGroupRole.enumValues)[number];
+export type SocialGroupMemberStatus =
+  (typeof socialGroupMemberStatus.enumValues)[number];
+export type RecommendationListVisibility =
+  (typeof recommendationListVisibility.enumValues)[number];
 export type EventStatus = (typeof eventStatus.enumValues)[number];
 export type EventVisibility = (typeof eventVisibility.enumValues)[number];
 export type EventMode = (typeof eventMode.enumValues)[number];
@@ -788,6 +892,183 @@ export const profileSignals = pgTable(
 );
 
 // =============================================================================
+// Recommendation lists
+// =============================================================================
+
+/**
+ * A named, ordered list of directory listings a pana vouches for.
+ *
+ * The directory can already tell you a cafe exists. It cannot tell you that
+ * someone you trust orders the same thing there every Tuesday. That sentence —
+ * stored on the *item*, not here — is the feature; this table is the frame
+ * around it ("Cafecito crawl", and why those five places belong together).
+ *
+ * ## Why ownerUserId and not a profile
+ *
+ * Same reasoning as profile_signals, and deliberately the same key. A list is
+ * a recommendation with a frame around it, so it belongs to the *person*, not
+ * to whichever profile they happen to be acting as. Keying it to a profile
+ * would mean a pana who claims a business on Monday finds Sunday's lists
+ * re-attributed to the business, and it would let a business vouch for other
+ * businesses — which profile_signals already forbids, in its own words:
+ * "A business cannot recommend anyone."
+ *
+ * The seam this creates, and it is a real one: ActivityPub actors hang off
+ * profiles (social_actors.profile_id), not users. `attributedTo` therefore
+ * resolves through the owner's own profile's actor, not through this column.
+ * See lib/federation/wrappers/recommendation-list.ts.
+ *
+ * @see docs/FEATURES.md — Lists
+ * @see docs/SOCIAL-ROADMAP.md Phase 3.5, which removed the previous lists
+ *      feature so that this one could be built on the social layer instead of
+ *      beside it.
+ */
+export const recommendationLists = pgTable(
+  'recommendation_lists',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    ownerUserId: text('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    // The framing: why these places belong on one list. Nullable because a
+    // title alone is often enough and an empty string is not a better answer.
+    blurb: text('blurb'),
+    /**
+     * Stable path segment, unique per owner.
+     *
+     * Separate from the id because this appears in the ActivityPub `id` URI,
+     * which remote servers store permanently. Renaming a list must not mint a
+     * new federated identity, so the slug is assigned once from the first
+     * title and never rewritten — the same rule actor usernames follow, and
+     * for the same reason.
+     */
+    slug: text('slug').notNull(),
+    visibility: recommendationListVisibility('visibility')
+      .notNull()
+      .default('private'),
+    /**
+     * The ActivityPub `id`. Null until the list is first made non-private.
+     *
+     * Minted after insert (the URI contains the slug and the owner's handle),
+     * matching how social_statuses fills `uri` in a second write — see
+     * lib/federation/wrappers/status.ts.
+     */
+    uri: text('uri').unique(),
+    // Maintained transactionally by the item writes, so the profile page can
+    // render "5 places" without a per-list COUNT.
+    itemCount: integer('item_count').notNull().default(0),
+    // First time this list became publicly visible. A timestamp rather than a
+    // boolean for the same reason profiles.pana_certified_at is one: "since
+    // when" is the question that actually gets asked, and it doubles as the
+    // AS2 `published` value, which must not move when the list is edited.
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // "Show me my lists" and "show me this pana's public lists" are the same
+    // query with a different visibility filter.
+    ownerVisibilityIdx: index('recommendation_lists_owner_visibility_idx').on(
+      table.ownerUserId,
+      table.visibility
+    ),
+    ownerSlugUnique: uniqueIndex('recommendation_lists_owner_slug_unique').on(
+      table.ownerUserId,
+      table.slug
+    ),
+  })
+);
+
+/**
+ * One entry on a list: a business, the owner's note about it, and where it
+ * sits in the running order.
+ *
+ * ## Why profileId is nullable
+ *
+ * Because the alternatives both corrupt something. `cascade` would let a
+ * business deleting its listing silently rewrite a stranger's list — the
+ * second stop on "Cafecito crawl" disappears and the author's numbered
+ * narrative now says something they never wrote. `restrict` is worse in the
+ * other direction: a business could never leave the directory because someone
+ * else recommended it, which hands a veto over one account's deletion to an
+ * unrelated account.
+ *
+ * So the target is nulled and the row is kept. `note` and `position` survive
+ * untouched, `profileNameAtAdd` supplies a label, and the entry renders as an
+ * honest tombstone — the list still reads as the sequence its author wrote,
+ * with one stop marked as no longer listed. The author's words are the thing
+ * being protected here; the pointer is not.
+ */
+export const recommendationListItems = pgTable(
+  'recommendation_list_items',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    listId: text('list_id')
+      .notNull()
+      .references(() => recommendationLists.id, { onDelete: 'cascade' }),
+    // Null once the listing is gone. See the docblock above.
+    profileId: text('profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    // Snapshot taken at add time so a tombstoned entry still has a name to
+    // show. Deliberately not kept in sync with the profile: it is the label
+    // the author saw when they wrote the note, which is what makes the note
+    // make sense.
+    profileNameAtAdd: text('profile_name_at_add').notNull(),
+    // The point of the entire feature.
+    note: text('note').notNull(),
+    /**
+     * Running order, contiguous from 0, rewritten as a block on reorder.
+     *
+     * Integer rather than a fractional / lexorank scheme because these lists
+     * are a handful of places, not a document outline. At that size rewriting
+     * every position inside one transaction is cheap and trivially auditable,
+     * while fractional ranks buy an O(1) insert at the cost of precision
+     * exhaustion and a rebalancing path that would be exercised approximately
+     * never and therefore be wrong when it finally ran.
+     *
+     * Not unique: a swap would transiently collide and a deferrable constraint
+     * is a heavier tool than this needs. Reads order by (position, createdAt)
+     * so a duplicate — which should not happen — degrades to a stable order
+     * rather than an arbitrary one.
+     */
+    position: integer('position').notNull(),
+  },
+  (table) => ({
+    // The same business twice on one list is a mistake; the same business on
+    // two different lists is the feature working.
+    listProfileUnique: uniqueIndex(
+      'recommendation_list_items_list_profile_unique'
+    ).on(table.listId, table.profileId),
+    listPositionIdx: index('recommendation_list_items_list_position_idx').on(
+      table.listId,
+      table.position
+    ),
+    // "Which lists is this business on?" — the business's own profile page.
+    profileIdIdx: index('recommendation_list_items_profile_id_idx').on(
+      table.profileId
+    ),
+  })
+);
+
+// =============================================================================
 // Articles
 // =============================================================================
 
@@ -1126,6 +1407,21 @@ export const socialActors = pgTable(
       .$onUpdateFn(() => new Date()),
     username: text('username').notNull(),
     domain: text('domain').notNull(),
+    /**
+     * The ActivityPub actor type -- 'Person', 'Group', 'Service', and so on.
+     *
+     * Text rather than a pgEnum because this table also holds remote actors,
+     * and a remote server may legitimately serve a type this codebase has
+     * never heard of. An enum would reject the row at insert and drop the
+     * actor entirely, which is a worse outcome than storing a string we do not
+     * recognise.
+     *
+     * The default is 'Person' because that is the literal
+     * app/api/federation/actor/[user]/route.ts served before groups existed,
+     * so every row that predates this column keeps the exact behaviour it
+     * already had.
+     */
+    type: text('type').notNull().default('Person'),
     profileId: text('profile_id')
       .unique()
       .references(() => profiles.id, { onDelete: 'set null' }),
@@ -1181,6 +1477,7 @@ export const PUBLIC_ACTOR_COLUMNS = {
   updatedAt: true,
   username: true,
   domain: true,
+  type: true,
   profileId: true,
   uri: true,
   inboxUrl: true,
@@ -1263,6 +1560,19 @@ export const socialStatuses = pgTable(
     eventId: text('event_id').references((): AnyPgColumn => events.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The group this status was posted into, or NULL for an ordinary
+     * personal post.
+     *
+     * This column is an authorization input, not decoration. A status in a
+     * private group is readable only by that group's members, so every path
+     * that reads social_statuses has to account for it — see
+     * `lib/federation/wrappers/group-visibility.ts`, which exists so no call
+     * site has to spell the rule itself.
+     */
+    groupId: text('group_id').references((): AnyPgColumn => socialGroups.id, {
+      onDelete: 'cascade',
+    }),
     ccLicense: ccLicense('cc_license').notNull().default('cc-by-4'),
   },
   (table) => ({
@@ -1278,6 +1588,10 @@ export const socialStatuses = pgTable(
       table.inReplyToId
     ),
     eventIdIdx: index('social_statuses_event_id_idx').on(table.eventId),
+    groupPublishedIdx: index('social_statuses_group_published_idx').on(
+      table.groupId,
+      table.published
+    ),
   })
 );
 
@@ -1381,6 +1695,128 @@ export const socialLikes = pgTable(
     ),
     actorIdIdx: index('social_likes_actor_id_idx').on(table.actorId),
     statusIdIdx: index('social_likes_status_id_idx').on(table.statusId),
+  })
+);
+
+/**
+ * An interest group panas can join.
+ *
+ * A group is not a second kind of account bolted on beside actors -- it IS an
+ * actor, with its own row in social_actors carrying type='Group', its own
+ * handle in the flat screenname namespace, and its own signing keypair. That
+ * is what lets a group be followed, mentioned and addressed by the federation
+ * code that already exists, instead of needing a parallel delivery path.
+ *
+ * The group's display name, summary and avatar live on the actor, not here.
+ * This table holds only what is true of a group and meaningless for a person.
+ *
+ * @see docs/GROUPS-ROADMAP.md
+ */
+export const socialGroups = pgTable('social_groups', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+  /**
+   * The actor this group is. Unique because the relationship is one-to-one,
+   * and cascading because an actor without its group row is an actor nothing
+   * can describe.
+   */
+  actorId: text('actor_id')
+    .notNull()
+    .unique()
+    .references(() => socialActors.id, { onDelete: 'cascade' }),
+  /**
+   * Who started it, kept for moderation history. Nullable and 'set null' so
+   * deleting the founder's profile does not delete a group other people are
+   * still using.
+   */
+  createdByProfileId: text('created_by_profile_id').references(
+    () => profiles.id,
+    { onDelete: 'set null' }
+  ),
+  /**
+   * What the group is about, as a `{ topic: true }` flag map rather than an
+   * array, so pana_jsonb_flags (migration 0040) can flatten it into a search
+   * vector the same way it already does for profile categories. An array would
+   * need its own indexing path for no gain.
+   */
+  topics: jsonb('topics')
+    .$type<Record<string, boolean>>()
+    .notNull()
+    .default({}),
+  /**
+   * House rules, rendered in order on the group page. A JSONB array rather
+   * than a flag map because order carries meaning here -- rules are numbered
+   * when displayed -- and rules are prose, not facets, so they are never
+   * searched or aggregated.
+   */
+  rules: jsonb('rules').$type<string[]>().notNull().default([]),
+  visibility: socialGroupVisibility('visibility').notNull().default('public'),
+  joinPolicy: socialGroupJoinPolicy('join_policy').notNull().default('open'),
+  /**
+   * Count of 'active' members, denormalised. The feed rail shows this next to
+   * the Panas count on every render, and counting social_group_members rows
+   * for that would put a query on the hottest path in the app.
+   */
+  memberCount: integer('member_count').notNull().default(0),
+});
+
+/**
+ * Who is in a group, and in what capacity.
+ *
+ * Keyed on actorId rather than profileId on purpose. Membership has to be
+ * answerable from an actor alone, because the hot question is "every group
+ * this actor belongs to" and it is asked on every timeline fetch -- going
+ * through profiles would mean a join on the one query that cannot afford one.
+ * It also leaves the door open for a remote actor to join a group without
+ * needing a local profile invented for them.
+ */
+export const socialGroupMembers = pgTable(
+  'social_group_members',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => socialGroups.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    role: socialGroupRole('role').notNull().default('member'),
+    status: socialGroupMemberStatus('status').notNull().default('active'),
+    /**
+     * When the row became 'active'. Null while a join request is pending, so
+     * "member since" never claims someone joined on the day they asked.
+     */
+    joinedAt: timestamp('joined_at', { withTimezone: true }),
+  },
+  (table) => ({
+    groupActorUnique: uniqueIndex('social_group_members_group_actor_unique').on(
+      table.groupId,
+      table.actorId
+    ),
+    actorIdIdx: index('social_group_members_actor_id_idx').on(table.actorId),
+    // Composite rather than group_id alone: it serves both "the roster" and
+    // "the pending queue", which are the only two ways this is read per group.
+    groupStatusIdx: index('social_group_members_group_status_idx').on(
+      table.groupId,
+      table.status
+    ),
   })
 );
 
@@ -1585,9 +2021,27 @@ export const events = pgTable(
     description: text('description'),
     coverImage: text('cover_image'),
     coverImageAlt: text('cover_image_alt'),
-    hostProfileId: text('host_profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'restrict' }),
+    /**
+     * Exactly one of hostProfileId / hostGroupId is set, enforced by the
+     * `events_single_host` CHECK in 0047. Nullable here because a group can
+     * host: see the docblock on hostGroupId for why the group, and not the
+     * pana who filled in the form, has to be the host.
+     */
+    hostProfileId: text('host_profile_id').references(() => profiles.id, {
+      onDelete: 'restrict',
+    }),
+    /**
+     * Set when a group hosts instead of a pana.
+     *
+     * Deliberately not "the group this event is attributed to" alongside a
+     * profile host. Account deletion blocks while you host upcoming events and
+     * deletes your completed ones, so hanging a group's events off the
+     * founder's profile would kill the club's calendar the day they left.
+     * Being the host outright is what keeps a group's events the group's.
+     */
+    hostGroupId: text('host_group_id').references(() => socialGroups.id, {
+      onDelete: 'restrict',
+    }),
     // Nullable: online-only events have no physical venue.
     venueId: text('venue_id').references(() => venues.id, {
       onDelete: 'restrict',
@@ -1621,6 +2075,7 @@ export const events = pgTable(
     hostProfileIdIdx: index('events_host_profile_id_idx').on(
       table.hostProfileId
     ),
+    hostGroupIdIdx: index('events_host_group_id_idx').on(table.hostGroupId),
     venueIdIdx: index('events_venue_id_idx').on(table.venueId),
     statusVisibilityIdx: index('events_status_visibility_idx').on(
       table.status,
@@ -1810,6 +2265,7 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   }),
   owners: many(profileOwners),
   signals: many(profileSignals),
+  recommendationListEntries: many(recommendationListItems),
   venuesOperated: many(venues),
   eventsHosted: many(events),
   eventAttendeeRows: many(eventAttendees),
@@ -1825,6 +2281,31 @@ export const profileSignalsRelations = relations(profileSignals, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const recommendationListsRelations = relations(
+  recommendationLists,
+  ({ one, many }) => ({
+    owner: one(users, {
+      fields: [recommendationLists.ownerUserId],
+      references: [users.id],
+    }),
+    items: many(recommendationListItems),
+  })
+);
+
+export const recommendationListItemsRelations = relations(
+  recommendationListItems,
+  ({ one }) => ({
+    list: one(recommendationLists, {
+      fields: [recommendationListItems.listId],
+      references: [recommendationLists.id],
+    }),
+    profile: one(profiles, {
+      fields: [recommendationListItems.profileId],
+      references: [profiles.id],
+    }),
+  })
+);
 
 export const profileOwnersRelations = relations(profileOwners, ({ one }) => ({
   profile: one(profiles, {
@@ -1883,6 +2364,13 @@ export const socialActorsRelations = relations(
     incomingFollows: many(socialFollows, { relationName: 'followTarget' }),
     likes: many(socialLikes),
     announcements: many(articleAnnouncements),
+    // The group this actor IS, when type === 'Group'. Null for people.
+    group: one(socialGroups, {
+      fields: [socialActors.id],
+      references: [socialGroups.actorId],
+    }),
+    // The groups this actor is IN. Unrelated to the above.
+    groupMemberships: many(socialGroupMembers),
   })
 );
 
@@ -1914,6 +2402,10 @@ export const socialStatusesRelations = relations(
     event: one(events, {
       fields: [socialStatuses.eventId],
       references: [events.id],
+    }),
+    group: one(socialGroups, {
+      fields: [socialStatuses.groupId],
+      references: [socialGroups.id],
     }),
   })
 );
@@ -1964,6 +2456,35 @@ export const socialLikesRelations = relations(socialLikes, ({ one }) => ({
   }),
 }));
 
+export const socialGroupsRelations = relations(
+  socialGroups,
+  ({ one, many }) => ({
+    actor: one(socialActors, {
+      fields: [socialGroups.actorId],
+      references: [socialActors.id],
+    }),
+    createdByProfile: one(profiles, {
+      fields: [socialGroups.createdByProfileId],
+      references: [profiles.id],
+    }),
+    members: many(socialGroupMembers),
+  })
+);
+
+export const socialGroupMembersRelations = relations(
+  socialGroupMembers,
+  ({ one }) => ({
+    group: one(socialGroups, {
+      fields: [socialGroupMembers.groupId],
+      references: [socialGroups.id],
+    }),
+    actor: one(socialActors, {
+      fields: [socialGroupMembers.actorId],
+      references: [socialActors.id],
+    }),
+  })
+);
+
 export const socialAttachmentsRelations = relations(
   socialAttachments,
   ({ one }) => ({
@@ -2011,6 +2532,10 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   host: one(profiles, {
     fields: [events.hostProfileId],
     references: [profiles.id],
+  }),
+  hostGroup: one(socialGroups, {
+    fields: [events.hostGroupId],
+    references: [socialGroups.id],
   }),
   attendees: many(eventAttendees),
   socialStatuses: many(socialStatuses),
@@ -2295,6 +2820,8 @@ export function toPublicActor<T extends { privateKey?: string | null }>(
 export type SocialStatus = typeof socialStatuses.$inferSelect;
 export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;
+export type SocialGroup = typeof socialGroups.$inferSelect;
+export type SocialGroupMember = typeof socialGroupMembers.$inferSelect;
 export type SocialLike = typeof socialLikes.$inferSelect;
 export type SocialAttachment = typeof socialAttachments.$inferSelect;
 export type SocialStoryView = typeof socialStoryViews.$inferSelect;

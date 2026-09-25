@@ -54,7 +54,11 @@ export async function GET(
       'https://w3id.org/security/v1',
     ],
     id: actor.uri,
-    type: 'Person',
+    // Read from the row, not hardcoded. A group actor must federate as a
+    // Group or remote servers will render it as a person and offer the wrong
+    // interactions for it. Pre-existing rows default to 'Person', which is the
+    // literal this line used to be.
+    type: actor.type,
     preferredUsername: actor.username,
     name: actor.name || actor.username,
     summary: actor.summary || '',

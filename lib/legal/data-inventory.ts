@@ -79,6 +79,28 @@ export const inventory: Record<TableExport, Classification> = {
   // as a join table. Cascades on user delete, so it leaves with the account.
   profileSignals: ['profile', 'visible_profile_info'],
 
+  // --- Recommendation lists ---
+  // A named list of businesses a pana vouches for. The owner's own words in
+  // the title and blurb, published under their name, so this is their personal
+  // expression rather than a join table of opaque ids — the same call
+  // profileSignals makes, one step further along: a recommendation carries no
+  // text, a list carries an argument for why these places belong together.
+  // Federated as an ActivityPub Collection, hence the third category.
+  recommendationLists: [
+    'profile',
+    'visible_profile_info',
+    'activitypub_federated_content',
+  ],
+  // The per-entry note is the single most personal thing in this feature — it
+  // is a named human saying, in their own voice, what they order and when.
+  // NOT_PERSONAL_DATA would be plainly wrong here even though the row is
+  // mostly foreign keys.
+  recommendationListItems: [
+    'profile',
+    'visible_profile_info',
+    'activitypub_federated_content',
+  ],
+
   // --- Notifications / preferences ---
   notifications: ['notifications'],
 
@@ -96,6 +118,15 @@ export const inventory: Record<TableExport, Classification> = {
   socialStatuses: ['social_posts', 'activitypub_federated_content'],
   socialFollows: ['social_graph'],
   socialLikes: ['social_graph'],
+  // Group configuration is not personal data, but created_by_profile_id is —
+  // it records which human started a given group, the same kind of association
+  // profileOwners is classified for. Hence a category rather than
+  // NOT_PERSONAL_DATA, which is what relayGroups could claim because it holds
+  // no link back to a person.
+  socialGroups: ['social_graph'],
+  // Which groups a pana belongs to, and in what role. Opaque ids, but the
+  // association is a map of someone's interests and affiliations.
+  socialGroupMembers: ['social_graph'],
   socialAttachments: ['uploads', 'social_posts'],
   // Who watched whose story. An interaction record between two actors, same
   // shape as a like, and surfaced to the story's author as a viewer list --

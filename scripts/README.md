@@ -360,6 +360,57 @@ so the lookup tries both. A second run reports `0 renamed` and changes nothing
 else — the name substitution and the social rewrite are both no-ops the second
 time.
 
+### `repair-social-actors.ts`
+
+Makes every local business reachable over the social API, and repairs the
+fallout the rename above left in `social_actors`:
+
+```bash
+# Dry run: report what would change, write nothing. Default.
+npx tsx scripts/repair-social-actors.ts
+
+# Write the changes
+npx tsx scripts/repair-social-actors.ts --apply
+
+# Target a domain other than the configured federation domain
+npx tsx scripts/repair-social-actors.ts --domain pana.social
+```
+
+**What was wrong.** `getActorByScreenname` matches on `username` _and_
+`domain`, so an actor with either column wrong is invisible and
+`/api/social/actors/<slug>` answers 404 — indistinguishable from a business
+that simply has no social presence. Two things put rows in that state: actors
+minted by a local process against a shared database kept `domain = 'localhost'`
+and `https://localhost/p/...` URIs, and `syncActorFromProfile` deliberately
+never touches `username`, so `reseed-directory-content.ts` moved 41
+screennames without moving the handles behind them.
+
+**Display names too.** The same renames left `social_actors.name` quoting the
+old business — a follower of Ventanita Cafe saw "El Fogon Cafe". `name` is not
+identity, so it is synced for every actor, including ones whose handle is
+frozen. `summary` is left alone on purpose: the seeder wrote
+`profiles.five_words` there while `getProfileSummary` would write the much
+longer `descriptions.details`, and picking between two valid bios is a product
+decision, not a repair.
+
+**It refuses to rename an actor that has federated.** `lib/federation/domain.ts`
+explains why an actor's identity is normally write-once — remote servers hold
+the URI as a permanent key, and a Move carries followers but not posts. That
+applies to an actor someone can actually reach, which a `localhost` URI never
+was. Rather than judge that row by row, the script skips any actor with
+statuses, follows in either direction, or likes, and says so. It also checks
+the target handle is not already taken, since `(username, domain)` is uniquely
+indexed.
+
+**It verifies its own URL templates.** The script builds URLs from inlined
+copies of `socialConfig.endpoints`, because importing the federation barrel
+pulls in the Cloudflare-aware database client. To keep the copies honest it
+rebuilds the URLs of an actor the app itself minted and aborts if the result
+differs.
+
+**Re-running is safe.** Rows already correct are left untouched and a second
+run reports `Everything already in sync. Nothing to do.`
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:

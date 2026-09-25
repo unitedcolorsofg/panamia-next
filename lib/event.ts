@@ -6,8 +6,8 @@
  */
 
 import { db } from '@/lib/db';
-import { events } from '@/lib/schema';
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
+import { events, eventAttendees } from '@/lib/schema';
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 import { getFederationDomain } from '@/lib/federation/domain';
 import type { Event, EventStatus } from '@/lib/schema';
@@ -91,6 +91,41 @@ export async function getUpcomingEvents(
   });
 }
 
+/**
+ * A group's events, for the group page.
+ *
+ * `includeUnpublished` is the manager's view: admins and moderators need to
+ * see the draft they are still writing, and an unlisted event they have to be
+ * able to find in order to manage. Everyone else gets the published, public
+ * ones, which is what "the group's calendar" means to a reader.
+ *
+ * Access to the group itself is decided by the caller. This function answers
+ * "which of this group's events", not "may you see this group" -- collapsing
+ * the two is how a private group's calendar would leak through a listing that
+ * forgot to ask.
+ */
+export async function getEventsForGroup(
+  hostGroupId: string,
+  options: { includeUnpublished?: boolean; limit?: number } = {}
+) {
+  const { includeUnpublished = false, limit = 20 } = options;
+
+  const filters = [eq(events.hostGroupId, hostGroupId)];
+  if (!includeUnpublished) {
+    filters.push(eq(events.status, 'published' as EventStatus));
+    filters.push(eq(events.visibility, 'public'));
+  }
+
+  return await db.query.events.findMany({
+    where: and(...filters),
+    orderBy: [asc(events.startsAt)],
+    limit,
+    with: {
+      venue: { columns: { name: true, city: true, state: true } },
+    },
+  });
+}
+
 export async function getEventsByHost(hostProfileId: string) {
   return await db.query.events.findMany({
     where: eq(events.hostProfileId, hostProfileId),
@@ -152,10 +187,97 @@ export async function getUpcomingEventsForHost(
   });
 }
 
+/**
+ * The events half of a personal profile: what this pana is hosting, and — when
+ * they are the one looking — what they have RSVP'd to.
+ *
+ * Hosting and attending are deliberately NOT treated as one public list.
+ * Hosting is already public: the event page names its host, so surfacing it on
+ * the host's profile reveals nothing new. Attending is not. `event_attendees`
+ * has no per-row visibility column, so there is no way for a pana to have
+ * consented to publishing a given RSVP — and a profile that listed every event
+ * someone is going to would be a location history assembled from rows they
+ * only ever agreed to share with the organizer.
+ *
+ * So attendance comes back only for the owner's own view, and the profile
+ * renders it as "your RSVPs". Making it public is a product decision that
+ * needs a visibility column and a setting, not a query change.
+ *
+ * Past events are returned alongside upcoming ones because a profile showing
+ * only what is scheduled reads the same whether someone turns up constantly or
+ * RSVP'd once — the recent past is what distinguishes a habit from a plan.
+ */
+export async function getProfileEventsFeed(
+  profileId: string,
+  options: { includeAttending?: boolean; limit?: number } = {}
+) {
+  const { includeAttending = false, limit = 12 } = options;
+
+  const now = new Date();
+  const pastHorizon = new Date(now);
+  pastHorizon.setMonth(pastHorizon.getMonth() - 3);
+
+  const withVenue = {
+    venue: { columns: { name: true, city: true, state: true } },
+  } as const;
+
+  const hosted = await db.query.events.findMany({
+    where: and(
+      eq(events.hostProfileId, profileId),
+      eq(events.status, 'published' as EventStatus),
+      eq(events.visibility, 'public'),
+      gte(events.startsAt, pastHorizon)
+    ),
+    orderBy: [asc(events.startsAt)],
+    limit,
+    with: withVenue,
+  });
+
+  if (!includeAttending) {
+    return hosted.map((event) => ({ ...event, role: 'hosting' as const }));
+  }
+
+  /* Only verified, going RSVPs. An unverified row is someone who started the
+     magic-link flow and never finished, which is not a commitment to show. */
+  const rsvps = await db
+    .select({ eventId: eventAttendees.eventId })
+    .from(eventAttendees)
+    .where(
+      and(
+        eq(eventAttendees.profileId, profileId),
+        eq(eventAttendees.status, 'going'),
+        isNotNull(eventAttendees.emailVerifiedAt)
+      )
+    );
+
+  const attendingIds = rsvps
+    .map((row) => row.eventId)
+    /* An event you host and also RSVP'd to is one row, flagged hosting: it is
+       the stronger claim, and listing it twice would double-count it. */
+    .filter((id) => !hosted.some((event) => event.id === id));
+
+  const attending = attendingIds.length
+    ? await db.query.events.findMany({
+        where: and(
+          inArray(events.id, attendingIds),
+          eq(events.status, 'published' as EventStatus),
+          gte(events.startsAt, pastHorizon)
+        ),
+        orderBy: [asc(events.startsAt)],
+        limit,
+        with: withVenue,
+      })
+    : [];
+
+  return [
+    ...hosted.map((event) => ({ ...event, role: 'hosting' as const })),
+    ...attending.map((event) => ({ ...event, role: 'going' as const })),
+  ].sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+}
+
 // -----------------------------------------------------------------------------
 // iCalendar (RFC 5545) export for the /api/events/[slug]/calendar.ics route.
 // -----------------------------------------------------------------------------
-
 function icsEscape(value: string): string {
   return value
     .replace(/\\/g, '\\\\')

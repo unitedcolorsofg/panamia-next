@@ -77,9 +77,14 @@ for filename in $MIGRATIONS_TO_CHECK; do
     continue
   fi
 
-  # 2. Validate required documentation headers (checked in first 30 lines)
+  # 2. Validate required documentation headers (checked in the leading comment
+  #    block). The window is generous on purpose: a migration that explains
+  #    itself well has a long "Purpose:" block, and 0043_social_stories pushed
+  #    "Reversible:" to line 31 under the old 30-line window -- failing a file
+  #    that was in fact documented correctly. Punishing good prose is the
+  #    opposite of what this check is for.
   for header in "${REQUIRED_HEADERS[@]}"; do
-    if ! head -30 "$filepath" | grep -q "^-- $header"; then
+    if ! head -60 "$filepath" | grep -q "^-- $header"; then
       echo "    ERROR: Missing '-- $header' header in $filename"
       ERRORS=$((ERRORS + 1))
     fi

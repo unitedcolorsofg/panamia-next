@@ -3,6 +3,8 @@
     "headline": "El Futuro<br/>Es <em>Local</em>",
     "subheadline": "El primer directorio local del sur de la Florida — un archivo vivo de las personas creativas, emprendedoras y los pequeños negocios que hacen de este lugar lo que es.",
     "searchPlaceholder": "Busca panas, negocios, grupos, eventos",
+    "searchPlaceholderShort": "Busca Local",
+    "searchRotation": ["Negocios", "Panas", "Grupos", "Eventos"],
     "searchLabel": "Buscar directorio",
     "searchAriaLabel": "Buscar en el directorio",
     "searchButton": "Buscar",
@@ -106,7 +108,8 @@
     "statement": "¿Cómo me <em>involucro</em>?",
     "lede": "Pana MIA está hecho por y para creativos, organizaciones y pequeños negocios con base local en Broward, Miami-Dade y Palm Beach. Únete al directorio, o empieza por encontrar a alguien que ya esté en él.",
     "ctaJoin": "Conviértete en Pana",
-    "ctaBrowse": "Buscar en el directorio"
+    "ctaBrowse": "Buscar en el directorio",
+    "ctaDonate": "Donar"
   },
   "newsletter": {
     "eyebrow": "Nuestro Boletín",

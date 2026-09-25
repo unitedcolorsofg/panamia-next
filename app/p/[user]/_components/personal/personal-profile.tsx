@@ -2,27 +2,45 @@
 
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Lock, Pencil } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
-import { useActor, useActorPosts, usePanas } from '@/lib/query/social';
+import {
+  useActor,
+  useActorPosts,
+  usePanas,
+  useProfileEvents,
+  useProfileGroups,
+} from '@/lib/query/social';
+import type {
+  ProfileEventSummary,
+  ProfileGroupSummary,
+} from '@/lib/query/social';
 import {
   PostList,
   FollowButton,
   SendVoiceMemoButton,
 } from '@/components/social';
 import { Button } from '@/components/ui/button';
+import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import type { PersonalProfileView } from '@/lib/server/personal-profile';
-import { PersonalHero } from './personal-hero';
+import { IdentityRail } from './identity-rail';
 import { PERSONAL_TAB_ICONS, PersonalTabs } from './personal-tabs';
 import { PanaCard } from './personal-cards';
+import { EventCard, GroupRow } from './personal-content-cards';
 import type { PersonalTab, StatDef, TabDef } from './types';
 
 /* The personal (Pana Social) profile.
  *
+ * Two columns, inverting the feed's: identity on the left and stays put, work
+ * on the right and scrolls. The old layout stacked them, which meant the top
+ * third of every screen re-answered "who is this" while the answer to "what
+ * have they been up to" started below the fold.
+ *
  * Identity comes in as props because the page around this is edge-cached and
  * must stay session-free on the server. Everything social is fetched here on
- * the client instead, which is also what lets the Panas list vary by viewer
+ * the client instead, which is also what lets Panas and RSVPs vary by viewer
  * without splitting the cache. */
 export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
   const [activeTab, setActiveTab] = useState<PersonalTab>('posts');
@@ -33,25 +51,41 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
   const { data: actorData } = useActor(handle);
   const { data: postsData, isLoading: postsLoading } = useActorPosts(handle);
   const { data: panasData, isLoading: panasLoading } = usePanas(handle);
+  const { data: eventsData, isLoading: eventsLoading } =
+    useProfileEvents(handle);
+  const { data: groupsData, isLoading: groupsLoading } =
+    useProfileGroups(handle);
 
   const actor = actorData?.actor;
   const isSelf = Boolean(actorData?.isSelf);
 
-  /* Rail order leads with Panas; the tab bar below leads with Posts. Groups is
-     absent here on purpose — it hasn't shipped, and an unshipped feature has
-     no figure to stand next to real ones. */
+  const events = eventsData?.events ?? [];
+  const groups = groupsData?.groups ?? [];
+
+  /* Upcoming only. A count that included last year's shows would describe a
+     history rather than a calendar, and it sits beside "Posts", which is
+     unambiguously a running total. */
+  const upcomingCount = events.filter(
+    (event) => new Date(event.startsAt).getTime() >= Date.now()
+  ).length;
+
   const stats: StatDef[] = [
     { tab: 'panas', label: 'Panas', value: panasData?.count ?? null },
     { tab: 'posts', label: 'Posts', value: actor?.statusCount ?? null },
+    {
+      tab: 'groups',
+      label: 'Groups',
+      value: groupsData ? groups.length : null,
+    },
   ];
 
   const statValue = (tab: PersonalTab) =>
     stats.find((entry) => entry.tab === tab)?.value ?? null;
 
-  /* Posts lead the body because that is what people come to a profile for,
-     while the rail leads with the figure the profile is proudest of. Groups
-     keeps its tab so the shape of the profile is honest about what's coming,
-     but carries a "Soon" chip rather than a count. */
+  /* Posts lead because that is what people come to a profile for. Panas keeps
+     a tab rather than living only in the rail: the rail module shows a dozen
+     faces, and a profile with four hundred Panas needs somewhere for the rest
+     of them to be. */
   const tabs: TabDef[] = [
     {
       id: 'posts',
@@ -60,17 +94,22 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
       count: statValue('posts'),
     },
     {
-      id: 'panas',
-      label: 'Panas',
-      icon: PERSONAL_TAB_ICONS.panas,
-      count: statValue('panas'),
+      id: 'events',
+      label: 'Events',
+      icon: PERSONAL_TAB_ICONS.events,
+      count: eventsData ? upcomingCount : null,
     },
     {
       id: 'groups',
       label: 'Groups',
       icon: PERSONAL_TAB_ICONS.groups,
-      count: null,
-      soon: true,
+      count: statValue('groups'),
+    },
+    {
+      id: 'panas',
+      label: 'Panas',
+      icon: PERSONAL_TAB_ICONS.panas,
+      count: statValue('panas'),
     },
   ];
 
@@ -83,56 +122,81 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
 
   return (
     <main className="surface-cream min-h-screen pb-20">
-      <PersonalHero
-        profile={profile}
-        stats={stats}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        actions={actions}
-        mobileActions={actions}
-      />
-
-      <div className="container mx-auto max-w-4xl px-4">
-        <div className="mt-8">
-          <PersonalTabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onSelectTab={setActiveTab}
-          />
-        </div>
-
-        <div className="mt-6">
-          {activeTab === 'posts' && (
-            <Panel id="posts">
-              <PostList
-                statuses={postsData?.statuses || []}
-                isLoading={postsLoading}
-                hasMore={!!postsData?.nextCursor}
-                emptyMessage={`@${handle} hasn't posted anything yet.`}
-              />
-            </Panel>
-          )}
-
-          {activeTab === 'panas' && (
-            <Panel id="panas">
-              <PanelIntro
-                title="Panas"
-                lede="A Pana is a mutual follow — both people followed each other. Everyone listed here follows this Pana back."
-              />
-              <PanasPanel
+      <div className="container mx-auto max-w-6xl px-4 pt-6">
+        <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+          <IdentityRail
+            profile={profile}
+            stats={stats}
+            actions={actions}
+            panas={
+              <PanasRailModule
                 data={panasData}
-                isLoading={panasLoading}
                 name={profile.name}
-                handle={handle}
+                onSeeAll={() => setActiveTab('panas')}
               />
-            </Panel>
-          )}
+            }
+          />
 
-          {activeTab === 'groups' && (
-            <Panel id="groups">
-              <GroupsComingSoon name={profile.name} />
-            </Panel>
-          )}
+          <div className="min-w-0">
+            <PersonalTabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+            />
+
+            <div className="mt-6">
+              {activeTab === 'posts' && (
+                <Panel id="posts">
+                  <PostList
+                    statuses={postsData?.statuses || []}
+                    isLoading={postsLoading}
+                    hasMore={!!postsData?.nextCursor}
+                    emptyMessage={`@${handle} hasn't posted anything yet.`}
+                  />
+                </Panel>
+              )}
+
+              {activeTab === 'events' && (
+                <Panel id="events">
+                  <EventsPanel
+                    events={events}
+                    isLoading={eventsLoading}
+                    canSeeAttending={Boolean(eventsData?.canSeeAttending)}
+                    name={profile.name}
+                  />
+                </Panel>
+              )}
+
+              {activeTab === 'groups' && (
+                <Panel id="groups">
+                  <PanelIntro
+                    title="Groups"
+                    lede="Communities inside Pana Social — neighborhood crews, crafts, dominoes, whatever people organize around. Only public groups appear here."
+                  />
+                  <GroupsPanel
+                    groups={groups}
+                    isLoading={groupsLoading}
+                    name={profile.name}
+                  />
+                </Panel>
+              )}
+
+              {activeTab === 'panas' && (
+                <Panel id="panas">
+                  <PanelIntro
+                    title="Panas"
+                    lede="A Pana is a mutual follow — both people followed each other. Everyone listed here follows this Pana back."
+                  />
+                  <PanasPanel
+                    data={panasData}
+                    isLoading={panasLoading}
+                    name={profile.name}
+                    handle={handle}
+                  />
+                </Panel>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -161,7 +225,7 @@ function renderActions({
       <Button
         asChild
         variant="outline"
-        className="border-pana-ink/20 rounded-full font-extrabold"
+        className="border-pana-ink/20 flex-1 rounded-full font-extrabold"
       >
         <Link href="/account/profile/edit">
           <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -194,7 +258,174 @@ function renderActions({
   );
 }
 
-/* Signed-out viewers get the count from the hero but not the list. The empty
+/* Upcoming and past, split.
+ *
+ * Four upcoming events look identical whether someone turns up constantly or
+ * signed up once, so the recent past stays on the page — it is what separates
+ * a habit from a plan. */
+function EventsPanel({
+  events,
+  isLoading,
+  canSeeAttending,
+  name,
+}: {
+  events: ProfileEventSummary[];
+  isLoading: boolean;
+  canSeeAttending: boolean;
+  name: string;
+}) {
+  if (isLoading) return <PanelLoading />;
+
+  const now = Date.now();
+  const upcoming = events.filter(
+    (event) => new Date(event.startsAt).getTime() >= now
+  );
+  const past = events.filter(
+    (event) => new Date(event.startsAt).getTime() < now
+  );
+
+  if (events.length === 0) {
+    return (
+      <EmptyState>
+        {firstName(name)} has nothing coming up.
+        {!canSeeAttending && (
+          <span className="mt-1.5 block font-medium opacity-80">
+            Events someone is going to stay private. Only what they host shows
+            here.
+          </span>
+        )}
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {upcoming.length > 0 && (
+        <div className="space-y-3">
+          {upcoming.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div>
+          <h3 className="rail-heading mb-3">Recently</h3>
+          <div className="space-y-3">
+            {past.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupsPanel({
+  groups,
+  isLoading,
+  name,
+}: {
+  groups: ProfileGroupSummary[];
+  isLoading: boolean;
+  name: string;
+}) {
+  if (isLoading) return <PanelLoading />;
+
+  if (groups.length === 0) {
+    return (
+      <EmptyState>
+        {firstName(name)} hasn&rsquo;t joined any public groups yet.
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {groups.map((group) => (
+        <GroupRow key={group.id} group={group} />
+      ))}
+    </div>
+  );
+}
+
+/* The rail's Panas module: a wall of faces, not a list.
+ *
+ * Signed-out viewers get the count but no faces, the same split the endpoint
+ * draws — how many is an aggregate nobody can impose on anyone, naming who is
+ * a social graph. */
+function PanasRailModule({
+  data,
+  name,
+  onSeeAll,
+}: {
+  data?: {
+    count: number;
+    canSeeList: boolean;
+    actors: {
+      id: string;
+      name?: string | null;
+      username: string;
+      iconUrl?: string | null;
+    }[];
+  } | null;
+  name: string;
+  onSeeAll: () => void;
+}) {
+  if (!data || data.count === 0) return null;
+
+  const shown = data.actors.slice(0, 12);
+
+  return (
+    <section className="profile-card p-4">
+      <h2 className="rail-heading">Panas</h2>
+
+      {shown.length > 0 ? (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {shown.map((pana) => (
+            <li key={pana.id}>
+              <span
+                className="border-pana-ink/10 bg-pana-butter relative block h-10 w-10 overflow-hidden rounded-full border-2"
+                title={`${pana.name || pana.username} (@${pana.username})`}
+              >
+                {pana.iconUrl ? (
+                  <Image
+                    src={pana.iconUrl}
+                    alt={pana.name || pana.username}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                    unoptimized={isUnoptimizableImageSrc(pana.iconUrl)}
+                  />
+                ) : (
+                  <span className="text-pana-ink flex h-full w-full items-center justify-center text-sm font-black">
+                    {(pana.name || pana.username).charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-pana-ink/55 mt-2 text-[12px] leading-snug font-bold">
+          {firstName(name)} has {data.count.toLocaleString('en-US')}{' '}
+          {data.count === 1 ? 'Pana' : 'Panas'}.
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={onSeeAll}
+        className="link-arrow text-pana-indigo mt-3 inline-flex text-[13px] font-extrabold"
+      >
+        See all Panas
+      </button>
+    </section>
+  );
+}
+
+/* Signed-out viewers get the count from the rail but not the list. The empty
    state says which of the two it is, because "no Panas yet" and "you can't see
    them" look identical otherwise and only one is worth signing in over. */
 function PanasPanel({
@@ -243,23 +474,6 @@ function PanasPanel({
       {panas.map((pana) => (
         <PanaCard key={pana.id} pana={pana} />
       ))}
-    </div>
-  );
-}
-
-/* Groups hasn't shipped. This says so plainly instead of showing an empty
-   list, which would read as "this person joined nothing" rather than "there
-   is nothing to join yet" — two very different impressions of the same
-   blank space. */
-function GroupsComingSoon({ name }: { name: string }) {
-  return (
-    <div className="reserved-slot">
-      <span className="reserved-slot-title">Groups are coming soon</span>
-      <p className="text-pana-ink/70 max-w-2xl text-sm leading-snug font-medium">
-        Communities inside Pana Social — neighborhood crews, crafts, dominoes,
-        whatever people organize around. When they open, the ones{' '}
-        {firstName(name)} joins will show up here.
-      </p>
     </div>
   );
 }

@@ -1,13 +1,23 @@
-/* The footer takes the page's own ground rather than painting white over it.
-   The main site has exactly two grounds — the default white and the cream the
-   homepage and directory opt into — so letting the body show through means the
-   footer matches either one instead of cutting a white band across the cream
-   pages, where it used to read as a separate section. */
+/* The footer wears the design-refresh palette rather than the white-and-#444
+   it was built with, so the page does not end by dropping out of its own
+   design system two pixels below the last section.
+
+   Cream rather than indigo. Indigo would make a stronger anchor, but the
+   homepage now ends on `.story-point`, a #214098 band, and stacking a second
+   deep blue under it reads as a rendering fault rather than a decision. Cream
+   is the warm paper surface the rest of the site uses between its ink bands,
+   which is exactly the job the footer is doing here.
+
+   The `--color-pana-*` registry, not `--story-*`: the latter is scoped to
+   `body:has([data-density])` and `body:has(.dirsearch)`, so it resolves on the
+   homepage and directory search and nowhere else. The footer is on every page
+   of the main site. */
 .footer {
-  background-color: transparent;
-  padding: 1.5rem 1rem;
-  color: #444;
-  font-size: 14px;
+  padding-block: 3.25rem 2rem;
+  border-top: 2px solid rgb(17 13 13 / 0.08);
+  background-color: var(--color-pana-cream);
+  color: var(--color-pana-ink);
+  font-size: 0.9375rem;
 }
 
 .footer a {
@@ -17,7 +27,7 @@
 .footerInner {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem 2rem;
+  gap: 2.25rem 3rem;
   justify-content: space-between;
 }
 
@@ -28,58 +38,123 @@
 }
 
 .footerInner li {
-  line-height: 1.75rem;
+  line-height: 1.9rem;
 }
 
+/* The column headings borrow `.section-eyebrow` rather than being it: the
+   eyebrow is a flex container with a rule drawn in `::before`, which is a lot
+   of furniture for a four-item list. This takes the type treatment -- small,
+   heavy, tracked-out, indigo -- and leaves the rule behind. */
 .footerInner li strong {
-  font-weight: 700;
-  font-size: 16px;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.footerLinks li a {
-  color: #fc2070;
-}
-
-.footerLinks li a:hover {
-  text-decoration: underline;
+.footerLinksAlt li a {
+  color: var(--color-pana-ink);
+  font-weight: 600;
+  transition: color 0.18s ease;
 }
 
 .footerLinksAlt li a:hover {
+  color: var(--color-pana-indigo);
   text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
+.footerLogo {
+  display: flex;
+  align-items: center;
+}
+
+/* Outlined circles at the same 2.75rem the identity menu uses, so the social
+   row is a comfortable touch target on a phone instead of four bare glyphs
+   sitting 8px apart. */
 .socials ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
   list-style: none;
-  line-height: 1.5rem;
-  padding: 0 1rem;
 }
 
+.socials a {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid rgb(17 13 13 / 0.15);
+  border-radius: 999px;
+  color: var(--color-pana-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.socials a:hover {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+/* Contact is the one thing down here asking to be clicked rather than
+   scanned, so it gets the site's pill-button shape instead of being an
+   underlined word that happens to be centred. Cream on indigo is 9.01:1. */
 .footerContact {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #eee;
+  margin-top: 2.75rem;
+  padding-top: 2rem;
+  border-top: 2px solid rgb(17 13 13 / 0.08);
   text-align: center;
 }
 
 .footerContact a {
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.7rem 1.875rem;
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background-color 0.18s ease;
 }
 
 .footerContact a:hover {
-  text-decoration: underline;
+  background-color: var(--color-pana-ink);
+  text-decoration: none;
 }
 
 @media only screen and (max-width: 600px) {
   .footer {
-    padding: 1rem 0.75rem;
+    padding-block: 2.5rem 1.5rem;
   }
 
   /* Break the flex row after the logo so it no longer steals width from the
-     columns — otherwise the narrow socials stack wraps below Support/Community.
+     columns -- otherwise the narrow socials stack wraps below Support/Community.
      Give it the full row and center it. */
   .footerLogo {
     flex-basis: 100%;
-    display: flex;
+    justify-content: center;
+  }
+
+  /* Same reasoning for the socials: on one line with two link columns they
+     get squeezed into a vertical stack of circles. Their own row, centred
+     under the columns, matches the logo above. */
+  .socials {
+    flex-basis: 100%;
+  }
+
+  .socials ul {
     justify-content: center;
   }
 }

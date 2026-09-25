@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-export type PersonalTab = 'posts' | 'panas' | 'groups';
+export type PersonalTab = 'posts' | 'events' | 'groups' | 'panas';
 
 export interface StatDef {
   tab: PersonalTab;

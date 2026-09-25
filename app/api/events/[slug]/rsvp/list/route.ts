@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { events, eventAttendees, profiles } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
+import { canManageEvent } from '@/lib/server/event-host';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -36,7 +37,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         { status: 404 }
       );
     }
-    if (!profile || event.hostProfileId !== profile.id) {
+    if (!profile || !(await canManageEvent(event, profile.id))) {
       return NextResponse.json(
         { success: false, error: 'Only the host can view attendees' },
         { status: 403 }

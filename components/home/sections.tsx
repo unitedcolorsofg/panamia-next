@@ -1,15 +1,16 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DirectorySuggest } from '@/components/directory-suggest';
-import { countyList } from '@/lib/lists';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
+import { useIsRail, useMediaQuery } from './rail';
 import { useStoryBeats, usePillars } from './content';
 
 /**
@@ -107,8 +108,36 @@ export function HomeFirstScreen() {
   );
 }
 
+/* The full placeholder is 277px of text; the input it sits in is 138px wide
+   on a 390px phone, so it was being cut mid-word. Below this width the short
+   label is used instead. */
+const HERO_SEARCH_SHORT_QUERY = '(max-width: 39.99rem)';
+
+/* The rotation is the one piece of motion on the page that runs on a timer
+   rather than on a scroll, and it sits inside a form field — so it is the
+   first thing that should go when someone has asked for less movement. They
+   get the static short label instead. */
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
 function HeroCard() {
   const { t } = useTranslation('home');
+  const useShortSearchLabel = useIsRail(HERO_SEARCH_SHORT_QUERY);
+  const prefersReducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+
+  /* "Search local business" is 160px of text in a field that has 138px to
+     give on a common phone, so the short label could only ever say that the
+     box searches, never what it searches. Dropping the verb is what buys the
+     room back, and the verb is the one word the field can afford to lose: it
+     already carries a magnifier at one end and a Search button at the other. */
+  const searchRotation = useMemo(() => {
+    const phrases = t('hero.searchRotation', {
+      returnObjects: true,
+    }) as unknown;
+    return Array.isArray(phrases) ? (phrases as string[]) : [];
+  }, [t]);
+
+  const rotateSearchLabel =
+    useShortSearchLabel && !prefersReducedMotion && searchRotation.length > 1;
 
   return (
     /* No scalloped trim across the top. The scallop is a good edge when two
@@ -165,7 +194,12 @@ function HeroCard() {
             layout="pill"
             className="mt-[18px]"
             label={t('hero.searchLabel')}
-            placeholder={t('hero.searchPlaceholder')}
+            placeholder={
+              useShortSearchLabel
+                ? t('hero.searchPlaceholderShort')
+                : t('hero.searchPlaceholder')
+            }
+            placeholderRotation={rotateSearchLabel ? searchRotation : undefined}
             ariaLabel={t('hero.searchAriaLabel')}
             buttonLabel={t('hero.searchButton')}
             inputClassName="text-pana-ink h-auto border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold shadow-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)] focus-visible:ring-0 md:text-[16.5px]"
@@ -256,10 +290,17 @@ export function HomePillars() {
           </h2>
           <p className="section-lede max-w-2xl">{t('pillarsBand.lede')}</p>
         </div>
+      </div>
 
-        <div data-rv>
-          <PillarPanels pillars={pillars} />
-        </div>
+      {/* Out of the container for the same reason the questions above are:
+          both rows measure their width against the viewport, so they only
+          share a left and right edge if they share a parent. Left inside, the
+          pillars measured against the container instead and ran up to 80px
+          wider than the questions at the top breakpoint. It also gives the
+          rail below 64rem the screen gutter to scroll into, which is what the
+          questions already had. */}
+      <div data-rv>
+        <PillarPanels pillars={pillars} />
       </div>
     </section>
   );
@@ -311,6 +352,22 @@ export function HomePoint() {
               >
                 <Link href="/directory/search">{t('closing.ctaBrowse')}</Link>
               </Button>
+              {/* Ghost rather than a third fill: "How do I get involved?" is
+                  answered by joining first, and a money ask that outweighs the
+                  join button would be answering a question nobody asked. The
+                  heart is what marks it as a different kind of ask, which is
+                  the job the old county row did by setting it apart. */}
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="story-btn story-btn-ghost rounded-full border-2 font-extrabold"
+              >
+                <Link href="/donate">
+                  <Heart className="h-4 w-4" aria-hidden="true" />
+                  {t('closing.ctaDonate')}
+                </Link>
+              </Button>
             </div>
 
             <div className="story-point-rule mt-10 border-t pt-8">
@@ -344,63 +401,6 @@ export function HomePoint() {
 
             <Link href="/a" className="link-arrow story-point-accent mt-10">
               {t('closing.dispatches')}
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------------------------
-   5. Where to go next
-   ------------------------------------------------------------------------- */
-
-/**
- * The county shortcuts and the donate ask.
- *
- * These four used to sit under the search bar. They were the first thing
- * below the mission and they were competing with the search field for the
- * same job — "pick a county" is a narrower version of "search" — while Donate
- * was asking for money from someone who had not yet been told what the club
- * does. Both were in the wrong place, not wrong.
- *
- * Down here they are in the right one. The page has made its case by now, so
- * a reader arriving at this row has either finished it or scrolled to the
- * bottom looking for exactly this kind of thing. It is the last band before
- * the footer and it does what the footer cannot: it offers the two concrete
- * next moves, at a size you can hit.
- *
- * Donate is set apart rather than styled as a fourth county, because it is a
- * different kind of ask and reading it as one of four would be a trap.
- */
-export function HomeLocalRow() {
-  const { t } = useTranslation('home');
-
-  return (
-    <section className="home-section story-localrow">
-      <div className="container mx-auto px-4" data-rv>
-        <div className="localrow-inner">
-          <div className="localrow-group">
-            <span className="localrow-label">{t('localRow.countyLabel')}</span>
-            <div className="localrow-links">
-              {countyList.map((county) => (
-                <Link
-                  key={county.value}
-                  href={`/directory/search?floc=${county.value}`}
-                  className="localrow-chip"
-                >
-                  {county.desc}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="localrow-group localrow-group-give">
-            <span className="localrow-label">{t('localRow.giveLabel')}</span>
-            <Link href="/donate" className="localrow-chip localrow-chip-give">
-              {t('localRow.donate')}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>

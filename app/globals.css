@@ -458,6 +458,136 @@
   background-color: var(--color-pana-ink);
 }
 
+/* The inset the pill's own text sits at, shared so the rotating placeholder
+   can line up on the same edge as the typed term. It has to agree with the
+   `px-4` the hero passes in `inputClassName`; the narrow override below moves
+   both together. */
+.directory-suggest-pill {
+  --dsp-text-inset: 1rem;
+}
+
+/* Under ~360px the pill runs out of room. The magnifier's margin, the field's
+   own padding and the button's padding come to roughly 200px of chrome, which
+   leaves the input about 68px to show text in — narrow enough to cut even the
+   short "Search Local" label the hero switches to on a phone.
+
+   So the chrome gives the width back rather than the field, since the field is
+   the only part of the pill that is carrying words. The button keeps its
+   margin so it still reads as a pill inside a pill. */
+@media (max-width: 22.5rem) {
+  .directory-suggest-pill {
+    --dsp-text-inset: 0.625rem;
+  }
+
+  .directory-suggest-pill-icon {
+    margin-left: 0.75rem;
+  }
+
+  .directory-suggest-pill .directory-suggest-field input {
+    padding-inline: var(--dsp-text-inset);
+  }
+
+  .directory-suggest-pill-button {
+    padding-inline: 1rem;
+  }
+}
+
+/* --- The rotating placeholder -------------------------------------------- */
+
+/* Wraps the input alone. The field above it stays `position: static` inside a
+   pill so the listbox can resolve against the whole bar, so the shell is what
+   gives the overlay something to sit on. */
+.directory-suggest-input-shell {
+  position: relative;
+}
+
+.directory-suggest-rotator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding-inline: var(--dsp-text-inset, 1rem);
+  /* It covers the input, so every event has to fall through it to the field
+     underneath — including the tap that opens the keyboard. */
+  pointer-events: none;
+
+  /* Mirrors the placeholder styling the hero passes in `inputClassName`
+     (components/home/sections.tsx). It cannot be inherited: the overlay is
+     the input's sibling, not its child. */
+  font-size: 16.5px;
+  font-weight: 500;
+  color: rgb(17 13 13 / 0.45);
+}
+
+/* One line tall, so a phrase on its way out is cut off by the edge of the
+   window instead of drifting around loose inside the field. */
+.directory-suggest-rotator-window {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 1.5em;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Both phrases share one grid cell, which stacks them without taking either
+   out of flow — so the window keeps its height from the text rather than
+   needing one hard-coded. */
+.directory-suggest-rotator-line {
+  grid-area: 1 / 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  /* Nothing measured needs this today, but a longer translation would rather
+     trail off than end mid-letter. */
+  text-overflow: ellipsis;
+}
+
+/* Downward: the phrase leaving drops out of the bottom of the window and its
+   replacement comes in over the top, so the set reads as a list being turned
+   rather than as text being replaced. 115% clears the window even with a
+   descender hanging below the baseline. */
+@keyframes directory-suggest-rotator-in {
+  from {
+    transform: translateY(-115%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes directory-suggest-rotator-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+}
+
+.directory-suggest-rotator-line.is-entering {
+  animation: directory-suggest-rotator-in 420ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+.directory-suggest-rotator-line.is-leaving {
+  animation: directory-suggest-rotator-out 420ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+/* The hero already withholds the phrase list under this preference, so the
+   rotation never starts. This is the backstop for any other caller. */
+@media (prefers-reduced-motion: reduce) {
+  .directory-suggest-rotator-line.is-entering,
+  .directory-suggest-rotator-line.is-leaving {
+    animation-duration: 1ms;
+  }
+}
+
 /* Scroll reveal. The hidden state is gated on `html[data-rv-ready]`, which is
    set by components/scroll-reveal.tsx on mount — so if that script never runs,
    nothing is hidden. Never make these rules unconditional. */
@@ -1813,8 +1943,8 @@ button.bizprofile-update-action:hover {
 }
 
 /* Two washes over the photo: a flame tint so any cover image still reads as
-   Pana, and a bottom fade into the cream body so the scallop has something to
-   bite into regardless of what the photograph is doing down there. */
+   Pana, and a bottom fade into the cream body so the band dissolves into the
+   page regardless of what the photograph is doing down there. */
 .profile-cover::after {
   content: '';
   position: absolute;
@@ -1854,6 +1984,17 @@ button.bizprofile-update-action:hover {
 
 .profile-avatar img {
   object-fit: cover;
+}
+
+/* A group wears the same avatar frame as a person, at the same size and in
+   the same position, but squared off. The shape is the only thing carrying
+   "this is a collective, not somebody" at a glance — a circular avatar reads
+   as a face whatever is inside it, and a group page being mistaken for a
+   profile is the one confusion this layout cannot afford. Squircle rather
+   than a hard square so it still belongs to the same family as the scallop
+   and the pill. */
+.profile-avatar[data-shape='group'] {
+  border-radius: 28%;
 }
 
 @media (min-width: 768px) {
@@ -2142,6 +2283,92 @@ button.bizprofile-update-action:hover {
    composer, a filter rail that carries counts, per-post author attribution,
    and the injected modules that keep the column from going dead on a slow day.
    ========================================================================== */
+
+/* Stories strip. Sits above the composer because a story is the lighter thing
+   to do: the circles are glanceable and gone in a tap, and asking people to
+   scroll past a writing box to reach them would bury the cheaper action under
+   the more expensive one. */
+.stories-rail {
+  --story-circle: 3.5rem;
+  margin-bottom: 0.875rem;
+}
+
+/* Scrolls rather than wraps. A second row of faces would push the composer
+   down the page by a variable amount every time the viewer follows someone. */
+.stories-rail-track {
+  display: flex;
+  gap: 0.875rem;
+  overflow-x: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.125rem 0 0.25rem;
+  scrollbar-width: none;
+}
+
+.stories-rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.stories-rail-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 4.25rem;
+}
+
+/* A fixed-height circle slot. StoryRing only draws its 7px ring and gap when
+   there is actually something to watch, so an owner with no story up sits 7px
+   shorter than the ghosts beside them and drags its label out of line. Sizing
+   the slot to the ringed case and centring inside it keeps every label on one
+   baseline whatever each circle happens to be doing. */
+.stories-rail-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--story-circle) + 7px);
+}
+
+.stories-rail-avatar {
+  width: var(--story-circle);
+  height: var(--story-circle);
+}
+
+.stories-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(17 13 13 / 0.6);
+}
+
+/* An empty slot, not a missing avatar. Dashed and unfilled so it reads as a
+   space reserved for something rather than a face that failed to load. The
+   extra 7px matches the ring and gap StoryRing draws around a real avatar at
+   this size, so full and empty circles sit on the same line. */
+.stories-rail-ghost {
+  width: calc(var(--story-circle) + 7px);
+  height: calc(var(--story-circle) + 7px);
+  border-radius: 9999px;
+  border: 2px dashed rgb(17 13 13 / 0.18);
+}
+
+/* Holds the row's height steady so the strip does not resize when the first
+   real story arrives and pushes a labelled circle in beside the ghosts. */
+.stories-rail-label-ghost {
+  visibility: hidden;
+}
+
+.stories-rail-note {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgb(17 13 13 / 0.45);
+}
 
 /* Composer. Butter rather than white so the one box the reader is meant to
    type in is the warmest thing on the page — on cream, another white card
@@ -5629,6 +5856,24 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   color: var(--story-orange);
 }
 
+/* On a phone the reasoning above inverts. The wordmark is `min(26rem, 70vw)`
+   and centred, so under 40rem it leaves a 15vw gutter down each side and
+   nothing above it — the sun at `left: 5.5%` was landing on the "P" of the
+   wordmark rather than beside it, because a 62px sun is wider than the gutter
+   and taller than the space above it.
+
+   So it swaps to the right gutter, which is empty at every phone width now
+   that Sign Up / Sign In sits in the masthead above rather than in the sky.
+   The width is capped to 11vw so the sun always ends before the wordmark
+   begins: 11vw + the 2vw offset stays inside the 15vw gutter. */
+@media (max-width: 39.99rem) {
+  .sky-sun {
+    right: 2vw;
+    left: auto;
+    width: clamp(34px, 11vw, 56px);
+  }
+}
+
 .sky-sun-core {
   fill: currentColor;
   opacity: 0.85;
@@ -6992,84 +7237,22 @@ body:has([data-density]) {
   color: var(--story-ink);
 }
 
-/* --- The county shortcuts and the donate ask ---------------------------- */
-
-/* Deliberately slimmer than a real band: `--home-pad` would give this the
-   same weight as the pillars, and it is a signpost, not a section. It sits
-   on paper rather than carrying the ink band above it further down, so the
-   dark block ends where its argument ends. */
-.story-localrow {
-  padding-block: calc(var(--home-pad) * 0.42);
-  background-color: var(--story-cream);
-  color: var(--story-ink);
-}
-
-.localrow-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem 2.5rem;
-}
-
-.localrow-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem 1rem;
-}
-
-.localrow-label {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.55;
-}
-
-.localrow-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.localrow-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  border: 2px solid rgb(2 8 17 / 0.18);
-  border-radius: 999px;
-  padding: 0.5rem 1.15rem;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--story-ink);
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease;
-}
-
-.localrow-chip:hover {
-  border-color: var(--story-blue);
-  background-color: var(--story-blue);
-  color: var(--story-cream);
-}
-
-/* Set apart from the counties on purpose. Three outlined chips and a fourth
-   that looks identical would read as four of the same thing, and clicking
-   "Palm Beach" then "Donate" should not feel like the same gesture. */
-.localrow-chip-give {
-  border-color: var(--story-orange);
-  background-color: var(--story-orange);
-}
-
-.localrow-chip-give:hover {
-  border-color: var(--story-coral);
-  background-color: var(--story-coral);
-  color: var(--story-ink);
-}
-
 /* --- The three pillars: expanding panels -------------------------------- */
+
+/* Centred, unlike the other section heads. The row of three panels below is
+   symmetrical and now shares its centre line with this block, so a
+   left-aligned heading hung off one end of it and read as a label for the
+   first pillar rather than as an introduction to all three. */
+.story-pillars .home-sectionhead {
+  text-align: center;
+}
+
+/* Centring the text is not enough on its own: the lede carries a 46ch
+   measure, so without this the copy sits centred inside a box that is still
+   pinned to the left. */
+.story-pillars .section-lede {
+  margin-inline: auto;
+}
 
 .pillars {
   display: grid;
@@ -7383,6 +7566,15 @@ a.pillar-program:hover {
   .pillars {
     display: flex;
     gap: 1rem;
+    /* The same measure the questions above use, so the two rows of cards
+       share one left and right edge instead of the pillars running 80px
+       wider at the top breakpoint. Both sections keep their heading at the
+       container edge and step their cards in by the same amount, so the step
+       reads as a deliberate inset rather than as two sections that missed
+       each other. Deliberately not applied to the rail below 64rem, where
+       the cards are meant to reach the screen gutter. */
+    width: min(100% - 2rem, 84rem);
+    margin-inline: auto;
   }
 
   .pillar {

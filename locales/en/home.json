@@ -3,6 +3,13 @@
     "headline": "The Future<br/>Is <em>Local</em>",
     "subheadline": "South Florida's first local directory — a living archive of the creatives, entrepreneurs and small businesses who make this place what it is.",
     "searchPlaceholder": "Search panas, businesses, groups, events",
+    "searchPlaceholderShort": "Search Local",
+    "searchRotation": [
+      "Local business",
+      "Local panas",
+      "Local groups",
+      "Local events"
+    ],
     "searchLabel": "Search directory",
     "searchAriaLabel": "Search the directory",
     "searchButton": "Search",
@@ -108,6 +115,7 @@
     "lede": "Pana MIA is built by and for locally based creatives, organizations and small businesses across Broward, Miami-Dade and Palm Beach. Join the directory, or start by finding someone already in it.",
     "ctaJoin": "Become a Pana",
     "ctaBrowse": "Search the directory",
+    "ctaDonate": "Donate",
     "dispatches": "Read the dispatches"
   },
   "newsletter": {
@@ -256,10 +264,5 @@
   "programStatus": {
     "live": "Live now",
     "building": "Building"
-  },
-  "localRow": {
-    "countyLabel": "Browse by county",
-    "giveLabel": "Keep it running",
-    "donate": "Donate"
   }
 }

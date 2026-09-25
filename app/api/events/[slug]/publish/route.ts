@@ -11,6 +11,7 @@ import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { isPublishable } from '@/lib/event';
 import { crosspostEvent } from '@/lib/relay/crosspost-client';
+import { canManageEvent } from '@/lib/server/event-host';
 import type { EventStatus } from '@/lib/schema';
 
 interface RouteParams {
@@ -61,7 +62,13 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
 
     const event = await db.query.events.findFirst({
       where: eq(events.slug, slug),
-      with: { venue: true },
+      with: {
+        venue: true,
+        hostGroup: {
+          columns: { id: true },
+          with: { actor: { columns: { username: true, name: true } } },
+        },
+      },
     });
     if (!event) {
       return NextResponse.json(
@@ -74,7 +81,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       where: eq(profiles.userId, session.user.id),
       columns: { id: true, name: true },
     });
-    if (!profile || event.hostProfileId !== profile.id) {
+    if (!profile || !(await canManageEvent(event, profile.id))) {
       return NextResponse.json(
         { success: false, error: 'Only the host can publish this event' },
         { status: 403 }
@@ -129,7 +136,15 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
           image: normalizeImageUrl(event.coverImage, host),
           imageAlt: event.coverImageAlt || undefined,
           tags: event.tags || [],
-          hostName: profile.name || undefined,
+          // The host, not whoever pressed publish. Before groups could host
+          // these were always the same person; for a group event the admin
+          // publishing it is not the host, and putting their name on the
+          // Nostr event would credit the wrong party off-platform.
+          hostName: event.hostGroup
+            ? (event.hostGroup.actor?.name ??
+              event.hostGroup.actor?.username ??
+              undefined)
+            : profile.name || undefined,
           canonicalUrl,
         });
       } catch (err) {

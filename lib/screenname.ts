@@ -1,5 +1,11 @@
 import { db } from '@/lib/db';
-import { users, profiles, screennameHistory } from '@/lib/schema';
+import {
+  users,
+  profiles,
+  screennameHistory,
+  socialActors,
+  socialGroups,
+} from '@/lib/schema';
 import { and, eq, ne, sql } from 'drizzle-orm';
 
 // Reserved screennames that cannot be used
@@ -122,13 +128,18 @@ export function validateScreenname(name: string): ScreennameValidationResult {
  *   - `users.screenname`      — handles held by people
  *   - `profiles.screenname`   — handles held by profiles, including business
  *                               listings that have no user at all
+ *   - `social_groups`         — handles held by groups, which live on the
+ *                               group's own actor row rather than on any
+ *                               profile, because a group has no profile
  *   - `screennameHistory`     — retired handles, kept so federation 410-Gone
  *                               tombstones stay truthful and nobody can
  *                               impersonate a former identity
  *
  * Missing any one of them would let a business take a handle a person already
  * answers to (or vice versa), and the resolvers would then disagree about who
- * `@name` is.
+ * `@name` is. Groups are in the same namespace for the same reason: /p/:handle
+ * and acct:handle@domain resolve a group through the identical path, so a
+ * group named after an existing pana would shadow them.
  *
  * `excludeEmail` lets a human keep their own name during a rename;
  * `excludeProfileId` does the same for a listing, which is needed separately
@@ -169,18 +180,37 @@ export async function isScreennameAvailable(
 
   if (existingProfile) return false;
 
+  // Check groups — a group's handle lives on its own actor row, so neither of
+  // the lookups above can see it. Joined through social_groups rather than
+  // filtering social_actors on type, so this can only ever match a local group
+  // and never a remote actor that happens to share a username.
+  const existingGroup = await db
+    .select({ id: socialGroups.id })
+    .from(socialGroups)
+    .innerJoin(socialActors, eq(socialGroups.actorId, socialActors.id))
+    .where(sql`lower(${socialActors.username}) = lower(${name})`)
+    .limit(1);
+
+  if (existingGroup.length > 0) return false;
+
   // Check screenname history (cannot claim others' old names)
   // Allow user to reclaim their OWN old screenname
   if (excludeEmail) {
-    // Historical: same screenname but not belonging to excludeEmail user
+    // Left-joined, not inner-joined. A history row's user_id is a bare id with
+    // no FK precisely so the row outlives the account -- and account deletion
+    // does delete the user. An inner join drops exactly those orphaned rows,
+    // which would hand a deleted person's handle to the next caller and make
+    // the 410-Gone tombstone a lie. A group reservation has no user at all, so
+    // it would vanish the same way. Unmatched rows therefore block, and only a
+    // row demonstrably belonging to this caller is excluded.
     const historical = await db
       .select({ id: screennameHistory.id })
       .from(screennameHistory)
-      .innerJoin(users, eq(screennameHistory.userId, users.id))
+      .leftJoin(users, eq(screennameHistory.userId, users.id))
       .where(
         and(
           sql`lower(${screennameHistory.screenname}) = lower(${name})`,
-          sql`lower(${users.email}) != lower(${excludeEmail})`
+          sql`${users.email} is null or lower(${users.email}) != lower(${excludeEmail})`
         )
       )
       .limit(1);
