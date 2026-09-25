@@ -7,7 +7,6 @@ import {
   HomeBasics,
   HomePillars,
   HomePoint,
-  HomeLocalRow,
 } from '@/components/home/sections';
 import { MockControls, type Density } from './mock-controls';
 
@@ -47,7 +46,6 @@ export function HomeMock() {
         <HomeBasics />
         <HomePillars />
         <HomePoint />
-        <HomeLocalRow />
 
         {/* Every mock says where it came from, so a screenshot taken out of
             context still names its own route. */}
