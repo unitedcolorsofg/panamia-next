@@ -604,6 +604,77 @@ export const useCreateGroup = () => {
 };
 
 /**
+ * What the edit form sends. Mirrors the PATCH body the route validates.
+ *
+ * Every field is optional and absence means "leave it alone", so a form that
+ * renders a subset of the settings cannot reset the rest. `summary: null`
+ * clears the description -- that is distinct from omitting it.
+ *
+ * No `handle`. A group's handle is its address and is set once, at creation.
+ */
+export interface UpdateGroupInput {
+  name?: string;
+  summary?: string | null;
+  /** Replaces the whole list. `[]` clears it. */
+  topics?: string[];
+  /** Replaces the whole list. `[]` clears it. */
+  rules?: string[];
+  visibility?: SocialGroupVisibility;
+  joinPolicy?: SocialGroupJoinPolicy;
+}
+
+/**
+ * Edit a group. Admin only; the server is the one that enforces that.
+ *
+ * Takes the handle as part of the mutation input rather than closing over it,
+ * so the settings page can hold one mutation object regardless of which group
+ * it is looking at.
+ *
+ * Unwraps the server's rejection messages for the same reason `useCreateGroup`
+ * does: "a rule must be no more than 280 characters" tells the member what to
+ * fix, and "could not save" does not.
+ */
+export const useUpdateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    CreatedGroup,
+    Error,
+    { handle: string; input: UpdateGroupInput }
+  >({
+    mutationFn: async ({ handle, input }) => {
+      try {
+        const response = await axios.patch<ApiEnvelope<CreatedGroup>>(
+          `/api/social/groups/${encodeURIComponent(handle)}`,
+          input
+        );
+        const updated = response.data?.data;
+        if (!updated?.group) {
+          throw new Error(response.data?.error ?? 'Group was not saved');
+        }
+        return updated;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const message = (error.response?.data as ApiEnvelope<never>)?.error;
+          if (message) throw new Error(message);
+        }
+        throw error;
+      }
+    },
+    onSuccess: (_updated, { handle }) => {
+      // The group page renders the name, description, topics and rules, and
+      // the listings render the name -- all of them just went stale.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'groups'] });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'me', 'groups'],
+      });
+    },
+  });
+};
+
+/**
  * A group's events.
  *
  * Mirrors useGroupPosts, including its silence: a non-member of a private
