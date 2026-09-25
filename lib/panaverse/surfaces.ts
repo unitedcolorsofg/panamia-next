@@ -94,14 +94,19 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // a business or unclaimed listing at /p/<user> is directory content and
     // says so with its own canonical. See app/p/[user]/page.tsx.
     //
-    // `/g`, `/groups` and `/search` are top level rather than under `/s` on
-    // purpose, and for the same reason `/p` and `/inbox` already are: the end
-    // state noted in worker/index.ts is moving these routes into a route group
-    // so the surface root is "/". A group nested at /s/g/<handle> would have to
-    // move when that happens and break every link minted in the meantime, while
+    // `/g` and `/groups` are top level rather than under `/s` on purpose, and
+    // for the same reason `/p` and `/inbox` already are: the end state noted
+    // in worker/index.ts is moving these routes into a route group so the
+    // surface root is "/". A group nested at /s/g/<handle> would have to move
+    // when that happens and break every link minted in the meantime, while
     // /g/<handle> is already where it will live. It also keeps the pair
     // legible -- /p/<user> is a person, /g/<handle> is a group.
-    paths: ['/s', '/p', '/g', '/groups', '/search', '/timeline', '/inbox'],
+    //
+    // `/search` is deliberately absent: it is now a redirect into the
+    // directory, so it never renders social chrome and claiming it here would
+    // only be stale documentation. Searching from this surface lands on
+    // /directory/all/<term> -- see components/panaverse/SurfaceSearch.tsx.
+    paths: ['/s', '/p', '/g', '/groups', '/timeline', '/inbox'],
   },
 ];
 

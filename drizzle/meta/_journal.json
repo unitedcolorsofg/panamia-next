@@ -356,7 +356,7 @@
       "idx": 50,
       "version": "7",
       "when": 1788393600000,
-      "tag": "0049_event_group_search_vector",
+      "tag": "0049_event_search_vector",
       "breakpoints": true
     }
   ]

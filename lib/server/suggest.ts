@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
-import { events, profiles, relayGroups, users, venues } from '@/lib/schema';
+import { events, profiles, users, venues } from '@/lib/schema';
+import { searchGroups } from '@/lib/server/group-search';
 import {
   and,
   asc,
@@ -254,51 +255,33 @@ async function suggestPanas(term: string): Promise<Suggestion[]> {
 }
 
 /**
- * Relay groups.
+ * Pana Social groups.
  *
- * Signed-in only, and discoverable-only within that. Two separate reasons,
- * either of which would be sufficient:
+ * Delegates to lib/server/group-search.ts rather than running its own query.
+ * That module is the one place the two generated tsvectors are ranked against
+ * each other, and the weights that make the sum meaningful are only correct if
+ * every caller uses them — a second query here with its own ORDER BY would
+ * order groups differently in the dropdown than on the page they lead to.
  *
- *   - Every /api/relay/groups route answers 401 to an anonymous caller and
- *     /r/groups is a signed-in surface, so an anonymous suggestion would be an
- *     offer the destination refuses.
- *   - `discoverable` is derived from an open join policy, and an invite-only
- *     group's existence is not advertised anywhere else in the product. See
- *     listPublicGroupsForPubkey in lib/server/relay-groups.ts, which reaches
- *     the same conclusion for the same reason: belonging to one can be
- *     sensitive by itself, independently of anything said inside it.
+ * Signed-in only, because /g/[handle] is: the surface answers a stranger with
+ * a sign-in wall, so an anonymous suggestion would be an offer the destination
+ * refuses. The caller enforces that, not this function.
  *
- * The consequence is that a member does not find their own invite-only group
- * here. That is the right trade for a shared search box — the group is one
- * click away under /r/groups, which is the surface that knows who is asking.
+ * Private groups are included, which is deliberate and is main's stance, not a
+ * relaxation of it: identity fields only, never group content. A private group
+ * with an open request policy is unusable if nobody can find it to ask. See
+ * the note on GROUP_COLUMNS in group-search.ts before narrowing this.
  */
 async function suggestGroups(term: string): Promise<Suggestion[]> {
-  const { contains } = patterns(term);
-
-  const rows = await db
-    .select({
-      groupId: relayGroups.groupId,
-      name: relayGroups.name,
-      about: relayGroups.about,
-      picture: relayGroups.picture,
-    })
-    .from(relayGroups)
-    .where(
-      and(
-        eq(relayGroups.discoverable, true),
-        or(like(relayGroups.name, contains), like(relayGroups.about, contains))
-      )
-    )
-    .orderBy(nameRank(relayGroups.name, term), asc(relayGroups.name))
-    .limit(PER_KIND_LIMIT);
+  const rows = await searchGroups({ term, limit: PER_KIND_LIMIT });
 
   return rows.map((row) => ({
     kind: 'group' as const,
-    id: row.groupId,
-    name: row.name,
-    subtitle: row.about,
-    href: `/r/groups/${row.groupId}`,
-    imageUrl: row.picture,
+    id: row.id,
+    name: row.name ?? row.handle,
+    subtitle: row.summary,
+    href: `/g/${row.handle}`,
+    imageUrl: row.iconUrl,
   }));
 }
 

@@ -7,7 +7,7 @@ import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { useSession } from '@/lib/auth-client';
 import { useGroupSearch, useMyGroups } from '@/lib/query/social';
 import type { MyGroupSummary } from '@/lib/query/social';
-import { GroupResultCard } from '@/app/search/_components/group-result-card';
+import { GroupResultCard } from '@/app/groups/_components/group-result-card';
 
 /**
  * The body of /groups.

@@ -1,5 +1,9 @@
 import { db } from '@/lib/db';
-import { events, profiles, relayGroups, users, venues } from '@/lib/schema';
+import { events, profiles, users, venues } from '@/lib/schema';
+import {
+  countGroups,
+  searchGroups as searchSocialGroups,
+} from '@/lib/server/group-search';
 import {
   and,
   eq,
@@ -68,7 +72,6 @@ export const SCOPE_PAGE_SIZE = 24;
  * their tables; lib/server/directory.ts does the same thing with an alias.
  */
 const profileVector = sql`"profiles"."search_vector"`;
-const groupVector = sql`"relay_groups"."search_vector"`;
 const eventVector = sql`"events"."search_vector"`;
 
 /**
@@ -218,13 +221,17 @@ export async function searchPanas(
 }
 
 /**
- * Relay groups.
+ * Pana Social groups.
  *
- * Signed-in only and discoverable-only, for the two independent reasons
- * suggest.ts sets out: every /api/relay/groups route answers 401 to an
- * anonymous caller, and `discoverable` is derived from an open join policy, so
- * an invite-only group's existence is not advertised anywhere else in the
- * product. Belonging to one can be sensitive by itself.
+ * Delegates to lib/server/group-search.ts for both the rows and the total, so
+ * the scope page, the tab count and the typeahead all resolve the same term
+ * through one matcher. That module ranks two generated tsvectors against each
+ * other with shared weights; a second query here would order the page
+ * differently from the dropdown that leads to it.
+ *
+ * Signed-in only, because /g/[handle] is. Private groups are included —
+ * identity fields only, never group content — which is that module's
+ * documented stance rather than a relaxation of it.
  */
 export async function searchGroups(
   term: string,
@@ -235,42 +242,20 @@ export async function searchGroups(
   const { page: safePage, offset } = paginate(page, pageSize);
   if (!trimmed) return empty(safePage);
 
-  const where = and(
-    eq(relayGroups.discoverable, true),
-    sql`${groupVector} @@ ${tsquery(trimmed)}`
-  );
-
-  const [rows, totals] = await Promise.all([
-    db
-      .select({
-        groupId: relayGroups.groupId,
-        name: relayGroups.name,
-        about: relayGroups.about,
-        picture: relayGroups.picture,
-        rank: rankExpr(groupVector, relayGroups.name, trimmed),
-      })
-      .from(relayGroups)
-      .where(where)
-      .orderBy(
-        sql`${rankExpr(groupVector, relayGroups.name, trimmed)} DESC`,
-        relayGroups.name
-      )
-      .limit(pageSize)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(relayGroups)
-      .where(where),
+  const [rows, total] = await Promise.all([
+    searchSocialGroups({ term: trimmed, limit: pageSize, offset }),
+    countGroups(trimmed),
   ]);
 
-  const total = totals[0]?.count ?? 0;
   return {
     results: rows.map((row) => ({
-      id: row.groupId,
-      name: row.name,
-      subtitle: row.about,
-      href: `/r/groups/${row.groupId}`,
-      imageUrl: row.picture,
+      id: row.id,
+      // A remote group can arrive without a display name; the handle is the
+      // only thing guaranteed to be there, and it is what the URL uses.
+      name: row.name ?? row.handle,
+      subtitle: row.summary,
+      href: `/g/${row.handle}`,
+      imageUrl: row.iconUrl,
       meta: null,
     })),
     total,
@@ -409,7 +394,10 @@ export async function searchBusinesses(
   const where = and(
     eq(profiles.active, true),
     sql`COALESCE(${profiles.screenname}, ${users.screenname}) IS NOT NULL`,
-    or(isNull(profiles.userId), inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)),
+    or(
+      isNull(profiles.userId),
+      inArray(users.accountType, DIRECTORY_ACCOUNT_TYPES)
+    ),
     sql`${profileVector} @@ ${tsquery(trimmed)}`
   );
 
@@ -512,21 +500,13 @@ export async function countPanas(term: string): Promise<number> {
   return rows[0]?.count ?? 0;
 }
 
-/** Count discoverable groups matching, for the scope tab label. */
-export async function countGroups(term: string): Promise<number> {
-  const trimmed = term.trim();
-  if (!trimmed) return 0;
-  const rows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(relayGroups)
-    .where(
-      and(
-        eq(relayGroups.discoverable, true),
-        sql`${groupVector} @@ ${tsquery(trimmed)}`
-      )
-    );
-  return rows[0]?.count ?? 0;
-}
+/**
+ * Count groups matching, for the scope tab label.
+ *
+ * Re-exported rather than reimplemented so the count and the page cannot drift
+ * apart — see the note on countGroups in lib/server/group-search.ts.
+ */
+export { countGroups };
 
 /** Count upcoming public events matching, for the scope tab label. */
 export async function countEvents(term: string): Promise<number> {

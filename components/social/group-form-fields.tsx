@@ -26,8 +26,8 @@ export const MAX_RULES = 20;
 export const MAX_RULE_LENGTH = 280;
 
 /* The repo styles inputs inline rather than with a shared class -- see the
-   search field in app/search/_components/search-content.tsx. Hoisted to a
-   constant because the group forms have several of them. */
+   search field in components/directory-suggest.tsx. Hoisted to a constant
+   because the group forms have several of them. */
 export const INPUT_CLASS =
   'border-pana-ink/12 focus:border-pana-orange/55 focus:ring-pana-orange/18 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:outline-none';
 

@@ -1,33 +1,38 @@
--- Migration: 0044_event_group_search_vector
--- Purpose: Give events and groups the same quality of text matching the
---          business directory has had since 0040, so the scoped search pages
---          behave the same way whichever scope you are in.
+-- Migration: 0049_event_search_vector
+-- Purpose: Give events the same quality of text matching the business
+--          directory has had since 0040, so the scoped search pages behave
+--          the same way whichever scope you are in.
 -- Ticket: N/A
 -- Reversible: Yes
 --
--- Dependencies: events, relay_groups, and everything 0040 established --
---               specifically the pana_unaccent() helper and the unaccent
---               extension behind it. 0040 must have run. This migration
---               deliberately does NOT redefine pana_unaccent: see the
---               staleness warning in that file, which applies to the vectors
---               added here too.
--- Data Migration: None required. Both columns are GENERATED ALWAYS ... STORED,
+-- Dependencies: events and everything 0040 established -- specifically the
+--               pana_unaccent() helper and the unaccent extension behind it.
+--               0040 must have run. This migration deliberately does NOT
+--               redefine pana_unaccent: see the staleness warning in that
+--               file, which applies to the vector added here too.
+-- Data Migration: None required. The column is GENERATED ALWAYS ... STORED,
 --                 so Postgres fills every existing row during the ALTER and
---                 maintains them on write. No backfill, no trigger to drift.
+--                 maintains it on write. No backfill, no trigger to drift.
 --
 -- Note: ALTER TABLE ... ADD COLUMN ... GENERATED rewrites the table and holds
---       ACCESS EXCLUSIVE for the duration. events and relay_groups are both
---       tiny today, so this is a non-event, but it still belongs in a quiet
---       window on principle.
+--       ACCESS EXCLUSIVE for the duration. events is tiny today, so this is a
+--       non-event, but it still belongs in a quiet window on principle.
 --
 -- Rollback:
---   DROP INDEX IF EXISTS "relay_groups_search_vector_idx";
 --   DROP INDEX IF EXISTS "events_search_vector_idx";
---   ALTER TABLE "relay_groups" DROP COLUMN IF EXISTS "search_vector";
 --   ALTER TABLE "events" DROP COLUMN IF EXISTS "search_vector";
 --   DROP FUNCTION IF EXISTS pana_text_array(text[]);
 --   -- Leave pana_unaccent and the unaccent extension alone; 0040 owns them
 --   -- and profiles.search_vector still depends on both.
+--
+-- Groups: an earlier draft of this migration gave relay_groups a vector too,
+--         because the directory's Groups scope searched that table. It no
+--         longer does. Pana MIA has two group systems -- relay_groups behind
+--         the Resilience surface, and social_actors/social_groups behind Pana
+--         Social -- and the directory now searches the second, which 0045
+--         already indexed. Indexing relay_groups as well would have been a
+--         generated column and a GIN index maintained on every write for a
+--         query nobody makes.
 --
 -- =============================================================================
 -- Rationale
@@ -42,7 +47,7 @@
 --             name column costs less than the write amplification an index
 --             would add. Revisit if either grows by an order of magnitude."
 --
---          That reasoning was correct and is still correct. Neither table has
+--          That reasoning was correct and is still correct. The table has not
 --          grown by an order of magnitude, and if speed were the only
 --          consideration this migration would not exist. What changed is the
 --          job the query has to do.
@@ -59,18 +64,18 @@
 --          search bar, same keystrokes, silently different rules depending on
 --          which scope you happened to be in. That is the bug.
 --
---          So events and groups get the treatment 0040 gave profiles, for the
---          reasons 0040 gave: word order stops being mandatory, words get
---          stemmed so "markets" finds "market", and accents fold so a group
---          called Reunión is reachable by typing Reunion. The GIN index is a
+--          So events get the treatment 0040 gave profiles, for the reasons
+--          0040 gave: word order stops being mandatory, words get stemmed so
+--          "markets" finds "market", and accents fold so an event called
+--          Reunión is reachable by typing Reunion. The GIN index is a
 --          consequence of using a tsvector rather than the point of it.
 --
---          Weights follow the same ladder, collapsed to the fields these
---          tables actually have:
+--          Weights follow the same ladder, collapsed to the fields this table
+--          actually has:
 --
---            A  title / name
---            B  tags                      (events only)
---            D  description / about
+--            A  title
+--            B  tags
+--            D  description
 --
 --          There is no C tier here on purpose. On profiles, C is category and
 --          city -- facet-ish fields that sit between a tagline and prose. An
@@ -81,7 +86,7 @@
 --          description into a tier it hasn't earned.
 --
 --          As in 0040, prose is indexed under both english and spanish, and
---          titles and names additionally under simple so a proper noun always
+--          the title additionally under simple so a proper noun always
 --          matches itself rather than whatever the stemmer makes of it.
 --
 --          One new helper, for the same reason 0040 needed two: array_to_string
@@ -93,15 +98,14 @@
 --          to text[] precisely so that the IMMUTABLE declaration is honest
 --          rather than merely accepted. Do not widen it to anyarray.
 --
---          The staleness warning from 0040 applies here in full. Both columns
---          are STORED, so they are computed on write and never recomputed on
---          read, and CREATE OR REPLACE on pana_unaccent or pana_text_array is
---          permitted even while these columns depend on them -- old rows keep
+--          The staleness warning from 0040 applies here in full. The column is
+--          STORED, so it is computed on write and never recomputed on read,
+--          and CREATE OR REPLACE on pana_unaccent or pana_text_array is
+--          permitted even while the column depends on them -- old rows keep
 --          old vectors, new writes use new logic, and nothing warns you.
 --          Changing either helper later means forcing a rewrite:
 --
 --            UPDATE "events" SET "id" = "id";
---            UPDATE "relay_groups" SET "group_id" = "group_id";
 -- =============================================================================
 
 -- Flatten a text[] to whitespace-joined text. Exists only to make the events
@@ -126,22 +130,8 @@ ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "search_vector" tsvector
   ) STORED;
 --> statement-breakpoint
 
-ALTER TABLE "relay_groups" ADD COLUMN IF NOT EXISTS "search_vector" tsvector
-  GENERATED ALWAYS AS (
-    setweight(to_tsvector('english', pana_unaccent(coalesce("name", ''))), 'A') ||
-    setweight(to_tsvector('spanish', pana_unaccent(coalesce("name", ''))), 'A') ||
-    setweight(to_tsvector('simple',  pana_unaccent(coalesce("name", ''))), 'A') ||
-    setweight(to_tsvector('english', pana_unaccent(coalesce("about", ''))), 'D') ||
-    setweight(to_tsvector('spanish', pana_unaccent(coalesce("about", ''))), 'D')
-  ) STORED;
---> statement-breakpoint
-
--- GIN for the same reason 0040 chose it on profiles: both tables are read far
--- more often than they are written, and GIN answers @@ faster than GiST at the
+-- GIN for the same reason 0040 chose it on profiles: the table is read far
+-- more often than it is written, and GIN answers @@ faster than GiST at the
 -- cost of slower writes.
 CREATE INDEX IF NOT EXISTS "events_search_vector_idx"
   ON "events" USING GIN ("search_vector");
---> statement-breakpoint
-
-CREATE INDEX IF NOT EXISTS "relay_groups_search_vector_idx"
-  ON "relay_groups" USING GIN ("search_vector");
