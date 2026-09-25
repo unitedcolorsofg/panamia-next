@@ -41,6 +41,7 @@
 -- =============================================================================
 
 CREATE TYPE "recommendation_list_visibility" AS ENUM ('private', 'unlisted', 'public');
+--> statement-breakpoint
 
 CREATE TABLE "recommendation_lists" (
   "id" text PRIMARY KEY NOT NULL,
@@ -58,12 +59,15 @@ CREATE TABLE "recommendation_lists" (
   "item_count" integer DEFAULT 0 NOT NULL,
   "published_at" timestamp with time zone
 );
+--> statement-breakpoint
 
 CREATE INDEX "recommendation_lists_owner_visibility_idx"
   ON "recommendation_lists" ("owner_user_id", "visibility");
+--> statement-breakpoint
 
 CREATE UNIQUE INDEX "recommendation_lists_owner_slug_unique"
   ON "recommendation_lists" ("owner_user_id", "slug");
+--> statement-breakpoint
 
 CREATE TABLE "recommendation_list_items" (
   "id" text PRIMARY KEY NOT NULL,
@@ -75,6 +79,7 @@ CREATE TABLE "recommendation_list_items" (
   "note" text NOT NULL,
   "position" integer NOT NULL
 );
+--> statement-breakpoint
 
 -- The same business twice on one list is a mistake. The same business across
 -- two lists is the feature working, so this is scoped to (list, profile).
@@ -82,9 +87,11 @@ CREATE TABLE "recommendation_list_items" (
 -- each other — which is what we want: two dead entries are two dead entries.
 CREATE UNIQUE INDEX "recommendation_list_items_list_profile_unique"
   ON "recommendation_list_items" ("list_id", "profile_id");
+--> statement-breakpoint
 
 CREATE INDEX "recommendation_list_items_list_position_idx"
   ON "recommendation_list_items" ("list_id", "position");
+--> statement-breakpoint
 
 CREATE INDEX "recommendation_list_items_profile_id_idx"
   ON "recommendation_list_items" ("profile_id");
