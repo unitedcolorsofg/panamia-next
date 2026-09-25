@@ -43,12 +43,15 @@ jobs:
 
       # Runs Postgres compiled to WASM (PGlite) in-process, so there is no
       # service container, no connection string, and nothing shared between
-      # runs. See tests-db/visibility.test.ts.
-      - name: Status visibility
+      # runs. Covers status visibility (tests-db/visibility.test.ts) and the
+      # session-telemetry purge migration, which is executed for real so that
+      # SQL which does not parse fails here rather than on deploy.
+      - name: Database behaviour (PGlite)
         run: yarn test:db
 
       # Builds JPEG, PNG and WebP fixtures carrying GPS, camera and XMP data,
-      # then checks the stripper removes them without altering a pixel. See
-      # tests-unit/strip-metadata.test.ts.
-      - name: Image metadata stripping
+      # then checks the stripper removes them without altering a pixel
+      # (tests-unit/strip-metadata.test.ts). Also covers federation being
+      # opt-in and auth sessions not retaining IP or user-agent.
+      - name: Privacy unit tests
         run: yarn test:unit

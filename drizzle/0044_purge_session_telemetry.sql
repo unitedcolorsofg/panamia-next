@@ -1,0 +1,61 @@
+-- Migration: 0044_purge_session_telemetry
+-- Purpose: Erase the IP addresses and user-agent strings already collected on
+--          auth sessions, which we do not use, never disclosed, and had no
+--          mechanism to delete.
+-- Ticket: N/A
+-- Reversible: No - this destroys data on purpose. That is the point of it.
+--             The schema is unchanged, so there is nothing to structurally
+--             roll back; the erased values are simply gone.
+--
+-- Dependencies: sessions
+-- Data Migration: Inline (UPDATE below)
+--
+-- Rollback:
+--   None. The values cannot be reconstructed, and restoring them would
+--   reintroduce exactly the data this migration exists to remove. To resume
+--   collecting telemetry on new sessions, remove the session.create.before
+--   hook in auth.ts -- but read lib/legal/session-telemetry.ts first.
+--
+-- =============================================================================
+--
+-- better-auth records the client IP and user-agent on every session it
+-- creates. Those columns live in our own database, keyed to user_id, which
+-- makes them identity-linked location and device data rather than anonymous
+-- request logs.
+--
+-- Three things were true of them at once:
+--
+--   Nothing read them. No code in app/, lib/, components/, scripts/ or
+--   auth.ts referenced sessions.ip_address or sessions.user_agent outside the
+--   column definitions. They were collected because the library collects
+--   them.
+--
+--   Nothing disclosed them. lib/legal/data-inventory.ts classifies sessions
+--   as 'account', and that category in app/legal/privacy/policy.json lists
+--   email, password_hash, screenname and name -- with source "You provide",
+--   which an IP address is not. Every ip_address mention in the policy points
+--   at Cloudflare. A member reading it would conclude we do not hold their IP.
+--
+--   Nothing deleted them. Session rows are removed only on email migration
+--   and account deletion, and better-auth's automatic cleanup covers
+--   verification tokens only. An expired session kept its IP indefinitely.
+--
+-- The forward fix (auth.ts session.create.before) stops new collection, but
+-- it does nothing about rows already written. Leaving those in place would
+-- mean the promise "we don't store your IP" is true only for members who
+-- signed in after the deploy, which is not a promise worth making.
+--
+-- Empty string rather than NULL: better-auth itself writes '' for both fields
+-- when a request has no usable headers, so '' is a value these columns
+-- already hold in normal operation and nothing downstream can be surprised by
+-- it. This also matches exactly what the new hook writes, so post-deploy
+-- every row looks the same regardless of when it was created.
+--
+-- Sessions are not touched otherwise: tokens, expiry and user_id are left
+-- alone, so this logs nobody out.
+
+UPDATE sessions
+   SET ip_address = '',
+       user_agent = ''
+ WHERE ip_address IS DISTINCT FROM ''
+    OR user_agent IS DISTINCT FROM '';

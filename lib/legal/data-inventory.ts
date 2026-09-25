@@ -54,6 +54,15 @@ export const inventory: Record<TableExport, Classification> = {
   // --- Auth / account ---
   users: ['account'],
   accounts: ['account', 'oauth_identity', 'oauth_tokens'],
+  // The sessions table also has ip_address and user_agent columns, which
+  // better-auth populates from request headers. We deliberately do not store
+  // values in them -- auth.ts blanks both at write via
+  // lib/legal/session-telemetry.ts, and migration 0044 erased what had been
+  // collected. That is why this is 'account' only: there is no telemetry
+  // category to declare because there is no telemetry retained. If you ever
+  // remove that hook, this classification becomes a lie and the 'account'
+  // category in policy.json ("You provide": email, password_hash, screenname,
+  // name) would need an honest entry for identity-linked IP and device data.
   sessions: ['account'],
   verification: ['verification_tokens'],
   oAuthVerifications: ['verification_tokens'],

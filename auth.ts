@@ -18,6 +18,7 @@ import {
   notBusinessListing,
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
+import { stripSessionTelemetry } from '@/lib/legal/session-telemetry';
 import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
 
 // Custom email templates for magic link authentication
@@ -1032,6 +1033,13 @@ function getBetterAuth(): BetterAuthInstance {
       },
       session: {
         create: {
+          // better-auth fills ipAddress and userAgent from the request headers
+          // on every session it creates. We do not use either field, never
+          // disclosed them, and never deleted them -- so we decline to store
+          // them at all. See lib/legal/session-telemetry.ts for the full
+          // reasoning, including why better-auth's own disableIpTracking flag
+          // is the wrong lever (it disables rate limiting along with it).
+          before: async (session) => stripSessionTelemetry(session),
           after: async (session) => {
             // Every sign-in creates a session, so this is the path that covers
             // magic links — the account hook above never fires for them.
