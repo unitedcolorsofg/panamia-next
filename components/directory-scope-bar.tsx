@@ -91,7 +91,11 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
   };
 
   const onTriggerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+    if (
+      event.key === 'ArrowDown' ||
+      event.key === 'Enter' ||
+      event.key === ' '
+    ) {
       event.preventDefault();
       // Open onto the current scope, so the menu starts where you left it.
       openWith(Math.max(0, reachable.indexOf(scope)));
@@ -259,7 +263,7 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
                     key={option}
                     role="menuitem"
                     aria-disabled="true"
-                    className="surface-option items-center cursor-not-allowed opacity-45"
+                    className="surface-option cursor-not-allowed items-center opacity-45"
                     data-tone={SCOPE_TONE[option]}
                   >
                     {body}
@@ -302,10 +306,16 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
  * light filter row and only works there. And being sticky means the scope
  * stays switchable while you are twenty results deep, which is exactly when
  * you realise you wanted groups, not businesses.
+ *
+ * Hidden below 48rem. The search pill directly above carries the same five
+ * scopes in its menu, and on a 390px screen this row cost 66px to say a second
+ * time what was already on screen one control up. Above 48rem it is free —
+ * the row is there either way — so the duplication is only worth removing
+ * where height is scarce.
  */
 export function ScopeChips({ term, scope, counts, signedIn }: ScopeNavProps) {
   return (
-    <div className="dirsearch-filters">
+    <div className="dirsearch-filters dirsearch-scopestrip">
       <div className="container mx-auto px-4">
         <div className="dirsearch-filterrow">
           <span className="dirsearch-filterlabel">Scope</span>

@@ -66,7 +66,7 @@ export function SearchBand({
   const shared = locationStatus === 'granted';
 
   return (
-    <section className="surface-indigo dirsearch-band">
+    <section className="dirsearch-band">
       <div className="container mx-auto px-4">
         <span className="section-eyebrow">Directory</span>
 
