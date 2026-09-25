@@ -6,7 +6,6 @@ import {
   HomeBasics,
   HomePillars,
   HomePoint,
-  HomeLocalRow,
 } from '@/components/home/sections';
 
 /**
@@ -44,7 +43,6 @@ export function HomePage() {
         <HomeBasics />
         <HomePillars />
         <HomePoint />
-        <HomeLocalRow />
       </div>
     </>
   );

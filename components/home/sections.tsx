@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DirectorySuggest } from '@/components/directory-suggest';
-import { countyList } from '@/lib/lists';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
@@ -322,6 +321,22 @@ export function HomePoint() {
               >
                 <Link href="/directory/search">{t('closing.ctaBrowse')}</Link>
               </Button>
+              {/* Ghost rather than a third fill: "How do I get involved?" is
+                  answered by joining first, and a money ask that outweighs the
+                  join button would be answering a question nobody asked. The
+                  heart is what marks it as a different kind of ask, which is
+                  the job the old county row did by setting it apart. */}
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="story-btn story-btn-ghost rounded-full border-2 font-extrabold"
+              >
+                <Link href="/donate">
+                  <Heart className="h-4 w-4" aria-hidden="true" />
+                  {t('closing.ctaDonate')}
+                </Link>
+              </Button>
             </div>
 
             <div className="story-point-rule mt-10 border-t pt-8">
@@ -355,63 +370,6 @@ export function HomePoint() {
 
             <Link href="/a" className="link-arrow story-point-accent mt-10">
               {t('closing.dispatches')}
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------------------------
-   5. Where to go next
-   ------------------------------------------------------------------------- */
-
-/**
- * The county shortcuts and the donate ask.
- *
- * These four used to sit under the search bar. They were the first thing
- * below the mission and they were competing with the search field for the
- * same job — "pick a county" is a narrower version of "search" — while Donate
- * was asking for money from someone who had not yet been told what the club
- * does. Both were in the wrong place, not wrong.
- *
- * Down here they are in the right one. The page has made its case by now, so
- * a reader arriving at this row has either finished it or scrolled to the
- * bottom looking for exactly this kind of thing. It is the last band before
- * the footer and it does what the footer cannot: it offers the two concrete
- * next moves, at a size you can hit.
- *
- * Donate is set apart rather than styled as a fourth county, because it is a
- * different kind of ask and reading it as one of four would be a trap.
- */
-export function HomeLocalRow() {
-  const { t } = useTranslation('home');
-
-  return (
-    <section className="home-section story-localrow">
-      <div className="container mx-auto px-4" data-rv>
-        <div className="localrow-inner">
-          <div className="localrow-group">
-            <span className="localrow-label">{t('localRow.countyLabel')}</span>
-            <div className="localrow-links">
-              {countyList.map((county) => (
-                <Link
-                  key={county.value}
-                  href={`/directory/search?floc=${county.value}`}
-                  className="localrow-chip"
-                >
-                  {county.desc}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="localrow-group localrow-group-give">
-            <span className="localrow-label">{t('localRow.giveLabel')}</span>
-            <Link href="/donate" className="localrow-chip localrow-chip-give">
-              {t('localRow.donate')}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>

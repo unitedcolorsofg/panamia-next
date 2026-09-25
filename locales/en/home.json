@@ -109,6 +109,7 @@
     "lede": "Pana MIA is built by and for locally based creatives, organizations and small businesses across Broward, Miami-Dade and Palm Beach. Join the directory, or start by finding someone already in it.",
     "ctaJoin": "Become a Pana",
     "ctaBrowse": "Search the directory",
+    "ctaDonate": "Donate",
     "dispatches": "Read the dispatches"
   },
   "newsletter": {
@@ -257,10 +258,5 @@
   "programStatus": {
     "live": "Live now",
     "building": "Building"
-  },
-  "localRow": {
-    "countyLabel": "Browse by county",
-    "giveLabel": "Keep it running",
-    "donate": "Donate"
   }
 }
