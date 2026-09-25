@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
@@ -9,7 +10,7 @@ import { DirectorySuggest } from '@/components/directory-suggest';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
-import { useIsRail } from './rail';
+import { useIsRail, useMediaQuery } from './rail';
 import { useStoryBeats, usePillars } from './content';
 
 /**
@@ -112,9 +113,31 @@ export function HomeFirstScreen() {
    label is used instead. */
 const HERO_SEARCH_SHORT_QUERY = '(max-width: 39.99rem)';
 
+/* The rotation is the one piece of motion on the page that runs on a timer
+   rather than on a scroll, and it sits inside a form field — so it is the
+   first thing that should go when someone has asked for less movement. They
+   get the static short label instead. */
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
 function HeroCard() {
   const { t } = useTranslation('home');
   const useShortSearchLabel = useIsRail(HERO_SEARCH_SHORT_QUERY);
+  const prefersReducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+
+  /* "Search local business" is 160px of text in a field that has 138px to
+     give on a common phone, so the short label could only ever say that the
+     box searches, never what it searches. Dropping the verb is what buys the
+     room back, and the verb is the one word the field can afford to lose: it
+     already carries a magnifier at one end and a Search button at the other. */
+  const searchRotation = useMemo(() => {
+    const phrases = t('hero.searchRotation', {
+      returnObjects: true,
+    }) as unknown;
+    return Array.isArray(phrases) ? (phrases as string[]) : [];
+  }, [t]);
+
+  const rotateSearchLabel =
+    useShortSearchLabel && !prefersReducedMotion && searchRotation.length > 1;
 
   return (
     /* No scalloped trim across the top. The scallop is a good edge when two
@@ -176,6 +199,7 @@ function HeroCard() {
                 ? t('hero.searchPlaceholderShort')
                 : t('hero.searchPlaceholder')
             }
+            placeholderRotation={rotateSearchLabel ? searchRotation : undefined}
             ariaLabel={t('hero.searchAriaLabel')}
             buttonLabel={t('hero.searchButton')}
             inputClassName="text-pana-ink h-auto border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold shadow-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)] focus-visible:ring-0 md:text-[16.5px]"

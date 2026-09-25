@@ -119,18 +119,14 @@ export function RailNav({
 }
 
 /**
- * Whether the viewport is narrow enough that a section has become a rail.
+ * Whether a media query matches right now.
  *
  * `useSyncExternalStore` rather than a mount effect because the server has to
- * render *something*, and the honest something is the wide layout: it is what
- * the markup means when no viewport is known. The client corrects on its
- * first commit.
- *
- * This exists for accessibility, not layout — layout is CSS. The pillars are
- * a disclosure on a wide screen and plain cards on a rail, so the trigger has
- * to stop claiming `aria-expanded` when there is nothing left to expand.
+ * render *something*, and the honest something is the wide, motion-free
+ * default: it is what the markup means when no viewport and no preference are
+ * known. The client corrects on its first commit.
  */
-export function useIsRail(query: string) {
+export function useMediaQuery(query: string) {
   return useSyncExternalStore(
     (onChange) => {
       const mql = window.matchMedia(query);
@@ -140,4 +136,15 @@ export function useIsRail(query: string) {
     () => window.matchMedia(query).matches,
     () => false
   );
+}
+
+/**
+ * Whether the viewport is narrow enough that a section has become a rail.
+ *
+ * This exists for accessibility, not layout — layout is CSS. The pillars are
+ * a disclosure on a wide screen and plain cards on a rail, so the trigger has
+ * to stop claiming `aria-expanded` when there is nothing left to expand.
+ */
+export function useIsRail(query: string) {
+  return useMediaQuery(query);
 }
