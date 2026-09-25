@@ -60,7 +60,7 @@ export function CreateGroupDialog({
         joinPolicy,
       });
       toast({
-        title: 'Group created',
+        title: 'Group chat created',
         description: 'You are its first member.',
       });
       await onCreated();
@@ -72,7 +72,7 @@ export function CreateGroupDialog({
           ? String(err.response.data.error)
           : 'Refresh and try again.';
       toast({
-        title: 'Could not create the group',
+        title: 'Could not create the group chat',
         description: message,
         variant: 'destructive',
       });
@@ -84,9 +84,10 @@ export function CreateGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New group</DialogTitle>
+          <DialogTitle>New group chat</DialogTitle>
           <DialogDescription>
-            Group chat happens in your Nostr app. This sets up who can be in it.
+            The chat itself happens in your Nostr app. This sets up who can be
+            in it.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,9 +102,9 @@ export function CreateGroupDialog({
               onChange={(e) => setName(e.target.value)}
             />
             <p className="text-muted-foreground text-xs">
-              The name can be changed later. The group&rsquo;s id is built from
-              it now and stays fixed, because every message in the group is
-              tagged with it.
+              The name can be changed later. The group chat&rsquo;s id is built
+              from it now and stays fixed, because every message in it is tagged
+              with it.
             </p>
           </div>
 
@@ -138,9 +139,9 @@ export function CreateGroupDialog({
                   <span className="font-medium">Invite only</span>
                   <br />
                   <span className="text-muted-foreground text-sm">
-                    Only people you invite can join. The group is not listed
-                    anywhere and Nostr clients won&rsquo;t show it in public
-                    directories.
+                    Only people you invite can join. The group chat is not
+                    listed anywhere and Nostr clients won&rsquo;t show it in
+                    public directories.
                   </span>
                 </Label>
               </div>
@@ -166,8 +167,8 @@ export function CreateGroupDialog({
           </div>
 
           <p className="text-muted-foreground text-xs leading-relaxed">
-            Group chat is read-gated at the relay, not end-to-end encrypted.
-            When the last member leaves, the group is deleted.
+            Group chats are read-gated at the relay, not end-to-end encrypted.
+            When the last member leaves, the group chat is deleted.
           </p>
         </div>
 
@@ -180,7 +181,7 @@ export function CreateGroupDialog({
             Cancel
           </Button>
           <Button onClick={submit} disabled={!name.trim() || busy}>
-            {busy ? 'Creating…' : 'Create group'}
+            {busy ? 'Creating…' : 'Create group chat'}
           </Button>
         </DialogFooter>
       </DialogContent>

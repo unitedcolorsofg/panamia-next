@@ -101,7 +101,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
         name: editName.trim(),
         about: editAbout.trim(),
       });
-      toast({ title: 'Group updated' });
+      toast({ title: 'Group chat updated' });
       await load();
     } catch {
       toast({
@@ -124,7 +124,10 @@ export function GroupDetail({ groupId }: { groupId: string }) {
       });
       router.push('/r/groups');
     } catch {
-      toast({ title: 'Could not leave that group', variant: 'destructive' });
+      toast({
+        title: 'Could not leave that group chat',
+        variant: 'destructive',
+      });
       setLeaving(false);
     }
   }
@@ -132,13 +135,13 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   if (missing) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold">Group not found</h1>
+        <h1 className="text-3xl font-bold">Group chat not found</h1>
         <p className="text-muted-foreground text-sm">
           It may have been deleted after its last member left, or it&rsquo;s an
-          invite-only group you aren&rsquo;t part of.
+          invite-only group chat you aren&rsquo;t part of.
         </p>
         <Button asChild variant="outline">
-          <Link href="/r/groups">Back to your groups</Link>
+          <Link href="/r/groups">Back to your group chats</Link>
         </Button>
       </div>
     );
@@ -180,7 +183,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground text-sm">
-              You&rsquo;re not in this group yet.{' '}
+              You&rsquo;re not in this group chat yet.{' '}
               <Link href="/r/groups/browse" className="underline">
                 Join it from the browse page
               </Link>
@@ -241,7 +244,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
 
       {group.canManage && (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Group details</h2>
+          <h2 className="text-xl font-semibold">Group chat details</h2>
           <div className="space-y-2">
             <Label htmlFor="edit-name">Name</Label>
             <Input
@@ -272,11 +275,11 @@ export function GroupDetail({ groupId }: { groupId: string }) {
           <h2 className="text-xl font-semibold">Leave</h2>
           <p className="text-muted-foreground text-sm">
             Leaving takes about a day to take effect — rejoining before then
-            cancels it. If you&rsquo;re the last member, the group is deleted
-            when it does.
+            cancels it. If you&rsquo;re the last member, the group chat is
+            deleted when it does.
           </p>
           <Button variant="outline" onClick={() => setConfirmLeave(true)}>
-            Leave this group
+            Leave this group chat
           </Button>
         </section>
       )}
@@ -287,14 +290,14 @@ export function GroupDetail({ groupId }: { groupId: string }) {
             <AlertDialogTitle>Leave {group.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               {group.memberCount === 1
-                ? 'You are the only member, so the group will be deleted once this takes effect in about a day. Messages already published to Nostr are not retracted by this.'
-                : 'You will stop receiving this group about a day from now. Rejoining before then cancels it.'}
+                ? 'You are the only member, so the group chat will be deleted once this takes effect in about a day. Messages already published to Nostr are not retracted by this.'
+                : 'You will stop receiving this group chat about a day from now. Rejoining before then cancels it.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={leaving}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={leave} disabled={leaving}>
-              {leaving ? 'Leaving…' : 'Leave group'}
+              {leaving ? 'Leaving…' : 'Leave group chat'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

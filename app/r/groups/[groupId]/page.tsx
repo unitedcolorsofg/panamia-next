@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { GroupDetail } from '@/components/relay/groups/GroupDetail';
 
 export const metadata: Metadata = {
-  title: 'Group - Pana Resilience Network',
-  description: 'Manage a group on the Pana MIA community relay.',
+  title: 'Group chat - Pana Resilience Network',
+  description: 'Manage a group chat on the Pana MIA community relay.',
 };
 
 // The group is fetched client-side by GroupDetail rather than here, so that a
@@ -23,7 +23,7 @@ export default async function GroupPage({
       <div className="mx-auto max-w-2xl">
         <p className="text-muted-foreground mb-6 text-sm">
           <Link href="/r/groups" className="underline">
-            Your groups
+            Your group chats
           </Link>
         </p>
         <GroupDetail groupId={groupId} />
