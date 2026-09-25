@@ -129,8 +129,8 @@ export function RotateKeysSection({
   const introBrief = (
     <p className="text-muted-foreground text-sm">
       Generates a brand-new key and moves your @pana.social handle, your Pana
-      profile, and your group access to it. What stays behind with your old key
-      is listed before you confirm.
+      profile, and your group chat access to it. What stays behind with your old
+      key is listed before you confirm.
     </p>
   );
 
@@ -145,7 +145,7 @@ export function RotateKeysSection({
       </p>
       <p>
         <strong>What moves to the new key:</strong> your @pana.social handle,
-        your Pana profile, and your group access.
+        your Pana profile, and your group chat access.
       </p>
       <p>
         <strong>What stays with your old key:</strong> existing followers
@@ -155,8 +155,8 @@ export function RotateKeysSection({
       <p>
         Your old key still works as a Nostr identity anywhere else, so you can
         load it in a client to read that history. It loses access to the Pana
-        relay, though: group access moves with the rotation, and the relay
-        admits only keys that belong to a group.
+        relay, though: group chat access moves with the rotation, and the relay
+        admits only keys that belong to a group chat.
       </p>
     </div>
   );
@@ -388,8 +388,8 @@ function RotateDialog({
                 <span>Keys rotated.</span>
               </div>
               <p className="mt-2 text-emerald-900/80 dark:text-emerald-200/80">
-                Your <code>@pana.social</code> handle and group access now point
-                at the new key. Import the new <code>nsec</code> into your
+                Your <code>@pana.social</code> handle and group chat access now
+                point at the new key. Import the new <code>nsec</code> into your
                 clients (Nostrord, Amethyst, …) to keep posting as you.
               </p>
             </div>
@@ -418,7 +418,7 @@ function RotateDialog({
               <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-900/80 dark:text-amber-200/80">
                 <li>
                   <strong>Moves to the new key:</strong> your{' '}
-                  <code>@pana.social</code> handle, Pana profile, and group
+                  <code>@pana.social</code> handle, Pana profile, and group chat
                   access.
                 </li>
                 <li>
@@ -467,7 +467,7 @@ function RotateDialog({
                             </strong>{' '}
                             — only the signature is. Your{' '}
                             <code>@pana.social</code> handle, profile, and group
-                            access move to this key.
+                            chat access move to this key.
                           </span>
                         </div>
                       </div>

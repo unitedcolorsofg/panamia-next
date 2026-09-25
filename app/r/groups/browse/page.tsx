@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { BrowseGroups } from '@/components/relay/groups/BrowseGroups';
 
 export const metadata: Metadata = {
-  title: 'Browse Groups - Pana Resilience Network',
-  description: 'Community relay groups open to all Pana MIA members.',
+  title: 'Browse group chats - Pana Resilience Network',
+  description: 'Community relay group chats open to all Pana MIA members.',
 };
 
 export default function BrowseGroupsPage() {
@@ -14,13 +14,13 @@ export default function BrowseGroupsPage() {
         <header className="mb-8">
           <p className="text-muted-foreground mb-2 text-sm">
             <Link href="/r/groups" className="underline">
-              Your groups
+              Your group chats
             </Link>
           </p>
-          <h1 className="text-3xl font-bold">Groups open to all panas</h1>
+          <h1 className="text-3xl font-bold">Group chats open to all panas</h1>
           <p className="text-muted-foreground mt-2">
-            Anyone with a key can join these. Invite-only groups aren&rsquo;t
-            listed here — you reach those through an invitation.
+            Anyone with a key can join these. Invite-only group chats
+            aren&rsquo;t listed here — you reach those through an invitation.
           </p>
         </header>
 

@@ -1,62 +1,67 @@
-import { Suspense } from 'react';
-import { SocialSearchContent } from './_components/search-content';
+import { redirect, permanentRedirect } from 'next/navigation';
+import { scopePath, type Scope } from '@/lib/directory-scopes';
 
 /**
- * Search across Pana Social: /search?q=zines&tab=groups
+ * Retired. /search?q=zines&tab=groups now lands in the directory.
  *
- * The masthead field submits here as a plain GET, so this route is reached
- * with nothing but a query string and has to make sense of it alone.
+ * This was Pana Social's own index over Panas and groups, built while the
+ * directory held businesses alone. The directory now covers all four kinds,
+ * so keeping both meant two rankings, two visibility contracts and two places
+ * a member could search and miss something — and the masthead field had to
+ * pick one, which is the bug that started this. The directory won because it
+ * is the only one of the two that can answer "events" at all.
  *
- * It is a hub rather than a replacement for the directory. Panas are answered
- * with the top few results and a link to /directory/search, which owns the
- * filters, the map and the pagination; groups are answered in full, because
- * this is their only search surface. Sending a member to the directory for a
- * group they will never find there is the failure this page exists to fix.
+ * A redirect rather than a delete because the old page was linkable: its tabs
+ * were real URLs, on purpose, so that a result set could be shared with the
+ * tab it was read on. Those links are in people's messages.
  *
- * Not under /s -- see the note on the social surface's `paths` in
- * lib/panaverse/surfaces.ts for why groups and search sit at the top level.
+ * `tab` is honoured rather than dropped. Someone who bookmarked the Groups tab
+ * asked for groups, and /directory/group/<term> is that same question in the
+ * directory's spelling; only a visitor with no tab at all gets Everything.
+ *
+ * The noindex this page used to carry for private groups is now structural
+ * rather than a directive: the directory gates the Panas and Groups scopes
+ * behind sign-in, so an anonymous crawler is answered with the gate and never
+ * reaches a group name at all.
+ *
+ * @see lib/directory-scopes.ts - the scopes and their paths
  */
 
 /* Typed structurally rather than as `Metadata`: the vinext `next` shim does
    not export that type, and importing it adds to the repo's existing wall of
    "has no exported member 'Metadata'" errors for no benefit here. */
 export const metadata = {
-  title: 'Search | Pana Social',
-  description: 'Find Panas and groups on Pana Social.',
-  /* Noindex is load-bearing, not caution. Private groups are deliberately
-     discoverable so a request-to-join group can be asked to join -- see
-     GROUP_COLUMNS in lib/server/group-search.ts. That stance assumes a person
-     doing the asking. A crawlable results page would turn it into bulk
-     enumeration of every private group by anyone who can fetch a URL, which
-     is a different thing entirely and not what was agreed. */
+  title: 'Search | Pana MIA',
   robots: { index: false, follow: true },
 };
 
-function SearchFallback() {
-  return (
-    <div className="animate-pulse space-y-4" aria-hidden="true">
-      <div className="bg-pana-ink/10 h-10 w-64 rounded-xl" />
-      <div className="bg-pana-ink/10 h-24 rounded-2xl" />
-      <div className="bg-pana-ink/10 h-24 rounded-2xl" />
-    </div>
-  );
-}
+/** The old tab ids, in the directory's spelling. */
+const TAB_SCOPE: Record<string, Scope> = {
+  panas: 'pana',
+  groups: 'group',
+};
 
-export default function SocialSearchPage() {
-  return (
-    <main className="surface-cream min-h-screen pb-20">
-      <div className="container mx-auto max-w-4xl px-4 pt-8">
-        {/* The masthead field is the visible title of this page. A repeated
-            "Search" heading under it would be noise, but a screen reader
-            still needs something to land on. */}
-        <h1 className="sr-only">Search Pana Social</h1>
+export default async function RetiredSocialSearchPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
 
-        {/* useSearchParams suspends, and without a boundary the whole route
-            opts out of static rendering with a build-time warning. */}
-        <Suspense fallback={<SearchFallback />}>
-          <SocialSearchContent />
-        </Suspense>
-      </div>
-    </main>
-  );
+  const rawTerm = params.q;
+  const term = (Array.isArray(rawTerm) ? rawTerm[0] : (rawTerm ?? '')).trim();
+
+  const rawTab = params.tab;
+  const tab = Array.isArray(rawTab) ? rawTab[0] : rawTab;
+  const scope = (tab && TAB_SCOPE[tab]) || 'all';
+
+  // No term is no search, so there is nothing to carry across and the bare
+  // scope route is the honest destination. Permanent because that mapping
+  // cannot change: a search with no query is a browse under any scheme.
+  if (!term) permanentRedirect(scopePath(scope, ''));
+
+  // Temporary for a term, because which scope a `tab` becomes is a product
+  // decision that could be revisited, and a 308 is cached by the browser in a
+  // way that would outlive the decision.
+  redirect(scopePath(scope, term));
 }

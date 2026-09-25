@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { GroupsDashboard } from '@/components/relay/groups/GroupsDashboard';
 
 export const metadata: Metadata = {
-  title: 'Your Groups - Pana Resilience Network',
-  description: 'Create and manage your groups on the Pana MIA community relay.',
+  title: 'Your group chats - Pana Resilience Network',
+  description:
+    'Create and manage your group chats on the Pana MIA community relay.',
 };
 
 // Signed-out visitors get the pitch and a sign-in link rather than a 401 from
@@ -25,7 +26,7 @@ export default async function GroupsPage() {
               Pana Resilience Network
             </Link>
           </p>
-          <h1 className="text-3xl font-bold">Your groups</h1>
+          <h1 className="text-3xl font-bold">Your group chats</h1>
           <p className="text-muted-foreground mt-2">
             Group chats you belong to on the community relay, and any
             invitations waiting for an answer.
@@ -37,7 +38,7 @@ export default async function GroupsPage() {
         ) : (
           <div className="rounded-lg border p-6">
             <p className="mb-4 text-sm">
-              Sign in to see your groups and invitations.
+              Sign in to see your group chats and invitations.
             </p>
             <Button asChild>
               <Link href="/signin">Sign in</Link>

@@ -257,3 +257,53 @@ export async function searchGroups(
 
   return rows.map(toResult);
 }
+
+/**
+ * How many groups a term matches.
+ *
+ * Lives here rather than with the other directory counts because it has to
+ * agree with `searchGroups` exactly, and the thing it has to agree with is not
+ * just the predicate but the fallback: a term that full-text misses and
+ * trigram catches would otherwise label the tab "0" above a page showing
+ * three. So this repeats the same two stages in the same order, and only
+ * counts the fuzzy arm when the strict one is empty.
+ *
+ * Unbounded on purpose — the tab says how many exist, not how many one page
+ * holds.
+ */
+export async function countGroups(term: string): Promise<number> {
+  const trimmed = term.trim();
+  if (!trimmed) return 0;
+
+  const exact = (await db.execute(sql`
+    WITH q AS (
+      SELECT websearch_to_tsquery('english', pana_unaccent(${trimmed}))
+          || websearch_to_tsquery('spanish', pana_unaccent(${trimmed}))
+          || websearch_to_tsquery('simple',  pana_unaccent(${trimmed})) AS tsq
+    )
+    SELECT count(*)::int AS count
+    FROM social_groups g
+    JOIN social_actors a ON a.id = g.actor_id, q
+    WHERE a.search_vector @@ q.tsq OR g.search_vector @@ q.tsq
+  `)) as unknown as { count: number }[];
+
+  const found = exact[0]?.count ?? 0;
+  if (found > 0) return found;
+
+  const fuzzy = (await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT set_config('search_path', 'public, extensions', true)`
+    );
+    await tx.execute(
+      sql`SELECT set_config('pg_trgm.word_similarity_threshold', ${String(TRIGRAM_THRESHOLD)}, true)`
+    );
+    return await tx.execute(sql`
+      SELECT count(*)::int AS count
+      FROM social_groups g
+      JOIN social_actors a ON a.id = g.actor_id
+      WHERE pana_unaccent(a.name) %> ${trimmed}
+    `);
+  })) as unknown as { count: number }[];
+
+  return fuzzy[0]?.count ?? 0;
+}

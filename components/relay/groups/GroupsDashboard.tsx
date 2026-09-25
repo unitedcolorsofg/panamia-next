@@ -48,7 +48,7 @@ export function GroupsDashboard() {
       toast({
         title: res.data.joined ? 'Joined' : 'Invitation declined',
         description: res.data.joined
-          ? 'You can find the group in any Nostr client signed in with your key.'
+          ? 'You can find the group chat in any Nostr client signed in with your key.'
           : undefined,
       });
       await load();
@@ -75,7 +75,7 @@ export function GroupsDashboard() {
   if (error) {
     return (
       <p className="text-muted-foreground text-sm">
-        Couldn&rsquo;t load your groups. Refresh and try again.
+        Couldn&rsquo;t load your group chats. Refresh and try again.
       </p>
     );
   }
@@ -137,9 +137,9 @@ export function GroupsDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground text-sm">
-              Groups live on the community relay, so you need a Nostr keypair
-              before you can create or join one. It takes a moment and happens
-              entirely in your browser.
+              Group chats live on the community relay, so you need a Nostr
+              keypair before you can create or join one. It takes a moment and
+              happens entirely in your browser.
             </p>
             <Button asChild>
               <Link href="/r">Go to the Resilience page</Link>
@@ -151,18 +151,18 @@ export function GroupsDashboard() {
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold">
-                Groups you&rsquo;re in ({data.groups.length})
+                Group chats you&rsquo;re in ({data.groups.length})
               </h2>
               <Button size="sm" onClick={() => setCreating(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                New group
+                New group chat
               </Button>
             </div>
 
             {data.groups.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                You&rsquo;re not in any groups yet. Create one, or browse the
-                groups open to all panas.
+                You&rsquo;re not in any group chats yet. Create one, or browse
+                the group chats open to all panas.
               </p>
             ) : (
               data.groups.map((group) => (
@@ -202,7 +202,7 @@ export function GroupsDashboard() {
             <Button asChild variant="outline">
               <Link href="/r/groups/browse">
                 <Compass className="mr-2 h-4 w-4" />
-                Browse groups open to all panas
+                Browse group chats open to all panas
               </Link>
             </Button>
           </section>

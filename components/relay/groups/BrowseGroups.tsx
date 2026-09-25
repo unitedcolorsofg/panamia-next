@@ -41,13 +41,13 @@ export function BrowseGroups() {
       toast({
         title: `Joined ${group.name}`,
         description:
-          'Open it in your Nostr app — you may need to refresh the group list there.',
+          'Open it in your Nostr app — you may need to refresh the group chat list there.',
       });
       // The joined group drops off this list on reload, which is the feedback.
       await load();
     } catch {
       toast({
-        title: 'Could not join that group',
+        title: 'Could not join that group chat',
         description: 'Refresh and try again.',
         variant: 'destructive',
       });
@@ -59,7 +59,7 @@ export function BrowseGroups() {
   if (error) {
     return (
       <p className="text-muted-foreground text-sm">
-        Couldn&rsquo;t load the group list. Refresh and try again.
+        Couldn&rsquo;t load the group chat list. Refresh and try again.
       </p>
     );
   }
@@ -73,8 +73,8 @@ export function BrowseGroups() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <p className="text-sm">
-            You need a Nostr keypair before you can join a group. It&rsquo;s
-            generated in your browser and takes a moment.
+            You need a Nostr keypair before you can join a group chat.
+            It&rsquo;s generated in your browser and takes a moment.
           </p>
           <Button asChild>
             <Link href="/r">Set up your keys</Link>
@@ -87,7 +87,7 @@ export function BrowseGroups() {
   if (data.groups.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
-        No open groups to join right now — either none exist yet, or
+        No open group chats to join right now — either none exist yet, or
         you&rsquo;re already in all of them.{' '}
         <Link href="/r/groups" className="underline">
           Start one

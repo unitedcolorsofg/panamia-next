@@ -381,6 +381,57 @@
   box-shadow: 0 10px 34px rgb(17 13 13 / 0.22);
 }
 
+/* The pill with something ahead of the magnifier — the scope pages put their
+   scope selector there. The bare pill needs no padding because the magnifier
+   carries `ml-6` and the submit button its own margin; a leading control has
+   its own shape, so the inset becomes the pill's job instead. */
+.directory-suggest-pill-lead {
+  /* Matched to `.dirsearch-pill`, which was drawn for exactly this
+     arrangement — scope selector, divider, magnifier, field, submit. */
+  padding: 0.4rem 0.4rem 0.4rem 1.05rem;
+  gap: 0.65rem;
+}
+
+/* The point of this pill is that scope and term read as one control, so the
+   field has to disappear into it. The input component brings its own white
+   fill, border and radius, which is right on a form but here paints a second
+   box inside the first and breaks the seam. The bare pill keeps them: on the
+   hero the field is the whole bar, so looking like a field is correct. */
+.directory-suggest-pill-lead .directory-suggest-field input {
+  padding-left: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* With no box to outline, a focus ring would draw the seam back in. The pill
+   itself is the visible control, so it takes the focus treatment. */
+.directory-suggest-pill-lead .directory-suggest-field input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.directory-suggest-pill-lead:focus-within {
+  box-shadow:
+    0 10px 34px rgb(17 13 13 / 0.22),
+    0 0 0 3px rgb(47 45 122 / 0.35);
+}
+
+/* Sized from `.dirsearch-pill`'s submit rather than the hero's: the hero's
+   button is the page's primary call to action and shouts accordingly, while
+   this one sits beside a scope selector and a term and should not outweigh
+   them. The pill's own padding supplies the inset, so the margin goes. */
+.directory-suggest-pill-lead .directory-suggest-pill-button {
+  margin: 0;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9375rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 /* Let the typeahead listbox resolve against the whole pill so it spans the
    bar rather than stopping short of the submit button. Named rather than
    positional: the pill's first child is the magnifier. */
@@ -3597,6 +3648,16 @@ body {
   border: 1px solid color-mix(in srgb, var(--color-pana-ink) 12%, transparent);
   border-radius: 9999px;
   background: #fff;
+  /* The anchor for the typeahead dropdown the field now carries. Paired with
+     the rule below, which takes the field out of the flow the same way
+     `.directory-suggest-pill` does, so the list spans the whole bar rather
+     than starting after the magnifier. */
+  position: relative;
+}
+.panaverse-search .directory-suggest-field {
+  position: static;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .panaverse-search:focus-within {
@@ -3880,6 +3941,11 @@ body {
   border: 2px solid var(--color-pana-ink);
   border-radius: 1.125rem;
   background-color: var(--color-pana-cream);
+  /* Paints its own background, so it has to paint its own foreground. Without
+     this the panel inherits, which is fine hanging off dark masthead chrome
+     and invisible the moment it opens inside `.surface-indigo` — a cream band
+     passes cream text down onto a cream panel. */
+  color: var(--color-pana-ink);
   box-shadow: 0 18px 44px rgb(17 13 13 / 0.22);
 }
 
@@ -4205,7 +4271,14 @@ body {
   appearance: none;
 }
 
-.dirsearch-pill button {
+/* Scoped to the submit button rather than every button in the pill. The pill
+   was built holding exactly one — "Search" — so a bare `button` selector was
+   accurate at the time. A scope selector sitting at the other end of the same
+   pill makes that no longer true, and an unscoped rule would paint it solid
+   indigo, giving a secondary control the same weight as the primary action.
+   Both existing call sites are already `type="submit"`, so this narrows the
+   rule without changing anything it currently matches. */
+.dirsearch-pill button[type='submit'] {
   flex: none;
   padding: 0.6rem 1.4rem;
   border-radius: 999px;
@@ -4216,7 +4289,7 @@ body {
   transition: background-color 0.18s ease;
 }
 
-.dirsearch-pill button:hover {
+.dirsearch-pill button[type='submit']:hover {
   background-color: var(--color-pana-burnt);
 }
 
@@ -5457,9 +5530,11 @@ body {
  * a `[data-density]` scope would not reach the rules that need these.
  *
  * `body:has(.dirsearch)` is the second consumer, added when the directory
- * results page took the same surface treatment. It is listed here rather than
- * given its own copy of the seven values so the two pages cannot drift apart
- * — if the palette is corrected, both move together. Scoped to the body for
+ * results page took the same surface treatment. `body:has(.dirscope)` is the
+ * third, for the per-kind directory pages, which are the same paper as the
+ * results page they sit beside. They are listed here rather than given their
+ * own copy of the seven values so the pages cannot drift apart
+ * — if the palette is corrected, all four move together. Scoped to the body for
  * the same reason as the homepage: the directory paints the masthead to match
  * its paper, and the masthead is not a descendant of that page's `<main>`.
  *
@@ -5468,10 +5543,10 @@ body {
  * the masthead over to a view timeline that only the homepage's hero
  * declares, and neither of those belongs on a results page.
  *
- * `body:has(.offering)` is the third, added when the six offerings each got a
+ * `body:has(.offering)` is the fourth, added when the six offerings each got a
  * front page. Same bargain as the directory: those pages are built out of the
  * homepage's own type and its closing band, so they need its colours, and
- * naming them here rather than copying the values is what keeps all three
+ * naming them here rather than copying the values is what keeps all four
  * moving together.
  *
  * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
@@ -5481,6 +5556,7 @@ body {
  * of a page redesign. */
 body:has([data-density]),
 body:has(.dirsearch),
+body:has(.dirscope),
 body:has(.offering) {
   --story-blue: #3565f2;
   --story-ink: #020811;
@@ -5757,6 +5833,26 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 .home-hero-field {
   position: relative;
   overflow: hidden;
+}
+
+/* The typeahead panel hangs below the search pill, but that pill sits about
+   20px above the bottom of the hero, so all 352px of the panel fell outside
+   this box and was clipped away: on the home page the dropdown was invisible
+   at every viewport size, because the hero is `min-height: 100svh` and so the
+   pill is always near its bottom edge.
+
+   Dropping the clip is safe rather than a trade, because the art that needs
+   clipping already does its own: `.sky-clouds` is itself `overflow: hidden`
+   and sized to the hero, so the sun and clouds stay trimmed no matter what
+   this box does. Measured with the panel open — no horizontal scrollbar, and
+   scrollWidth/scrollHeight both unchanged.
+
+   Still scoped with `:has()` to the moment the panel is actually open, so the
+   hero keeps its own clip in every other state instead of resting on that
+   reasoning holding forever. */
+.home-hero-banner:has(.directory-suggest-list),
+.home-hero-field:has(.directory-suggest-list) {
+  overflow: visible;
 }
 
 /* The sun. Sat in the top-left because the right-hand end of the masthead is
@@ -7805,6 +7901,32 @@ a.pillar-program:hover {
   color: var(--story-ink);
 }
 
+/* The same sheet for the scoped pages. Deliberately not `.dirsearch` itself:
+   that class carries descendant rules written for the businesses page, two of
+   which (`.dirsearch .dirsearch-searchrow` and `.dirsearch .dirsearch-chipdivide`)
+   would restyle the search pill these pages share with the hero. Only the
+   ground is wanted here, not the rest of that page's opinions. */
+.dirscope {
+  display: block;
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* A scoped page can be shorter than the viewport — an empty result set is two
+   lines — and the ground only covers its own box, so the last inch above the
+   footer fell back to the white body. That left the results sharing a colour
+   with the footer and reading as part of it. The body takes the colour so it
+   reaches the footer at any content height; same mechanism the homepage uses
+   for its own sheet.
+
+   The businesses page is listed too. Its own sheet is tall enough that the
+   gap never showed, but its footer is the same transparent footer, so without
+   this it would be the one directory page still ending in a white band. */
+body:has(.dirscope),
+body:has(.dirsearch) {
+  background-color: var(--story-cream);
+}
+
 /* --- The toolbar -------------------------------------------------------- */
 
 /* What the header band became.
@@ -8204,8 +8326,13 @@ a.pillar-program:hover {
 
    Only the resting bar is touched. Unlike the homepage, this page does not
    set `data-density`, so it never picks up the masthead's view-timeline
-   handover and there is nothing here to neutralise. */
-body:has(.dirsearch) header {
+   handover and there is nothing here to neutralise.
+
+   The scoped pages are listed alongside it because they are the same page in
+   a different clothing: the same cream paper meeting the same white bar on the
+   same horizontal edge. */
+body:has(.dirsearch) header,
+body:has(.dirscope) header {
   background-color: var(--story-cream);
 }
 

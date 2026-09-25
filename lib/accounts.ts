@@ -14,6 +14,11 @@
  * than appear in it. 'other' is excluded too — it is an unresolved
  * self-description, and defaulting it to public would leak accounts that never
  * asked to be listed. Opting in means choosing small_business or hybrid.
+ *
+ * One carve-out: the search typeahead (lib/server/suggest.ts) suggests
+ * personal accounts as "panas" to signed-in visitors. That is a members-only
+ * view, not publication — every pana is discoverable to another pana, while
+ * anonymous visitors still see only the account types listed here.
  */
 export const DIRECTORY_ACCOUNT_TYPES = ['small_business', 'hybrid'] as const;
 

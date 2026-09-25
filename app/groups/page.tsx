@@ -7,11 +7,11 @@ import { GroupsContent } from './_components/groups-content';
  * Splits the two questions a member arrives with. "Where do I already belong"
  * is answered first, from their own memberships including private ones; "what
  * else is out there" is answered underneath, by the same search endpoint the
- * /search Groups tab uses.
+ * directory's Groups scope uses.
  *
- * Distinct from /search?tab=groups on purpose. That page answers a typed term
- * and knows nothing about the reader. This one is the member's own shelf, and
- * it is where starting a group lives -- discovery and creation are the same
+ * Distinct from /directory/groups/<term> on purpose. That page answers a typed
+ * term and knows nothing about the reader. This one is the member's own shelf,
+ * and it is where starting a group lives -- discovery and creation are the same
  * errand often enough that making someone search before they can create was
  * the gap that left groups unreachable from the UI entirely.
  *
@@ -20,14 +20,14 @@ import { GroupsContent } from './_components/groups-content';
  */
 
 /* Typed structurally rather than as `Metadata`: the vinext `next` shim does
-   not export that type. Same reasoning as /search. */
+   not export that type. */
 export const metadata = {
   title: 'Groups | Pana Social',
   description: 'Find a group on Pana Social, or start your own.',
-  /* Same stance as /search, and for the same reason: private groups are
-     deliberately discoverable so a request-to-join group can be asked to
-     join, which assumes a person doing the asking rather than a crawler
-     enumerating every private group on the site. */
+  /* Same stance as the directory's Groups scope, and for the same reason:
+     private groups are deliberately discoverable so a request-to-join group
+     can be asked to join, which assumes a person doing the asking rather than
+     a crawler enumerating every private group on the site. */
   robots: { index: false, follow: true },
 };
 
