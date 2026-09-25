@@ -7347,6 +7347,15 @@ a.pillar-program:hover {
   .pillars {
     display: flex;
     gap: 1rem;
+    /* The same measure the questions above use, so the two rows of cards
+       share one left and right edge instead of the pillars running 80px
+       wider at the top breakpoint. Both sections keep their heading at the
+       container edge and step their cards in by the same amount, so the step
+       reads as a deliberate inset rather than as two sections that missed
+       each other. Deliberately not applied to the rail below 64rem, where
+       the cards are meant to reach the screen gutter. */
+    width: min(100% - 2rem, 84rem);
+    margin-inline: auto;
   }
 
   .pillar {

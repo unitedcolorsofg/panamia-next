@@ -266,10 +266,17 @@ export function HomePillars() {
           </h2>
           <p className="section-lede max-w-2xl">{t('pillarsBand.lede')}</p>
         </div>
+      </div>
 
-        <div data-rv>
-          <PillarPanels pillars={pillars} />
-        </div>
+      {/* Out of the container for the same reason the questions above are:
+          both rows measure their width against the viewport, so they only
+          share a left and right edge if they share a parent. Left inside, the
+          pillars measured against the container instead and ran up to 80px
+          wider than the questions at the top breakpoint. It also gives the
+          rail below 64rem the screen gutter to scroll into, which is what the
+          questions already had. */}
+      <div data-rv>
+        <PillarPanels pillars={pillars} />
       </div>
     </section>
   );
