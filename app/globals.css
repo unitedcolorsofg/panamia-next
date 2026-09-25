@@ -4360,6 +4360,23 @@ body {
   top: 3.7rem;
 }
 
+/* The gutter. The bar itself stays full-bleed so its paper, its hairline and
+   its shadow run the whole width of the window; the gutter goes on the inner
+   wrapper, which is the only reason that wrapper exists.
+
+   Without it "Category", "Where" and "Sort" sat hard against the edge of the
+   screen while the search band above them and the cards below them were both
+   inset 1rem — so the one row of the page that is pure text was the one row
+   with nothing between it and the bezel. 1rem, to match `.dirsearch-listbody`
+   and the band, so all three left edges line up.
+
+   On the split layout the results column carries a scrollbar and this bar does
+   not, so their right edges differ by its width. The left edge is the one the
+   eye reads down, and that one agrees. */
+.dirsearch-filterinner {
+  padding-inline: 1rem;
+}
+
 .dirsearch-filterrow {
   display: flex;
   align-items: center;
