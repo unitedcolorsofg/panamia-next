@@ -15,7 +15,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
-import type { ScopeCounts } from '@/lib/directory-scopes';
+import type { Scope, ScopeCounts } from '@/lib/directory-scopes';
 
 /**
  * Full-page search for the scopes that are not the business directory.
@@ -526,6 +526,50 @@ export async function countEvents(term: string): Promise<number> {
   return rows[0]?.count ?? 0;
 }
 
+/** A kind that could not be searched at all, as opposed to one that matched
+ *  nothing. `null` results and the `unavailable` set below both mean the
+ *  former; zero and an empty result list both mean the latter. */
+export type ScopeKind = Exclude<Scope, 'all'>;
+
+export interface ScopeCountsResult {
+  counts: ScopeCounts;
+  /** Kinds whose query threw. Empty in the normal case. */
+  unavailable: ReadonlySet<ScopeKind>;
+}
+
+/**
+ * Run one kind's query, and treat a thrown query as that kind being down
+ * rather than as the whole page being down.
+ *
+ * The directory searches four kinds backed by four different sets of database
+ * objects, and they do not ship or migrate in lockstep: `events.search_vector`
+ * arrived in 0049, `social_*.search_vector` in 0045, `profiles.search_vector`
+ * back in 0040. A deploy that lands code before its migration leaves exactly
+ * one of them missing — and before this, that single missing column threw out
+ * of `countAllScopes`, which every scoped route awaits before it renders
+ * anything, so all five routes returned 500 while three of the four kinds were
+ * perfectly searchable.
+ *
+ * Degrading per kind is not the same as hiding the failure: the error is
+ * logged, and callers get `unavailable` so the page can say which part of
+ * search is down instead of quietly reporting "no matches", which would be a
+ * lie about the data rather than a statement about the outage.
+ */
+async function perKind<T>(
+  kind: ScopeKind,
+  run: () => Promise<T>,
+  onFailure: T,
+  failed: Set<ScopeKind>
+): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    console.error(`Directory search unavailable for kind "${kind}":`, error);
+    failed.add(kind);
+    return onFailure;
+  }
+}
+
 /**
  * Every scope's result count for one term, for the scope bar.
  *
@@ -537,16 +581,59 @@ export async function countEvents(term: string): Promise<number> {
  * Keyed by scope rather than by table so the bar can index it with the scope
  * it is rendering, and there is one vocabulary — `pana`, not `panas` here and
  * `pana` there — across the route, the chips and the menu.
+ *
+ * A kind whose count throws reports zero and is named in `unavailable`; see
+ * perKind for why one kind's outage must not decide the whole page's fate.
  */
 export async function countAllScopes(
   term: string,
   viewerIsSignedIn: boolean
-): Promise<ScopeCounts> {
+): Promise<ScopeCountsResult> {
+  const unavailable = new Set<ScopeKind>();
   const [business, pana, group, event] = await Promise.all([
-    countBusinesses(term),
-    viewerIsSignedIn ? countPanas(term) : Promise.resolve(0),
-    viewerIsSignedIn ? countGroups(term) : Promise.resolve(0),
-    countEvents(term),
+    perKind('business', () => countBusinesses(term), 0, unavailable),
+    viewerIsSignedIn
+      ? perKind('pana', () => countPanas(term), 0, unavailable)
+      : Promise.resolve(0),
+    viewerIsSignedIn
+      ? perKind('group', () => countGroups(term), 0, unavailable)
+      : Promise.resolve(0),
+    perKind('event', () => countEvents(term), 0, unavailable),
   ]);
-  return { business, pana, group, event };
+  return { counts: { business, pana, group, event }, unavailable };
+}
+
+/**
+ * One kind's results, or `null` if that kind could not be searched.
+ *
+ * The null is the honest answer and the reason this does not just return
+ * `empty(page)`: a caller that cannot tell "nothing matched" from "this index
+ * is missing" can only render the wrong one of those two sentences.
+ */
+export async function searchKindSafely(
+  kind: ScopeKind,
+  term: string,
+  page: number,
+  pageSize: number
+): Promise<ScopeSearchResult | null> {
+  const failed = new Set<ScopeKind>();
+  const run = () => {
+    switch (kind) {
+      case 'business':
+        return searchBusinesses(term, page, pageSize);
+      case 'pana':
+        return searchPanas(term, page, pageSize);
+      case 'group':
+        return searchGroups(term, page, pageSize);
+      case 'event':
+        return searchEvents(term, page, pageSize);
+    }
+  };
+  const result = await perKind<ScopeSearchResult | null>(
+    kind,
+    run,
+    null,
+    failed
+  );
+  return result;
 }
