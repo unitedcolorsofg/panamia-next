@@ -5381,19 +5381,26 @@ body:has(.offering) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
-  /* The orange, let down until it can be read.
+  /* The Pana Social mark's exact ink, which is a shade brighter than the
+     palette's own orange. It is a fill colour only: it carries ink at 8.19:1
+     and is safe behind anything, but set *as* type on this cream it measures
+     2.22:1 — under the 3:1 floor for large text, let alone the 4.5:1 for
+     small. A logotype is exempt from that rule; a headline is not. */
+  --story-flame: #ff833a;
 
-     `--story-orange` is a fill colour. It carries ink at 7.98:1 and is safe
-     behind anything, but set *as* type on this cream it measures 2.28:1 —
-     under the 3:1 floor for large text, let alone the 4.5:1 for small. The
-     Pana Social logo gets away with it because a logotype is exempt; a
-     headline is not.
+  /* So burnt is flame walked down in lightness until it clears, and no
+     further. 3.13:1 on cream against a 3:1 floor.
 
-     So burnt is the same hue walked down in lightness until it clears: 3.99:1
-     on cream, and still 3.73:1 over the warmest part of the hero glow, which
-     is the darkest paper it is ever set on. Near enough to the mark to read as
-     the same colour, far enough to be legible. */
-  --story-burnt: #c25a0a;
+     That floor is the right one to measure against: every accent this colours
+     is display type, the smallest being the 40px/800 step numbers, so AA
+     Large applies throughout. The hero glow does not enter into it either —
+     it is centred at 80% of the hero and dies well before the headline, which
+     sits on bare cream.
+
+     Held this close to the ceiling deliberately. The page flies the real mark
+     at the top, and an accent visibly darker than it reads as a second
+     colour rather than the same one. */
+  --story-burnt: #da6a1d;
 
   /* Foliage. Worn straight by the palm fronds and the street tree, and pulled
      into ink for the gator so he stays in front of the canopy rather than
@@ -8194,11 +8201,12 @@ body:has(.dirsearch) header {
 .offering[data-offering='social'] {
   --offering-glow: 255 131 58;
 
-  /* Burnt where the colour is set as type, full strength where it is a shape,
-     ink on top of it. See the token block on `.offering` for why one orange
-     cannot do all three. */
+  /* Burnt where the colour is set as type, the mark's own flame where it is a
+     shape, ink on top of it. See the token block on `.offering` for why one
+     orange cannot do all three. The fill is an exact match to the logo
+     because nothing is read *through* it — only ink sits on it, at 8.19:1. */
   --offering-accent: var(--story-burnt);
-  --offering-fill: var(--story-orange);
+  --offering-fill: var(--story-flame);
   --offering-on-fill: var(--story-ink);
 }
 
