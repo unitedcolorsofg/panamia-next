@@ -5381,6 +5381,20 @@ body:has(.offering) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
+  /* The orange, let down until it can be read.
+
+     `--story-orange` is a fill colour. It carries ink at 7.98:1 and is safe
+     behind anything, but set *as* type on this cream it measures 2.28:1 —
+     under the 3:1 floor for large text, let alone the 4.5:1 for small. The
+     Pana Social logo gets away with it because a logotype is exempt; a
+     headline is not.
+
+     So burnt is the same hue walked down in lightness until it clears: 3.99:1
+     on cream, and still 3.73:1 over the warmest part of the hero glow, which
+     is the darkest paper it is ever set on. Near enough to the mark to read as
+     the same colour, far enough to be legible. */
+  --story-burnt: #c25a0a;
+
   /* Foliage. Worn straight by the palm fronds and the street tree, and pulled
      into ink for the gator so he stays in front of the canopy rather than
      dissolving into it. Kept at the same chroma and lightness as the blue and
@@ -8120,6 +8134,24 @@ body:has(.dirsearch) header {
   background-color: var(--story-cream);
   color: var(--story-ink);
 
+  /* The accent an offering carries, in three parts, because one colour cannot
+     do all three jobs on this paper.
+
+     - `accent`  — accents set as type on cream. Must clear contrast itself.
+     - `fill`    — solid shapes: the button, a rule, a card's awning. Free to
+                   be the brightest version of the colour, since nothing is
+                   being read *through* it.
+     - `on-fill` — what is legible on top of `fill`. Blue takes cream, orange
+                   takes ink; this is the same split `--beat-on-accent` makes
+                   on the homepage, for the same reason.
+
+     Blue is the default because it is the only accent in the palette that can
+     be read as type on cream without being darkened first. An offering with a
+     mark of its own overrides these to match it. */
+  --offering-accent: var(--story-blue);
+  --offering-fill: var(--story-blue);
+  --offering-on-fill: var(--story-cream);
+
   /* The compact set, copied by value rather than inherited. `--home-pad` is
      read by `.home-section`, `--home-head-gap` and `--home-head-stack` by
      `.home-sectionhead`, and `--home-display-max` by `.section-display`
@@ -8148,10 +8180,11 @@ body:has(.dirsearch) header {
   --offering-glow-alpha: 0.22;
 }
 
-/* Blue for the one that is about people talking to each other — it is already
-   this page's accent word and its primary button, so the light agrees with
-   the type instead of arguing with it. Green for the directory, which is the
-   palette's foliage and the closest thing it has to a colour for local
+/* Pana Social is lit by its own mark: not the palette's orange but the exact
+   one the logo is drawn in, which is a shade brighter. It is the one offering
+   with a drawn mark, so it is the one with a colour to answer to — the whole
+   page answers to it, the light included. Green for the directory, which is
+   the palette's foliage and the closest thing it has to a colour for local
    growth. Orange stays on events. Coral for the broadcast, red for the press,
    and butter for the invitation.
 
@@ -8159,7 +8192,27 @@ body:has(.dirsearch) header {
    at all against cream, since it differs from it mostly in the blue channel —
    so it is the one hue that carries its own. */
 .offering[data-offering='social'] {
-  --offering-glow: 53 101 242;
+  --offering-glow: 255 131 58;
+
+  /* Burnt where the colour is set as type, full strength where it is a shape,
+     ink on top of it. See the token block on `.offering` for why one orange
+     cannot do all three. */
+  --offering-accent: var(--story-burnt);
+  --offering-fill: var(--story-orange);
+  --offering-on-fill: var(--story-ink);
+}
+
+/* The closing band is the house's indigo slab, and on a page that is orange
+   from the masthead down it was the one thing left reading as unconverted.
+   `.story-point` hoists its ground into a token precisely so a page can answer
+   this question, so the answer is one line.
+
+   Deep burnt sienna, measured against the indigo it replaces rather than
+   guessed: cream 9.2:1 (was 8.4), the orange eyebrow 4.0:1 (was 3.7), the
+   coral accent word 3.6:1 (was 3.3). Every reading on the band improves, so
+   nothing is being traded away for the colour. */
+.offering[data-offering='social'] .story-point {
+  --point-bg: #6e2f08;
 }
 
 .offering[data-offering='directory'] {
@@ -8316,10 +8369,19 @@ body:has(.dirsearch) header {
 }
 
 /* `.accent-word` is butter — legible on the hero's dark image, invisible on
-   cream at 1.3:1. Blue is the palette's own counterweight and clears AA
-   Large against this paper by a wide margin. */
+   cream at 1.3:1. The accent token is the palette's counterweight to this
+   paper, and is chosen per offering to clear AA Large against it. */
 .offering .accent-word {
-  color: var(--story-blue);
+  color: var(--offering-accent);
+}
+
+/* Same story for `.display-accent`, which hard-codes the old indigo globally.
+   Every section heading on these pages italicises its last word in the
+   offering's accent; stating it once here means a section added later is
+   coloured correctly without anyone remembering to opt in. The problem band
+   overrides this below, and is the only one that should. */
+.offering .display-accent {
+  color: var(--offering-accent);
 }
 
 /* Measure still has to be capped — a 54ch lede centred under an 18ch headline
@@ -8347,13 +8409,13 @@ body:has(.dirsearch) header {
   font-weight: 800;
 }
 
-/* Blue rather than the closing band's orange. Orange is what the site uses
-   for a call to action *on* the blue band; up here on paper the same button
-   would be the loudest thing above the fold and would compete with the
-   accent word in the headline. */
+/* Not the closing band's orange-on-blue button. That pairing belongs to a
+   coloured band; up here on paper the solid button is already the loudest
+   thing above the fold, so it flies the offering's own fill and carries
+   whichever of ink or cream can actually be read on it. */
 .offering-btn-solid {
-  background-color: var(--story-blue);
-  color: var(--story-cream);
+  background-color: var(--offering-fill);
+  color: var(--offering-on-fill);
 }
 
 .offering-btn-solid:hover {
@@ -8436,7 +8498,7 @@ body:has(.dirsearch) header {
   width: 2.25rem;
   height: 3px;
   border-radius: 999px;
-  background: var(--story-blue);
+  background: var(--offering-accent);
 }
 
 .offering-card-title {
@@ -8573,15 +8635,11 @@ body:has(.dirsearch) header {
    the swap is the whole signal that this band is making the opposite kind of
    claim to the one it replaces. */
 .offering-pillars .section-eyebrow {
-  color: var(--story-blue);
+  color: var(--offering-accent);
 }
 
 .offering-pillars-statement {
   margin-top: 1rem;
-}
-
-.offering-pillars .display-accent {
-  color: var(--story-blue);
 }
 
 .offering-pillarlist {
@@ -8645,10 +8703,6 @@ body:has(.dirsearch) header {
   color: var(--story-ink);
 }
 
-.offering-steps .display-accent {
-  color: var(--story-blue);
-}
-
 .offering-steplist {
   margin: 0;
   margin-top: var(--home-head-gap);
@@ -8691,7 +8745,7 @@ body:has(.dirsearch) header {
   font-size: clamp(1.75rem, 4.5vw, 2.5rem);
   font-weight: 800;
   line-height: 1;
-  color: var(--story-blue);
+  color: var(--offering-accent);
   opacity: 0.35;
   font-variant-numeric: tabular-nums;
 }

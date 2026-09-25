@@ -88,8 +88,10 @@ const SYMPTOM_KEYS = ['one', 'two', 'three'] as const;
 const PILLAR_KEYS = ['one', 'two', 'three'] as const;
 
 /* The awning colour each pillar flies, in order. These are the homepage's own
-   accent names, read by `.beat[data-accent]`. */
-const PILLAR_ACCENTS = ['blue', 'orange', 'paper'] as const;
+   accent names, read by `.beat[data-accent]`. Warm first, so the row opens in
+   the same colour as the page's own accent and the mark above it, then cools
+   — three cards in one hue read as a chart rather than as a street. */
+const PILLAR_ACCENTS = ['orange', 'paper', 'blue'] as const;
 const STEP_KEYS = ['one', 'two', 'three'] as const;
 
 export function OfferingFrontPage({
