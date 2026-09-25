@@ -1,0 +1,375 @@
+{
+  "switchLabel": "The rest of it",
+  "social": {
+    "name": "Pana Social",
+    "eyebrow": "Pana Social",
+    "headline": "Social Media<br/>That Is <em>Private</em><br/>and <em>Local</em>",
+    "lede": "A social network for South Florida, owned by the people in it. Private by default, local on purpose, and built to connect panas who already work together.",
+    "ctaPrimary": "Open the feed",
+    "ctaSecondary": "Become a Pana",
+    "pillars": {
+      "statement": "Pana Social is designed for <em>Local Life</em>.",
+      "one": {
+        "name": "Local",
+        "body": "Everyone here is in Broward, Miami-Dade or Palm Beach — the makers and shops you can actually walk to. Not a global feed that buries the bakery down the street."
+      },
+      "two": {
+        "name": "Private",
+        "body": "No ad auction, no tracking pixels, no profile of you built and sold on. Nobody here measures your attention, because nobody here is selling it."
+      },
+      "three": {
+        "name": "Connected",
+        "body": "The panas you follow are the same ones in the directory and behind the tables at events. A follow here can turn into a booking, a collab or a shared stall."
+      }
+    },
+    "tour": {
+      "title": "How It <em>Works</em>",
+      "lede": "Five screens, one neighborhood. Each one is a different way back to the same people.",
+      "feed": {
+        "name": "The Feed",
+        "title": "Your block, in the order it happened",
+        "body": "Posts from panas across Broward, Miami-Dade and Palm Beach, newest first — no ranking deciding which neighbor you hear from. The canal at 6am, the pop-up on Saturday, the studio with a free table going spare. Things close enough to actually go to."
+      },
+      "groups": {
+        "name": "Groups",
+        "title": "A room for every corner of the scene",
+        "body": "A neighborhood, a craft, a project, a mutual aid run. Groups are where a loose follow turns into people who plan something together — and they stay small enough that showing up still counts for something."
+      },
+      "events": {
+        "name": "Events",
+        "title": "Where a post becomes a door you walk through",
+        "body": "Markets, mixers, workshops and shows, posted by the panas actually running them and carrying a real going count. The whole point of a local feed is that you can close it and be there in twenty minutes."
+      },
+      "profiles": {
+        "name": "Pana Profiles",
+        "title": "The person behind the work",
+        "body": "A profile here is the same pana you find in the directory — the shop, the craft, the portfolio and the posts in one place. You meet somebody in the feed and you can book them by the end of the afternoon."
+      },
+      "stories": {
+        "name": "Stories",
+        "title": "Today, before it disappears",
+        "body": "Tap a pana's face and watch their day go by — the stall going up, the line at the window, the sky over the canal. Stories last twenty-four hours and then they're gone, which is exactly the point: an invitation to today, not a permanent record to perform for."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "No algorithm",
+        "body": "Newest first, every time. Nothing is promoted, buried or reordered to keep you scrolling, because nobody here earns anything from how long you stay."
+      },
+      "two": {
+        "title": "No ad profile",
+        "body": "No tracking pixels, no data brokers, no version of you assembled and sold on. Your attention is not the product, so it is not being measured."
+      },
+      "three": {
+        "title": "An address that travels",
+        "body": "Your handle is @you@panamia.club and it speaks ActivityPub, so a post here reaches Mastodon too — and if you ever leave, your panas come with you."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Own your <em>feed</em>.",
+      "lede": "Every other timeline you read belongs to someone whose business is selling your attention back to you. This one belongs to the people in it."
+    }
+  },
+  "directory": {
+    "name": "Directory",
+    "eyebrow": "Collective Tech",
+    "headline": "Find Your<br/><em>People</em>",
+    "lede": "South Florida's living archive of the creatives, entrepreneurs and small businesses who make this place what it is — written by them, not scraped from somewhere else.",
+    "ctaPrimary": "Search the directory",
+    "ctaSecondary": "Become a Pana",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "The top of the page is <em>for sale</em>.",
+      "one": {
+        "title": "The results are bought",
+        "body": "Search “near me” and the first screen belongs to whoever has an ad budget. Proximity is a filter there, never the ranking."
+      },
+      "two": {
+        "title": "Someone else wrote your page",
+        "body": "A review site decides what your business is, in a stranger’s words, under a star rating you never agreed to."
+      },
+      "three": {
+        "title": "The smallest ones aren't there at all",
+        "body": "No storefront, no sign, no ad spend — a kitchen, a booth, a spare room. Invisible to a map that only knows addresses."
+      }
+    },
+    "steps": {
+      "title": "How It <em>Works</em>",
+      "lede": "Three things happen before a name reaches you, and there is a person involved in every one of them.",
+      "one": {
+        "title": "Panas write themselves in",
+        "body": "Your name, five words, your tags, your neighborhood. You describe what you do — nobody summarizes you."
+      },
+      "two": {
+        "title": "A human approves it",
+        "body": "Every submission is read before it goes live, and the rule is short: you live or work in Broward, Miami-Dade or Palm Beach."
+      },
+      "three": {
+        "title": "Then you can actually find it",
+        "body": "Search by keyword, category, county or distance — and it turns up Café, Bodegón and Lucía whether or not you typed the accent."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Somebody to call",
+        "body": "Every result is a person or a shop with a name, a neighborhood and a way to reach them. Not a lead form."
+      },
+      "two": {
+        "title": "Visible without a budget",
+        "body": "Placement isn't for sale here. A one-person operation sits in the same list as everybody else."
+      },
+      "three": {
+        "title": "A record of who was here",
+        "body": "The directory is an archive as much as a search box — South Florida’s small operators, in their own words, kept year after year."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Somebody local already does <em>that</em>.",
+      "lede": "The directory exists so that the next time you need something, the answer is a neighbor with a name rather than whoever paid the most for the top of the page."
+    }
+  },
+  "events": {
+    "name": "Events",
+    "eyebrow": "Community Building",
+    "headline": "Show Up<br/><em>Somewhere</em>",
+    "lede": "Markets, workshops, art builds and long dinners across South Florida — co-hosted with the people already doing the work.",
+    "ctaPrimary": "Browse events",
+    "ctaSecondary": "Host an event",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "You always hear about it <em>after</em>.",
+      "one": {
+        "title": "It's announced, then it's gone",
+        "body": "The night lives in a story that deletes itself in twenty-four hours. Miss that day and, as far as you know, it never happened."
+      },
+      "two": {
+        "title": "The flyer leaves out the part you need",
+        "body": "A date and no address, or an address and no hour. Never whether there is still room for you when you get there."
+      },
+      "three": {
+        "title": "You find out on Monday",
+        "body": "Everyone who went heard about it in a group chat you are not in. You see it afterwards, in somebody else’s photos."
+      }
+    },
+    "steps": {
+      "title": "How It <em>Works</em>",
+      "lede": "Three things, and the first one is as open to you as it is to anybody else.",
+      "one": {
+        "title": "A pana puts it up",
+        "body": "Any pana can post an event — the date, the venue, and what it actually is. You do not need a room of your own or a budget to start."
+      },
+      "two": {
+        "title": "You say you're coming",
+        "body": "RSVP without an account. A link lands in your email, you open it, and you are counted — going, maybe, or can’t make it."
+      },
+      "three": {
+        "title": "It lands in your calendar",
+        "body": "One tap puts it in whatever calendar you already live by, so showing up stops depending on you remembering."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Nights worth staying at",
+        "body": "Markets, workshops, art builds and long dinners. Gatherings built for talking to people rather than for handing out cards."
+      },
+      "two": {
+        "title": "Going means going",
+        "body": "RSVPs stop at the room's real limit — the venue's fire capacity, not somebody's guess — so a confirmed spot is an actual spot."
+      },
+      "three": {
+        "title": "Near you, or worth the drive",
+        "body": "Broward, Miami-Dade and Palm Beach on one calendar. What is happening down the street this week, or the one worth an hour up the coast."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "The calendar is the <em>club</em>.",
+      "lede": "A directory tells you who is out there. An event is where you actually meet them. Come to one, then host the next."
+    }
+  },
+  "vizion": {
+    "name": "PanaVizión",
+    "eyebrow": "Culture Work",
+    "headline": "Local, On<br/>The <em>Record</em>",
+    "lede": "A video series with the people building South Florida's local economy — two panas at a time, talking to each other rather than into a microphone.",
+    "ctaPrimary": "Listen to episodes",
+    "ctaSecondary": "Read the dispatches",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "Miami gets covered like a <em>vacation</em>.",
+      "one": {
+        "title": "The story arrives from out of town",
+        "body": "National coverage of South Florida is beaches, money and nightlife. The people who actually hold the place together are the extras in it."
+      },
+      "two": {
+        "title": "You get a blurb, not a conversation",
+        "body": "Local press covers the opening and the closing. The years in between — which are the actual work — go unrecorded."
+      },
+      "three": {
+        "title": "And then the link rots",
+        "body": "A feature runs, traffic spikes for a day, and it is gone. Nothing is left that somebody could still find in five years."
+      }
+    },
+    "steps": {
+      "title": "How It <em>Works</em>",
+      "lede": "Three decisions about how it gets recorded, and not one of them is the decision a news segment would make.",
+      "one": {
+        "title": "Two panas, one room",
+        "body": "Each episode pairs two local makers and lets them talk to each other — a tattoo artist with a musician, a ceramicist with a farmer. The interview is between them. We just roll."
+      },
+      "two": {
+        "title": "At whatever length it takes",
+        "body": "No four-minute segment, no soundbite. The conversation runs until it is finished, because the setbacks are the part that takes a while to say out loud."
+      },
+      "three": {
+        "title": "And it stays up",
+        "body": "Every episode is published and left there — watchable, searchable and linkable long after the week it went out."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Names you already walk past",
+        "body": "Episodes with the people behind Easy Peasy Tattoos, Earth Pallas, Folktale San Pedro, Dear Eleanor and Golden Flora — places you could visit this week."
+      },
+      "two": {
+        "title": "An archive, not a feed",
+        "body": "Everything stays findable long after the week it aired, because the point of it is the record rather than the release."
+      },
+      "three": {
+        "title": "Your turn on the record",
+        "body": "Panas get pitched, featured and interviewed. If you are doing the work here, it belongs in the archive in your own words."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Cultural change is <em>lasting</em> change.",
+      "lede": "Who gets recorded is who gets remembered. PanaVizión exists so that the people holding South Florida together are in the archive, not just in the traffic."
+    }
+  },
+  "ink": {
+    "name": "Pana Ink Press",
+    "eyebrow": "Culture Work",
+    "headline": "Words You<br/>Can <em>Hand Over</em>",
+    "lede": "Zines, pamphlets and printed matter that carry the local movement off the screen and into somebody’s hands.",
+    "ctaPrimary": "Read the dispatches",
+    "ctaSecondary": "Become a Pana",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "Everything else we make needs a <em>battery</em>.",
+      "one": {
+        "title": "A link needs a reason to be opened",
+        "body": "You can send somebody the directory. Whether they open it is a separate question, and most of the time the answer is later."
+      },
+      "two": {
+        "title": "A feed does not reach everyone",
+        "body": "Plenty of the people who make this place run are on no platform we publish to. Reaching them through a feed means not reaching them."
+      },
+      "three": {
+        "title": "Platforms change their minds",
+        "body": "Anything we host can be throttled, blocked or switched off by somebody else. Paper cannot be deprecated."
+      }
+    },
+    "steps": {
+      "title": "How It <em>Works</em>",
+      "lede": "Three things, and it starts with what is already written.",
+      "one": {
+        "title": "We print what already exists",
+        "body": "The dispatches — the long reads about panas building this economy — get written and published first. The press begins by putting them on paper."
+      },
+      "two": {
+        "title": "Made with local artists",
+        "body": "Short runs designed alongside panas who draw, letter and lay out. A zine is a collaboration, and the people making it are in the directory."
+      },
+      "three": {
+        "title": "Handed over, not sold",
+        "body": "Stacks go to markets, shops and events to be given away. There is no subscriber list, because the whole point is that it travels without one."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Something to hand over",
+        "body": "A zine you can put in someone's hands at a market. No link to send, no app to install, no reason for them to say later."
+      },
+      "two": {
+        "title": "The dispatches",
+        "body": "Long reads from the people building South Florida's local economy — published now, and the raw material for what gets printed first."
+      },
+      "three": {
+        "title": "Print as infrastructure",
+        "body": "Paper keeps working when a platform changes its mind. That is the whole argument for a community owning a press of its own."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Some things belong on <em>paper</em>.",
+      "lede": "A zine handed to someone at a market reaches further than a post does, and it is still there next year. The press is how the movement travels off the screen."
+    }
+  },
+  "getInvolved": {
+    "name": "Get Involved",
+    "eyebrow": "Community Building",
+    "headline": "Start Where<br/>You <em>Are</em>",
+    "lede": "Pana MIA is built by the people in it. There is a way in at every size, and the first one costs nothing but showing up.",
+    "ctaPrimary": "Become a Pana",
+    "ctaSecondary": "Donate",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "Wanting to help is not the <em>hard part</em>.",
+      "one": {
+        "title": "There is rarely a door",
+        "body": "Most groups doing good work here have no obvious way to join them. You find out after it happened, from somebody who was already inside."
+      },
+      "two": {
+        "title": "The ask is always money",
+        "body": "Plenty of people have an hour, a van, a storefront or a trade and nowhere to offer it, because the only button on the page says donate."
+      },
+      "three": {
+        "title": "You never learn if it mattered",
+        "body": "Help that disappears into an organization is hard to repeat. People come back when they can see what their hour turned into."
+      }
+    },
+    "steps": {
+      "title": "Ways <em>In</em>",
+      "lede": "Three of them, in order of how much they ask.",
+      "one": {
+        "title": "Show up to something",
+        "body": "Come to a market, a workshop or a meetup. No form, no membership, no money — the events are open, and this is how most panas started."
+      },
+      "two": {
+        "title": "Become a pana",
+        "body": "Fill out the sign-up form and get a profile in the directory. It takes a few minutes, a person reads it, and we email you when you are live."
+      },
+      "three": {
+        "title": "Run a pod",
+        "body": "Community Connectors are neighborhood pods across Miami-Dade, Broward and Palm Beach running their own projects. Three tiers, and everybody starts at the first."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "Neighbors who can find you",
+        "body": "A profile your community can search by name, trade or neighborhood — and one more local name standing behind the club."
+      },
+      "two": {
+        "title": "People nearby already doing it",
+        "body": "A pod in your own county working on the street you live on, instead of a volunteer list two cities away."
+      },
+      "three": {
+        "title": "Something that stays yours",
+        "body": "Members and donations pay for the directory, the feed and the events. That is the reason none of it has to sell your attention."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "Nobody starts at <em>ground zero</em>.",
+      "lede": "Pana MIA was started so that anyone with an idea for making South Florida better had somewhere to bring it. Bring yours."
+    }
+  }
+}

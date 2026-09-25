@@ -7,6 +7,8 @@ import enToast from '@/locales/en/toast.json';
 import esToast from '@/locales/es/toast.json';
 import enHome from '@/locales/en/home.json';
 import esHome from '@/locales/es/home.json';
+import enOfferings from '@/locales/en/offerings.json';
+import esOfferings from '@/locales/es/offerings.json';
 import enAbout from '@/locales/en/about.json';
 import esAbout from '@/locales/es/about.json';
 import enLinks from '@/locales/en/links.json';
@@ -40,6 +42,7 @@ i18n
         common: en,
         toast: enToast,
         home: enHome,
+        offerings: enOfferings,
         about: enAbout,
         links: enLinks,
         podcasts: enPodcasts,
@@ -55,6 +58,7 @@ i18n
         common: es,
         toast: esToast,
         home: esHome,
+        offerings: esOfferings,
         about: esAbout,
         links: esLinks,
         podcasts: esPodcasts,

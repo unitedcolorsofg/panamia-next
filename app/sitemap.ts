@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { articles, profiles, users } from '@/lib/schema';
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
+import { PANA_OFFERINGS } from '@/lib/panaverse/offerings';
 
 type SitemapEntry = {
   url: string;
@@ -13,11 +14,31 @@ type SitemapEntry = {
 
 const SITE_URL = process.env.NEXT_PUBLIC_HOST_URL ?? 'https://pana.social';
 
+/**
+ * The six offerings' front pages.
+ *
+ * Driven from the registry rather than typed out, for the same reason the nav
+ * drawer is: these six are what the site is, and a hand-kept copy of the list
+ * is a copy that will be one short the next time one is added.
+ *
+ * They sit above the rest because they are now the site's primary navigation
+ * — the whole of the menu — so they are the pages a crawler should reach
+ * first after the homepage.
+ */
+const OFFERING_ROUTES: SitemapEntry[] = PANA_OFFERINGS.map((offering) => ({
+  url: `${SITE_URL}${offering.href}`,
+  changeFrequency: 'weekly',
+  priority: 0.8,
+}));
+
 const STATIC_ROUTES: SitemapEntry[] = [
   { url: SITE_URL, priority: 1.0, changeFrequency: 'weekly' },
   { url: `${SITE_URL}/about-us`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/a`, changeFrequency: 'daily' },
-  { url: `${SITE_URL}/directorio`, changeFrequency: 'weekly' },
+  // `/directorio` was here, and it is a `redirect('/d')` — a sitemap entry
+  // that resolves to a different URL than the one submitted. `/directory` is
+  // a real page now and is in `OFFERING_ROUTES` above, so the redirect no
+  // longer needs to stand in for it.
   { url: `${SITE_URL}/donate`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/podcasts`, changeFrequency: 'weekly' },
   { url: `${SITE_URL}/m/discover`, changeFrequency: 'weekly' },
@@ -89,5 +110,10 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
     priority: 0.6,
   }));
 
-  return [...STATIC_ROUTES, ...articleRoutes, ...profileRoutes];
+  return [
+    ...STATIC_ROUTES,
+    ...OFFERING_ROUTES,
+    ...articleRoutes,
+    ...profileRoutes,
+  ];
 }
