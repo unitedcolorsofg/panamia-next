@@ -254,7 +254,7 @@ export function DirectorySuggest({
             one. */}
         {layout === 'pill' && (
           <Search
-            className="text-pana-ink ml-6 h-5 w-5 shrink-0 opacity-45"
+            className="directory-suggest-pill-icon text-pana-ink ml-6 h-5 w-5 shrink-0 opacity-45"
             aria-hidden="true"
           />
         )}
