@@ -1,6 +1,5 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import {
   Bell,
@@ -63,12 +62,11 @@ export function GroupHero({
 
   return (
     <header>
-      {/* Scallop is white to match the masthead directly above, the same way
-          the profile hero meets it. */}
-      <div
-        className="profile-cover scallop"
-        style={{ '--scallop': '#ffffff' } as CSSProperties}
-      >
+      {/* No scalloped trim here, matching the profile hero. The cover meets
+          the masthead flush: the cover photograph is the subject of this
+          page, and notching a bite out of its top edge reads as damage
+          rather than as the doily motif it does on a flat colour band. */}
+      <div className="profile-cover">
         <Image
           src={group.cover}
           alt={group.coverAlt}

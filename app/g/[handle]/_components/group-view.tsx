@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   CalendarDays,
@@ -86,12 +86,11 @@ function GroupBody({
   return (
     <main className="surface-cream min-h-screen pb-20">
       <header>
-        {/* Scallop is white to meet the masthead directly above, the same way
-            the profile hero does. */}
-        <div
-          className="profile-cover scallop"
-          style={{ '--scallop': '#ffffff' } as CSSProperties}
-        >
+        {/* No scalloped trim here, matching the profile hero. The cover meets
+            the masthead flush: the cover photograph is the subject of this
+            page, and notching a bite out of its top edge reads as damage
+            rather than as the doily motif it does on a flat colour band. */}
+        <div className="profile-cover">
           {/* Plain img rather than next/image: these are remote CDN URLs and
               next.config.js declares no remotePatterns, so the optimizer
               would reject them at runtime. */}
