@@ -33,7 +33,7 @@ interface ScopeNavProps {
 }
 
 /**
- * The scope selector, promoted from app/mock/directory-scopes.
+ * The scope selector, promoted from the approved scoped-directory mock.
  *
  * One change from the mock, and it is the important one: scopes are `<Link>`s
  * rather than buttons calling back into local state. Each scope is a real

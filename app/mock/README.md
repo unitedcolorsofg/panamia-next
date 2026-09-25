@@ -16,7 +16,6 @@ layout only works with invented spacing or colours that are not in
 | `/mock/feed`              | Pana Social feed redesign, including the empty feed               |
 | `/mock/panaverse`         | Panaverse chrome: masthead, surface switcher, identity            |
 | `/mock/settings`          | Account settings — one page, either masthead                      |
-| `/mock/directory-scopes`  | Directory search scoped to businesses, panas, groups or events    |
 
 ## Viewing the Pana Social surface
 
