@@ -108,7 +108,7 @@ function jsonKeys(raw: unknown): string[] {
   return [];
 }
 
-function categoryKeys(raw: unknown): string[] {
+export function categoryKeys(raw: unknown): string[] {
   return jsonKeys(raw).map((key) => canonical(key, profileCategoryList));
 }
 

@@ -196,6 +196,31 @@ export function DirectorySearchContent({
           screen belongs to. Above it the attribute is inert: both panes show,
           and the toggle is hidden. */}
       <main className="dirsearch dirsearch-split" data-view={params.view}>
+        {/* Above the panes, not inside the list column. The band is the page's
+            header — it names the scope, carries the term and owns the h1 — and
+            a header that sits in one of two side-by-side panes reads as a
+            property of that pane. The scope pages put it full width; so does
+            this now. `.dirsearch-split` is the flex column that lets the panes
+            take whatever height is left over. */}
+        <SearchBand
+          term={params.searchTerm}
+          resultCount={results.length}
+          totalCount={totalResults}
+          loading={isLoading}
+          locationStatus={locationStatus}
+          nearestFirst={sort === 'nearest'}
+          onSearch={handleSearch}
+          onShareLocation={request}
+        />
+
+        {/* Full width with the band, not inside the list pane. Scope is
+            navigation — it changes what kind of thing you are looking at,
+            which is a property of the page rather than of the results column
+            — and confined to the left pane its last chip was cropped by the
+            map. The filters below it stay in the pane, because narrowing a
+            set of businesses really is that column's business. */}
+        <BusinessScopeChips term={params.searchTerm} />
+
         <div className="dirsearch-panes">
           <section className="dirsearch-listpane" aria-label="Search results">
             {/* Outside the scroller on purpose. The controls that change the
@@ -203,23 +228,6 @@ export function DirectorySearchContent({
                 header you have to scroll back up to find is a header that gets
                 used once. */}
             <div className="dirsearch-listhead">
-              <SearchBand
-                term={params.searchTerm}
-                resultCount={results.length}
-                totalCount={totalResults}
-                loading={isLoading}
-                locationStatus={locationStatus}
-                nearestFirst={sort === 'nearest'}
-                onSearch={handleSearch}
-                onShareLocation={request}
-              />
-
-              {/* Above the filters, not among them: filters narrow a set of
-                  businesses, while scope changes what kind of thing you are
-                  looking at. Without this the businesses view is the one scope
-                  you cannot navigate out of. */}
-              <BusinessScopeChips term={params.searchTerm} />
-
               <FilterBar
                 filters={filters}
                 onChange={applyFilters}

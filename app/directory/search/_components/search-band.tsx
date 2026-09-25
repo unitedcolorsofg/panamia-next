@@ -1,9 +1,11 @@
 'use client';
 
-import { type FormEvent, useEffect, useState } from 'react';
-import { Crosshair, MapPin, Search } from 'lucide-react';
+import { Crosshair, MapPin } from 'lucide-react';
 import type { LocationStatus } from '@/app/p/[user]/_lib/use-viewer-location';
+import { DirectorySuggest } from '@/components/directory-suggest';
+import { ScopeMenu } from '@/components/directory-scope-bar';
 import { COUNTY_FILTER_ID } from './filter-bar';
+import { useScopeCounts } from '../_lib/use-scope-counts';
 
 interface SearchBandProps {
   term: string;
@@ -18,30 +20,37 @@ interface SearchBandProps {
 }
 
 /**
- * The top of the results column.
+ * The top of the businesses view.
  *
- * Three jobs, in order of how often they matter:
+ * This is the same band the four scope pages render, and that is the point.
+ * Until now businesses opened with a compact white toolbar and the scope
+ * pages opened with a tall indigo band, so the same search for the same shop
+ * looked like two different products depending on which URL you arrived
+ * through. One of them had to give, and the band won: it carries the term as
+ * a headline, names the scope in a way that can be changed in place, and
+ * gives the field the typeahead every other search box on the site has.
  *
- * 1. Say what was searched, and let it be changed without going back. The page
- *    this replaces dropped the term into a small input inside a white card and
- *    never repeated it, so a search that went wrong looked the same as one
- *    that found nothing.
- * 2. Say how many results there are, in words, before the list starts.
- * 3. Offer location. This is the one control that turns a list of businesses
- *    into a list of businesses you can actually get to, so it sits in the
- *    header rather than behind a filter dialog where it would never be found.
+ * The cost is real and was accepted deliberately. This page does not scroll —
+ * the map holds the right half and the list scrolls inside its own pane — so
+ * every pixel spent here is a pixel taken from results rather than from empty
+ * space. The previous comment here argued that made a band the wrong shape
+ * for a page you refine five times in a row. That argument lost to
+ * consistency: a member who cannot tell whether they are still in the same
+ * product is a worse outcome than a member who sees three results instead of
+ * four before scrolling.
  *
- * All three now fit in roughly the height of the search box itself. This used
- * to be a hero: an eyebrow, a display-sized headline, a count, the box, the
- * location row, and a full-bleed drawing of a town — around 570px before the
- * first result. That is a fine way to open a page you arrive on once and a bad
- * way to open one you refine five times in a row. With the map now holding the
- * right half of the screen, height taken here is height taken from the
- * results rather than from empty space, so the headline and the count became
- * one sentence, the scenery went, and what is left is a toolbar.
+ * Four things survived the swap and must keep surviving it:
  *
- * The window does not scroll on this page, so nothing here can be scrolled
- * away from. That is the other reason it has to be small.
+ * - The count is `role="status"`. It changes client-side here, unlike the
+ *   scope pages' server-rendered `.dirsearch-count`, so it has to announce.
+ * - Submitting runs `onSearch` rather than navigating. The filters, sort and
+ *   map view live in this page's query string and a route push would drop
+ *   them.
+ * - The location bar stays. It is the one control that turns a list of
+ *   businesses into a list you can get to, and it has no equivalent on the
+ *   scope pages because only businesses have addresses to measure from.
+ * - The scope menu sits inside the pill, not beside it, because scope is part
+ *   of the question being asked rather than a setting on the page.
  */
 export function SearchBand({
   term,
@@ -53,54 +62,33 @@ export function SearchBand({
   onSearch,
   onShareLocation,
 }: SearchBandProps) {
-  const [draft, setDraft] = useState(term);
-
-  // The term can change without this input: from the empty state's "browse
-  // everything", from a category chip, or from the back button. Left alone,
-  // the field would keep showing a search the page is no longer running.
-  useEffect(() => setDraft(term), [term]);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSearch(draft.trim());
-  };
-
+  const { counts, signedIn } = useScopeCounts(term);
   const shared = locationStatus === 'granted';
 
   return (
-    <section className="dirsearch-tools">
-      <form onSubmit={handleSubmit} className="dirsearch-searchrow">
-        <label htmlFor="dirsearch-input" className="sr-only">
-          Search the Pana Mia directory
-        </label>
-        <div className="dirsearch-pill">
-          <Search className="h-5 w-5 shrink-0 opacity-45" aria-hidden="true" />
-          <input
-            id="dirsearch-input"
-            type="search"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="Try food, art, Hialeah, bike repair…"
-            autoComplete="off"
-          />
-          <button type="submit">Search</button>
-        </div>
-      </form>
+    <section className="surface-indigo dirsearch-band">
+      <div className="container mx-auto px-4">
+        <span className="section-eyebrow">Directory</span>
 
-      <div className="dirsearch-toolsline">
-        {/* The page's heading is the page's heading, not its result count.
-            This h1 used to be the big "Find your people" hero line; the hero
-            is gone but the stable, route-describing heading it carried still
-            has to exist for screen readers and crawlers. Hiding it visually
-            keeps that contract at zero vertical cost. */}
-        <h1 className="sr-only">Find your people</h1>
+        {/* The page's heading is the page's heading. On the scope pages this
+            is the visible title and there is no second one; the businesses
+            view used to hide an h1 behind a toolbar because the toolbar had
+            no room for type. It has room now. */}
+        <h1 className="dirsearch-title">
+          {term ? (
+            <>
+              <em>{term}</em> — businesses
+            </>
+          ) : (
+            <>Find your people</>
+          )}
+        </h1>
 
-        {/* Headline and count in one sentence. Two lines of type that each
-            said half of "24 results for food" cost more height than they
-            earned. It's a status message, not a heading — it says what the
+        {/* Headline and count are separate lines here, matching the scope
+            pages. It is a status message, not a heading — it says what the
             search is doing right now, so it announces itself when the answer
-            changes instead of silently rewriting the page title. */}
-        <p className="dirsearch-summary" role="status" aria-live="polite">
+            changes instead of silently rewriting the page. */}
+        <p className="dirsearch-count" role="status" aria-live="polite">
           {loading ? (
             <>Searching…</>
           ) : resultCount === 0 ? (
@@ -117,7 +105,15 @@ export function SearchBand({
           ) : (
             <>
               <strong>{resultCount}</strong>
-              {resultCount === totalCount ? ' businesses' : ` of ${totalCount}`}
+              {/* "1 businesses" is the kind of seam that makes a page look
+                  unfinished on the exact search that found one perfect
+                  answer. Only the all-shown branch names the noun; the
+                  "12 of 340" branch is a ratio, which needs none. */}
+              {resultCount === totalCount
+                ? resultCount === 1
+                  ? ' business'
+                  : ' businesses'
+                : ` of ${totalCount}`}
               {term ? (
                 <>
                   {' '}
@@ -133,6 +129,27 @@ export function SearchBand({
             </>
           )}
         </p>
+
+        <div className="dirsearch-searchrow">
+          <DirectorySuggest
+            layout="pill"
+            scope="business"
+            initialTerm={term}
+            label="Search the Pana Mia directory"
+            ariaLabel="Search the Pana Mia directory"
+            placeholder="Try food, art, Hialeah, bike repair…"
+            buttonLabel="Search"
+            onSearch={onSearch}
+            leading={
+              <ScopeMenu
+                scope="business"
+                term={term}
+                counts={counts}
+                signedIn={signedIn}
+              />
+            }
+          />
+        </div>
 
         {/* The local-first control. One sentence and one button rather than a
             permissions-style dialog, because the honest ask is small: we want
