@@ -41,13 +41,23 @@ export async function GET(request: NextRequest) {
       };
 
   try {
-    const data = await countAllScopes(term, viewerIsSignedIn);
-    return NextResponse.json({ success: true, data }, { headers: cacheHeaders });
+    const { counts, unavailable } = await countAllScopes(
+      term,
+      viewerIsSignedIn
+    );
+    // `data` stays exactly ScopeCounts — the shape every deployed client
+    // already parses. `unavailable` rides alongside it so a caller that cares
+    // can tell a real zero from a kind whose index is missing; one that does
+    // not care is unaffected by an extra key.
+    return NextResponse.json(
+      { success: true, data: counts, unavailable: [...unavailable] },
+      { headers: cacheHeaders }
+    );
   } catch (error) {
     console.error('Directory scope-counts error:', error);
     return NextResponse.json(
       { success: false, data: EMPTY_SCOPE_COUNTS },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

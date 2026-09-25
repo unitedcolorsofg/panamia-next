@@ -10,14 +10,13 @@ import {
   scopePath,
   totalCount,
   type Scope,
+  type ScopeCounts,
 } from '@/lib/directory-scopes';
 import {
   countAllScopes,
-  searchBusinesses,
-  searchEvents,
-  searchGroups,
-  searchPanas,
+  searchKindSafely,
   SCOPE_PAGE_SIZE,
+  type ScopeKind,
   type ScopeSearchResult,
 } from '@/lib/server/search-kinds';
 import type { SuggestionKind } from '@/lib/suggest';
@@ -59,7 +58,7 @@ export async function ScopePage({
     console.error('Directory scope session error:', error);
   }
 
-  const counts = await countAllScopes(term, signedIn);
+  const { counts, unavailable } = await countAllScopes(term, signedIn);
 
   if (SCOPE_REQUIRES_PANA[scope] && !signedIn) {
     return <GatedScope scope={scope} term={term} />;
@@ -67,12 +66,27 @@ export async function ScopePage({
 
   return (
     <main className="dirscope">
-      <SearchBand scope={scope} term={term} counts={counts} signedIn={signedIn} />
-      <ScopeChips scope={scope} term={term} counts={counts} signedIn={signedIn} />
+      <SearchBand
+        scope={scope}
+        term={term}
+        counts={counts}
+        signedIn={signedIn}
+      />
+      <ScopeChips
+        scope={scope}
+        term={term}
+        counts={counts}
+        signedIn={signedIn}
+      />
 
       <div className="container mx-auto px-4 py-8">
         {scope === 'all' ? (
-          <EverythingResults term={term} signedIn={signedIn} counts={counts} />
+          <EverythingResults
+            term={term}
+            signedIn={signedIn}
+            counts={counts}
+            unavailable={unavailable}
+          />
         ) : (
           <SingleScopeResults scope={scope} term={term} page={page} />
         )}
@@ -89,7 +103,7 @@ function SearchBand({
 }: {
   scope: Scope;
   term: string;
-  counts: Awaited<ReturnType<typeof countAllScopes>>;
+  counts: ScopeCounts;
   signedIn: boolean;
 }) {
   const total = totalCount(counts);
@@ -176,29 +190,76 @@ async function EverythingResults({
   term,
   signedIn,
   counts,
+  unavailable,
 }: {
   term: string;
   signedIn: boolean;
-  counts: Awaited<ReturnType<typeof countAllScopes>>;
+  counts: ScopeCounts;
+  unavailable: ReadonlySet<ScopeKind>;
 }) {
   if (!term) return <EmptyPrompt />;
 
+  // Each kind resolves to its results or to null, and null here means "could
+  // not be searched" rather than "matched nothing" — so one kind's outage
+  // costs the visitor that kind, not the page.
   const [businesses, panas, groups, events] = await Promise.all([
-    searchBusinesses(term, 1, PREVIEW_LIMIT),
-    signedIn ? searchPanas(term, 1, PREVIEW_LIMIT) : null,
-    signedIn ? searchGroups(term, 1, PREVIEW_LIMIT) : null,
-    searchEvents(term, 1, PREVIEW_LIMIT),
+    searchKindSafely('business', term, 1, PREVIEW_LIMIT),
+    signedIn ? searchKindSafely('pana', term, 1, PREVIEW_LIMIT) : null,
+    signedIn ? searchKindSafely('group', term, 1, PREVIEW_LIMIT) : null,
+    searchKindSafely('event', term, 1, PREVIEW_LIMIT),
   ]);
 
-  if (totalCount(counts) === 0) return <NoMatches term={term} />;
+  const down = new Set<ScopeKind>(unavailable);
+  if (businesses === null) down.add('business');
+  if (signedIn && panas === null) down.add('pana');
+  if (signedIn && groups === null) down.add('group');
+  if (events === null) down.add('event');
+
+  const nothingMatched = totalCount(counts) === 0 && down.size === 0;
 
   return (
     <div className="flex flex-col gap-10">
-      <KindSection kind="business" term={term} data={businesses} />
-      {panas && <KindSection kind="pana" term={term} data={panas} />}
-      {groups && <KindSection kind="group" term={term} data={groups} />}
-      <KindSection kind="event" term={term} data={events} />
+      {down.size > 0 && <ScopeUnavailableNote kinds={[...down]} />}
+
+      {nothingMatched ? (
+        <NoMatches term={term} />
+      ) : (
+        <>
+          {businesses && (
+            <KindSection kind="business" term={term} data={businesses} />
+          )}
+          {panas && <KindSection kind="pana" term={term} data={panas} />}
+          {groups && <KindSection kind="group" term={term} data={groups} />}
+          {events && <KindSection kind="event" term={term} data={events} />}
+        </>
+      )}
     </div>
+  );
+}
+
+/**
+ * Says which kinds could not be searched, and does not pretend the rest is the
+ * whole answer.
+ *
+ * Phrased as a temporary outage rather than as an empty result, because those
+ * are different facts and only one of them is true. A visitor told "no events
+ * matched" would stop looking; one told events are down knows to come back.
+ */
+function ScopeUnavailableNote({ kinds }: { kinds: ScopeKind[] }) {
+  const names = kinds.map((k) => SCOPE_LABEL[k].toLowerCase());
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+
+  return (
+    <p
+      role="status"
+      className="border-pana-ink/15 bg-pana-ink/[0.03] rounded-xl border px-4 py-3 text-sm font-bold"
+    >
+      Search for {list} is temporarily unavailable. Everything else below is up
+      to date.
+    </p>
   );
 }
 
@@ -256,7 +317,11 @@ async function SingleScopeResults({
 }) {
   if (!term) return <EmptyPrompt />;
 
-  const data = await runScope(scope, term, page);
+  const data = await searchKindSafely(scope, term, page, SCOPE_PAGE_SIZE);
+  // The one scope this page is about is the one that is down. There is no
+  // partial answer to give, so say that rather than "nothing matched" — which
+  // would read as a fact about South Florida instead of about our database.
+  if (data === null) return <ScopeUnavailableNote kinds={[scope]} />;
   if (data.total === 0) return <NoMatches term={term} />;
 
   return (
@@ -297,23 +362,6 @@ async function SingleScopeResults({
   );
 }
 
-function runScope(
-  scope: Exclude<Scope, 'all'>,
-  term: string,
-  page: number
-): Promise<ScopeSearchResult> {
-  switch (scope) {
-    case 'business':
-      return searchBusinesses(term, page, SCOPE_PAGE_SIZE);
-    case 'pana':
-      return searchPanas(term, page, SCOPE_PAGE_SIZE);
-    case 'group':
-      return searchGroups(term, page, SCOPE_PAGE_SIZE);
-    case 'event':
-      return searchEvents(term, page, SCOPE_PAGE_SIZE);
-  }
-}
-
 function EmptyPrompt() {
   return (
     <p className="text-pana-ink/60 py-12 text-center text-lg font-bold">
@@ -348,7 +396,9 @@ function GatedScope({ scope, term }: { scope: Scope; term: string }) {
       <section className="surface-indigo dirsearch-band">
         <div className="container mx-auto px-4">
           <span className="section-eyebrow">Directory</span>
-          <h1 className="dirsearch-title">{SCOPE_LABEL[scope]} are for panas</h1>
+          <h1 className="dirsearch-title">
+            {SCOPE_LABEL[scope]} are for panas
+          </h1>
           <p className="dirsearch-count">
             Members search each other, not the public. Sign in to look up{' '}
             {SCOPE_LABEL[scope].toLowerCase()}.
