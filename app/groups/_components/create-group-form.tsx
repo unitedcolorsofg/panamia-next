@@ -6,77 +6,25 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Lock, Globe } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
 import { useCreateGroup } from '@/lib/query/social';
+import {
+  INPUT_CLASS,
+  JOIN_OPTIONS,
+  MAX_NAME,
+  MAX_SUMMARY,
+  MAX_TOPICS,
+  VISIBILITY_OPTIONS,
+  Field,
+  RadioField,
+} from '@/components/social/group-form-fields';
 import type {
   SocialGroupJoinPolicy,
   SocialGroupVisibility,
 } from '@/lib/schema';
 
-/* Mirrors of the server's caps, so the form can stop a member before a round
-   trip rather than after one. The server still enforces all of them -- these
-   are a courtesy, not the boundary. */
-const MAX_NAME = 80;
-const MAX_SUMMARY = 500;
-const MAX_TOPICS = 12;
+/* Handle rules are this form's alone -- a group's handle is set once, at
+   creation, and the edit surface deliberately cannot change it. */
 const MAX_HANDLE = 24;
 const MIN_HANDLE = 3;
-
-/* The repo styles inputs inline rather than with a shared class -- see the
-   search field in app/search/_components/search-content.tsx. Hoisted to a
-   constant here only because this form has four of them. */
-const INPUT_CLASS =
-  'border-pana-ink/12 focus:border-pana-orange/55 focus:ring-pana-orange/18 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:outline-none';
-
-const VISIBILITY_OPTIONS: {
-  value: SocialGroupVisibility;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    value: 'public',
-    label: 'Public',
-    hint: 'Anyone can read the posts. Shows on your profile.',
-  },
-  {
-    value: 'private',
-    label: 'Private',
-    hint: 'Only members can read the posts. The group is still findable by name so people can ask to join, but nothing inside it is.',
-  },
-];
-
-/**
- * Who may join.
- *
- * The last two are shown but not yet selectable, and that is deliberate rather
- * than lazy. `joinGroup` already honours them — 'request' parks a member as
- * pending, 'invite' refuses outright — but nothing yet exists to *approve* a
- * request or *send* an invite, and there is no way to edit a group after it is
- * created. Together those make either choice a permanent dead end: an
- * invite-only group could never gain a second member, and a by-request group
- * would collect people nobody can let in.
- *
- * Showing them greyed out says "this is coming" instead of silently implying
- * open groups are the only kind Pana will ever have.
- */
-const JOIN_OPTIONS: {
-  value: SocialGroupJoinPolicy;
-  label: string;
-  hint: string;
-  disabled?: boolean;
-}[] = [
-  { value: 'open', label: 'Anyone can join', hint: 'No approval needed.' },
-  {
-    value: 'request',
-    label: 'By request',
-    hint: 'People ask, and an admin decides. Approvals are not built yet.',
-    disabled: true,
-  },
-  {
-    value: 'invite',
-    label: 'Invite only',
-    hint: 'Nobody can ask. Admins add people. Invites are not built yet.',
-    disabled: true,
-  },
-];
 
 /**
  * Turn a group's name into a usable handle.
@@ -285,99 +233,5 @@ export function CreateGroupForm() {
         </Link>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  error,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  error?: string | null;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-pana-ink block text-[14px] font-extrabold">
-        {label}
-      </span>
-      {children}
-      {error ? (
-        <span className="block text-[12px] font-bold text-red-600">
-          {error}
-        </span>
-      ) : (
-        hint && (
-          <span className="text-pana-ink/55 block text-[12px] leading-snug font-medium">
-            {hint}
-          </span>
-        )
-      )}
-    </label>
-  );
-}
-
-function RadioField<T extends string>({
-  legend,
-  name,
-  options,
-  value,
-  onChange,
-  icons,
-}: {
-  legend: string;
-  name: string;
-  options: { value: T; label: string; hint: string; disabled?: boolean }[];
-  value: T;
-  onChange: (value: T) => void;
-  icons?: Record<string, React.ComponentType<{ className?: string }>>;
-}) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-pana-ink text-[14px] font-extrabold">
-        {legend}
-      </legend>
-      <div className="space-y-2">
-        {options.map((option) => {
-          const Icon = icons?.[option.value];
-          const selected = option.value === value;
-          const disabled = option.disabled ?? false;
-          return (
-            <label
-              key={option.value}
-              className={`flex items-start gap-3 rounded-2xl border bg-white p-3.5 transition-colors ${
-                disabled
-                  ? 'border-pana-ink/10 cursor-not-allowed opacity-55'
-                  : selected
-                    ? 'border-pana-indigo ring-pana-indigo/15 cursor-pointer ring-2'
-                    : 'border-pana-ink/10 hover:border-pana-ink/25 cursor-pointer'
-              }`}
-            >
-              <input
-                type="radio"
-                name={name}
-                value={option.value}
-                checked={selected}
-                disabled={disabled}
-                onChange={() => onChange(option.value)}
-                className="mt-1"
-              />
-              <span className="min-w-0">
-                <span className="text-pana-ink flex items-center gap-1.5 text-[14px] font-extrabold">
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {option.label}
-                </span>
-                <span className="text-pana-ink/60 block text-[12px] leading-snug font-medium">
-                  {option.hint}
-                </span>
-              </span>
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }

@@ -627,8 +627,70 @@ provide. Now a `leftJoin`, with unmatched rows blocking rather than vanishing.
 **Not notified:** attendees of an event deleted along with its group. The danger zone says so
 plainly rather than quietly doing it.
 
-**Still unbuilt:** a group _edit_ surface. `app/g/[handle]/settings` is scaffolded for name, rules,
-topics, and join policy, but currently holds only the danger zone.
+---
+
+## Phase 7 — Group Edit Surface
+
+`app/g/[handle]/settings` was scaffolded in Phase 6 but held only the danger zone. It now opens with
+the edit form, and the two halves sit far apart on purpose: editing a group is routine and
+reversible, deleting it is neither, and a danger zone directly under a save button is one mis-aimed
+click from a form people use often.
+
+### What is editable, and what is not
+
+| Field       | Stored on                   | Editable                        |
+| ----------- | --------------------------- | ------------------------------- |
+| name        | `social_actors.name`        | yes                             |
+| description | `social_actors.summary`     | yes                             |
+| topics      | `social_groups.topics`      | yes (whole-list replacement)    |
+| rules       | `social_groups.rules`       | yes (whole-list replacement)    |
+| visibility  | `social_groups.visibility`  | yes                             |
+| join policy | `social_groups.join_policy` | yes                             |
+| **handle**  | `social_actors.username`    | **no — deliberately immutable** |
+
+A single edit therefore spans two tables, so `updateGroup` writes both inside one transaction. A
+half-applied edit would show a new name beside old rules with nothing to say which the admin
+actually saved.
+
+**The handle is not editable, and the field is absent rather than disabled.** A disabled input
+invites someone to go looking for the way to enable it, and there isn't one. The handle is the
+group's address: it is shared with the flat screenname namespace, every link to the group is built
+from it, and the federation URIs (`uri`, `inboxUrl`, `outboxUrl`, `followersUrl`, `followingUrl`)
+are all derived from it at creation. Renaming is a migration — it needs the old handle reserved in
+`screenname_history` the same way a deletion does — not a setting.
+
+### Absence is not emptiness
+
+`updateGroup` takes an object where a missing field means "leave it alone" and `topics: []` means
+"clear it". The distinction carries real weight because topics and rules are whole-list
+replacements: a form that posted every field on every save would quietly rewrite lists the admin
+never touched. The client sends only the fields that actually moved. `summary: null` clears the
+description; omitting `summary` leaves it.
+
+Most of `tests-db/group-update.test.ts` exists for that one distinction.
+
+### No `Update` broadcast
+
+`deleteGroup` broadcasts an ActivityPub `Delete`, but an edit broadcasts nothing. Groups do not
+federate their posts yet (Phase 3.5), so no remote server holds a copy of this actor worth
+correcting. When group federation lands, `updateGroup` is where the `Update` goes.
+
+### Shared form pieces
+
+`VISIBILITY_OPTIONS`, `JOIN_OPTIONS`, `Field`, `RadioField`, the input class and the cap mirrors
+moved to `components/social/group-form-fields.tsx`, shared by the create and edit forms. That
+matters more here than it usually does: **the join policies are half-built on purpose**, and with
+two copies somebody would enable `request` in exactly one file when approvals ship and not notice.
+
+`request` and `invite` remain visible but disabled. Their docblock used to justify that partly with
+"there is no way to edit a group after it is created" — this phase makes that half false, so the
+reason was rewritten. They stay disabled because approvals and invites are still unbuilt: a
+by-request group would collect people nobody can admit, and an invite-only group could never gain a
+second member. A dead end you can now back out of is still a dead end.
+
+**Still unbuilt:** member management. There is no way to promote a moderator, approve a join
+request, or remove a member, so `role` is only ever set by `createGroup` (founder → admin) or
+directly in SQL.
 
 ---
 
