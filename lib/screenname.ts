@@ -196,15 +196,21 @@ export async function isScreennameAvailable(
   // Check screenname history (cannot claim others' old names)
   // Allow user to reclaim their OWN old screenname
   if (excludeEmail) {
-    // Historical: same screenname but not belonging to excludeEmail user
+    // Left-joined, not inner-joined. A history row's user_id is a bare id with
+    // no FK precisely so the row outlives the account -- and account deletion
+    // does delete the user. An inner join drops exactly those orphaned rows,
+    // which would hand a deleted person's handle to the next caller and make
+    // the 410-Gone tombstone a lie. A group reservation has no user at all, so
+    // it would vanish the same way. Unmatched rows therefore block, and only a
+    // row demonstrably belonging to this caller is excluded.
     const historical = await db
       .select({ id: screennameHistory.id })
       .from(screennameHistory)
-      .innerJoin(users, eq(screennameHistory.userId, users.id))
+      .leftJoin(users, eq(screennameHistory.userId, users.id))
       .where(
         and(
           sql`lower(${screennameHistory.screenname}) = lower(${name})`,
-          sql`lower(${users.email}) != lower(${excludeEmail})`
+          sql`${users.email} is null or lower(${users.email}) != lower(${excludeEmail})`
         )
       )
       .limit(1);

@@ -156,18 +156,26 @@ export function CreateGroupForm() {
     event.preventDefault();
     if (!canSubmit) return;
 
-    const created = await create.mutateAsync({
-      handle: effectiveHandle,
-      name: name.trim(),
-      summary: summary.trim() || undefined,
-      topics: topics
-        .split(',')
-        .map((topic) => topic.trim())
-        .filter(Boolean)
-        .slice(0, MAX_TOPICS),
-      visibility,
-      joinPolicy,
-    });
+    let created;
+    try {
+      created = await create.mutateAsync({
+        handle: effectiveHandle,
+        name: name.trim(),
+        summary: summary.trim() || undefined,
+        topics: topics
+          .split(',')
+          .map((topic) => topic.trim())
+          .filter(Boolean)
+          .slice(0, MAX_TOPICS),
+        visibility,
+        joinPolicy,
+      });
+    } catch {
+      /* The rejection is already rendered from the mutation's own error state
+         -- swallow it here so it does not surface as an unhandled rejection.
+         A taken handle is an ordinary answer, not a crash. */
+      return;
+    }
 
     // The handle is what the group is reachable by, and the server normalises
     // the one we sent -- follow its answer rather than our input.
