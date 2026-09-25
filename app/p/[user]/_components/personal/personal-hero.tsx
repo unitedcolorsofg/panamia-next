@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { BadgeCheck, CalendarDays, MapPin } from 'lucide-react';
 import type { PersonalProfileView } from '@/lib/server/personal-profile';
@@ -33,12 +33,11 @@ export function PersonalHero({
 }: PersonalHeroProps) {
   return (
     <header>
-      {/* Scallop is white to match the masthead directly above, the same way
-          the homepage hero meets the header. */}
-      <div
-        className="profile-cover scallop"
-        style={{ '--scallop': '#ffffff' } as CSSProperties}
-      >
+      {/* No scalloped trim here, unlike the homepage sections. The cover meets
+          the masthead flush: a person's photograph is the subject of this
+          page, and notching a bite out of its top edge reads as damage rather
+          than as the doily motif it does on a flat colour band. */}
+      <div className="profile-cover">
         {profile.cover ? (
           <Image
             src={profile.cover}
@@ -51,8 +50,8 @@ export function PersonalHero({
           />
         ) : (
           // Accounts that never enrolled in social have no header image. A
-          // flat band keeps the avatar overlap and the scallop intact rather
-          // than collapsing the layout around a missing asset.
+          // flat band keeps the avatar overlap intact rather than collapsing
+          // the layout around a missing asset.
           <div
             className="from-pana-indigo to-pana-flame absolute inset-0 bg-gradient-to-br"
             aria-hidden="true"

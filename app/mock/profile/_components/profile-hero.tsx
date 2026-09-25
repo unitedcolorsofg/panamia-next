@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import {
   BadgeCheck,
@@ -32,12 +31,11 @@ export function ProfileHero({
 }: ProfileHeroProps) {
   return (
     <header>
-      {/* Scallop is white to match the masthead directly above, the same way
-          the homepage hero meets the header. */}
-      <div
-        className="profile-cover scallop"
-        style={{ '--scallop': '#ffffff' } as CSSProperties}
-      >
+      {/* No scalloped trim here, unlike the homepage sections. The cover meets
+          the masthead flush: a person's photograph is the subject of this
+          page, and notching a bite out of its top edge reads as damage rather
+          than as the doily motif it does on a flat colour band. */}
+      <div className="profile-cover">
         <Image
           src={profile.cover}
           alt={profile.coverAlt}
