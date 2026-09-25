@@ -3,24 +3,24 @@
   "social": {
     "name": "Pana Social",
     "eyebrow": "Tecnología Colectiva",
-    "headline": "Un Feed<br/>Que Es <em>Nuestro</em>",
-    "lede": "Una red social local y federada, para que la comunidad sea dueña de su propio timeline en vez de alquilárselo a una empresa que se lo revende.",
+    "headline": "Redes Sociales<br/>que Son <em>Privadas</em><br/>y <em>Locales</em>",
+    "lede": "Una red social para el Sur de la Florida, de la gente que está en ella. Privada por defecto, local a propósito, y hecha para conectar panas que ya trabajan juntos.",
     "ctaPrimary": "Abrir el feed",
     "ctaSecondary": "Hazte Pana",
-    "problem": {
-      "eyebrow": "El Problema",
-      "statement": "No es <em>tuyo</em>. Nada.",
+    "pillars": {
+      "eyebrow": "Qué Es",
+      "statement": "Tres cosas, <em>ninguna opcional</em>.",
       "one": {
-        "title": "Tu alcance es alquilado",
-        "body": "Publicas para mil seguidores y lo ven cuarenta. El resto es una tarifa que nadie te cotizó."
+        "name": "Local",
+        "body": "Aquí todos están en Broward, Miami-Dade o Palm Beach — los creadores y negocios a los que puedes llegar caminando. No un feed global que entierra la panadería de la esquina."
       },
       "two": {
-        "title": "Tu público no es tuyo",
-        "body": "Si te vas de la plataforma, dejas a la gente. La lista nunca estuvo en tus manos."
+        "name": "Privada",
+        "body": "Sin subasta de anuncios, sin píxeles de rastreo, sin un perfil tuyo armado y vendido. Aquí nadie mide tu atención, porque aquí nadie la vende."
       },
       "three": {
-        "title": "Tus vecinos son desconocidos",
-        "body": "Un feed afinado para la indignación a escala global no tiene cómo saber que la tienda que enterró queda a cuatro cuadras."
+        "name": "Conectada",
+        "body": "Los panas que sigues son los mismos del directorio y los que atienden las mesas en los eventos. Un follow aquí puede volverse una cita, una colaboración o un puesto compartido."
       }
     },
     "steps": {

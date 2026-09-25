@@ -35,17 +35,25 @@ import { PANA_OFFERINGS, getOffering } from '@/lib/panaverse/offerings';
  * and its beats run question → answer → detail. So two optional bands are
  * available here in the same spirit:
  *
- * - `problem` — the tension. What is broken if this offering does not exist.
- * - `steps`   — the mechanism. How the thing actually works, in order.
+ * - `problem`  — the tension. What is broken if this offering does not exist.
+ * - `pillars`  — the definition. The two or three things the offering *is*.
+ * - `steps`    — the mechanism. How the thing actually works, in order.
  *
- * Both render only when the offering's locale file defines them, which is what
- * lets these pages be written one at a time instead of needing all six
- * rewritten at once. An offering with neither falls back to exactly the shape
- * it had before.
+ * `problem` and `pillars` are alternative openings rather than a pair, and an
+ * offering normally defines one of them. Leading with the tension suits a
+ * thing whose value only lands once you have felt what is missing; leading
+ * with the pillars suits one whose value is the headline itself, where
+ * arguing the problem first would delay the answer the reader came for.
+ *
+ * All three render only when the offering's locale file defines them, which is
+ * what lets these pages be written one at a time instead of needing all six
+ * rewritten at once. An offering with none falls back to exactly the shape it
+ * had before.
  *
  * The shapes are deliberately different from each other — a statement with
- * symptoms, then a stacked walkthrough, then a row of cards — because three
- * three-across grids in a column is the other way to be monotonous.
+ * symptoms, or a statement with named pillars, then a stacked walkthrough,
+ * then a row of cards — because three three-across grids in a column is the
+ * other way to be monotonous.
  */
 
 export interface OfferingActions {
@@ -57,6 +65,7 @@ export interface OfferingActions {
 
 const HIGHLIGHT_KEYS = ['one', 'two', 'three'] as const;
 const SYMPTOM_KEYS = ['one', 'two', 'three'] as const;
+const PILLAR_KEYS = ['one', 'two', 'three'] as const;
 const STEP_KEYS = ['one', 'two', 'three'] as const;
 
 export function OfferingFrontPage({
@@ -78,10 +87,11 @@ export function OfferingFrontPage({
   const { t, i18n } = useTranslation('offerings');
   const offering = getOffering(id);
 
-  // Both middle bands are opt-in per offering. `exists` is checked against one
+  // The opening bands are opt-in per offering. `exists` is checked against one
   // required leaf rather than the parent object, because i18next reports a
   // parent as existing as soon as any descendant does.
   const hasProblem = i18n.exists(`offerings:${id}.problem.statement`);
+  const hasPillars = i18n.exists(`offerings:${id}.pillars.statement`);
   const hasSteps = i18n.exists(`offerings:${id}.steps.title`);
 
   const buttons = [
@@ -131,6 +141,7 @@ export function OfferingFrontPage({
         </section>
 
         {hasProblem && <OfferingProblem id={id} />}
+        {hasPillars && <OfferingPillars id={id} />}
         {hasSteps && <OfferingSteps id={id} />}
 
         <section className="home-section offering-highlights">
@@ -247,6 +258,57 @@ function OfferingProblem({ id }: { id: string }) {
               </h3>
               <p className="offering-symptom-body">
                 {t(`${id}.problem.${key}.body`)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * What the thing is, in three words, before any mechanism.
+ *
+ * The alternative opening to `OfferingProblem`. A page whose headline already
+ * states the value has no tension left to build — the reader has been told the
+ * answer and arguing the problem first would make them wait for it. So this
+ * band skips the complaint and names the pillars instead, each one carrying
+ * its own contrast in a clause rather than in a band of its own.
+ *
+ * The pillar name is set in the display face at headline weight, which is the
+ * whole treatment: no mark, no border, no card. The three bands nearest it are
+ * a stacked walkthrough, a row of outlined cards and a centred statement, so
+ * three big words over three short paragraphs is the one shape not already
+ * spoken for. The rule above each is full-column rather than the short dash
+ * used on a symptom or a highlight, because these are headings over columns
+ * rather than items in a list.
+ */
+function OfferingPillars({ id }: { id: string }) {
+  const { t } = useTranslation('offerings');
+
+  return (
+    <section className="home-section offering-pillars">
+      <div className="container mx-auto px-4">
+        <div className="offering-pillars-head" data-rv>
+          <span className="section-eyebrow">{t(`${id}.pillars.eyebrow`)}</span>
+          <h2 className="section-display offering-pillars-statement">
+            <Trans
+              i18nKey={`${id}.pillars.statement`}
+              t={t}
+              components={{ br: <br />, em: <em className="display-accent" /> }}
+            />
+          </h2>
+        </div>
+
+        <ul className="offering-pillarlist" data-rv>
+          {PILLAR_KEYS.map((key) => (
+            <li key={key} className="offering-pillar">
+              <h3 className="offering-pillar-name">
+                {t(`${id}.pillars.${key}.name`)}
+              </h3>
+              <p className="offering-pillar-body">
+                {t(`${id}.pillars.${key}.body`)}
               </p>
             </li>
           ))}

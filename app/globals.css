@@ -8535,6 +8535,94 @@ body:has(.dirsearch) header {
   opacity: 0.78;
 }
 
+/* --- The pillars ------------------------------------------------------- */
+
+/* The other way to open a page, used instead of `.offering-problem` rather
+   than alongside it. Same cream, same centred head, so the two are clearly
+   the same slot in the page — what changes is the row underneath, where three
+   marked faults become three named pillars. */
+.offering-pillars {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-pillars-head {
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Blue, where the problem band's eyebrow and accent are coral. Blue is this
+   page's approving colour and these are the things the page approves of, so
+   the swap is the whole signal that this band is making the opposite kind of
+   claim to the one it replaces. */
+.offering-pillars .section-eyebrow {
+  color: var(--story-blue);
+}
+
+.offering-pillars-statement {
+  margin-top: 1rem;
+}
+
+.offering-pillars .display-accent {
+  color: var(--story-blue);
+}
+
+.offering-pillarlist {
+  display: grid;
+  gap: 2.25rem 2.5rem;
+  margin: 0;
+  margin-top: calc(var(--home-head-gap) * 1.15);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .offering-pillarlist {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* A full-column rule, not the short dash a symptom or a highlight card gets.
+   Those mark an item in a list; this one sits over a column and behaves like
+   a heading rule, which is what keeps the band from reading as a third set of
+   three small boxes. */
+.offering-pillar {
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--story-blue);
+}
+
+/* The name carries the entire treatment — there is no mark, no border and no
+   card, because the word is large enough to be the graphic. Every other band
+   on the page leans on a small bold title, so setting these in the display
+   face at headline weight is what makes the three pillars read as the page's
+   claim rather than as three more features. */
+.offering-pillar-name {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--story-blue);
+  /* Nunito's italic sets its ink two to three pixels right of the text origin
+     at this size, so the word reads as inset against a rule that starts at
+     zero. Round capitals make it worse: a C or a P has to overhang a little to
+     look flush, and here it lands short instead. The pull-back is optical and
+     small enough not to be layout — the body copy underneath stays on the
+     rule, which is the line the eye is actually measuring against. */
+  margin-left: -0.06em;
+}
+
+.offering-pillar-body {
+  margin-top: 0.9rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--story-ink);
+  opacity: 0.78;
+}
+
 /* --- How it works ------------------------------------------------------ */
 
 .offering-steps {
