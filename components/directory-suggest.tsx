@@ -3,20 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
+import { CalendarDays, Search, Store, User, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { searchPath } from '@/lib/directory-search-path';
+import {
+  MIN_TERM_LENGTH,
+  kindLabelKey,
+  type Suggestion,
+  type SuggestionKind,
+} from '@/lib/suggest';
 
-export interface DirectorySuggestion {
-  id: string;
-  name: string;
-  screenname: string;
-  primaryImageCdn: string | null;
-  addressLocality: string | null;
-  fiveWords: string | null;
-}
+export type { Suggestion as DirectorySuggestion };
 
 interface DirectorySuggestProps {
   /** Visible-to-screen-readers-only label for the input. */
@@ -35,20 +35,51 @@ interface DirectorySuggestProps {
   layout?: 'stacked' | 'pill';
 }
 
-// Matches the API's floor. Below it we never open the list at all.
-const MIN_TERM_LENGTH = 2;
-
 // Long enough that a fast typist finishes a word first, short enough that the
 // list still feels attached to the keystroke.
 const DEBOUNCE_MS = 200;
 
 const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
 
+/**
+ * The icon that says what a row is.
+ *
+ * The four kinds are not distinguishable from a name and a photo — a cafe, the
+ * pana who runs it, the group they organise in and this Saturday's event can
+ * all be called the same thing, and they all lead somewhere different. The
+ * icon is what makes the destination legible before the click.
+ *
+ * Store rather than Building for a business, because the directory is small
+ * local trade rather than offices. User/Users keeps the person/people
+ * distinction doing the work between a pana and a group, which is the pair
+ * most easily confused.
+ */
+const KIND_ICON: Record<SuggestionKind, LucideIcon> = {
+  business: Store,
+  pana: User,
+  group: Users,
+  event: CalendarDays,
+};
+
+// Businesses and panas are faces and storefronts, and read as circles
+// everywhere else in the product. Groups and events are things rather than
+// someone, and a cover image cropped to a circle loses most of itself.
+const KIND_IMAGE_SHAPE: Record<SuggestionKind, string> = {
+  business: 'rounded-full',
+  pana: 'rounded-full',
+  group: 'rounded-lg',
+  event: 'rounded-lg',
+};
+
 const LISTBOX_ID = 'directory-suggest-listbox';
 const optionId = (index: number) => `directory-suggest-option-${index}`;
 
 /**
- * Directory search box with a typeahead dropdown.
+ * Search box with a typeahead dropdown over the whole club.
+ *
+ * Suggests businesses, panas, groups and events in one list. Panas and groups
+ * only come back for a signed-in visitor — the API decides that, not this
+ * component, so there is nothing here to keep in step with a session.
  *
  * Follows the ARIA combobox-with-listbox pattern: focus never leaves the
  * input, arrow keys move `aria-activedescendant`, and a polite live region
@@ -69,7 +100,7 @@ export function DirectorySuggest({
   const { t } = useTranslation('common');
 
   const [term, setTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<DirectorySuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   // -1 means "nothing highlighted": Enter then submits the typed term rather
   // than picking a row the visitor never moved to.
@@ -169,10 +200,10 @@ export function DirectorySuggest({
     router.push(searchPath(trimmed));
   }
 
-  function goToProfile(suggestion: DirectorySuggestion) {
+  function goToSuggestion(suggestion: Suggestion) {
     close();
     setTerm(suggestion.name);
-    router.push(`/p/${suggestion.screenname}`);
+    router.push(suggestion.href);
   }
 
   function selectIndex(index: number) {
@@ -181,7 +212,7 @@ export function DirectorySuggest({
       return;
     }
     const suggestion = suggestions[index];
-    if (suggestion) goToProfile(suggestion);
+    if (suggestion) goToSuggestion(suggestion);
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -304,51 +335,76 @@ export function DirectorySuggest({
               id={LISTBOX_ID}
               role="listbox"
               aria-label={label}
-              // Height is capped rather than left to the row count: a full
-              // eight rows is taller than a phone viewport once the keyboard
-              // is up, which buried the "search for this term" row below the
-              // fold. Scrolls internally instead, and overscroll-contain stops
-              // that scroll from chaining to the page behind it.
+              // Height is capped rather than left to the row count: a full ten
+              // rows is taller than a phone viewport once the keyboard is up,
+              // which buried the "search for this term" row below the fold.
+              // Scrolls internally instead, and overscroll-contain stops that
+              // scroll from chaining to the page behind it.
               className="bg-popover text-popover-foreground absolute top-full right-0 left-0 z-50 mt-2 max-h-[min(60vh,22rem)] overflow-y-auto overscroll-contain rounded-xl border shadow-lg"
             >
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={suggestion.id}
-                  id={optionId(index)}
-                  role="option"
-                  aria-selected={index === activeIndex}
-                  // Pointer-down rather than click: click fires after blur, and
-                  // the outside-click handler would have closed the list first.
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    goToProfile(suggestion);
-                  }}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-3 px-3 py-2 text-left',
-                    index === activeIndex && 'bg-accent'
-                  )}
-                >
-                  <img
-                    src={suggestion.primaryImageCdn || FALLBACK_IMAGE}
-                    alt=""
-                    aria-hidden="true"
-                    className="h-10 w-10 shrink-0 rounded-full object-cover"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
-                      {suggestion.name}
-                    </span>
-                    {(suggestion.fiveWords || suggestion.addressLocality) && (
-                      <span className="text-muted-foreground block truncate text-sm">
-                        {[suggestion.fiveWords, suggestion.addressLocality]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
+              {suggestions.map((suggestion, index) => {
+                const KindIcon = KIND_ICON[suggestion.kind];
+                const kindLabel = t(kindLabelKey(suggestion.kind));
+                return (
+                  <li
+                    // Ids are only unique within their own table, so the kind
+                    // has to be part of the key — an event and a profile can
+                    // hold the same cuid.
+                    key={`${suggestion.kind}:${suggestion.id}`}
+                    id={optionId(index)}
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    // Pointer-down rather than click: click fires after blur,
+                    // and the outside-click handler would have closed the list
+                    // first.
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      goToSuggestion(suggestion);
+                    }}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 px-3 py-2 text-left',
+                      index === activeIndex && 'bg-accent'
                     )}
-                  </span>
-                </li>
-              ))}
+                  >
+                    <span className="relative shrink-0">
+                      <img
+                        src={suggestion.imageUrl || FALLBACK_IMAGE}
+                        alt=""
+                        aria-hidden="true"
+                        className={cn(
+                          'h-10 w-10 object-cover',
+                          KIND_IMAGE_SHAPE[suggestion.kind]
+                        )}
+                      />
+                      {/* The badge sits in the same corner on every row, so
+                          the kind can be read down the list in one pass rather
+                          than found separately on each. Its own background and
+                          ring keep it legible over a photo of anything. */}
+                      <span
+                        className="bg-background ring-background absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full shadow-sm ring-2"
+                        aria-hidden="true"
+                      >
+                        <KindIcon className="h-3 w-3" />
+                      </span>
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">
+                        {suggestion.name}
+                      </span>
+                      {suggestion.subtitle && (
+                        <span className="text-muted-foreground block truncate text-sm">
+                          {suggestion.subtitle}
+                        </span>
+                      )}
+                    </span>
+                    {/* The word behind the icon. Sighted users have the badge;
+                        without this a screen reader hears four identically
+                        shaped rows and no way to tell a pana from an event. */}
+                    <span className="sr-only">{kindLabel}</span>
+                  </li>
+                );
+              })}
 
               <li
                 id={optionId(searchRowIndex)}
@@ -361,7 +417,7 @@ export function DirectorySuggest({
                 onMouseEnter={() => setActiveIndex(searchRowIndex)}
                 // Pinned to the bottom of the scroll area so the escape hatch
                 // to the full results page is reachable without scrolling past
-                // eight suggestions. py-3 keeps it at a 44px touch target.
+                // ten suggestions. py-3 keeps it at a 44px touch target.
                 className={cn(
                   'bg-popover sticky bottom-0 flex cursor-pointer items-center gap-2 px-3 py-3 text-left text-sm',
                   suggestions.length > 0 && 'border-t',
