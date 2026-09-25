@@ -525,10 +525,39 @@ either choice would be a permanent dead end, with an invite-only group unable to
 member. Both options render in the create form, disabled and labelled, so the roadmap is visible
 without being a trap.
 
-### Phase 5 — Group-hosted events
+### Phase 5 — Group-hosted events — shipped
 
-- `events.host_group_id`, `DROP NOT NULL`, and the single-host `CHECK`
+- `events.host_group_id`, `DROP NOT NULL`, and the single-host `CHECK` (migration `0047`)
 - Event creation UI gains a host selector for groups the pana can administer
+- `lib/server/event-host.ts`: `canManageEvent` and `listHostableGroups`
+- `GET /api/social/groups/[handle]/events` and the group page's Events section
+
+The scope above missed the part that actually blocked the feature. Six call sites authorized events
+by comparing `profile.id === event.hostProfileId` inline. With a group hosting, `host_profile_id` is
+NULL, so every one of those comparisons is false for everybody — not a leak, but the event becomes
+unmanageable by anyone, including the group that owns it. They now share `canManageEvent`:
+
+- `app/e/[slug]/page.tsx` (draft visibility), `app/e/[slug]/manage/page.tsx`,
+  `app/e/[slug]/manage/attendees/page.tsx`
+- `app/api/events/[slug]/route.ts`, `app/api/events/[slug]/rsvp/list/route.ts`,
+  `app/api/events/[slug]/publish/route.ts`
+
+**Why the group hosts outright rather than being credited.** The tempting design mirrors Phase 3
+group posts: keep `host_profile_id` as the creator and add `host_group_id` for attribution. Account
+deletion rules it out. `lib/server/delete-account.ts` blocks deletion while you host upcoming events
+and deletes your completed ones, so a founder leaving would be gated on events the group owns and
+would take the group's past events with them. With the group as sole host, `host_profile_id` is NULL
+and those queries never match, so the calendar outlives whoever set it up. `delete-account.ts` needed
+no change at all, which is the sign the model is right.
+
+**Also corrected:** the publish route crossposted `hostName: profile.name`, the _publisher's_ name.
+Harmless while publisher and host were always the same person; for a group event it would credit an
+admin off-platform for the group's event.
+
+**Not built:** transferring an existing event between hosts. The deletion blocker already tells
+people to "Cancel or transfer them first", so that promise is still outstanding. Group deletion is
+also still unbuilt, and `host_group_id` is `ON DELETE RESTRICT` — a delete-group flow has to decide
+what happens to the group's events before it can succeed.
 
 ---
 

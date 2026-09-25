@@ -598,6 +598,35 @@ export const useCreateGroup = () => {
   });
 };
 
+/**
+ * A group's events.
+ *
+ * Mirrors useGroupPosts, including its silence: a non-member of a private
+ * group gets an empty list rather than an error, so render off
+ * `viewer.canRead` from `useGroup` rather than off emptiness.
+ */
+export interface GroupEventSummary {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  status: string;
+  visibility: string;
+  mode: string;
+  attendeeCount: number;
+  venue: { name: string; city: string; state: string } | null;
+}
+
+export const useGroupEvents = (handle: string) => {
+  return useQuery<{ events: GroupEventSummary[] } | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle, 'events'],
+    queryFn: () =>
+      getSocialData(`/api/social/groups/${encodeURIComponent(handle)}/events`),
+    enabled: Boolean(handle),
+  });
+};
+
 async function fetchGroupPosts(
   handle: string,
   cursor?: string,

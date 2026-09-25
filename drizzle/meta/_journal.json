@@ -337,6 +337,13 @@
       "when": 1788134400000,
       "tag": "0046_social_status_group",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788220800000,
+      "tag": "0047_event_group_host",
+      "breakpoints": true
     }
   ]
 }

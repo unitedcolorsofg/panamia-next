@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
+import { canManageEvent } from '@/lib/server/event-host';
 import { ArrowLeft } from 'lucide-react';
 import AttendeeList from '@/components/events/AttendeeList';
 
@@ -21,7 +22,13 @@ export default async function ManageAttendeesPage({ params }: PageProps) {
   const [event, profile] = await Promise.all([
     db.query.events.findFirst({
       where: eq(events.slug, slug),
-      columns: { id: true, title: true, slug: true, hostProfileId: true },
+      columns: {
+        id: true,
+        title: true,
+        slug: true,
+        hostProfileId: true,
+        hostGroupId: true,
+      },
     }),
     db.query.profiles.findFirst({
       where: eq(profiles.userId, session.user.id),
@@ -29,7 +36,7 @@ export default async function ManageAttendeesPage({ params }: PageProps) {
     }),
   ]);
   if (!event) notFound();
-  if (!profile || profile.id !== event.hostProfileId) notFound();
+  if (!profile || !(await canManageEvent(event, profile.id))) notFound();
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-8">

@@ -1808,9 +1808,27 @@ export const events = pgTable(
     description: text('description'),
     coverImage: text('cover_image'),
     coverImageAlt: text('cover_image_alt'),
-    hostProfileId: text('host_profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'restrict' }),
+    /**
+     * Exactly one of hostProfileId / hostGroupId is set, enforced by the
+     * `events_single_host` CHECK in 0047. Nullable here because a group can
+     * host: see the docblock on hostGroupId for why the group, and not the
+     * pana who filled in the form, has to be the host.
+     */
+    hostProfileId: text('host_profile_id').references(() => profiles.id, {
+      onDelete: 'restrict',
+    }),
+    /**
+     * Set when a group hosts instead of a pana.
+     *
+     * Deliberately not "the group this event is attributed to" alongside a
+     * profile host. Account deletion blocks while you host upcoming events and
+     * deletes your completed ones, so hanging a group's events off the
+     * founder's profile would kill the club's calendar the day they left.
+     * Being the host outright is what keeps a group's events the group's.
+     */
+    hostGroupId: text('host_group_id').references(() => socialGroups.id, {
+      onDelete: 'restrict',
+    }),
     // Nullable: online-only events have no physical venue.
     venueId: text('venue_id').references(() => venues.id, {
       onDelete: 'restrict',
@@ -1844,6 +1862,7 @@ export const events = pgTable(
     hostProfileIdIdx: index('events_host_profile_id_idx').on(
       table.hostProfileId
     ),
+    hostGroupIdIdx: index('events_host_group_id_idx').on(table.hostGroupId),
     venueIdIdx: index('events_venue_id_idx').on(table.venueId),
     statusVisibilityIdx: index('events_status_visibility_idx').on(
       table.status,
@@ -2274,6 +2293,10 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   host: one(profiles, {
     fields: [events.hostProfileId],
     references: [profiles.id],
+  }),
+  hostGroup: one(socialGroups, {
+    fields: [events.hostGroupId],
+    references: [socialGroups.id],
   }),
   attendees: many(eventAttendees),
   socialStatuses: many(socialStatuses),

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
+import Link from 'next/link';
 import {
   CalendarDays,
   Check,
@@ -18,6 +19,7 @@ import {
   useCreateGroupPost,
   useGroup,
   useGroupPosts,
+  useGroupEvents,
   useJoinGroup,
   useLeaveGroup,
   type GroupDetailResponse,
@@ -200,6 +202,11 @@ function GroupBody({
               </section>
             )}
 
+            <GroupEvents
+              handle={handle}
+              canCreate={viewer.role === 'admin' || viewer.role === 'moderator'}
+            />
+
             <GroupPosts handle={handle} canPost={viewer.canPost} />
           </div>
         ) : (
@@ -207,6 +214,79 @@ function GroupBody({
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * The group's events.
+ *
+ * Renders nothing at all when there are none and the viewer could not add
+ * one. An empty "Events" heading on every group that has never held one is
+ * furniture, not information -- the posts section earns its empty state by
+ * being the thing the page is for, this one does not.
+ */
+function GroupEvents({
+  handle,
+  canCreate,
+}: {
+  handle: string;
+  canCreate: boolean;
+}) {
+  const { data, isLoading } = useGroupEvents(handle);
+  const events = data?.events ?? [];
+
+  if (isLoading) return null;
+  if (events.length === 0 && !canCreate) return null;
+
+  return (
+    <section className="border-pana-ink/10 rounded-2xl border bg-white p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-pana-ink text-[15px] font-extrabold">Events</h2>
+        {canCreate && (
+          <Link
+            href="/e/new"
+            className="text-pana-ink/70 hover:text-pana-ink text-[13px] font-bold"
+          >
+            Host an event
+          </Link>
+        )}
+      </div>
+
+      {events.length === 0 ? (
+        <p className="text-pana-ink/60 mt-3 text-[14px] font-medium">
+          No events yet. Yours would be the first.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {events.map((event) => (
+            <li key={event.id}>
+              <Link
+                href={`/e/${event.slug}`}
+                className="border-pana-ink/10 hover:border-pana-ink/25 block rounded-xl border p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-pana-ink text-[14px] font-extrabold">
+                    {event.title}
+                  </span>
+                  {event.status !== 'published' && (
+                    <span className="text-pana-ink/60 border-pana-ink/15 rounded-full border px-2 py-0.5 text-[11px] font-bold capitalize">
+                      {event.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-pana-ink/60 mt-1 text-[13px] font-medium">
+                  {new Date(event.startsAt).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  {event.venue ? ` · ${event.venue.name}` : ''}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
