@@ -12,6 +12,7 @@ import { useTimeline, usePublicTimeline, useMyActor } from '@/lib/query/social';
 import type { SocialStatusDisplay } from '@/lib/interfaces';
 import { FeedPostCard } from './feed-post-card';
 import { FeedRail } from './feed-rail';
+import { StoriesRail } from './stories-rail';
 import { IdentityPrompt } from './identity-prompt';
 import {
   DirectoryModule,
@@ -148,6 +149,7 @@ function FeedContent() {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
       <div className="min-w-0">
+        <StoriesRail actor={actor} />
         <div className="feed-composer">
           <PostComposer
             avatarUrl={actor?.iconUrl}
