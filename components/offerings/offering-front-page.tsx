@@ -141,31 +141,45 @@ interface TourShot {
  * illustration dressed as a screenshot is a promise about software that may
  * not look like that yet.
  *
- * ## Where the three present shots came from
+ * ## Where the four present shots came from
  *
- * They are captures of this repo's own design mocks — `/mock/feed` for the
- * feed, and `/mock/profile` for profiles and groups — taken at 1600x1000 with
- * the surrounding site header, footer and `.mock-toolbar` removed, so the
- * frame holds the product and nothing else.
+ * All four are captures of this repo's own design mocks, taken at 1600x1000
+ * with the surrounding site header, footer and `.mock-toolbar` removed, so
+ * the frame holds the product and nothing else:
  *
- * `events` and `stories` are absent for different reasons.
+ * - `feed` — `/mock/feed`.
+ * - `groups` and `events` — `/mock/group`, whose Posts and Events tabs are
+ *   two views of one surface. Events is shot there rather than at `/e`
+ *   because the point of the room is that an event belongs to the people
+ *   already gathered, and the group page is where that is visible.
+ * - `profiles` — `/mock/profile-next`, not `/mock/profile`. The `-next` mock
+ *   is the identity-rail layout that shipped to `/p/[user]`; the older one is
+ *   kept beside it for comparison and no longer matches the product.
  *
- * Events is built, and well built — `/e` is the calendar, `/e/new` posts
- * one, and there is RSVP, attendee management, `.ics` export and a
- * federation endpoint behind it. It has no shot here only because those
- * routes need the Postgres instance, which a local checkout does not have,
- * and there is no design mock standing in for them. What the feed mock's
- * rail files under "coming to the feed" is narrower than it sounds: it
- * means events are not surfaced *inside the social feed* yet, not that
- * events do not exist. Capture `/e` against a real database and add it.
+ * That last distinction is the trap worth flagging: both mocks render the
+ * same fixtures, so a stale capture looks perfectly plausible. Check which
+ * layout `app/p/[user]/_components/personal/` actually renders before
+ * reshooting.
  *
- * Stories is the one that genuinely is not built. Nothing in this codebase
- * answers to it, so there is nothing truthful to photograph.
+ * ## Why stories has no shot
+ *
+ * Not because it is unbuilt — it is. `components/social/StoryRing.tsx` and
+ * `app/s/_components/stories-rail.tsx` are live, backed by a batched summary
+ * endpoint and a nightly expiry purge, and the ring is already visible on the
+ * avatar in `profiles.webp`.
+ *
+ * It has no shot because it cannot honestly be photographed from a local
+ * checkout. `StoriesRail` returns `null` without a signed-in actor, and even
+ * with one it draws only the panas that viewer follows who have something
+ * live in the last 24 hours — so the strip needs a real session, real
+ * follows and unexpired stories all at once. No mock stands in for it.
+ * Capture it from a seeded environment and add it.
  */
 const TOUR_SHOTS: Record<string, Partial<Record<TourKey, TourShot>>> = {
   social: {
     feed: { src: '/img/social/feed.webp', width: 1600, height: 1000 },
     groups: { src: '/img/social/groups.webp', width: 1600, height: 1000 },
+    events: { src: '/img/social/events.webp', width: 1600, height: 1000 },
     profiles: { src: '/img/social/profiles.webp', width: 1600, height: 1000 },
   },
 };
