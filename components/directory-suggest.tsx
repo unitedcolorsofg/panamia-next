@@ -22,6 +22,14 @@ interface DirectorySuggestProps {
   /** Visible-to-screen-readers-only label for the input. */
   label: string;
   placeholder: string;
+  /**
+   * Cycles these phrases in place of `placeholder`, one at a time.
+   *
+   * The caller decides whether a rotation is wanted at all — this component
+   * does not look at the viewport or at `prefers-reduced-motion`, it just
+   * rotates what it is handed. Pass nothing to keep the static placeholder.
+   */
+  placeholderRotation?: string[];
   ariaLabel: string;
   buttonLabel: string;
   /** Applied to the <form>, so callers keep control of width and placement. */
@@ -47,6 +55,77 @@ const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
 const LISTBOX_ID = 'directory-suggest-listbox';
 const optionId = (index: number) => `directory-suggest-option-${index}`;
 
+// One phrase is readable in well under a second; the rest of the dwell is so
+// the box is not visibly churning in the corner of someone's eye while they
+// read the headline above it.
+const ROTATION_MS = 2600;
+
+/**
+ * A placeholder that rolls through several phrases instead of stating one.
+ *
+ * On a phone the field is about 140px wide, which is too narrow to list what
+ * the directory holds in a single line — so the line takes turns instead.
+ *
+ * It is a real element rather than a swapped `placeholder` attribute because
+ * the attribute can only be cut between values, and a hard cut inside a form
+ * field reads as a glitch. It is `aria-hidden` and the input keeps its own
+ * `aria-label`, so nothing here reaches assistive tech as moving text.
+ */
+function RotatingPlaceholder({
+  phrases,
+  paused,
+}: {
+  phrases: string[];
+  paused: boolean;
+}) {
+  // `previous` is the phrase on its way out and `tick` restarts the
+  // animations, so all three move together in one update rather than as
+  // separate states that can land a frame apart.
+  const [state, setState] = useState({ index: 0, previous: -1, tick: 0 });
+
+  useEffect(() => {
+    if (paused) return;
+    const id = window.setInterval(() => {
+      setState((current) => ({
+        index: (current.index + 1) % phrases.length,
+        previous: current.index,
+        tick: current.tick + 1,
+      }));
+    }, ROTATION_MS);
+    return () => window.clearInterval(id);
+  }, [paused, phrases.length]);
+
+  // A language switch can hand over a shorter list than the index was built
+  // against, so the first phrase stands in rather than rendering nothing.
+  const phraseAt = (index: number) => phrases[index] ?? phrases[0];
+
+  return (
+    <span className="directory-suggest-rotator" aria-hidden="true">
+      <span className="directory-suggest-rotator-window">
+        <span
+          key={`in-${state.tick}`}
+          className={
+            state.tick === 0
+              ? 'directory-suggest-rotator-line'
+              : 'directory-suggest-rotator-line is-entering'
+          }
+        >
+          {phraseAt(state.index)}
+        </span>
+
+        {state.previous >= 0 && (
+          <span
+            key={`out-${state.tick}`}
+            className="directory-suggest-rotator-line is-leaving"
+          >
+            {phraseAt(state.previous)}
+          </span>
+        )}
+      </span>
+    </span>
+  );
+}
+
 /**
  * Directory search box with a typeahead dropdown.
  *
@@ -59,6 +138,7 @@ const optionId = (index: number) => `directory-suggest-option-${index}`;
 export function DirectorySuggest({
   label,
   placeholder,
+  placeholderRotation,
   ariaLabel,
   buttonLabel,
   className,
@@ -74,6 +154,14 @@ export function DirectorySuggest({
   // -1 means "nothing highlighted": Enter then submits the typed term rather
   // than picking a row the visitor never moved to.
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Only used to freeze the rotating placeholder. Once someone is in the box,
+  // a hint that keeps moving is competing with what they came to type.
+  const [focused, setFocused] = useState(false);
+
+  const rotationPhrases = placeholderRotation ?? [];
+  // The rotation stands in for the placeholder, so it lives by the same rule:
+  // gone the moment there is a term to read underneath it.
+  const rotating = rotationPhrases.length > 1 && term.length === 0;
 
   const rootRef = useRef<HTMLFormElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -264,40 +352,56 @@ export function DirectorySuggest({
             to name the field to keep the dropdown anchored to the whole pill
             instead of to the magnifier. */}
         <div className="directory-suggest-field relative w-full">
-          <Input
-            id="directory-suggest-input"
-            type="text"
-            role="combobox"
-            autoComplete="off"
-            // Mobile keyboard hints. type="search" would add a native clear
-            // button that sits on top of the dropdown, so the search affordance
-            // comes from enterKeyHint instead. Autocorrect on a directory of
-            // proper nouns does more harm than good.
-            enterKeyHint="search"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            aria-expanded={showList}
-            aria-controls={LISTBOX_ID}
-            aria-autocomplete="list"
-            aria-activedescendant={
-              showList && activeIndex >= 0 ? optionId(activeIndex) : undefined
-            }
-            value={term}
-            onChange={(event) => {
-              setTerm(event.target.value);
-              setOpen(true);
-              setActiveIndex(-1);
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => {
-              if (trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
-              revealOnSmallScreens();
-            }}
-            placeholder={placeholder}
-            aria-label={ariaLabel}
-            className={inputClassName}
-          />
+          {/* The shell is the rotating placeholder's positioning context. It
+              wraps the input alone, never the listbox below — the listbox
+              deliberately resolves against the whole pill so it spans the bar
+              rather than stopping at the field. */}
+          <div className="directory-suggest-input-shell">
+            <Input
+              id="directory-suggest-input"
+              type="text"
+              role="combobox"
+              autoComplete="off"
+              // Mobile keyboard hints. type="search" would add a native clear
+              // button that sits on top of the dropdown, so the search affordance
+              // comes from enterKeyHint instead. Autocorrect on a directory of
+              // proper nouns does more harm than good.
+              enterKeyHint="search"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              aria-expanded={showList}
+              aria-controls={LISTBOX_ID}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                showList && activeIndex >= 0 ? optionId(activeIndex) : undefined
+              }
+              value={term}
+              onChange={(event) => {
+                setTerm(event.target.value);
+                setOpen(true);
+                setActiveIndex(-1);
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                setFocused(true);
+                if (trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
+                revealOnSmallScreens();
+              }}
+              onBlur={() => setFocused(false)}
+              // Blanked while the rotation is up so the two are never drawn on
+              // top of each other. The accessible name comes from `aria-label`
+              // either way, so screen readers get one stable string rather than
+              // a placeholder that changes under them.
+              placeholder={rotating ? '' : placeholder}
+              aria-label={ariaLabel}
+              className={inputClassName}
+            />
+
+            {rotating && (
+              <RotatingPlaceholder phrases={rotationPhrases} paused={focused} />
+            )}
+          </div>
 
           {showList && (
             <ul
