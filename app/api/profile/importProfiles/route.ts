@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     phone_number,
     tags,
   } = body;
-  console.log('phone_number', phone_number);
 
   try {
     // Build descriptions JSONB

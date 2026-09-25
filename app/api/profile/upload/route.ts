@@ -92,7 +92,10 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      console.log('onFile', fieldname, value.name, value.type, value.size);
+      // The member's original filename is not logged: people name files after
+      // themselves, their address or who is in the photo. Type and size are
+      // what this line was ever used to diagnose.
+      console.log('onFile', { fieldname, type: value.type, size: value.size });
 
       const ext = extByType[value.type];
       if (!ext) {
@@ -107,7 +110,6 @@ export async function POST(request: NextRequest) {
       const data = Buffer.from(arrayBuffer);
 
       const fileName = `profile/${handle}/${fieldname}${cacheRand()}.${ext}`;
-      console.log('fileName', fileName);
       uploadedFiles.push({
         data: data,
         filename: fileName,

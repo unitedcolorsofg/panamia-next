@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { log } from '@/lib/log';
 
 // i18n: When rebuilding this form, add useTranslation('becomePana') alongside
 // the existing useTranslation('toast'). Create locales/en/becomePana.json and
@@ -190,7 +191,9 @@ function BecomeAPanaForm() {
         }
       )
       .catch((error) => {
-        console.error('Express profile submission error:', error);
+        // Axios errors carry `config.data` -- the request body -- so this
+        // would otherwise print the submitted email to the console.
+        log.error('Express profile submission error:', error);
         throw error;
       });
     return response;
@@ -237,33 +240,30 @@ function BecomeAPanaForm() {
   }
 
   async function submitExpressProfile(e: FormEvent) {
-    console.log('submitExpressProfile called');
     e.preventDefault();
 
-    console.log('About to call validateExpressProfile');
-    console.log('Form values:', { name, email, socialsWebsite, agreeTos });
+    // Removed: step-by-step narration that logged `{ name, email,
+    // socialsWebsite }` and the full API response. Debug scaffolding that
+    // shipped -- it put a submitter's name and address in the browser console,
+    // which outlives the page on a shared machine and is visible to anything
+    // with devtools access or a screen recording.
 
     let validationResult;
     try {
       validationResult = validateExpressProfile();
-      console.log('Validation result:', validationResult);
     } catch (error) {
-      console.error('Validation threw error:', error);
+      log.error('Validation threw error:', error);
       return;
     }
 
     if (!validationResult) {
-      console.log('Validation failed - returning');
       return;
     }
-    console.log('Validation passed - proceeding with submission');
 
     setIsSubmitting(true);
 
     try {
-      console.log('About to call createExpressProfile');
       const response = await createExpressProfile();
-      console.log('API response:', response);
 
       if (response?.data?.error) {
         toast({
@@ -287,7 +287,7 @@ function BecomeAPanaForm() {
               },
             }
           )
-          .catch((err) => console.error('Email send error:', err));
+          .catch((err) => log.error('Email send error:', err));
 
         toast({
           title: t('profileSubmittedTitle'),
@@ -295,14 +295,13 @@ function BecomeAPanaForm() {
         });
       }
     } catch (error) {
-      console.error('Submission error caught:', error);
+      log.error('Submission error caught:', error);
       toast({
         variant: 'destructive',
         title: t('submissionError'),
         description: t('submissionErrorBecomePana'),
       });
     } finally {
-      console.log('Finally block - setting isSubmitting to false');
       setIsSubmitting(false);
     }
   }
@@ -341,7 +340,6 @@ function BecomeAPanaForm() {
   };
 
   const submitPage7 = (e: FormEvent) => {
-    console.log('submitPage7 called');
     e.preventDefault();
     submitExpressProfile(e);
   };

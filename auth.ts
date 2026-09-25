@@ -18,6 +18,7 @@ import {
   notBusinessListing,
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
+import { log } from '@/lib/log';
 import { stripSessionTelemetry } from '@/lib/legal/session-telemetry';
 import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
 
@@ -726,7 +727,14 @@ async function claimProfileForUser(
     });
 
     if (unclaimedProfile) {
-      console.log('Auto-claiming profile for user:', email, 'via:', source);
+      // The email is deliberately not logged: observability is on at full
+      // sampling, so this line is retained, and userId identifies the member
+      // just as well without putting an address in the log store.
+      log.info('[auth] auto-claiming profile', {
+        userId,
+        profileId: unclaimedProfile.id,
+        source,
+      });
       await db
         .update(profiles)
         .set({ userId })
@@ -1089,7 +1097,7 @@ export async function auth(): Promise<AppSession | null> {
     // auth-path failure used to present as a silent sign-out with nothing in
     // the logs. Callers still get null — the behavior is unchanged — but the
     // reason is now recoverable.
-    console.error('[auth] session resolution failed', describeDbError(error));
+    log.error('[auth] session resolution failed', describeDbError(error));
     return null;
   }
 }

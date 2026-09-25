@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { getProfileReadiness } from '@/lib/relay/profile-readiness';
 import { verifyByoProof } from '@/lib/nostr/byo-proof';
 import { describeDbError, isUniqueViolation } from '@/lib/server/db-error';
+import { log } from '@/lib/log';
 import type { NostrEvent } from '@/lib/nostr/sign';
 
 // Self-enroll a Nostr pubkey into the panamia relay groups AND link it to
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
     // rethrow unlogged, which surfaced as a bare 500 with a minified stack and
     // no way to tell a foreign-key violation from a statement timeout.
     const details = describeDbError(err);
-    console.error('[enroll] transaction failed', {
+    log.error('[enroll] transaction failed', {
       userId,
       profileId: profile.id,
       groups: AUTO_ENROLL_GROUPS,
