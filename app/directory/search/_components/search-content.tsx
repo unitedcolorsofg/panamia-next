@@ -10,6 +10,7 @@ import { searchPath } from '@/lib/directory-search-path';
 import { useViewerLocation } from '@/app/p/[user]/_lib/use-viewer-location';
 import { DirectoryViewerProvider } from './directory-viewer';
 import { SearchBand } from './search-band';
+import { BusinessScopeChips } from './business-scope-chips';
 import { FilterBar, type FilterState, type ResultView } from './filter-bar';
 import { ResultCard } from './result-card';
 import { MapPanel } from './map-panel';
@@ -212,6 +213,12 @@ export function DirectorySearchContent({
                 onSearch={handleSearch}
                 onShareLocation={request}
               />
+
+              {/* Above the filters, not among them: filters narrow a set of
+                  businesses, while scope changes what kind of thing you are
+                  looking at. Without this the businesses view is the one scope
+                  you cannot navigate out of. */}
+              <BusinessScopeChips term={params.searchTerm} />
 
               <FilterBar
                 filters={filters}

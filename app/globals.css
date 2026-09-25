@@ -3663,6 +3663,11 @@ body {
   border: 2px solid var(--color-pana-ink);
   border-radius: 1.125rem;
   background-color: var(--color-pana-cream);
+  /* Paints its own background, so it has to paint its own foreground. Without
+     this the panel inherits, which is fine hanging off dark masthead chrome
+     and invisible the moment it opens inside `.surface-indigo` — a cream band
+     passes cream text down onto a cream panel. */
+  color: var(--color-pana-ink);
   box-shadow: 0 18px 44px rgb(17 13 13 / 0.22);
 }
 

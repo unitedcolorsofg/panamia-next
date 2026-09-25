@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Search, Store, User, Users } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { KIND_ICON } from '@/components/kind-icon';
 import { cn } from '@/lib/utils';
-import { searchPath } from '@/lib/directory-search-path';
+import {
+  DEFAULT_SCOPE,
+  scopePath,
+  type Scope,
+} from '@/lib/directory-scopes';
 import {
   MIN_TERM_LENGTH,
   kindLabelKey,
@@ -26,6 +30,24 @@ interface DirectorySuggestBaseProps {
   /** Applied to the <form>, so callers keep control of width and placement. */
   className?: string;
   inputClassName?: string;
+  /**
+   * Which scope pressing Enter lands in. Defaults to businesses, which is what
+   * every existing caller meant before scopes existed and is still the right
+   * default on the public site: the directory is the businesses.
+   *
+   * The scope pages pass their own, so a search run from inside Events stays
+   * in Events rather than silently changing the subject.
+   */
+  scope?: Scope;
+  /**
+   * What the field starts with.
+   *
+   * The results pages pass the term they are showing, so landing on a result
+   * set and wanting to narrow it means editing the words rather than typing
+   * them again. Uncontrolled after mount — this seeds the field, it does not
+   * own it, so typing is never fighting a prop.
+   */
+  initialTerm?: string;
 }
 
 /**
@@ -51,26 +73,6 @@ type DirectorySuggestProps = DirectorySuggestBaseProps &
 const DEBOUNCE_MS = 200;
 
 const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
-
-/**
- * The icon that says what a row is.
- *
- * The four kinds are not distinguishable from a name and a photo — a cafe, the
- * pana who runs it, the group they organise in and this Saturday's event can
- * all be called the same thing, and they all lead somewhere different. The
- * icon is what makes the destination legible before the click.
- *
- * Store rather than Building for a business, because the directory is small
- * local trade rather than offices. User/Users keeps the person/people
- * distinction doing the work between a pana and a group, which is the pair
- * most easily confused.
- */
-const KIND_ICON: Record<SuggestionKind, LucideIcon> = {
-  business: Store,
-  pana: User,
-  group: Users,
-  event: CalendarDays,
-};
 
 // Businesses and panas are faces and storefronts, and read as circles
 // everywhere else in the product. Groups and events are things rather than
@@ -111,6 +113,8 @@ export function DirectorySuggest({
   className,
   inputClassName,
   layout = 'stacked',
+  scope = DEFAULT_SCOPE,
+  initialTerm = '',
 }: DirectorySuggestProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
@@ -127,7 +131,7 @@ export function DirectorySuggest({
     [baseId]
   );
 
-  const [term, setTerm] = useState('');
+  const [term, setTerm] = useState(initialTerm);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   // -1 means "nothing highlighted": Enter then submits the typed term rather
@@ -148,11 +152,18 @@ export function DirectorySuggest({
     setActiveIndex(-1);
   }, []);
 
+  // A seeded field holds a term nobody typed, and the effect below cannot tell
+  // the difference. Without this, every results page would fire a suggest
+  // request on load for the term it is already showing results for — and the
+  // list would sit ready to open under a field the visitor has not touched.
+  const typedRef = useRef(false);
+  const seeded = !typedRef.current && term === initialTerm;
+
   // Fetch suggestions, debounced. Every run aborts the previous request, so a
   // slow response for "da" can't land after a fast one for "dana" and repaint
   // the list with stale rows.
   useEffect(() => {
-    if (trimmed.length < MIN_TERM_LENGTH) {
+    if (seeded || trimmed.length < MIN_TERM_LENGTH) {
       abortRef.current?.abort();
       setSuggestions([]);
       return;
@@ -180,7 +191,7 @@ export function DirectorySuggest({
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [trimmed]);
+  }, [trimmed, seeded]);
 
   // Close on an outside click. Blur alone isn't enough — clicking an option is
   // itself a blur, and the option's own handler needs to win.
@@ -230,7 +241,7 @@ export function DirectorySuggest({
   function goToSearch() {
     if (!trimmed) return;
     close();
-    router.push(searchPath(trimmed));
+    router.push(scopePath(scope, trimmed));
   }
 
   function goToSuggestion(suggestion: Suggestion) {
@@ -324,13 +335,14 @@ export function DirectorySuggest({
       showList && activeIndex >= 0 ? optionId(activeIndex) : undefined,
     value: term,
     onChange: (event) => {
+      typedRef.current = true;
       setTerm(event.target.value);
       setOpen(true);
       setActiveIndex(-1);
     },
     onKeyDown: handleKeyDown,
     onFocus: () => {
-      if (trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
+      if (!seeded && trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
       revealOnSmallScreens();
     },
     placeholder,
@@ -344,7 +356,9 @@ export function DirectorySuggest({
       // The fallback path, not the normal one: `handleSubmit` preventDefaults
       // once hydrated. Until then this is a plain GET to the query-string form
       // of the results page, which is what the field does with scripting off.
-      action="/directory/search"
+      // scopePath with an empty term gives the scope's bare route, which is
+      // exactly the page that reads ?q=.
+      action={scopePath(scope, '')}
       method="get"
       onSubmit={handleSubmit}
       // scroll-mt clears the sticky site header when revealOnSmallScreens runs.
@@ -397,7 +411,16 @@ export function DirectorySuggest({
               className={cn('panaverse-search-input', inputClassName)}
             />
           ) : (
-            <Input {...inputProps} className={inputClassName} />
+            // `text-pana-ink` because the field paints a white background but
+            // would otherwise inherit its colour: dropped into `.surface-indigo`
+            // — the hero, and now every scope page band — it inherits cream and
+            // types invisibly on white. Only shows once the field holds a
+            // value, which is why it survived until the scope pages started
+            // seeding one.
+            <Input
+              {...inputProps}
+              className={cn('text-pana-ink', inputClassName)}
+            />
           )}
           {showList && (
             <ul
