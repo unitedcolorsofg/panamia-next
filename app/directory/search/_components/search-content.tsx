@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -110,12 +117,25 @@ export function DirectorySearchContent({
    * the path — so every navigation rebuilds the term's path and carries the
    * rest across as params. `q` is dropped on the way: keeping it would leave
    * two copies of the term in one URL, free to disagree.
+   *
+   * Wrapped in a transition because the term is a path segment, which makes
+   * every search a route change rather than a param change. Without this the
+   * router blocks on the new route's payload before it will render anything,
+   * so pressing Search did nothing at all — no spinner, not even a changed
+   * URL — for as long as the round trip took. Marking it a transition keeps
+   * this page mounted and interactive and hands us `navigating`, so the
+   * answer to a click is immediate and the wait is visible where the results
+   * will appear.
    */
+  const [navigating, startNavigation] = useTransition();
+
   const pushSearch = useCallback(
     (term: string, nextParams: URLSearchParams) => {
       nextParams.delete('q');
       const qs = nextParams.toString();
-      router.push(`${searchPath(term)}${qs ? `?${qs}` : ''}`);
+      startNavigation(() => {
+        router.push(`${searchPath(term)}${qs ? `?${qs}` : ''}`);
+      });
     },
     [router]
   );
@@ -167,7 +187,13 @@ export function DirectorySearchContent({
     pushSearch(term, new URLSearchParams());
   };
 
-  const showEmpty = !isLoading && results.length === 0;
+  // Two waits the visitor cannot tell apart and should not have to: the route
+  // change that carries the new term, and the query that fetches its results.
+  // They run back to back, so treating them as one "busy" keeps the skeletons
+  // up for the whole wait instead of flashing the old list in between.
+  const busy = isLoading || navigating;
+
+  const showEmpty = !busy && results.length === 0;
 
   // Which card the cursor is over, so the matching pin can light up. Held here
   // rather than in either pane because it is the one piece of state the list
@@ -206,7 +232,7 @@ export function DirectorySearchContent({
           term={params.searchTerm}
           resultCount={results.length}
           totalCount={totalResults}
-          loading={isLoading}
+          loading={busy}
           locationStatus={locationStatus}
           nearestFirst={sort === 'nearest'}
           onSearch={handleSearch}
@@ -241,7 +267,7 @@ export function DirectorySearchContent({
 
             <div className="dirsearch-listscroll" ref={listRef}>
               <div className="dirsearch-listbody">
-                {isLoading ? (
+                {busy ? (
                   <div className="dirsearch-results">
                     <ul className="dirsearch-grid" aria-busy="true">
                       {[0, 1, 2].map((index) => (
