@@ -268,11 +268,16 @@ export const useMyPosts = (cursor?: string, limit: number = 20) => {
   });
 };
 
-export const useActor = (username: string) => {
+/**
+ * `enabled` lets a caller hold the request back until it knows the answer can
+ * matter. The directory renders one of these per result card, so fetching an
+ * actor the viewer could never follow costs a round trip per card.
+ */
+export const useActor = (username: string, enabled: boolean = true) => {
   return useQuery<ActorResponse | null, Error>({
     queryKey: [socialQueryKey, 'actor', username],
     queryFn: () => fetchActor(username),
-    enabled: !!username,
+    enabled: !!username && enabled,
   });
 };
 
