@@ -99,13 +99,30 @@ jobs:
       # use drizzle-kit migrate here. Prod still uses drizzle-kit migrate
       # (which tracks applied migrations in drizzle.__drizzle_migrations);
       # CI wipes and reapplies every run, so tracking is unnecessary.
+      #
+      # Order comes from _journal.json, not a filesystem glob, so CI applies
+      # migrations in exactly the order drizzle-kit migrate uses in prod.
+      # A glob diverges whenever two migrations share a numeric prefix
+      # (0035_profile_owners vs 0035_social_statuses_recipients_gin already
+      # do, from position 36 on), and it applies files with no journal entry
+      # -- which prod silently skips. That gap shipped 0048 to production
+      # with its tables never created. Reading the journal also means an
+      # unjournaled migration is never applied here, so tests that depend
+      # on it fail loudly instead of passing against a schema prod lacks.
       - name: Apply migrations
         run: |
           set -e
-          for f in drizzle/[0-9]*.sql; do
+          python3 -c "import json; print('\n'.join(e['tag'] for e in sorted(json.load(open('drizzle/meta/_journal.json'))['entries'], key=lambda e: e['idx'])))" > /tmp/migration-order.txt
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            f="drizzle/$tag.sql"
+            if [ ! -f "$f" ]; then
+              echo "ERROR: journal lists '$tag' but $f does not exist"
+              exit 1
+            fi
             echo "=== $f ==="
             psql "$POSTGRES_DIRECT_URL" -v ON_ERROR_STOP=1 -f "$f"
-          done
+          done < /tmp/migration-order.txt
         env:
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
