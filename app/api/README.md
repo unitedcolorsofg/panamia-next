@@ -119,15 +119,18 @@ an ActivityPub-style actor/status model so posts can federate (see
 
 ### Actors
 
-| Endpoint                               | Method      | Description                            |
-| -------------------------------------- | ----------- | -------------------------------------- |
-| `/api/social/actors/me`                | GET/POST    | Get or create the current user's actor |
-| `/api/social/actors/me/posts`          | GET         | Current user's own posts               |
-| `/api/social/actors/search`            | GET         | Search actors by name/handle           |
-| `/api/social/actors/[username]`        | GET         | Get an actor's public profile          |
-| `/api/social/actors/[username]/posts`  | GET         | An actor's public posts                |
-| `/api/social/actors/[username]/follow` | POST/DELETE | Follow / unfollow an actor             |
-| `/api/social/follows`                  | GET         | List the current user's follows        |
+| Endpoint                               | Method      | Description                                 |
+| -------------------------------------- | ----------- | ------------------------------------------- |
+| `/api/social/actors/me`                | GET/POST    | Get or create the current user's actor      |
+| `/api/social/actors/me/posts`          | GET         | Current user's own posts                    |
+| `/api/social/actors/search`            | GET         | Search actors by name/handle                |
+| `/api/social/actors/[username]`        | GET         | Get an actor's public profile               |
+| `/api/social/actors/[username]/posts`  | GET         | An actor's public posts                     |
+| `/api/social/actors/[username]/follow` | POST/DELETE | Follow / unfollow an actor                  |
+| `/api/social/actors/[username]/panas`  | GET         | An actor's Panas (mutual follows)           |
+| `/api/social/actors/[username]/groups` | GET         | Public groups an actor belongs to           |
+| `/api/social/actors/[username]/events` | GET         | Events an actor hosts; RSVPs are owner-only |
+| `/api/social/follows`                  | GET         | List the current user's follows             |
 
 ### Statuses (posts)
 
