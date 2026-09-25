@@ -9,11 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { KIND_ICON } from '@/components/kind-icon';
 import { cn } from '@/lib/utils';
-import {
-  DEFAULT_SCOPE,
-  scopePath,
-  type Scope,
-} from '@/lib/directory-scopes';
+import { DEFAULT_SCOPE, scopePath, type Scope } from '@/lib/directory-scopes';
 import {
   MIN_TERM_LENGTH,
   kindLabelKey,
@@ -40,9 +36,16 @@ interface DirectorySuggestBaseProps {
   className?: string;
   inputClassName?: string;
   /**
-   * Which scope pressing Enter lands in. Defaults to businesses, which is what
-   * every existing caller meant before scopes existed and is still the right
-   * default on the public site: the directory is the businesses.
+   * Which scope pressing Enter lands in. Defaults to businesses, which is
+   * what a caller that predates scopes meant and is the safe assumption for
+   * a field that has not thought about it.
+   *
+   * Both of the club's front doors pass `"all"` instead — the home hero and
+   * the Pana Social masthead. A member typing into the biggest box on the
+   * site is asking the club a question, not filtering a business list, and
+   * the copy in both fields has always named all four kinds. The default
+   * stays `business` so that a future caller has to decide rather than
+   * inherit one silently.
    *
    * The scope pages pass their own, so a search run from inside Events stays
    * in Events rather than silently changing the subject.
@@ -478,7 +481,7 @@ export function DirectorySuggest({
           layout === 'pill'
             ? cn(
                 'directory-suggest-pill',
-                leading && 'directory-suggest-pill-lead',
+                leading && 'directory-suggest-pill-lead'
               )
             : layout === 'masthead'
               ? // `contents` rather than a box: the masthead pill is itself the
@@ -511,7 +514,7 @@ export function DirectorySuggest({
             className={cn(
               'directory-suggest-pill-icon text-pana-ink h-5 w-5 shrink-0 opacity-45',
               // The inset is the pill's own padding when something leads it.
-              !leading && 'ml-6',
+              !leading && 'ml-6'
             )}
             aria-hidden="true"
           />

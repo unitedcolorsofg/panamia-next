@@ -190,8 +190,16 @@ function HeroCard() {
               groups get named. */}
           <p className="hero-subheadline">{t('hero.mission')}</p>
 
+          {/* `scope="all"` because the placeholder already promises it. The
+              field says "Search panas, businesses, groups, events" and the
+              short label rotates through the same four, while Enter used to
+              land in the businesses-only scope — so three of the four kinds
+              it names were advertised and then dropped on submit. The
+              Everything scope covers all four, and the scope chips on the
+              results page are where someone narrows down afterwards. */}
           <DirectorySuggest
             layout="pill"
+            scope="all"
             className="mt-[18px]"
             label={t('hero.searchLabel')}
             placeholder={
