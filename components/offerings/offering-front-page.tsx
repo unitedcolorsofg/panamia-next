@@ -148,10 +148,19 @@ interface TourShot {
  * the surrounding site header, footer and `.mock-toolbar` removed, so the
  * frame holds the product and nothing else.
  *
- * `events` and `stories` are absent on purpose. The feed mock's own rail
- * still files events under "coming to the feed", and stories are not built
- * anywhere yet, so there is nothing truthful to photograph. When either one
- * ships, capture it the same way and add the entry.
+ * `events` and `stories` are absent for different reasons.
+ *
+ * Events is built, and well built — `/e` is the calendar, `/e/new` posts
+ * one, and there is RSVP, attendee management, `.ics` export and a
+ * federation endpoint behind it. It has no shot here only because those
+ * routes need the Postgres instance, which a local checkout does not have,
+ * and there is no design mock standing in for them. What the feed mock's
+ * rail files under "coming to the feed" is narrower than it sounds: it
+ * means events are not surfaced *inside the social feed* yet, not that
+ * events do not exist. Capture `/e` against a real database and add it.
+ *
+ * Stories is the one that genuinely is not built. Nothing in this codebase
+ * answers to it, so there is nothing truthful to photograph.
  */
 const TOUR_SHOTS: Record<string, Partial<Record<TourKey, TourShot>>> = {
   social: {
