@@ -66,6 +66,10 @@ export interface OfferingActions {
 const HIGHLIGHT_KEYS = ['one', 'two', 'three'] as const;
 const SYMPTOM_KEYS = ['one', 'two', 'three'] as const;
 const PILLAR_KEYS = ['one', 'two', 'three'] as const;
+
+/* The awning colour each pillar flies, in order. These are the homepage's own
+   accent names, read by `.beat[data-accent]`. */
+const PILLAR_ACCENTS = ['blue', 'orange', 'paper'] as const;
 const STEP_KEYS = ['one', 'two', 'three'] as const;
 
 export function OfferingFrontPage({
@@ -276,13 +280,23 @@ function OfferingProblem({ id }: { id: string }) {
  * band skips the complaint and names the pillars instead, each one carrying
  * its own contrast in a clause rather than in a band of its own.
  *
- * The pillar name is set in the display face at headline weight, which is the
- * whole treatment: no mark, no border, no card. The three bands nearest it are
- * a stacked walkthrough, a row of outlined cards and a centred statement, so
- * three big words over three short paragraphs is the one shape not already
- * spoken for. The rule above each is full-column rather than the short dash
- * used on a symptom or a highlight, because these are headings over columns
- * rather than items in a list.
+ * The card is the homepage's own shopfront, borrowed whole rather than
+ * imitated: `.beat` for the black border and the coloured awning, `.beat-sign`
+ * for the name hung under it, `.beat-answer` for the copy. An offering page is
+ * entered from the homepage, and this is the band making the same kind of
+ * claim the homepage makes in exactly that card, so it should be the same
+ * object rather than a lookalike that drifts the first time one of them is
+ * touched.
+ *
+ * Two pieces of the homepage row are deliberately left behind. `.beat-art` is
+ * the shop window, and there is no artwork here to put in it. `.beat-copy`
+ * and `.beat-art` both carry `animation-timeline: view()` keyframes written
+ * for the homepage's four-across rail, which would arrive here as motion
+ * nobody asked for.
+ *
+ * The accents cycle rather than taking the offering's own tint. The homepage
+ * row is multicoloured on purpose — four shopfronts on a street, not four
+ * copies of one — and three cards in a single hue would read as a chart.
  */
 function OfferingPillars({ id }: { id: string }) {
   const { t } = useTranslation('offerings');
@@ -302,12 +316,14 @@ function OfferingPillars({ id }: { id: string }) {
         </div>
 
         <ul className="offering-pillarlist" data-rv>
-          {PILLAR_KEYS.map((key) => (
-            <li key={key} className="offering-pillar">
-              <h3 className="offering-pillar-name">
-                {t(`${id}.pillars.${key}.name`)}
-              </h3>
-              <p className="offering-pillar-body">
+          {PILLAR_KEYS.map((key, index) => (
+            <li
+              key={key}
+              className="beat offering-pillar"
+              data-accent={PILLAR_ACCENTS[index]}
+            >
+              <h3 className="beat-sign">{t(`${id}.pillars.${key}.name`)}</h3>
+              <p className="beat-answer offering-pillar-body">
                 {t(`${id}.pillars.${key}.body`)}
               </p>
             </li>

@@ -8570,57 +8570,56 @@ body:has(.dirsearch) header {
 
 .offering-pillarlist {
   display: grid;
-  gap: 2.25rem 2.5rem;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
   margin: 0;
   margin-top: calc(var(--home-head-gap) * 1.15);
   padding: 0;
   list-style: none;
+  /* Stretched, for the reason the homepage row is: three cards of three
+     different depths standing in a row read as three unfinished cards rather
+     than as a block of shops. */
+  align-items: stretch;
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 60rem) {
   .offering-pillarlist {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-/* A full-column rule, not the short dash a symptom or a highlight card gets.
-   Those mark an item in a list; this one sits over a column and behaves like
-   a heading rule, which is what keeps the band from reading as a third set of
-   three small boxes. */
+/* The card is a `.beat` — the homepage's shopfront, borrowed whole — so the
+   border, the awning and the sign are all defined once, up there. Only the
+   differences live here.
+
+   This is the one filled card on these pages. `.offering-card` further down
+   is deliberately outline-only, on the grounds that the page is one sheet of
+   paper from the masthead down and a second fill would put an edge across it.
+   That still holds for a row of payoffs read in passing. It does not hold
+   here: the pillars are the page's claim about what the thing *is*, the
+   homepage makes exactly that kind of claim in exactly this card, and a
+   reader arrives on this page from that one. */
 .offering-pillar {
-  padding-top: 1.25rem;
-  border-top: 2px solid var(--story-blue);
+  /* The homepage hangs its sign under a shop window, which is what gives it
+     room to breathe. There is no window here, so the card has to supply the
+     gap itself or the sign sits jammed against its own awning. */
+  padding-top: 1.15rem;
 }
 
-/* The name carries the entire treatment — there is no mark, no border and no
-   card, because the word is large enough to be the graphic. Every other band
-   on the page leans on a small bold title, so setting these in the display
-   face at headline weight is what makes the three pillars read as the page's
-   claim rather than as three more features. */
-.offering-pillar-name {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
-  font-weight: 900;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--story-blue);
-  /* Nunito's italic sets its ink two to three pixels right of the text origin
-     at this size, so the word reads as inset against a rule that starts at
-     zero. Round capitals make it worse: a C or a P has to overhang a little to
-     look flush, and here it lands short instead. The pull-back is optical and
-     small enough not to be layout — the body copy underneath stays on the
-     rule, which is the line the eye is actually measuring against. */
-  margin-left: -0.06em;
+/* The homepage sign spans its card because it holds a whole question and a
+   flex item blockifies to fill the cross axis anyway. These hold one word, and
+   a full-width bar around one word is mostly empty paint. Hugging also happens
+   to be truer to what the rule up there calls it: a sign hung outside a shop,
+   rather than a band across the front of it. */
+.offering-pillar .beat-sign {
+  align-self: flex-start;
+  max-width: 100%;
 }
 
+/* The homepage answer reserves space beneath itself for the disclosure pill
+   that sits on the floor of the card. Nothing follows this one. */
 .offering-pillar-body {
-  margin-top: 0.9rem;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--story-ink);
-  opacity: 0.78;
+  margin-bottom: 0;
 }
 
 /* --- How it works ------------------------------------------------------ */
