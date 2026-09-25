@@ -2092,6 +2092,92 @@ button.bizprofile-update-action:hover {
    and the injected modules that keep the column from going dead on a slow day.
    ========================================================================== */
 
+/* Stories strip. Sits above the composer because a story is the lighter thing
+   to do: the circles are glanceable and gone in a tap, and asking people to
+   scroll past a writing box to reach them would bury the cheaper action under
+   the more expensive one. */
+.stories-rail {
+  --story-circle: 3.5rem;
+  margin-bottom: 0.875rem;
+}
+
+/* Scrolls rather than wraps. A second row of faces would push the composer
+   down the page by a variable amount every time the viewer follows someone. */
+.stories-rail-track {
+  display: flex;
+  gap: 0.875rem;
+  overflow-x: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.125rem 0 0.25rem;
+  scrollbar-width: none;
+}
+
+.stories-rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.stories-rail-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 4.25rem;
+}
+
+/* A fixed-height circle slot. StoryRing only draws its 7px ring and gap when
+   there is actually something to watch, so an owner with no story up sits 7px
+   shorter than the ghosts beside them and drags its label out of line. Sizing
+   the slot to the ringed case and centring inside it keeps every label on one
+   baseline whatever each circle happens to be doing. */
+.stories-rail-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--story-circle) + 7px);
+}
+
+.stories-rail-avatar {
+  width: var(--story-circle);
+  height: var(--story-circle);
+}
+
+.stories-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(17 13 13 / 0.6);
+}
+
+/* An empty slot, not a missing avatar. Dashed and unfilled so it reads as a
+   space reserved for something rather than a face that failed to load. The
+   extra 7px matches the ring and gap StoryRing draws around a real avatar at
+   this size, so full and empty circles sit on the same line. */
+.stories-rail-ghost {
+  width: calc(var(--story-circle) + 7px);
+  height: calc(var(--story-circle) + 7px);
+  border-radius: 9999px;
+  border: 2px dashed rgb(17 13 13 / 0.18);
+}
+
+/* Holds the row's height steady so the strip does not resize when the first
+   real story arrives and pushes a labelled circle in beside the ghosts. */
+.stories-rail-label-ghost {
+  visibility: hidden;
+}
+
+.stories-rail-note {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgb(17 13 13 / 0.45);
+}
+
 /* Composer. Butter rather than white so the one box the reader is meant to
    type in is the warmest thing on the page — on cream, another white card
    would sit at the same visual level as every post below it. */
