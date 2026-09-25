@@ -10,6 +10,7 @@ import {
   Loader2,
   Lock,
   Send,
+  Settings,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -135,6 +136,14 @@ function GroupBody({
             </div>
 
             <div className="hidden flex-none items-center gap-2 md:flex md:pb-1">
+              {viewer.role === 'admin' && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/g/${handle}/settings`}>
+                    <Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                    Settings
+                  </Link>
+                </Button>
+              )}
               <JoinAction handle={handle} group={group} viewer={viewer} />
             </div>
           </div>
@@ -177,6 +186,16 @@ function GroupBody({
 
           <div className="mt-5 flex items-center gap-2 md:hidden">
             <JoinAction handle={handle} group={group} viewer={viewer} stretch />
+            {viewer.role === 'admin' && (
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={`/g/${handle}/settings`}
+                  aria-label="Group settings"
+                >
+                  <Settings className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>

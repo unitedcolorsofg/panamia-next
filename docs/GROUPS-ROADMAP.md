@@ -554,10 +554,81 @@ no change at all, which is the sign the model is right.
 Harmless while publisher and host were always the same person; for a group event it would credit an
 admin off-platform for the group's event.
 
-**Not built:** transferring an existing event between hosts. The deletion blocker already tells
-people to "Cancel or transfer them first", so that promise is still outstanding. Group deletion is
-also still unbuilt, and `host_group_id` is `ON DELETE RESTRICT` — a delete-group flow has to decide
-what happens to the group's events before it can succeed.
+---
+
+## Phase 6 — Event Transfer & Group Deletion
+
+The two gaps Phase 5 left open. Both shipped.
+
+### Transferring an event between hosts
+
+`POST /api/events/[slug]/transfer` takes `{ hostGroupId: string | null }`, where `null` means "take
+it into my own name". This is what makes the account-deletion blocker's promise — _"Cancel or
+transfer them first"_ — actually keepable.
+
+**Self-service only.** You can move an event between yourself and groups you run. Person-to-person
+transfer was deliberately declined: it would need a pending-transfer record, notifications, and an
+accept/decline handshake, because handing someone an obligation they did not ask for is not
+something one party should be able to do alone.
+
+**The authorization is asymmetric on purpose.** Transferring an event _away_ from a group requires
+**admin** (`TRANSFER_ROLES`); transferring one _in_ reuses `listHostableGroups`, which allows
+**admin or moderator**. A moderator can already make the group host a brand-new event, so letting
+them move one in grants nothing new — but moving events _out_ is how a group loses its calendar, so
+that stays with admins.
+
+**The consequence, surfaced in the UI:** moving your own event into a group where you are only a
+moderator is a one-way door for you personally. `components/events/TransferHost.tsx` names the group
+in an inline warning when the selected target is one you only moderate.
+
+Transfer is allowed on cancelled and past events, deliberately — moving completed events to a group
+is how someone preserves them before deleting their own account.
+
+### Deleting a group
+
+`DELETE /api/social/groups/[handle]?confirm=<handle>`, admin only, with
+`GET .../deletion-preview` behind the same gate so the danger zone can state the damage in counts
+before asking for the typed handle.
+
+**The three foreign keys pointing at `social_groups` disagreed with each other**, which is the whole
+reason this needed design rather than a one-line delete:
+
+| FK                              | On delete | Consequence                            |
+| ------------------------------- | --------- | -------------------------------------- |
+| `social_group_members.group_id` | CASCADE   | fine                                   |
+| `social_statuses.group_id`      | CASCADE   | destroys every member's posts silently |
+| `events.host_group_id`          | RESTRICT  | the delete fails outright              |
+
+**No migration was needed.** RESTRICT only blocks while children exist, so `deleteGroup` deletes the
+group's events first, inside the same transaction, which clears the constraint by the time the actor
+goes. Deleting the actor is the clean entry point: `social_groups.actor_id` is CASCADE, so it takes
+the group, its members, and its member posts with it.
+
+**Upcoming events are cancelled and deleted outright, not inherited.** The alternative — reassigning
+them to the deleting admin or the founder — hands someone an obligation as a side effect of someone
+else's action. Note that `events_single_host` (migration `0047`) requires **exactly one** host, so
+`ON DELETE SET NULL` was never available: a hostless event violates the CHECK. Reassign-or-delete
+were the only two options.
+
+**Two different kinds of group status exist** and only one of them cascades. `social_statuses.group_id`
+(member posts _into_ the group) is CASCADE; `social_statuses.actor_id` (posts _by_ the group) is not,
+and needs an explicit delete.
+
+**The handle is reserved, not freed.** `deleteGroup` writes the `screenname_history` row _before_
+deleting the actor, so a crash mid-teardown cannot leave the name claimable.
+
+**This exposed a pre-existing bug in `isScreennameAvailable`** (`lib/screenname.ts`). Its
+`excludeEmail` branch — the one the signed-in path always takes — inner-joined history rows to
+`users`, so any reservation whose user no longer exists was silently dropped. Since
+`delete-account.ts` deletes the user row but deliberately keeps the history row, **deleted people's
+handles were already claimable by anyone**, defeating the 410-Gone behaviour that row exists to
+provide. Now a `leftJoin`, with unmatched rows blocking rather than vanishing.
+
+**Not notified:** attendees of an event deleted along with its group. The danger zone says so
+plainly rather than quietly doing it.
+
+**Still unbuilt:** a group _edit_ surface. `app/g/[handle]/settings` is scaffolded for name, rules,
+topics, and join policy, but currently holds only the danger zone.
 
 ---
 

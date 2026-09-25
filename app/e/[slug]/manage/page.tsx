@@ -4,11 +4,12 @@ import { db } from '@/lib/db';
 import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
-import { canManageEvent } from '@/lib/server/event-host';
+import { canManageEvent, canTransferEvent } from '@/lib/server/event-host';
+import { TransferHost } from '@/components/events/TransferHost';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Users, Eye } from 'lucide-react';
+import { Pencil, Users, Eye, ArrowLeftRight } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -33,6 +34,10 @@ export default async function ManageEventPage({ params }: PageProps) {
   ]);
   if (!event) notFound();
   if (!profile || !(await canManageEvent(event, profile.id))) notFound();
+
+  // Narrower than managing: a group's moderators run the event without being
+  // able to give it away.
+  const mayTransfer = await canTransferEvent(event, profile.id);
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-8">
@@ -93,6 +98,27 @@ export default async function ManageEventPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {mayTransfer && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ArrowLeftRight className="h-4 w-4" />
+              Host
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-gray-500">
+              Move this event to one of your groups, or take it into your own
+              name. Attendees and details come with it.
+            </p>
+            <TransferHost
+              slug={event.slug}
+              currentHostGroupId={event.hostGroupId}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Placeholder (v2): event photos and organizer notes management. See
           docs/EVENTS-ROADMAP.md — event_photos / event_notes tables and the

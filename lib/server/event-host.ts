@@ -37,6 +37,46 @@ export interface EventHostRef {
 const MANAGING_ROLES = ['admin', 'moderator'] as const;
 
 /**
+ * Roles that can hand a group's event to a different host.
+ *
+ * Narrower than `MANAGING_ROLES` on purpose. A moderator fixing the start time
+ * is the job; a moderator moving the event to a group they also moderate is
+ * how a group loses its event to someone who was only ever trusted to run it.
+ * Giving the thing away is an ownership decision, so it stops at admin.
+ */
+const TRANSFER_ROLES = ['admin'] as const;
+
+/**
+ * The viewer's active role in a group, or null if they have none.
+ *
+ * Membership is keyed by actor rather than profile, so this is also the one
+ * place that bridges the two. A profile with social disabled has no actor,
+ * therefore no membership, therefore no role -- which is the answer we want
+ * rather than a special case.
+ */
+async function activeRoleInGroup(
+  groupId: string,
+  viewerProfileId: string
+): Promise<string | null> {
+  const actor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.profileId, viewerProfileId),
+    columns: { id: true },
+  });
+  if (!actor) return null;
+
+  const membership = await db.query.socialGroupMembers.findFirst({
+    where: and(
+      eq(socialGroupMembers.groupId, groupId),
+      eq(socialGroupMembers.actorId, actor.id),
+      eq(socialGroupMembers.status, 'active')
+    ),
+    columns: { role: true },
+  });
+
+  return membership?.role ?? null;
+}
+
+/**
  * True when `viewerProfileId` may edit, publish, or see the attendees of an
  * event with these hosts.
  *
@@ -60,23 +100,35 @@ export async function canManageEvent(
 
   // A group hosting. The viewer's social actor is the membership key, so a
   // profile with social disabled simply has no membership and no access.
-  const actor = await db.query.socialActors.findFirst({
-    where: eq(socialActors.profileId, viewerProfileId),
-    columns: { id: true },
-  });
-  if (!actor) return false;
+  const role = await activeRoleInGroup(event.hostGroupId, viewerProfileId);
+  if (!role) return false;
 
-  const membership = await db.query.socialGroupMembers.findFirst({
-    where: and(
-      eq(socialGroupMembers.groupId, event.hostGroupId),
-      eq(socialGroupMembers.actorId, actor.id),
-      eq(socialGroupMembers.status, 'active')
-    ),
-    columns: { role: true },
-  });
-  if (!membership) return false;
+  return (MANAGING_ROLES as readonly string[]).includes(role);
+}
 
-  return (MANAGING_ROLES as readonly string[]).includes(membership.role);
+/**
+ * True when `viewerProfileId` may hand this event to a different host.
+ *
+ * Strictly narrower than `canManageEvent`: every transferrer can manage, but
+ * a group's moderators can manage without being able to transfer. Kept as its
+ * own predicate rather than a flag on `canManageEvent` so a call site cannot
+ * ask the easy question and get the powerful answer.
+ */
+export async function canTransferEvent(
+  event: EventHostRef,
+  viewerProfileId: string | null | undefined
+): Promise<boolean> {
+  if (!viewerProfileId) return false;
+
+  // Your own event is yours to hand over.
+  if (event.hostProfileId) return event.hostProfileId === viewerProfileId;
+
+  if (!event.hostGroupId) return false;
+
+  const role = await activeRoleInGroup(event.hostGroupId, viewerProfileId);
+  if (!role) return false;
+
+  return (TRANSFER_ROLES as readonly string[]).includes(role);
 }
 
 /**
