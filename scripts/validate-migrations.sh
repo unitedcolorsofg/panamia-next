@@ -15,11 +15,15 @@ set -e
 MIGRATIONS_DIR="drizzle"
 ERRORS=0
 STAGED_ONLY=false
+STRICT=false
 
-# Parse arguments
-if [ "$1" = "--staged" ]; then
-  STAGED_ONLY=true
-fi
+# Parse arguments (order-independent)
+for arg in "$@"; do
+  case "$arg" in
+    --staged) STAGED_ONLY=true ;;
+    --strict) STRICT=true ;;
+  esac
+done
 
 # Pattern: 4-digit sequence + underscore + snake_case (lowercase letters, numbers, underscores)
 # Matches Drizzle Kit output: 0000_name.sql, 0001_add_users.sql, etc.
@@ -29,6 +33,34 @@ VALID_FILE_PATTERN='^[0-9]{4}_[a-z][a-z0-9_]*\.sql$'
 REQUIRED_HEADERS=("Purpose:" "Ticket:" "Reversible:")
 
 echo "Validating Drizzle migrations..."
+
+# =============================================================================
+# Tool preflight -- fail closed
+# =============================================================================
+# Every file list below is built by piping through grep/xargs. When those are
+# missing -- a Windows checkout without Git's usr/bin on PATH, for instance --
+# the pipelines come back empty, the script prints "No new migrations staged"
+# and exits 0 having validated nothing. Silence then reads as approval.
+#
+# That is not hypothetical: it is how 0048_recommendation_lists was committed
+# with no _journal.json entry, passed this hook, passed CI, merged clean, and
+# shipped to production without its tables. A guardrail that cannot run must
+# say so rather than pass.
+MISSING_TOOLS=""
+for tool in grep xargs ls head basename; do
+  command -v "$tool" >/dev/null 2>&1 || MISSING_TOOLS="$MISSING_TOOLS $tool"
+done
+
+if [ -n "$MISSING_TOOLS" ]; then
+  echo ""
+  echo "ERROR: required tool(s) not on PATH:$MISSING_TOOLS"
+  echo "       This script builds its migration lists with these, so without"
+  echo "       them every check below would silently report success."
+  echo ""
+  echo "       On Windows, add Git's Unix tools to PATH:"
+  echo '         C:\Program Files\Git\usr\bin'
+  exit 1
+fi
 
 # Check if migrations directory exists
 if [ ! -d "$MIGRATIONS_DIR" ]; then
@@ -113,6 +145,19 @@ for candidate in python3 python py; do
     break
   fi
 done
+
+# Both journal checks below are Python-driven, and the completeness one is the
+# only thing standing between an unjournaled migration and production. Skipping
+# it is tolerable on a developer machine that has no interpreter; it is not
+# tolerable in CI, which is the backstop of last resort. --strict says so.
+if [ -z "$PYTHON" ] && [ "$STRICT" = true ]; then
+  echo ""
+  echo "ERROR: no working Python interpreter found (tried python3, python, py)."
+  echo "       --strict requires one: the journal ordering and completeness"
+  echo "       checks are Python-driven, and skipping them here would leave"
+  echo "       nothing checking that migrations are reachable by drizzle-kit."
+  exit 1
+fi
 
 JOURNAL_FILE="drizzle/meta/_journal.json"
 
