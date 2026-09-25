@@ -3,6 +3,32 @@ import { forceInt, forceString } from '@/lib/standardized';
 import { getSearch, isDirectorySort } from '@/lib/server/directory';
 
 /**
+ * The Workers edge cache, when there is one.
+ *
+ * This route has always carried `s-maxage`, but a header alone caches
+ * nothing: Cloudflare does not run responses returned from a Worker's fetch
+ * handler through its cache, so the only thing honouring it was the visitor's
+ * own browser. Every first search from every visitor went to Postgres, which
+ * is exactly the traffic the TTL was written to absorb.
+ *
+ * Typed structurally rather than pulled from @cloudflare/workers-types, which
+ * this project does not install: the DOM lib's CacheStorage has no `default`,
+ * so the global needs narrowing either way. Returns null off-Workers — the
+ * plain Node dev server has no such global — so the caller degrades to
+ * querying every time rather than throwing.
+ */
+interface EdgeCache {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
+}
+
+function edgeCache(): EdgeCache | null {
+  const store = (globalThis as { caches?: { default?: unknown } }).caches;
+  const candidate = store?.default as EdgeCache | undefined;
+  return candidate && typeof candidate.match === 'function' ? candidate : null;
+}
+
+/**
  * Coarsen a coordinate before it is used.
  *
  * Two decimal places is about a kilometre, which is more than enough to say
@@ -58,6 +84,23 @@ export async function GET(request: NextRequest) {
   const languages = forceString(searchParams.get('lang') || undefined, '');
   const freeOnly = searchParams.get('free') === 'true';
 
+  // Public, anonymous directory data — cacheable at the edge. Keyed by full
+  // URL, so each distinct search caches separately.
+  //
+  // Term searches only. An empty query takes the browse path below, which
+  // picks a random sample using a seed generated here rather than taken from
+  // the URL; caching it would pin one shuffle in front of every visitor for
+  // the whole TTL and turn "a rotating sample of the directory" into a fixed
+  // list that changes every five minutes.
+  const cache = searchTerm ? edgeCache() : null;
+  const cacheKey = cache ? new Request(request.url, { method: 'GET' }) : null;
+  if (cache && cacheKey) {
+    // Never let a cache fault take the endpoint down with it — a miss is a
+    // slow answer, an exception here is no answer.
+    const hit = await cache.match(cacheKey).catch(() => undefined);
+    if (hit) return hit;
+  }
+
   let random = paramRandom;
   if (searchTerm.length == 0 && random == 0) {
     random = Math.ceil(Math.random() * 100000);
@@ -82,25 +125,29 @@ export async function GET(request: NextRequest) {
     freeOnly,
   };
 
-  // Public, anonymous directory data — cacheable at the edge (Workers Cache).
-  // Keyed by full URL, so each distinct search caches separately. Note: an
-  // empty query generates a server-side `random` batch that is not in the URL,
-  // so all default-browse visitors share the same batch for the TTL.
+  // Read by the browser and, for term searches, by the edge cache above.
   const cacheHeaders = {
     'Cache-Control':
       'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
   };
 
   const apiResponse = await getSearch(params);
-  if (apiResponse) {
-    return NextResponse.json(apiResponse, { headers: cacheHeaders });
-  }
-  return NextResponse.json(
-    {
+  const response = NextResponse.json(
+    apiResponse ?? {
       success: true,
       data: [],
       pagination: { page: pageNum, limit: pageLimit, total: 0, totalPages: 0 },
     },
     { headers: cacheHeaders }
   );
+
+  if (cache && cacheKey) {
+    // clone() because put() consumes the body it is handed, and the original
+    // still has to be returned to the caller. Awaited rather than fired and
+    // forgotten: a route handler has no executionCtx.waitUntil, so an
+    // unawaited put races the response and is cancelled more often than not.
+    await cache.put(cacheKey, response.clone()).catch(() => {});
+  }
+
+  return response;
 }

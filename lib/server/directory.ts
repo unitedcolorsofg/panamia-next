@@ -196,19 +196,48 @@ const PREFIX_NAME_BOOST = 100;
 const TRIGRAM_THRESHOLD = 0.5;
 const TRIGRAM_LIMIT = 50;
 
+/**
+ * How deep the term arm reads before it stops caring.
+ *
+ * Without a bound this query returns every row whose search_vector matches at
+ * all, and a common word matches a large fraction of the directory. Those ids
+ * then become an IN list on the row fetch below, so a one-word search would
+ * ship thousands of ids to Postgres and pull thousands of full rows back to
+ * pick twenty. The cost scales with how generic the word is, which is exactly
+ * backwards — the vaguest searches paid the most.
+ *
+ * The cut is by final score, boosts included, so the listing somebody named
+ * exactly is never the row that falls off the end. 500 is well past where
+ * relevance ordering still means anything: nobody pages to result 480, and
+ * anything below that is matching on a single low-weight token.
+ *
+ * The trade-off is real and worth stating. Category, county, certification and
+ * mentoring filters run in memory after this, so a filter that only matches
+ * listings ranked below 500 for the term will not see them. That is the same
+ * bargain the trigram arm already makes at 50, and it only bites when a term
+ * is broad enough to fill 500 slots AND the filter is narrow enough to miss
+ * all of them. Pushing those filters into SQL is the real fix; it needs the
+ * JSONB vocabulary reconciliation in canonical() to move into Postgres first.
+ */
+const SEARCH_RANKING_LIMIT = 500;
+
 async function trigramRanking(trimmed: string): Promise<Map<string, number>> {
   const rows = (await db.transaction(async (tx) => {
-    // pg_trgm's operators live wherever the extension was installed, which is
-    // an "extensions" schema on Supabase and public on plain Postgres. Naming
-    // both covers either; Postgres ignores entries that don't exist. Migration
-    // 0041 asserts the extension is in one of them.
+    // Both GUCs in one statement, because each one costs a network round trip
+    // and this path already pays for BEGIN and COMMIT. The transaction itself
+    // cannot go: set_config(..., true) is SET LOCAL, and SET LOCAL outside a
+    // transaction is a no-op with a warning — the threshold would silently
+    // revert to pg_trgm's 0.6 default and drop the typos this exists to catch.
+    //
+    // search_path: pg_trgm's operators live wherever the extension was
+    // installed, which is an "extensions" schema on Supabase and public on
+    // plain Postgres. Naming both covers either; Postgres ignores entries that
+    // don't exist. Migration 0041 asserts the extension is in one of them.
+    //
+    // A GUC can't be a bind parameter in SET, but it can here.
     await tx.execute(
-      sql`SELECT set_config('search_path', 'public, extensions', true)`
-    );
-    // set_config(..., true) is SET LOCAL, so this reverts with the
-    // transaction. A GUC can't be a bind parameter in SET, but it can here.
-    await tx.execute(
-      sql`SELECT set_config('pg_trgm.word_similarity_threshold', ${String(TRIGRAM_THRESHOLD)}, true)`
+      sql`SELECT set_config('search_path', 'public, extensions', true),
+                 set_config('pg_trgm.word_similarity_threshold', ${String(TRIGRAM_THRESHOLD)}, true)`
     );
     return await tx.execute(sql`
       SELECT p.id,
@@ -237,13 +266,25 @@ async function searchRanking(term: string): Promise<Map<string, number>> {
       SELECT websearch_to_tsquery('english', pana_unaccent(${trimmed}))
           || websearch_to_tsquery('spanish', pana_unaccent(${trimmed}))
           || websearch_to_tsquery('simple',  pana_unaccent(${trimmed})) AS tsq
+    ),
+    m AS (
+      SELECT p.id,
+             ts_rank_cd(${RANK_WEIGHTS}::float4[], p.search_vector, q.tsq) AS rank,
+             (lower(pana_unaccent(p.name)) = lower(pana_unaccent(${trimmed}))) AS exact_name,
+             starts_with(lower(pana_unaccent(p.name)), lower(pana_unaccent(${trimmed}))) AS prefix_name
+      FROM profiles p, q
+      WHERE p.active = true AND p.search_vector @@ q.tsq
     )
-    SELECT p.id,
-           ts_rank_cd(${RANK_WEIGHTS}::float4[], p.search_vector, q.tsq) AS rank,
-           (lower(pana_unaccent(p.name)) = lower(pana_unaccent(${trimmed}))) AS exact_name,
-           starts_with(lower(pana_unaccent(p.name)), lower(pana_unaccent(${trimmed}))) AS prefix_name
-    FROM profiles p, q
-    WHERE p.active = true AND p.search_vector @@ q.tsq
+    SELECT m.id, m.rank, m.exact_name, m.prefix_name
+    FROM m
+    -- Ordered by the same score the Map below stores, boosts included, so the
+    -- LIMIT cuts the tail rather than an exact name match that happened to
+    -- have a low ts_rank_cd. The casts keep the CASE arms from resolving to
+    -- integer against the float4 rank, which would truncate the sum.
+    ORDER BY m.rank
+           + CASE WHEN m.exact_name THEN ${EXACT_NAME_BOOST}::float4 ELSE 0::float4 END
+           + CASE WHEN m.prefix_name THEN ${PREFIX_NAME_BOOST}::float4 ELSE 0::float4 END DESC
+    LIMIT ${SEARCH_RANKING_LIMIT}
   `)) as unknown as Array<{
     id: string;
     rank: number | string;
@@ -327,6 +368,40 @@ export const getSearch = async ({
   // Load the candidate profiles, then filter in memory for the conditions
   // whose stored shapes only `canonical()` can reconcile.
   const allProfiles = await db.query.profiles.findMany({
+    // Named explicitly rather than taking the default of every column. The
+    // profiles table is wide — roughly fifteen JSONB columns covering
+    // availability, verification, roles, administrative, status, linked
+    // profiles and more — and none of it is read by a search result. Left to
+    // the default, every one of those blobs crossed the wire for every
+    // candidate row, on a query whose whole job is to keep twenty of them.
+    //
+    // Anything added here has to be something transformProfile, the in-memory
+    // filters, or distanceFor actually reads. A card that renders blank is the
+    // symptom of a column dropped from this list.
+    columns: {
+      id: true,
+      name: true,
+      screenname: true,
+      // The join key for the `user` relation below. Drizzle adds it to the
+      // select on its own, but naming it keeps that from being load-bearing:
+      // the screenname fallback silently going null is a subtle failure.
+      userId: true,
+      primaryImageCdn: true,
+      addressLocality: true,
+      // extractCoordinates reads the columns first and falls back to the
+      // legacy `geo` blob, so it needs all three.
+      addressLat: true,
+      addressLng: true,
+      geo: true,
+      onlineOnly: true,
+      panaCertifiedAt: true,
+      categories: true,
+      counties: true,
+      descriptions: true,
+      socials: true,
+      galleryImages: true,
+      mentoring: true,
+    },
     where: and(
       eq(profiles.active, true),
       // Narrow to the term matches found above. Without a term this is absent
