@@ -79,10 +79,18 @@ function escapeLike(term: string): string {
  * worth having as the table grows, or if those jsonb columns are ever indexed,
  * but it is not a performance fix today and shouldn't be cited as one.
  *
- * The events and groups tables have no such index, and deliberately get none
- * here: both are small enough that a sequential scan of a name column costs
- * less than the write amplification an index would add. Revisit if either
- * grows by an order of magnitude.
+ * The events and groups tables have no trigram index, and deliberately get
+ * none here: both are small enough that a sequential scan of a name column
+ * costs less than the write amplification an index would add. Revisit if
+ * either grows by an order of magnitude.
+ *
+ * That still holds, but it is no longer the whole story: 0044 gave both tables
+ * a tsvector and a GIN index anyway. Not for speed -- on these row counts the
+ * seq scan above is still the cheaper plan, and this suggest query keeps using
+ * ILIKE. It was added because the scoped results pages behind this typeahead
+ * match on phrases rather than prefixes, and substring matching answers those
+ * badly. Two different queries with two different jobs, deliberately using two
+ * different mechanisms. See 0044's header before collapsing them.
  *
  * pana_unaccent is STRICT, so a null `about` or description still yields null
  * and is still excluded, exactly as the bare column was. It is also IMMUTABLE
