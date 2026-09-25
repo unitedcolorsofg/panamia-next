@@ -91,6 +91,41 @@ export async function getUpcomingEvents(
   });
 }
 
+/**
+ * A group's events, for the group page.
+ *
+ * `includeUnpublished` is the manager's view: admins and moderators need to
+ * see the draft they are still writing, and an unlisted event they have to be
+ * able to find in order to manage. Everyone else gets the published, public
+ * ones, which is what "the group's calendar" means to a reader.
+ *
+ * Access to the group itself is decided by the caller. This function answers
+ * "which of this group's events", not "may you see this group" -- collapsing
+ * the two is how a private group's calendar would leak through a listing that
+ * forgot to ask.
+ */
+export async function getEventsForGroup(
+  hostGroupId: string,
+  options: { includeUnpublished?: boolean; limit?: number } = {}
+) {
+  const { includeUnpublished = false, limit = 20 } = options;
+
+  const filters = [eq(events.hostGroupId, hostGroupId)];
+  if (!includeUnpublished) {
+    filters.push(eq(events.status, 'published' as EventStatus));
+    filters.push(eq(events.visibility, 'public'));
+  }
+
+  return await db.query.events.findMany({
+    where: and(...filters),
+    orderBy: [asc(events.startsAt)],
+    limit,
+    with: {
+      venue: { columns: { name: true, city: true, state: true } },
+    },
+  });
+}
+
 export async function getEventsByHost(hostProfileId: string) {
   return await db.query.events.findMany({
     where: eq(events.hostProfileId, hostProfileId),

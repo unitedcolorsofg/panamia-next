@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { events, profiles, venues } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { removeRelayEvents } from '@/lib/relay/crosspost-client';
+import { canManageEvent } from '@/lib/server/event-host';
 import type { EventMode } from '@/lib/schema';
 
 interface RouteParams {
@@ -48,7 +49,7 @@ async function requireHost(slug: string) {
       ),
     };
   }
-  if (!profile || event.hostProfileId !== profile.id) {
+  if (!profile || !(await canManageEvent(event, profile.id))) {
     return {
       error: NextResponse.json(
         { success: false, error: 'Only the host can modify this event' },

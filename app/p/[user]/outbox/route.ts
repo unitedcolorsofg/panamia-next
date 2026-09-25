@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { socialStatuses, STATUS_TYPE_STORY } from '@/lib/schema';
 import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import { socialConfig } from '@/lib/federation';
+import { personalStatusesOnly } from '@/lib/federation/wrappers/group-visibility';
 import { corsHeaders } from '@/lib/federation/cors';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -66,6 +67,18 @@ export async function GET(
       sql`${socialStatuses.published} IS NOT NULL`,
       isNull(socialStatuses.inReplyToId),
       sql`${socialStatuses.recipientTo} @> ${JSON.stringify([PUBLIC])}::jsonb`,
+      /**
+       * No group posts federate, public groups included.
+       *
+       * This is stricter than the in-app rule on purpose. A remote server has
+       * no notion of our membership table, so once a post leaves here we have
+       * handed over the only thing enforcing who may read it, and we cannot
+       * take it back — the copy is already on their disk. Group federation is
+       * a deliberate later step (GROUPS-ROADMAP, "Open questions"), gated on
+       * this outbox being audited first, and until then the safe default is
+       * that a group's posts stay on Pana.
+       */
+      personalStatusesOnly(),
       // Stories never federate. They are addressed followers-only, so the
       // Public check above already excludes them -- this is the second lock,
       // because the cost of it failing is asymmetric. A story delivered to a

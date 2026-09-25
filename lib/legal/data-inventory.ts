@@ -96,6 +96,15 @@ export const inventory: Record<TableExport, Classification> = {
   socialStatuses: ['social_posts', 'activitypub_federated_content'],
   socialFollows: ['social_graph'],
   socialLikes: ['social_graph'],
+  // Group configuration is not personal data, but created_by_profile_id is —
+  // it records which human started a given group, the same kind of association
+  // profileOwners is classified for. Hence a category rather than
+  // NOT_PERSONAL_DATA, which is what relayGroups could claim because it holds
+  // no link back to a person.
+  socialGroups: ['social_graph'],
+  // Which groups a pana belongs to, and in what role. Opaque ids, but the
+  // association is a map of someone's interests and affiliations.
+  socialGroupMembers: ['social_graph'],
   socialAttachments: ['uploads', 'social_posts'],
   // Who watched whose story. An interaction record between two actors, same
   // shape as a like, and surfaced to the story's author as a viewer list --

@@ -8,7 +8,13 @@
 import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SocialStatusDisplay, SocialActorDisplay } from '@/lib/interfaces';
-import type { SocialActor } from '@/lib/schema';
+import type {
+  SocialActor,
+  SocialGroup,
+  SocialGroupJoinPolicy,
+  SocialGroupRole,
+  SocialGroupVisibility,
+} from '@/lib/schema';
 
 export const socialQueryKey = ['social'];
 
@@ -319,10 +325,11 @@ export interface PanasResponse {
 }
 
 export interface ProfileGroupSummary {
-  groupId: string;
+  id: string;
+  handle: string;
   name: string;
-  about: string | null;
-  picture: string | null;
+  summary: string | null;
+  iconUrl: string | null;
   memberCount: number;
 }
 
@@ -355,6 +362,331 @@ export const useProfileGroups = (username: string) => {
     queryKey: [socialQueryKey, 'actor', username, 'groups'],
     queryFn: () => fetchProfileGroups(username),
     enabled: !!username,
+  });
+};
+
+/**
+ * One group as discovery returns it.
+ *
+ * Identity only. The search endpoint never returns posts, roster or events,
+ * which is what lets private groups appear in results at all — see
+ * GROUP_COLUMNS in lib/server/group-search.ts for that reasoning.
+ */
+export interface GroupSearchSummary {
+  id: string;
+  actorId: string;
+  handle: string;
+  domain: string;
+  name: string | null;
+  summary: string | null;
+  iconUrl: string | null;
+  topics: Record<string, boolean>;
+  visibility: SocialGroupVisibility;
+  joinPolicy: SocialGroupJoinPolicy;
+  memberCount: number;
+}
+
+export interface GroupSearchResponse {
+  groups: GroupSearchSummary[];
+  /** Echoed back so a stale render can tell which term it is showing. */
+  query: string;
+}
+
+async function fetchGroupSearch(
+  term: string
+): Promise<GroupSearchResponse | null> {
+  return getSocialData(
+    `/api/social/groups?q=${encodeURIComponent(term)}&limit=${GROUP_SEARCH_LIMIT}`
+  );
+}
+
+/** How many groups a search page asks for. Server clamps at 50 regardless. */
+const GROUP_SEARCH_LIMIT = 24;
+
+/**
+ * Group discovery.
+ *
+ * An empty term is not an error and is not disabled: the endpoint browses the
+ * liveliest groups instead, which is what makes the Groups tab worth opening
+ * before anybody has typed anything.
+ */
+export const useGroupSearch = (term: string) => {
+  return useQuery<GroupSearchResponse | null, Error>({
+    queryKey: [socialQueryKey, 'groups', 'search', term],
+    queryFn: () => fetchGroupSearch(term),
+  });
+};
+
+/** What the viewer is allowed to do with a group, decided by the server. */
+export interface GroupViewer {
+  canRead: boolean;
+  canPost: boolean;
+  isMember: boolean;
+  isPending: boolean;
+  role: string | null;
+  /** Null when signed out -- "we do not know you yet", not "you may not". */
+  canJoin: boolean | null;
+}
+
+export interface GroupDetailResponse {
+  group: SocialGroup;
+  actor: SocialActor;
+  viewer: GroupViewer;
+}
+
+async function fetchGroup(handle: string): Promise<GroupDetailResponse | null> {
+  return getSocialData(`/api/social/groups/${encodeURIComponent(handle)}`);
+}
+
+/**
+ * One group, plus what the viewer may do with it.
+ *
+ * Returns null for a missing group rather than throwing, because
+ * `getSocialData` folds 404 into null -- so a caller checks `data` and not
+ * `isError` to tell "no such group" from "the request failed".
+ */
+export const useGroup = (handle: string) => {
+  return useQuery<GroupDetailResponse | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle],
+    queryFn: () => fetchGroup(handle),
+    enabled: Boolean(handle),
+  });
+};
+
+/**
+ * Join a group, or ask to.
+ *
+ * No optimistic update, unlike `useFollowActor`. Following always lands the
+ * same way, so guessing the result is safe; joining resolves to either a
+ * membership or a pending request depending on the group's join policy, and
+ * that is the server's call. Flashing "Joined" before a request-to-join group
+ * answers "Requested" is a worse experience than waiting for the truth.
+ */
+export const useJoinGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (handle: string) =>
+      axios.post(`/api/social/groups/${encodeURIComponent(handle)}/join`),
+    onSettled: (_data, _error, handle) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      // The member count moved, so any list showing this group is now stale.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'groups'],
+      });
+    },
+  });
+};
+
+/** Leave a group, or withdraw a pending request. */
+export const useLeaveGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (handle: string) =>
+      axios.delete(`/api/social/groups/${encodeURIComponent(handle)}/join`),
+    onSettled: (_data, _error, handle) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'groups'],
+      });
+    },
+  });
+};
+
+/**
+ * One of the signed-in member's own groups.
+ *
+ * Carries `visibility` and `role`, which ProfileGroupSummary deliberately
+ * does not — that list renders on pages strangers read, so admitting a group
+ * is private would disclose both the group and the membership.
+ */
+export interface MyGroupSummary {
+  id: string;
+  handle: string;
+  name: string;
+  summary: string | null;
+  iconUrl: string | null;
+  memberCount: number;
+  visibility: SocialGroupVisibility;
+  joinPolicy: SocialGroupJoinPolicy;
+  role: SocialGroupRole;
+}
+
+interface MyGroupsResponse {
+  groups: MyGroupSummary[];
+}
+
+async function fetchMyGroups(): Promise<MyGroupsResponse | null> {
+  return getSocialData('/api/social/actors/me/groups');
+}
+
+/**
+ * Every group the signed-in member belongs to, private ones included.
+ *
+ * Not interchangeable with `useProfileGroups`. That one asks "what may a
+ * stranger know about this person" and hides private groups; this one asks
+ * "where do I belong", which is the member asking about themselves. Using the
+ * public one for the member's own surfaces is why the feed rail used to
+ * undercount anyone in a private group.
+ */
+export const useMyGroups = () => {
+  return useQuery<MyGroupsResponse | null, Error>({
+    queryKey: [socialQueryKey, 'me', 'groups'],
+    queryFn: fetchMyGroups,
+  });
+};
+
+/** What the create form collects. Mirrors the POST body the route validates. */
+export interface NewGroupInput {
+  handle: string;
+  name: string;
+  summary?: string;
+  topics?: string[];
+  rules?: string[];
+  visibility?: SocialGroupVisibility;
+  joinPolicy?: SocialGroupJoinPolicy;
+}
+
+/** What POST /api/social/groups hands back on success. */
+export interface CreatedGroup {
+  group: SocialGroup;
+  /** The group's actor. `username` is the handle it is reachable by. */
+  actor: SocialActor;
+}
+
+/**
+ * Create a group. The creator becomes its founding admin.
+ *
+ * Resolves to the group *and* its actor, because the handle a caller needs to
+ * navigate to lives on the actor rather than the group row -- a group is an
+ * actor, and `username` is where its address is kept.
+ *
+ * The server's rejection messages are unwrapped rather than collapsed into a
+ * generic failure, because they are the ones worth reading: "that handle is
+ * taken" and "handles may not contain spaces" are different problems with
+ * different fixes, and a form that says only "could not create group" leaves
+ * the member guessing which one they hit.
+ */
+export const useCreateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation<CreatedGroup, Error, NewGroupInput>({
+    mutationFn: async (input) => {
+      try {
+        const response = await axios.post<ApiEnvelope<CreatedGroup>>(
+          '/api/social/groups',
+          input
+        );
+        const created = response.data?.data;
+        if (!created?.group) {
+          throw new Error(response.data?.error ?? 'Group was not created');
+        }
+        return created;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const message = (error.response?.data as ApiEnvelope<never>)?.error;
+          if (message) throw new Error(message);
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // The founder is a member the moment the group exists, so both the
+      // menu and the rail count are stale.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'me', 'groups'],
+      });
+      queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'groups'] });
+    },
+  });
+};
+
+/**
+ * A group's events.
+ *
+ * Mirrors useGroupPosts, including its silence: a non-member of a private
+ * group gets an empty list rather than an error, so render off
+ * `viewer.canRead` from `useGroup` rather than off emptiness.
+ */
+export interface GroupEventSummary {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  status: string;
+  visibility: string;
+  mode: string;
+  attendeeCount: number;
+  venue: { name: string; city: string; state: string } | null;
+}
+
+export const useGroupEvents = (handle: string) => {
+  return useQuery<{ events: GroupEventSummary[] } | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle, 'events'],
+    queryFn: () =>
+      getSocialData(`/api/social/groups/${encodeURIComponent(handle)}/events`),
+    enabled: Boolean(handle),
+  });
+};
+
+async function fetchGroupPosts(
+  handle: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<TimelineResponse | null> {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  params.set('limit', String(limit));
+  return getSocialData(
+    `/api/social/groups/${encodeURIComponent(handle)}/posts?${params}`
+  );
+}
+
+/**
+ * A group's posts.
+ *
+ * A non-member reading a private group gets an empty timeline rather than an
+ * error, because that is the honest answer -- the server will not say whether
+ * there was anything to miss. Callers should render the locked panel off
+ * `viewer.canRead` from `useGroup` instead of inferring it from emptiness.
+ */
+export const useGroupPosts = (
+  handle: string,
+  cursor?: string,
+  limit: number = 20
+) => {
+  return useQuery<TimelineResponse | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle, 'posts', cursor, limit],
+    queryFn: () => fetchGroupPosts(handle, cursor, limit),
+    enabled: Boolean(handle),
+  });
+};
+
+/**
+ * Post into a group.
+ *
+ * Separate from `useCreatePost` because the endpoint is different: the group
+ * route re-checks membership and owns the addressing of a private group's
+ * posts, neither of which the generic status endpoint can do from a groupId
+ * it was handed by a client.
+ */
+export const useCreateGroupPost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ handle, content }: { handle: string; content: string }) =>
+      axios.post(`/api/social/groups/${encodeURIComponent(handle)}/posts`, {
+        content,
+      }),
+    onSettled: (_data, _error, { handle }) => {
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      // The post also belongs in the author's own feed and profile.
+      queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'timeline'] });
+    },
   });
 };
 

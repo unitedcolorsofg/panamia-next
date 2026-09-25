@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { events, eventAttendees, profiles } from '@/lib/schema';
 import { and, eq } from 'drizzle-orm';
 import { auth } from '@/auth';
+import { canManageEvent } from '@/lib/server/event-host';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import RsvpForm from '@/components/events/RsvpForm';
@@ -29,6 +30,10 @@ async function getEvent(slug: string) {
     with: {
       venue: true,
       host: { columns: { id: true, name: true, userId: true } },
+      hostGroup: {
+        columns: { id: true },
+        with: { actor: { columns: { username: true, name: true } } },
+      },
     },
   });
 }
@@ -58,7 +63,7 @@ export default async function EventPage({ params, searchParams }: PageProps) {
         columns: { id: true },
       })
     : null;
-  const isHost = !!viewerProfile && viewerProfile.id === event.hostProfileId;
+  const isHost = await canManageEvent(event, viewerProfile?.id);
   if (event.status !== 'published' && !isHost) notFound();
 
   // The viewer's existing RSVP, if any (logged-in only).
@@ -182,8 +187,20 @@ export default async function EventPage({ params, searchParams }: PageProps) {
             {hardCap ? ` · ${hardCap} capacity` : ''}
           </span>
         </div>
-        {event.host?.name && (
-          <p className="text-sm text-gray-500">Hosted by {event.host.name}</p>
+        {event.hostGroup?.actor?.username ? (
+          <p className="text-sm text-gray-500">
+            Hosted by{' '}
+            <Link
+              href={`/g/${event.hostGroup.actor.username}`}
+              className="font-medium text-gray-700 hover:underline dark:text-gray-300"
+            >
+              {event.hostGroup.actor.name ?? event.hostGroup.actor.username}
+            </Link>
+          </p>
+        ) : (
+          event.host?.name && (
+            <p className="text-sm text-gray-500">Hosted by {event.host.name}</p>
+          )
         )}
       </div>
 

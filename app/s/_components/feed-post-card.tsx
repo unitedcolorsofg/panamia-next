@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ChevronDown, ChevronUp, Eye, MapPin } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, Lock, MapPin, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AttachmentGrid } from '@/components/social/AttachmentGrid';
@@ -72,6 +72,30 @@ export function FeedPostCard({ status }: { status: SocialStatusDisplay }) {
 
   return (
     <article className="profile-card p-4 sm:p-5">
+      {status.group && (
+        /* Where this came from, above who wrote it.
+           
+           A post in a group is in the feed for a different reason than
+           everything around it -- membership, not the follow graph -- and
+           without this line it reads as the author suddenly talking to
+           strangers. The lock is the useful half: it tells a member that what
+           they are looking at is not public, which is the thing they need
+           before they quote it elsewhere. */
+        <Link
+          href={`/g/${status.group.handle}`}
+          className="text-pana-ink/50 hover:text-pana-ink/75 mb-2.5 inline-flex items-center gap-1.5 text-[12px] font-bold"
+        >
+          {status.group.visibility === 'private' ? (
+            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <Users className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          <span className="truncate">
+            Posted in {status.group.name || status.group.handle}
+          </span>
+        </Link>
+      )}
+
       <div className="flex items-start gap-3">
         <Link
           href={`/p/${status.actor.username}`}

@@ -28,6 +28,13 @@ interface VenueOption {
   state: string;
 }
 
+interface HostGroupOption {
+  id: string;
+  handle: string;
+  name: string;
+  role: string;
+}
+
 export interface EventFormInitial {
   slug?: string;
   title?: string;
@@ -87,6 +94,10 @@ export default function EventForm({ initial, editSlug }: Props) {
   );
 
   const [venues, setVenues] = useState<VenueOption[]>([]);
+  const [hostGroups, setHostGroups] = useState<HostGroupOption[]>([]);
+  // '' means "host as myself". Only offered on create -- moving an existing
+  // event to a different host is a transfer, which is its own flow.
+  const [hostGroupId, setHostGroupId] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -102,6 +113,28 @@ export default function EventForm({ initial, editSlug }: Props) {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (isEditing) return;
+    let active = true;
+    fetch('/api/social/actors/me/groups')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active || !d.success) return;
+        // Filtering here is presentation only. The create route recomputes the
+        // caller's own admin memberships, so a hand-edited group id is still
+        // rejected server-side.
+        setHostGroups(
+          (d.data.groups as HostGroupOption[]).filter(
+            (g) => g.role === 'admin' || g.role === 'moderator'
+          )
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isEditing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,6 +165,9 @@ export default function EventForm({ initial, editSlug }: Props) {
           .map((t) => t.trim().toLowerCase())
           .filter(Boolean),
         visibility,
+        // Omitted entirely when editing: the PATCH route has no notion of
+        // changing hosts, and sending it would be a silent no-op.
+        ...(isEditing || !hostGroupId ? {} : { hostGroupId }),
       };
 
       const res = await fetch(
@@ -159,6 +195,29 @@ export default function EventForm({ initial, editSlug }: Props) {
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
           {err}
         </p>
+      )}
+
+      {!isEditing && hostGroups.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="hostGroup">Hosting as</Label>
+          <select
+            id="hostGroup"
+            value={hostGroupId}
+            onChange={(e) => setHostGroupId(e.target.value)}
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          >
+            <option value="">Myself</option>
+            {hostGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500">
+            A group event belongs to the group, so it stays on the calendar even
+            if you leave.
+          </p>
+        </div>
       )}
 
       <div className="space-y-2">

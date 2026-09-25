@@ -14,6 +14,9 @@
     "inactive": "Borrador",
     "listBusiness": "Publica tu negocio",
     "listBusinessHint": "Agrega una tienda, estudio o servicio",
+    "yourGroups": "Grupos que administras",
+    "allGroups": "Todos los grupos",
+    "allGroupsHint": "Encuentra un grupo o crea uno",
     "manager": "Gerente",
     "owner": "Dueño",
     "sites": {

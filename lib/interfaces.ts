@@ -383,6 +383,20 @@ export interface SocialStatusDisplay {
     uri: string;
     actorUsername: string;
   } | null;
+  /**
+   * The group this was posted in, when it was posted in one.
+   *
+   * Present so a card can say where a post came from. Absent or null means an
+   * ordinary personal post -- a card must not treat a missing group as a
+   * reason to hide anything, because the server has already decided what this
+   * viewer may see before the post reached here.
+   */
+  group?: {
+    id: string;
+    handle: string;
+    name: string | null;
+    visibility: string;
+  } | null;
   recipientTo?: unknown;
   recipientCc?: unknown;
   attachments?: Array<{

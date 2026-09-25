@@ -1,8 +1,9 @@
 /**
  * Events collection API.
  *   GET  — public list of upcoming, published, public events.
- *   POST — create a draft event (auth + profile required). The host is the
- *          caller's profile; venue is optional (online events have none).
+ *   POST — create a draft event (auth + profile required). The host is either
+ *          the caller's profile or a group they administer; venue is optional
+ *          (online events have none).
  *
  * Postgres is authoritative. Crossposting to Nostr happens on publish, not on
  * create — see app/api/events/[slug]/publish/route.ts.
@@ -17,6 +18,7 @@ import {
   buildIcalUid,
   getUpcomingEvents,
 } from '@/lib/event';
+import { listHostableGroups } from '@/lib/server/event-host';
 import type { EventMode } from '@/lib/schema';
 
 const MODES: EventMode[] = ['online', 'offline', 'hybrid'];
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
       attendeeCap,
       tags,
       visibility,
+      hostGroupId,
     } = body;
 
     if (!title?.trim()) {
@@ -96,6 +99,28 @@ export async function POST(request: NextRequest) {
 
     const slug = await generateUniqueSlug(title);
 
+    // Hosting as a group. The client sends a group id; we never trust it --
+    // listHostableGroups recomputes from the caller's own memberships, so a
+    // forged id simply is not in the list.
+    //
+    // Exactly one host is set, matching the events_single_host CHECK. When a
+    // group hosts, hostProfileId stays NULL on purpose: the event belongs to
+    // the group, so it survives the organiser deleting their account.
+    let resolvedHostGroupId: string | null = null;
+    if (hostGroupId) {
+      const hostable = await listHostableGroups(profile.id);
+      if (!hostable.some((group) => group.id === hostGroupId)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'You can only host events as a group you administer',
+          },
+          { status: 403 }
+        );
+      }
+      resolvedHostGroupId = hostGroupId;
+    }
+
     const [newEvent] = await db
       .insert(events)
       .values({
@@ -104,7 +129,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         coverImage: coverImage || null,
         coverImageAlt: coverImageAlt || null,
-        hostProfileId: profile.id,
+        hostProfileId: resolvedHostGroupId ? null : profile.id,
+        hostGroupId: resolvedHostGroupId,
         venueId: resolvedVenueId,
         startsAt: new Date(startsAt),
         endsAt: endsAt ? new Date(endsAt) : null,

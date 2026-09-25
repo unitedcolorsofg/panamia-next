@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
+import { canManageEvent } from '@/lib/server/event-host';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +32,7 @@ export default async function ManageEventPage({ params }: PageProps) {
     }),
   ]);
   if (!event) notFound();
-  if (!profile || profile.id !== event.hostProfileId) notFound();
+  if (!profile || !(await canManageEvent(event, profile.id))) notFound();
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-8">

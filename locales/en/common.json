@@ -14,6 +14,9 @@
     "inactive": "Draft",
     "listBusiness": "List your business",
     "listBusinessHint": "Add a shop, studio or service",
+    "yourGroups": "Groups you run",
+    "allGroups": "All groups",
+    "allGroupsHint": "Find a group, or start one",
     "manager": "Manager",
     "owner": "Owner",
     "sites": {
