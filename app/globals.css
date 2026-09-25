@@ -7035,6 +7035,21 @@ body:has([data-density]) {
 
 /* --- The three pillars: expanding panels -------------------------------- */
 
+/* Centred, unlike the other section heads. The row of three panels below is
+   symmetrical and now shares its centre line with this block, so a
+   left-aligned heading hung off one end of it and read as a label for the
+   first pillar rather than as an introduction to all three. */
+.story-pillars .home-sectionhead {
+  text-align: center;
+}
+
+/* Centring the text is not enough on its own: the lede carries a 46ch
+   measure, so without this the copy sits centred inside a box that is still
+   pinned to the left. */
+.story-pillars .section-lede {
+  margin-inline: auto;
+}
+
 .pillars {
   display: grid;
   gap: 0.85rem;
