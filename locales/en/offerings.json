@@ -2,14 +2,13 @@
   "switchLabel": "The rest of it",
   "social": {
     "name": "Pana Social",
-    "eyebrow": "Collective Tech",
+    "eyebrow": "Pana Social",
     "headline": "Social Media<br/>That Is <em>Private</em><br/>and <em>Local</em>",
     "lede": "A social network for South Florida, owned by the people in it. Private by default, local on purpose, and built to connect panas who already work together.",
     "ctaPrimary": "Open the feed",
     "ctaSecondary": "Become a Pana",
     "pillars": {
-      "eyebrow": "What It Is",
-      "statement": "Three things, <em>none optional</em>.",
+      "statement": "Pana Social is designed for <em>Local Life</em>.",
       "one": {
         "name": "Local",
         "body": "Everyone here is in Broward, Miami-Dade or Palm Beach — the makers and shops you can actually walk to. Not a global feed that buries the bakery down the street."

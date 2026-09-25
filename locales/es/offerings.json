@@ -2,14 +2,13 @@
   "switchLabel": "Lo demás",
   "social": {
     "name": "Pana Social",
-    "eyebrow": "Tecnología Colectiva",
+    "eyebrow": "Pana Social",
     "headline": "Redes Sociales<br/>que Son <em>Privadas</em><br/>y <em>Locales</em>",
     "lede": "Una red social para el Sur de la Florida, de la gente que está en ella. Privada por defecto, local a propósito, y hecha para conectar panas que ya trabajan juntos.",
     "ctaPrimary": "Abrir el feed",
     "ctaSecondary": "Hazte Pana",
     "pillars": {
-      "eyebrow": "Qué Es",
-      "statement": "Tres cosas, <em>ninguna opcional</em>.",
+      "statement": "Pana Social está diseñada para la <em>vida local</em>.",
       "one": {
         "name": "Local",
         "body": "Aquí todos están en Broward, Miami-Dade o Palm Beach — los creadores y negocios a los que puedes llegar caminando. No un feed global que entierra la panadería de la esquina."

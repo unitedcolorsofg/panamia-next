@@ -299,13 +299,22 @@ function OfferingProblem({ id }: { id: string }) {
  * copies of one — and three cards in a single hue would read as a chart.
  */
 function OfferingPillars({ id }: { id: string }) {
-  const { t } = useTranslation('offerings');
+  const { t, i18n } = useTranslation('offerings');
+
+  /* The eyebrow is optional here, unlike the other bands. A statement that
+     already names the offering does not need a label above it telling you
+     which offering you are reading about. */
+  const hasEyebrow = i18n.exists(`offerings:${id}.pillars.eyebrow`);
 
   return (
     <section className="home-section offering-pillars">
       <div className="container mx-auto px-4">
         <div className="offering-pillars-head" data-rv>
-          <span className="section-eyebrow">{t(`${id}.pillars.eyebrow`)}</span>
+          {hasEyebrow && (
+            <span className="section-eyebrow">
+              {t(`${id}.pillars.eyebrow`)}
+            </span>
+          )}
           <h2 className="section-display offering-pillars-statement">
             <Trans
               i18nKey={`${id}.pillars.statement`}
