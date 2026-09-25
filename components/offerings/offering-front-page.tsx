@@ -123,13 +123,13 @@ interface TourShot {
  *
  * ## Adding a screenshot
  *
- * 1. Drop the file in `public/img/social/` — `feed.png`, `groups.png`,
- *    `events.png`, `profiles.png`, `stories.png`.
+ * 1. Drop the file in `public/img/social/` — `feed.webp`, `groups.webp`,
+ *    `events.webp`, `profiles.webp`, `stories.webp`.
  * 2. Add its entry below. `width` and `height` are the file's real pixel
  *    dimensions, which `next/image` needs in order to reserve the space
  *    before the file has loaded.
  *
- *    social: { feed: { src: '/img/social/feed.png', width: 1600, height: 1000 } }
+ *    social: { feed: { src: '/img/social/feed.webp', width: 1600, height: 1000 } }
  *
  * Shots are cropped to a 16:10 well from the top, so capture the window at
  * roughly that shape and let the fold do the rest — the top of a screen is
@@ -140,9 +140,25 @@ interface TourShot {
  * these pages are read by people deciding whether to trust the thing, and an
  * illustration dressed as a screenshot is a promise about software that may
  * not look like that yet.
+ *
+ * ## Where the three present shots came from
+ *
+ * They are captures of this repo's own design mocks — `/mock/feed` for the
+ * feed, and `/mock/profile` for profiles and groups — taken at 1600x1000 with
+ * the surrounding site header, footer and `.mock-toolbar` removed, so the
+ * frame holds the product and nothing else.
+ *
+ * `events` and `stories` are absent on purpose. The feed mock's own rail
+ * still files events under "coming to the feed", and stories are not built
+ * anywhere yet, so there is nothing truthful to photograph. When either one
+ * ships, capture it the same way and add the entry.
  */
 const TOUR_SHOTS: Record<string, Partial<Record<TourKey, TourShot>>> = {
-  social: {},
+  social: {
+    feed: { src: '/img/social/feed.webp', width: 1600, height: 1000 },
+    groups: { src: '/img/social/groups.webp', width: 1600, height: 1000 },
+    profiles: { src: '/img/social/profiles.webp', width: 1600, height: 1000 },
+  },
 };
 
 export function OfferingFrontPage({
