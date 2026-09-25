@@ -366,6 +366,47 @@ export const useProfileGroups = (username: string) => {
 };
 
 /**
+ * One event as a profile lists it.
+ *
+ * `role` is the difference between "they are putting this on" and "they said
+ * they would come", which the card needs to label and the viewer needs to read
+ * differently. Only the owner ever receives `going` rows — see the route.
+ */
+export interface ProfileEventSummary {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  timezone: string | null;
+  role: 'hosting' | 'going';
+  online: boolean;
+  visibility: string;
+  attendeeCount: number;
+  coverImage: string | null;
+  coverImageAlt: string | null;
+  venue: { name: string; city: string; state: string } | null;
+}
+
+export interface ProfileEventsResponse {
+  /** False for every viewer but the owner, so an empty list stays readable. */
+  canSeeAttending: boolean;
+  events: ProfileEventSummary[];
+}
+
+/** Events a handle is hosting, plus their own RSVPs when they are the viewer. */
+export const useProfileEvents = (username: string) => {
+  return useQuery<ProfileEventsResponse | null, Error>({
+    queryKey: [socialQueryKey, 'actor', username, 'events'],
+    queryFn: () =>
+      getSocialData(
+        `/api/social/actors/${encodeURIComponent(username)}/events`
+      ),
+    enabled: !!username,
+  });
+};
+
+/**
  * One group as discovery returns it.
  *
  * Identity only. The search endpoint never returns posts, roster or events,
