@@ -297,7 +297,7 @@ function KindSection({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="dirsearch-grid">
         {data.results.map((result) => (
           <ScopeResultCard key={result.id} result={result} kind={kind} />
         ))}
@@ -326,7 +326,7 @@ async function SingleScopeResults({
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="dirsearch-grid">
         {data.results.map((result) => (
           <ScopeResultCard key={result.id} result={result} kind={scope} />
         ))}

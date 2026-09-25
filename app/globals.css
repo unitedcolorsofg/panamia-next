@@ -7946,70 +7946,15 @@ body:has(.dirsearch) {
 
 /* --- The toolbar -------------------------------------------------------- */
 
-/* What the header band became.
-
-   It used to be a hero: an eyebrow, a display-sized headline, a count, the
-   search box, the location row and a full-bleed drawing of a town — about
-   570px of page before the first result. That is a reasonable way to open a
-   screen you arrive on once. It is a bad way to open one you refine five times
-   in a row, and with the map now holding the right half of the window, height
-   spent here is height taken off the results rather than off empty cream.
-
-   So the count moved into the headline, the headline dropped to body size, the
-   scenery went, and the whole thing is a toolbar about as tall as the box
-   inside it. Nothing here scrolls away, which is the other reason it has to be
-   small. */
-.dirsearch-tools {
-  padding: 0.8rem 1rem 0.65rem;
-}
-
-/* The base rules put the box a third of the way down a hero. There is no hero
-   now — the box is the first thing in the column. */
+/* The base rules put the box a third of the way down a hero. Inside the split
+   view the band is compact and the box is the last thing in it. */
 .dirsearch .dirsearch-searchrow {
-  margin-top: 0;
+  margin-top: 0.75rem;
   max-width: none;
 }
 
-/* Count on the left, the location offer on the right; one line where there is
-   room for one and two where there is not. Both are asides to the box above
-   them and neither earns a line of its own. */
-.dirsearch-toolsline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 1.25rem;
-  margin-top: 0.6rem;
-}
-
-/* An h1 at body size. Still the page's heading and still the first thing read,
-   but 3rem was a title for a page you arrive at rather than a label on a list
-   you are working through. */
-.dirsearch-summary {
-  margin: 0;
-  font-family: var(--font-montserrat);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  opacity: 0.76;
-}
-
-.dirsearch-summary strong {
-  font-weight: 900;
-  opacity: 1;
-}
-
-/* Coral rather than orange for the searched term, for the reason the homepage
-   uses it — orange under an orange wordmark reads as a second logo. */
-.dirsearch-summary em {
-  font-style: normal;
-  font-weight: 900;
-  color: var(--story-coral);
-}
-
 .dirsearch .dirsearch-locbar {
-  margin-top: 0;
+  margin-top: 0.6rem;
   font-size: 0.8125rem;
 }
 
@@ -8075,12 +8020,55 @@ body:has(.dirsearch) {
    other, but only if the map is still there after four cards. So the window
    stops scrolling and the column starts.
 
-   65px is the masthead, which is `position: sticky; top: 0`. Being a few
-   pixels out moves the bottom edge of the scroll area; it does not break the
-   layout. */
+   Measured rather than guessed. This used to be `100svh` minus a hardcoded
+   65px for the masthead, which is really 70.33px, so the page overflowed by
+   five and the window kept a scrollbar it was not supposed to have. Nothing
+   below needs a number now: the body is a column, the masthead takes the
+   height it takes, and the split gets the rest. */
 @media (min-width: 72rem) {
+  body:has(.dirsearch-split) {
+    display: flex;
+    flex-direction: column;
+    /* `height`, not `min-height`. A min-height lets the column grow to fit
+       its content, which is exactly what a flex child with `min-height: 0`
+       is trying not to do — the split would size to its natural height and
+       the window would scroll again. A definite height is what makes the
+       leftover space definite. Safe here because the footer is hidden below
+       and nothing else in this layout sits outside the two children. */
+    height: 100svh;
+  }
+
+  /* The app shell's one wrapper between body and the page. It has to pass the
+     height through rather than absorb it, or the split has nothing to fill. */
+  body:has(.dirsearch-split) > #layout-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
   .dirsearch-split {
-    --dirsearch-chrome: 65px;
+    /* The column the band and the panes share. Owning the leftover height
+       here rather than on .dirsearch-panes is what lets the band be any
+       height it likes: the panes take what is left with `flex: 1 1 auto`, so
+       nothing has to know the band's size and no magic number goes stale when
+       the copy in it changes. */
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .dirsearch-split .dirsearch-band {
+    flex: none;
+    /* Tighter than the scope pages'. Those scroll, so their band can breathe;
+       this one is spending height that results would otherwise have. Same
+       band, same type, less air around it. */
+    padding-block: 1.1rem 1rem;
+  }
+
+  .dirsearch-split .dirsearch-band .dirsearch-title {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
   }
 
   .dirsearch-panes {
@@ -8089,7 +8077,8 @@ body:has(.dirsearch) {
        so on a very wide screen the surplus goes to the map, where it is worth
        something. */
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    height: calc(100svh - var(--dirsearch-chrome));
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .dirsearch-listpane {
@@ -8113,10 +8102,6 @@ body:has(.dirsearch) {
     position: static;
     box-shadow: none;
     padding-block: 0.4rem 0.35rem;
-  }
-
-  .dirsearch-tools {
-    padding: 0.6rem 1rem 0.4rem;
   }
 
   /* Every row above the results is a row of results you cannot see. Stacked,

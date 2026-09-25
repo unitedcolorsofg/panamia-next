@@ -70,6 +70,19 @@ interface DirectorySuggestBaseProps {
    * masthead has no room for one.
    */
   leading?: ReactNode;
+  /**
+   * Runs instead of navigating, when the caller is already the results page.
+   *
+   * The business directory keeps its filters, sort and map view in the query
+   * string and updates them in place. Routing it to `scopePath` would land on
+   * the same route it is already on and drop every one of those — searching
+   * again would silently clear your filters. So it hands us the shallow
+   * update it already uses and we call that instead of `router.push`.
+   *
+   * Only the submit path is overridden. Picking a suggestion still navigates
+   * to that business, pana, group or event, which is the whole point of it.
+   */
+  onSearch?: (term: string) => void;
 }
 
 /**
@@ -210,6 +223,7 @@ export function DirectorySuggest({
   scope = DEFAULT_SCOPE,
   initialTerm = '',
   leading,
+  onSearch,
 }: DirectorySuggestProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
@@ -344,6 +358,10 @@ export function DirectorySuggest({
   function goToSearch() {
     if (!trimmed) return;
     close();
+    if (onSearch) {
+      onSearch(trimmed);
+      return;
+    }
     router.push(scopePath(scope, trimmed));
   }
 

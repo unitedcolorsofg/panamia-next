@@ -15,6 +15,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
+import { categoryKeys } from '@/lib/server/directory';
 import type { Scope, ScopeCounts } from '@/lib/directory-scopes';
 
 /**
@@ -109,6 +110,34 @@ const rankExpr = (
          THEN ${PREFIX_NAME_BOOST} ELSE 0 END
 )`;
 
+/**
+ * One result, in the shape the directory card renders.
+ *
+ * Every field past `href` is a slot the card draws only when it is filled, and
+ * the whole point of the list is that the four kinds fill the same slots with
+ * different nouns rather than getting four different cards:
+ *
+ *                business        pana            group           event
+ *   subtitle     five words      five words      purpose         —
+ *   handle       —               @handle         —               —
+ *   where        city            city            —               venue city
+ *   when         —               —               —               starts at
+ *   blurb        details         details         summary         description
+ *   pills        categories      categories      topics          —
+ *   signal       —               —               88 members      —
+ *   certified    yes/no          yes/no          —               —
+ *
+ * A blank column is a fact about the data, not about the kind: groups have no
+ * place because a group is not anywhere, and events have no member count
+ * because attendance is not public. Where a kind genuinely has nothing to put
+ * in a slot the row does not render, which is the same rule that already makes
+ * the business card differ between a claimed and an unclaimed listing.
+ *
+ * Distance stays out on purpose. It is measured from the searcher to a
+ * listing's address, and three of the four kinds either have no address or do
+ * not publish one — the business directory computes it in its own query and
+ * keeps it on its own card.
+ */
 export interface ScopeResult {
   id: string;
   name: string;
@@ -117,6 +146,24 @@ export interface ScopeResult {
   imageUrl: string | null;
   /** Second-line metadata the card renders under the subtitle, if any. */
   meta: string | null;
+  /** `@handle`, when the kind has one worth disambiguating by. */
+  handle: string | null;
+  /** Where this is, already formatted — nothing here geocodes. */
+  where: string | null;
+  /** A moment worth acting on, already formatted in the subject's timezone. */
+  when: string | null;
+  /** Prose. The card clamps it; this does not truncate. */
+  blurb: string | null;
+  /** Categories, topics or tags — the same pill row either way. */
+  pills: string[];
+  /** The community number this kind is measured by, already in words. */
+  signal: string | null;
+  /**
+   * Pana Certified. Only profiles can hold it, but it has to travel with the
+   * result: without it a certified business loses its badge the moment it is
+   * listed under Everything instead of under Businesses.
+   */
+  certified: boolean;
 }
 
 export interface ScopeSearchResult {
@@ -164,6 +211,8 @@ export async function searchPanas(
   const handle = sql<
     string | null
   >`COALESCE(${profiles.screenname}, ${users.screenname})`;
+  const fiveWords = sql<string | null>`${profiles.descriptions}->>'fiveWords'`;
+  const details = sql<string | null>`${profiles.descriptions}->>'details'`;
 
   const where = and(
     eq(profiles.active, true),
@@ -182,6 +231,10 @@ export async function searchPanas(
         screenname: handle,
         primaryImageCdn: profiles.primaryImageCdn,
         addressLocality: profiles.addressLocality,
+        fiveWords,
+        details,
+        categories: profiles.categories,
+        panaCertifiedAt: profiles.panaCertifiedAt,
         rank: rankExpr(profileVector, profiles.name, trimmed),
       })
       .from(profiles)
@@ -207,12 +260,23 @@ export async function searchPanas(
     results: rows.map((row) => ({
       id: row.id,
       name: row.name,
-      // The handle rather than the city, matching the typeahead: two members
-      // can share a display name, but not a handle.
-      subtitle: row.screenname ? `@${row.screenname}` : null,
+      // A pana is the same `profiles` row as a business with a different
+      // account type, so the same five words describe them — and where a pana
+      // has not written any, the handle still says which Maria this is.
+      subtitle: row.fiveWords ?? (row.screenname ? `@${row.screenname}` : null),
+      // Kept separately as well as in the subtitle fallback: two members can
+      // share a display name, but not a handle, so the card shows it beside
+      // the name whatever the subtitle ended up being.
+      handle: row.screenname ? `@${row.screenname}` : null,
       href: `/p/${row.screenname}`,
       imageUrl: row.primaryImageCdn,
       meta: row.addressLocality,
+      where: row.addressLocality,
+      when: null,
+      blurb: row.details,
+      pills: categoryKeys(row.categories),
+      signal: null,
+      certified: row.panaCertifiedAt != null,
     })),
     total,
     page: safePage,
@@ -253,10 +317,26 @@ export async function searchGroups(
       // A remote group can arrive without a display name; the handle is the
       // only thing guaranteed to be there, and it is what the URL uses.
       name: row.name ?? row.handle,
-      subtitle: row.summary,
+      subtitle: null,
+      handle: `@${row.handle}`,
       href: `/g/${row.handle}`,
       imageUrl: row.iconUrl,
       meta: null,
+      // A group is not anywhere. It has members, not an address, so the place
+      // row stays empty rather than being filled with something invented.
+      where: null,
+      when: null,
+      blurb: row.summary,
+      // Topics are the group's own free-form tags, not directory categories,
+      // so they are not run through `categoryKeys` — there is no canonical
+      // list to reconcile them against.
+      pills: Object.entries(row.topics)
+        .filter(([, on]) => on === true)
+        .map(([topic]) => topic),
+      signal: row.memberCount
+        ? `${row.memberCount} ${row.memberCount === 1 ? 'member' : 'members'}`
+        : null,
+      certified: false,
     })),
     total,
     page: safePage,
@@ -299,10 +379,12 @@ export async function searchEvents(
         id: events.id,
         slug: events.slug,
         title: events.title,
+        description: events.description,
         coverImage: events.coverImage,
         startsAt: events.startsAt,
         timezone: events.timezone,
         mode: events.mode,
+        venueName: venues.name,
         venueCity: venues.city,
       })
       .from(events)
@@ -322,14 +404,33 @@ export async function searchEvents(
 
   const total = totals[0]?.count ?? 0;
   return {
-    results: rows.map((row) => ({
-      id: row.id,
-      name: row.title,
-      subtitle: formatEventWhen(row.startsAt, row.timezone),
-      href: `/e/${row.slug}`,
-      imageUrl: row.coverImage,
-      meta: row.mode === 'online' ? 'Online' : row.venueCity,
-    })),
+    results: rows.map((row) => {
+      const online = row.mode === 'online';
+      // Venue then city, because "Bakehouse Art Complex · Wynwood" answers
+      // both "where is it" and "do I know it" where either alone answers one.
+      const place = online
+        ? 'Online'
+        : [row.venueName, row.venueCity].filter(Boolean).join(' · ') || null;
+
+      return {
+        id: row.id,
+        name: row.title,
+        subtitle: null,
+        handle: null,
+        href: `/e/${row.slug}`,
+        imageUrl: row.coverImage,
+        meta: online ? 'Online' : row.venueCity,
+        where: place,
+        when: formatEventWhen(row.startsAt, row.timezone),
+        blurb: row.description,
+        // An event's topics live on the groups and businesses hosting it
+        // rather than on the event itself, so there is nothing honest to pill.
+        pills: [],
+        // Attendance is not public, so there is no number to show.
+        signal: null,
+        certified: false,
+      };
+    }),
     total,
     page: safePage,
     totalPages: Math.ceil(total / pageSize),
@@ -390,6 +491,7 @@ export async function searchBusinesses(
 
   const handle = sql<string>`COALESCE(${profiles.screenname}, ${users.screenname})`;
   const fiveWords = sql<string | null>`${profiles.descriptions}->>'fiveWords'`;
+  const details = sql<string | null>`${profiles.descriptions}->>'details'`;
 
   const where = and(
     eq(profiles.active, true),
@@ -410,7 +512,11 @@ export async function searchBusinesses(
         name: profiles.name,
         handle,
         fiveWords,
+        details,
+        categories: profiles.categories,
         addressLocality: profiles.addressLocality,
+        onlineOnly: profiles.onlineOnly,
+        panaCertifiedAt: profiles.panaCertifiedAt,
         primaryImageCdn: profiles.primaryImageCdn,
       })
       .from(profiles)
@@ -435,9 +541,23 @@ export async function searchBusinesses(
       id: row.id,
       name: row.name,
       subtitle: row.fiveWords,
+      handle: null,
       href: `/p/${row.handle}`,
       imageUrl: row.primaryImageCdn,
       meta: row.addressLocality,
+      // The same sentence the business card uses, so a business reads the
+      // same in the Everything scope as it does in the directory proper.
+      where: row.onlineOnly
+        ? 'Online only — serves all of South Florida'
+        : row.addressLocality,
+      when: null,
+      blurb: row.details,
+      pills: categoryKeys(row.categories),
+      // Recommend and save counts are a second query per page in the
+      // directory proper. The Everything scope shows four businesses among
+      // twelve other things; it is not worth that round trip here.
+      signal: null,
+      certified: row.panaCertifiedAt != null,
     })),
     total,
     page: safePage,
