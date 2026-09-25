@@ -407,6 +407,28 @@
   background-color: var(--color-pana-ink);
 }
 
+/* Under ~360px the pill runs out of room. The magnifier's margin, the field's
+   own padding and the button's padding come to roughly 200px of chrome, which
+   leaves the input about 68px to show text in — narrow enough to cut even the
+   short "Search Local" label the hero switches to on a phone.
+
+   So the chrome gives the width back rather than the field, since the field is
+   the only part of the pill that is carrying words. The button keeps its
+   margin so it still reads as a pill inside a pill. */
+@media (max-width: 22.5rem) {
+  .directory-suggest-pill-icon {
+    margin-left: 0.75rem;
+  }
+
+  .directory-suggest-pill .directory-suggest-field input {
+    padding-inline: 0.625rem;
+  }
+
+  .directory-suggest-pill-button {
+    padding-inline: 1rem;
+  }
+}
+
 /* Scroll reveal. The hidden state is gated on `html[data-rv-ready]`, which is
    set by components/scroll-reveal.tsx on mount — so if that script never runs,
    nothing is hidden. Never make these rules unconditional. */
@@ -5628,6 +5650,24 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
   width: clamp(62px, 7.5vw, 104px);
   height: auto;
   color: var(--story-orange);
+}
+
+/* On a phone the reasoning above inverts. The wordmark is `min(26rem, 70vw)`
+   and centred, so under 40rem it leaves a 15vw gutter down each side and
+   nothing above it — the sun at `left: 5.5%` was landing on the "P" of the
+   wordmark rather than beside it, because a 62px sun is wider than the gutter
+   and taller than the space above it.
+
+   So it swaps to the right gutter, which is empty at every phone width now
+   that Sign Up / Sign In sits in the masthead above rather than in the sky.
+   The width is capped to 11vw so the sun always ends before the wordmark
+   begins: 11vw + the 2vw offset stays inside the 15vw gutter. */
+@media (max-width: 39.99rem) {
+  .sky-sun {
+    right: 2vw;
+    left: auto;
+    width: clamp(34px, 11vw, 56px);
+  }
 }
 
 .sky-sun-core {

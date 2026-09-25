@@ -10,6 +10,7 @@ import { countyList } from '@/lib/lists';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
+import { useIsRail } from './rail';
 import { useStoryBeats, usePillars } from './content';
 
 /**
@@ -107,8 +108,14 @@ export function HomeFirstScreen() {
   );
 }
 
+/* The full placeholder is 277px of text; the input it sits in is 138px wide
+   on a 390px phone, so it was being cut mid-word. Below this width the short
+   label is used instead. */
+const HERO_SEARCH_SHORT_QUERY = '(max-width: 39.99rem)';
+
 function HeroCard() {
   const { t } = useTranslation('home');
+  const useShortSearchLabel = useIsRail(HERO_SEARCH_SHORT_QUERY);
 
   return (
     /* No scalloped trim across the top. The scallop is a good edge when two
@@ -165,7 +172,11 @@ function HeroCard() {
             layout="pill"
             className="mt-[18px]"
             label={t('hero.searchLabel')}
-            placeholder={t('hero.searchPlaceholder')}
+            placeholder={
+              useShortSearchLabel
+                ? t('hero.searchPlaceholderShort')
+                : t('hero.searchPlaceholder')
+            }
             ariaLabel={t('hero.searchAriaLabel')}
             buttonLabel={t('hero.searchButton')}
             inputClassName="text-pana-ink h-auto border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold shadow-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)] focus-visible:ring-0 md:text-[16.5px]"
