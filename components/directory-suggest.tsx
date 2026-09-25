@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, Search, Store, User, Users } from 'lucide-react';
@@ -18,22 +18,33 @@ import {
 
 export type { Suggestion as DirectorySuggestion };
 
-interface DirectorySuggestProps {
+interface DirectorySuggestBaseProps {
   /** Visible-to-screen-readers-only label for the input. */
   label: string;
   placeholder: string;
   ariaLabel: string;
-  buttonLabel: string;
   /** Applied to the <form>, so callers keep control of width and placement. */
   className?: string;
   inputClassName?: string;
-  /**
-   * `stacked` (default) puts the button beside the input as its own control.
-   * `pill` merges the two into a single rounded bar, as the homepage hero
-   * does — the button sits inside the input's surface rather than next to it.
-   */
-  layout?: 'stacked' | 'pill';
 }
+
+/**
+ * `stacked` (default) puts the button beside the input as its own control.
+ * `pill` merges the two into a single rounded bar, as the homepage hero does —
+ * the button sits inside the input's surface rather than next to it.
+ * `masthead` is the surface header's field: a magnifier and an input in one
+ * short bar, with no button at all, because chrome that repeats on every page
+ * cannot afford a second control's width.
+ *
+ * Spelled as a union so the button's label is required exactly when there is a
+ * button to put it on — a `masthead` caller has nothing to pass it for, and the
+ * other two would otherwise be free to render an unlabelled control.
+ */
+type DirectorySuggestProps = DirectorySuggestBaseProps &
+  (
+    | { layout?: 'stacked' | 'pill'; buttonLabel: string }
+    | { layout: 'masthead'; buttonLabel?: never }
+  );
 
 // Long enough that a fast typist finishes a word first, short enough that the
 // list still feels attached to the keystroke.
@@ -71,9 +82,6 @@ const KIND_IMAGE_SHAPE: Record<SuggestionKind, string> = {
   event: 'rounded-lg',
 };
 
-const LISTBOX_ID = 'directory-suggest-listbox';
-const optionId = (index: number) => `directory-suggest-option-${index}`;
-
 /**
  * Search box with a typeahead dropdown over the whole club.
  *
@@ -86,6 +94,14 @@ const optionId = (index: number) => `directory-suggest-option-${index}`;
  * announces the result count. The suggestions are a shortcut, not a
  * replacement — the last row and a bare Enter both fall through to the full
  * /directory/search results page.
+ *
+ * WORKS WITHOUT JAVASCRIPT. The form is a real GET to /directory/search with a
+ * real `name="q"`, so a submit before the bundle lands — or on a page with
+ * scripting off — is an ordinary document navigation to the query-string form
+ * of the results page. Once hydrated, `handleSubmit` preventDefaults and routes
+ * to the canonical path form instead, so `action` only ever fires as the
+ * fallback. This is what lets the masthead field, which used to be a plain GET
+ * form for exactly that reason, become a typeahead without losing anything.
  */
 export function DirectorySuggest({
   label,
@@ -98,6 +114,18 @@ export function DirectorySuggest({
 }: DirectorySuggestProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
+
+  // Ids have to be per-instance: the masthead carries this component on every
+  // page of a surface, so a page that also has one in its body would otherwise
+  // hold two inputs with one id, and `htmlFor`, `aria-controls` and
+  // `aria-activedescendant` would all resolve to whichever came first.
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const listboxId = `${baseId}-listbox`;
+  const optionId = useCallback(
+    (index: number) => `${baseId}-option-${index}`,
+    [baseId]
+  );
 
   const [term, setTerm] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -177,7 +205,7 @@ export function DirectorySuggest({
     document
       .getElementById(optionId(activeIndex))
       ?.scrollIntoView({ block: 'nearest' });
-  }, [open, activeIndex]);
+  }, [open, activeIndex, optionId]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -188,8 +216,13 @@ export function DirectorySuggest({
    * fold, leaving no room below it for a dropdown. Browsers do scroll a focused
    * input into view when the on-screen keyboard opens, but how much varies by
    * browser, so this makes the room deterministically rather than hoping.
+   *
+   * Not in the masthead, which is sticky at the top of the viewport already:
+   * there the field cannot be any higher than it is, and scrolling to it would
+   * throw the page back to the top for nothing.
    */
   function revealOnSmallScreens() {
+    if (layout === 'masthead') return;
     if (!window.matchMedia('(max-width: 767px)').matches) return;
     rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -259,22 +292,79 @@ export function DirectorySuggest({
 
   const showList = open && trimmed.length >= MIN_TERM_LENGTH;
 
+  /**
+   * The wiring every layout's input needs.
+   *
+   * Kept in one object because two layouts render the styled `Input` and the
+   * masthead renders a bare `<input>` — the shadcn defaults are a bordered
+   * 40px box, which is the opposite of a field that has to disappear into a
+   * 34px pill. The ARIA that makes this a combobox is exactly the part that
+   * must not drift between the two, so it is written once.
+   */
+  const inputProps: React.ComponentProps<'input'> = {
+    id: inputId,
+    type: 'text',
+    // A real field name, for the no-JS GET on the form above. Matches the ?q=
+    // spelling the results page already accepts.
+    name: 'q',
+    role: 'combobox',
+    autoComplete: 'off',
+    // Mobile keyboard hints. type="search" would add a native clear button
+    // that sits on top of the dropdown, so the search affordance comes from
+    // enterKeyHint instead. Autocorrect on a directory of proper nouns does
+    // more harm than good.
+    enterKeyHint: 'search',
+    autoCorrect: 'off',
+    autoCapitalize: 'off',
+    spellCheck: false,
+    'aria-expanded': showList,
+    'aria-controls': listboxId,
+    'aria-autocomplete': 'list',
+    'aria-activedescendant':
+      showList && activeIndex >= 0 ? optionId(activeIndex) : undefined,
+    value: term,
+    onChange: (event) => {
+      setTerm(event.target.value);
+      setOpen(true);
+      setActiveIndex(-1);
+    },
+    onKeyDown: handleKeyDown,
+    onFocus: () => {
+      if (trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
+      revealOnSmallScreens();
+    },
+    placeholder,
+    'aria-label': ariaLabel,
+  };
+
   return (
     <form
       ref={rootRef}
       role="search"
+      // The fallback path, not the normal one: `handleSubmit` preventDefaults
+      // once hydrated. Until then this is a plain GET to the query-string form
+      // of the results page, which is what the field does with scripting off.
+      action="/directory/search"
+      method="get"
       onSubmit={handleSubmit}
       // scroll-mt clears the sticky site header when revealOnSmallScreens runs.
       className={cn('scroll-mt-24', className)}
     >
-      <label htmlFor="directory-suggest-input" className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         {label}
       </label>
       <div
         className={
           layout === 'pill'
             ? 'directory-suggest-pill'
-            : 'flex flex-col items-center justify-center gap-4 md:flex-row'
+            : layout === 'masthead'
+              ? // `contents` rather than a box: the masthead pill is itself the
+                // flex row, sized and padded by `.panaverse-search`, and this
+                // wrapper exists only because the other two layouts need one.
+                // Dissolving it leaves the icon and the field as that row's own
+                // children, which is the markup the stylesheet was written for.
+                'contents'
+              : 'flex flex-col items-center justify-center gap-4 md:flex-row'
         }
       >
         {/* A magnifier at the head of the pill. The button already says
@@ -290,49 +380,28 @@ export function DirectorySuggest({
           />
         )}
 
+        {/* The masthead has no button at all, so its magnifier is the only
+            thing saying what the bar is. */}
+        {layout === 'masthead' && (
+          <Search className="panaverse-search-icon" aria-hidden="true" />
+        )}
+
         {/* `directory-suggest-field` rather than a positional selector: the
             icon above is now the pill's first child, so the stylesheet needs
             to name the field to keep the dropdown anchored to the whole pill
             instead of to the magnifier. */}
         <div className="directory-suggest-field relative w-full">
-          <Input
-            id="directory-suggest-input"
-            type="text"
-            role="combobox"
-            autoComplete="off"
-            // Mobile keyboard hints. type="search" would add a native clear
-            // button that sits on top of the dropdown, so the search affordance
-            // comes from enterKeyHint instead. Autocorrect on a directory of
-            // proper nouns does more harm than good.
-            enterKeyHint="search"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            aria-expanded={showList}
-            aria-controls={LISTBOX_ID}
-            aria-autocomplete="list"
-            aria-activedescendant={
-              showList && activeIndex >= 0 ? optionId(activeIndex) : undefined
-            }
-            value={term}
-            onChange={(event) => {
-              setTerm(event.target.value);
-              setOpen(true);
-              setActiveIndex(-1);
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => {
-              if (trimmed.length >= MIN_TERM_LENGTH) setOpen(true);
-              revealOnSmallScreens();
-            }}
-            placeholder={placeholder}
-            aria-label={ariaLabel}
-            className={inputClassName}
-          />
-
+          {layout === 'masthead' ? (
+            <input
+              {...inputProps}
+              className={cn('panaverse-search-input', inputClassName)}
+            />
+          ) : (
+            <Input {...inputProps} className={inputClassName} />
+          )}
           {showList && (
             <ul
-              id={LISTBOX_ID}
+              id={listboxId}
               role="listbox"
               aria-label={label}
               // Height is capped rather than left to the row count: a full ten
@@ -340,7 +409,10 @@ export function DirectorySuggest({
               // which buried the "search for this term" row below the fold.
               // Scrolls internally instead, and overscroll-contain stops that
               // scroll from chaining to the page behind it.
-              className="bg-popover text-popover-foreground absolute top-full right-0 left-0 z-50 mt-2 max-h-[min(60vh,22rem)] overflow-y-auto overscroll-contain rounded-xl border shadow-lg"
+              // The class carries no styles of its own; it is the hook the
+              // home hero uses to drop its own clip while this panel is open.
+              // See `.home-hero-banner:has(.directory-suggest-list)`.
+              className="directory-suggest-list bg-popover text-popover-foreground absolute top-full right-0 left-0 z-50 mt-2 max-h-[min(60vh,22rem)] overflow-y-auto overscroll-contain rounded-xl border shadow-lg"
             >
               {suggestions.map((suggestion, index) => {
                 const KindIcon = KIND_ICON[suggestion.kind];
@@ -440,20 +512,25 @@ export function DirectorySuggest({
           </div>
         </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          className={
-            layout === 'pill' ? 'directory-suggest-pill-button' : 'px-8'
-          }
-        >
-          {/* The pill layout is text-only, as in the mock — the bar itself
-              already reads as a search field. */}
-          {layout === 'stacked' && (
-            <Search className="mr-2 h-5 w-5" aria-hidden="true" />
-          )}
-          {buttonLabel}
-        </Button>
+        {/* No button in the masthead: chrome that repeats on every page of a
+            surface cannot spend the width, and the magnifier plus Enter are
+            what a header search is expected to answer to anyway. */}
+        {layout !== 'masthead' && (
+          <Button
+            type="submit"
+            size="lg"
+            className={
+              layout === 'pill' ? 'directory-suggest-pill-button' : 'px-8'
+            }
+          >
+            {/* The pill layout is text-only, as in the mock — the bar itself
+                already reads as a search field. */}
+            {layout === 'stacked' && (
+              <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+            )}
+            {buttonLabel}
+          </Button>
+        )}
       </div>
     </form>
   );

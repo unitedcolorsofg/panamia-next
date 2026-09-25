@@ -3370,6 +3370,16 @@ body {
   border: 1px solid color-mix(in srgb, var(--color-pana-ink) 12%, transparent);
   border-radius: 9999px;
   background: #fff;
+  /* The anchor for the typeahead dropdown the field now carries. Paired with
+     the rule below, which takes the field out of the flow the same way
+     `.directory-suggest-pill` does, so the list spans the whole bar rather
+     than starting after the magnifier. */
+  position: relative;
+}
+.panaverse-search .directory-suggest-field {
+  position: static;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .panaverse-search:focus-within {
@@ -3978,7 +3988,14 @@ body {
   appearance: none;
 }
 
-.dirsearch-pill button {
+/* Scoped to the submit button rather than every button in the pill. The pill
+   was built holding exactly one — "Search" — so a bare `button` selector was
+   accurate at the time. A scope selector sitting at the other end of the same
+   pill makes that no longer true, and an unscoped rule would paint it solid
+   indigo, giving a secondary control the same weight as the primary action.
+   Both existing call sites are already `type="submit"`, so this narrows the
+   rule without changing anything it currently matches. */
+.dirsearch-pill button[type='submit'] {
   flex: none;
   padding: 0.6rem 1.4rem;
   border-radius: 999px;
@@ -3989,7 +4006,7 @@ body {
   transition: background-color 0.18s ease;
 }
 
-.dirsearch-pill button:hover {
+.dirsearch-pill button[type='submit']:hover {
   background-color: var(--color-pana-burnt);
 }
 
@@ -5514,6 +5531,26 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 .home-hero-field {
   position: relative;
   overflow: hidden;
+}
+
+/* The typeahead panel hangs below the search pill, but that pill sits about
+   20px above the bottom of the hero, so all 352px of the panel fell outside
+   this box and was clipped away: on the home page the dropdown was invisible
+   at every viewport size, because the hero is `min-height: 100svh` and so the
+   pill is always near its bottom edge.
+
+   Dropping the clip is safe rather than a trade, because the art that needs
+   clipping already does its own: `.sky-clouds` is itself `overflow: hidden`
+   and sized to the hero, so the sun and clouds stay trimmed no matter what
+   this box does. Measured with the panel open — no horizontal scrollbar, and
+   scrollWidth/scrollHeight both unchanged.
+
+   Still scoped with `:has()` to the moment the panel is actually open, so the
+   hero keeps its own clip in every other state instead of resting on that
+   reasoning holding forever. */
+.home-hero-banner:has(.directory-suggest-list),
+.home-hero-field:has(.directory-suggest-list) {
+  overflow: visible;
 }
 
 /* The sun. Sat in the top-left because the right-hand end of the masthead is
