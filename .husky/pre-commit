@@ -166,11 +166,19 @@ echo "Checking Drizzle migration standards..."
 # Migration files are flat .sql files in drizzle/ (e.g. 0000_name.sql)
 # drizzle/meta/ contains auto-generated snapshots -- excluded from all checks
 
+# Select migrations with git's own pathspec instead of piping through grep.
+# On a Windows checkout without git's usr/bin on PATH the pipeline fails,
+# `|| true` swallows the failure, both lists come back empty, and every check
+# below silently passes -- the guard switches itself off on exactly the
+# machines that need it. git does the globbing internally, so there is no
+# external dependency left to be missing. See #237.
+MIGRATION_PATHSPEC=':(glob)drizzle/[0-9][0-9][0-9][0-9]_*.sql'
+
 # Check for NEW migrations (additions only)
-STAGED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=A | grep -E '^drizzle/[0-9]{4}_[a-z][a-z0-9_]*\.sql$' || true)
+STAGED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=A -- "$MIGRATION_PATHSPEC")
 
 # Check for MODIFIED existing migrations (not allowed)
-MODIFIED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=M | grep -E '^drizzle/[0-9]{4}_[a-z][a-z0-9_]*\.sql$' || true)
+MODIFIED_MIGRATIONS=$(git diff --cached --name-only --diff-filter=M -- "$MIGRATION_PATHSPEC")
 
 if [ -n "$MODIFIED_MIGRATIONS" ]; then
   echo ""
