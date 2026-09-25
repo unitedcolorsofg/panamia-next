@@ -7,15 +7,21 @@ import { UnifiedDirectory } from './_components/unified-directory';
  * Why this exists: the live directory renders two different pages depending on
  * which chip you click. `/directory/search` (businesses) opens with a compact
  * toolbar and rich cards. `/directory/[scope]/[q]` (everything else) opens
- * with a tall indigo hero and 48px thumbnail rows. Neither is wrong on its
- * own — they were built PRs apart, and the scope pages reused the hero band
- * that the business page had already replaced in #206 for being 570px of
- * chrome on a page you refine five times in a row. Side by side they read as
- * two products, and the scope chips promise they are one.
+ * with the indigo band and 48px thumbnail rows. Measured against the same
+ * record — Taller Lucía, searching "art" — the businesses page gives it a
+ * 458px card carrying ten facts and the everything page gives it a 70px row
+ * carrying three. Same business, same query, two products.
  *
- * This merges them in the only direction that does not lose information: the
- * newer chrome, the richer card, and per-kind content rules rather than
- * per-template ones. See `_data.ts` for the slot-by-slot argument.
+ * The merge keeps the band and its search bar exactly as they ship. The scope
+ * control belongs inside the pill, and a directory landing on a real query
+ * earns a headline; that argument was settled and is not reopened here. What
+ * changes is below the band: the rich card replaces the thumbnail row for all
+ * four kinds, and the facet rail the scope pages never had appears, scoped to
+ * the rows each kind can actually answer.
+ *
+ * So the direction is the opposite of what the file layout suggests: the
+ * businesses page should adopt this band, not the other way round. See
+ * `_data.ts` for the slot-by-slot argument about the card.
  *
  * This page is a server component purely so it can carry `robots: noindex`,
  * which app/mock/README.md requires of every mock route and which no mock

@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { UnifiedCard } from './unified-card';
 import { UnifiedChrome, type MockScope } from './unified-chrome';
-import { UNIFIED_RESULTS } from '../_data';
+import { UNIFIED_RESULTS } from './../_data';
 
 /**
- * The mock itself. Client-side only because the SHOW chips are the whole
+ * The mock itself. Client-side only because the scope chips are the whole
  * demonstration — the point is not any one scope, it is that moving between
- * them does not change the page.
+ * them changes what is in the cards without changing the page around them.
  */
 export function UnifiedDirectory() {
   const [scope, setScope] = useState<MockScope>('all');
@@ -19,31 +19,24 @@ export function UnifiedDirectory() {
       : UNIFIED_RESULTS.filter((result) => result.kind === scope);
 
   return (
-    /* The `dirsearch` class is load-bearing, not decorative. The --story-*
-       palette is scoped to `body:has(.dirsearch), body:has(.dirscope), …` in
-       globals.css, so a page that omits it renders on a transparent
-       background with nothing in the console to explain why. */
-    <main className="dirsearch">
+    /* `dirscope`, the scope page's own wrapper, because the band stays and
+       this is that page growing a better card rather than a new page. It is
+       also load-bearing: the --story-* palette is scoped to
+       `body:has(.dirsearch), body:has(.dirscope), …` in globals.css, so a
+       page that carries neither renders on a transparent background with
+       nothing in the console to say why. */
+    <main className="dirscope">
       <UnifiedChrome
         scope={scope}
         onScope={setScope}
         resultCount={results.length}
       />
 
-      {/* `.dirsearch-results` only supplies padding-block. On the live
-          Businesses page the inline gutter comes from `.dirsearch-listbody`,
-          which exists because that page is a split scrolling pane — a shell
-          this mock does not have. Without replacing it, cards run edge to
-          edge at 390px, which is exactly the mobile complaint that started
-          this. Held on the wrapper rather than the cards so it matches. */}
-      <div className="dirsearch-results px-4">
-        <p className="border-pana-ink/10 bg-pana-butter-2/60 mx-auto mb-6 max-w-[58rem] rounded-xl border px-4 py-3 text-sm">
-          <strong>Mock.</strong> Proposed merge of the Businesses view and the
-          Everything/scope views into one theme. Use the SHOW chips — the
-          chrome, the card and the rhythm hold still while the content rules
-          change per kind.
-        </p>
-
+      {/* The scope page's own results container. `px-4` is where the mobile
+          gutter comes from here — on the businesses page that job belongs to
+          `.dirsearch-listbody`, part of the split scrolling pane this page
+          does not have. */}
+      <div className="container mx-auto px-4 pt-6 pb-16">
         <ul className="dirsearch-grid">
           {results.map((result) => (
             <li key={result.id}>
@@ -55,8 +48,9 @@ export function UnifiedDirectory() {
         {/* Per app/mock/README.md, a mock names its own route so a screenshot
             taken out of context still says where it came from. */}
         <p className="mx-auto mt-10 max-w-[58rem] text-center text-xs opacity-60">
-          Design mock — <code>/mock/directory-unified</code>. Static fixtures;
-          nothing here reads the database.
+          Design mock — <code>/mock/directory-unified</code>. The band and its
+          search bar are unchanged; the cards and the facet rail are the
+          proposal. Static fixtures, nothing here reads the database.
         </p>
       </div>
     </main>

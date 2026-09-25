@@ -1,6 +1,8 @@
 'use client';
 
-import { Map as MapIcon, List, Search } from 'lucide-react';
+import { ChevronDown, Lock, Map as MapIcon, List, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { KIND_ICON } from '@/components/kind-icon';
 import type { SuggestionKind } from '@/lib/suggest';
 import { UNIFIED_COUNTS } from '../_data';
@@ -17,37 +19,48 @@ const SCOPE_LABEL: Record<MockScope, string> = {
   event: 'Events',
 };
 
-/**
- * Facets are per scope because they are per kind, not per page.
- *
- * The live Businesses view shows CATEGORY, WHERE, SORT and a List/Map toggle;
- * the live scope views show none of them. Both are wrong in the same way —
- * they treat the facet rail as a property of which template rendered, when it
- * is really a property of what is being filtered. A county filter is
- * meaningful for a business, a pana and a group meetup and meaningless for an
- * online group; a map needs coordinates, which events and businesses have and
- * panas mostly do not; "this weekend" only exists for events.
- *
- * So the rail is declared here, once, and each scope takes the rows it can
- * answer. Everything takes the intersection — the two rows that mean the same
- * thing for all four kinds — rather than showing a Category chip that would
- * silently drop every pana from the results.
- */
-const FACETS: Record<MockScope, string[]> = {
-  all: ['WHERE', 'SORT'],
-  business: ['CATEGORY', 'WHERE', 'SORT'],
-  pana: ['INTERESTS', 'WHERE', 'SORT'],
-  group: ['TAGS', 'WHERE', 'SORT'],
-  event: ['TAGS', 'WHEN', 'WHERE', 'SORT'],
+/** Panas and groups are signed-in only, same as the live scope bar. */
+const REQUIRES_PANA: Record<MockScope, boolean> = {
+  all: false,
+  business: false,
+  pana: true,
+  group: true,
+  event: false,
 };
 
+/**
+ * Facets are per kind, not per template.
+ *
+ * The live Businesses view shows CATEGORY, WHERE, SORT and a List/Map toggle.
+ * The live scope views show none of them — a pana search cannot be narrowed at
+ * all once you have typed it. Both are wrong in the same way: they treat the
+ * facet rail as a property of which page rendered rather than of what is being
+ * filtered. A county filter means something for a business, a pana and a group
+ * that meets somewhere, and nothing for an online group. A map needs
+ * coordinates, which businesses and events have and panas mostly do not. "This
+ * weekend" only exists for events.
+ *
+ * So each scope takes the rows it can actually answer. Everything takes the
+ * intersection rather than offering a Category chip that would silently drop
+ * every pana from the results.
+ */
+const FACETS: Record<MockScope, string[]> = {
+  all: ['Where', 'Sort'],
+  business: ['Category', 'Where', 'Sort'],
+  pana: ['Interests', 'Where', 'Sort'],
+  group: ['Tags', 'Where', 'Sort'],
+  event: ['Tags', 'When', 'Where', 'Sort'],
+};
+
+/* Sentence case, not caps: `.dirsearch-filterlabel` already applies
+   text-transform, and the live bars write "Scope" and "Category". */
 const CHIPS: Record<string, string[]> = {
-  CATEGORY: ['Food', 'Products', 'Services', 'Venues', 'Art'],
-  INTERESTS: ['Ceramics', 'Music', 'Film', 'Teaching'],
-  TAGS: ['Zines', 'Print', 'Free', 'Open to all'],
-  WHEN: ['Today', 'This weekend', 'This month'],
-  WHERE: ['Near me', 'Miami-Dade', 'Broward', 'Palm Beach'],
-  SORT: ['Best match', 'Closest', 'Newest'],
+  Category: ['Food', 'Products', 'Services', 'Venues', 'Art'],
+  Interests: ['Ceramics', 'Music', 'Film', 'Teaching'],
+  Tags: ['Zines', 'Print', 'Free', 'Open to all'],
+  When: ['Today', 'This weekend', 'This month'],
+  Where: ['Near me', 'Miami-Dade', 'Broward', 'Palm Beach'],
+  Sort: ['Best match', 'Closest', 'Newest'],
 };
 
 /** Map only makes sense where the things have addresses. */
@@ -61,8 +74,8 @@ const HAS_MAP: Record<MockScope, boolean> = {
 
 /**
  * The summary is a sentence, so it has to count like one. The live Businesses
- * page hardcodes " businesses" and is wrong at one result for the same
- * reason; a merged view that renders all four kinds would be wrong four ways.
+ * page hardcodes " businesses" and reads "1 businesses" at one result; a
+ * merged view rendering all four kinds would be wrong four ways.
  */
 const NOUN: Record<MockScope, [singular: string, plural: string]> = {
   all: ['result', 'results'],
@@ -72,6 +85,27 @@ const NOUN: Record<MockScope, [singular: string, plural: string]> = {
   event: ['event', 'events'],
 };
 
+const TERM = 'art';
+
+/**
+ * The band, kept exactly as it ships today.
+ *
+ * This is a static reproduction of `scope-page.tsx`'s `SearchBand` and the
+ * `ScopeChips` bar, down to the class names — `.surface-indigo
+ * .dirsearch-band`, the eyebrow, `.dirsearch-title`, `.dirsearch-count`, and
+ * the `.directory-suggest-pill` carrying `ScopeMenu` as its leading element
+ * with `.dirsearch-chipdivide` after it.
+ *
+ * Reproduced rather than imported because the real `DirectorySuggest`,
+ * `ScopeMenu` and `ScopeChips` all navigate: submitting routes to
+ * `/directory/[scope]/[q]` and every chip is a `Link`. In a mock whose entire
+ * demonstration is switching scope in place, that would walk the reviewer out
+ * of the page on the first click. The markup and the stylesheet are the real
+ * ones, so it looks identical; only the hrefs became state.
+ *
+ * The one deliberate addition is the facet rail below the scope chips, which
+ * the scope pages do not have today.
+ */
 export function UnifiedChrome({
   scope,
   onScope,
@@ -81,82 +115,139 @@ export function UnifiedChrome({
   onScope: (next: MockScope) => void;
   resultCount: number;
 }) {
-  const noun = NOUN[scope][resultCount === 1 ? 0 : 1];
+  const total = Object.values(UNIFIED_COUNTS).reduce((a, b) => a + b, 0);
+  const ScopeIcon = scope === 'all' ? null : KIND_ICON[scope];
 
   return (
     <>
-      {/* The compact toolbar from the Businesses view, now used by every
-          scope. The scope views currently open with the pre-#206 hero band —
-          an eyebrow, a display headline, a count and a full-bleed drawing,
-          roughly 570px before the first result. That band was deliberately
-          removed from Businesses because the directory is a page you refine
-          five times in a row, and every refinement paid for the hero again.
-          Panas, groups and events are refined the same way. */}
-      <section className="dirsearch-tools">
-        <form
-          className="dirsearch-searchrow"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <label htmlFor="mock-unified-input" className="sr-only">
-            Search the Pana Mia directory
-          </label>
-          <div className="dirsearch-pill">
-            <Search
-              className="h-5 w-5 shrink-0 opacity-45"
-              aria-hidden="true"
-            />
-            <input
-              id="mock-unified-input"
-              type="search"
-              defaultValue="art"
-              placeholder="Try food, art, Hialeah, bike repair…"
-              autoComplete="off"
-            />
-            <button type="submit">Search</button>
-          </div>
-        </form>
+      <section className="surface-indigo dirsearch-band">
+        <div className="container mx-auto px-4">
+          <span className="section-eyebrow">Directory</span>
 
-        <div className="dirsearch-toolsline">
-          <h1 className="sr-only">Find your people</h1>
-          <p className="dirsearch-summary" role="status" aria-live="polite">
-            <strong>{resultCount}</strong> {noun} for <em>art</em>
+          <h1 className="dirsearch-title">
+            <em>{TERM}</em>
+            {scope === 'all' ? (
+              <> in South Florida</>
+            ) : (
+              <> — {SCOPE_LABEL[scope].toLowerCase()}</>
+            )}
+          </h1>
+
+          <p className="dirsearch-count">
+            {scope === 'all' ? (
+              <>
+                <strong>{total}</strong> results across businesses, panas,
+                groups and events
+              </>
+            ) : (
+              <>
+                <strong>{resultCount}</strong>
+                {' of '}
+                {total} results are {SCOPE_LABEL[scope].toLowerCase()}
+              </>
+            )}
           </p>
+
+          {/* The scope control sits inside the pill rather than beside it,
+              because scope is part of the question being asked — "panas named
+              Maria" is one query, not a query plus a page setting. */}
+          <div className="dirsearch-searchrow">
+            <form
+              className="scroll-mt-24"
+              onSubmit={(event) => event.preventDefault()}
+            >
+              <label htmlFor="mock-unified-input" className="sr-only">
+                Search the Pana Mia directory
+              </label>
+              <div className="directory-suggest-pill directory-suggest-pill-lead">
+                <div className="relative shrink-0">
+                  <button type="button" className="surface-pill">
+                    {ScopeIcon ? (
+                      <ScopeIcon className="h-3.5 w-3.5 flex-none" />
+                    ) : (
+                      <span className="surface-dot" aria-hidden="true" />
+                    )}
+                    <span className="surface-pill-name">
+                      {SCOPE_LABEL[scope]}
+                    </span>
+                    <ChevronDown
+                      className="h-3.5 w-3.5 flex-none transition-transform"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+
+                <span className="dirsearch-chipdivide" aria-hidden="true" />
+
+                <Search
+                  className="directory-suggest-pill-icon text-pana-ink h-5 w-5 shrink-0 opacity-45"
+                  aria-hidden="true"
+                />
+
+                <div className="directory-suggest-field relative w-full">
+                  <div className="directory-suggest-input-shell">
+                    <Input
+                      id="mock-unified-input"
+                      type="search"
+                      defaultValue={TERM}
+                      placeholder="Try art, croqueta, zine, Maria…"
+                      autoComplete="off"
+                      className="text-pana-ink"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="directory-suggest-pill-button"
+                >
+                  Search
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 
-      {/* Scope chips keep the icons the typeahead and scope menu already use,
-          so a kind is the same symbol everywhere it appears. */}
-      <section className="dirsearch-filters">
-        <div className="dirsearch-filterinner">
+      {/* ScopeChips, unchanged apart from being buttons instead of links. */}
+      <div className="dirsearch-filters">
+        <div className="container mx-auto px-4">
           <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">SHOW</span>
-            <div className="dirsearch-chiprow">
+            <span className="dirsearch-filterlabel">Scope</span>
+            <nav className="dirsearch-chiprow" aria-label="Search scope">
               {SCOPE_ORDER.map((option) => {
                 const Icon =
                   option === 'all' ? null : KIND_ICON[option as SuggestionKind];
                 const count =
                   option === 'all'
-                    ? Object.values(UNIFIED_COUNTS).reduce((a, b) => a + b, 0)
+                    ? total
                     : UNIFIED_COUNTS[option as SuggestionKind];
                 return (
                   <button
                     key={option}
                     type="button"
-                    className="dirsearch-chip"
+                    className="dirsearch-chip inline-flex items-center gap-1.5"
                     data-on={option === scope}
                     onClick={() => onScope(option)}
                   >
-                    {Icon && (
-                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {REQUIRES_PANA[option] ? (
+                      <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : (
+                      Icon && (
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      )
                     )}
                     {SCOPE_LABEL[option]}
                     <span className="opacity-55">{count}</span>
                   </button>
                 );
               })}
-            </div>
+            </nav>
           </div>
 
+          {/* New: the rail the scope pages have never had. Same row grammar as
+              the businesses filter bar, so the two rails are one rail. */}
           {FACETS[scope].map((row) => (
             <div key={row} className="dirsearch-filterrow">
               <span className="dirsearch-filterlabel">{row}</span>
@@ -165,17 +256,17 @@ export function UnifiedChrome({
                   <button
                     key={chip}
                     type="button"
-                    className="dirsearch-chip"
-                    data-on={row === 'SORT' && index === 0}
+                    className="dirsearch-chip inline-flex items-center gap-1.5"
+                    data-on={row === 'Sort' && index === 0}
                   >
                     {chip}
                   </button>
                 ))}
-                {row === 'WHERE' && HAS_MAP[scope] && (
-                  <span className="ml-auto inline-flex gap-1">
+                {row === 'Where' && HAS_MAP[scope] && (
+                  <>
                     <button
                       type="button"
-                      className="dirsearch-chip"
+                      className="dirsearch-chip inline-flex items-center gap-1.5"
                       data-on={true}
                     >
                       <List className="h-3.5 w-3.5" aria-hidden="true" />
@@ -183,19 +274,29 @@ export function UnifiedChrome({
                     </button>
                     <button
                       type="button"
-                      className="dirsearch-chip"
+                      className="dirsearch-chip inline-flex items-center gap-1.5"
                       data-on={false}
                     >
                       <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
                       Map
                     </button>
-                  </span>
+                  </>
                 )}
               </div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
+
+      {/* The count the businesses page carries in `.dirsearch-summary`. The
+          band already says how many results there are, so this says what the
+          list below is showing after the facets narrowed it. */}
+      <div className="container mx-auto px-4 pt-6">
+        <p className="dirsearch-summary" role="status" aria-live="polite">
+          <strong>{resultCount}</strong>{' '}
+          {NOUN[scope][resultCount === 1 ? 0 : 1]} for <em>{TERM}</em>
+        </p>
+      </div>
     </>
   );
 }
