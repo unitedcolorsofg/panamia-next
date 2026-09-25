@@ -222,6 +222,144 @@ This is why the verification block asserts specific `seed_`-prefixed ids
 rather than row counts. A count is not stable in a database someone else is
 writing to; an id is.
 
+### `fetch-directory-photos.ts`
+
+Builds the stock photo pool in `public/img/directory/` from the Pexels API.
+This is a sourcing tool, not part of the app — nothing at runtime talks to
+Pexels, and the pool is committed.
+
+```bash
+PEXELS_API_KEY=... npm run photos:fetch
+```
+
+`PEXELS_API_KEY` is deliberately **not** in `lib/env.config.ts`. That file
+drives Cloudflare deployment config and the CI env checks; a key only ever
+needed to regenerate a committed fixture does not belong in either, and adding
+it would make every deploy expect a variable the running app never reads.
+
+**Why there are food sub-themes.** Twelve of the twenty seeded businesses are
+tagged Food. Keying photos on category alone stapled three near-identical
+plates of food across a whole results page, so the food category is split into
+food-truck, bakery, cafe, market and supper-club. Eleven categories plus five
+sub-themes at three photos each is the 48-file pool.
+
+**Compression is optional and self-healing.** `sharp` is present transitively
+(`@cloudflare/vite-plugin` → `miniflare`), not declared as a dependency, so the
+script loads it through a guarded dynamic import and skips compression if it
+resolves to nothing rather than failing the run. With it, the pool is 4.4 MB
+instead of 5.9 MB; the worst single file drops from 1120 KB to 111 KB.
+
+Each run rewrites `credits.json` with the photographer, source URL and alt text
+per file. The Pexels **API** terms require visible attribution even though the
+photo licence itself does not, which is what the credit line under the
+directory results is for. Do not remove it while these photos are in use.
+
+### `seed-business-photos.ts`
+
+Assigns pooled photos to directory listings, replacing the generated
+`data:image/png;base64` gradients that were standing in for real covers.
+
+```bash
+npx tsx scripts/seed-business-photos.ts            # dry run, prints the plan
+npx tsx scripts/seed-business-photos.ts --apply    # write
+npx tsx scripts/seed-business-photos.ts --explain  # matcher only, no database
+npm run db:photos                                  # alias for the dry run
+```
+
+**Check which database it names before you trust an `--apply`.** Every
+worktree's `.env.local` points at the same local `127.0.0.1:5433/panamia`, so a
+bare `--apply` rewrites the dev database and leaves the live site untouched —
+which reads exactly like the script having silently done nothing. Pass
+`--postgres <url>` to target production explicitly. Every run prints the host
+and database name it resolved (never the URL, which carries the password), and
+says so out loud when an `--apply` is pointed at localhost.
+
+**Which column is the cover.** There isn't one. `lib/server/directory.ts` reads
+`coverImage` out of the `galleryImages` JSONB as `gallery1CDN`, and
+`profiles.primaryImageCdn` is the **logo**. The script therefore writes
+`gallery1CDN` and clears `primaryImageCdn` to null: these are stock
+photographs, and the same photo rendered both as the card cover and in the 52px
+logo circle beside it reads as a bug. `result-card.tsx` renders the logo
+conditionally, so null degrades to a cover-only card.
+
+**Name keywords are checked before categories, on purpose.** The seeded data is
+mis-tagged — "Clave Sound" (music) and "Raiz Bodywork" (breathwork) are both
+filed under Food, and a skincare market is Food,Products. Matching on category
+first gives all three a photograph of dinner. Where categories are trusted, a
+priority order lets a specific one beat a broad one. `--explain` runs the whole
+matcher against a table of real listing names with no database connection, which
+is how that behaviour is checked.
+
+Photos live in `public/` rather than R2 because `lib/image-src.ts` refuses to
+optimize any `src` that is not root-relative, and there is no `remotePatterns`
+equivalent to grant an exception.
+
+These are stand-ins. Replace them with real photography from the businesses as
+it arrives, and drop the credit line when the last stock photo is gone.
+
+### `reseed-directory-content.ts`
+
+Rewrites the name, screenname, category, copy and photos of the 100 seeded
+directory listings so a listing describes one coherent business.
+
+```bash
+npx tsx scripts/reseed-directory-content.ts                 # dry run
+npx tsx scripts/reseed-directory-content.ts --apply         # write
+npx tsx scripts/reseed-directory-content.ts --postgres <url>
+```
+
+The same `--postgres` / localhost warning as `seed-business-photos.ts` applies;
+read that section first.
+
+**What was wrong.** The seeded rows were generated combinatorially, so the name,
+the category and the three description fields were each drawn independently.
+That produced three separate failures: categories that contradict the business
+(`Clave Sound` filed under Food), copy that describes someone else entirely
+(`Telar Forge`, a forge, selling hand-poured candles; `Ceiba Ceramics` doing
+leather work), and one brand split across unrelated trades (`Ceiba Ceramics` /
+`Ceiba Craft` / `Ceiba Workshop`). There is no generator in this repo to repair
+— the rows were written straight into the database — so this script is the
+source of truth for them.
+
+**Archetypes, not heuristics.** Each listing is pinned to one of ~48 archetypes
+that bundle a category, a photo theme and the copy together, so those three
+agree by construction. Guessing from the business name, the way
+`seed-business-photos.ts` has to, can only ever be as good as its keyword list.
+
+**Renames keep the trailing noun.** Splitting `Ceiba Craft` off gives
+`Madera Craft`, never `Madera Goods`. Only the brand word moves, so the
+category, photo and copy stay valid and the row still reads as the same kind of
+business. `descriptions.background` embeds the old name and carries a real
+neighborhood and founding year, so the name inside it is substituted rather
+than the sentence regenerated.
+
+**Branches are kept paired.** Eight rows are a second location of another row
+(`Trenza Studio` / `Trenza Studio Aventura`). They deliberately share an
+archetype and a copy variant, because they are one business.
+
+**Copy variants.** Four supper clubs reciting the same paragraph is what gave
+the original data away, so archetypes that several unrelated businesses share
+carry alternates, selected per listing through `Listing.v`. The script refuses
+to run if a variant index is out of range, and reports any two unrelated
+businesses that would end up with the same paragraph — branches excepted.
+
+It also refuses to run if a new screenname is already taken by a row it is not
+renaming, since `profiles.screenname` is uniquely indexed and the rows are
+updated one at a time.
+
+**Social links follow the rename.** The seeded `socials` are derived from the
+screenname, so a renamed listing would otherwise advertise the brand it used to
+be — "Website: el-fogon-cafe.example.com" under the heading Ventanita Cafe.
+Both spellings are replaced, since Instagram and TikTok handles drop the
+hyphens, and the script reports any value that still mentions the old name
+afterwards.
+
+**Re-running is safe.** A listing is keyed by the screenname it had when this
+script was written, but the row answers to its new slug once a run has landed,
+so the lookup tries both. A second run reports `0 renamed` and changes nothing
+else — the name substitution and the social rewrite are both no-ops the second
+time.
+
 ### `validate-migrations.sh`
 
 Validates Prisma migration files for naming conventions and standards:
@@ -254,6 +392,8 @@ Scripts typically need access to:
 
 - `POSTGRES_URL` or `DATABASE_URL` - PostgreSQL connection
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` - Cloudflare R2 access
+- `PEXELS_API_KEY` - only for `fetch-directory-photos.ts`, and only when
+  regenerating the committed photo pool. Not part of `lib/env.config.ts`.
 - Other service-specific credentials
 
 Load from `.env.local` or set in shell environment.

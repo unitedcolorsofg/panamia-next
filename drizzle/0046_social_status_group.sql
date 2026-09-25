@@ -1,4 +1,4 @@
--- Migration: 0045_social_status_group
+-- Migration: 0046_social_status_group
 -- Purpose: Let a status belong to a group, so group updates can reach the feed.
 -- Ticket: docs/GROUPS-ROADMAP.md — Phase 3
 -- Reversible: Yes — DROP INDEX then DROP COLUMN. No existing row is touched,

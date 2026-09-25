@@ -15,6 +15,7 @@ import {
   socialGroups,
   socialGroupMembers,
   PUBLIC_ACTOR_COLUMNS,
+  STATUS_TYPE_STORY,
 } from '@/lib/schema';
 import type {
   SocialStatus,
@@ -444,11 +445,16 @@ export async function deleteStatus(
 
   await db.delete(socialStatuses).where(eq(socialStatuses.id, statusId));
 
-  // Decrement actor's status count
-  await db
-    .update(socialActors)
-    .set({ statusCount: sql`${socialActors.statusCount} - 1` })
-    .where(eq(socialActors.id, actorId));
+  // Decrement actor's status count -- but only for real posts. Stories never
+  // incremented it (they are not part of an actor's published body of work and
+  // are not listed in the outbox), so decrementing here would walk the count
+  // down by one per deleted story and eventually negative.
+  if (status.type !== STATUS_TYPE_STORY) {
+    await db
+      .update(socialActors)
+      .set({ statusCount: sql`${socialActors.statusCount} - 1` })
+      .where(eq(socialActors.id, actorId));
+  }
 
   // If this was a reply, decrement parent's reply count
   if (status.inReplyToId) {

@@ -314,21 +314,28 @@
       "idx": 44,
       "version": "7",
       "when": 1787875200000,
-      "tag": "0043_social_groups",
+      "tag": "0043_social_stories",
       "breakpoints": true
     },
     {
       "idx": 45,
       "version": "7",
       "when": 1787961600000,
-      "tag": "0044_group_search_vector",
+      "tag": "0044_social_groups",
       "breakpoints": true
     },
     {
       "idx": 46,
       "version": "7",
       "when": 1788048000000,
-      "tag": "0045_social_status_group",
+      "tag": "0045_group_search_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788134400000,
+      "tag": "0046_social_status_group",
       "breakpoints": true
     }
   ]

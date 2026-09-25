@@ -13,8 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
 import { db } from '@/lib/db';
-import { socialStatuses } from '@/lib/schema';
-import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
+import { socialStatuses, STATUS_TYPE_STORY } from '@/lib/schema';
+import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import { socialConfig } from '@/lib/federation';
 import { personalStatusesOnly } from '@/lib/federation/wrappers/group-visibility';
 import { corsHeaders } from '@/lib/federation/cors';
@@ -79,6 +79,13 @@ export async function GET(
        * that a group's posts stay on Pana.
        */
       personalStatusesOnly(),
+      // Stories never federate. They are addressed followers-only, so the
+      // Public check above already excludes them -- this is the second lock,
+      // because the cost of it failing is asymmetric. A story delivered to a
+      // remote server becomes a post there: Mastodon has no story concept and
+      // no expiry, so the 24-hour promise made to the author quietly does not
+      // apply to the copy, and we cannot recall it.
+      ne(socialStatuses.type, STATUS_TYPE_STORY),
       or(
         isNull(socialStatuses.expiresAt),
         gt(socialStatuses.expiresAt, new Date())

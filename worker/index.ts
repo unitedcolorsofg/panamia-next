@@ -19,6 +19,7 @@ import { getRelay } from '../lib/relay/crosspost-client';
 import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 import { assertPanaverseConfigured } from '../lib/panaverse/boot';
+import { runExpiryPurge } from '../lib/jobs/purge-expired';
 import { PATHNAME_HEADER, SEARCH_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
@@ -130,32 +131,36 @@ export default {
       }
 
       // Panaverse host routing: a surface hostname serves that surface's front
-      // door. Only the root path is touched — every other route stays reachable
-      // from every hostname, so /api, /.well-known, and shared pages behave
-      // identically no matter which surface a request arrives on.
+      // door at its own root, so social.pana.social/ is the feed and the URL
+      // says so. The page is chosen from the hostname in app/page.tsx — one
+      // route tree, two front doors — so the canonical host needs no redirect
+      // here. Every other route stays reachable from every hostname, so /api,
+      // /.well-known, and shared pages behave identically no matter which
+      // surface a request arrives on.
       //
-      // A redirect rather than a rewrite: vinext has no middleware-rewrite
-      // signalling, so serving /s under the URL "/" would leave the client
-      // router fetching RSC payloads for the wrong path. The end state is
-      // moving these routes into a route group so the surface root is "/".
+      // Branching in the route rather than rewriting here is forced: vinext
+      // has no middleware-rewrite signalling, so serving /s under the URL "/"
+      // would leave the client router fetching RSC payloads for the wrong
+      // path. A route group cannot express it either — app/(social)/page.tsx
+      // still resolves to "/" and collides with app/page.tsx, because both
+      // surfaces share one route tree and only the hostname tells them apart.
+      //
+      // What does still redirect is an alias host. Visitors who type the
+      // fediverse identity domain get handed to the real UI host; that domain
+      // stays a thin identity endpoint serving WebFinger and actor JSON, which
+      // pass through untouched above. *.localhost counts as canonical so dev
+      // mirrors the production split instead of being bounced to the live site.
       const surface = resolveSurface(url.hostname);
-      if (url.pathname === '/' && surface.rootPath !== '/') {
+      if (
+        url.pathname === '/' &&
+        surface.rootPath !== '/' &&
+        !url.hostname.endsWith('.localhost') &&
+        url.hostname !== hostnameFor(surface)
+      ) {
         const target = new URL(url.toString());
-        target.pathname = surface.rootPath;
-
-        // Visitors who type the fediverse identity domain get handed to the
-        // real UI host; that domain stays a thin identity endpoint serving
-        // WebFinger and actor JSON, which pass through untouched above.
-        const canonicalHost = hostnameFor(surface);
-        if (
-          url.hostname !== canonicalHost &&
-          !url.hostname.endsWith('.localhost')
-        ) {
-          target.protocol = 'https:';
-          target.hostname = canonicalHost;
-          target.port = '';
-        }
-
+        target.protocol = 'https:';
+        target.hostname = hostnameFor(surface);
+        target.port = '';
         return Response.redirect(target.toString(), 307);
       }
 
@@ -170,6 +175,38 @@ export default {
       routed.headers.set(PATHNAME_HEADER, url.pathname);
       routed.headers.set(SEARCH_HEADER, url.search);
       return handler.fetch(routed);
+    });
+  },
+
+  /**
+   * Nightly maintenance. Expiry across this app is a read filter, so rows
+   * whose `expiresAt` has passed are invisible but still stored -- along with
+   * their R2 media, which nothing else ever reclaims. See lib/jobs/purge-expired.ts.
+   *
+   * Bindings are primed here exactly as in fetch(): a scheduled invocation is
+   * a separate entry point and gets none of that setup for free. runWithDb
+   * matters most -- postgres.js sockets are scoped to the invocation that
+   * opened them, so the job has to run inside it.
+   */
+  async scheduled(event: { cron: string }, env: Env): Promise<void> {
+    getStorage(env);
+
+    // Awaited rather than handed to ctx.waitUntil, and errors are rethrown.
+    // Both matter for observability: waitUntil lets the handler return before
+    // the work finishes, so Cloudflare records the run as a success in a few
+    // milliseconds regardless of outcome. Awaiting makes the dashboard's
+    // duration and failure columns mean something.
+    await runWithDb(env, async () => {
+      const report = await runExpiryPurge();
+      console.log('[purge]', event.cron, JSON.stringify(report));
+
+      // Logged individually rather than left inside the report blob. A
+      // deferred story means an R2 object outlived the row that pointed at
+      // it; it retries tomorrow, but a run of them is a bucket problem and
+      // should be greppable.
+      for (const error of report.errors) {
+        console.error('[purge]', error);
+      }
     });
   },
 };

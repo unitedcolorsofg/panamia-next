@@ -303,6 +303,25 @@ export function DirectorySearchContent({
                     </Link>
                   </div>
                 </aside>
+
+                {/* Required by the Pexels API guidelines, which ask for a
+                    prominent link back in exchange for the photo pool seeded
+                    listings use. It sits here rather than in the site footer
+                    because the footer is hidden at this width, and because
+                    this is the column those photos actually appear in. Real
+                    businesses upload their own photos, so this line retires
+                    itself once the seeded listings are claimed. */}
+                <p className="dirsearch-photocredit">
+                  Listing photos from{' '}
+                  <a
+                    href="https://www.pexels.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Pexels
+                  </a>
+                  .
+                </p>
               </div>
             </div>
           </section>

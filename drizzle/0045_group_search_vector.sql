@@ -1,4 +1,4 @@
--- Migration: 0044_group_search_vector
+-- Migration: 0045_group_search_vector
 -- Purpose: Make groups findable by name, topic and summary.
 -- Ticket: N/A
 -- Reversible: Yes

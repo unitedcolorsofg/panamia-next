@@ -315,7 +315,7 @@ Copy the directory pattern wholesale — migrations `0040_profile_search_vector.
 `0041_profile_name_trigram.sql` already solved this problem for profiles, and
 `docs/SEARCH-ROADMAP.md` documents the outcome with measured results.
 
-**Shipped as `0044_group_search_vector.sql`**, with one change forced by Phase 1's schema.
+**Shipped as `0045_group_search_vector.sql`**, with one change forced by Phase 1's schema.
 
 The original plan called for a single `tsvector` on `social_groups` weighted
 `A` name → `B` topics → `C` summary. That is not buildable: Phase 1 put `name` and `summary` on

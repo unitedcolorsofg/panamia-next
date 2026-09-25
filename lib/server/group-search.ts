@@ -7,7 +7,7 @@
  * queries both vectors and sums their ranks. See the migration header for why
  * the split exists and was not denormalised away.
  *
- * @see drizzle/0044_group_search_vector.sql
+ * @see drizzle/0045_group_search_vector.sql
  * @see lib/server/directory.ts - the profile equivalent this mirrors
  */
 

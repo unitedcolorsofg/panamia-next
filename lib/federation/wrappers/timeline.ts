@@ -16,6 +16,7 @@ import {
   socialLikes,
   socialGroupMembers,
   PUBLIC_ACTOR_COLUMNS,
+  STATUS_TYPE_STORY,
 } from '@/lib/schema';
 import type {
   SocialStatus,
@@ -39,6 +40,27 @@ const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
  */
 function notExpired() {
   return sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`;
+}
+
+/**
+ * Drizzle SQL condition to keep stories out of anything that means "posts".
+ *
+ * Stories live in this table too (see STATUS_TYPE_STORY) because they needed
+ * expiry and attachments, which were already solved here. The cost of that
+ * reuse is this guard, and it has to be applied deliberately rather than
+ * inherited: the home and public timelines happen to be safe because a story
+ * is addressed followers-only and those queries demand the Public URI, but
+ * `getActorPosts` filters on nothing but the actor and expiry. Without this,
+ * a story appears on the profile's Posts tab as an ordinary post the moment
+ * it is created, and silently vanishes a day later.
+ *
+ * Applied everywhere regardless, including where the addressing already
+ * covers it. Relying on "this query happens to require Public" means the next
+ * person to relax an addressing filter also has to know they are changing
+ * story visibility, and they will not.
+ */
+function excludeStories() {
+  return sql`${socialStatuses.type} <> ${STATUS_TYPE_STORY}`;
 }
 
 /**
@@ -254,6 +276,7 @@ export async function getHomeTimeline(
         isNotNull(s.published),
         isNull(s.inReplyToId),
         notExpired(),
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -299,6 +322,7 @@ export async function getActorPosts(
         // the author is public, so nothing else here would have stopped it.
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -394,6 +418,7 @@ export async function getPublicTimeline(
         // is the line that keeps the town square from being the leak.
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -453,6 +478,7 @@ export async function getReceivedDirectMessages(
         // true of every private group post. Membership content is not mail.
         personalStatusesOnly(),
         notExpired(),
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -493,6 +519,10 @@ export async function getSentDirectMessages(
         // messages, because it is by definition not publicly addressed.
         personalStatusesOnly(),
         notExpired(),
+        // Load-bearing, not defensive. A story is addressed followers-only, so
+        // it satisfies this query's "not public" test and would otherwise be
+        // listed here as a direct message the author never sent.
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -551,6 +581,7 @@ export async function getAtMeTimeline(
         // non-member is handed private group content by being named in it.
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
+        excludeStories(),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -585,7 +616,13 @@ export async function getStatusWithLikeStatus(
   viewerActorId?: string
 ): Promise<StatusWithActorAndLike | null> {
   const row = await db.query.socialStatuses.findFirst({
-    where: eq(socialStatuses.id, statusId),
+    // Expiry and the story exclusion are applied here, not just in the
+    // timelines. This is the permalink read, and a status that has dropped out
+    // of every feed but still answers on its own URL is only soft-deleted in
+    // the feeds -- the link keeps working, and for an expired DM that is the
+    // whole of the deletion. Stories are excluded on top because they have no
+    // permalink by design: they are watched in the viewer or not at all.
+    where: and(eq(socialStatuses.id, statusId), notExpired(), excludeStories()),
     with: {
       actor: ACTOR_WITH,
       attachments: true,

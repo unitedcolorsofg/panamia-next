@@ -95,6 +95,14 @@ export function wearsOwnChrome(pathname: string | null | undefined): boolean {
  *   - Doorways (`wearsOwnChrome`) frame themselves on every surface by design.
  *   - The surface's own routes are its home turf, not a borrowed room.
  *
+ * The root path is home turf too, and has to be special-cased because it does
+ * not look like it. `surfaceForPath('/')` answers with the default surface —
+ * correctly, since `/` matches no surface prefix — so on a surface hostname the
+ * front door would be read as a page borrowed from the main site and framed
+ * with the guest bar. On social.pana.social the root *is* the feed (see
+ * app/page.tsx), and the page a surface serves at its own root is the one page
+ * it most certainly owns.
+ *
  * An unknown path returns false rather than true. The pathname is absent only
  * when the request did not come through the Worker, and in that case leaving
  * the page exactly as it renders today is the safer failure.
@@ -106,7 +114,9 @@ export function wearsGuestChrome(
   if (!pathname) return false;
   if (surface.id === DEFAULT_SURFACE.id) return false;
   if (wearsOwnChrome(pathname)) return false;
-  return surfaceForPath(normalisePath(pathname)).id !== surface.id;
+  const path = normalisePath(pathname);
+  if (path === '/') return false;
+  return surfaceForPath(path).id !== surface.id;
 }
 
 /**

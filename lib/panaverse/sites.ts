@@ -95,9 +95,16 @@ export function resolvePanaSites(
   return PANA_SITES.map((site) => {
     if (!site.href) return site;
 
-    const origin = originForFrom(surfaceForPath(site.href), host, rootDomain);
+    const owner = surfaceForPath(site.href);
+    const origin = originForFrom(owner, host, rootDomain);
     if (origin === currentOrigin) return site;
 
-    return { ...site, href: `${origin}${site.href}` };
+    /* Crossing to a surface's own origin means landing on a host where its
+     * front door is "/", not its prefix — so the Pana Social tile reads
+     * https://social.pana.social/ rather than .../s. Both serve the feed; only
+     * one of them is the URL a member would repeat out loud. Relative links
+     * above keep their prefix, because on this host that prefix is the route. */
+    const path = site.href === owner.rootPath ? '/' : site.href;
+    return { ...site, href: `${origin}${path}` };
   });
 }

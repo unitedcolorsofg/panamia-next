@@ -1,4 +1,4 @@
--- Migration: 0043_social_groups
+-- Migration: 0044_social_groups
 -- Purpose: Let panas gather around an interest instead of only around each
 --          other. Groups are the first thing in the social module that is
 --          followable but is not a person, so this adds an actor type, the
