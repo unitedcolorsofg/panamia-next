@@ -8299,6 +8299,22 @@ body:has(.dirsearch) header {
   margin-inline: auto;
 }
 
+/* The drawn wordmark, standing where the text eyebrow stands on the other
+   five pages.
+
+   Sized by width rather than height because the mark is 6.7:1 and a height
+   that reads well on a phone makes it 400px wide on a desktop. The bottom
+   margin is larger than the eyebrow's because a logo needs air under it to
+   read as a mark rather than as the first line of the headline — the eyebrow
+   is small type and can sit close, this cannot. */
+.offering-mark {
+  display: block;
+  width: clamp(13rem, 22vw, 17rem);
+  height: auto;
+  margin-inline: auto;
+  margin-bottom: clamp(1.1rem, 2.2vw, 1.6rem);
+}
+
 /* `.accent-word` is butter — legible on the hero's dark image, invisible on
    cream at 1.3:1. Blue is the palette's own counterweight and clears AA
    Large against this paper by a wide margin. */

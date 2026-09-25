@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Trans, useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 
@@ -7,6 +8,25 @@ import { Button } from '@/components/ui/button';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import ScrollReveal from '@/components/scroll-reveal';
 import { PANA_OFFERINGS, getOffering } from '@/lib/panaverse/offerings';
+import { SURFACE_MARK, type SurfaceMark } from '@/lib/panaverse/branding';
+
+/**
+ * The drawn wordmark an offering flies above its headline, where it has one.
+ *
+ * Read straight out of `branding.ts` rather than copied, because that is the
+ * file `SurfaceGuestHeader` and `SurfaceMemberHeader` read to dress
+ * social.pana.social. A member who meets Pana Social here and then opens it
+ * sees the same lettering in the same orange, and the front page cannot drift
+ * away from the product's own masthead without the masthead moving too.
+ *
+ * Only Pana Social is here today — it is the one offering with a surface of
+ * its own, so it is the one with a mark that has actually been drawn. The
+ * other five fall back to their text eyebrow, which is the honest thing to
+ * show rather than setting their names in a typeface pretending to be a logo.
+ */
+const OFFERING_MARK: Record<string, SurfaceMark | undefined> = {
+  social: SURFACE_MARK.social,
+};
 
 /**
  * The front page every offering gets, told in the homepage's own language.
@@ -98,6 +118,8 @@ export function OfferingFrontPage({
   const hasPillars = i18n.exists(`offerings:${id}.pillars.statement`);
   const hasSteps = i18n.exists(`offerings:${id}.steps.title`);
 
+  const mark = OFFERING_MARK[id];
+
   const buttons = [
     { href: actions.primary, label: t(`${id}.ctaPrimary`), solid: true },
     { href: actions.secondary, label: t(`${id}.ctaSecondary`), solid: false },
@@ -113,7 +135,25 @@ export function OfferingFrontPage({
       <div className="offering" data-offering={offering.id}>
         <section className="offering-hero">
           <div className="container mx-auto px-4">
-            <span className="section-eyebrow">{t(`${id}.eyebrow`)}</span>
+            {/* The mark supersedes the text eyebrow rather than joining it —
+                the lettering already says "Pana Social", and setting the same
+                two words again underneath would read as a caption on a logo.
+                `priority` because this is the first thing in the hero and so
+                a live LCP candidate; the masthead's own copy of this mark is
+                deliberately *not* preloaded, being 22px tall and below it. */}
+            {mark ? (
+              <Image
+                src={mark.src}
+                alt={mark.alt}
+                width={mark.width}
+                height={mark.height}
+                priority
+                sizes="(min-width: 48rem) 272px, 208px"
+                className="offering-mark"
+              />
+            ) : (
+              <span className="section-eyebrow">{t(`${id}.eyebrow`)}</span>
+            )}
 
             <h1 className="hero-headline offering-headline">
               <Trans
