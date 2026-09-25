@@ -58,12 +58,19 @@ const OFFERING_MARK: Record<string, SurfaceMark | undefined> = {
  * - `problem`  — the tension. What is broken if this offering does not exist.
  * - `pillars`  — the definition. The two or three things the offering *is*.
  * - `steps`    — the mechanism. How the thing actually works, in order.
+ * - `tour`     — the rooms. The screens themselves, one per band, shown.
  *
  * `problem` and `pillars` are alternative openings rather than a pair, and an
  * offering normally defines one of them. Leading with the tension suits a
  * thing whose value only lands once you have felt what is missing; leading
  * with the pillars suits one whose value is the headline itself, where
  * arguing the problem first would delay the answer the reader came for.
+ *
+ * `steps` and `tour` are likewise alternatives, and for a related reason. A
+ * numbered walkthrough is the right shape for an offering you have to be
+ * talked through — the order is the explanation. A tour is the right shape
+ * for one that is already built and can simply be shown, where the honest
+ * answer to "how does it work" is a picture of it working.
  *
  * All three render only when the offering's locale file defines them, which is
  * what lets these pages be written one at a time instead of needing all six
@@ -94,6 +101,50 @@ const PILLAR_KEYS = ['one', 'two', 'three'] as const;
 const PILLAR_ACCENTS = ['orange', 'paper', 'blue'] as const;
 const STEP_KEYS = ['one', 'two', 'three'] as const;
 
+/* The rooms of Pana Social, in the order someone meets them: read the feed,
+   find the group, show up to the event, learn who the person is, remember the
+   day together. Not a fixed `one/two/three` like the other bands, because
+   these are named places in the product rather than positions in an argument,
+   and a screenshot of "two" is not a thing anybody can go and look for. */
+const TOUR_KEYS = ['feed', 'groups', 'events', 'profiles', 'stories'] as const;
+
+type TourKey = (typeof TOUR_KEYS)[number];
+
+interface TourShot {
+  /** Public path to the screenshot, e.g. `/img/social/feed.png`. */
+  src: string;
+  /** The file's real pixel dimensions. */
+  width: number;
+  height: number;
+}
+
+/**
+ * The screenshot each room of a tour shows, once there is one to show.
+ *
+ * ## Adding a screenshot
+ *
+ * 1. Drop the file in `public/img/social/` — `feed.png`, `groups.png`,
+ *    `events.png`, `profiles.png`, `stories.png`.
+ * 2. Add its entry below. `width` and `height` are the file's real pixel
+ *    dimensions, which `next/image` needs in order to reserve the space
+ *    before the file has loaded.
+ *
+ *    social: { feed: { src: '/img/social/feed.png', width: 1600, height: 1000 } }
+ *
+ * Shots are cropped to a 16:10 well from the top, so capture the window at
+ * roughly that shape and let the fold do the rest — the top of a screen is
+ * the part worth showing anyway.
+ *
+ * A room with no entry renders an empty frame carrying its own name. That is
+ * deliberately a visible gap rather than a drawn mock-up of the product:
+ * these pages are read by people deciding whether to trust the thing, and an
+ * illustration dressed as a screenshot is a promise about software that may
+ * not look like that yet.
+ */
+const TOUR_SHOTS: Record<string, Partial<Record<TourKey, TourShot>>> = {
+  social: {},
+};
+
 export function OfferingFrontPage({
   id,
   actions,
@@ -119,6 +170,7 @@ export function OfferingFrontPage({
   const hasProblem = i18n.exists(`offerings:${id}.problem.statement`);
   const hasPillars = i18n.exists(`offerings:${id}.pillars.statement`);
   const hasSteps = i18n.exists(`offerings:${id}.steps.title`);
+  const hasTour = i18n.exists(`offerings:${id}.tour.title`);
 
   const mark = OFFERING_MARK[id];
 
@@ -189,6 +241,7 @@ export function OfferingFrontPage({
         {hasProblem && <OfferingProblem id={id} />}
         {hasPillars && <OfferingPillars id={id} />}
         {hasSteps && <OfferingSteps id={id} />}
+        {hasTour && <OfferingTour id={id} />}
 
         <section className="home-section offering-highlights">
           <div className="container mx-auto px-4">
@@ -429,6 +482,108 @@ function OfferingSteps({ id }: { id: string }) {
             </li>
           ))}
         </ol>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The rooms of the product, shown instead of described.
+ *
+ * The band this replaces on Pana Social was a numbered walkthrough — claim a
+ * handle, follow some panas, reach the fediverse. All true, and all invisible:
+ * three paragraphs asking somebody to imagine software they have never seen.
+ * Pana Social is built, so the honest answer to "how does it work" is a
+ * picture of it working.
+ *
+ * Each room therefore gets a screenshot and a claim, and the claim is always
+ * the same kind of claim: not what the screen contains, but which people it
+ * puts back in front of you. A feed is a feed anywhere — the argument here is
+ * that this one is full of panas within driving distance. That theme is why
+ * the rooms are worth five bands rather than five bullet points, and it is
+ * what each `title` in the locale file is written to carry.
+ *
+ * ## Why the rows alternate
+ *
+ * Five identical rows is a spreadsheet. Flipping the image side on every
+ * other row gives the band a rhythm to read down and keeps the eye moving
+ * between picture and words, which is also roughly how long a reader spends
+ * on each. The flip is a CSS `:nth-child` concern rather than anything the
+ * markup knows about, so the DOM order stays image-then-copy for everybody
+ * reading it linearly, including screen readers.
+ *
+ * The frame is the mock browser window from `/mock/panaverse`, reused down to
+ * the class names. A screenshot needs a window around it or it reads as a
+ * rectangle someone pasted onto the page, and drawing a second window that
+ * merely resembles the first is how two windows end up disagreeing.
+ */
+function OfferingTour({ id }: { id: string }) {
+  const { t } = useTranslation('offerings');
+  const shots = TOUR_SHOTS[id] ?? {};
+
+  return (
+    <section className="home-section offering-tour">
+      <div className="container mx-auto px-4">
+        <div className="home-sectionhead" data-rv>
+          <h2 className="section-display">
+            <Trans
+              i18nKey={`${id}.tour.title`}
+              t={t}
+              components={{ br: <br />, em: <em className="display-accent" /> }}
+            />
+          </h2>
+          <p className="section-lede max-w-2xl">{t(`${id}.tour.lede`)}</p>
+        </div>
+
+        <div className="offering-tourlist">
+          {TOUR_KEYS.map((key) => {
+            const shot = shots[key];
+            const name = t(`${id}.tour.${key}.name`);
+
+            return (
+              <article key={key} className="offering-room" data-rv>
+                <figure className="browser-frame offering-shot">
+                  <div className="browser-bar">
+                    <span className="browser-dots" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  </div>
+                  <div className="offering-shot-well">
+                    {shot ? (
+                      <Image
+                        src={shot.src}
+                        alt={name}
+                        width={shot.width}
+                        height={shot.height}
+                        sizes="(min-width: 64rem) 36rem, 92vw"
+                        className="offering-shot-img"
+                      />
+                    ) : (
+                      /* aria-hidden: the room's name is already the heading
+                         a few nodes away, and hearing it twice tells a screen
+                         reader user nothing about what is in the frame. */
+                      <span className="offering-shot-wait" aria-hidden="true">
+                        {name}
+                      </span>
+                    )}
+                  </div>
+                </figure>
+
+                <div className="offering-room-copy">
+                  <span className="offering-room-name">{name}</span>
+                  <h3 className="offering-room-title">
+                    {t(`${id}.tour.${key}.title`)}
+                  </h3>
+                  <p className="offering-room-body">
+                    {t(`${id}.tour.${key}.body`)}
+                  </p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

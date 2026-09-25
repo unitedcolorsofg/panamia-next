@@ -8776,3 +8776,112 @@ body:has(.dirsearch) header {
   color: var(--story-ink);
   opacity: 0.8;
 }
+
+/* ── The tour ────────────────────────────────────────────────────────────
+   The alternative to `.offering-steps`, for an offering that is built and can
+   therefore be shown. Each room is a window and a claim, side by side. */
+
+.offering-tour {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-tourlist {
+  display: grid;
+  gap: 4rem;
+  margin-top: var(--home-head-gap);
+}
+
+.offering-room {
+  display: grid;
+  gap: 1.75rem;
+  align-items: center;
+}
+
+@media (min-width: 64rem) {
+  .offering-tourlist {
+    gap: 6rem;
+  }
+
+  /* The window takes the larger share. A screenshot shrunk to half a column
+     stops being evidence and becomes a texture. */
+  .offering-room {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 4rem;
+  }
+
+  /* The flip lives here rather than in the markup, so the DOM order stays
+     window-then-words for anyone reading the page linearly. */
+  .offering-room:nth-child(even) > .offering-shot {
+    order: 2;
+  }
+}
+
+/* The window itself. Its chrome is `.browser-frame` and `.browser-bar`, shared
+   with /mock/panaverse — this adds only what a still needs and a live mock
+   does not. */
+.offering-shot {
+  margin: 0;
+}
+
+.offering-shot-well {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  place-items: center;
+  background-color: var(--story-cream);
+}
+
+.offering-shot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  /* Top, not centre. The head of a screen carries the masthead and the first
+     posts, and a centred crop is the one that throws that away first. */
+  object-position: top center;
+}
+
+/* The wait state, until a real screenshot lands. Deliberately faint: a frame
+   with nothing in it should read as a gap the page is honest about, not as an
+   illustration standing in for software. */
+.offering-shot-wait {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--offering-accent);
+  opacity: 0.4;
+}
+
+.offering-room-copy {
+  max-width: 46ch;
+}
+
+.offering-room-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--offering-accent);
+}
+
+.offering-room-title {
+  margin-top: 0.75rem;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--story-ink);
+}
+
+.offering-room-body {
+  margin-top: 0.9rem;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--story-ink);
+  opacity: 0.8;
+}

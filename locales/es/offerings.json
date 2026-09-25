@@ -22,35 +22,48 @@
         "body": "Los panas que sigues son los mismos del directorio y los que atienden las mesas en los eventos. Un follow aquí puede volverse una cita, una colaboración o un puesto compartido."
       }
     },
-    "steps": {
+    "tour": {
       "title": "Cómo <em>Funciona</em>",
-      "lede": "Pasan tres cosas, en este orden, y la tercera no te la ofrece nadie más.",
-      "one": {
-        "title": "Reclama tu usuario",
-        "body": "Tu perfil es una dirección: @tu@panamia.club. Es tuya, es donde te encuentran, y se va contigo si algún día te vas."
+      "lede": "Cinco pantallas, un solo vecindario. Cada una es otra forma de volver a la misma gente.",
+      "feed": {
+        "name": "El Feed",
+        "title": "Tu cuadra, en el orden en que pasó",
+        "body": "Publicaciones de panas de Broward, Miami-Dade y Palm Beach, lo más nuevo primero — sin un algoritmo decidiendo a cuál vecino escuchas. El canal a las 6am, el pop-up del sábado, el taller con una mesa libre. Cosas lo bastante cerca como para ir."
       },
-      "two": {
-        "title": "Sigue a tus panas",
-        "body": "Los creadores, negocios y organizadores que ya están en el directorio. Tu timeline es la cuadra, en el orden en que pasaron las cosas."
+      "groups": {
+        "name": "Grupos",
+        "title": "Un cuarto para cada rincón de la escena",
+        "body": "Un vecindario, un oficio, un proyecto, una red de apoyo mutuo. Los grupos son donde seguir a alguien se convierte en gente que organiza algo junta — y se mantienen chicos para que aparecer siga contando."
       },
-      "three": {
-        "title": "Llega más allá de nosotros",
-        "body": "Pana Social habla ActivityPub, así que lo que publicas aquí aparece en Mastodon y en todo el fediverso. Una cuenta, no un público nuevo que reconstruir."
+      "events": {
+        "name": "Eventos",
+        "title": "Donde una publicación se vuelve una puerta",
+        "body": "Mercados, mixers, talleres y shows, publicados por los panas que de verdad los organizan y con un conteo real de quién va. El sentido de un feed local es que lo puedes cerrar y estar allí en veinte minutos."
+      },
+      "profiles": {
+        "name": "Perfiles Pana",
+        "title": "La persona detrás del trabajo",
+        "body": "Un perfil aquí es el mismo pana que encuentras en el directorio — el taller, el oficio, el portafolio y las publicaciones en un solo lugar. Conoces a alguien en el feed y puedes contratarle esa misma tarde."
+      },
+      "stories": {
+        "name": "Historias Compartidas",
+        "title": "El día, contado por toda la gente que estuvo",
+        "body": "Un mercado, una marcha, una fiesta de cuadra — guardados entre quienes aparecieron, en vez de repartidos en el carrete de una sola persona. El registro de un lugar termina siendo del lugar."
       }
     },
     "highlights": {
-      "title": "Lo Que <em>Obtienes</em>",
+      "title": "Lo Que <em>Recibes</em>",
       "one": {
-        "title": "Un timeline en orden",
-        "body": "Texto, fotos y video de los panas que sigues, lo más nuevo primero. Sin ranking, sin nada promocionado, sin preguntarte por qué desapareció un post."
+        "title": "Sin algoritmo",
+        "body": "Lo más nuevo primero, siempre. Nada se promueve, se entierra ni se reordena para retenerte, porque aquí nadie gana con cuánto te quedas."
       },
       "two": {
-        "title": "Espacios para el trabajo",
-        "body": "Grupos por barrio, por oficio o por proyecto — con la misma gente que ya contrataste, reservaste o con la que ya construiste algo."
+        "title": "Sin perfil publicitario",
+        "body": "Sin píxeles de rastreo, sin corredores de datos, sin una versión de ti armada y vendida. Tu atención no es el producto, así que nadie la está midiendo."
       },
       "three": {
-        "title": "Mensajes que se quedan",
-        "body": "Habla con un pana sobre una reserva sin entregarle la conversación al buzón de un desconocido."
+        "title": "Una dirección que viaja",
+        "body": "Tu usuario es @tu@panamia.club y habla ActivityPub, así que una publicación aquí también llega a Mastodon — y si algún día te vas, tus panas se van contigo."
       }
     },
     "closing": {

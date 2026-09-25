@@ -22,35 +22,48 @@
         "body": "The panas you follow are the same ones in the directory and behind the tables at events. A follow here can turn into a booking, a collab or a shared stall."
       }
     },
-    "steps": {
+    "tour": {
       "title": "How It <em>Works</em>",
-      "lede": "Three things happen, in this order, and the third is the one nobody else is offering you.",
-      "one": {
-        "title": "Claim your handle",
-        "body": "Your profile is an address — @you@panamia.club. It belongs to you, it is where people find you, and it travels with you if you ever go."
+      "lede": "Five screens, one neighborhood. Each one is a different way back to the same people.",
+      "feed": {
+        "name": "The Feed",
+        "title": "Your block, in the order it happened",
+        "body": "Posts from panas across Broward, Miami-Dade and Palm Beach, newest first — no ranking deciding which neighbor you hear from. The canal at 6am, the pop-up on Saturday, the studio with a free table going spare. Things close enough to actually go to."
       },
-      "two": {
-        "title": "Follow your panas",
-        "body": "The makers, shops and organizers already listed in the directory. Your timeline is the block, in the order things happened on it."
+      "groups": {
+        "name": "Groups",
+        "title": "A room for every corner of the scene",
+        "body": "A neighborhood, a craft, a project, a mutual aid run. Groups are where a loose follow turns into people who plan something together — and they stay small enough that showing up still counts for something."
       },
-      "three": {
-        "title": "It reaches past us",
-        "body": "Pana Social speaks ActivityPub, so a post here lands in Mastodon and every other fediverse timeline. One account, not a second audience to rebuild."
+      "events": {
+        "name": "Events",
+        "title": "Where a post becomes a door you walk through",
+        "body": "Markets, mixers, workshops and shows, posted by the panas actually running them and carrying a real going count. The whole point of a local feed is that you can close it and be there in twenty minutes."
+      },
+      "profiles": {
+        "name": "Pana Profiles",
+        "title": "The person behind the work",
+        "body": "A profile here is the same pana you find in the directory — the shop, the craft, the portfolio and the posts in one place. You meet somebody in the feed and you can book them by the end of the afternoon."
+      },
+      "stories": {
+        "name": "Shared Stories",
+        "title": "The day, told by everyone who was there",
+        "body": "A market, a march, a block party — kept together by the people who showed up instead of scattered across one person’s highlight reel. The record of a place ends up belonging to the place."
       }
     },
     "highlights": {
       "title": "What You <em>Get</em>",
       "one": {
-        "title": "A timeline in order",
-        "body": "Text, photos and video from the panas you follow, newest first. No ranking, no promoted anything, no wondering why a post vanished."
+        "title": "No algorithm",
+        "body": "Newest first, every time. Nothing is promoted, buried or reordered to keep you scrolling, because nobody here earns anything from how long you stay."
       },
       "two": {
-        "title": "Rooms for the work",
-        "body": "Groups for a neighborhood, a craft or a project — with the same people you have already hired, booked or built something with."
+        "title": "No ad profile",
+        "body": "No tracking pixels, no data brokers, no version of you assembled and sold on. Your attention is not the product, so it is not being measured."
       },
       "three": {
-        "title": "Messages that stay put",
-        "body": "Talk to a pana about a booking without handing the conversation to a stranger's inbox."
+        "title": "An address that travels",
+        "body": "Your handle is @you@panamia.club and it speaks ActivityPub, so a post here reaches Mastodon too — and if you ever leave, your panas come with you."
       }
     },
     "closing": {
