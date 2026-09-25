@@ -381,6 +381,57 @@
   box-shadow: 0 10px 34px rgb(17 13 13 / 0.22);
 }
 
+/* The pill with something ahead of the magnifier — the scope pages put their
+   scope selector there. The bare pill needs no padding because the magnifier
+   carries `ml-6` and the submit button its own margin; a leading control has
+   its own shape, so the inset becomes the pill's job instead. */
+.directory-suggest-pill-lead {
+  /* Matched to `.dirsearch-pill`, which was drawn for exactly this
+     arrangement — scope selector, divider, magnifier, field, submit. */
+  padding: 0.4rem 0.4rem 0.4rem 1.05rem;
+  gap: 0.65rem;
+}
+
+/* The point of this pill is that scope and term read as one control, so the
+   field has to disappear into it. The input component brings its own white
+   fill, border and radius, which is right on a form but here paints a second
+   box inside the first and breaks the seam. The bare pill keeps them: on the
+   hero the field is the whole bar, so looking like a field is correct. */
+.directory-suggest-pill-lead .directory-suggest-field input {
+  padding-left: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* With no box to outline, a focus ring would draw the seam back in. The pill
+   itself is the visible control, so it takes the focus treatment. */
+.directory-suggest-pill-lead .directory-suggest-field input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.directory-suggest-pill-lead:focus-within {
+  box-shadow:
+    0 10px 34px rgb(17 13 13 / 0.22),
+    0 0 0 3px rgb(47 45 122 / 0.35);
+}
+
+/* Sized from `.dirsearch-pill`'s submit rather than the hero's: the hero's
+   button is the page's primary call to action and shouts accordingly, while
+   this one sits beside a scope selector and a term and should not outweigh
+   them. The pill's own padding supplies the inset, so the margin goes. */
+.directory-suggest-pill-lead .directory-suggest-pill-button {
+  margin: 0;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9375rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 /* Let the typeahead listbox resolve against the whole pill so it spans the
    bar rather than stopping short of the submit button. Named rather than
    positional: the pill's first child is the magnifier. */

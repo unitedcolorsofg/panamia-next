@@ -136,25 +136,26 @@ function SearchBand({
           )}
         </p>
 
-        {/* The scope control sits beside the field rather than above it,
+        {/* The scope control sits inside the pill rather than beside it,
             because scope is part of the question being asked — "panas named
             Maria" is one query, not a query plus a page setting. */}
-        <div className="dirsearch-searchrow flex flex-wrap items-center gap-2">
-          <ScopeMenu
-            scope={scope}
-            term={term}
-            counts={counts}
-            signedIn={signedIn}
-          />
+        <div className="dirsearch-searchrow">
           <DirectorySuggest
             layout="pill"
             scope={scope}
             initialTerm={term}
-            className="min-w-0 flex-1"
             label="Search the Pana Mia directory"
             ariaLabel="Search the Pana Mia directory"
             placeholder="Try art, croqueta, zine, Maria…"
             buttonLabel="Search"
+            leading={
+              <ScopeMenu
+                scope={scope}
+                term={term}
+                counts={counts}
+                signedIn={signedIn}
+              />
+            }
           />
         </div>
       </div>

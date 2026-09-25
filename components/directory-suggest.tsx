@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
@@ -48,6 +49,16 @@ interface DirectorySuggestBaseProps {
    * own it, so typing is never fighting a prop.
    */
   initialTerm?: string;
+  /**
+   * Rendered inside the pill, ahead of the magnifier, with a divider after it.
+   *
+   * The scope pages put their scope selector here rather than beside the bar.
+   * Scope is part of the question — "panas named Maria" is one query, not a
+   * query plus a page setting — and two adjacent capsules say the opposite of
+   * that. `pill` layout only: `stacked` has no surface to sit in and the
+   * masthead has no room for one.
+   */
+  leading?: ReactNode;
 }
 
 /**
@@ -115,6 +126,7 @@ export function DirectorySuggest({
   layout = 'stacked',
   scope = DEFAULT_SCOPE,
   initialTerm = '',
+  leading,
 }: DirectorySuggestProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
@@ -370,7 +382,10 @@ export function DirectorySuggest({
       <div
         className={
           layout === 'pill'
-            ? 'directory-suggest-pill'
+            ? cn(
+                'directory-suggest-pill',
+                leading && 'directory-suggest-pill-lead',
+              )
             : layout === 'masthead'
               ? // `contents` rather than a box: the masthead pill is itself the
                 // flex row, sized and padded by `.panaverse-search`, and this
@@ -381,6 +396,16 @@ export function DirectorySuggest({
               : 'flex flex-col items-center justify-center gap-4 md:flex-row'
         }
       >
+        {/* Inside the pill rather than beside it, so scope and term read as
+            one question. The divider does the work the gap between two
+            separate capsules used to do. */}
+        {layout === 'pill' && leading && (
+          <>
+            {leading}
+            <span className="dirsearch-chipdivide" aria-hidden="true" />
+          </>
+        )}
+
         {/* A magnifier at the head of the pill. The button already says
             "Search", but it sits at the far right of a 720px bar, so on a
             wide screen the left end of the field has nothing on it saying
@@ -389,7 +414,11 @@ export function DirectorySuggest({
             one. */}
         {layout === 'pill' && (
           <Search
-            className="text-pana-ink ml-6 h-5 w-5 shrink-0 opacity-45"
+            className={cn(
+              'text-pana-ink h-5 w-5 shrink-0 opacity-45',
+              // The inset is the pill's own padding when something leads it.
+              !leading && 'ml-6',
+            )}
             aria-hidden="true"
           />
         )}
