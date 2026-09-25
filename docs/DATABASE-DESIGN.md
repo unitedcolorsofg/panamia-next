@@ -97,8 +97,14 @@ git commit -m "feat(db): ..."
 
 ```bash
 npx drizzle-kit migrate   # local / CI
-yarn build:cf             # runs migrate then builds for Cloudflare
+yarn deploy:vinext        # runs migrate, then builds and deploys to Cloudflare
 ```
+
+Note that `drizzle-kit migrate` only applies migrations listed in
+`drizzle/meta/_journal.json`. A `.sql` file without a journal entry is not
+"pending" — it is invisible, and migrate exits 0 having skipped it. CI replays
+migrations by filesystem glob and so cannot catch this; `scripts/validate-migrations.sh`
+is what does, and it runs in CI with `--strict`.
 
 ### Immutability
 

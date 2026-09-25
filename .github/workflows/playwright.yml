@@ -41,6 +41,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Runs before anything expensive: this is cheap, needs no dependencies,
+      # and catches the class of migration defect that CI otherwise cannot see.
+      # The migration replay below applies drizzle/[0-9]*.sql by filesystem
+      # glob, so it happily runs a migration that has no _journal.json entry --
+      # while production, which goes through drizzle-kit migrate, silently
+      # skips that same file. CI therefore passes and production ships without
+      # the tables. --strict makes missing tooling an error rather than a
+      # skipped check, so this cannot quietly become a no-op.
+      - name: Validate migrations
+        run: bash scripts/validate-migrations.sh --strict
+
       - name: Enable Corepack
         run: corepack enable
 

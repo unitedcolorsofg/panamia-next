@@ -266,6 +266,25 @@ This runs `drizzle-kit migrate` then `vinext deploy` (Vite build + wrangler publ
 
 The split keeps `drizzle-kit migrate` out of the build phase so retries and preview-branch builds never mutate prod schema. Migrations happen at deploy time only.
 
+> **Verify this before relying on it.** The table above is the _intended_
+> configuration, not a confirmed one. These commands live in the Cloudflare
+> dashboard, not in this repo, so nothing here can enforce them or detect
+> drift. On 2026-09-25 `0048_recommendation_lists` merged, deployed, and
+> reported a successful build while its tables were never created in
+> production — every lists route returned 500. The deploy command actually in
+> use did not run a working `drizzle-kit migrate`.
+>
+> There is also a mechanical reason it cannot work as written: `POSTGRES_URL`
+> and `POSTGRES_DIRECT_URL` are declared `location: 'SECRET'` in
+> `lib/env.config.ts`, which places them in the **Worker runtime**
+> environment. The **build container** never receives them, so
+> `drizzle-kit migrate` invoked there exits 1 with `url: undefined`. Adding the
+> command without also exposing the database URL as a Build variable converts a
+> silent gap into a hard deploy block. Both halves are required. See #237.
+>
+> Until that is fixed, **`yarn deploy:vinext` from a trusted machine is the only
+> path that actually applies migrations.**
+
 **Database connection pooling** — configure a [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) binding in `wrangler.jsonc`:
 
 ```jsonc
