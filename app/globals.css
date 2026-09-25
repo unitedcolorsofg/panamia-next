@@ -5303,9 +5303,11 @@ body {
  * a `[data-density]` scope would not reach the rules that need these.
  *
  * `body:has(.dirsearch)` is the second consumer, added when the directory
- * results page took the same surface treatment. It is listed here rather than
- * given its own copy of the seven values so the two pages cannot drift apart
- * — if the palette is corrected, both move together. Scoped to the body for
+ * results page took the same surface treatment. `body:has(.dirscope)` is the
+ * third, for the per-kind directory pages, which are the same paper as the
+ * results page they sit beside. They are listed here rather than given their
+ * own copy of the seven values so the pages cannot drift apart
+ * — if the palette is corrected, all three move together. Scoped to the body for
  * the same reason as the homepage: the directory paints the masthead to match
  * its paper, and the masthead is not a descendant of that page's `<main>`.
  *
@@ -5320,7 +5322,8 @@ body {
  * into the registry is a rename worth doing on its own, not as a side effect
  * of a page redesign. */
 body:has([data-density]),
-body:has(.dirsearch) {
+body:has(.dirsearch),
+body:has(.dirscope) {
   --story-blue: #3565f2;
   --story-ink: #020811;
   --story-cream: #fcf2e7;
@@ -7690,6 +7693,32 @@ a.pillar-program:hover {
   color: var(--story-ink);
 }
 
+/* The same sheet for the scoped pages. Deliberately not `.dirsearch` itself:
+   that class carries descendant rules written for the businesses page, two of
+   which (`.dirsearch .dirsearch-searchrow` and `.dirsearch .dirsearch-chipdivide`)
+   would restyle the search pill these pages share with the hero. Only the
+   ground is wanted here, not the rest of that page's opinions. */
+.dirscope {
+  display: block;
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+/* A scoped page can be shorter than the viewport — an empty result set is two
+   lines — and the ground only covers its own box, so the last inch above the
+   footer fell back to the white body. That left the results sharing a colour
+   with the footer and reading as part of it. The body takes the colour so it
+   reaches the footer at any content height; same mechanism the homepage uses
+   for its own sheet.
+
+   The businesses page is listed too. Its own sheet is tall enough that the
+   gap never showed, but its footer is the same transparent footer, so without
+   this it would be the one directory page still ending in a white band. */
+body:has(.dirscope),
+body:has(.dirsearch) {
+  background-color: var(--story-cream);
+}
+
 /* --- The toolbar -------------------------------------------------------- */
 
 /* What the header band became.
@@ -8089,7 +8118,12 @@ a.pillar-program:hover {
 
    Only the resting bar is touched. Unlike the homepage, this page does not
    set `data-density`, so it never picks up the masthead's view-timeline
-   handover and there is nothing here to neutralise. */
-body:has(.dirsearch) header {
+   handover and there is nothing here to neutralise.
+
+   The scoped pages are listed alongside it because they are the same page in
+   a different clothing: the same cream paper meeting the same white bar on the
+   same horizontal edge. */
+body:has(.dirsearch) header,
+body:has(.dirscope) header {
   background-color: var(--story-cream);
 }

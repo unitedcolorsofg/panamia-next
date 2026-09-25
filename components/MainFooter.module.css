@@ -1,5 +1,10 @@
+/* The footer takes the page's own ground rather than painting white over it.
+   The main site has exactly two grounds — the default white and the cream the
+   homepage and directory opt into — so letting the body show through means the
+   footer matches either one instead of cutting a white band across the cream
+   pages, where it used to read as a separate section. */
 .footer {
-  background-color: white;
+  background-color: transparent;
   padding: 1.5rem 1rem;
   color: #444;
   font-size: 14px;

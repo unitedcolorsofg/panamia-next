@@ -66,7 +66,7 @@ export async function ScopePage({
   }
 
   return (
-    <>
+    <main className="dirscope">
       <SearchBand scope={scope} term={term} counts={counts} signedIn={signedIn} />
       <ScopeChips scope={scope} term={term} counts={counts} signedIn={signedIn} />
 
@@ -77,7 +77,7 @@ export async function ScopePage({
           <SingleScopeResults scope={scope} term={term} page={page} />
         )}
       </div>
-    </>
+    </main>
   );
 }
 
@@ -344,26 +344,28 @@ function NoMatches({ term }: { term: string }) {
  */
 function GatedScope({ scope, term }: { scope: Scope; term: string }) {
   return (
-    <section className="surface-indigo dirsearch-band">
-      <div className="container mx-auto px-4">
-        <span className="section-eyebrow">Directory</span>
-        <h1 className="dirsearch-title">{SCOPE_LABEL[scope]} are for panas</h1>
-        <p className="dirsearch-count">
-          Members search each other, not the public. Sign in to look up{' '}
-          {SCOPE_LABEL[scope].toLowerCase()}.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          {/* Plain `/signin`, no return path: sign-in is shared by the whole
-              panaverse and lands the member in their surface's root, taking no
-              return-path parameter. A `?next=` here would be decoration. */}
-          <Link href="/signin" className="dirsearch-chip">
-            Sign in
-          </Link>
-          <Link href={scopePath('business', term)} className="dirsearch-chip">
-            Search businesses instead
-          </Link>
+    <main className="dirscope">
+      <section className="surface-indigo dirsearch-band">
+        <div className="container mx-auto px-4">
+          <span className="section-eyebrow">Directory</span>
+          <h1 className="dirsearch-title">{SCOPE_LABEL[scope]} are for panas</h1>
+          <p className="dirsearch-count">
+            Members search each other, not the public. Sign in to look up{' '}
+            {SCOPE_LABEL[scope].toLowerCase()}.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {/* Plain `/signin`, no return path: sign-in is shared by the whole
+                panaverse and lands the member in their surface's root, taking no
+                return-path parameter. A `?next=` here would be decoration. */}
+            <Link href="/signin" className="dirsearch-chip">
+              Sign in
+            </Link>
+            <Link href={scopePath('business', term)} className="dirsearch-chip">
+              Search businesses instead
+            </Link>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
   );
 }
