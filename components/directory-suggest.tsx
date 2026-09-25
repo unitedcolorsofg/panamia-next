@@ -1,10 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { KIND_ICON } from '@/components/kind-icon';
@@ -258,6 +265,21 @@ export function DirectorySuggest({
   const rootRef = useRef<HTMLFormElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  /**
+   * Every destination this box offers is a server-rendered route, and the
+   * scope pages await a session, four counts and four searches before they
+   * emit any markup. Outside a transition `router.push` blocks on that whole
+   * payload: the URL does not change, the button does not move, and nothing
+   * on screen says the click registered — which reads as a dead control, so
+   * people click it again.
+   *
+   * The transition hands us `navigating` for the span the router is actually
+   * working, which the button below spends on saying so. It does not make the
+   * navigation quicker; it makes the wait legible, and it keeps this page
+   * interactive while the next one is fetched instead of freezing it.
+   */
+  const [navigating, startNavigation] = useTransition();
+
   const trimmed = term.trim();
   // The trailing "search for this term" row is an option too, so it can be
   // arrowed to and is counted in the keyboard bounds below.
@@ -362,13 +384,17 @@ export function DirectorySuggest({
       onSearch(trimmed);
       return;
     }
-    router.push(scopePath(scope, trimmed));
+    startNavigation(() => {
+      router.push(scopePath(scope, trimmed));
+    });
   }
 
   function goToSuggestion(suggestion: Suggestion) {
     close();
     setTerm(suggestion.name);
-    router.push(suggestion.href);
+    startNavigation(() => {
+      router.push(suggestion.href);
+    });
   }
 
   function selectIndex(index: number) {
@@ -488,6 +514,9 @@ export function DirectorySuggest({
       action={scopePath(scope, '')}
       method="get"
       onSubmit={handleSubmit}
+      // The masthead has no submit button to carry a spinner, so the form
+      // itself is what announces an in-flight navigation there.
+      aria-busy={navigating}
       // scroll-mt clears the sticky site header when revealOnSmallScreens runs.
       className={cn('scroll-mt-24', className)}
     >
@@ -697,14 +726,31 @@ export function DirectorySuggest({
           <Button
             type="submit"
             size="lg"
+            // Guards against the double-click a slow route invites, and pairs
+            // the spinner with the state a screen reader can act on.
+            disabled={navigating}
+            aria-busy={navigating}
             className={
               layout === 'pill' ? 'directory-suggest-pill-button' : 'px-8'
             }
           >
             {/* The pill layout is text-only, as in the mock — the bar itself
-                already reads as a search field. */}
-            {layout === 'stacked' && (
-              <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+                already reads as a search field. The spinner is the one thing
+                allowed to break that, because it is not chrome: it is only on
+                screen while a navigation is in flight, and the whole point of
+                the rule is that nothing permanent competes with the label. */}
+            {navigating ? (
+              <Loader2
+                className={cn(
+                  'h-5 w-5 animate-spin',
+                  layout === 'stacked' && 'mr-2'
+                )}
+                aria-hidden="true"
+              />
+            ) : (
+              layout === 'stacked' && (
+                <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+              )
             )}
             {buttonLabel}
           </Button>

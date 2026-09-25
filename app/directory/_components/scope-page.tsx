@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { auth } from '@/auth';
 import { DirectorySuggest } from '@/components/directory-suggest';
 import { ScopeChips, ScopeMenu } from '@/components/directory-scope-bar';
@@ -80,16 +81,35 @@ export async function ScopePage({
       />
 
       <div className="container mx-auto px-4 py-8">
-        {scope === 'all' ? (
-          <EverythingResults
-            term={term}
-            signedIn={signedIn}
-            counts={counts}
-            unavailable={unavailable}
-          />
-        ) : (
-          <SingleScopeResults scope={scope} term={term} page={page} />
-        )}
+        {/* The results are the second of two serial waves of database work:
+            the counts above have to land before this subtree can even start,
+            and `max: 1` on the connection means the four searches inside it
+            queue rather than overlap. Without a boundary here, none of the
+            page — not the title, not the search box, not the scope chips —
+            is flushed until that second wave finishes, because a suspending
+            child holds up the whole payload.
+
+            With one, the shell above goes out as soon as the counts resolve
+            and the results stream in behind it. Same total time, but the box
+            someone searched from is on screen and usable for most of it.
+
+            Keyed so a new term swaps back to the skeleton instead of leaving
+            the previous term's results under a heading that already changed. */}
+        <Suspense
+          key={`${scope}:${term}:${page}`}
+          fallback={<ResultsSkeleton />}
+        >
+          {scope === 'all' ? (
+            <EverythingResults
+              term={term}
+              signedIn={signedIn}
+              counts={counts}
+              unavailable={unavailable}
+            />
+          ) : (
+            <SingleScopeResults scope={scope} term={term} page={page} />
+          )}
+        </Suspense>
       </div>
     </main>
   );
@@ -174,6 +194,47 @@ function SearchBand({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * What stands in for the results while their queries run.
+ *
+ * Shaped like the thing it is replacing — a heading, then a grid of cards —
+ * rather than a spinner, so the page does not change height and shove the
+ * search box up the screen the moment the real rows land. Two sections
+ * because the Everything scope is the common case and shows several; a single
+ * scope simply fills the first one and leaves the second as overshoot, which
+ * costs nothing and is gone within a frame of the query returning.
+ */
+function ResultsSkeleton() {
+  return (
+    <div className="flex flex-col gap-10">
+      {/* One live region for the whole block. The pulsing boxes are decoration
+          and are hidden, because a screen reader announcing eight empty cards
+          is worse than it announcing nothing. */}
+      <p role="status" className="sr-only">
+        Loading results
+      </p>
+
+      {[0, 1].map((section) => (
+        <section key={section} aria-hidden="true">
+          <div className="mb-3 flex items-center gap-x-3">
+            <div className="bg-pana-ink/10 h-6 w-40 animate-pulse rounded" />
+            <div className="bg-pana-ink/10 h-5 w-10 animate-pulse rounded" />
+          </div>
+
+          <div className="dirsearch-grid">
+            {Array.from({ length: PREVIEW_LIMIT }).map((_, card) => (
+              <div
+                key={card}
+                className="bg-pana-ink/[0.06] h-48 animate-pulse rounded-xl"
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 
