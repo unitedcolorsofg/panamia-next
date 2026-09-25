@@ -5534,7 +5534,7 @@ body {
  * third, for the per-kind directory pages, which are the same paper as the
  * results page they sit beside. They are listed here rather than given their
  * own copy of the seven values so the pages cannot drift apart
- * — if the palette is corrected, all three move together. Scoped to the body for
+ * — if the palette is corrected, all four move together. Scoped to the body for
  * the same reason as the homepage: the directory paints the masthead to match
  * its paper, and the masthead is not a descendant of that page's `<main>`.
  *
@@ -5543,6 +5543,12 @@ body {
  * the masthead over to a view timeline that only the homepage's hero
  * declares, and neither of those belongs on a results page.
  *
+ * `body:has(.offering)` is the fourth, added when the six offerings each got a
+ * front page. Same bargain as the directory: those pages are built out of the
+ * homepage's own type and its closing band, so they need its colours, and
+ * naming them here rather than copying the values is what keeps all four
+ * moving together.
+ *
  * Named `--story-*`, not `--color-pana-*`. The latter is the design system's
  * registry, and these landed as a proposal ahead of the decision they existed
  * to inform. They have since shipped on the homepage and here; folding them
@@ -5550,13 +5556,23 @@ body {
  * of a page redesign. */
 body:has([data-density]),
 body:has(.dirsearch),
-body:has(.dirscope) {
+body:has(.dirscope),
+body:has(.offering) {
   --story-blue: #3565f2;
   --story-ink: #020811;
   --story-cream: #fcf2e7;
   --story-orange: #f2882f;
   --story-coral: #f27457;
   --story-red: #f4374f;
+
+  /* The Pana Social mark's exact ink, a shade brighter than the palette's own
+     orange. A fill colour: it carries ink at 8.19:1 and is safe behind
+     anything, but set *as* type on this cream it measures 2.22:1. Nothing in
+     this family clears 3:1 on cream — the palette orange is 2.28 and coral is
+     2.56 — which is why the homepage sets its hero mark in orange and its
+     accent word in coral rather than trying to read the mark's own colour as
+     type. The offering pages follow that, so flame stays on shapes. */
+  --story-flame: #ff833a;
 
   /* Foliage. Worn straight by the palm fronds and the street tree, and pulled
      into ink for the gator so he stays in front of the canopy rather than
@@ -8318,4 +8334,789 @@ body:has(.dirsearch) {
 body:has(.dirsearch) header,
 body:has(.dirscope) header {
   background-color: var(--story-cream);
+}
+
+/* ========================================================================
+   Offering front pages
+   ========================================================================
+   Each of the six offerings — Pana Social, the directory, events,
+   PanaVizion, Pana Ink and Get Involved — has a front page that introduces
+   it in the homepage's own language: its type, its closing band, its
+   palette. `components/offerings/offering-front-page.tsx` renders all six
+   from one component, so what is left to do here is make the borrowed
+   classes work on a page that has no photograph behind them.
+
+   Scoped under `.offering` rather than `[data-density]`, which is what the
+   homepage uses. That attribute looks like the obvious way in — it is where
+   `--home-pad` and friends are declared — but `body:has([data-density])`
+   also hides the test-site warning bar and hands the masthead over to a
+   view timeline that only the homepage's hero declares. Neither belongs on
+   a page with no hero image. So `.offering` opts in to the palette at the
+   declaration further up, and re-declares the four density tokens the
+   reused classes actually read.
+
+   Unlayered on purpose, matching the directory block below: these have to
+   beat Tailwind utilities without `!important`.
+   ======================================================================== */
+
+/* The sheet of paper, edge to edge, as on the directory. */
+.offering {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+
+  /* The accent an offering carries, in three parts, because one colour cannot
+     do all three jobs on this paper.
+
+     - `accent`  — accents set as type on cream. Must clear contrast itself.
+     - `fill`    — solid shapes: the button, a rule, a card's awning. Free to
+                   be the brightest version of the colour, since nothing is
+                   being read *through* it.
+     - `on-fill` — what is legible on top of `fill`. Blue takes cream, orange
+                   takes ink; this is the same split `--beat-on-accent` makes
+                   on the homepage, for the same reason.
+
+     Blue is the default because it is the only accent in the palette that can
+     be read as type on cream without being darkened first. An offering with a
+     mark of its own overrides these to match it. */
+  --offering-accent: var(--story-blue);
+  --offering-fill: var(--story-blue);
+  --offering-on-fill: var(--story-cream);
+
+  /* The compact set, copied by value rather than inherited. `--home-pad` is
+     read by `.home-section`, `--home-head-gap` and `--home-head-stack` by
+     `.home-sectionhead`, and `--home-display-max` by `.section-display`
+     below. The homepage's other density tokens are all hero geometry, and
+     these pages have no hero to size. */
+  --home-pad: 2.75rem;
+  --home-head-gap: 1.75rem;
+  --home-head-stack: 0.85rem;
+  --home-display-max: 3.5rem;
+
+  /* The hue each page's opening is lit with, as an unwrapped rgb triple so the
+     alpha can be varied at each stop of the gradient below.
+
+     It exists because these six pages share one component and one stylesheet,
+     and without it they share one face as well: the same cream, the same
+     left-aligned column, six times over. Light is the cheapest way to tell
+     them apart that does not need six commissioned illustrations — and unlike
+     tinting the type, a wash at this alpha carries no contrast burden, so the
+     palette's warm hues are usable here even though they fail against cream
+     as text.
+
+     Orange is the default because it is the light the homepage's own hero is
+     lit with; an offering that has not been given a hue reads as a room in
+     the same building rather than as a mistake. */
+  --offering-glow: 242 136 47;
+  --offering-glow-alpha: 0.22;
+}
+
+/* Pana Social is lit by its own mark: not the palette's orange but the exact
+   one the logo is drawn in, which is a shade brighter. It is the one offering
+   with a drawn mark, so it is the one with a colour to answer to — the whole
+   page answers to it, the light included. Green for the directory, which is
+   the palette's foliage and the closest thing it has to a colour for local
+   growth. Orange stays on events. Coral for the broadcast, red for the press,
+   and butter for the invitation.
+
+   Butter is much paler than the rest — at the shared alpha it would not read
+   at all against cream, since it differs from it mostly in the blue channel —
+   so it is the one hue that carries its own. */
+.offering[data-offering='social'] {
+  --offering-glow: 255 131 58;
+
+  /* Coral for type, the mark's own flame for shapes, ink on top of it.
+
+     Coral is not a compromise arrived at here — it is the homepage's answer to
+     this exact question. That hero pairs an orange wordmark with a coral
+     accent word, because no orange in this palette can be read as type on
+     cream and coral is the nearest warm neighbour that carries the same heat.
+     Social is the same arrangement with its own mark, so it takes the same
+     answer rather than inventing a private one.
+
+     The fill matches the logo exactly: nothing is read *through* it, only ink
+     sits on it, at 8.19:1. */
+  --offering-accent: var(--story-coral);
+  --offering-fill: var(--story-flame);
+  --offering-on-fill: var(--story-ink);
+}
+
+/* The closing band is the house's indigo slab, and on a page that is orange
+   from the masthead down it was the one thing left reading as unconverted.
+   `.story-point` hoists its ground into a token precisely so a page can answer
+   this question, so the answer is one line.
+
+   Deep burnt sienna, measured against the indigo it replaces rather than
+   guessed: cream 9.2:1 (was 8.4), the orange eyebrow 4.0:1 (was 3.7), the
+   coral accent word 3.6:1 (was 3.3). Every reading on the band improves, so
+   nothing is being traded away for the colour. */
+.offering[data-offering='social'] .story-point {
+  --point-bg: #6e2f08;
+}
+
+.offering[data-offering='directory'] {
+  --offering-glow: 47 158 87;
+}
+
+.offering[data-offering='vizion'] {
+  --offering-glow: 242 116 87;
+}
+
+.offering[data-offering='ink'] {
+  --offering-glow: 244 55 79;
+}
+
+.offering[data-offering='getInvolved'] {
+  --offering-glow: 246 240 153;
+  --offering-glow-alpha: 0.55;
+}
+
+@media (min-width: 48rem) {
+  .offering {
+    --home-pad: 3.5rem;
+    --home-head-gap: 2.25rem;
+  }
+}
+
+/* `[data-density] .section-display` is where the homepage caps its display
+   type, and that selector does not match here. Same rule, same token. */
+.offering .section-display {
+  font-size: clamp(2rem, 5.1vw, var(--home-display-max));
+}
+
+/* --- The opening ------------------------------------------------------- */
+
+/* Not the homepage's first screen. That one is a photograph of a street with
+   a search card standing in it, and it is the homepage's whole argument:
+   the physical place, and the one box that opens it. Six copies of it, one
+   per offering, would make every offering look like another front door
+   rather than a room behind one.
+
+   So this opens on the headline, on paper — but on paper that has been lit
+   and has a tooth to it, which is the part it was missing. Measured against
+   the homepage's first screen it was nine nodes and no background at all,
+   filling two thirds of the first viewport with flat cream: the one band on
+   the page with no device on it, in the one position where that shows. */
+.offering-hero {
+  /* Both of the below are drawn on pseudo-elements at a negative index, so
+     they need a stacking context of their own to sit inside — otherwise they
+     fall behind `.offering`'s cream and never appear. */
+  position: relative;
+  isolation: isolate;
+
+  /* Trimmed from `clamp(6rem, 14svh, 9.5rem)`. The old top stop put 112px of
+     nothing under a 65px masthead before the eyebrow, which is most of the
+     reason the opening read as empty rather than as spacious. */
+  padding-block: clamp(4.75rem, 11svh, 7.5rem) calc(var(--home-pad) * 0.9);
+
+  /* Centred to match the homepage hero, which is the page every one of these
+     is entered from. A left column here read as a different kind of page
+     rather than as the same front door one level down. Everything below the
+     hero stays left-aligned: centring is the greeting, not the document. */
+  text-align: center;
+}
+
+/* The pool of light. Centred under the column and sitting low.
+
+   Low, because that puts it at its warmest close to where the hero meets the
+   next band, which softens a join between two sections that are otherwise the
+   same cream with no rule between them.
+
+   The vertical geometry is arithmetic, not taste. A gradient still at any
+   alpha when it is cut by the edge of its box draws a hard line there — the
+   homepage hero documents shipping exactly that once. Centred at 80% with a
+   22% y-radius, the transparent stop lands at 80 + (22 x 0.78) = 97.2% of the
+   hero: inside the box, with room to spare. The first draft of this rule
+   centred it at 88% with a 30% radius, which resolves to 110.8% and drew the
+   line. Being cut by the left and right edges is fine and is not the same
+   bug: those are the edges of the screen, where a wash running off the side
+   reads as light rather than as a seam.
+
+   It is kept this low for a second reason. Peaking any higher puts the
+   densest part of the wash behind the lede, and a tint under body copy is
+   the one place on the page where it costs something. Down here it sits
+   behind the buttons, which are solid shapes and do not care. */
+.offering-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image: radial-gradient(
+    92% 22% at 50% 80%,
+    rgb(var(--offering-glow) / var(--offering-glow-alpha)) 0%,
+    rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.6)) 34%,
+    rgb(var(--offering-glow) / calc(var(--offering-glow-alpha) * 0.2)) 60%,
+    rgb(var(--offering-glow) / 0) 78%
+  );
+}
+
+/* Tooth. The same dot, size and opacity the homepage uses, so the two read as
+   the same paper rather than as two textures.
+
+   Masked at both ends for the reason the homepage gives: the masthead above
+   is this identical cream and carries no grain, so grain that reached the top
+   edge would draw a visible seam on that join. It clears at the bottom too,
+   to stay out of the light. */
+.offering-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(2 8 17 / 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 62%,
+    transparent 92%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 24%,
+    #000 62%,
+    transparent 92%
+  );
+}
+
+/* `.hero-headline` carries a text-shadow, which is there to hold white type
+   off a photograph. On paper it is a smudge. */
+.offering-headline {
+  text-shadow: none;
+  max-width: 18ch;
+  margin-inline: auto;
+}
+
+/* The drawn wordmark, standing where the text eyebrow stands on the other
+   five pages.
+
+   Sized by width rather than height because the mark is 6.7:1 and a height
+   that reads well on a phone makes it 400px wide on a desktop. The bottom
+   margin is larger than the eyebrow's because a logo needs air under it to
+   read as a mark rather than as the first line of the headline — the eyebrow
+   is small type and can sit close, this cannot. */
+.offering-mark {
+  display: block;
+  width: clamp(13rem, 22vw, 17rem);
+  height: auto;
+  margin-inline: auto;
+  margin-bottom: clamp(1.1rem, 2.2vw, 1.6rem);
+}
+
+/* `.accent-word` is butter — legible on the hero's dark image, invisible on
+   cream at 1.3:1. The accent token is the palette's counterweight to this
+   paper, and is chosen per offering to clear AA Large against it. */
+.offering .accent-word {
+  color: var(--offering-accent);
+}
+
+/* Same story for `.display-accent`, which hard-codes the old indigo globally.
+   Every section heading on these pages italicises its last word in the
+   offering's accent; stating it once here means a section added later is
+   coloured correctly without anyone remembering to opt in. The problem band
+   overrides this below, and is the only one that should. */
+.offering .display-accent {
+  color: var(--offering-accent);
+}
+
+/* Measure still has to be capped — a 54ch lede centred under an 18ch headline
+   is the shape; a full-width one is a paragraph that happens to be centred. */
+.offering-lede {
+  margin-inline: auto;
+  margin-top: 1.5rem;
+  max-width: 54ch;
+  opacity: 0.86;
+}
+
+/* --- The calls to action ----------------------------------------------- */
+
+.offering-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.85rem;
+  margin-top: 2.25rem;
+}
+
+.offering-btn {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-weight: 800;
+}
+
+/* Not the closing band's orange-on-blue button. That pairing belongs to a
+   coloured band; up here on paper the solid button is already the loudest
+   thing above the fold, so it flies the offering's own fill and carries
+   whichever of ink or cream can actually be read on it. */
+.offering-btn-solid {
+  background-color: var(--offering-fill);
+  color: var(--offering-on-fill);
+}
+
+.offering-btn-solid:hover {
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+.offering-btn-ghost {
+  border-color: rgb(2 8 17 / 0.2);
+  background-color: transparent;
+  color: var(--story-ink);
+}
+
+.offering-btn-ghost:hover {
+  border-color: var(--story-ink);
+  background-color: var(--story-ink);
+  color: var(--story-cream);
+}
+
+/* --- What you get ------------------------------------------------------ */
+
+/* Three cards, and deliberately not the homepage's pillar panels. Those are
+   an accordion because the three pillars are the same size as each other
+   and too long to show at once; these are three short paragraphs, so hiding
+   two of them behind a control would be a disclosure that saves nothing. */
+.offering-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 60rem) {
+  .offering-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* An outline, not a fill. The page is one sheet of paper from the masthead
+   down, and a card in a second colour would put an edge across it — the
+   thing the directory redesign was undertaken to remove. */
+.offering-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  border: 2px solid rgb(2 8 17 / 0.12);
+  border-radius: 1.25rem;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.offering-card:hover {
+  border-color: rgb(53 101 242 / 0.5);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offering-card {
+    transition: none;
+  }
+
+  .offering-card:hover {
+    transform: none;
+  }
+}
+
+/* Highlights are a set, not a sequence — the three payoffs are true at the
+   same time and in any order. They used to be numbered 01/02/03, which was
+   harmless while this band was the only list on the page. Once the steps band
+   arrived directly above it, every offering stacked two blue 01/02/03 columns
+   back to back, and the numerals stopped meaning "in this order" anywhere.
+   The sequence keeps the numbers; the set gets a rule. */
+.offering-card::before {
+  content: '';
+  display: block;
+  width: 2.25rem;
+  height: 3px;
+  border-radius: 999px;
+
+  /* Fill, not accent. This is a painted bar with nothing read through it, so
+     it takes the offering's full-strength colour the way the solid button
+     does, rather than the softened one reserved for type. */
+  background: var(--offering-fill);
+}
+
+.offering-card-title {
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.offering-card-body {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.6;
+  opacity: 0.78;
+}
+
+/* --- The row of the other five ----------------------------------------- */
+
+/* `.story-localrow` already paints itself cream and sizes its own padding, so
+   there is nothing to add here but the label's weight: on the homepage that
+   row is a set of county shortcuts sitting under an argument that has already
+   finished, and here it is the last thing on the page, so the chips want to
+   be the thing the eye lands on rather than the word above them. */
+.offering-switch .localrow-label {
+  opacity: 0.45;
+}
+
+/* --- The problem ------------------------------------------------------- */
+
+/* Cream, like the bands either side of it. The temptation with a section
+   about what is broken is to paint it dark, but this page already has a dark
+   band at the bottom doing the closing, and two dark bands turn a page into
+   stripes. The contrast here comes from the shape instead: a centred
+   statement over a row of three marked faults, against the left-aligned
+   column above it and the stacked walkthrough below. */
+.offering-problem {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-problem-head {
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.offering-problem .section-eyebrow {
+  color: var(--story-coral);
+}
+
+.offering-problem-statement {
+  margin-top: 1rem;
+}
+
+/* Coral, not the blue used for accents elsewhere on the page. Blue is this
+   page's approving colour — it is on the accent word, the primary button and
+   the section headings — and using it to say "this is broken" would be the
+   one place it means the opposite of everywhere else. */
+.offering-problem .display-accent {
+  color: var(--story-coral);
+}
+
+.offering-symptoms {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin: 0;
+  margin-top: calc(var(--home-head-gap) * 1.15);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .offering-symptoms {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* No card, no border. The band below this one is a row of outlined cards and
+   the band above is plain text, so leaving these open keeps the page from
+   reading as three identical boxes stacked three times — the mark does the
+   work a border would have done. */
+.offering-symptom {
+  position: relative;
+  padding-top: 1.5rem;
+}
+
+/* A short coral rule rather than a bullet or an icon. It is the same gesture
+   as the eyebrow's dash, which is already the page's way of pointing at
+   something without narrating it. */
+.offering-symptom-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.25rem;
+  height: 3px;
+  border-radius: 999px;
+  background-color: var(--story-coral);
+}
+
+.offering-symptom-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--story-ink);
+}
+
+.offering-symptom-body {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--story-ink);
+  opacity: 0.78;
+}
+
+/* --- The pillars ------------------------------------------------------- */
+
+/* The other way to open a page, used instead of `.offering-problem` rather
+   than alongside it. Same cream, same centred head, so the two are clearly
+   the same slot in the page — what changes is the row underneath, where three
+   marked faults become three named pillars. */
+.offering-pillars {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-pillars-head {
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Blue, where the problem band's eyebrow and accent are coral. Blue is this
+   page's approving colour and these are the things the page approves of, so
+   the swap is the whole signal that this band is making the opposite kind of
+   claim to the one it replaces. */
+.offering-pillars .section-eyebrow {
+  color: var(--offering-accent);
+}
+
+.offering-pillars-statement {
+  margin-top: 1rem;
+}
+
+.offering-pillarlist {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  margin: 0;
+  margin-top: calc(var(--home-head-gap) * 1.15);
+  padding: 0;
+  list-style: none;
+  /* Stretched, for the reason the homepage row is: three cards of three
+     different depths standing in a row read as three unfinished cards rather
+     than as a block of shops. */
+  align-items: stretch;
+}
+
+@media (min-width: 60rem) {
+  .offering-pillarlist {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* The card is a `.beat` — the homepage's shopfront, borrowed whole — so the
+   border, the awning and the sign are all defined once, up there. Only the
+   differences live here.
+
+   This is the one filled card on these pages. `.offering-card` further down
+   is deliberately outline-only, on the grounds that the page is one sheet of
+   paper from the masthead down and a second fill would put an edge across it.
+   That still holds for a row of payoffs read in passing. It does not hold
+   here: the pillars are the page's claim about what the thing *is*, the
+   homepage makes exactly that kind of claim in exactly this card, and a
+   reader arrives on this page from that one. */
+.offering-pillar {
+  /* The homepage hangs its sign under a shop window, which is what gives it
+     room to breathe. There is no window here, so the card has to supply the
+     gap itself or the sign sits jammed against its own awning. */
+  padding-top: 1.15rem;
+}
+
+/* The homepage sign spans its card because it holds a whole question and a
+   flex item blockifies to fill the cross axis anyway. These hold one word, and
+   a full-width bar around one word is mostly empty paint. Hugging also happens
+   to be truer to what the rule up there calls it: a sign hung outside a shop,
+   rather than a band across the front of it. */
+.offering-pillar .beat-sign {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+/* The homepage answer reserves space beneath itself for the disclosure pill
+   that sits on the floor of the card. Nothing follows this one. */
+.offering-pillar-body {
+  margin-bottom: 0;
+}
+
+/* --- How it works ------------------------------------------------------ */
+
+.offering-steps {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-steplist {
+  margin: 0;
+  margin-top: var(--home-head-gap);
+  padding: 0;
+  list-style: none;
+}
+
+/* Rows, not a grid. These are sequential — step two only means anything once
+   step one has happened — and a three-across grid states them as three
+   parallel options, which is the wrong claim as well as the third identical
+   row of three on one page. */
+.offering-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  padding-block: 1.5rem;
+}
+
+@media (min-width: 48rem) {
+  .offering-step {
+    gap: 2rem;
+    padding-block: 1.75rem;
+  }
+}
+
+/* The rule between steps, drawn as a border on every row but the last so the
+   list reads as one connected run rather than three separated blocks. */
+.offering-step + .offering-step {
+  border-top: 1px solid rgb(2 8 17 / 0.1);
+}
+
+/* Big enough to be the thing you navigate by. The drawer numbers its six
+   entries the same way and the pillars number their three, so a reader
+   arriving from either already knows a zero-padded numeral here means
+   "position in a sequence" rather than decoration. */
+.offering-step-num {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--offering-accent);
+  opacity: 0.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.offering-step-copy {
+  max-width: 62ch;
+}
+
+.offering-step-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--story-ink);
+}
+
+.offering-step-body {
+  margin-top: 0.65rem;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--story-ink);
+  opacity: 0.8;
+}
+
+/* ── The tour ────────────────────────────────────────────────────────────
+   The alternative to `.offering-steps`, for an offering that is built and can
+   therefore be shown. Each room is a window and a claim, side by side. */
+
+.offering-tour {
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-tourlist {
+  display: grid;
+  gap: 4rem;
+  margin-top: var(--home-head-gap);
+}
+
+.offering-room {
+  display: grid;
+  gap: 1.75rem;
+  align-items: center;
+}
+
+@media (min-width: 64rem) {
+  .offering-tourlist {
+    gap: 6rem;
+  }
+
+  /* The window takes the larger share. A screenshot shrunk to half a column
+     stops being evidence and becomes a texture. */
+  .offering-room {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 4rem;
+  }
+
+  /* The flip lives here rather than in the markup, so the DOM order stays
+     window-then-words for anyone reading the page linearly. */
+  .offering-room:nth-child(even) > .offering-shot {
+    order: 2;
+  }
+}
+
+/* The window itself. Its chrome is `.browser-frame` and `.browser-bar`, shared
+   with /mock/panaverse — this adds only what a still needs and a live mock
+   does not. */
+.offering-shot {
+  margin: 0;
+}
+
+.offering-shot-well {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  place-items: center;
+  background-color: var(--story-cream);
+}
+
+.offering-shot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  /* Top, not centre. The head of a screen carries the masthead and the first
+     posts, and a centred crop is the one that throws that away first. */
+  object-position: top center;
+}
+
+/* The wait state, until a real screenshot lands. Deliberately faint: a frame
+   with nothing in it should read as a gap the page is honest about, not as an
+   illustration standing in for software. */
+.offering-shot-wait {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--offering-accent);
+  opacity: 0.4;
+}
+
+.offering-room-copy {
+  max-width: 46ch;
+}
+
+.offering-room-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--offering-accent);
+}
+
+.offering-room-title {
+  margin-top: 0.75rem;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--story-ink);
+}
+
+.offering-room-body {
+  margin-top: 0.9rem;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--story-ink);
+  opacity: 0.8;
 }
