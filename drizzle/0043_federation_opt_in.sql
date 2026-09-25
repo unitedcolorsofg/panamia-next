@@ -1,0 +1,53 @@
+-- Migration: 0043_federation_opt_in
+-- Purpose: Make publishing an account to the fediverse something a member
+--          turns on, instead of something that was already true the moment
+--          they enrolled in Pana Social.
+-- Ticket: N/A
+-- Reversible: Yes - see Rollback. No data is destroyed; the column is additive
+--             and dropping it restores the previous always-on behavior.
+--
+-- Dependencies: profiles
+-- Data Migration: Inline (the DEFAULT applies to existing rows)
+--
+-- Rollback:
+--   ALTER TABLE profiles DROP COLUMN federation_enabled;
+--
+-- =============================================================================
+--
+-- Until now, enrolling in Pana Social created a social actor that the
+-- federation endpoints served to anyone who asked. There was no setting for
+-- it and no point at which a member agreed to it: /.well-known/webfinger
+-- resolved the handle, the actor document returned the name, bio and picture,
+-- and the outbox, followers and following collections were readable without
+-- authenticating. `discoverable: true` was a literal in the actor route, not
+-- a preference anyone had expressed.
+--
+-- That is a reasonable default for software whose users came for federation.
+-- It is the wrong one here. Members joined a South Florida arts community,
+-- and federation means handing a copy of their account and posts to
+-- independent servers, run by people they have no relationship with, under
+-- rules those people set. A copy that has already left cannot be recalled --
+-- deletes travel as requests that remote servers may honor, ignore, or never
+-- receive. Consent to something that cannot be undone has to be asked for
+-- first, not assumed.
+--
+-- So: DEFAULT false, and because a new column applies its default to every
+-- existing row, that is retroactive. Accounts currently reachable from other
+-- servers stop being reachable when this deploys.
+--
+-- That is the intended outcome rather than a side effect worth avoiding. The
+-- alternative -- grandfathering everyone already exposed -- would preserve
+-- exactly the situation this migration exists to end, for precisely the
+-- members who never agreed to it. The cost of being wrong in that direction
+-- is permanent; the cost of being wrong in this one is that a member who
+-- wants federation turns it back on.
+--
+-- Nothing is deleted here. Actors, keys, posts and follower rows are all left
+-- intact, so opting in restores the same handle and history rather than
+-- starting over. The endpoints answer 404 while federation is off, which
+-- remote servers treat as "not here" and retry later -- not 410 Gone, which
+-- invites them to purge the account permanently and would make this hard to
+-- reverse.
+
+ALTER TABLE profiles
+  ADD COLUMN federation_enabled boolean NOT NULL DEFAULT false;

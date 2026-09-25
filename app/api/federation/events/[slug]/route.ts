@@ -24,7 +24,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             postalCode: true,
           },
         },
-        host: { with: { user: { columns: { screenname: true } } } },
+        host: {
+          columns: { federationEnabled: true },
+          with: { user: { columns: { screenname: true } } },
+        },
       },
     });
 
@@ -44,7 +47,14 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // federation domain and must NOT follow the web surface at cutover.
     // See docs/DOMAINS.md.
     const baseUrl = 'https://pana.social';
-    const hostScreenname = event.host?.user?.screenname;
+    // Attribute the event to its host only if that member publishes to the
+    // fediverse. Hosting a public event is a decision about the event, not
+    // consent to have your own account named on servers elsewhere -- and
+    // with federation off the actor URL 404s, so attributing it would also
+    // hand remote servers a reference that resolves to nothing.
+    const hostScreenname = event.host?.federationEnabled
+      ? event.host?.user?.screenname
+      : undefined;
 
     const as2Event = {
       '@context': ['https://www.w3.org/ns/activitystreams'],

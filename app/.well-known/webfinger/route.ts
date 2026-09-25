@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
+import { getFederatedActor } from '@/lib/federation/wrappers/actor';
 import { socialConfig, getActorUrl } from '@/lib/federation';
 import { corsHeaders } from '@/lib/federation/cors';
 import { db } from '@/lib/db';
@@ -54,8 +54,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Look up the actor
-  const actor = await getActorByScreenname(username);
+  // Look up the actor. Gated on the member's federation setting: WebFinger is
+  // how a handle becomes resolvable at all, so leaving it answering while the
+  // actor document 404s would advertise an account and then fail to produce
+  // it -- worse for the member than either being published or being absent.
+  const actor = await getFederatedActor(username);
 
   if (!actor) {
     // Check if this is a historical screenname (user changed their screenname)

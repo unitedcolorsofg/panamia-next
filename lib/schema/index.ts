@@ -666,6 +666,21 @@ export const profiles = pgTable(
     socialEligible: boolean('social_eligible').notNull().default(true),
     socialEligibleAt: timestamp('social_eligible_at', { withTimezone: true }),
     socialIneligibleReason: text('social_ineligible_reason'),
+    /*
+     * Whether this member's account is published to the fediverse.
+     *
+     * Off unless the member turns it on, and deliberately not part of signing
+     * up. Federation sends a copy of the account and its posts to independent
+     * servers run by strangers under their own rules, and once a copy has
+     * left, deleting it here only asks them to follow suit -- it cannot make
+     * them. Someone joining a South Florida arts community has not asked for
+     * that and would not expect it, so it is theirs to opt into knowingly
+     * rather than something to discover afterwards.
+     *
+     * This gates the federation endpoints only. Pana Social itself -- posts,
+     * follows, timelines between members here -- works the same either way.
+     */
+    federationEnabled: boolean('federation_enabled').notNull().default(false),
     // Residence — platform eligibility & volunteer coordination
     // neighborhoods: jsonb array of predefined South Florida neighborhood keys
     // (e.g. ["wynwood", "brickell", "las-olas"]). Users may belong to multiple.

@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
+import { getFederatedActor } from '@/lib/federation/wrappers/actor';
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function GET(
 ) {
   const { user } = await params;
 
-  const actor = await getActorByScreenname(user);
+  const actor = await getFederatedActor(user);
   if (!actor) {
     return NextResponse.json({ error: 'Actor not found' }, { status: 404 });
   }

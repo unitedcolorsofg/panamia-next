@@ -12,7 +12,7 @@ import { socialActors, profiles, toPublicActor } from '@/lib/schema';
 import type { Profile, SocialActor, PublicSocialActor } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
-import { canCreateSocialActor, GateResult } from '../gates';
+import { canCreateSocialActor, mayFederate, GateResult } from '../gates';
 import {
   socialConfig,
   getActorUrl,
@@ -130,6 +130,11 @@ export async function syncActorFromProfile(
 
 /**
  * Get a SocialActor by screenname (local users only).
+ *
+ * This is the *local* lookup: it powers Pana Social itself -- profile pages,
+ * follow buttons, timelines -- and intentionally ignores the member's
+ * federation setting. Federation endpoints must use getFederatedActor()
+ * instead.
  */
 export async function getActorByScreenname(
   screenname: string
@@ -140,6 +145,74 @@ export async function getActorByScreenname(
         and(eq(a.username, screenname), eq(a.domain, socialConfig.domain)),
     })) ?? null
   );
+}
+
+/**
+ * Get a local SocialActor for a *federation* response.
+ *
+ * Returns null unless the member has turned federation on, so every caller
+ * answers the same way it would for a handle that was never taken: 404, no
+ * actor document, no collections, nothing acknowledging the account exists.
+ *
+ * WHY THIS IS A SEPARATE FUNCTION
+ *
+ * The obvious implementation -- filtering inside getActorByScreenname() --
+ * would take Pana Social down with it. That function is what the profile
+ * page, the follow endpoints and the timeline APIs all call, so filtering
+ * there would mean opting out of federation also meant opting out of having
+ * an account on this site. Federation is a publishing decision, not a
+ * membership one, and only the endpoints that publish should be gated.
+ *
+ * Splitting it makes that choice visible at each call site: a route calling
+ * getFederatedActor() is serving other servers, a route calling
+ * getActorByScreenname() is serving this one. A new federation endpoint gets
+ * the gate by using the function its neighbors already use, rather than by
+ * remembering to repeat a check -- the same reason status reads go through
+ * visibleTo() instead of each query filtering for itself.
+ *
+ * Fails closed: an actor with no profile row (remote actors, or a profile
+ * deleted out from under one) is not federated either.
+ */
+export async function getFederatedActor(
+  screenname: string
+): Promise<SocialActor | null> {
+  const actor = await db.query.socialActors.findFirst({
+    where: (a, { and, eq }) =>
+      and(eq(a.username, screenname), eq(a.domain, socialConfig.domain)),
+    with: { profile: { columns: { federationEnabled: true } } },
+  });
+
+  if (!actor || !mayFederate(actor.profile)) {
+    return null;
+  }
+
+  // Drop the joined profile so the return type matches the other lookups and
+  // callers can't accidentally serve profile fields in a federation response.
+  const { profile: _profile, ...federatedActor } = actor;
+  return federatedActor;
+}
+
+/**
+ * Whether a local actor's member has opted into federation.
+ *
+ * For paths that already hold an actor and can't re-resolve it by screenname
+ * -- the shared inbox finds its target by ActivityPub URI, not by handle.
+ *
+ * Fails closed: an actor with no profile row is not federated.
+ */
+export async function isFederationEnabled(
+  actor: Pick<SocialActor, 'profileId'>
+): Promise<boolean> {
+  if (!actor.profileId) {
+    return false;
+  }
+
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, actor.profileId),
+    columns: { federationEnabled: true },
+  });
+
+  return mayFederate(profile);
 }
 
 /**

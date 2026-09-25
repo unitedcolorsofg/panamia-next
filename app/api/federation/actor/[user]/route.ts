@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getActorByScreenname } from '@/lib/federation/wrappers/actor';
+import { getFederatedActor } from '@/lib/federation/wrappers/actor';
 import { formatPublicKeyForActor } from '@/lib/federation/crypto/keys';
 import { socialConfig } from '@/lib/federation';
 import { corsHeaders } from '@/lib/federation/cors';
@@ -24,8 +24,10 @@ export async function GET(
 ) {
   const { user } = await params;
 
-  // Look up the actor
-  const actor = await getActorByScreenname(user);
+  // Look up the actor. Returns null unless the member has opted into
+  // federation, so an account that exists but has not been published to the
+  // fediverse answers exactly as an unclaimed handle does.
+  const actor = await getFederatedActor(user);
 
   if (!actor) {
     // Check if this is a historical screenname (user changed their screenname)
@@ -80,6 +82,10 @@ export async function GET(
     },
     manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
     published: actor.createdAt.toISOString(),
+    // Reaching this line means the member turned federation on, so this is
+    // now a choice they made rather than an assertion made on their behalf.
+    // Note it is only ever a request: whether a remote server honors it in
+    // its search and directory listings is that server's decision.
     discoverable: true,
     endpoints: {
       sharedInbox:

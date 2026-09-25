@@ -71,8 +71,23 @@ export function canBeFollowed(profile: Profile | null): GateResult {
 }
 
 /**
+ * Whether a member's federation setting permits publishing their account.
+ *
+ * Fails closed on every absent case -- no profile row, an undefined column
+ * from a partial select, a null -- because each of those means "we could not
+ * establish that they agreed", which has to read the same as "no".
+ */
+export function mayFederate(
+  profile: { federationEnabled?: boolean | null } | null | undefined
+): boolean {
+  return profile?.federationEnabled === true;
+}
+
+/**
  * Check if a user can interact with federated (remote) accounts.
- * May be restricted for certain user types (e.g., under-18 local-only).
+ *
+ * Off unless the member turned it on. See profiles.federationEnabled for why
+ * that is the default.
  */
 export function canFederate(profile: Profile | null): GateResult {
   const actorGate = canCreateSocialActor(profile);
@@ -80,10 +95,9 @@ export function canFederate(profile: Profile | null): GateResult {
     return actorGate;
   }
 
-  // Future: check if user is restricted to local-only
-  // if (profile.federationRestricted) {
-  //   return { allowed: false, reason: 'local_only' };
-  // }
+  if (!mayFederate(profile)) {
+    return { allowed: false, reason: 'federation_not_enabled' };
+  }
 
   return { allowed: true };
 }

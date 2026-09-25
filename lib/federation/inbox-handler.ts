@@ -20,6 +20,7 @@ import {
   resolveSignaturePublicKey,
   ensureRemoteActor,
 } from './wrappers/remote-actor';
+import { isFederationEnabled } from './wrappers/actor';
 
 /** Minimal ActivityPub activity shape */
 interface Activity {
@@ -41,6 +42,14 @@ export async function handleInboxPost(
   request: Request,
   targetActor: SocialActor
 ): Promise<NextResponse> {
+  // Both inboxes land here, and the shared inbox resolves its target by
+  // ActivityPub URI rather than by handle -- so this is the one place that
+  // sees all inbound federation traffic regardless of how it arrived. A
+  // member who has not opted in has no inbox to deliver to.
+  if (!(await isFederationEnabled(targetActor))) {
+    return NextResponse.json({ error: 'Actor not found' }, { status: 404 });
+  }
+
   // Parse body
   let activity: Activity;
   try {
