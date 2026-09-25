@@ -12,6 +12,7 @@ import { socialActors, profiles, toPublicActor } from '@/lib/schema';
 import type { Profile, SocialActor, PublicSocialActor } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
+import { encryptPrivateKey } from '../crypto/key-encryption';
 import { canCreateSocialActor, mayFederate, GateResult } from '../gates';
 import {
   socialConfig,
@@ -70,8 +71,11 @@ export async function createActorForProfile(
     return { success: true, actor: toPublicActor(profile.socialActor) };
   }
 
-  // Generate keypair
+  // Generate keypair. The private half is encrypted before it reaches the
+  // database — see lib/federation/crypto/key-encryption.ts. Anyone holding it
+  // can sign activities as this member on any server that federates with us.
   const { publicKey, privateKey } = generateActorKeyPair();
+  const encryptedPrivateKey = await encryptPrivateKey(privateKey);
 
   // Build URIs
   const domain = socialConfig.domain;
@@ -90,7 +94,7 @@ export async function createActorForProfile(
       followersUrl: getFollowersUrl(username),
       followingUrl: getFollowingUrl(username),
       publicKey,
-      privateKey,
+      privateKey: encryptedPrivateKey,
       name: profile.name,
       summary: getProfileSummary(profile),
       iconUrl: profile.primaryImageCdn ?? undefined,

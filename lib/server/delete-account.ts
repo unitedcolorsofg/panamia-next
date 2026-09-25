@@ -842,7 +842,7 @@ export async function deleteAccount(
 
         for (const inboxUrl of inboxes) {
           try {
-            const headers = signedHeaders(
+            const headers = await signedHeaders(
               socialActor,
               'post',
               inboxUrl,

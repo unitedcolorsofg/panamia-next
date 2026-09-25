@@ -15,6 +15,7 @@
  * .env.local that must take effect locally, add it to KEYS too.
  */
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { randomBytes } from 'crypto';
 import { parse } from 'dotenv';
 
 const KEYS = [
@@ -41,6 +42,12 @@ const KEYS = [
   // an unset value is not inert: lib/federation/domain.ts falls back to the UI
   // host, so a plain `dev` run with no value mints actor URIs under localhost.
   'FEDERATION_DOMAIN',
+  // Actor signing keys are encrypted with this (lib/federation/crypto/
+  // key-encryption.ts) and creation fails closed without it, so dropping it
+  // would make `db:seed` fail at createActorForProfile. Generated below when
+  // absent so a fresh local checkout works without hunting for a value; the
+  // dev key is disposable because dev actors are.
+  'FEDERATION_KEY_SECRET',
 ];
 
 if (!existsSync('.env.local')) {
@@ -49,6 +56,19 @@ if (!existsSync('.env.local')) {
 }
 
 const env = parse(readFileSync('.env.local'));
+
+// Actor key encryption fails closed, so an absent or blank secret would make
+// `db:seed` fail rather than degrade. Mint a disposable one for local use.
+// Only ever fills a gap -- an explicit value is left untouched, so this can
+// never overwrite a real secret someone pasted in.
+if (!env.FEDERATION_KEY_SECRET) {
+  env.FEDERATION_KEY_SECRET = randomBytes(32).toString('base64');
+  console.log(
+    'FEDERATION_KEY_SECRET was empty; generated a random one for local dev.\n' +
+      '  Dev-only. Production must set its own, and must not reuse this.'
+  );
+}
+
 // Deliberately `!== undefined` rather than truthy: an empty value is meaningful
 // (see PANAVERSE_COOKIE_DOMAIN above) and must be written, not dropped.
 const lines = KEYS.filter((k) => env[k] !== undefined).map(

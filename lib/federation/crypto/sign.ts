@@ -4,12 +4,20 @@
  * Signs outgoing ActivityPub requests with HTTP Signatures.
  *
  * Ported from external/activities.next/lib/utils/signature.ts
- * - sign() (lines 75–94): removed passphrase (our keys are unencrypted PEM)
+ * - sign() (lines 75–94): takes an already-decrypted PEM
  * - signedHeaders() (lines 96–131): accepts { id, privateKey } instead of
  *   activities.next Actor type
+ *
+ * Keys are stored encrypted (see lib/federation/crypto/key-encryption.ts).
+ * signedHeaders() decrypts internally rather than asking callers to do it,
+ * so a plaintext key exists only inside this module's stack frame and there
+ * is no version of a call site that forgets to decrypt -- it would simply
+ * hand ciphertext to the signer and fail loudly.
  */
 
 import crypto from 'crypto';
+
+import { decryptPrivateKey } from './key-encryption';
 
 interface SignableActor {
   id: string;
@@ -17,7 +25,7 @@ interface SignableActor {
 }
 
 // Ported from external/activities.next/lib/utils/signature.ts (lines 75–94)
-// Change: removed passphrase: getConfig().secretPhase — our keys are unencrypted PEM
+// Change: takes a decrypted PEM; decryption happens in signedHeaders below.
 export function sign(
   request: string,
   headers: Record<string, string | undefined>,
@@ -38,7 +46,7 @@ export function sign(
 
 // Ported from external/activities.next/lib/utils/signature.ts (lines 96–131)
 // Change: accepts { id, privateKey } instead of activities.next Actor type
-export function signedHeaders(
+export async function signedHeaders(
   currentActor: SignableActor,
   method: string,
   targetUrl: string,
@@ -63,10 +71,17 @@ export function signedHeaders(
     return headers;
   }
 
+  // Stored ciphertext -> PEM. Legacy plaintext rows pass through unchanged,
+  // so this is safe to deploy before the backfill has run.
+  const privateKeyPem = await decryptPrivateKey(currentActor.privateKey);
+  if (!privateKeyPem) {
+    return headers;
+  }
+
   const signature = sign(
     `(request-target): ${method} ${url.pathname}`,
     headers,
-    currentActor.privateKey
+    privateKeyPem
   );
   const signatureHeader = `keyId="${currentActor.id}#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="${signature}"`;
   return {

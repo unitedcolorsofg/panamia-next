@@ -113,6 +113,23 @@ export const envConfig: Record<string, EnvVarConfig> = {
     required: false,
     example: 'pana.social',
   },
+  FEDERATION_KEY_SECRET: {
+    description:
+      'Master key encrypting actor signing keys at rest (AES-256-GCM, base64 ' +
+      'of 32 random bytes). Each local actor has an RSA private key that proves ' +
+      'activities genuinely came from that member; anyone holding it can post, ' +
+      'follow or delete as them on any server that federates with us. This ' +
+      'secret is what keeps a leaked database from being a set of usable ' +
+      'identities. Store it somewhere the database is not: if a backup ever ' +
+      'contains both, the encryption has bought nothing. Rotating it without ' +
+      're-encrypting existing rows makes every stored key unreadable and those ' +
+      'actors permanently unable to sign — see scripts/encrypt-actor-keys.ts. ' +
+      'Required before new actors can be created.',
+    location: 'SECRET',
+    required: false,
+    example:
+      "node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+  },
 
   PANAVERSE_ROOT_DOMAIN: {
     description:

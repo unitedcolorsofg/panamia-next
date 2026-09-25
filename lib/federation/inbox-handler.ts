@@ -277,7 +277,7 @@ async function sendAccept(
   };
 
   const targetInbox = remoteActor.sharedInboxUrl || remoteActor.inboxUrl;
-  const headers = signedHeaders(
+  const headers = await signedHeaders(
     { id: localActor.uri, privateKey: localActor.privateKey },
     'post',
     targetInbox,
