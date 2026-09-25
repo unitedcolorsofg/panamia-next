@@ -344,6 +344,13 @@
       "when": 1788220800000,
       "tag": "0047_event_group_host",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788307200000,
+      "tag": "0048_recommendation_lists",
+      "breakpoints": true
     }
   ]
 }

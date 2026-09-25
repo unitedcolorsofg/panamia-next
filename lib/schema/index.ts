@@ -360,6 +360,40 @@ export const socialGroupMemberStatus = pgEnum('social_group_member_status', [
   'banned',
 ]);
 
+/**
+ * Who may read a recommendation list.
+ *
+ * - `private`  — the owner and nobody else. The default, because a list with
+ *                one entry and a half-written note is a draft, and publishing
+ *                on create would push it to the profile page mid-thought.
+ * - `unlisted` — reachable by direct URL, excluded from listings and from the
+ *                owner's public collection. Same meaning as
+ *                `event_visibility.unlisted`, deliberately so: one word should
+ *                not mean two things across two features.
+ * - `public`   — listed, federated, anyone.
+ *
+ * ## Why there is no "panas-only"
+ *
+ * Because it could not be enforced. A followers-only *status* works because
+ * visibility there is addressing on a push path — the post is delivered to a
+ * follower's inbox and never sent anywhere else. A list is the opposite shape:
+ * remote servers GET it. Gating a pull endpoint on "is the fetcher a follower"
+ * requires authenticating the fetcher, i.e. signed GETs, which this codebase
+ * does not implement (see lib/federation/crypto/sign.ts — signing exists for
+ * outbound POSTs only, and inbound signature verification has no replay
+ * protection yet).
+ *
+ * Shipping a `panas_only` value we cannot honour would be worse than not
+ * offering it: the owner would believe the list was restricted while every
+ * unauthenticated crawler read it. It is also precisely the sort of parallel
+ * half-mechanism SOCIAL-ROADMAP Phase 3.5 removed the previous lists feature
+ * to avoid. Revisit when signed fetches land.
+ */
+export const recommendationListVisibility = pgEnum(
+  'recommendation_list_visibility',
+  ['private', 'unlisted', 'public']
+);
+
 // NOTE: Cloudflare-backed live-streaming (stream_status enum + events.cf_stream_*
 // columns) was intentionally dropped in the Nostr event-model merge. Placeholder
 // only — reintroduce here alongside the events table fields when streaming lands.
@@ -389,6 +423,8 @@ export type SocialGroupJoinPolicy =
 export type SocialGroupRole = (typeof socialGroupRole.enumValues)[number];
 export type SocialGroupMemberStatus =
   (typeof socialGroupMemberStatus.enumValues)[number];
+export type RecommendationListVisibility =
+  (typeof recommendationListVisibility.enumValues)[number];
 export type EventStatus = (typeof eventStatus.enumValues)[number];
 export type EventVisibility = (typeof eventVisibility.enumValues)[number];
 export type EventMode = (typeof eventMode.enumValues)[number];
@@ -851,6 +887,183 @@ export const profileSignals = pgTable(
     userKindIdx: index('profile_signals_user_kind_idx').on(
       table.userId,
       table.kind
+    ),
+  })
+);
+
+// =============================================================================
+// Recommendation lists
+// =============================================================================
+
+/**
+ * A named, ordered list of directory listings a pana vouches for.
+ *
+ * The directory can already tell you a cafe exists. It cannot tell you that
+ * someone you trust orders the same thing there every Tuesday. That sentence —
+ * stored on the *item*, not here — is the feature; this table is the frame
+ * around it ("Cafecito crawl", and why those five places belong together).
+ *
+ * ## Why ownerUserId and not a profile
+ *
+ * Same reasoning as profile_signals, and deliberately the same key. A list is
+ * a recommendation with a frame around it, so it belongs to the *person*, not
+ * to whichever profile they happen to be acting as. Keying it to a profile
+ * would mean a pana who claims a business on Monday finds Sunday's lists
+ * re-attributed to the business, and it would let a business vouch for other
+ * businesses — which profile_signals already forbids, in its own words:
+ * "A business cannot recommend anyone."
+ *
+ * The seam this creates, and it is a real one: ActivityPub actors hang off
+ * profiles (social_actors.profile_id), not users. `attributedTo` therefore
+ * resolves through the owner's own profile's actor, not through this column.
+ * See lib/federation/wrappers/recommendation-list.ts.
+ *
+ * @see docs/FEATURES.md — Lists
+ * @see docs/SOCIAL-ROADMAP.md Phase 3.5, which removed the previous lists
+ *      feature so that this one could be built on the social layer instead of
+ *      beside it.
+ */
+export const recommendationLists = pgTable(
+  'recommendation_lists',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    ownerUserId: text('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    // The framing: why these places belong on one list. Nullable because a
+    // title alone is often enough and an empty string is not a better answer.
+    blurb: text('blurb'),
+    /**
+     * Stable path segment, unique per owner.
+     *
+     * Separate from the id because this appears in the ActivityPub `id` URI,
+     * which remote servers store permanently. Renaming a list must not mint a
+     * new federated identity, so the slug is assigned once from the first
+     * title and never rewritten — the same rule actor usernames follow, and
+     * for the same reason.
+     */
+    slug: text('slug').notNull(),
+    visibility: recommendationListVisibility('visibility')
+      .notNull()
+      .default('private'),
+    /**
+     * The ActivityPub `id`. Null until the list is first made non-private.
+     *
+     * Minted after insert (the URI contains the slug and the owner's handle),
+     * matching how social_statuses fills `uri` in a second write — see
+     * lib/federation/wrappers/status.ts.
+     */
+    uri: text('uri').unique(),
+    // Maintained transactionally by the item writes, so the profile page can
+    // render "5 places" without a per-list COUNT.
+    itemCount: integer('item_count').notNull().default(0),
+    // First time this list became publicly visible. A timestamp rather than a
+    // boolean for the same reason profiles.pana_certified_at is one: "since
+    // when" is the question that actually gets asked, and it doubles as the
+    // AS2 `published` value, which must not move when the list is edited.
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // "Show me my lists" and "show me this pana's public lists" are the same
+    // query with a different visibility filter.
+    ownerVisibilityIdx: index('recommendation_lists_owner_visibility_idx').on(
+      table.ownerUserId,
+      table.visibility
+    ),
+    ownerSlugUnique: uniqueIndex('recommendation_lists_owner_slug_unique').on(
+      table.ownerUserId,
+      table.slug
+    ),
+  })
+);
+
+/**
+ * One entry on a list: a business, the owner's note about it, and where it
+ * sits in the running order.
+ *
+ * ## Why profileId is nullable
+ *
+ * Because the alternatives both corrupt something. `cascade` would let a
+ * business deleting its listing silently rewrite a stranger's list — the
+ * second stop on "Cafecito crawl" disappears and the author's numbered
+ * narrative now says something they never wrote. `restrict` is worse in the
+ * other direction: a business could never leave the directory because someone
+ * else recommended it, which hands a veto over one account's deletion to an
+ * unrelated account.
+ *
+ * So the target is nulled and the row is kept. `note` and `position` survive
+ * untouched, `profileNameAtAdd` supplies a label, and the entry renders as an
+ * honest tombstone — the list still reads as the sequence its author wrote,
+ * with one stop marked as no longer listed. The author's words are the thing
+ * being protected here; the pointer is not.
+ */
+export const recommendationListItems = pgTable(
+  'recommendation_list_items',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    listId: text('list_id')
+      .notNull()
+      .references(() => recommendationLists.id, { onDelete: 'cascade' }),
+    // Null once the listing is gone. See the docblock above.
+    profileId: text('profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    // Snapshot taken at add time so a tombstoned entry still has a name to
+    // show. Deliberately not kept in sync with the profile: it is the label
+    // the author saw when they wrote the note, which is what makes the note
+    // make sense.
+    profileNameAtAdd: text('profile_name_at_add').notNull(),
+    // The point of the entire feature.
+    note: text('note').notNull(),
+    /**
+     * Running order, contiguous from 0, rewritten as a block on reorder.
+     *
+     * Integer rather than a fractional / lexorank scheme because these lists
+     * are a handful of places, not a document outline. At that size rewriting
+     * every position inside one transaction is cheap and trivially auditable,
+     * while fractional ranks buy an O(1) insert at the cost of precision
+     * exhaustion and a rebalancing path that would be exercised approximately
+     * never and therefore be wrong when it finally ran.
+     *
+     * Not unique: a swap would transiently collide and a deferrable constraint
+     * is a heavier tool than this needs. Reads order by (position, createdAt)
+     * so a duplicate — which should not happen — degrades to a stable order
+     * rather than an arbitrary one.
+     */
+    position: integer('position').notNull(),
+  },
+  (table) => ({
+    // The same business twice on one list is a mistake; the same business on
+    // two different lists is the feature working.
+    listProfileUnique: uniqueIndex(
+      'recommendation_list_items_list_profile_unique'
+    ).on(table.listId, table.profileId),
+    listPositionIdx: index('recommendation_list_items_list_position_idx').on(
+      table.listId,
+      table.position
+    ),
+    // "Which lists is this business on?" — the business's own profile page.
+    profileIdIdx: index('recommendation_list_items_profile_id_idx').on(
+      table.profileId
     ),
   })
 );
@@ -2052,6 +2265,7 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   }),
   owners: many(profileOwners),
   signals: many(profileSignals),
+  recommendationListEntries: many(recommendationListItems),
   venuesOperated: many(venues),
   eventsHosted: many(events),
   eventAttendeeRows: many(eventAttendees),
@@ -2067,6 +2281,31 @@ export const profileSignalsRelations = relations(profileSignals, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const recommendationListsRelations = relations(
+  recommendationLists,
+  ({ one, many }) => ({
+    owner: one(users, {
+      fields: [recommendationLists.ownerUserId],
+      references: [users.id],
+    }),
+    items: many(recommendationListItems),
+  })
+);
+
+export const recommendationListItemsRelations = relations(
+  recommendationListItems,
+  ({ one }) => ({
+    list: one(recommendationLists, {
+      fields: [recommendationListItems.listId],
+      references: [recommendationLists.id],
+    }),
+    profile: one(profiles, {
+      fields: [recommendationListItems.profileId],
+      references: [profiles.id],
+    }),
+  })
+);
 
 export const profileOwnersRelations = relations(profileOwners, ({ one }) => ({
   profile: one(profiles, {
