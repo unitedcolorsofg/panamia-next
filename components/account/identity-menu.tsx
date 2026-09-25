@@ -75,17 +75,19 @@ function Avatar({
  * member and merely attributed to the group, so "acting as a group" is not a
  * state this system has — putting groups in the switcher would promise one.
  *
- * Only groups the member administers are listed, mirroring the business
- * listings above: this section is the set of things you are responsible for,
- * not everything you belong to. The "All groups" row carries the rest.
+ * Only groups the member is an admin of are listed, mirroring the business
+ * listings above: this section is the set of things you answer for, not
+ * everything you belong to. Moderators are deliberately excluded — a
+ * moderator approves join requests and removes posts, but cannot change
+ * settings, manage roles or delete the group, so the group is not theirs to
+ * be listed under. Moderated groups and plain memberships are both reached
+ * through the "All groups" row.
  */
 function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useTranslation('common');
   const { data } = useMyGroups();
 
-  const run = (data?.groups ?? []).filter(
-    (group) => group.role === 'admin' || group.role === 'moderator'
-  );
+  const run = (data?.groups ?? []).filter((group) => group.role === 'admin');
 
   return (
     <>
@@ -110,9 +112,6 @@ function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
                 <span className={styles.rowName}>{group.name}</span>
                 <span className={styles.rowHandle}>@{group.handle}</span>
               </span>
-              {/* The role is worth saying: an admin can do things here a
-                  moderator cannot, and the group page will not repeat it. */}
-              <span className={styles.badge}>{group.role}</span>
             </Link>
           ))}
         </>
