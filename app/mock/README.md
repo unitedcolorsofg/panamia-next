@@ -9,14 +9,16 @@ design, written in the real design system so the argument is honest: if a
 layout only works with invented spacing or colours that are not in
 `app/globals.css`, that shows up here rather than in review.
 
-| Route                | Description                                                      |
-| -------------------- | ---------------------------------------------------------------- |
-| `/mock/home`         | Homepage cut to four cards, built from the Connectors deck       |
-| `/mock/profile`      | Personal profile page (pana page) redesign                       |
-| `/mock/profile-next` | Pana page, second pass: identity rail left, tabbed content right |
-| `/mock/feed`         | Pana Social feed redesign, including the empty feed              |
-| `/mock/panaverse`    | Panaverse chrome: masthead, surface switcher, identity           |
-| `/mock/settings`     | Account settings — one page, either masthead                     |
+| Route                     | Description                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| `/mock/home`              | Homepage cut to four cards, built from the Connectors deck       |
+| `/mock/profile`           | Personal profile page (pana page) redesign                       |
+| `/mock/profile-next`      | Pana page, second pass: identity rail left, tabbed content right |
+| `/mock/feed`              | Pana Social feed redesign, including the empty feed              |
+| `/mock/panaverse`         | Panaverse chrome: masthead, surface switcher, identity           |
+| `/mock/settings`          | Account settings — one page, either masthead                     |
+| `/mock/directory`         | Directory search results, pre-map                                |
+| `/mock/directory-unified` | One directory theme across businesses, panas, groups and events  |
 
 ## Viewing the Pana Social surface
 
