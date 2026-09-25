@@ -26,6 +26,7 @@ import {
   emailMigrations,
   interactions,
   profileSignals,
+  recommendationLists,
   socialActors,
   socialStatuses,
   socialFollows,
@@ -691,6 +692,24 @@ export async function deleteAccount(
           .delete(profileSignals)
           .where(eq(profileSignals.userId, userId))
           .returning({ id: profileSignals.id }),
+      deletedTables,
+      warnings
+    );
+
+    // The lists this person published, and (by FK cascade within the same
+    // statement) the notes on them. Same reasoning as profileSignals above and
+    // deliberately adjacent to it: a list is a recommendation with a frame
+    // around it, published under a named human's voice. The users row survives
+    // anonymization, so the FK cascade never fires — without this, a pana who
+    // asked to be forgotten would go on vouching for five businesses in their
+    // own words.
+    await safeDelete(
+      'recommendationLists',
+      () =>
+        db
+          .delete(recommendationLists)
+          .where(eq(recommendationLists.ownerUserId, userId))
+          .returning({ id: recommendationLists.id }),
       deletedTables,
       warnings
     );

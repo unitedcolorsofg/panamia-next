@@ -32,6 +32,20 @@ exported and dotenv leaves it alone, so the same command works unchanged.
 - `invite` policy refuses a self-serve join
 - deleting a group actor cascades to the group and its members
 
+`recommendation-lists.test.ts` covers
+`lib/federation/wrappers/recommendation-list.ts`:
+
+- `createList` defaults to private and mints a per-owner unique slug
+- a retitle never rewrites the slug, because it rides in the federated `id`
+- only the owner can update, delete, add to, or reorder a list
+- directory listings can be recommended; a personal profile cannot
+- the same business twice on one list is refused, across two lists is fine
+- `item_count` and positions stay truthful across adds and removes
+- reorder rewrites the running order and rejects an incomplete one
+- `published_at` is stamped once and survives an unpublish/republish
+- deleting a business tombstones the entry instead of rewriting the list
+- deleting a list cascades to its items
+
 ## Writing more
 
 Fixtures must be namespaced with a per-run random suffix and removed in an
