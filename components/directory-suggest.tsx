@@ -105,7 +105,15 @@ type DirectorySuggestProps = DirectorySuggestBaseProps &
 
 // Long enough that a fast typist finishes a word first, short enough that the
 // list still feels attached to the keystroke.
-const DEBOUNCE_MS = 200;
+//
+// Measured at 200 and lowered: the server answers a warm suggest in ~90-100ms,
+// so a 200ms timer was more than half the time between the keystroke and the
+// list — the part of the wait the product chose rather than paid for. At 120
+// the total lands near 210ms, which is inside the window where the list still
+// reads as a response to typing rather than an arrival. Going lower stops
+// helping and starts costing: the requests a fast typist skips past are the
+// whole reason to debounce, and below ~100ms too few get skipped.
+const DEBOUNCE_MS = 120;
 
 const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
 
