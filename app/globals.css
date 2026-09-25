@@ -5381,26 +5381,14 @@ body:has(.offering) {
   --story-coral: #f27457;
   --story-red: #f4374f;
 
-  /* The Pana Social mark's exact ink, which is a shade brighter than the
-     palette's own orange. It is a fill colour only: it carries ink at 8.19:1
-     and is safe behind anything, but set *as* type on this cream it measures
-     2.22:1 — under the 3:1 floor for large text, let alone the 4.5:1 for
-     small. A logotype is exempt from that rule; a headline is not. */
+  /* The Pana Social mark's exact ink, a shade brighter than the palette's own
+     orange. A fill colour: it carries ink at 8.19:1 and is safe behind
+     anything, but set *as* type on this cream it measures 2.22:1. Nothing in
+     this family clears 3:1 on cream — the palette orange is 2.28 and coral is
+     2.56 — which is why the homepage sets its hero mark in orange and its
+     accent word in coral rather than trying to read the mark's own colour as
+     type. The offering pages follow that, so flame stays on shapes. */
   --story-flame: #ff833a;
-
-  /* So burnt is flame walked down in lightness until it clears, and no
-     further. 3.13:1 on cream against a 3:1 floor.
-
-     That floor is the right one to measure against: every accent this colours
-     is display type, the smallest being the 40px/800 step numbers, so AA
-     Large applies throughout. The hero glow does not enter into it either —
-     it is centred at 80% of the hero and dies well before the headline, which
-     sits on bare cream.
-
-     Held this close to the ceiling deliberately. The page flies the real mark
-     at the top, and an accent visibly darker than it reads as a second
-     colour rather than the same one. */
-  --story-burnt: #da6a1d;
 
   /* Foliage. Worn straight by the palm fronds and the street tree, and pulled
      into ink for the gator so he stays in front of the canopy rather than
@@ -8201,11 +8189,18 @@ body:has(.dirsearch) header {
 .offering[data-offering='social'] {
   --offering-glow: 255 131 58;
 
-  /* Burnt where the colour is set as type, the mark's own flame where it is a
-     shape, ink on top of it. See the token block on `.offering` for why one
-     orange cannot do all three. The fill is an exact match to the logo
-     because nothing is read *through* it — only ink sits on it, at 8.19:1. */
-  --offering-accent: var(--story-burnt);
+  /* Coral for type, the mark's own flame for shapes, ink on top of it.
+
+     Coral is not a compromise arrived at here — it is the homepage's answer to
+     this exact question. That hero pairs an orange wordmark with a coral
+     accent word, because no orange in this palette can be read as type on
+     cream and coral is the nearest warm neighbour that carries the same heat.
+     Social is the same arrangement with its own mark, so it takes the same
+     answer rather than inventing a private one.
+
+     The fill matches the logo exactly: nothing is read *through* it, only ink
+     sits on it, at 8.19:1. */
+  --offering-accent: var(--story-coral);
   --offering-fill: var(--story-flame);
   --offering-on-fill: var(--story-ink);
 }
@@ -8506,7 +8501,11 @@ body:has(.dirsearch) header {
   width: 2.25rem;
   height: 3px;
   border-radius: 999px;
-  background: var(--offering-accent);
+
+  /* Fill, not accent. This is a painted bar with nothing read through it, so
+     it takes the offering's full-strength colour the way the solid button
+     does, rather than the softened one reserved for type. */
+  background: var(--offering-fill);
 }
 
 .offering-card-title {
