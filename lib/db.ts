@@ -12,7 +12,7 @@
  * manages the actual Supabase connection pool, so a new local socket to
  * Hyperdrive is cheap and avoids stale-connection failures.
  *
- * - Production (CF Workers): env.HYPERDRIVE.connectionString via Hyperdrive, max: 1
+ * - Production (CF Workers): env.HYPERDRIVE.connectionString via Hyperdrive, max: 5
  * - Local dev (vinext dev): env.POSTGRES_URL secret binding (from .dev.vars)
  * - Local dev (plain Node.js): process.env.POSTGRES_URL, cached
  *
@@ -74,8 +74,10 @@ export function getDb(env?: CloudflareEnv): DbInstance {
   // Always create a fresh client per request — workerd prevents cross-request socket reuse.
   // (Sharing a postgres.js pool across requests causes "Cannot perform I/O on behalf of a
   // different request" because the pool's TCP sockets are bound to the creating request.)
+  // max: 5 — matches the production path below, so a Promise.all behaves the
+  // same in dev as it does deployed. See the note there for why not 1.
   if (env?.POSTGRES_URL) {
-    const client = postgres(env.POSTGRES_URL, { max: 1 });
+    const client = postgres(env.POSTGRES_URL, { max: 5 });
     const instance = drizzle(client, { schema });
     cachedInstance = instance;
     return instance;
@@ -88,13 +90,46 @@ export function getDb(env?: CloudflareEnv): DbInstance {
     // a new local socket to Hyperdrive — cheap. Reusing a cached client across requests
     // leads to stale-connection failures once Hyperdrive silently closes an idle socket.
     //
-    // max: 1 — Workers have no persistent connection pool.
+    // max: 5 — Cloudflare's published value for postgres.js behind Hyperdrive,
+    //   and the reason is a hard limit rather than a preference: a Worker
+    //   invocation may have at most six outbound connections waiting on
+    //   response headers, and a TCP socket counts. Five leaves one slot for
+    //   any other fetch in the same request.
+    //   https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/postgres-js/
+    //
+    //   This was 1, on the reasoning that "Workers have no persistent
+    //   connection pool". That is the reason the client is built per request
+    //   (below); it is not a reason to cap that client at a single socket, and
+    //   capping it had a cost that was easy to miss: postgres.js queues
+    //   concurrent queries onto the available connections, so at max: 1 every
+    //   `await Promise.all([...])` in this codebase ran sequentially. The
+    //   search typeahead fires four such queries per keystroke batch.
+    //
+    //   Raising this does not multiply connections against Supabase. Hyperdrive
+    //   pools to the origin independently and multiplexes in transaction mode;
+    //   the origin ceiling is Hyperdrive's, not this number.
+    //   https://developers.cloudflare.com/hyperdrive/configuration/connection-pooling/
+    //
+    //   Do not raise it to 6. The docs say a seventh connection queues, but
+    //   porsager/postgres#1023 — filed by a Cloudflare engineer — reports a
+    //   production deadlock at max: 10 rather than graceful queueing, and that
+    //   issue is what prompted the documented 5.
+    //
     // prepare: false — Hyperdrive only supports the simple query protocol,
     //   not the extended protocol (prepared statements) that postgres.js uses by default.
     //   https://developers.cloudflare.com/hyperdrive/examples/postgres-js/
+    //
+    //   That is no longer true: Hyperdrive now documents support for named
+    //   prepared statements in postgres.js, and says leaving this false costs
+    //   both its statement cache and an extra round trip per query. Left false
+    //   here on purpose anyway — porsager/postgres#960 ("prepared statement
+    //   already exists" against Hyperdrive) is still open, and `prepare: false`
+    //   is the workaround in that thread. Worth revisiting as its own change,
+    //   with somewhere to verify it; it is not a free flip.
+    //
     // debug — log every query so failures are visible in wrangler tail.
     const client = postgres(env.HYPERDRIVE.connectionString, {
-      max: 1,
+      max: 5,
       prepare: false,
       debug: (connection, query, params) => {
         const short = (typeof query === 'string' ? query : String(query)).slice(
