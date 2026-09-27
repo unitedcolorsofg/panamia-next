@@ -15,3 +15,10 @@ public
 # to be re-applied on every sync. Excluding it also removes the permanent
 # floor of 2 that made 'prettier --check .' unable to ever exit 0.
 external
+
+# Generated native app projects (Capacitor). Xcode, Gradle and the Capacitor
+# CLI own the formatting of these files and rewrite them on `cap sync`, so
+# formatting them here just creates churn in a diff nobody reads. mobile/www is
+# deliberately NOT excluded -- that is hand-written and ours to format.
+mobile/android
+mobile/ios

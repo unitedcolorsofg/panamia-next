@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  iOS Universal Links.
+
+  This is the app's half of the claim; the site's half is served from
+  app/.well-known/apple-app-site-association. Both are required, and the
+  iOS failure mode is silent in the same way Android's is: links simply keep
+  opening in Safari with no error anywhere.
+
+  Capacitor does not generate this file, so it is hand-written and wired up
+  through CODE_SIGN_ENTITLEMENTS in App.xcodeproj/project.pbxproj rather than
+  through the Xcode navigator. It will not appear in the project file tree —
+  that is expected and does not affect signing. Adding "Associated Domains" via
+  Xcode's Signing & Capabilities tab writes this same pair of changes.
+
+  Two further steps happen outside this repo and cannot be done from here:
+
+    1. The Associated Domains capability must be enabled for the App ID in the
+       Apple Developer portal, or signing fails with a provisioning error.
+    2. APPLE_APP_TEAM_ID must be set in the deploy, or the association file
+       404s and iOS finds nothing to verify against.
+
+  Both surfaces are listed because they are separate hostnames served by the
+  same Worker (see lib/panaverse/surfaces.ts) and this one app carries both.
+  Verification is per-host: an unlisted host is an unclaimed host.
+
+  iOS fetches these over Apple's CDN at install time. Edits to the served
+  association file can take a while to propagate; during development, the
+  "?mode=developer" behaviour and Settings > Developer > Associated Domains
+  Development make iOS query the origin directly instead.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:pana.social</string>
+		<string>applinks:social.pana.social</string>
+	</array>
+</dict>
+</plist>
