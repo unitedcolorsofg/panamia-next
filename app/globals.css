@@ -4201,8 +4201,48 @@ body {
 
 /* --- Search band ------------------------------------------------------- */
 
+/* Cream, not indigo.
+ *
+ * This band used to be a solid indigo block, and it was the only one on the
+ * site. Every other page — the homepage, the story sections, the masthead —
+ * runs as one continuous cream field with the warm half of the palette used
+ * for accents, so a full-bleed dark slab at the top of the directory read as
+ * a component borrowed from somewhere else. The join was the giveaway: cream
+ * masthead, indigo band, cream results, with two hard colour steps inside the
+ * first 400px of the page.
+ *
+ * The homepage hero had the identical problem and solved it already — see
+ * .home-hero-field, which was a dark photograph before it was re-cut onto
+ * cream. This borrows that solution rather than inventing a second one: a
+ * transparent background so the body's cream runs straight through, ink type,
+ * and one soft pool of orange light to give the band a centre of gravity
+ * without giving it an edge.
+ *
+ * The pool sits lower and further left than the homepage's (which is centred
+ * under a centred search box) because everything here is left-aligned against
+ * the container and the search pill is capped at 44rem.
+ *
+ * Its geometry is load-bearing and was got wrong once. A radial gradient does
+ * not fade at the edge of its box, it is *clipped* there — so an ellipse
+ * anchored at 92% with a 68% radius was still a quarter opaque when the band
+ * ended, and drew exactly the hard line the indigo used to. The rule is that
+ * `centre + 0.8 × radius` has to land inside 100% on the axis that has
+ * content on the other side of it: here 58% + 0.8 × 48% = 96%, so the wash is
+ * fully transparent a few pixels before the results begin. Horizontally it
+ * may clip all it likes — that edge is the window.
+ */
 .dirsearch-band {
   padding-block: clamp(2rem, 5vw, 3.25rem) clamp(1.75rem, 4vw, 2.5rem);
+  background-color: transparent;
+  color: var(--story-ink);
+  background-repeat: no-repeat;
+  background-image: radial-gradient(
+    72% 48% at 24% 58%,
+    rgb(242 136 47 / 0.26) 0%,
+    rgb(242 136 47 / 0.15) 36%,
+    rgb(242 136 47 / 0.05) 62%,
+    rgb(242 136 47 / 0) 80%
+  );
 }
 
 .dirsearch-title {
@@ -4215,22 +4255,30 @@ body {
 }
 
 /* The searched term is the one word on the page the visitor typed, so it gets
-   the accent rather than the sentence around it. */
+   the accent rather than the sentence around it.
+ 
+   Coral, for the reason .home-hero-field .accent-word is coral: it is the
+   accent the warm field is built around, and it is the one that survives the
+   move off indigo. Butter was legible on a dark slab and is very nearly
+   invisible on cream — 1.2:1 — so it could not come along. */
 .dirsearch-title em {
   font-style: normal;
-  color: var(--color-pana-butter);
+  color: var(--story-coral);
 }
 
 .dirsearch-count {
   margin-top: 0.6rem;
   font-size: 1rem;
   font-weight: 600;
-  opacity: 0.82;
+  opacity: 0.72;
 }
 
+/* The number keeps its own colour while the sentence around it dims, so the
+   one piece of the status line people actually read stays at full strength. */
 .dirsearch-count strong {
   font-weight: 900;
-  color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
+  opacity: 1;
 }
 
 .dirsearch-searchrow {
@@ -4238,6 +4286,11 @@ body {
   max-width: 44rem;
 }
 
+/* A cream pill on a cream field is an outline of a search box, so it gets an
+   edge and a shadow sized for a light surface — the same two lines
+   .home-hero-field .directory-suggest-pill needed for the same reason. The
+   old 30px shadow at 22% ink was tuned to lift the pill off a dark slab;
+   over cream it is a grey bruise. */
 .dirsearch-pill {
   display: flex;
   align-items: center;
@@ -4246,7 +4299,8 @@ body {
   border-radius: 999px;
   background-color: var(--color-pana-cream);
   color: var(--color-pana-ink);
-  box-shadow: 0 14px 30px rgb(17 13 13 / 0.22);
+  border: 2px solid rgb(2 8 17 / 0.14);
+  box-shadow: 0 10px 30px rgb(2 8 17 / 0.07);
 }
 
 .dirsearch-pill input {
@@ -4301,29 +4355,34 @@ body {
   margin-top: 0.95rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  opacity: 0.9;
+  opacity: 0.82;
 }
 
+/* Butter throughout this bar was a dark-surface choice — it reads at 1.2:1 on
+   cream, which is to say not at all. Indigo is the palette's other accent and
+   the one the rest of the light page already uses for interactive text. */
 .dirsearch-locbar strong {
   font-weight: 900;
-  color: var(--color-pana-butter);
+  color: var(--color-pana-indigo);
 }
 
 .dirsearch-locshare {
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
-  border: 2px solid var(--color-pana-butter);
-  color: var(--color-pana-butter);
+  border: 2px solid rgb(48 62 140 / 0.35);
+  color: var(--color-pana-indigo);
   font-size: 0.8125rem;
   font-weight: 800;
   transition:
     background-color 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .dirsearch-locshare:hover {
-  background-color: var(--color-pana-butter);
-  color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
 }
 
 .dirsearch-locchange {
@@ -4443,6 +4502,252 @@ body {
   height: 1.25rem;
   margin-inline: 0.3rem;
   background-color: rgb(48 62 140 / 0.18);
+}
+
+/* The scope row is a duplicate of the pill's scope menu, which sits directly
+   above it. Free on a desktop, 66px of a 844px phone — and on the width where
+   it costs something, it is also the width where the pill is closest to it. */
+@media (max-width: 47.99rem) {
+  .dirsearch-scopestrip {
+    display: none;
+  }
+}
+
+/* --- Filter menus ------------------------------------------------------- */
+/* The row the three menus and the view toggle share.
+
+   This replaced four stacked rows — Category, Where, a footer for sort, and
+   the list/map toggle — which on a 390px screen ran to 220px of controls and
+   pushed the first business card to y=627 of 844. Everything here is one line
+   tall at every width, and wraps to two only when the toggle will not fit. */
+.dirsearch-menurow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding-block: 0.15rem;
+}
+
+/* The anchor. The panel is absolutely positioned against this, and the sticky
+   bar above it already carries z-index 30 — which beats the map (pigeon-maps
+   tops out at 4) without needing a z-index here at all. */
+.dirsearch-menu {
+  position: relative;
+  flex: none;
+}
+
+/* Deliberately the same pill as `.dirsearch-chip`: a filter you are choosing
+   and a filter you have chosen should not look like different species. The
+   only additions are the caret and the `data-on` treatment, which here means
+   "this menu is doing something" rather than "this value is selected". */
+.dirsearch-menubtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.34rem 0.7rem 0.34rem 0.85rem;
+  border-radius: 999px;
+  border: 2px solid rgb(48 62 140 / 0.2);
+  background-color: transparent;
+  color: var(--color-pana-indigo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.dirsearch-menubtn:hover {
+  border-color: var(--color-pana-indigo);
+}
+
+/* An active menu fills, exactly as an active chip does. This is what keeps
+   the bar honest when it is closed: "Category · 2" in solid indigo says as
+   much as two lit chips did, in a fifth of the height. */
+.dirsearch-menubtn[data-on='true'] {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.dirsearch-menuname {
+  font-weight: 800;
+}
+
+/* The selection, set apart from the label by a dot rather than a colon —
+   a colon reads as a heading, and this is one phrase. */
+.dirsearch-menuvalue {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.dirsearch-menuvalue::before {
+  content: '·';
+  margin-right: 0.35rem;
+  opacity: 0.7;
+}
+
+.dirsearch-menupanel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 5;
+  min-width: 14rem;
+  max-width: min(20rem, calc(100vw - 2rem));
+  padding: 0.4rem;
+  border-radius: 1rem;
+  border: 2px solid rgb(48 62 140 / 0.16);
+  background-color: var(--color-pana-cream);
+  box-shadow: 0 18px 40px rgb(17 13 13 / 0.16);
+}
+
+/* Near the right edge the panel would otherwise run off-screen. Flipping the
+   anchor is cheaper and steadier than measuring: these triggers never move
+   once laid out, so the last menu in the row is always the one at risk. */
+.dirsearch-menu:last-of-type .dirsearch-menupanel {
+  left: auto;
+  right: 0;
+}
+
+.dirsearch-menucaption {
+  padding: 0.3rem 0.65rem 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgb(17 13 13 / 0.6);
+}
+
+/* Capped and scrollable because Category has eleven options and a menu taller
+   than the phone it opens on is a page, not a menu. */
+.dirsearch-menulist {
+  display: flex;
+  flex-direction: column;
+  max-height: min(19rem, 52vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dirsearch-menuitem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.7rem;
+  text-align: left;
+  color: var(--color-pana-ink);
+  transition: background-color 0.14s ease;
+}
+
+.dirsearch-menuitem:hover:not(:disabled),
+.dirsearch-menuitem:focus-visible {
+  background-color: rgb(48 62 140 / 0.08);
+}
+
+.dirsearch-menuitem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* The box is always drawn, empty when off. A tick that appears and disappears
+   shifts every label by its own width; a box that fills does not move
+   anything, and the column of empty boxes is itself the affordance that says
+   these are multiple choice. */
+.dirsearch-menutick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.1rem;
+  border-radius: 0.35rem;
+  border: 2px solid rgb(48 62 140 / 0.3);
+  color: var(--color-pana-cream);
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.dirsearch-menuitem[data-on='true'] .dirsearch-menutick {
+  background-color: var(--color-pana-indigo);
+  border-color: var(--color-pana-indigo);
+}
+
+.dirsearch-menulabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.dirsearch-menuhint {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: rgb(17 13 13 / 0.55);
+}
+
+.dirsearch-menuclear {
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.45rem 0.6rem;
+  border-top: 1px solid rgb(48 62 140 / 0.12);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-pana-burnt);
+  text-align: left;
+}
+
+.dirsearch-menuclear:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- Active filters ----------------------------------------------------- */
+
+/* Present only when something is on, which is why it can afford the height:
+   it is never paid for by someone who has not filtered. This row is the half
+   of the old chip rows that was actually load-bearing — seeing what is on,
+   and switching one off without opening anything. */
+.dirsearch-activerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0.45rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid rgb(48 62 140 / 0.1);
+}
+
+.dirsearch-activechip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.5rem 0.28rem 0.7rem;
+  border-radius: 999px;
+  background-color: rgb(48 62 140 / 0.1);
+  color: var(--color-pana-indigo);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.16s ease;
+}
+
+/* The whole chip is the remove button, not just the ×. A 12px target is a
+   miss on a phone, and there is nothing else the chip could mean. */
+.dirsearch-activechip:hover {
+  background-color: rgb(48 62 140 / 0.2);
+}
+
+.dirsearch-activerow .dirsearch-clear {
+  flex: none;
+  margin-left: auto;
 }
 
 .dirsearch-filterfoot {
@@ -8106,9 +8411,13 @@ body:has(.dirsearch) {
 
   /* Every row above the results is a row of results you cannot see. Stacked,
      the toolbar and the filters came to 282px of a 900px window — two and a
-     bit cards — so Sort and Clear move out of a row of their own and into the
-     space to the right of the chips, which was empty. Worth about 48px, or
-     most of another card. */
+     bit cards — so the active filters move out of a row of their own and into
+     the space to the right of the menus, which was empty. Worth about 40px.
+
+     The grid below is the mock routes', which still lay their filters out as
+     labelled chip rows and need two tracks. The shipped bar opts out of it
+     with --menus: three menu pills and a chip row fit on one line, so it gets
+     a flex row instead and the whole bar is a single line tall. */
   .dirsearch-split .dirsearch-filterinner {
     display: grid;
     /* Capped, not `auto`. The sort track sizes to its widest option, and
@@ -8117,6 +8426,34 @@ body:has(.dirsearch) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
     align-items: center;
     column-gap: 0.85rem;
+  }
+
+  .dirsearch-split .dirsearch-filterinner--menus {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .dirsearch-split .dirsearch-filterinner--menus .dirsearch-menurow {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    padding-block: 0.1rem;
+  }
+
+  /* Takes the rest of the line and scrolls inside it, so a sixth filter
+     lengthens the chip row rather than wrapping the menus onto a second line.
+     A rule above the chips reads as a divider between two rows; beside them it
+     reads as a stray line ending in the middle of the bar — so the separation
+     turns ninety degrees, matching the mock's footer column. */
+  .dirsearch-split .dirsearch-filterinner--menus .dirsearch-activerow {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: 0;
+    padding-left: 0.85rem;
+    border-left: 1px solid rgb(2 8 17 / 0.1);
   }
 
   .dirsearch-split .dirsearch-filterrow {

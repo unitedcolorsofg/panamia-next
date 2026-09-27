@@ -58,6 +58,19 @@ export async function ScopePage({
     console.error('Directory scope session error:', error);
   }
 
+  // Everything's four previews do not depend on the counts — they are the same
+  // question asked for rows instead of totals. Starting them here rather than
+  // inside EverythingResults overlaps the two round trips instead of running
+  // them nose to tail, which is where roughly a third of this route's time was
+  // going: counts resolved, React rendered, and only then did the searches
+  // start. Nothing awaits this until the results section does.
+  //
+  // Safe to leave floating: searchKindSafely catches per kind and resolves to
+  // null, so this Promise.all cannot reject, and the only early return below
+  // is the pana gate — which never fires for 'all'.
+  const previews =
+    scope === 'all' && term ? loadEverythingPreviews(term, signedIn) : null;
+
   const { counts, unavailable } = await countAllScopes(term, signedIn);
 
   if (SCOPE_REQUIRES_PANA[scope] && !signedIn) {
@@ -83,6 +96,7 @@ export async function ScopePage({
         {scope === 'all' ? (
           <EverythingResults
             term={term}
+            previews={previews}
             signedIn={signedIn}
             counts={counts}
             unavailable={unavailable}
@@ -93,6 +107,23 @@ export async function ScopePage({
       </div>
     </main>
   );
+}
+
+/**
+ * The four preview searches, as one promise.
+ *
+ * Split out of EverythingResults so ScopePage can start it before awaiting the
+ * counts. Signed-out visitors get null for the two member scopes rather than
+ * an empty result: "you cannot see this" and "there is none" are different
+ * answers and the section headings read differently for each.
+ */
+function loadEverythingPreviews(term: string, signedIn: boolean) {
+  return Promise.all([
+    searchKindSafely('business', term, 1, PREVIEW_LIMIT),
+    signedIn ? searchKindSafely('pana', term, 1, PREVIEW_LIMIT) : null,
+    signedIn ? searchKindSafely('group', term, 1, PREVIEW_LIMIT) : null,
+    searchKindSafely('event', term, 1, PREVIEW_LIMIT),
+  ]);
 }
 
 function SearchBand({
@@ -110,7 +141,7 @@ function SearchBand({
   const scoped = countFor(counts, scope);
 
   return (
-    <section className="surface-indigo dirsearch-band">
+    <section className="dirsearch-band">
       <div className="container mx-auto px-4">
         <span className="section-eyebrow">Directory</span>
 
@@ -188,26 +219,24 @@ function SearchBand({
  */
 async function EverythingResults({
   term,
+  previews,
   signedIn,
   counts,
   unavailable,
 }: {
   term: string;
+  previews: ReturnType<typeof loadEverythingPreviews> | null;
   signedIn: boolean;
   counts: ScopeCounts;
   unavailable: ReadonlySet<ScopeKind>;
 }) {
-  if (!term) return <EmptyPrompt />;
+  if (!term || !previews) return <EmptyPrompt />;
 
   // Each kind resolves to its results or to null, and null here means "could
   // not be searched" rather than "matched nothing" — so one kind's outage
-  // costs the visitor that kind, not the page.
-  const [businesses, panas, groups, events] = await Promise.all([
-    searchKindSafely('business', term, 1, PREVIEW_LIMIT),
-    signedIn ? searchKindSafely('pana', term, 1, PREVIEW_LIMIT) : null,
-    signedIn ? searchKindSafely('group', term, 1, PREVIEW_LIMIT) : null,
-    searchKindSafely('event', term, 1, PREVIEW_LIMIT),
-  ]);
+  // costs the visitor that kind, not the page. Started in ScopePage, so by the
+  // time this awaits, most of the wait has already happened alongside counts.
+  const [businesses, panas, groups, events] = await previews;
 
   const down = new Set<ScopeKind>(unavailable);
   if (businesses === null) down.add('business');
@@ -393,7 +422,7 @@ function NoMatches({ term }: { term: string }) {
 function GatedScope({ scope, term }: { scope: Scope; term: string }) {
   return (
     <main className="dirscope">
-      <section className="surface-indigo dirsearch-band">
+      <section className="dirsearch-band">
         <div className="container mx-auto px-4">
           <span className="section-eyebrow">Directory</span>
           <h1 className="dirsearch-title">

@@ -3,6 +3,7 @@
 import { LayoutList, Map as MapIcon, X } from 'lucide-react';
 import { countyList, profileCategoryList } from '@/lib/lists';
 import type { DirectorySort } from '@/lib/query/directory';
+import { FilterMenu, type FilterMenuOption } from './filter-menu';
 
 export type ResultView = 'list' | 'map';
 
@@ -29,7 +30,7 @@ const SORT_OPTIONS: { key: DirectorySort; label: string }[] = [
 ];
 
 /**
- * Anchor for the county chips.
+ * Anchor for the county filter.
  *
  * Exported because the search band links here when a member has declined the
  * location prompt: counties are the answer to "what is near me" that needs no
@@ -37,6 +38,10 @@ const SORT_OPTIONS: { key: DirectorySort; label: string }[] = [
  * at each other.
  */
 export const COUNTY_FILTER_ID = 'directory-county-filter';
+
+/** The two standalone toggles, as menu options so they can share the Where menu. */
+const CERTIFIED = 'certified';
+const WITH_EVENTS = 'with-events';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -48,15 +53,30 @@ interface FilterBarProps {
 }
 
 /**
- * Refinement, in the open.
+ * Refinement, on one line.
  *
- * The directory this replaces hid every filter behind a "Filters" button. That
- * costs two clicks before you learn the directory even has categories, hides
- * which ones are active once the dialog closes, and gives a phone user a
- * full-screen modal to dismiss between every adjustment.
+ * This bar used to lay every choice out as chips across three labelled rows —
+ * Category, Where, then a footer for sort and the list/map toggle. The
+ * argument for that was a good one and is worth restating: the directory it
+ * replaced hid everything behind a "Filters" button, which costs two clicks
+ * before you learn the directory has categories at all, hides what is active
+ * once the dialog closes, and gives a phone a full-screen modal to dismiss
+ * between every adjustment.
  *
- * Here the choices are chips on the page: you can see what is available, see
- * what is on, and turn one off by clicking it.
+ * What that argument missed is the cost on a phone. Measured at 390x844: the
+ * band ended at 336, the three rows and the footer ran to 603, and the first
+ * business card started at 627 — 74% of the screen was controls, and the one
+ * result you could see was the thing you came for. Filters being visible is
+ * worth very little if the businesses are not.
+ *
+ * So the rows fold into menus and the two useful properties are kept by other
+ * means. Each trigger names its own state, so a closed Category menu still
+ * reads "Category · 2" rather than going quiet. And every active choice is
+ * repeated underneath as a removable chip, so seeing what is on and turning
+ * one off both stay one glance and one click — which is all the chip rows were
+ * ever really buying. Scope is gone from here entirely: it lives in the search
+ * pill, one control up, and having it twice on a 390px screen was the least
+ * defensible of the four rows.
  */
 export function FilterBar({
   filters,
@@ -65,166 +85,130 @@ export function FilterBar({
   onViewChange,
   locationShared,
 }: FilterBarProps) {
-  const toggleIn = (list: string[], value: string) =>
-    list.includes(value)
-      ? list.filter((item) => item !== value)
-      : [...list, value];
+  const categoryOptions: FilterMenuOption[] = profileCategoryList.map(
+    (category) => ({ value: category.value, label: category.desc })
+  );
 
-  const activeCount =
-    filters.categories.length +
-    filters.counties.length +
-    (filters.certifiedOnly ? 1 : 0) +
-    (filters.withEventsOnly ? 1 : 0);
+  // Counties and the two qualities share one menu. They are different kinds of
+  // question — where it is, versus what it is — but both answer "narrow this
+  // down", and two more triggers on a phone costs more than the tidiness of
+  // separating them is worth. The hints carry the distinction instead.
+  const whereOptions: FilterMenuOption[] = [
+    ...[...countyList].reverse().map((county) => ({
+      value: county.value,
+      label: COUNTY_LABEL[county.value] ?? county.desc,
+    })),
+    {
+      value: CERTIFIED,
+      label: 'Pana Certified',
+      hint: 'Vetted by Pana Mia staff',
+    },
+    {
+      value: WITH_EVENTS,
+      label: 'Has events coming up',
+      hint: 'Something on in the next three months',
+    },
+  ];
+
+  const whereSelected = [
+    ...filters.counties,
+    ...(filters.certifiedOnly ? [CERTIFIED] : []),
+    ...(filters.withEventsOnly ? [WITH_EVENTS] : []),
+  ];
+
+  const applyWhere = (next: string[]) =>
+    onChange({
+      ...filters,
+      counties: next.filter(
+        (value) => value !== CERTIFIED && value !== WITH_EVENTS
+      ),
+      certifiedOnly: next.includes(CERTIFIED),
+      withEventsOnly: next.includes(WITH_EVENTS),
+    });
+
+  const sortOptions: FilterMenuOption[] = SORT_OPTIONS.map((option) => ({
+    value: option.key,
+    label: option.label,
+    // Nearest is meaningless with nothing to measure from, and offering it
+    // anyway would produce an order the viewer cannot account for.
+    disabledReason:
+      option.key === 'nearest' && !locationShared
+        ? 'Share your location first'
+        : undefined,
+  }));
+
+  // Every active filter as one removable chip, in the order the menus present
+  // them. This is the row that keeps the old bar's promise: what is on is on
+  // the page, and turning it off never requires opening a menu first.
+  const activeChips: { key: string; label: string; clear: () => void }[] = [
+    ...filters.categories.map((value) => ({
+      key: `cat:${value}`,
+      label:
+        profileCategoryList.find((category) => category.value === value)
+          ?.desc ?? value,
+      clear: () =>
+        onChange({
+          ...filters,
+          categories: filters.categories.filter((item) => item !== value),
+        }),
+    })),
+    ...filters.counties.map((value) => ({
+      key: `county:${value}`,
+      label: COUNTY_LABEL[value] ?? value,
+      clear: () =>
+        onChange({
+          ...filters,
+          counties: filters.counties.filter((item) => item !== value),
+        }),
+    })),
+    ...(filters.certifiedOnly
+      ? [
+          {
+            key: CERTIFIED,
+            label: 'Pana Certified',
+            clear: () => onChange({ ...filters, certifiedOnly: false }),
+          },
+        ]
+      : []),
+    ...(filters.withEventsOnly
+      ? [
+          {
+            key: WITH_EVENTS,
+            label: 'Has events coming up',
+            clear: () => onChange({ ...filters, withEventsOnly: false }),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="dirsearch-filters">
-      <div className="dirsearch-filterinner">
-        <div className="dirsearch-filterrow">
-          <span className="dirsearch-filterlabel">Category</span>
-          <ul className="dirsearch-chiprow">
-            {profileCategoryList.map((category) => {
-              const on = filters.categories.includes(category.value);
-              return (
-                <li key={category.value}>
-                  <button
-                    type="button"
-                    className="dirsearch-chip"
-                    data-on={on}
-                    aria-pressed={on}
-                    onClick={() =>
-                      onChange({
-                        ...filters,
-                        categories: toggleIn(
-                          filters.categories,
-                          category.value
-                        ),
-                      })
-                    }
-                  >
-                    {category.desc}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      <div className="dirsearch-filterinner dirsearch-filterinner--menus">
+        <div className="dirsearch-menurow" id={COUNTY_FILTER_ID} tabIndex={-1}>
+          <FilterMenu
+            label="Category"
+            options={categoryOptions}
+            selected={filters.categories}
+            onChange={(categories) => onChange({ ...filters, categories })}
+          />
 
-        <div
-          className="dirsearch-filterrow scroll-mt-24"
-          id={COUNTY_FILTER_ID}
-          tabIndex={-1}
-        >
-          <span className="dirsearch-filterlabel">Where</span>
-          <ul className="dirsearch-chiprow">
-            {[...countyList].reverse().map((county) => {
-              const on = filters.counties.includes(county.value);
-              return (
-                <li key={county.value}>
-                  <button
-                    type="button"
-                    className="dirsearch-chip"
-                    data-on={on}
-                    aria-pressed={on}
-                    onClick={() =>
-                      onChange({
-                        ...filters,
-                        counties: toggleIn(filters.counties, county.value),
-                      })
-                    }
-                  >
-                    {COUNTY_LABEL[county.value] ?? county.desc}
-                  </button>
-                </li>
-              );
-            })}
+          <FilterMenu
+            label="Where"
+            options={whereOptions}
+            selected={whereSelected}
+            onChange={applyWhere}
+          />
 
-            <li aria-hidden="true" className="dirsearch-chipdivide" />
-
-            <li>
-              <button
-                type="button"
-                className="dirsearch-chip"
-                data-on={filters.certifiedOnly}
-                aria-pressed={filters.certifiedOnly}
-                title="Vetted by Pana Mia staff"
-                onClick={() =>
-                  onChange({
-                    ...filters,
-                    certifiedOnly: !filters.certifiedOnly,
-                  })
-                }
-              >
-                Pana Certified
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className="dirsearch-chip"
-                data-on={filters.withEventsOnly}
-                aria-pressed={filters.withEventsOnly}
-                title="Has something on in the next three months"
-                onClick={() =>
-                  onChange({
-                    ...filters,
-                    withEventsOnly: !filters.withEventsOnly,
-                  })
-                }
-              >
-                Has events coming up
-              </button>
-            </li>
-          </ul>
-        </div>
-
-        <div className="dirsearch-filterfoot">
-          <label className="dirsearch-sort">
-            <span>Sort</span>
-            <select
-              value={filters.sort}
-              onChange={(event) =>
-                onChange({
-                  ...filters,
-                  sort: event.target.value as DirectorySort,
-                })
-              }
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option
-                  key={option.key}
-                  value={option.key}
-                  // Nearest is meaningless with nothing to measure from, and
-                  // offering it anyway would produce an order the viewer
-                  // cannot account for.
-                  disabled={option.key === 'nearest' && !locationShared}
-                >
-                  {option.label}
-                  {option.key === 'nearest' && !locationShared
-                    ? ' — share location first'
-                    : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {activeCount > 0 && (
-            <button
-              type="button"
-              className="dirsearch-clear"
-              onClick={() =>
-                onChange({
-                  ...filters,
-                  categories: [],
-                  counties: [],
-                  certifiedOnly: false,
-                  withEventsOnly: false,
-                })
-              }
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-              Clear {activeCount} filter{activeCount === 1 ? '' : 's'}
-            </button>
-          )}
+          <FilterMenu
+            label="Sort"
+            options={sortOptions}
+            selected={[filters.sort]}
+            single
+            defaultValue="relevance"
+            onChange={([sort]) =>
+              onChange({ ...filters, sort: sort as DirectorySort })
+            }
+          />
 
           {/* A map is how you answer "what is near me" when you do not yet
               know what you are looking for, which is most of the time. On a
@@ -252,6 +236,44 @@ export function FilterBar({
             </button>
           </div>
         </div>
+
+        {activeChips.length > 0 && (
+          <div className="dirsearch-activerow">
+            <ul className="dirsearch-chiprow">
+              {activeChips.map((chip) => (
+                <li key={chip.key}>
+                  <button
+                    type="button"
+                    className="dirsearch-activechip"
+                    onClick={chip.clear}
+                  >
+                    {chip.label}
+                    <X className="h-3 w-3" aria-hidden="true" />
+                    <span className="sr-only">Remove filter</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {activeChips.length > 1 && (
+              <button
+                type="button"
+                className="dirsearch-clear"
+                onClick={() =>
+                  onChange({
+                    ...filters,
+                    categories: [],
+                    counties: [],
+                    certifiedOnly: false,
+                    withEventsOnly: false,
+                  })
+                }
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
