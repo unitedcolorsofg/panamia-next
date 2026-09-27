@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useIsNativeApp } from '@/lib/mobile/use-native-app';
 import { useTranslation, Trans } from 'react-i18next';
 
 function GoogleIcon() {
@@ -161,6 +162,10 @@ function SignInPageContent({
   const { t: tToast } = useTranslation('toast');
   const { t } = useTranslation('signin');
 
+  /* Whether this is running inside the Android/iOS shell rather than a
+     browser. Gates the OAuth list below — see the comment on that filter. */
+  const isNativeApp = useIsNativeApp();
+
   /* Copy that names the room the member is entering. `welcomeTitle_social`
      wins over `welcomeTitle` when it exists, so giving a surface its own voice
      means adding keys rather than branching here. */
@@ -211,7 +216,29 @@ function SignInPageContent({
       icon: <MastodonIcon />,
       className: 'w-full bg-[#6364FF] text-white hover:bg-[#563ACC]',
     },
-  ].filter((provider) => provider.enabled);
+  ].filter(
+    /* Configured, and not inside the native app.
+     *
+     * Every one of these is hidden in the app because none of them can be
+     * trusted to complete in a WebView. Google refuses outright — it returns
+     * disallowed_useragent for embedded WebViews as a matter of policy, with
+     * no setting that changes it — and the rest would each need their own
+     * native SDK before they could be offered honestly. Showing them here
+     * would mean shipping buttons that fail, which is worse than not showing
+     * them: a member who taps one has no way to tell a broken app from a
+     * broken account.
+     *
+     * With none of them present, hasOAuth is false and the magic-link form
+     * below opens by default, which is the point. Magic link behaves
+     * identically in the app and the browser.
+     *
+     * This also keeps App Store guideline 4.8 out of scope. The requirement to
+     * offer Sign in with Apple is triggered by offering other third-party
+     * sign-in options, and this app offers none.
+     *
+     * See docs/MOBILE-ROADMAP.md for what it would take to change this. */
+    (provider) => provider.enabled && !isNativeApp
+  );
 
   const hasOAuth = oauthProviders.length > 0;
   // With no OAuth to choose between, the toggle is a pointless extra click.

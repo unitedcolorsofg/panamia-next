@@ -98,7 +98,7 @@ in the system browser, outside the app's cookie store, and three things break:
 | App icons and splash images             | Generated from `mobile/assets/` (see below) |
 | Built or run on a device                | **Not yet**                                 |
 | Signing, store listings                 | **Not yet**                                 |
-| OAuth in WebView                        | **Open decision — see below**               |
+| OAuth in WebView                        | Resolved — app is magic link only           |
 
 ---
 
@@ -226,15 +226,14 @@ place.
 
 ---
 
-## Open decision: OAuth inside the WebView
+## Sign-in: magic link only in the app
 
 **Google refuses to complete OAuth in an embedded WebView.** It returns
 `disallowed_useragent`, by policy, and there is no configuration that turns this
 off. Apple is less strict but not guaranteed. Magic link and password sign-in
 work normally.
 
-This is the one genuinely unresolved question in the mobile work, and it needs a
-product decision rather than a technical one:
+This needed a product decision rather than a technical one:
 
 | Option                                     | Cost                   | Consequence                                                                                                                                                   |
 | ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -242,8 +241,42 @@ product decision rather than a technical one:
 | **B. Native sign-in plugins**              | Moderate, per provider | Real one-tap Google/Apple sign-in; exchanged for a session via Better Auth's `signInWithIdToken`. Pulls guideline 4.8 back in scope.                          |
 | **C. System browser + deep-link handoff**  | Moderate, one-time     | Sign-in opens in Safari/Chrome Custom Tabs and returns a token via a deep link. Works for every provider at once, but the flow visibly leaves the app.        |
 
-Option A is the smallest change and is the recommended starting point; it is
-reversible and does not block either of the others later.
+**Option A is implemented.** `app/signin/_components/signin-view.tsx` drops the
+entire provider list when `useIsNativeApp()` is true. Nothing else on that screen
+needed changing: `hasOAuth` already drives the divider, the button list, the
+"back to options" link, and — the reason this works so cleanly — whether the
+magic-link form starts open. With no providers, it does.
+
+Accounts are unaffected. A member who signed up with Google on the web signs in
+to the app with a magic link to the same address and lands in the same account,
+because Better Auth links them by verified email (see `docs/SIGNIN.md`).
+
+The OAuth hosts stay in `allowNavigation` even though the app no longer links to
+them. They are not dead config: it keeps a sign-in reached some other way
+completing inside the WebView, where the resulting cookie is in the session's
+cookie store, rather than in a browser where it is not.
+
+Both B and C remain open. A is reversible and blocks neither.
+
+### The hydration problem, and why there is a hook for it
+
+`isNativeApp()` reads a global the native runtime injects into the page. The
+server cannot know about it — the WebView sends exactly the request a browser
+sends — so branching on it during render is a hydration mismatch.
+
+State-plus-effect fixes the mismatch and introduces a flash: every mount renders
+the browser version first and corrects it a frame later. On a cold launch that
+is invisible, hidden behind the splash screen, but on an in-app navigation to
+`/signin` the OAuth buttons would visibly appear and vanish.
+
+`lib/mobile/use-native-app.ts` uses `useSyncExternalStore`, which takes a
+separate server snapshot and so distinguishes the two cases: it returns `false`
+while hydrating, matching the server HTML, and the real value immediately on
+mounts that have no server HTML to agree with. The flash only remains where it
+cannot be seen.
+
+Any future native-only UI should use this hook rather than calling
+`isNativeApp()` in a component body.
 
 ---
 
@@ -280,11 +313,12 @@ Push is the highest-value next step for the product regardless of review.
 
 1. **Run it.** Nothing here has been on a device yet. Android first, since it
    needs no Apple account: `yarn mobile:sync && yarn mobile:run:android`.
-2. **Decide the OAuth question** above.
-3. **Generate signing keys**, upload a first internal-test build, then set
+   Sign-in is worth exercising specifically: confirm the magic-link email opens
+   back into the app rather than the browser once App Links are verified.
+2. **Generate signing keys**, upload a first internal-test build, then set
    `ANDROID_APP_CERT_FINGERPRINTS` and `APPLE_APP_TEAM_ID` and verify deep links
    end to end.
-4. **Push notifications** — the strongest answer to guideline 4.2 and the
+3. **Push notifications** — the strongest answer to guideline 4.2 and the
    clearest native win over the website. Needs `@capacitor/push-notifications`,
    APNs and FCM credentials, and device-token storage tied to the account.
-5. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
+4. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
