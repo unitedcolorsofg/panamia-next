@@ -7857,7 +7857,7 @@ __metadata:
     tailwind-merge: "npm:^3.7.0"
     tailwindcss: "npm:4.3.3"
     typescript: "npm:^6.0.3"
-    vinext: "npm:1.0.0-beta.10"
+    vinext: "npm:1.0.0-beta.12"
     vite: "npm:8.3.1"
     wrangler: "npm:4.140.0"
     ws: "npm:8.21.3"
@@ -9547,9 +9547,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vinext@npm:1.0.0-beta.10":
-  version: 1.0.0-beta.10
-  resolution: "vinext@npm:1.0.0-beta.10"
+"vinext@npm:1.0.0-beta.12":
+  version: 1.0.0-beta.12
+  resolution: "vinext@npm:1.0.0-beta.12"
   dependencies:
     "@unpic/react": "npm:^1.0.2"
     "@vercel/og": "npm:^0.8.6"
@@ -9575,7 +9575,7 @@ __metadata:
       optional: true
   bin:
     vinext: dist/cli.js
-  checksum: 10c0/e551b9992a355202b91258b4a08c98e54a6d875a1b085db83c92b77198500e5eb52be687174b5ce2453d325fa9cd1236b38d149e3c2a1c3728094f8b5c5c2be2
+  checksum: 10c0/1de81b185d0de9f0b124d6cb75b2cda419c42aeb990177316cf6a228af0625afe81c12602d7bce293a2ea0c183e2a0c9d18622cf426da47fe666c9ca54cefbad
   languageName: node
   linkType: hard
 
