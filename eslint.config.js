@@ -14,6 +14,16 @@ export default [
       'node_modules/**',
       'scripts/relay-*.ts',
       'tests-relay/**',
+
+      // The native projects are generated — scaffolded by `cap add`, then
+      // rewritten by `cap sync` and the Gradle/Xcode builds. Nothing in them
+      // is authored here (they hold no tracked JS or TS at all; the only
+      // hand-written file under mobile/ is www/offline.html, which stays
+      // lintable). Left in, a local Android build fails `yarn lint` on
+      // Capacitor's own bundled native-bridge.js, which carries
+      // eslint-disable comments for rules this config does not define.
+      'mobile/android/**',
+      'mobile/ios/**',
     ],
   },
   {

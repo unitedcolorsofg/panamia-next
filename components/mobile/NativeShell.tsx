@@ -53,15 +53,19 @@ export function NativeShell() {
 
       if (cancelled) return;
 
-      /* The splash screen is configured with launchAutoHide: false, so it sits
-       * there until something hides it. This is that something, and running it
-       * here — after hydration, from the live page — is the point: a timed
-       * splash either uncovers an empty WebView while the deploy is still
-       * answering, or lingers over a page that has been ready for a second.
+      /* The splash screen has a ten-second failsafe in capacitor.config.ts but
+       * is meant to come down long before that, and this is what takes it down
+       * — after hydration, from the live page. That ordering is the point: a
+       * purely timed splash either uncovers an empty WebView while the deploy
+       * is still answering, or lingers over a page that has been ready for a
+       * second.
        *
-       * The bundled offline page hides it too, for the case where this code
-       * never runs at all because the deploy was unreachable. See
-       * mobile/www/offline.html. */
+       * Two other things hide it, and both are fallbacks rather than
+       * duplicates of this. The bundled offline page hides it for the case
+       * where this code never runs because the deploy was unreachable (see
+       * mobile/www/offline.html), and the config's launchShowDuration catches
+       * the case where the page loads but this code still does not run — an
+       * older deploy, a hydration error, a rollback. */
       await SplashScreen.hide();
 
       /* Android's hardware back button. Without a listener Capacitor's default

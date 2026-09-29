@@ -134,13 +134,36 @@ const config: CapacitorConfig = {
 
   plugins: {
     SplashScreen: {
-      /* Held until the web app says it is ready rather than dismissed on a
-       * timer, because this shell has a network round-trip in front of first
-       * paint that a bundled app does not. A fixed delay either uncovers a
-       * blank WebView on a slow connection or sits on a splash screen that is
-       * already stale on a fast one. lib/mobile/native.ts hides it on first
-       * paint instead. */
-      launchAutoHide: false,
+      /* Hidden as soon as the web app says it is ready, but never held longer
+       * than launchShowDuration, because this shell has a network round-trip
+       * in front of first paint that a bundled app does not.
+       *
+       * The responsive half is why this is not a plain fixed delay: a fixed
+       * delay either uncovers a blank WebView on a slow connection or sits on
+       * a splash screen that is already stale on a fast one.
+       * components/mobile/NativeShell.tsx calls hide() on first paint, which
+       * is the path that normally runs, typically in well under a second.
+       *
+       * The ceiling is why this is not launchAutoHide: false, which is what
+       * this originally was. That made a JS hide() call the *only* way out of
+       * the splash screen, so anything that stopped it running bricked the app
+       * on a logo with no way forward -- and "anything" is a real list: the
+       * site not yet having deployed NativeShell, a hydration error, a bad
+       * release, a rollback. This was not theoretical. The first emulator run
+       * sat on the splash indefinitely for exactly that reason, because
+       * production had not shipped NativeShell yet.
+       *
+       * Ten seconds is deliberately generous. It is a failsafe, not a target:
+       * it has to outlast a cold start on a bad connection, since uncovering a
+       * blank WebView is the failure this was guarding against in the first
+       * place. Anything that reaches it is already broken, and showing a
+       * half-loaded page beats showing a logo forever.
+       *
+       * A total load failure is handled separately and faster -- server.
+       * errorPath swaps in mobile/www/offline.html, which hides the splash
+       * itself. */
+      launchAutoHide: true,
+      launchShowDuration: 10000,
 
       /* The cream the Pana Mia mark is drawn on, matching the `www` splash
        * background in app/manifest.webmanifest/route.ts so an install from the

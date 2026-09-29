@@ -122,10 +122,12 @@
        * Hide the splash screen.
        *
        * Normally the web app does this once it has hydrated, but the whole
-       * reason this page is on screen is that the web app never loaded. With
-       * launchAutoHide turned off in capacitor.config.ts nothing else will,
-       * so an offline cold start would sit on the splash indefinitely and
-       * never reveal the very page written to explain the problem.
+       * reason this page is on screen is that the web app never loaded. The
+       * launchShowDuration failsafe in capacitor.config.ts would eventually
+       * uncover this page anyway, but it is a ten-second backstop for a
+       * broken app, not a loading time to inflict on someone who is merely
+       * offline — and this page is ready immediately, since it ships inside
+       * the app. Hiding here turns that wait into no wait at all.
        *
        * Called through the injected bridge rather than an imported plugin
        * because this file is plain bundled HTML with no build step and no

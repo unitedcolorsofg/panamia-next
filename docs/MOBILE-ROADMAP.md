@@ -359,6 +359,81 @@ verifies every change, that one runs on tags. See **Next Steps** below.
 
 ---
 
+## Running it on an Android emulator
+
+The app has now been built, installed, and launched on an emulator. This
+required no Mac, no device, and no dev server — `server.url` points at
+`https://pana.social`, so the emulator loads production exactly as a phone
+would.
+
+```powershell
+# One-time: JDK 21 and the Android command-line tools.
+winget install EclipseAdoptium.Temurin.21.JDK
+
+$env:JAVA_HOME   = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot'
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:PATH = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:PATH"
+
+android emulator start medium_phone          # boot a device
+npx cap sync android                         # copy config into the project
+cd mobile\android; .\gradlew.bat assembleDebug
+adb install -r app\build\outputs\apk\debug\app-debug.apk
+adb shell am start -n social.pana.app/.MainActivity
+```
+
+Two notes for anyone repeating this. The Android command-line tools **replaced
+`sdkmanager` and `avdmanager` with a single `android` CLI** in rev 23, so most
+tutorials are out of date: it is `android sdk install <pkg>` and
+`android emulator create <profile>` now, with `/` separators rather than `;`.
+And each of those `$env:` lines is per-shell — none of this is installed
+globally, so a new terminal needs the preamble again.
+
+To see what the WebView actually loaded, rather than guessing from a
+screenshot, attach to it over the DevTools protocol:
+
+```powershell
+adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>
+curl http://127.0.0.1:9222/json/list
+```
+
+That reports the live title and URL, and is how the bug below was pinned down.
+
+### The splash screen could brick the app
+
+The first launch sat on the splash screen forever. The app was not broken in
+any way a screenshot could show: DevTools reported `readyState: complete`, the
+real page title, and all nine plugins bridged. The site had loaded perfectly.
+It was simply never uncovered.
+
+The cause was `launchAutoHide: false`, which had been set deliberately so the
+splash could be held until the web app signalled first paint. What that
+actually did was make a JS `hide()` call the **only** exit from the splash
+screen. On Android 12+ Capacitor holds the splash with
+`setKeepOnScreenCondition(() -> isVisible || isHiding)`, and the timer that
+would clear `isVisible` is guarded by `if (settings.isAutoHide())` — so with
+auto-hide off, that timer does nothing at all. Nothing else can ever dismiss it.
+
+That turns any failure to run one line of JavaScript into an app that shows a
+logo and nothing else, forever, with no error and no way forward. The list of
+things that cause it is not exotic: a deploy that predates `NativeShell`, a
+hydration error, a bad release, a rollback. The emulator hit the first of those
+— production had not shipped `NativeShell` yet — which is exactly how this
+surfaced.
+
+The fix is `launchAutoHide: true` with `launchShowDuration: 10000`. The fast
+path is unchanged, because `NativeShell` still calls `hide()` on first paint
+and still wins. The difference is that the splash now has a ceiling it cannot
+exceed. Ten seconds is deliberately generous: it is a failsafe, not a target,
+and it has to outlast a cold start on a bad connection, since uncovering a
+blank WebView was the original concern. Verified on the emulator — the site
+appears on its own at ~10s with no `hide()` call anywhere.
+
+A total load failure is still handled separately and much faster, by
+`errorPath` swapping in `mobile/www/offline.html`, which hides the splash
+itself.
+
+---
+
 ## Store submission
 
 ### Apple guideline 4.2 ("minimum functionality")
