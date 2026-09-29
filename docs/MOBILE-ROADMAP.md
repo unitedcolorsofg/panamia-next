@@ -88,18 +88,18 @@ in the system browser, outside the app's cookie store, and three things break:
 
 ## Current State
 
-| Piece                                   | Status                                      |
-| --------------------------------------- | ------------------------------------------- |
-| Capacitor config, plugins, offline page | Done                                        |
-| Android + iOS projects scaffolded       | Done                                        |
-| Splash, back button, deep-link handling | Done (`NativeShell`)                        |
-| Association routes                      | Done, 404 until env vars are set            |
-| App Links / Universal Links native side | Done (manifest + entitlements)              |
-| App icons and splash images             | Generated from `mobile/assets/` (see below) |
-| Built or run on a device                | **Not yet**                                 |
-| CI builds both platforms                | Done (`.github/workflows/mobile-build.yml`) |
-| Signing, store listings                 | **Not yet**                                 |
-| OAuth in WebView                        | Resolved — app is magic link only           |
+| Piece                                   | Status                                             |
+| --------------------------------------- | -------------------------------------------------- |
+| Capacitor config, plugins, offline page | Done                                               |
+| Android + iOS projects scaffolded       | Done                                               |
+| Splash, back button, deep-link handling | Done (`NativeShell`)                               |
+| Association routes                      | Done, 404 until env vars are set                   |
+| App Links / Universal Links native side | Done (manifest + entitlements)                     |
+| App icons and splash images             | Generated from `mobile/assets/` (see below)        |
+| Built or run on a device                | **Not yet** — but both platforms compile in CI     |
+| CI builds both platforms                | Done, green (`.github/workflows/mobile-build.yml`) |
+| Signing, store listings                 | **Not yet**                                        |
+| OAuth in WebView                        | Resolved — app is magic link only                  |
 
 ---
 
@@ -314,9 +314,10 @@ possible:
 The Android APK artifact is sideloadable, which is the quickest way for someone
 with no Android toolchain to try a branch on a real phone.
 
-### Two things that had to be fixed to make this work
+### Three things CI surfaced
 
-Worth knowing, because both would look like mysterious CI failures:
+Worth knowing, because the first two would look like mysterious CI failures and
+the third was invisible on Windows:
 
 - **`gradlew` was committed non-executable.** Git tracks the executable bit, and
   the file arrived as mode `644`, which is invisible on Windows and fatal on a
@@ -327,6 +328,27 @@ Worth knowing, because both would look like mysterious CI failures:
   committed. If the iOS target is ever recreated, that file has to come back with
   it, and its `BlueprintIdentifier` must match the target's UUID in
   `project.pbxproj`.
+- **Three orphaned splash images.** The first green iOS build still warned
+  `The image set "Splash" has 3 unassigned children`. `@capacitor/assets`
+  rewrites `Splash.imageset/Contents.json` to point at the files it generates
+  but never deletes the `splash-2732x2732*.png` placeholders from the
+  `cap add ios` template. Harmless to the build, but they were the most
+  obviously-named files in the directory — so the intuitive way to change the
+  splash screen was to edit one of them and watch nothing happen.
+  `scripts/mobile-assets.ts` now deletes them after a successful generation.
+
+### The first run
+
+Both jobs passed on the first attempt: iOS in 2m29s, Android in 2m41s. That run
+is the first time this iOS project has ever been compiled, which retired the
+biggest unknown in the whole setup — the hand-authored `App.xcscheme` is
+accepted by `xcodebuild`.
+
+A passing job is not quite the same as a working app, so the iOS job also
+asserts `App.app` exists on disk afterwards. `xcodebuild -quiet` exiting `0`
+having compiled nothing would otherwise be indistinguishable from success. The
+Android job gets the same guarantee from `if-no-files-found: error` on its APK
+upload.
 
 ### What this does not do
 

@@ -189,6 +189,23 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      # Assert the build actually produced an app.
+      #
+      # The Android job gets this for free: `if-no-files-found: error` on its
+      # artifact upload fails the job if no APK was written. iOS uploads
+      # nothing on success, so without this step the only evidence of a
+      # working build is xcodebuild's exit code -- and combined with -quiet,
+      # a build that silently compiled nothing would show up as a green tick.
+      - name: Verify app bundle was produced
+        working-directory: mobile/ios/App
+        run: |
+          APP="build/Build/Products/Debug-iphonesimulator/App.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::xcodebuild succeeded but $APP does not exist."
+            exit 1
+          fi
+          echo "Built $APP ($(du -sh "$APP" | cut -f1))"
+
       # xcodebuild's own failure output is buried in thousands of lines of
       # compiler invocations. When a build breaks, this is the file worth
       # reading, so keep it -- but only on failure, since a successful build's

@@ -58,6 +58,32 @@ const ROOT = resolve(import.meta.dirname, '..');
  */
 const PWA_COLLATERAL = ['icons', 'public/manifest.webmanifest'];
 
+/**
+ * Placeholder splash images shipped by the `cap add ios` template.
+ *
+ * `@capacitor/assets` replaces the *contents* of `Splash.imageset` by writing
+ * its own `Default@Nx~universal~anyany*.png` files and rewriting
+ * `Contents.json` to reference them — but it never deletes the originals it
+ * just superseded. They then sit in the image set unreferenced, which costs
+ * three things:
+ *
+ *   1. `actool` warns `The image set "Splash" has 3 unassigned children` on
+ *      every single iOS build, forever, training everyone to ignore warnings.
+ *   2. They are the most obviously-named files in the directory, so the
+ *      natural way to "change the splash screen" is to edit one of them — and
+ *      nothing happens, because the asset catalog does not reference them.
+ *      That failure is silent and genuinely hard to see.
+ *   3. They are three more 2732x2732 PNGs committed for no reason.
+ *
+ * Deleted here rather than once by hand because `cap add ios` and any future
+ * regeneration will put them back.
+ */
+const ORPHANED_TEMPLATE_SPLASHES = [
+  'splash-2732x2732.png',
+  'splash-2732x2732-1.png',
+  'splash-2732x2732-2.png',
+].map((file) => `mobile/ios/App/App/Assets.xcassets/Splash.imageset/${file}`);
+
 function generate(): void {
   console.log('Generating native app icons and splash screens...\n');
 
@@ -98,20 +124,27 @@ function generate(): void {
   );
 }
 
-function cleanUp(): void {
-  for (const relativePath of PWA_COLLATERAL) {
+function remove(relativePaths: string[]): void {
+  for (const relativePath of relativePaths) {
     const target = resolve(ROOT, relativePath);
 
     if (!existsSync(target)) continue;
 
     rmSync(target, { recursive: true, force: true });
-    console.log(`Removed unwanted PWA output: ${relativePath}`);
+    console.log(`Removed generated collateral: ${relativePath}`);
   }
 }
 
 try {
   generate();
-  cleanUp();
+
+  /**
+   * Both categories are safe to delete here, and only here: generation
+   * succeeded, so `Contents.json` has been rewritten to point at the freshly
+   * generated splash files and the template ones are genuinely unreferenced.
+   */
+  remove([...PWA_COLLATERAL, ...ORPHANED_TEMPLATE_SPLASHES]);
+
   console.log(
     '\nDone. Run `yarn mobile:sync` to copy them into the native projects.'
   );
@@ -122,9 +155,18 @@ try {
   console.error('\nAsset generation failed. See the output above.');
   process.exitCode = 1;
 
-  // Still clean up: a failed run can leave the PWA collateral behind, and
-  // `public/manifest.webmanifest` must never survive, successful run or not.
-  cleanUp();
+  /**
+   * Only the PWA collateral is cleaned up on this path. A failed run can still
+   * have written `public/manifest.webmanifest`, which must never survive
+   * because it can shadow the dynamic manifest route.
+   *
+   * The template splashes are deliberately left alone. If generation failed
+   * before rewriting the image set — the state right after a fresh
+   * `cap add ios` — those three files are still the ones `Contents.json`
+   * references, and deleting them would break the build with a missing-asset
+   * error that hides the real failure printed above.
+   */
+  remove(PWA_COLLATERAL);
 
   if (process.env.DEBUG) console.error(error);
 }
