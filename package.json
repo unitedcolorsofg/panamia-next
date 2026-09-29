@@ -36,12 +36,13 @@
     "dev:http": "vinext dev --hostname 0.0.0.0",
     "build:vinext": "vinext build",
     "deploy:vinext": "drizzle-kit migrate && vinext deploy",
+    "mobile": "npx tsx scripts/mobile-run.ts",
     "mobile:sync": "cap sync",
     "mobile:assets": "npx tsx scripts/mobile-assets.ts",
     "mobile:doctor": "cap doctor",
     "mobile:open:android": "cap open android",
     "mobile:open:ios": "cap open ios",
-    "mobile:run:android": "cap run android",
+    "mobile:run:android": "npx tsx scripts/mobile-run.ts",
     "mobile:run:ios": "cap run ios"
   },
   "dependencies": {

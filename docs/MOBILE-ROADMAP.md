@@ -116,16 +116,22 @@ GitHub-hosted macOS runner on every relevant change — see
 [Continuous integration](#continuous-integration) below.
 
 ```bash
+yarn mobile                # build + install + launch on Android (one command)
 yarn mobile:sync           # copy web assets + config into both native projects
 yarn mobile:assets         # regenerate app icons + splash screens
 yarn mobile:open:android   # open in Android Studio
 yarn mobile:open:ios       # open in Xcode (macOS only)
-yarn mobile:run:android    # build + install on a connected device/emulator
 yarn mobile:doctor         # check local native toolchain setup
 ```
 
+`yarn mobile` is the one to reach for day to day. From a shell with nothing set
+up it will find your JDK and Android SDK, start an emulator if no device is
+attached, sync, build, install, and launch — see
+[Running it on an Android emulator](#running-it-on-an-android-emulator).
+
 Run `yarn mobile:sync` after any change to `capacitor.config.ts`, after adding a
-Capacitor plugin, and after editing `mobile/www/`.
+Capacitor plugin, and after editing `mobile/www/`. `yarn mobile` does it for
+you; pass `--no-sync` to skip it.
 
 ### Pointing the app somewhere else
 
@@ -134,7 +140,7 @@ production. To run the app against a local dev server:
 
 ```bash
 CAPACITOR_SERVER_URL=http://192.168.1.50:3001 yarn mobile:sync
-yarn mobile:run:android
+yarn mobile
 ```
 
 Use the machine's LAN address, not `localhost` — on a phone or emulator
@@ -366,27 +372,39 @@ required no Mac, no device, and no dev server — `server.url` points at
 `https://pana.social`, so the emulator loads production exactly as a phone
 would.
 
-```powershell
-# One-time: JDK 21 and the Android command-line tools.
-winget install EclipseAdoptium.Temurin.21.JDK
-
-$env:JAVA_HOME   = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot'
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:PATH = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:PATH"
-
-android emulator start medium_phone          # boot a device
-npx cap sync android                         # copy config into the project
-cd mobile\android; .\gradlew.bat assembleDebug
-adb install -r app\build\outputs\apk\debug\app-debug.apk
-adb shell am start -n social.pana.app/.MainActivity
+```bash
+yarn mobile
 ```
 
-Two notes for anyone repeating this. The Android command-line tools **replaced
-`sdkmanager` and `avdmanager` with a single `android` CLI** in rev 23, so most
-tutorials are out of date: it is `android sdk install <pkg>` and
+That is the whole thing. It finds a JDK and the Android SDK, boots an emulator
+if nothing is attached, syncs, builds, installs, and launches. Pass
+`--avd <name>` to choose a specific emulator or `--no-sync` to skip the copy.
+
+The one-time prerequisites are a JDK 21 and the Android command-line tools:
+
+```powershell
+winget install EclipseAdoptium.Temurin.21.JDK
+android sdk install platform-tools emulator "platforms/android-36"
+android emulator create medium_phone
+```
+
+Three notes for anyone repeating this. The Android command-line tools
+**replaced `sdkmanager` and `avdmanager` with a single `android` CLI** in rev
+23, so most tutorials are out of date: it is `android sdk install <pkg>` and
 `android emulator create <profile>` now, with `/` separators rather than `;`.
-And each of those `$env:` lines is per-shell — none of this is installed
-globally, so a new terminal needs the preamble again.
+
+**`cap run android` does not work on Windows**, which is why `yarn mobile`
+drives the build itself rather than delegating. Capacitor invokes the wrapper as
+the hardcoded POSIX path `./gradlew`, and the argument masking in
+`@ionic/utils-subprocess` strips only `path.sep` — which is `\` on Windows. The
+`./` survives into `cross-spawn` and the build dies with `'gradlew' is not
+recognized`. `cap sync` is unaffected and is still delegated.
+
+And Gradle is started as `java -jar gradle-wrapper.jar`, not via `gradlew.bat`.
+Node refuses to spawn `.bat` and `.cmd` files without a shell (CVE-2024-27980),
+and handing the path to a shell would mean quoting something that can contain
+spaces. The wrapper scripts do nothing but locate java and run that jar, so
+calling it directly is both safer and identical on every platform.
 
 To see what the WebView actually loaded, rather than guessing from a
 screenshot, attach to it over the DevTools protocol:
@@ -465,15 +483,13 @@ Push is the highest-value next step for the product regardless of review.
 
 ## Next Steps
 
-1. **Run it.** Nothing here has been on a device yet. Android first, since it
-   needs no Apple account: `yarn mobile:sync && yarn mobile:run:android`. Or
-   skip the toolchain entirely and sideload the debug APK that CI attaches to
-   every run. Sign-in is worth exercising specifically: confirm the magic-link
-   email opens back into the app rather than the browser once App Links are
-   verified.
-2. **Watch the first CI run.** Neither job has executed yet. The iOS job in
-   particular has never compiled this project — that is precisely why it exists,
-   but it means the first run is the real test.
+1. **Exercise sign-in on the emulator.** The app runs (`yarn mobile`), but
+   sign-in has not been walked end to end. Confirm the magic-link email opens
+   back into the app rather than the browser once App Links are verified.
+2. **Test on real hardware.** Everything so far has been an emulator, which
+   shares neither a real device's network conditions nor its OEM WebView
+   version. CI attaches a debug APK to every run, so this needs no toolchain —
+   just sideload it.
 3. **Generate signing keys**, upload a first internal-test build, then set
    `ANDROID_APP_CERT_FINGERPRINTS` and `APPLE_APP_TEAM_ID` and verify deep links
    end to end. This is also when a release workflow becomes worth writing.
