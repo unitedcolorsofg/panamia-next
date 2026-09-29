@@ -1,10 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { KIND_ICON } from '@/components/kind-icon';
@@ -116,6 +123,69 @@ type DirectorySuggestProps = DirectorySuggestBaseProps &
 const DEBOUNCE_MS = 120;
 
 const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
+
+/**
+ * An in-memory cache of answered terms, so backspacing is free.
+ *
+ * A signed-in visitor gets `private, no-store` from the suggest route, on
+ * purpose: the response carries the members-only half — panas and groups — and
+ * the browser's disk cache is the wrong place for that on a shared device. The
+ * cost of that stance is that the people it protects are the only ones with no
+ * caching at all, and deleting a character to widen a search is the single most
+ * common thing anyone does in a typeahead. Every one of those was a round trip
+ * that re-asked a question answered a second earlier.
+ *
+ * This buys the reuse back without touching disk. It lives in memory, in one
+ * tab, and is gone when the document is.
+ *
+ * Module-level rather than a ref because the field unmounts on every
+ * navigation — it sits in the masthead and in both results pages — and a
+ * per-instance cache would be empty exactly when someone searches, lands, and
+ * searches again from the page they landed on.
+ *
+ * The TTL is the honest part. Signing out usually reloads the document, which
+ * takes this with it, but `DeleteAccountForm` calls `signOut({ redirect:
+ * false })` and leaves the tab standing — so entries expire on their own
+ * rather than relying on a navigation that one path does not do. Sixty seconds
+ * is also well inside the five minutes the same route already lets a shared
+ * cache keep the anonymous answer, so nothing here is held longer than
+ * something already on the wire.
+ */
+const SUGGEST_CACHE_TTL_MS = 60_000;
+
+/** Bounded so a long session of typing cannot grow this without limit. */
+const SUGGEST_CACHE_MAX = 50;
+
+const suggestCache = new Map<string, { at: number; rows: Suggestion[] }>();
+
+/** Returns null for a miss or an expired entry, which read the same here. */
+function readSuggestCache(term: string): Suggestion[] | null {
+  const hit = suggestCache.get(term);
+  if (!hit) return null;
+
+  if (Date.now() - hit.at > SUGGEST_CACHE_TTL_MS) {
+    suggestCache.delete(term);
+    return null;
+  }
+
+  // Re-insert to move this key to the end: `Map` iterates in insertion order,
+  // which is what makes the eviction below drop the least recently used term
+  // rather than the one that happens to have been asked first.
+  suggestCache.delete(term);
+  suggestCache.set(term, hit);
+  return hit.rows;
+}
+
+function writeSuggestCache(term: string, rows: Suggestion[]): void {
+  suggestCache.delete(term);
+  suggestCache.set(term, { at: Date.now(), rows });
+
+  while (suggestCache.size > SUGGEST_CACHE_MAX) {
+    const oldest = suggestCache.keys().next().value;
+    if (oldest === undefined) break;
+    suggestCache.delete(oldest);
+  }
+}
 
 // Businesses and panas are faces and storefronts, and read as circles
 // everywhere else in the product. Groups and events are things rather than
@@ -266,6 +336,21 @@ export function DirectorySuggest({
   const rootRef = useRef<HTMLFormElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  /**
+   * Every destination this box offers is a server-rendered route, and the
+   * scope pages await a session, four counts and four searches before they
+   * emit any markup. Outside a transition `router.push` blocks on that whole
+   * payload: the URL does not change, the button does not move, and nothing
+   * on screen says the click registered — which reads as a dead control, so
+   * people click it again.
+   *
+   * The transition hands us `navigating` for the span the router is actually
+   * working, which the button below spends on saying so. It does not make the
+   * navigation quicker; it makes the wait legible, and it keeps this page
+   * interactive while the next one is fetched instead of freezing it.
+   */
+  const [navigating, startNavigation] = useTransition();
+
   const trimmed = term.trim();
   // The trailing "search for this term" row is an option too, so it can be
   // arrowed to and is counted in the keyboard bounds below.
@@ -294,6 +379,18 @@ export function DirectorySuggest({
       return;
     }
 
+    // A term already answered is painted now rather than after the debounce.
+    // The timer exists to skip requests a fast typist types past; there is no
+    // request to skip here, and waiting 120ms to render rows already in memory
+    // would be the delay this cache exists to remove.
+    const cached = readSuggestCache(trimmed);
+    if (cached) {
+      abortRef.current?.abort();
+      setSuggestions(cached);
+      setActiveIndex(-1);
+      return;
+    }
+
     const timer = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -305,7 +402,11 @@ export function DirectorySuggest({
           { signal: controller.signal }
         );
         const body = await response.json();
-        setSuggestions(body.success ? (body.data ?? []) : []);
+        const rows: Suggestion[] = body.success ? (body.data ?? []) : [];
+        // Only a real answer is kept. Caching the empty list a failed lookup
+        // falls back to would turn one bad response into a minute of them.
+        if (body.success) writeSuggestCache(trimmed, rows);
+        setSuggestions(rows);
         setActiveIndex(-1);
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
@@ -370,13 +471,17 @@ export function DirectorySuggest({
       onSearch(trimmed);
       return;
     }
-    router.push(scopePath(scope, trimmed));
+    startNavigation(() => {
+      router.push(scopePath(scope, trimmed));
+    });
   }
 
   function goToSuggestion(suggestion: Suggestion) {
     close();
     setTerm(suggestion.name);
-    router.push(suggestion.href);
+    startNavigation(() => {
+      router.push(suggestion.href);
+    });
   }
 
   function selectIndex(index: number) {
@@ -496,6 +601,9 @@ export function DirectorySuggest({
       action={scopePath(scope, '')}
       method="get"
       onSubmit={handleSubmit}
+      // The masthead has no submit button to carry a spinner, so the form
+      // itself is what announces an in-flight navigation there.
+      aria-busy={navigating}
       // scroll-mt clears the sticky site header when revealOnSmallScreens runs.
       className={cn('scroll-mt-24', className)}
     >
@@ -705,14 +813,31 @@ export function DirectorySuggest({
           <Button
             type="submit"
             size="lg"
+            // Guards against the double-click a slow route invites, and pairs
+            // the spinner with the state a screen reader can act on.
+            disabled={navigating}
+            aria-busy={navigating}
             className={
               layout === 'pill' ? 'directory-suggest-pill-button' : 'px-8'
             }
           >
             {/* The pill layout is text-only, as in the mock — the bar itself
-                already reads as a search field. */}
-            {layout === 'stacked' && (
-              <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+                already reads as a search field. The spinner is the one thing
+                allowed to break that, because it is not chrome: it is only on
+                screen while a navigation is in flight, and the whole point of
+                the rule is that nothing permanent competes with the label. */}
+            {navigating ? (
+              <Loader2
+                className={cn(
+                  'h-5 w-5 animate-spin',
+                  layout === 'stacked' && 'mr-2'
+                )}
+                aria-hidden="true"
+              />
+            ) : (
+              layout === 'stacked' && (
+                <Search className="mr-2 h-5 w-5" aria-hidden="true" />
+              )
             )}
             {buttonLabel}
           </Button>
