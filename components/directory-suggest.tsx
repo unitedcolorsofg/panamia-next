@@ -124,6 +124,69 @@ const DEBOUNCE_MS = 120;
 
 const FALLBACK_IMAGE = '/img/bg_coconut_blue.jpg';
 
+/**
+ * An in-memory cache of answered terms, so backspacing is free.
+ *
+ * A signed-in visitor gets `private, no-store` from the suggest route, on
+ * purpose: the response carries the members-only half — panas and groups — and
+ * the browser's disk cache is the wrong place for that on a shared device. The
+ * cost of that stance is that the people it protects are the only ones with no
+ * caching at all, and deleting a character to widen a search is the single most
+ * common thing anyone does in a typeahead. Every one of those was a round trip
+ * that re-asked a question answered a second earlier.
+ *
+ * This buys the reuse back without touching disk. It lives in memory, in one
+ * tab, and is gone when the document is.
+ *
+ * Module-level rather than a ref because the field unmounts on every
+ * navigation — it sits in the masthead and in both results pages — and a
+ * per-instance cache would be empty exactly when someone searches, lands, and
+ * searches again from the page they landed on.
+ *
+ * The TTL is the honest part. Signing out usually reloads the document, which
+ * takes this with it, but `DeleteAccountForm` calls `signOut({ redirect:
+ * false })` and leaves the tab standing — so entries expire on their own
+ * rather than relying on a navigation that one path does not do. Sixty seconds
+ * is also well inside the five minutes the same route already lets a shared
+ * cache keep the anonymous answer, so nothing here is held longer than
+ * something already on the wire.
+ */
+const SUGGEST_CACHE_TTL_MS = 60_000;
+
+/** Bounded so a long session of typing cannot grow this without limit. */
+const SUGGEST_CACHE_MAX = 50;
+
+const suggestCache = new Map<string, { at: number; rows: Suggestion[] }>();
+
+/** Returns null for a miss or an expired entry, which read the same here. */
+function readSuggestCache(term: string): Suggestion[] | null {
+  const hit = suggestCache.get(term);
+  if (!hit) return null;
+
+  if (Date.now() - hit.at > SUGGEST_CACHE_TTL_MS) {
+    suggestCache.delete(term);
+    return null;
+  }
+
+  // Re-insert to move this key to the end: `Map` iterates in insertion order,
+  // which is what makes the eviction below drop the least recently used term
+  // rather than the one that happens to have been asked first.
+  suggestCache.delete(term);
+  suggestCache.set(term, hit);
+  return hit.rows;
+}
+
+function writeSuggestCache(term: string, rows: Suggestion[]): void {
+  suggestCache.delete(term);
+  suggestCache.set(term, { at: Date.now(), rows });
+
+  while (suggestCache.size > SUGGEST_CACHE_MAX) {
+    const oldest = suggestCache.keys().next().value;
+    if (oldest === undefined) break;
+    suggestCache.delete(oldest);
+  }
+}
+
 // Businesses and panas are faces and storefronts, and read as circles
 // everywhere else in the product. Groups and events are things rather than
 // someone, and a cover image cropped to a circle loses most of itself.
@@ -316,6 +379,18 @@ export function DirectorySuggest({
       return;
     }
 
+    // A term already answered is painted now rather than after the debounce.
+    // The timer exists to skip requests a fast typist types past; there is no
+    // request to skip here, and waiting 120ms to render rows already in memory
+    // would be the delay this cache exists to remove.
+    const cached = readSuggestCache(trimmed);
+    if (cached) {
+      abortRef.current?.abort();
+      setSuggestions(cached);
+      setActiveIndex(-1);
+      return;
+    }
+
     const timer = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -327,7 +402,11 @@ export function DirectorySuggest({
           { signal: controller.signal }
         );
         const body = await response.json();
-        setSuggestions(body.success ? (body.data ?? []) : []);
+        const rows: Suggestion[] = body.success ? (body.data ?? []) : [];
+        // Only a real answer is kept. Caching the empty list a failed lookup
+        // falls back to would turn one bad response into a minute of them.
+        if (body.success) writeSuggestCache(trimmed, rows);
+        setSuggestions(rows);
         setActiveIndex(-1);
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
