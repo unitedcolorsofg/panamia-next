@@ -1,0 +1,203 @@
+# Compiles the Android and iOS shells so native breakage surfaces here rather
+# than at release time.
+#
+# The point of this workflow is mostly iOS. Building an iOS app requires macOS
+# and Xcode, which most of the people working on this repo do not have, so
+# without CI the iOS project would go unbuilt between releases and rot quietly.
+# GitHub's macOS runners are free for public repositories, which is what makes
+# this practical -- no Mac to buy, no Apple Developer account needed to run it.
+#
+# These are verification builds, not release builds. Neither job signs
+# anything, and neither needs a single secret:
+#
+#   - Android produces an unsigned debug APK.
+#   - iOS builds for the simulator, which skips code signing entirely.
+#
+# Release signing is a separate concern and belongs in a separate workflow,
+# because it needs a keystore, an Apple Developer account, and the secrets that
+# come with them. See docs/MOBILE-ROADMAP.md.
+#
+# Note what is NOT here: `yarn build`. The apps are a WebView pointed at the
+# live deploy (server.url in capacitor.config.ts), so the native projects never
+# bundle the site. `webDir` holds only the committed offline page. That means
+# these jobs need no database, no Cloudflare credentials, and no environment
+# variables at all -- which is the reason they can run on pull requests from
+# forks without leaking anything.
+
+name: Mobile Build
+
+# Only run when something that can actually affect a native build changes.
+# The Playwright workflow uses paths-ignore because almost everything affects
+# it; the inverse is true here, and an allowlist keeps a docs-only pull request
+# from occupying a macOS runner for ten minutes to rebuild an unchanged app.
+on:
+  push:
+    branches: [main, develop]
+    # Duplicated rather than shared via a YAML anchor: GitHub Actions does not
+    # support anchors or aliases in workflow files. Keep the two lists in sync.
+    paths:
+      - 'mobile/**'
+      - 'capacitor.config.ts'
+      - 'lib/mobile/**'
+      - 'components/mobile/**'
+      - 'scripts/mobile-assets.ts'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/mobile-build.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'mobile/**'
+      - 'capacitor.config.ts'
+      - 'lib/mobile/**'
+      - 'components/mobile/**'
+      - 'scripts/mobile-assets.ts'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/mobile-build.yml'
+  # Native toolchains break on their own schedule -- a new Xcode on the runner
+  # image, a Gradle plugin that stops supporting a JDK. Being able to trigger a
+  # build without pushing a commit is how you tell "we broke it" from "the
+  # runner image changed underneath us."
+  workflow_dispatch:
+
+# One build per ref. A force-push while a build is running makes the earlier
+# run irrelevant, and unlike the Playwright workflow there is no shared
+# resource to corrupt by cancelling -- so here, cancelling is the right call.
+concurrency:
+  group: mobile-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android (debug APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+
+      # Android Gradle Plugin 8.13 requires JDK 17 or newer; 21 is the version
+      # current AGP releases are built and tested against. Pinning the major
+      # matters because the runner image's default JDK moves without notice.
+      #
+      # `cache: gradle` caches ~/.gradle across runs. Worth it: a cold run
+      # downloads the Gradle 8.14.3 distribution plus the whole Android
+      # dependency graph, which is most of the job's wall-clock time.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      # Needed for the Capacitor CLI and the plugin packages themselves --
+      # `cap sync` reads node_modules to discover which plugins to wire into
+      # the native project, so this is not just a CLI install.
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Copies mobile/www into the native project and regenerates the plugin
+      # registration and capacitor.config.json from capacitor.config.ts. The
+      # checked-in native project is missing both, by design -- they are
+      # generated output. Skipping this step builds a stale app.
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # assembleDebug, not assembleRelease: debug uses the auto-generated debug
+      # keystore that ships with the Android SDK, so it produces an installable
+      # APK with no secrets. It still compiles every line of native code and
+      # validates the merged manifest, which is what we are actually checking.
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # Sideloadable on any device with developer mode on. This is the fastest
+      # way for someone without an Android toolchain to try a branch.
+      - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: pana-mia-android-debug
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+          if-no-files-found: error
+
+  ios:
+    name: iOS (simulator build)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Capacitor 8 uses Swift Package Manager rather than CocoaPods, so there
+      # is no `pod install` here and no Podfile in the repo. Dependencies
+      # resolve from mobile/ios/App/CapApp-SPM/Package.swift during the
+      # xcodebuild step below.
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      # Two things make this work without an Apple Developer account:
+      #
+      #   1. A *simulator* destination. Device builds need a provisioning
+      #      profile, which needs a paid account; simulator builds do not.
+      #      `generic/platform=iOS Simulator` also avoids naming a specific
+      #      simulator, so the build does not break when Apple drops a device
+      #      from the runner image.
+      #   2. CODE_SIGNING_ALLOWED=NO. Belt and braces -- the target carries an
+      #      entitlements file for Universal Links, and this guarantees
+      #      xcodebuild never tries to match it against a profile or touch the
+      #      keychain.
+      #
+      # -project, not -workspace: with SPM there is no generated workspace.
+      # The scheme has to be the shared one at
+      # App.xcodeproj/xcshareddata/xcschemes/App.xcscheme, because Xcode's
+      # default per-user schemes live in xcuserdata, which is gitignored and
+      # therefore absent on a fresh checkout.
+      #
+      # -quiet rather than piping through xcbeautify or xcpretty. Raw
+      # xcodebuild output is thousands of lines of compiler invocations, but a
+      # formatter is one more thing that has to be present on the runner, and
+      # -quiet gets most of the benefit with no dependency: it suppresses the
+      # routine chatter and still prints warnings and errors.
+      - name: Build for simulator
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      # xcodebuild's own failure output is buried in thousands of lines of
+      # compiler invocations. When a build breaks, this is the file worth
+      # reading, so keep it -- but only on failure, since a successful build's
+      # log is noise.
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-build-log
+          path: mobile/ios/App/build/Logs/**
+          retention-days: 7
+          if-no-files-found: ignore

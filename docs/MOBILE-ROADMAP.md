@@ -97,6 +97,7 @@ in the system browser, outside the app's cookie store, and three things break:
 | App Links / Universal Links native side | Done (manifest + entitlements)              |
 | App icons and splash images             | Generated from `mobile/assets/` (see below) |
 | Built or run on a device                | **Not yet**                                 |
+| CI builds both platforms                | Done (`.github/workflows/mobile-build.yml`) |
 | Signing, store listings                 | **Not yet**                                 |
 | OAuth in WebView                        | Resolved — app is magic link only           |
 
@@ -109,6 +110,10 @@ Capacitor 8 uses Swift Package Manager instead of CocoaPods, so the iOS project
 can be scaffolded and edited anywhere — but **a Mac with Xcode is required to
 compile, sign, or submit it.** There is no way around that; it is Apple's
 toolchain restriction, not Capacitor's.
+
+You do not have to _own_ that Mac, though. CI builds the iOS app on a
+GitHub-hosted macOS runner on every relevant change — see
+[Continuous integration](#continuous-integration) below.
 
 ```bash
 yarn mobile:sync           # copy web assets + config into both native projects
@@ -280,6 +285,58 @@ Any future native-only UI should use this hook rather than calling
 
 ---
 
+## Continuous integration
+
+`.github/workflows/mobile-build.yml` compiles both apps on every push and pull
+request that touches mobile code. Its real purpose is iOS: building an iOS app
+needs macOS and Xcode, and if that only happened on one person's laptop the
+project would rot silently between releases. **GitHub's macOS runners are free
+for public repositories**, which is what makes this free to run — no Mac to buy,
+no Apple Developer account required.
+
+| Job     | Runner          | Produces                                    |
+| ------- | --------------- | ------------------------------------------- |
+| Android | `ubuntu-latest` | Unsigned debug APK, uploaded as an artifact |
+| iOS     | `macos-latest`  | Simulator build (verification only)         |
+
+Neither job takes a single secret, which is deliberate — it means both run on
+pull requests from forks without exposing anything. Two things make that
+possible:
+
+- **Nothing signs.** Android builds `assembleDebug`, which uses the SDK's
+  auto-generated debug keystore. iOS targets a _simulator_ destination, which
+  skips code signing entirely, with `CODE_SIGNING_ALLOWED=NO` as a backstop
+  against the Universal Links entitlements file pulling in a profile lookup.
+- **Nothing builds the website.** The apps are a WebView pointed at the live
+  deploy, so `yarn build` never runs here. No database, no Cloudflare
+  credentials, no environment variables.
+
+The Android APK artifact is sideloadable, which is the quickest way for someone
+with no Android toolchain to try a branch on a real phone.
+
+### Two things that had to be fixed to make this work
+
+Worth knowing, because both would look like mysterious CI failures:
+
+- **`gradlew` was committed non-executable.** Git tracks the executable bit, and
+  the file arrived as mode `644`, which is invisible on Windows and fatal on a
+  Linux runner. Fixed permanently with `git update-index --chmod=+x`.
+- **There was no shared Xcode scheme.** Xcode puts schemes in `xcuserdata` by
+  default, which is gitignored, so `xcodebuild -scheme App` had nothing to find
+  on a clean checkout. `App.xcodeproj/xcshareddata/xcschemes/App.xcscheme` is now
+  committed. If the iOS target is ever recreated, that file has to come back with
+  it, and its `BlueprintIdentifier` must match the target's UUID in
+  `project.pbxproj`.
+
+### What this does not do
+
+It does not produce anything shippable. Release builds need a keystore, an Apple
+Developer account, and the secrets that go with them, so they belong in a
+separate workflow. When that exists, the natural split is: this workflow
+verifies every change, that one runs on tags. See **Next Steps** below.
+
+---
+
 ## Store submission
 
 ### Apple guideline 4.2 ("minimum functionality")
@@ -312,13 +369,18 @@ Push is the highest-value next step for the product regardless of review.
 ## Next Steps
 
 1. **Run it.** Nothing here has been on a device yet. Android first, since it
-   needs no Apple account: `yarn mobile:sync && yarn mobile:run:android`.
-   Sign-in is worth exercising specifically: confirm the magic-link email opens
-   back into the app rather than the browser once App Links are verified.
-2. **Generate signing keys**, upload a first internal-test build, then set
+   needs no Apple account: `yarn mobile:sync && yarn mobile:run:android`. Or
+   skip the toolchain entirely and sideload the debug APK that CI attaches to
+   every run. Sign-in is worth exercising specifically: confirm the magic-link
+   email opens back into the app rather than the browser once App Links are
+   verified.
+2. **Watch the first CI run.** Neither job has executed yet. The iOS job in
+   particular has never compiled this project — that is precisely why it exists,
+   but it means the first run is the real test.
+3. **Generate signing keys**, upload a first internal-test build, then set
    `ANDROID_APP_CERT_FINGERPRINTS` and `APPLE_APP_TEAM_ID` and verify deep links
-   end to end.
-3. **Push notifications** — the strongest answer to guideline 4.2 and the
+   end to end. This is also when a release workflow becomes worth writing.
+4. **Push notifications** — the strongest answer to guideline 4.2 and the
    clearest native win over the website. Needs `@capacitor/push-notifications`,
    APNs and FCM credentials, and device-token storage tied to the account.
-4. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
+5. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
