@@ -8,6 +8,7 @@ import { FlowerPowerProvider } from '@/components/flower-power/FlowerPowerProvid
 import MainHeader from '@/components/MainHeader';
 import MainFooter from '@/components/MainFooter';
 import ScreennameGate from '@/components/ScreennameGate';
+import { NativeShell } from '@/components/mobile/NativeShell';
 import {
   resolveSurface,
   originForFrom,
@@ -327,6 +328,12 @@ export default async function RootLayout({
                 )}
                 {ownSurface && <SurfaceMemberFooter surface={chromeSurface} />}
                 <ScreennameGate />
+                {/* Renders nothing, and nothing in a browser. Mounted here
+                    because what it wires up — dismissing the native splash,
+                    the Android back button, deep-link navigation — is app-wide
+                    and must not depend on which page happened to load first.
+                    See components/mobile/NativeShell.tsx. */}
+                <NativeShell />
               </PanaSitesProvider>
             </Providers>
           </FlowerPowerProvider>

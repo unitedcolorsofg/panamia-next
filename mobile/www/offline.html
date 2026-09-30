@@ -1,0 +1,154 @@
+<!doctype html>
+<!--
+  The offline page, shown by the native shell when it cannot reach the deploy.
+
+  Named by `server.errorPath` in capacitor.config.ts. This is the only bundled
+  asset the app ever displays — everything else is the live site — so it is
+  deliberately a single self-contained file with no CSS, font or image
+  requests. Every one of those would be a network fetch, and the one thing
+  known for certain at the moment this page renders is that the network is not
+  working.
+
+  That rules out the real masthead and the real webfont, so this is not styled
+  to look like a page of the site. It is styled to look like the site's own
+  paper — the same cream and the same orange as the splash screen — and to say
+  one true thing without blaming the member for it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>No connection — Pana Mia</title>
+    <style>
+      :root {
+        /* Token values from app/globals.css, inlined rather than imported for
+           the reason in the comment above. */
+        --paper: #fff7ec;
+        --ink: #2b2b2b;
+        --orange: #ff8100;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        /* Respects the notch and the home indicator, the same way the web app
+           does. The shell overlays the status bar, so without this the heading
+           can sit under the clock. */
+        padding: max(2rem, env(safe-area-inset-top)) 2rem
+          max(2rem, env(safe-area-inset-bottom));
+        background: var(--paper);
+        color: var(--ink);
+        /* The system stack, because a webfont is a network request. */
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        text-align: center;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0;
+        max-width: 32ch;
+        line-height: 1.6;
+        opacity: 0.75;
+      }
+
+      button {
+        /* 44px minimum, which is the smallest reliable touch target on both
+           platforms. */
+        min-height: 44px;
+        padding: 0.75rem 2rem;
+        border: 0;
+        border-radius: 9999px;
+        background: var(--orange);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #1a1a1a;
+          --ink: #f5f5f5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>You&rsquo;re offline</h1>
+    <p>
+      Pana Mia needs a connection to load. Check your signal or Wi-Fi, then try
+      again.
+    </p>
+    <button id="retry" type="button">Try again</button>
+
+    <script>
+      /*
+       * Reload rather than history.back(): this page replaces a failed load, so
+       * there is usually nothing behind it to go back to on a cold start.
+       *
+       * The button is disabled while offline because a reload with no
+       * connection lands straight back here, which reads as a dead button. The
+       * online/offline events then re-enable it the moment the radio comes
+       * back, so a member who is watching the screen sees it recover rather
+       * than having to guess when to tap.
+       */
+      var retry = document.getElementById('retry');
+
+      /*
+       * Hide the splash screen.
+       *
+       * Normally the web app does this once it has hydrated, but the whole
+       * reason this page is on screen is that the web app never loaded. The
+       * launchShowDuration failsafe in capacitor.config.ts would eventually
+       * uncover this page anyway, but it is a ten-second backstop for a
+       * broken app, not a loading time to inflict on someone who is merely
+       * offline — and this page is ready immediately, since it ships inside
+       * the app. Hiding here turns that wait into no wait at all.
+       *
+       * Called through the injected bridge rather than an imported plugin
+       * because this file is plain bundled HTML with no build step and no
+       * module graph — and it must not acquire one, since any import would be
+       * a fetch, and there is no network.
+       */
+      if (window.Capacitor && window.Capacitor.Plugins.SplashScreen) {
+        window.Capacitor.Plugins.SplashScreen.hide();
+      }
+
+      function sync() {
+        retry.disabled = !navigator.onLine;
+      }
+
+      retry.addEventListener('click', function () {
+        window.location.reload();
+      });
+
+      window.addEventListener('online', sync);
+      window.addEventListener('offline', sync);
+      sync();
+    </script>
+  </body>
+</html>

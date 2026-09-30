@@ -83,6 +83,39 @@ if (!existingAccount) {
 - If Alice's **first** sign-in is Google → immediate access
 - After both are linked → completely seamless
 
+## Inside the Android and iOS apps
+
+**The native apps offer magic link only. No third-party sign-in is shown.**
+
+This is not a gap in the apps, it is the platforms refusing. Google returns
+`disallowed_useragent` for OAuth started in an embedded WebView, by policy and
+with no setting that changes it, and the remaining providers would each need
+their own native SDK before they could be offered honestly. Rendering the
+buttons anyway would ship controls that fail, and a member who taps one cannot
+tell a broken app from a broken account.
+
+So `app/signin/_components/signin-view.tsx` filters the whole provider list out
+when `useIsNativeApp()` is true. With no providers left, `hasOAuth` is false and
+the existing behaviour takes over: the magic-link form opens by default, with no
+toggle to get past first. Magic link behaves identically in the app and the
+browser.
+
+Nothing about accounts changes. A member who signed up with Google on the web
+signs in to the app with a magic link to the same address and lands in the same
+account — the linking described above is what makes that work.
+
+Two consequences worth knowing:
+
+- **App Store guideline 4.8 stays out of scope.** The requirement to offer Sign
+  in with Apple is triggered by offering _other_ third-party sign-in options.
+  This app offers none, so it does not apply.
+- **The OAuth hosts remain in `allowNavigation`** in `capacitor.config.ts`. They
+  are not reachable from the app's own UI, but leaving them listed means a
+  sign-in reached some other way still completes in the WebView, where its
+  cookie is readable, rather than in a browser where it is not.
+
+See `docs/MOBILE-ROADMAP.md` for what changing this would cost.
+
 ## Data Structure
 
 ### PostgreSQL `users` table

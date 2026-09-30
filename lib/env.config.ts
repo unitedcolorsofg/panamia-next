@@ -553,6 +553,39 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // MOBILE APPS (Capacitor native shell — see docs/MOBILE-ROADMAP.md)
+  // =============================================================================
+  ANDROID_APP_CERT_FINGERPRINTS: {
+    description:
+      'Comma-separated SHA-256 signing certificate fingerprints, served in ' +
+      '/.well-known/assetlinks.json so Android verifies App Links for the app. ' +
+      'Expect at least TWO: with Play App Signing, Google re-signs the upload, ' +
+      'so shipped builds carry the Play signing certificate while internal-test ' +
+      'and local builds carry the upload certificate. Both are listed under ' +
+      'Release > Setup > App signing in the Play Console. Not secret — this file ' +
+      'is world-readable by design. Unset means the route 404s, which is correct ' +
+      'for any environment with no signed build: links simply open in the browser.',
+    location: 'VAR',
+    required: false,
+    example:
+      'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
+    docsUrl:
+      'https://developer.android.com/training/app-links/verify-android-applinks',
+  },
+  APPLE_APP_TEAM_ID: {
+    description:
+      'Apple Developer Team ID, served in /.well-known/apple-app-site-association ' +
+      'so iOS verifies Universal Links for the app. Found on the membership page ' +
+      'of the Apple Developer account. Not secret. Unset means the route 404s, so ' +
+      'links open in Safari rather than in the app.',
+    location: 'VAR',
+    required: false,
+    example: 'A1B2C3D4E5',
+    docsUrl:
+      'https://developer.apple.com/documentation/xcode/supporting-associated-domains',
+  },
+
+  // =============================================================================
   // DEVELOPMENT / TESTING
   // =============================================================================
   DEV_RECEIVER_EMAIL: {

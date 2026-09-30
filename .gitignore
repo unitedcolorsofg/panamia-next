@@ -81,3 +81,19 @@ external/panamia-next-crm-bridge/.wrangler/
 
 # Playwright MCP scratch output (snapshots, console logs)
 .playwright-mcp/
+
+# Mobile app signing material.
+#
+# The native projects under mobile/ are committed on purpose — they carry real
+# configuration (permissions, icons, associated domains) that has to be
+# reviewable. Signing material is the exception, and Capacitor's generated
+# mobile/android/.gitignore deliberately leaves these lines commented out, so
+# without this a keystore dropped next to the Gradle files is staged by
+# default. A committed Android keystore lets anyone sign a build that the Play
+# Store accepts as this app, and it is not revocable — Play App Signing pins
+# the upload key.
+*.jks
+*.keystore
+mobile/android/keystore.properties
+mobile/ios/App/*.mobileprovision
+mobile/ios/App/*.p12

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              Android App Links.
+
+              This is the app's half of the claim; the site's half is served
+              from app/.well-known/assetlinks.json. BOTH are required and
+              neither reports anything when it is missing — the symptom is
+              simply that every pana.social link keeps opening in Chrome.
+
+              android:autoVerify="true" is what makes these links open the app
+              silently, with no disambiguation dialog: at install time Android
+              fetches assetlinks.json over https and checks that it names this
+              package and this signing certificate. Without the attribute the
+              filter still matches, but the member gets an app chooser every
+              time, which is worse than not having deep links at all.
+
+              Both surfaces are listed because they are separate hostnames on
+              the same Worker once PANAVERSE_SUBDOMAINS is on, and this one app
+              carries both of them (see lib/panaverse/surfaces.ts). Verification
+              is per-host, so an unlisted host is an unclaimed host.
+
+              Note the activity above is launchMode="singleTask": a link
+              arriving while the app is already open resumes the running
+              instance and is delivered to the appUrlOpen listener in
+              components/mobile/NativeShell.tsx, rather than starting a second
+              copy of the app on top of the first.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="pana.social" />
+                <data android:scheme="https" android:host="social.pana.social" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
