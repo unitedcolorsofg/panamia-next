@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Eye, Lock, MapPin, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AttachmentGrid } from '@/components/social/AttachmentGrid';
+import { SafeHtml } from '@/components/safe-html';
 import { PostActions } from '@/components/social/PostActions';
 import {
   CCBadge,
@@ -185,11 +186,13 @@ export function FeedPostCard({ status }: { status: SocialStatusDisplay }) {
 
           {!bodyHidden && (
             <>
-              {/* Server-sanitised ActivityPub content, rendered the same way
-                  the previous card rendered it. */}
-              <div
+              {/* Status bodies are not sanitised at rest — local ones come
+                  from marked (which passes raw HTML through) and federated
+                  ones are authored by a remote instance. SafeHtml applies the
+                  allowlist at render. */}
+              <SafeHtml
                 className="prose prose-sm dark:prose-invert mt-2 max-w-none text-[15px] leading-relaxed font-medium break-words"
-                dangerouslySetInnerHTML={{ __html: status.content }}
+                html={status.content}
               />
 
               {status.attachments && status.attachments.length > 0 && (

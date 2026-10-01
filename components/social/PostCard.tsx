@@ -12,6 +12,7 @@ const PostComposer = dynamic(
   () => import('./PostComposer').then((m) => ({ default: m.PostComposer })),
   { ssr: false }
 );
+import { SafeHtml } from '@/components/safe-html';
 import { AttachmentGrid } from './AttachmentGrid';
 import { CollapsibleContent } from './CollapsibleContent';
 import { StoryRing } from './StoryRing';
@@ -133,16 +134,16 @@ export function PostCard({
             {/* Content — collapse long posts in timeline, show full in detail */}
             {(!hasCW || showCWContent) &&
               (isDetail ? (
-                <div
+                <SafeHtml
                   className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: status.content }}
+                  html={status.content}
                 />
               ) : (
                 <CollapsibleContent
                   className="prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
                   maxLines={10}
                 >
-                  <div dangerouslySetInnerHTML={{ __html: status.content }} />
+                  <SafeHtml html={status.content} />
                 </CollapsibleContent>
               ))}
 

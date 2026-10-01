@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
+import { SafeHtml } from '@/components/safe-html';
 
 interface MastodonComment {
   id: string;
@@ -212,9 +213,11 @@ function CommentCard({ comment }: { comment: MastodonComment }) {
         </a>
       </div>
 
-      <div
+      {/* Authored on a remote Mastodon instance and proxied through our API
+          untouched, so this is third-party HTML with no trust at all. */}
+      <SafeHtml
         className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-purple-600 dark:[&_a]:text-purple-400"
-        dangerouslySetInnerHTML={{ __html: comment.content }}
+        html={comment.content}
       />
 
       {comment.repliesCount > 0 && (
