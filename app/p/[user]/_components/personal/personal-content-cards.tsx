@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Globe, Lock, Users } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Globe, Link2Off, Lock, Store, Users } from 'lucide-react';
 import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import type {
   ProfileEventSummary,
   ProfileGroupSummary,
+  RecommendationListItemSummary,
+  RecommendationListSummary,
 } from '@/lib/query/social';
 
 /* Cards for the content column.
@@ -186,4 +190,178 @@ export function GroupRow({ group }: { group: ProfileGroupSummary }) {
       </div>
     </article>
   );
+}
+
+/* How many entries a list shows before it asks. Four is enough to establish
+   what kind of list this is; beyond that a single long list would crowd out
+   the ones below it, and these are meant to be read side by side. */
+const RECOMMEND_PREVIEW_COUNT = 4;
+
+/* One recommendation list: the pana's own framing, then the places.
+ *
+ * Expands in place rather than linking out, because there is no per-list page
+ * yet. An arrow pointing nowhere would be worse than a disclosure that works.
+ *
+ * The visibility flag only renders for lists that are not public, and only
+ * the owner is ever sent those. It exists so somebody looking at their own
+ * shelf can tell at a glance which of these anyone can actually read — a
+ * private list and a published one are otherwise identical on screen, which
+ * is how people publish things they meant to keep. */
+export function RecommendListCard({
+  list,
+}: {
+  list: RecommendationListSummary;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const items = expanded
+    ? list.items
+    : list.items.slice(0, RECOMMEND_PREVIEW_COUNT);
+  const hidden = list.items.length - items.length;
+
+  const updated = relativeOrNull(list.updatedAt);
+
+  return (
+    <article className="profile-card p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-[17px] leading-tight font-black tracking-tight">
+            {list.title}
+          </h3>
+          {list.blurb && (
+            <p className="text-pana-ink/70 mt-1 text-[13px] leading-snug font-medium">
+              {list.blurb}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-none flex-col items-end gap-1.5">
+          <span className="card-flag">
+            <Store className="h-2.5 w-2.5" aria-hidden="true" />
+            {list.itemCount.toLocaleString('en-US')}
+          </span>
+          {list.visibility !== 'public' && (
+            <span className="card-flag">
+              {list.visibility === 'private' ? (
+                <>
+                  <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+                  Private
+                </>
+              ) : (
+                <>
+                  <Link2Off className="h-2.5 w-2.5" aria-hidden="true" />
+                  Unlisted
+                </>
+              )}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {list.items.length > 0 ? (
+        <ul className="border-pana-ink/10 mt-4 space-y-3.5 border-t pt-4">
+          {items.map((item) => (
+            <RecommendRow key={item.id} item={item} />
+          ))}
+        </ul>
+      ) : (
+        <p className="border-pana-ink/10 text-pana-ink/55 mt-4 border-t pt-4 text-[13px] font-bold">
+          Nothing on this list yet.
+        </p>
+      )}
+
+      {(updated || hidden > 0) && (
+        <div className="border-pana-ink/10 mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <span className="text-pana-ink/45 text-[12px] font-bold">
+            {updated ? `Updated ${updated}` : ''}
+          </span>
+          {hidden > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="link-arrow text-pana-indigo text-[13px] font-extrabold"
+            >
+              Show {hidden.toLocaleString('en-US')} more
+            </button>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+/* One place on a list.
+ *
+ * A tombstone keeps the note and loses the link. That asymmetry is the whole
+ * design: the sentence belongs to the pana who wrote it and survives, while
+ * the listing belongs to a business that chose to leave and does not. The row
+ * says so plainly rather than rendering a dead link or quietly vanishing and
+ * renumbering somebody's list underneath them. */
+function RecommendRow({ item }: { item: RecommendationListItemSummary }) {
+  const name = item.profileName ?? item.profileNameAtAdd ?? 'A place';
+  const canLink = !item.isUnavailable && Boolean(item.profileScreenname);
+
+  return (
+    <li className="flex items-start gap-3" data-gone={item.isUnavailable}>
+      <div className="border-pana-ink/10 bg-pana-butter relative h-14 w-14 flex-none overflow-hidden rounded-xl border-2 data-[gone=true]:opacity-45">
+        {item.profileImage ? (
+          <Image
+            src={item.profileImage}
+            alt=""
+            fill
+            sizes="56px"
+            className="object-cover"
+            unoptimized={isUnoptimizableImageSrc(item.profileImage)}
+          />
+        ) : (
+          <span className="text-pana-ink/70 flex h-full w-full items-center justify-center text-lg font-black">
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] leading-tight font-extrabold">
+          {canLink ? (
+            <Link
+              href={`/p/${item.profileScreenname}`}
+              className="hover:underline"
+            >
+              {name}
+            </Link>
+          ) : (
+            <span className="text-pana-ink/60">{name}</span>
+          )}
+        </p>
+
+        {item.isUnavailable ? (
+          <span className="card-flag mt-1">
+            <Link2Off className="h-2.5 w-2.5" aria-hidden="true" />
+            No longer listed
+          </span>
+        ) : (
+          item.profileCategory && (
+            <p className="text-pana-ink/50 mt-0.5 text-[12px] font-bold">
+              {item.profileCategory}
+            </p>
+          )
+        )}
+
+        {item.note && (
+          <p className="border-pana-butter text-pana-ink/75 mt-1.5 border-l-2 pl-2.5 text-[13px] leading-snug font-medium">
+            {item.note}
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/* Returns null rather than a fallback string for an unparseable date, so the
+   footer can drop the line instead of printing "Updated Invalid Date". */
+function relativeOrNull(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return formatDistanceToNow(date, { addSuffix: true });
 }

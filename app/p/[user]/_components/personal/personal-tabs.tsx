@@ -1,4 +1,4 @@
-import { CalendarDays, FileText, Users, UsersRound } from 'lucide-react';
+import { CalendarDays, FileText, Store, Users, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { PersonalTab, TabDef } from './types';
 
@@ -56,5 +56,6 @@ export const PERSONAL_TAB_ICONS: Record<PersonalTab, LucideIcon> = {
   posts: FileText,
   events: CalendarDays,
   groups: UsersRound,
+  recommends: Store,
   panas: Users,
 };

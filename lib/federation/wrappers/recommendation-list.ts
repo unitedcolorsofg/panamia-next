@@ -299,6 +299,11 @@ export async function getListItems(listId: string) {
       createdAt: recommendationListItems.createdAt,
       profileScreenname: profiles.screenname,
       profileName: profiles.name,
+      // Joined for the profile card's sake, not the federation payload: a
+      // recommendation that renders as a bare name reads like a bookmark,
+      // and the whole point is that it reads like a person vouching.
+      profileImage: profiles.primaryImageCdn,
+      profileCategories: profiles.categories,
     })
     .from(recommendationListItems)
     .leftJoin(profiles, eq(recommendationListItems.profileId, profiles.id))
@@ -666,9 +671,29 @@ export function serializeListItem(item: ListItemRow) {
     // so a removed business still reads as a place rather than a blank.
     profileName: item.profileName ?? item.profileNameAtAdd,
     profileNameAtAdd: item.profileNameAtAdd,
+    // Both null for a tombstone, because the left join has nothing to supply.
+    // That is the correct result rather than a gap to paper over: a business
+    // that left the directory should not keep rendering its old storefront.
+    profileImage: item.profileImage ?? null,
+    profileCategory: firstCategory(item.profileCategories),
     isUnavailable: item.profileId === null,
     createdAt: item.createdAt.toISOString(),
   };
+}
+
+/**
+ * `profiles.categories` is jsonb, so it arrives as `unknown` and is not
+ * guaranteed to be the string array the writer intended. One category is
+ * enough here — the card shows a kind of place, not a taxonomy.
+ */
+function firstCategory(categories: unknown): string | null {
+  if (!Array.isArray(categories)) return null;
+
+  const first = categories.find(
+    (value): value is string => typeof value === 'string' && value.length > 0
+  );
+
+  return first ?? null;
 }
 
 /**

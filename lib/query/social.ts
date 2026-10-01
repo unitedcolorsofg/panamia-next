@@ -318,8 +318,9 @@ export interface PanaSummary {
 }
 
 export interface PanasResponse {
+  /* Zero for everyone but the owner. Both halves are owner-only — see the
+     docblock on app/api/social/actors/[username]/panas/route.ts. */
   count: number;
-  // False for signed-out viewers: the count is public, the list is not.
   canSeeList: boolean;
   actors: PanaSummary[];
 }
@@ -403,6 +404,70 @@ export const useProfileEvents = (username: string) => {
         `/api/social/actors/${encodeURIComponent(username)}/events`
       ),
     enabled: !!username,
+  });
+};
+
+/**
+ * One entry on a recommendation list.
+ *
+ * `isUnavailable` is the tombstone flag, and it is the field that decides how
+ * the row renders rather than a detail beside it. A business leaving the
+ * directory must not delete a sentence somebody else wrote, so the note and
+ * its position survive while the link does not — see the nullable
+ * `profileId` reasoning in lib/schema/index.ts.
+ */
+export interface RecommendationListItemSummary {
+  id: string;
+  position: number;
+  note: string | null;
+  profileId: string | null;
+  profileScreenname: string | null;
+  /** Live name while the listing exists, the add-time snapshot afterwards. */
+  profileName: string | null;
+  profileNameAtAdd: string | null;
+  profileImage: string | null;
+  profileCategory: string | null;
+  isUnavailable: boolean;
+  createdAt: string;
+}
+
+export interface RecommendationListSummary {
+  id: string;
+  slug: string;
+  title: string;
+  blurb: string | null;
+  visibility: 'private' | 'unlisted' | 'public';
+  /** Authoritative total; `items` may be shorter than this. */
+  itemCount: number;
+  uri: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  items: RecommendationListItemSummary[];
+}
+
+export interface ProfileListsResponse {
+  handle: string;
+  lists: RecommendationListSummary[];
+}
+
+/**
+ * A pana's visible recommendation lists.
+ *
+ * Note the path: `profiles/[handle]`, not the `actors/[username]` the rest of
+ * this file uses. Lists are owned by a user rather than by a federation actor,
+ * so the route resolves a directory handle — see the endpoint's docblock.
+ *
+ * Visibility is settled server-side against the session. Unlisted lists never
+ * appear here by design, and private ones only when you are the owner, so the
+ * client never has to decide what it is allowed to draw.
+ */
+export const useProfileLists = (handle: string) => {
+  return useQuery<ProfileListsResponse | null, Error>({
+    queryKey: [socialQueryKey, 'profile', handle, 'lists'],
+    queryFn: () =>
+      getSocialData(`/api/social/profiles/${encodeURIComponent(handle)}/lists`),
+    enabled: !!handle,
   });
 };
 
