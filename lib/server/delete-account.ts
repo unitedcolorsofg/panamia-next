@@ -30,6 +30,7 @@ import {
   socialActors,
   socialStatuses,
   socialFollows,
+  socialBlocks,
   socialLikes,
   socialAttachments,
   socialTags,
@@ -543,6 +544,34 @@ export async function deleteAccount(
             .delete(socialFollows)
             .where(eq(socialFollows.targetActorId, socialActor.id))
             .returning({ id: socialFollows.id }),
+        deletedTables,
+        warnings
+      );
+
+      // Delete blocks and mutes (both directions)
+      //
+      // Outgoing rows are this person's own safety decisions and leave with
+      // them. Incoming rows — where somebody else blocked this actor — are
+      // deleted too, because the actor row they point at is going away; a
+      // block against an account that no longer exists protects nobody and
+      // would dangle. The other person's list simply gets shorter.
+      await safeDelete(
+        'socialBlocks(outgoing)',
+        () =>
+          db
+            .delete(socialBlocks)
+            .where(eq(socialBlocks.actorId, socialActor.id))
+            .returning({ id: socialBlocks.id }),
+        deletedTables,
+        warnings
+      );
+      await safeDelete(
+        'socialBlocks(incoming)',
+        () =>
+          db
+            .delete(socialBlocks)
+            .where(eq(socialBlocks.targetActorId, socialActor.id))
+            .returning({ id: socialBlocks.id }),
         deletedTables,
         warnings
       );

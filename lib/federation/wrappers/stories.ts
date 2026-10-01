@@ -42,6 +42,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { canPost, GateResult } from '../gates';
 import { getFollowersUrl } from '../index';
 import { generateStatusUri } from './status';
+import { isBlockedEitherWay } from './block-filter';
 
 /** How long a story stays watchable. */
 const STORY_LIFETIME_HOURS = 24;
@@ -404,6 +405,17 @@ export async function getActiveStories(
 
   if (!actor) {
     return null;
+  }
+
+  // Same answer as "this person has no stories". Returning null rather than
+  // throwing keeps the block undetectable: a blocked viewer opening the URL
+  // directly gets the identical response they would get for anyone with an
+  // empty tray. Skipped when the viewer is the author, since isBlockedEitherWay
+  // is false for self anyway but the extra query is pointless.
+  if (viewerActorId && viewerActorId !== actor.id) {
+    if (await isBlockedEitherWay(viewerActorId, actor.id)) {
+      return null;
+    }
   }
 
   const isOwner = viewerActorId != null && viewerActorId === actor.id;

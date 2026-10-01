@@ -12,3 +12,5 @@ export { SendVoiceMemoButton } from './SendVoiceMemoButton';
 export { StoryRing } from './StoryRing';
 export { StoryViewer } from './StoryViewer';
 export { StoryComposer } from './StoryComposer';
+export { BlockMenu } from './BlockMenu';
+export { BlockedAccountsSettings } from './BlockedAccountsSettings';

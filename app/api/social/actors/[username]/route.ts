@@ -5,7 +5,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getActiveProfileWithActor } from '@/lib/server/active-profile';
-import { getActorByScreenname, getFollowRelationship } from '@/lib/federation';
+import {
+  getActorByScreenname,
+  getFollowRelationship,
+  getViewerBlockState,
+} from '@/lib/federation';
 
 export async function GET(
   request: NextRequest,
@@ -34,6 +38,11 @@ export async function GET(
   // Get follow relationship
   const relationship = await getFollowRelationship(viewerActorId, actor.id);
 
+  // Only the viewer's own outgoing block/mute rows, so the menu can offer
+  // "Unblock" instead of "Block". Whether this actor blocked the viewer is
+  // deliberately not reported — see getViewerBlockState.
+  const blockState = await getViewerBlockState(viewerActorId, actor.id);
+
   return NextResponse.json({
     success: true,
     data: {
@@ -53,6 +62,8 @@ export async function GET(
       isFollowing: relationship.isFollowing,
       isFollowedBy: relationship.isFollowedBy,
       isSelf: viewerActorId === actor.id,
+      isBlocked: blockState.isBlocked,
+      isMuted: blockState.isMuted,
     },
   });
 }

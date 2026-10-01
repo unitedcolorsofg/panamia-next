@@ -32,6 +32,13 @@ interface ActorResponse {
   isFollowing: boolean;
   isFollowedBy: boolean;
   isSelf: boolean;
+  /**
+   * The viewer's own outgoing block/mute rows only. There is deliberately no
+   * flag for "this actor blocked you" — rendering one would make the block
+   * detectable, which is the one thing it has to avoid.
+   */
+  isBlocked?: boolean;
+  isMuted?: boolean;
 }
 
 interface MyActorResponse {
@@ -1259,6 +1266,102 @@ export const useUnfollowActor = () => {
       queryClient.invalidateQueries({
         queryKey: [socialQueryKey, 'timeline'],
       });
+    },
+  });
+};
+
+/** Block and mute. See docs/SOCIAL-GRAPH.md section B. */
+export type SocialBlockKind = 'block' | 'mute';
+
+export interface BlockedActorEntry {
+  block: {
+    id: string;
+    createdAt: string;
+    actorId: string;
+    targetActorId: string;
+    kind: SocialBlockKind;
+  };
+  actor: {
+    id: string;
+    username: string;
+    domain: string;
+    name: string | null;
+    iconUrl: string | null;
+  };
+}
+
+/**
+ * The viewer's own block or mute list, for the settings screen.
+ *
+ * Outgoing rows only - the API never returns who blocked you.
+ */
+export const useBlockList = (kind: SocialBlockKind = 'block') =>
+  useQuery({
+    queryKey: [socialQueryKey, 'blocks', kind],
+    queryFn: async (): Promise<BlockedActorEntry[]> => {
+      const { data } = await axios.get(`/api/social/blocks?kind=${kind}`);
+      return data?.data?.blocks ?? [];
+    },
+  });
+
+/**
+ * Invalidate everything a block can change.
+ *
+ * Blocking severs follows and removes the actor from every timeline, the
+ * suggestion rail and the Panas count, so there is no useful optimistic update
+ * here - the honest move is to drop the caches and refetch. Doing it by halves
+ * is how you end up with a blocked person still sitting in the feed until the
+ * next navigation, which reads as the block not having worked.
+ */
+function invalidateAfterBlock(
+  queryClient: ReturnType<typeof useQueryClient>,
+  username: string
+) {
+  for (const key of [
+    'actor',
+    'blocks',
+    'follows',
+    'timeline',
+    'suggestions',
+    'panas',
+    'stories',
+    'notifications',
+    'messages',
+  ]) {
+    queryClient.invalidateQueries({ queryKey: [socialQueryKey, key] });
+  }
+  queryClient.invalidateQueries({
+    queryKey: [socialQueryKey, 'actor', username],
+  });
+}
+
+interface BlockMutationVars {
+  username: string;
+  kind?: SocialBlockKind;
+}
+
+export const useBlockActor = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ username, kind = 'block' }: BlockMutationVars) =>
+      axios.post(
+        `/api/social/actors/${encodeURIComponent(username)}/block?kind=${kind}`
+      ),
+    onSettled: (_data, _error, variables) => {
+      invalidateAfterBlock(queryClient, variables.username);
+    },
+  });
+};
+
+export const useUnblockActor = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ username, kind = 'block' }: BlockMutationVars) =>
+      axios.delete(
+        `/api/social/actors/${encodeURIComponent(username)}/block?kind=${kind}`
+      ),
+    onSettled: (_data, _error, variables) => {
+      invalidateAfterBlock(queryClient, variables.username);
     },
   });
 };
