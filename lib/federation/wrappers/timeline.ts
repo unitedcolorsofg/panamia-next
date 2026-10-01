@@ -91,13 +91,19 @@ function notHidden(hiddenActorIds: string[]) {
 }
 
 /**
- * Hide direct messages that are still waiting in the viewer's Requests folder.
+ * A direct message still waiting in the viewer's Requests folder.
+ *
+ * Written as the positive test because two surfaces need it in opposite
+ * directions: the inbox excludes these, the Requests folder selects exactly
+ * these. Defining `notHeldRequest` as the literal complement means the folder
+ * cannot drift into showing something the inbox also shows, which would let
+ * one message sit in both places.
  *
  * Suppressing the notification is only half of the Requests design. Without
  * this the held message still lands in the ordinary inbox, which means the
  * recipient reads it anyway and the folder prevents nothing — it just arrives
- * quietly. The message becomes visible here the moment the request is
- * accepted, because the row flips to 'accepted' rather than being deleted.
+ * quietly. The message moves to the inbox the moment the request is accepted,
+ * because the row flips to 'accepted' rather than being deleted.
  *
  * Identifies correspondence as "the viewer's own URI appears in recipientTo",
  * which is deliberately narrower than getVisibilityFromRecipients' notion of
@@ -107,8 +113,8 @@ function notHidden(hiddenActorIds: string[]) {
  * test is also the safer one — a pending request must never hide a sender's
  * public posts, and a public post never carries the viewer's URI in `to`.
  */
-function notHeldRequest(viewerActorId: string, viewerUri: string) {
-  return sql`NOT (
+function heldRequest(viewerActorId: string, viewerUri: string) {
+  return sql`(
     ${jsonbArrayContains(socialStatuses.recipientTo, viewerUri)}
     AND EXISTS (
       SELECT 1 FROM social_dm_requests r
@@ -117,6 +123,10 @@ function notHeldRequest(viewerActorId: string, viewerUri: string) {
         AND r.state = 'pending'
     )
   )`;
+}
+
+function notHeldRequest(viewerActorId: string, viewerUri: string) {
+  return sql`NOT ${heldRequest(viewerActorId, viewerUri)}`;
 }
 
 /**
@@ -685,6 +695,63 @@ export async function getAtMeTimeline(
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   return { statuses: items.map(toStatus), nextCursor };
+}
+
+/**
+ * The messages waiting in the viewer's Requests folder.
+ *
+ * The exact complement of what `getAtMeTimeline` hides, so a held message is
+ * readable in one place and one place only. The recipient reads before
+ * deciding: triaging on a name and a timestamp alone would make "accept" the
+ * only way to find out what was said, and accepting is the consent the gate
+ * exists to ask for.
+ *
+ * Ordered oldest-first, unlike every other timeline here. These are grouped
+ * into per-sender threads by the caller and read as correspondence, where the
+ * opening line is the one that tells you whether this is a neighbour or spam.
+ *
+ * Applies the same hidden-actor and expiry filters as the inbox. Expiry is why
+ * a request can legitimately have no messages: direct statuses age out while
+ * the request row persists, so the caller must render a sender with an empty
+ * thread rather than treating it as an error.
+ */
+export async function getHeldRequestStatuses(
+  actorId: string,
+  limit: number = 100
+): Promise<StatusWithActorAndLike[]> {
+  const actor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, actorId),
+    columns: { uri: true },
+  });
+
+  if (!actor) return [];
+
+  const hiddenActorIds = await getHiddenActorIds(actorId);
+
+  const rows = await db.query.socialStatuses.findMany({
+    where: (s, { and, isNotNull, ne }) =>
+      and(
+        isNotNull(s.published),
+        ne(s.actorId, actorId),
+        heldRequest(actorId, actor.uri),
+        notExpired(),
+        excludeStories(),
+        notHidden(hiddenActorIds)
+      ),
+    with: {
+      actor: ACTOR_WITH,
+      attachments: true,
+      group: GROUP_WITH,
+      likes: {
+        where: eq(socialLikes.actorId, actorId),
+        columns: { id: true },
+      },
+    },
+    orderBy: (s, { asc }) => [asc(s.published), asc(s.id)],
+    limit,
+  });
+
+  return rows.map(toStatus);
 }
 
 /**

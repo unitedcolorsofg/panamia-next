@@ -1035,6 +1035,69 @@ export const useSentMessages = (cursor?: string, limit: number = 20) => {
   });
 };
 
+/**
+ * One person waiting in the Requests folder, with what they sent.
+ *
+ * `messages` can be empty. Direct statuses expire while the request row
+ * persists, so a sender may still be waiting with nothing left to read — the
+ * UI has to render that as an aged-out request, not as a spinner that never
+ * resolves.
+ */
+export interface DmRequestEntry {
+  sender: {
+    id: string;
+    username: string;
+    domain: string;
+    name: string | null;
+    iconUrl: string | null;
+  };
+  requestedAt: string;
+  messages: SocialStatusDisplay[];
+}
+
+/** The Requests folder. See docs/SOCIAL-GRAPH.md section C1. */
+export const useDmRequests = (enabled: boolean = true) =>
+  useQuery({
+    queryKey: [socialQueryKey, 'dm-requests'],
+    queryFn: async (): Promise<DmRequestEntry[]> => {
+      const { data } = await axios.get('/api/social/dm-requests');
+      return data?.data?.requests ?? [];
+    },
+    enabled,
+  });
+
+/**
+ * Both triage actions move a message between folders, so both have to drop the
+ * message caches as well as the request list. Accepting moves it into the
+ * inbox; deleting withdraws it from the recipient entirely. Refreshing only
+ * the Requests list would leave the inbox showing yesterday's contents.
+ */
+function invalidateAfterRequestTriage(
+  queryClient: ReturnType<typeof useQueryClient>
+) {
+  queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'dm-requests'] });
+  queryClient.invalidateQueries({ queryKey: [socialQueryKey, 'messages'] });
+}
+
+export const useAcceptDmRequest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (senderActorId: string) =>
+      axios.patch('/api/social/dm-requests', { senderActorId }),
+    onSettled: () => invalidateAfterRequestTriage(queryClient),
+  });
+};
+
+export const useDeleteDmRequest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    // axios sends a DELETE body only under `data`, not as the second argument.
+    mutationFn: (senderActorId: string) =>
+      axios.delete('/api/social/dm-requests', { data: { senderActorId } }),
+    onSettled: () => invalidateAfterRequestTriage(queryClient),
+  });
+};
+
 // ============================================================================
 // Mutation Hooks
 // ============================================================================
@@ -1399,6 +1462,9 @@ function invalidateAfterBlock(
     'stories',
     'notifications',
     'messages',
+    // Blocking a sender drops them from the Requests folder, which is the
+    // whole point of offering Block beside Accept there.
+    'dm-requests',
   ]) {
     queryClient.invalidateQueries({ queryKey: [socialQueryKey, key] });
   }
