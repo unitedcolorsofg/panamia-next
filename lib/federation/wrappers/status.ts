@@ -23,7 +23,7 @@ import type {
   SocialGroupVisibility,
 } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { marked } from 'marked';
+import { renderStatusMarkdown } from '@/lib/federation/markdown';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
 import {
@@ -34,15 +34,9 @@ import {
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import type { JsonValue } from '@/lib/types';
 
-// Configure marked to add safety attributes to links
-marked.use({
-  renderer: {
-    link({ href, title, text }) {
-      const titleAttr = title ? ` title="${title}"` : '';
-      return `<a href="${href}"${titleAttr} rel="noopener noreferrer ugc" target="_blank">${text}</a>`;
-    },
-  },
-});
+// Markdown rendering, including the hooks that stop raw HTML and
+// `javascript:` links being written into new posts, lives in
+// lib/federation/markdown.ts.
 
 export type CreateStatusResult =
   | { success: true; status: SocialStatus }
@@ -185,9 +179,7 @@ export async function createStatus(
   }
 
   // Convert markdown to HTML
-  const htmlContent = (
-    await marked.parse(content.trim(), { gfm: true })
-  ).trim();
+  const htmlContent = await renderStatusMarkdown(content.trim());
 
   // If replying, validate the parent exists
   let inReplyToUri: string | undefined;

@@ -458,10 +458,50 @@ if (!session?.user?.email) {
 ### XSS Prevention
 
 **React**: Auto-escapes rendered content
-**User Input**: Never dangerouslySetInnerHTML used
+
+**User Input**: `dangerouslySetInnerHTML` **is** used, because post bodies are
+stored and rendered as HTML. Every such sink renders through
+`<SafeHtml>` (`components/safe-html.tsx`), which applies the allowlist in
+`lib/sanitize-html.ts` — `sanitize-html`, a pure-JS parser that runs on
+Cloudflare Workers, during SSR and in the browser. The sinks are:
+
+- `components/social/PostCard.tsx` — local and federated statuses
+- `app/s/_components/feed-post-card.tsx` — the social feed
+- `components/MastodonComments.tsx` — remote Mastodon comment HTML
+
+Sanitisation happens at **render**, not only at ingest. Content reaches these
+sinks from three paths (local composer, ActivityPub inbox, Mastodon API), rows
+written before this control existed are still in the database, and federated
+content never passes through the local pipeline at all — so the chokepoint has
+to sit in front of the renderer.
+
+The allowlist permits the formatting `marked` emits plus Mastodon's inline
+markup, and drops `script`/`style`/`iframe`/`object`/`embed`, all `on*`
+handlers, and any URL scheme outside `http`/`https`/`mailto`. `class` is
+allowlisted per value rather than passed through, because every Tailwind
+utility is live on these pages and an arbitrary `class` on hostile markup is a
+click-harvesting overlay primitive.
+
+**Defence in depth at ingest**: `lib/federation/markdown.ts` escapes raw HTML
+rather than emitting it, and reapplies the URL-scheme check that overriding
+marked's link renderer would otherwise discard. This does not replace the
+render-time control.
+
+**JSON-LD**: `components/legal/JsonLd.tsx` writes JSON into a `<script>` tag.
+All callers pass repo-controlled literals, so no user input reaches it; `<`,
+`>` and `&` are escaped as `\uXXXX` anyway so a future caller cannot break out
+of the tag.
+
 **URLs**: Validated before rendering (Zod schemas)
 
-**Status**: Protected
+**Regression tests**: `tests-unit/sanitize-html.test.ts` (`yarn test:unit`)
+
+**Status**: Protected — sanitised at render, enforced by a single chokepoint
+
+> Prior revisions of this document claimed "Never dangerouslySetInnerHTML
+> used" / "Protected". That was false in four places, and nothing in the repo
+> sanitised post HTML at the time, so stored XSS was reachable by any poster.
+> Fixed in the change that added `lib/sanitize-html.ts`.
 
 ### CSRF Protection
 
@@ -632,7 +672,9 @@ If you discover a security vulnerability, please [contact us](https://pana.socia
 
 - [x] Authentication bypass attempts (failed )
 - [x] Authorization bypass attempts (failed )
-- [x] XSS injection attempts (blocked )
+- [x] XSS injection attempts (blocked — see XSS Prevention above; stored XSS
+      via post HTML was reachable until `lib/sanitize-html.ts` landed, and is
+      covered by `tests-unit/sanitize-html.test.ts`)
 - [x] SQL/NoSQL injection attempts (blocked )
 - [x] CSRF attacks (protected )
 - [ ] Pusher channel hijacking (to be tested)

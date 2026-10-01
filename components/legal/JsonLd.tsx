@@ -45,10 +45,20 @@ export function LegalJsonLd({
     }),
   };
 
+  // Every caller passes repo-controlled literals today (policy titles and
+  // versions from lib/legal/*), so no user input reaches this. That is a
+  // property of the call sites rather than of this component, though: a
+  // `</script>` inside any string value would close the tag early and turn the
+  // rest into markup. Escaping the three characters that can start a tag or a
+  // comment keeps that true no matter what a future caller passes. The result
+  // is still valid JSON-LD — these escapes are only meaningful to the HTML
+  // parser, and JSON.parse never sees them.
+  const json = JSON.stringify(jsonLd)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />
   );
 }
