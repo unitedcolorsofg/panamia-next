@@ -16,8 +16,8 @@
 
 import { db } from '@/lib/db';
 import { socialActors, socialDmRequests, socialFollows } from '@/lib/schema';
-import { and, eq, inArray, or } from 'drizzle-orm';
-import { isBlockedEitherWay } from './block-filter';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { isBlockedEitherWay, filterHiddenActorIds } from './block-filter';
 import { socialConfig } from '../index';
 
 /**
@@ -193,10 +193,16 @@ export async function evaluateDirectThreads(
 /**
  * The Requests folder: who is waiting for an answer.
  *
- * Returns the senders, not their messages. The folder is a list of people to
- * triage; the messages become readable through the ordinary inbox the moment
- * the request is accepted, so fetching them here would mean two code paths
- * rendering the same statuses with different visibility rules.
+ * Returns the senders only. Their messages are fetched separately by
+ * `getHeldRequestStatuses` and stitched together by the route, because the two
+ * do not correspond one-to-one — a direct status expires while the request row
+ * persists, so a sender can legitimately still be waiting with nothing left to
+ * read.
+ *
+ * Senders the viewer has blocked or muted are dropped here rather than left to
+ * the message query. The block already strips their statuses, so without this
+ * the folder would list a name with a permanently empty thread and no way to
+ * clear it.
  */
 export async function listDirectThreadRequests(
   recipientActorId: string
@@ -214,7 +220,14 @@ export async function listDirectThreadRequests(
       )
     );
 
-  return rows;
+  if (rows.length === 0) return rows;
+
+  const hidden = await filterHiddenActorIds(
+    recipientActorId,
+    rows.map((r) => r.senderActorId)
+  );
+
+  return rows.filter((r) => !hidden.has(r.senderActorId));
 }
 
 /**
@@ -250,23 +263,58 @@ export async function acceptDirectThreadRequest(
  * which social_blocks already enforces and which the Requests UI offers as a
  * separate action. See the socialDmRequestState comment for why there is no
  * 'declined' value to write here.
+ *
+ * Dropping the row is not enough on its own. `notHeldRequest` hides a message
+ * only while a *pending* row exists, so deleting the row in isolation stops
+ * the message being held and it surfaces in the ordinary inbox — the button
+ * labelled "delete without replying" would deliver the thing it refused. The
+ * recipient's address is therefore stripped from those statuses in the same
+ * transaction.
+ *
+ * Strips the address rather than deleting the status because a direct message
+ * can carry up to eight recipients, and deleting the row would retract it from
+ * the other seven. The sender keeps their copy either way: the Sent folder
+ * reads by `actorId` and never consults the recipient list, which is also what
+ * keeps this invisible to them.
  */
 export async function deleteDirectThreadRequest(
   recipientActorId: string,
   senderActorId: string
 ): Promise<boolean> {
-  const deleted = await db
-    .delete(socialDmRequests)
-    .where(
-      and(
-        eq(socialDmRequests.recipientActorId, recipientActorId),
-        eq(socialDmRequests.senderActorId, senderActorId),
-        eq(socialDmRequests.state, 'pending')
-      )
-    )
-    .returning({ id: socialDmRequests.id });
+  const recipient = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, recipientActorId),
+    columns: { uri: true },
+  });
 
-  return deleted.length > 0;
+  if (!recipient) return false;
+
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(socialDmRequests)
+      .where(
+        and(
+          eq(socialDmRequests.recipientActorId, recipientActorId),
+          eq(socialDmRequests.senderActorId, senderActorId),
+          eq(socialDmRequests.state, 'pending')
+        )
+      )
+      .returning({ id: socialDmRequests.id });
+
+    if (deleted.length === 0) return false;
+
+    // `jsonb - text` removes a matching element from an array. Only a direct
+    // message addresses an individual actor URI in `to` — every other
+    // visibility addresses the public collection or a followers URL — so this
+    // cannot reach the sender's ordinary posts.
+    await tx.execute(sql`
+      UPDATE social_statuses
+      SET recipient_to = recipient_to - ${recipient.uri}
+      WHERE actor_id = ${senderActorId}
+        AND recipient_to @> to_jsonb(${recipient.uri}::text)
+    `);
+
+    return true;
+  });
 }
 
 /**

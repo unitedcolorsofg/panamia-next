@@ -118,6 +118,8 @@ before(async () => {
       'blockedSender',
       'blocker',
       'tightening',
+      'deleteSender',
+      'deleteRecipient',
     ].map(makeActor)
   );
 
@@ -300,6 +302,34 @@ test('deleting a request leaves the sender able to try again', async () => {
   assert.equal(
     (await listDirectThreadRequests(actorIds.openRecipient)).length,
     1
+  );
+});
+
+test('deleting a request does not release the held message into the inbox', async () => {
+  const body = `knock-delete ${suffix}`;
+  const sent = await sendDm('deleteSender', 'deleteRecipient', body);
+  assert.equal(sent.success, true);
+  assert.equal(
+    (await inboxContents('deleteRecipient')).some((c) => c.includes(body)),
+    false,
+    'held message should not be in the inbox while the request is pending'
+  );
+
+  assert.equal(
+    await deleteDirectThreadRequest(
+      actorIds.deleteRecipient,
+      actorIds.deleteSender
+    ),
+    true
+  );
+
+  // The button says "delete without replying". If removing the request row
+  // merely stops `notHeldRequest` from matching, the message the recipient
+  // just refused lands in their inbox instead — the exact opposite.
+  assert.equal(
+    (await inboxContents('deleteRecipient')).some((c) => c.includes(body)),
+    false,
+    'deleting a request must not move the held message into the inbox'
   );
 });
 
