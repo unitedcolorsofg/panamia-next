@@ -9,6 +9,13 @@ import { UserPlus, UserMinus, Loader2 } from 'lucide-react';
 interface FollowButtonProps {
   username: string;
   isFollowing: boolean;
+  /**
+   * Whether this person already follows the viewer. Only changes the label:
+   * "Follow back" instead of "Follow", which names the fact that the tap
+   * completes a Pana rather than starting a one-way follow.
+   * See docs/SOCIAL-GRAPH.md.
+   */
+  isFollowedBy?: boolean;
   size?: 'default' | 'sm' | 'lg' | 'icon';
   variant?: 'default' | 'outline' | 'ghost';
   showIcon?: boolean;
@@ -17,6 +24,7 @@ interface FollowButtonProps {
 export function FollowButton({
   username,
   isFollowing,
+  isFollowedBy = false,
   size = 'sm',
   variant = 'default',
   showIcon = true,
@@ -70,7 +78,7 @@ export function FollowButton({
             ) : (
               <UserPlus className="mr-1 h-4 w-4" />
             ))}
-          {isFollowing ? 'Following' : 'Follow'}
+          {isFollowing ? 'Following' : isFollowedBy ? 'Follow back' : 'Follow'}
         </>
       )}
     </Button>

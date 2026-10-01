@@ -22,6 +22,7 @@ import type {
 import {
   PostList,
   FollowButton,
+  RelationshipBadge,
   SendVoiceMemoButton,
 } from '@/components/social';
 import { Button } from '@/components/ui/button';
@@ -152,11 +153,15 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
   const safeTab: PersonalTab =
     activeTab === 'panas' && !isSelf ? 'posts' : activeTab;
 
+  const isFollowing = Boolean(actorData?.isFollowing);
+  const isFollowedBy = Boolean(actorData?.isFollowedBy);
+
   const actions = renderActions({
     isSelf,
     isAuthenticated,
     actor,
-    isFollowing: Boolean(actorData?.isFollowing),
+    isFollowing,
+    isFollowedBy,
   });
 
   return (
@@ -167,6 +172,18 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
             profile={profile}
             stats={stats}
             actions={actions}
+            badge={
+              /* Your own profile has no relationship to report, and a signed
+                 out viewer has no relationship at all -- the endpoint returns
+                 false for both directions, so this would render nothing, but
+                 the guard says why rather than leaving it to coincidence. */
+              !isSelf && isAuthenticated ? (
+                <RelationshipBadge
+                  isFollowing={isFollowing}
+                  isFollowedBy={isFollowedBy}
+                />
+              ) : null
+            }
             panas={
               isSelf ? (
                 <PanasRailModule
@@ -258,10 +275,12 @@ function renderActions({
   isAuthenticated,
   actor,
   isFollowing,
+  isFollowedBy,
 }: {
   isSelf: boolean;
   isAuthenticated: boolean;
   isFollowing: boolean;
+  isFollowedBy: boolean;
   actor?: {
     id: string;
     username: string;
@@ -302,6 +321,7 @@ function renderActions({
       <FollowButton
         username={actor.username}
         isFollowing={isFollowing}
+        isFollowedBy={isFollowedBy}
         size="sm"
       />
     </>

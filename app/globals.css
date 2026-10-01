@@ -2041,6 +2041,22 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-indigo);
 }
 
+/* Relationship tones. A Pana is the settled state and wears the filled pill,
+   because it is a fact about the pair rather than something to act on. "Follows
+   you" stays outlined and flame-coloured: it is the one state on this page that
+   is asking for a decision, and it sits beside a Follow back button that makes
+   the same point. See docs/SOCIAL-GRAPH.md. */
+.identity-pill[data-tone='pana'] {
+  border-color: var(--color-pana-indigo);
+  background-color: var(--color-pana-indigo);
+  color: var(--color-pana-cream);
+}
+
+.identity-pill[data-tone='follows-you'] {
+  border-color: var(--color-pana-flame);
+  color: var(--color-pana-burnt);
+}
+
 /* Stat rail. Grid rather than flex so the figures keep equal columns and the
    dividing rules land at even intervals. `grid-auto-flow: column` keeps the
    rail in a single row for however many stats exist, so adding or removing one
@@ -2186,6 +2202,14 @@ button.bizprofile-update-action:hover {
 
 .card-flag[data-tone='admin'] {
   background-color: rgb(217 98 54 / 0.16);
+  color: var(--color-pana-burnt);
+}
+
+/* A flag that is asking for something rather than describing something. Carries
+   the flame tint so "Follows you" reads as the live row in a strip where every
+   other flag is a static fact. See docs/SOCIAL-GRAPH.md. */
+.card-flag[data-tone='prompt'] {
+  background-color: rgb(242 132 68 / 0.18);
   color: var(--color-pana-burnt);
 }
 
