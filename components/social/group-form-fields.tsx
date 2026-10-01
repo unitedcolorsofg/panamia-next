@@ -51,19 +51,21 @@ export const VISIBILITY_OPTIONS: {
 /**
  * Who may join.
  *
- * The last two are shown but not selectable, and that is deliberate rather
- * than lazy. `joinGroup` already honours them -- 'request' parks a member as
- * pending, 'invite' refuses outright -- but nothing yet exists to *approve* a
- * request or *send* an invite. Until that is built, an invite-only group could
- * never gain a second member and a by-request group would collect people
- * nobody can let in.
+ * 'invite' is shown but not selectable, and that is deliberate rather than
+ * lazy. `joinGroup` already honours it by refusing outright -- but nothing
+ * yet exists to *send* an invite, so an invite-only group could never gain a
+ * second member.
  *
- * A group can now be edited after it is created, so neither choice would be
+ * 'request' was in the same state until approvals landed. It parks a would-be
+ * member as pending, and admins and moderators now work that queue from the
+ * members page, so it is a real choice.
+ *
+ * A group can now be edited after it is created, so the choice would not be
  * permanent any more -- but a dead end you can back out of is still a dead
  * end, and the member who picked it would be stranded until they noticed.
  *
- * Showing them greyed out says "this is coming" instead of silently implying
- * open groups are the only kind Pana will ever have.
+ * Showing invite greyed out says "this is coming" instead of silently implying
+ * open and by-request are the only kinds Pana will ever have.
  */
 export const JOIN_OPTIONS: {
   value: SocialGroupJoinPolicy;
@@ -75,8 +77,7 @@ export const JOIN_OPTIONS: {
   {
     value: 'request',
     label: 'By request',
-    hint: 'People ask, and an admin decides. Approvals are not built yet.',
-    disabled: true,
+    hint: 'People ask, and an admin or mod approves them.',
   },
   {
     value: 'invite',

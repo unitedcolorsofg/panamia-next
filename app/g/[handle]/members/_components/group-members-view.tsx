@@ -15,9 +15,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Lock, Shield, Users } from 'lucide-react';
+import { ArrowLeft, Ban, Clock, Lock, Shield, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MemberRow } from '@/components/social/member-row';
+import {
+  BannedActions,
+  MemberActions,
+  PendingActions,
+} from '@/components/social/member-actions';
 import {
   useGroup,
   useGroupMembers,
@@ -53,6 +58,25 @@ export function GroupMembersView({ handle }: { handle: string }) {
   const leaders = data?.leaders ?? [];
   const total = data?.total ?? 0;
   const hasMore = data?.nextOffset !== null && data?.nextOffset !== undefined;
+
+  const viewerRole = data?.viewerRole ?? null;
+  const viewerMemberId = data?.viewerMemberId ?? null;
+
+  /* Counted from `leaders`, which is the whole list and never paged -- the
+     roster below it is, so counting admins there would call the second admin
+     the last one as soon as the first fell off page 1. */
+  const adminCount = leaders.filter((leader) => leader.role === 'admin').length;
+
+  const controlsFor = (member: GroupMemberSummary) =>
+    viewerRole === 'admin' || viewerRole === 'moderator' ? (
+      <MemberActions
+        handle={handle}
+        member={member}
+        viewerRole={viewerRole}
+        isSelf={member.id === viewerMemberId}
+        isLastAdmin={member.role === 'admin' && adminCount <= 1}
+      />
+    ) : undefined;
 
   return (
     <main className="surface-cream min-h-screen pb-20">
@@ -102,41 +126,127 @@ export function GroupMembersView({ handle }: { handle: string }) {
             )}
           </div>
         ) : (
-          <div className="mt-6 space-y-2">
-            {isLoading && roster.length === 0 ? (
-              <RosterSkeleton />
-            ) : roster.length === 0 ? (
-              /* A group always has a founder, so this is drifted data or a
-                 failed request rather than an empty group. Say so plainly
-                 instead of leaving the page blank. */
-              <p className="border-pana-ink/15 text-pana-ink/60 rounded-2xl border border-dashed px-6 py-12 text-center text-[14px] font-medium">
-                We couldn&apos;t load this group&apos;s members.
-              </p>
-            ) : (
-              roster.map((member) => (
-                <MemberRow key={member.id} member={member} />
-              ))
-            )}
+          <div className="mt-6">
+            <ModerationQueues handle={handle} />
 
-            {hasMore && (
-              <div className="pt-3">
-                <Button
-                  variant="outline"
-                  className="w-full font-extrabold"
-                  disabled={isLoading}
-                  onClick={() => {
-                    setLoaded(roster);
-                    setOffset(data?.nextOffset ?? 0);
-                  }}
-                >
-                  {isLoading ? 'Loading…' : 'Load more'}
-                </Button>
-              </div>
-            )}
+            <div className="space-y-2">
+              {isLoading && roster.length === 0 ? (
+                <RosterSkeleton />
+              ) : roster.length === 0 ? (
+                /* A group always has a founder, so this is drifted data or a
+                   failed request rather than an empty group. Say so plainly
+                   instead of leaving the page blank. */
+                <p className="border-pana-ink/15 text-pana-ink/60 rounded-2xl border border-dashed px-6 py-12 text-center text-[14px] font-medium">
+                  We couldn&apos;t load this group&apos;s members.
+                </p>
+              ) : (
+                roster.map((member) => (
+                  <MemberRow
+                    key={member.id}
+                    member={member}
+                    action={controlsFor(member)}
+                  />
+                ))
+              )}
+
+              {hasMore && (
+                <div className="pt-3">
+                  <Button
+                    variant="outline"
+                    className="w-full font-extrabold"
+                    disabled={isLoading}
+                    onClick={() => {
+                      setLoaded(roster);
+                      setOffset(data?.nextOffset ?? 0);
+                    }}
+                  >
+                    {isLoading ? 'Loading…' : 'Load more'}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * The join queue and the banned list, for leaders only.
+ *
+ * Pinned to page 0 of the roster query rather than reading whatever page the
+ * list below happens to be on. The server only sends these on the first page
+ * -- they do not change as you scroll, so re-sending them with every "Load
+ * more" would be the same bytes again -- and asking for page 0 here means
+ * react-query serves the exact same cache entry the roster already filled.
+ * When the roster is on page 0 this is literally the same query and costs
+ * nothing; when it has paged on, this reads the cache rather than refetching.
+ *
+ * Renders nothing at all for a plain member. They are not shown an empty
+ * queue, because the existence of the queue is not theirs to know.
+ */
+function ModerationQueues({ handle }: { handle: string }) {
+  const { data } = useGroupMembers(handle, {
+    limit: ROSTER_PAGE_SIZE,
+    offset: 0,
+  });
+
+  const pending = data?.pending ?? [];
+  const banned = data?.banned ?? [];
+
+  if (pending.length === 0 && banned.length === 0) return null;
+
+  return (
+    <div className="mb-6 space-y-4">
+      {pending.length > 0 && (
+        <section className="border-pana-ink/10 rounded-2xl border bg-white p-5">
+          <h2 className="text-pana-ink inline-flex items-center gap-1.5 text-[15px] font-extrabold">
+            <Clock className="h-4 w-4" aria-hidden="true" />
+            Waiting to join
+            <span className="text-pana-ink/55 font-bold">
+              ({pending.length})
+            </span>
+          </h2>
+          <p className="text-pana-ink/55 mt-1 text-[13px] font-medium">
+            Oldest first. Declining isn&apos;t a ban — they can ask again.
+          </p>
+          <div className="mt-3 space-y-2">
+            {pending.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                action={<PendingActions handle={handle} member={member} />}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {banned.length > 0 && (
+        <section className="border-pana-ink/10 rounded-2xl border bg-white p-5">
+          <h2 className="text-pana-ink inline-flex items-center gap-1.5 text-[15px] font-extrabold">
+            <Ban className="h-4 w-4" aria-hidden="true" />
+            Banned
+            <span className="text-pana-ink/55 font-bold">
+              ({banned.length})
+            </span>
+          </h2>
+          <p className="text-pana-ink/55 mt-1 text-[13px] font-medium">
+            They can&apos;t rejoin until you lift this.
+          </p>
+          <div className="mt-3 space-y-2">
+            {banned.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                action={<BannedActions handle={handle} member={member} />}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 

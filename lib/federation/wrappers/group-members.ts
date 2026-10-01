@@ -185,3 +185,60 @@ export async function listGroupLeaders(
 
   return rows.map((row) => ({ ...row, ...withDisplayName(row) }));
 }
+
+/**
+ * Who has asked to join and is still waiting.
+ *
+ * Kept out of the roster on purpose -- a pending row is somebody who asked and
+ * has not been let in, and listing them beside the members would both
+ * overstate the group's size and tell every member who is waiting at the door.
+ * This is the one read that wants them, and it is for admins and moderators.
+ *
+ * Ordered oldest first: a queue, not a list. Whoever has waited longest is the
+ * one most owed an answer.
+ *
+ * Unpaginated. A queue long enough to need paging is a group that has stopped
+ * answering its requests, which a page size will not fix.
+ */
+export async function listPendingRequests(
+  groupId: string
+): Promise<GroupMemberSummary[]> {
+  const rows = await db
+    .select(MEMBER_COLUMNS)
+    .from(socialGroupMembers)
+    .innerJoin(socialActors, eq(socialActors.id, socialGroupMembers.actorId))
+    .where(
+      and(
+        eq(socialGroupMembers.groupId, groupId),
+        eq(socialGroupMembers.status, 'pending')
+      )
+    )
+    .orderBy(asc(socialGroupMembers.createdAt), asc(socialGroupMembers.id));
+
+  return rows.map((row) => ({ ...row, ...withDisplayName(row) }));
+}
+
+/**
+ * Who has been banned.
+ *
+ * Admin and moderator only, and the only way to find a row to un-ban. Banned
+ * rows are invisible everywhere else by design, which also makes them
+ * impossible to undo without this.
+ */
+export async function listBannedMembers(
+  groupId: string
+): Promise<GroupMemberSummary[]> {
+  const rows = await db
+    .select(MEMBER_COLUMNS)
+    .from(socialGroupMembers)
+    .innerJoin(socialActors, eq(socialActors.id, socialGroupMembers.actorId))
+    .where(
+      and(
+        eq(socialGroupMembers.groupId, groupId),
+        eq(socialGroupMembers.status, 'banned')
+      )
+    )
+    .orderBy(asc(socialGroupMembers.id));
+
+  return rows.map((row) => ({ ...row, ...withDisplayName(row) }));
+}

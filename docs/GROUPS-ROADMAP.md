@@ -688,6 +688,8 @@ reason was rewritten. They stay disabled because approvals and invites are still
 by-request group would collect people nobody can admit, and an invite-only group could never gain a
 second member. A dead end you can now back out of is still a dead end.
 
+(Phase 9 enabled `request`. Only `invite` is still disabled.)
+
 **Still unbuilt when phase 7 shipped:** member management. Phase 8 below builds the read half.
 
 ---
@@ -750,11 +752,79 @@ membership rows behind it. The roster is the first thing that could see that, be
 but phase 9 mutates membership, and keeping that counter exact across all six transitions is the
 thing most likely to go wrong there.
 
-**Still unbuilt:** the write half. There is no way to promote a moderator, approve a join request,
-or remove a member, so `role` is still only ever set by `createGroup` (founder → admin) or directly
-in SQL. That is why `request` is absent from `JOIN_OPTIONS` in
-`components/social/group-form-fields.tsx` — a group accepting requests nobody can approve is a
-closed door with a doorbell wired to nothing.
+**Built in phase 9:** the write half. See below.
+
+---
+
+## Phase 9 — Member management — shipped
+
+The six actions a group's leaders can take on a membership, the gate deciding who may take them,
+and the two queues that make `request` a real join policy.
+
+**`lib/federation/wrappers/group-moderation.ts`** holds all of it:
+`approveRequest`, `rejectRequest`, `setMemberRole`, `removeMember`, `banMember`, `unbanMember`.
+Each returns a `ModerationResult` carrying an HTTP status, so the route maps a refusal without
+re-deriving why.
+
+Three invariants, each written in exactly one place:
+
+1. **A group always keeps one active admin.** `isLastAdmin` counts _other_ active admins and is
+   called before every demotion, removal and ban. `leaveGroup` holds the only other copy, for the
+   one path that does not route through this module.
+2. **A moderator may only act on plain members.** `outranks` is the only expression of the
+   hierarchy. Moderators acting on each other turns a peer disagreement into whoever clicks first;
+   acting on admins inverts it. Admins _can_ act on each other, so a bad admin has a remedy — the
+   last-admin guard is what stops that emptying the room.
+3. **`member_count` counts active rows only.** `applyChange` is the single place it moves. It takes
+   `wasActive` and `isActive` as explicit arguments rather than deriving them, because two of the
+   six actions delete the row, and a deleted row cannot be asked what it used to be.
+
+The per-action table, which is also the test plan:
+
+| Action            | count | row                                                    |
+| ----------------- | ----- | ------------------------------------------------------ |
+| approve (pending) | +1    | status → active, `joinedAt` = now, not when they asked |
+| reject (pending)  | 0     | deleted                                                |
+| setRole           | 0     | role only — admin-only, target must be active          |
+| remove (active)   | -1    | deleted                                                |
+| remove (pending)  | 0     | deleted                                                |
+| ban (active)      | -1    | status → banned, role → member, `joinedAt` → null      |
+| ban (pending)     | 0     | same                                                   |
+| unban             | 0     | deleted                                                |
+
+Decisions worth keeping:
+
+- **Self-targeting is refused for everything except `setMemberRole`.** Removing yourself is
+  `leaveGroup`, which has its own semantics for a withdrawn request and its own last-admin guard;
+  a second path is a second way to get it wrong. But an admin stepping down to moderator can only
+  be done here.
+- **`reject` is not `ban`.** Not being let in once is not a verdict forever, and in an open group
+  they could have walked in without asking.
+- **`unban` deletes the row rather than reactivating it.** It means "you may ask again", not "you
+  are back in" — which is the difference that matters in a request-only group.
+- **Ban demotes to `member` on the way out**, so a later reader never sees a banned row claiming
+  admin.
+- **The pending queue is oldest-first and unpaginated.** It is a queue, not a list: whoever waited
+  longest is most owed an answer, and a queue long enough to need paging is a group that stopped
+  answering.
+
+**Where they surface.** `PATCH /api/social/groups/[handle]/members/[memberId]` takes an explicit
+action verb rather than a `{ role }` or `{ status }` patch, so "remove" and "ban" are not the same
+request with a different field. The two queues ride along with the roster `GET` instead of taking
+their own endpoint — the only screen that wants them is already asking for that — and are sent to
+leaders only, and only on the first page, since they do not change as you page.
+
+A plain member is not sent an empty queue. They are not told there is a queue.
+
+**`request` is now selectable** in `JOIN_OPTIONS`. Only `invite` stays disabled, because nothing
+yet sends an invite.
+
+Covered by `tests-db/group-moderation.test.ts` — 28 tests, built from the table above. Every one
+re-reads the stored `member_count` rather than trusting a return value, because a drifted counter
+is not a loud failure, it is a group that quietly claims 41 members forever.
+
+**Still unbuilt:** invites, and any notification. Nobody is told they were approved, removed or
+banned — they find out by looking.
 
 ---
 
