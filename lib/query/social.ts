@@ -816,6 +816,78 @@ export const useGroupEvents = (handle: string) => {
   });
 };
 
+export interface GroupMemberSummary {
+  id: string;
+  actorId: string;
+  handle: string;
+  name: string;
+  iconUrl: string | null;
+  role: 'admin' | 'moderator' | 'member';
+  joinedAt: string | null;
+}
+
+/**
+ * How many members the card on the group page shows before deferring to the
+ * full roster page.
+ *
+ * Small on purpose. The card answers "do I know anyone here", which is a
+ * question people ask before reading anything, and six faces answers it. A
+ * full dozen turns the card into a wall that pushes the group's actual posts
+ * off the screen, which is the one thing a group page exists to show.
+ *
+ * Lives here rather than beside the query that serves it because that module
+ * imports `db`, and a client component importing it would pull the database
+ * into the browser bundle.
+ */
+export const ROSTER_CARD_SIZE = 6;
+
+/** One page of the dedicated members page. Must not exceed the server cap. */
+export const ROSTER_PAGE_SIZE = 50;
+
+export interface GroupRosterResponse {
+  canRead: boolean;
+  /**
+   * Admins and moderators, returned even when canRead is false. See the route
+   * for why that disclosure is deliberate.
+   */
+  leaders: GroupMemberSummary[];
+  members: GroupMemberSummary[];
+  /** Active members in the group, not in `members` -- it is ungated. */
+  total: number;
+  nextOffset: number | null;
+}
+
+/**
+ * A group's roster.
+ *
+ * Unlike useGroupPosts, this one does NOT hide the difference between "empty"
+ * and "not yours to see": it returns `canRead` explicitly. A roster is never
+ * legitimately empty -- every group has at least a founder -- so an empty list
+ * could only ever mean the gate closed, and making the client guess that from
+ * emptiness would be inviting it to guess wrong in the other direction later.
+ */
+export const useGroupMembers = (
+  handle: string,
+  options: { limit?: number; offset?: number } = {}
+) => {
+  const { limit, offset } = options;
+  return useQuery<GroupRosterResponse | null, Error>({
+    queryKey: [socialQueryKey, 'group', handle, 'members', limit, offset],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (limit !== undefined) params.set('limit', String(limit));
+      if (offset !== undefined) params.set('offset', String(offset));
+      const query = params.toString();
+      return getSocialData(
+        `/api/social/groups/${encodeURIComponent(handle)}/members${
+          query ? `?${query}` : ''
+        }`
+      );
+    },
+    enabled: Boolean(handle),
+  });
+};
+
 async function fetchGroupPosts(
   handle: string,
   cursor?: string,

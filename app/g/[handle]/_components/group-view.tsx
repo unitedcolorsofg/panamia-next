@@ -11,35 +11,40 @@ import {
   Lock,
   Send,
   Settings,
+  Shield,
   UserPlus,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FeedPostCard } from '@/app/s/_components/feed-post-card';
+import { MemberRow } from '@/components/social/member-row';
 import {
   useCreateGroupPost,
   useGroup,
   useGroupPosts,
   useGroupEvents,
+  useGroupMembers,
   useJoinGroup,
   useLeaveGroup,
+  ROSTER_CARD_SIZE,
   type GroupDetailResponse,
 } from '@/lib/query/social';
 
 /**
- * A group home page, as far as Phases 1 and 2 can honestly render it.
+ * A group home page.
  *
  * Follows app/mock/group: cover, square avatar, identity block with a privacy
- * pill, summary, topics, join action, and the group's posts.
+ * pill, summary, topics, join action, house rules, events, roster and posts.
  *
- * What the mock has and this does not is events and a roster -- those are
- * later phases, and showing empty tabs for them would advertise features that
- * are not wired rather than features that are quiet.
+ * Stacked rather than tabbed, which is where it still departs from the mock.
+ * Tabs were rejected in phase 1 because two of the three would have been
+ * empty; now that all three are wired the reason has changed rather than
+ * disappeared -- a tab hides two thirds of a group from someone deciding
+ * whether to join it, and this page's whole job is helping them decide.
  *
- * The mock's stat rail is dropped for the same reason. With Posts and Events
- * unbuilt it would be a single Members figure, which the line above it already
- * gives -- a full-width bar restating one number, where the mock's version
- * earned its weight by being three controls.
+ * The mock's stat rail stays dropped. It earned its weight there by being
+ * three controls; here the counts it would carry are already in the line
+ * under the summary.
  */
 export function GroupView({ handle }: { handle: string }) {
   const { data, isLoading, isError } = useGroup(handle);
@@ -225,10 +230,15 @@ function GroupBody({
               canCreate={viewer.role === 'admin' || viewer.role === 'moderator'}
             />
 
+            <GroupMembers handle={handle} />
+
             <GroupPosts handle={handle} canPost={viewer.canPost} />
           </div>
         ) : (
-          <LockedPanel isPending={viewer.isPending} />
+          <div className="space-y-4">
+            <LockedPanel isPending={viewer.isPending} />
+            <GroupLeaders handle={handle} />
+          </div>
         )}
       </div>
     </main>
@@ -388,6 +398,97 @@ function GroupPosts({ handle, canPost }: { handle: string; canPost: boolean }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The group's roster, abridged.
+ *
+ * Shows the first page and defers the rest to /g/[handle]/members rather than
+ * rendering four hundred rows into the middle of the page. The link carries
+ * the total so the decision to follow it is informed -- "See all" alone makes
+ * a group of nine look the same as a group of nine hundred.
+ *
+ * Renders nothing when the roster comes back empty. A group always has at
+ * least a founder, so empty here means either the request failed or the
+ * group's stored member count has drifted from its rows -- and an empty
+ * "Members" card helps with neither. The locked case never reaches this:
+ * a viewer who cannot read the roster gets GroupLeaders instead.
+ */
+function GroupMembers({ handle }: { handle: string }) {
+  const { data, isLoading } = useGroupMembers(handle, {
+    limit: ROSTER_CARD_SIZE,
+  });
+
+  if (isLoading) return null;
+
+  const members = data?.members ?? [];
+  if (members.length === 0) return null;
+
+  const total = data?.total ?? members.length;
+  const hasMore = total > members.length;
+
+  return (
+    <section className="border-pana-ink/10 rounded-2xl border bg-white p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-pana-ink text-[15px] font-extrabold">Members</h2>
+        {hasMore && (
+          <Link
+            href={`/g/${handle}/members`}
+            className="text-pana-ink/70 hover:text-pana-ink text-[13px] font-bold"
+          >
+            See all {total.toLocaleString('en-US')}
+          </Link>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {members.map((member) => (
+          <MemberRow key={member.id} member={member} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Who runs a private group you cannot see into.
+ *
+ * The one action available to a locked-out viewer is asking to be let in, and
+ * a door with nobody named on it is one nobody knocks on. The mock makes the
+ * same call -- its locked state keeps "Admins & mods" and drops the posts,
+ * the roster, the event location and the counts.
+ *
+ * This is a real disclosure: it tells a stranger that these particular people
+ * are in this particular private group. It is the narrowest version of that
+ * which still leaves the page actionable, and it is the reason the API
+ * returns leaders ungated.
+ */
+function GroupLeaders({ handle }: { handle: string }) {
+  const { data, isLoading } = useGroupMembers(handle, {
+    limit: ROSTER_CARD_SIZE,
+  });
+
+  if (isLoading) return null;
+
+  const leaders = data?.leaders ?? [];
+  if (leaders.length === 0) return null;
+
+  return (
+    <section className="border-pana-ink/10 rounded-2xl border bg-white p-5">
+      <h2 className="text-pana-ink inline-flex items-center gap-1.5 text-[15px] font-extrabold">
+        <Shield className="h-4 w-4" aria-hidden="true" />
+        Admins and mods
+      </h2>
+      <p className="text-pana-ink/55 mt-1 text-[13px] font-medium">
+        The people who can let you in.
+      </p>
+      <div className="mt-3 space-y-2">
+        {leaders.map((leader) => (
+          <MemberRow key={leader.id} member={leader} />
+        ))}
+      </div>
+    </section>
   );
 }
 

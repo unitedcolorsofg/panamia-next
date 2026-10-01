@@ -688,9 +688,73 @@ reason was rewritten. They stay disabled because approvals and invites are still
 by-request group would collect people nobody can admit, and an invite-only group could never gain a
 second member. A dead end you can now back out of is still a dead end.
 
-**Still unbuilt:** member management. There is no way to promote a moderator, approve a join
-request, or remove a member, so `role` is only ever set by `createGroup` (founder → admin) or
-directly in SQL.
+**Still unbuilt when phase 7 shipped:** member management. Phase 8 below builds the read half.
+
+---
+
+## Phase 8 — The roster — shipped
+
+Until this phase a group had members but no way to see them. The group page said "40 members" and
+showed none of them, which is a strange thing to ask somebody to join.
+
+### What landed
+
+- `lib/federation/wrappers/group-members.ts` — the read layer. `listGroupMembers` (paginated,
+  active-only) and `listGroupLeaders` (unpaginated).
+- `app/api/social/groups/[handle]/members/route.ts` — `GET`, returning
+  `{ canRead, leaders, members, total, nextOffset }`.
+- `app/g/[handle]/members/` — the full roster, paged by an explicit "Load more".
+- A roster card on the group page, showing six and linking to the rest.
+- `components/social/member-row.tsx` — one row, shared by all three surfaces.
+- `tests-db/group-members.test.ts` — 13 tests.
+
+### Decisions worth keeping
+
+**Admins first, then moderators, then by seniority.** Alphabetical is easier to scan but buries the
+people you came to the roster to find. The two questions a roster gets asked are "who runs this" and
+"who else is here", and this answers the first without a second query.
+
+**Ties are broken by id, and that is load-bearing.** Without it, two members written in the same
+transaction can swap places between page 1 and page 2, and one of them is then never shown to
+anybody paging through. This is the kind of line that looks removable in a refactor, so there is a
+test named after it.
+
+**Only `active` rows.** A pending row is somebody who asked and has not been let in; listing them
+would both overstate the group's size and tell every member who is waiting at the door. A banned row
+is a tombstone kept so the person cannot rejoin.
+
+**`leaders` is deliberately ungated, and this is a real disclosure.** A locked-out stranger looking
+at a private group sees its admins and moderators and nothing else. That tells them those particular
+people are in that particular private group. It is accepted because the one action available to that
+person is asking to be let in, and a door with nobody named on it is one nobody knocks on. The mock
+made the same call: its locked state keeps "Admins & mods" and drops the posts, the roster, the
+event location and the counts.
+
+**`total` is ungated too**, matching the detail endpoint, which already tells strangers a group's
+`memberCount`. Withholding it here would only make the card render "0 members" on a group the same
+client was just told has 40.
+
+**The card shows six, not twelve.** It answers "do I know anyone here", which is a question asked
+before reading anything. A full dozen turns the card into a wall that pushes the group's own posts
+off the screen.
+
+**Stacked, not tabbed.** Phase 1 rejected tabs because two of three would have been empty. Now that
+all three are built the reason changed rather than went away: a tab hides two thirds of a group from
+the person deciding whether to join it.
+
+### Found while building
+
+Two seeded groups (`miami-zine-club`, `quiet-reading-room`) carry a `member_count` of 1 with no
+membership rows behind it. The roster is the first thing that could see that, because
+`member_count` is denormalized and nothing previously read the rows it summarizes. Dev data only —
+but phase 9 mutates membership, and keeping that counter exact across all six transitions is the
+thing most likely to go wrong there.
+
+**Still unbuilt:** the write half. There is no way to promote a moderator, approve a join request,
+or remove a member, so `role` is still only ever set by `createGroup` (founder → admin) or directly
+in SQL. That is why `request` is absent from `JOIN_OPTIONS` in
+`components/social/group-form-fields.tsx` — a group accepting requests nobody can approve is a
+closed door with a doorbell wired to nothing.
 
 ---
 
