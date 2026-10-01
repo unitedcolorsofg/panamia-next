@@ -131,6 +131,16 @@ jobs:
       # need no browser, and failing now skips a Playwright install that was
       # going to fail anyway. Fixtures are namespaced per run and cleaned up,
       # so they do not disturb the Playwright specs that follow.
+      #
+      # test:db passes --test-concurrency=1. node --test runs one process per
+      # file, and each process opens its own postgres.js pool, so the number of
+      # connections scales with the number of test files while the pooler caps
+      # us at 15 in session mode. That ceiling was crossed by simply adding a
+      # tenth file: every test in it failed with EMAXCONNSESSION, which reads
+      # like a schema or fixture fault and is neither. Running the files in
+      # series keeps the connection count flat as the suite grows, and has the
+      # side benefit of removing cross-file interference between fixtures that
+      # share one database.
       - name: Run database tests
         run: yarn test:db
         env:

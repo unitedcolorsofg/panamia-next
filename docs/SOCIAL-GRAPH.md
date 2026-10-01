@@ -11,7 +11,8 @@
 > - **[Discovery](#a--discovery-through-shared-activity)** and **[Block & mute](#b--block--mute)** —
 >   **proposals.** No table, route, or component described there exists.
 >
-> The next free migration number is `0050` (`origin/main` holds through `0049_event_search_vector`).
+> The next free migration number is `0052` (`origin/main` holds through `0050_social_blocks`;
+> `0051_social_dm_requests` is claimed by the DM-gating branch).
 
 ## Table of Contents
 
@@ -462,6 +463,27 @@ until then there is nothing to reply to.
 This keeps the safety property and drops the cost. `panas` remains for panas who want no Requests
 folder at all, and `nobody` for those who want no new threads.
 
+**The folder shows the message, not just the sender.** An earlier server-side draft returned senders
+only, on the reasoning that a name is the minimum needed to triage. It is also less than the minimum:
+if you cannot see what was said, **accepting becomes the only way to find out** — and accepting is
+exactly the consent the gate exists to ask for. For a local network the content is also the whole
+signal that separates a neighbour from a bot. So `/updates` renders the held body and its voice memo,
+with no like or reply affordance, and the composer stays shut until the thread is accepted.
+
+The body is rendered as **plain text, not HTML**. Status content is `marked.parse()` output and
+nothing strips raw markup from it, so a held message is attacker-authored by construction. Flattening
+also defuses the lure where friendly anchor text hides a hostile link — which is precisely what a
+stranger's first message would carry.
+
+**Deleting withdraws the message; it must not publish it.** The hold works by `notHeldRequest`
+excluding statuses that have a _pending_ request row, so deleting only that row would flip the
+message visible and deliver the very thing the recipient refused. `deleteDirectThreadRequest`
+therefore runs in a transaction that also strips the recipient's URI from the status's `recipient_to`.
+It strips rather than deletes the status because a direct message carries up to eight recipients and
+deleting would retract it from the other seven. The sender keeps their copy — Sent reads by author
+and never consults the recipient list — which is what keeps the withdrawal invisible to them, the
+same silence the hold itself relies on.
+
 ### C2 — Optional follow approval already half-exists
 
 `social_actors.manually_approves_followers` is in the schema and is populated for remote actors by
@@ -573,10 +595,11 @@ why those two boxes are still open.
 
 Ships with or immediately after Phase 3. Blocking without these leaves the first contact unguarded.
 
-- [ ] DM gating: `everyone` / `panas` / `nobody`, defaulting to `everyone`, enforced on thread
-      creation
-- [ ] Requests folder: threads from non-Panas held out of the inbox and **suppressed from
-      notifications** until accepted
+- [x] DM gating: `everyone` / `panas` / `nobody`, defaulting to `everyone`, enforced on thread
+      creation — migration `0051`, `lib/federation/wrappers/dm-gate.ts`
+- [x] Requests folder: threads from non-Panas held out of the inbox and **suppressed from
+      notifications** until accepted — `social_dm_requests` + `/api/social/dm-requests`, with the
+      Requests tab on `/updates` showing the held message and offering accept / delete / block.
 - [ ] Honour `manually_approves_followers` in `createFollow`, with somewhere to approve from — or
       drop the column
 - [ ] Rate limits on follow and DM-thread creation
