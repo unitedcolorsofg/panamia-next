@@ -41,6 +41,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Runs before anything expensive: this is cheap, needs no dependencies,
+      # and catches the class of migration defect that CI otherwise cannot see.
+      # The migration replay below applies drizzle/[0-9]*.sql by filesystem
+      # glob, so it happily runs a migration that has no _journal.json entry --
+      # while production, which goes through drizzle-kit migrate, silently
+      # skips that same file. CI therefore passes and production ships without
+      # the tables. --strict makes missing tooling an error rather than a
+      # skipped check, so this cannot quietly become a no-op.
+      - name: Validate migrations
+        run: bash scripts/validate-migrations.sh --strict
+
       - name: Enable Corepack
         run: corepack enable
 
@@ -88,13 +99,30 @@ jobs:
       # use drizzle-kit migrate here. Prod still uses drizzle-kit migrate
       # (which tracks applied migrations in drizzle.__drizzle_migrations);
       # CI wipes and reapplies every run, so tracking is unnecessary.
+      #
+      # Order comes from _journal.json, not a filesystem glob, so CI applies
+      # migrations in exactly the order drizzle-kit migrate uses in prod.
+      # A glob diverges whenever two migrations share a numeric prefix
+      # (0035_profile_owners vs 0035_social_statuses_recipients_gin already
+      # do, from position 36 on), and it applies files with no journal entry
+      # -- which prod silently skips. That gap shipped 0048 to production
+      # with its tables never created. Reading the journal also means an
+      # unjournaled migration is never applied here, so tests that depend
+      # on it fail loudly instead of passing against a schema prod lacks.
       - name: Apply migrations
         run: |
           set -e
-          for f in drizzle/[0-9]*.sql; do
+          python3 -c "import json; print('\n'.join(e['tag'] for e in sorted(json.load(open('drizzle/meta/_journal.json'))['entries'], key=lambda e: e['idx'])))" > /tmp/migration-order.txt
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            f="drizzle/$tag.sql"
+            if [ ! -f "$f" ]; then
+              echo "ERROR: journal lists '$tag' but $f does not exist"
+              exit 1
+            fi
             echo "=== $f ==="
             psql "$POSTGRES_DIRECT_URL" -v ON_ERROR_STOP=1 -f "$f"
-          done
+          done < /tmp/migration-order.txt
         env:
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
