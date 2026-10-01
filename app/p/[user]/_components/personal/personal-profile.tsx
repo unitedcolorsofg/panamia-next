@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, Lock, Pencil } from 'lucide-react';
+import { Loader2, Lock, Pencil, Store } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
 import {
   useActor,
@@ -12,10 +12,12 @@ import {
   usePanas,
   useProfileEvents,
   useProfileGroups,
+  useProfileLists,
 } from '@/lib/query/social';
 import type {
   ProfileEventSummary,
   ProfileGroupSummary,
+  RecommendationListSummary,
 } from '@/lib/query/social';
 import {
   PostList,
@@ -28,7 +30,11 @@ import type { PersonalProfileView } from '@/lib/server/personal-profile';
 import { IdentityRail } from './identity-rail';
 import { PERSONAL_TAB_ICONS, PersonalTabs } from './personal-tabs';
 import { PanaCard } from './personal-cards';
-import { EventCard, GroupRow } from './personal-content-cards';
+import {
+  EventCard,
+  GroupRow,
+  RecommendListCard,
+} from './personal-content-cards';
 import type { PersonalTab, StatDef, TabDef } from './types';
 
 /* The personal (Pana Social) profile.
@@ -55,12 +61,14 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
     useProfileEvents(handle);
   const { data: groupsData, isLoading: groupsLoading } =
     useProfileGroups(handle);
+  const { data: listsData, isLoading: listsLoading } = useProfileLists(handle);
 
   const actor = actorData?.actor;
   const isSelf = Boolean(actorData?.isSelf);
 
   const events = eventsData?.events ?? [];
   const groups = groupsData?.groups ?? [];
+  const lists = listsData?.lists ?? [];
 
   /* Upcoming only. A count that included last year's shows would describe a
      history rather than a calendar, and it sits beside "Posts", which is
@@ -69,8 +77,24 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
     (event) => new Date(event.startsAt).getTime() >= Date.now()
   ).length;
 
+  /* Places, not lists. "Recommends 3" would be counting the shelves rather
+     than what is on them, and the shelf count is the less interesting half. */
+  const recommendCount = lists.reduce((sum, list) => sum + list.itemCount, 0);
+
+  /* How many Panas you have is yours. It reads as a scoreboard to everyone
+     else, and a scoreboard is the thing most likely to turn a mutual follow
+     from a relationship into a target — see docs/SOCIAL-GRAPH.md. The badge
+     on an individual stays public; the aggregate does not. */
   const stats: StatDef[] = [
-    { tab: 'panas', label: 'Panas', value: panasData?.count ?? null },
+    ...(isSelf
+      ? [
+          {
+            tab: 'panas' as const,
+            label: 'Panas',
+            value: panasData?.count ?? null,
+          },
+        ]
+      : []),
     { tab: 'posts', label: 'Posts', value: actor?.statusCount ?? null },
     {
       tab: 'groups',
@@ -82,10 +106,10 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
   const statValue = (tab: PersonalTab) =>
     stats.find((entry) => entry.tab === tab)?.value ?? null;
 
-  /* Posts lead because that is what people come to a profile for. Panas keeps
-     a tab rather than living only in the rail: the rail module shows a dozen
-     faces, and a profile with four hundred Panas needs somewhere for the rest
-     of them to be. */
+  /* Posts lead because that is what people come to a profile for, and every
+     public tab after it is something this person made or committed to.
+     Panas is the exception — a list of other people rather than of their work
+     — which is why it comes last and only for the owner. */
   const tabs: TabDef[] = [
     {
       id: 'posts',
@@ -106,12 +130,27 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
       count: statValue('groups'),
     },
     {
-      id: 'panas',
-      label: 'Panas',
-      icon: PERSONAL_TAB_ICONS.panas,
-      count: statValue('panas'),
+      id: 'recommends',
+      label: 'Recommends',
+      icon: PERSONAL_TAB_ICONS.recommends,
+      count: listsData ? recommendCount : null,
     },
+    ...(isSelf
+      ? [
+          {
+            id: 'panas' as const,
+            label: 'Panas',
+            icon: PERSONAL_TAB_ICONS.panas,
+            count: panasData?.count ?? null,
+          },
+        ]
+      : []),
   ];
+
+  /* A visitor who somehow lands on the Panas tab — a stale render after
+     signing out, say — would otherwise be left on a tab with no button. */
+  const safeTab: PersonalTab =
+    activeTab === 'panas' && !isSelf ? 'posts' : activeTab;
 
   const actions = renderActions({
     isSelf,
@@ -129,23 +168,24 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
             stats={stats}
             actions={actions}
             panas={
-              <PanasRailModule
-                data={panasData}
-                name={profile.name}
-                onSeeAll={() => setActiveTab('panas')}
-              />
+              isSelf ? (
+                <PanasRailModule
+                  data={panasData}
+                  onSeeAll={() => setActiveTab('panas')}
+                />
+              ) : null
             }
           />
 
           <div className="min-w-0">
             <PersonalTabs
               tabs={tabs}
-              activeTab={activeTab}
+              activeTab={safeTab}
               onSelectTab={setActiveTab}
             />
 
             <div className="mt-6">
-              {activeTab === 'posts' && (
+              {safeTab === 'posts' && (
                 <Panel id="posts">
                   <PostList
                     statuses={postsData?.statuses || []}
@@ -156,7 +196,7 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
                 </Panel>
               )}
 
-              {activeTab === 'events' && (
+              {safeTab === 'events' && (
                 <Panel id="events">
                   <EventsPanel
                     events={events}
@@ -167,7 +207,7 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
                 </Panel>
               )}
 
-              {activeTab === 'groups' && (
+              {safeTab === 'groups' && (
                 <Panel id="groups">
                   <PanelIntro
                     title="Groups"
@@ -181,18 +221,28 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
                 </Panel>
               )}
 
-              {activeTab === 'panas' && (
+              {safeTab === 'recommends' && (
+                <Panel id="recommends">
+                  <PanelIntro
+                    title="Recommends"
+                    lede="Named lists of local businesses this Pana vouches for, in their own words. Every place links to its listing in the directory."
+                  />
+                  <RecommendsPanel
+                    lists={lists}
+                    isLoading={listsLoading}
+                    name={profile.name}
+                    isSelf={isSelf}
+                  />
+                </Panel>
+              )}
+
+              {safeTab === 'panas' && (
                 <Panel id="panas">
                   <PanelIntro
                     title="Panas"
-                    lede="A Pana is a mutual follow — both people followed each other. Everyone listed here follows this Pana back."
+                    lede="A Pana is a mutual follow — both people followed each other. Only you can see this list."
                   />
-                  <PanasPanel
-                    data={panasData}
-                    isLoading={panasLoading}
-                    name={profile.name}
-                    handle={handle}
-                  />
+                  <PanasPanel data={panasData} isLoading={panasLoading} />
                 </Panel>
               )}
             </div>
@@ -350,6 +400,57 @@ function GroupsPanel({
   );
 }
 
+/* Recommendation lists.
+ *
+ * The empty state has to say which kind of empty it is. A visitor sees only
+ * public lists, so "no lists" and "none you can read" look identical from
+ * here — and the second is not this pana having nothing to say. The owner
+ * gets the other version, which is an invitation rather than a report. */
+function RecommendsPanel({
+  lists,
+  isLoading,
+  name,
+  isSelf,
+}: {
+  lists: RecommendationListSummary[];
+  isLoading: boolean;
+  name: string;
+  isSelf: boolean;
+}) {
+  if (isLoading) return <PanelLoading />;
+
+  if (lists.length === 0) {
+    return (
+      <EmptyState icon={Store}>
+        {isSelf ? (
+          <>
+            You haven&rsquo;t made any lists yet.
+            <span className="mt-1.5 block font-medium opacity-80">
+              A list is a few local businesses you vouch for, in your own words.
+            </span>
+          </>
+        ) : (
+          <>
+            {firstName(name)} hasn&rsquo;t shared any lists.
+            <span className="mt-1.5 block font-medium opacity-80">
+              Private lists never appear here, so there may be some you
+              can&rsquo;t see.
+            </span>
+          </>
+        )}
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {lists.map((list) => (
+        <RecommendListCard key={list.id} list={list} />
+      ))}
+    </div>
+  );
+}
+
 /* The rail's Panas module: a wall of faces, not a list.
  *
  * Signed-out viewers get the count but no faces, the same split the endpoint
@@ -357,7 +458,6 @@ function GroupsPanel({
  * a social graph. */
 function PanasRailModule({
   data,
-  name,
   onSeeAll,
 }: {
   data?: {
@@ -370,7 +470,6 @@ function PanasRailModule({
       iconUrl?: string | null;
     }[];
   } | null;
-  name: string;
   onSeeAll: () => void;
 }) {
   if (!data || data.count === 0) return null;
@@ -409,7 +508,7 @@ function PanasRailModule({
         </ul>
       ) : (
         <p className="text-pana-ink/55 mt-2 text-[12px] leading-snug font-bold">
-          {firstName(name)} has {data.count.toLocaleString('en-US')}{' '}
+          You have {data.count.toLocaleString('en-US')}{' '}
           {data.count === 1 ? 'Pana' : 'Panas'}.
         </p>
       )}
@@ -425,38 +524,26 @@ function PanasRailModule({
   );
 }
 
-/* Signed-out viewers get the count from the rail but not the list. The empty
-   state says which of the two it is, because "no Panas yet" and "you can't see
-   them" look identical otherwise and only one is worth signing in over. */
+/* Owner-only, like the tab that opens it. The one branch worth keeping is the
+   disagreement case: if the API says we may not read the list while the page
+   has decided we are the owner, the two views of "who is this" have diverged
+   and saying so is more use than an empty grid. */
 function PanasPanel({
   data,
   isLoading,
-  name,
-  handle,
 }: {
   data?: { count: number; canSeeList: boolean; actors: unknown[] } | null;
   isLoading: boolean;
-  name: string;
-  handle: string;
 }) {
   if (isLoading) return <PanelLoading />;
 
   if (data && !data.canSeeList) {
     return (
       <EmptyState icon={Lock}>
-        {data.count > 0 ? (
-          <>
-            <Link
-              href={`/signin?callbackUrl=/p/${encodeURIComponent(handle)}`}
-              className="text-pana-indigo underline"
-            >
-              Sign in
-            </Link>{' '}
-            to see who {firstName(name)} is Panas with.
-          </>
-        ) : (
-          <>{firstName(name)} has no Panas yet.</>
-        )}
+        We couldn&rsquo;t confirm this list is yours.
+        <span className="mt-1.5 block font-medium opacity-80">
+          Reloading usually sorts it out.
+        </span>
       </EmptyState>
     );
   }
@@ -466,7 +553,14 @@ function PanasPanel({
   >[0]['pana'][];
 
   if (panas.length === 0) {
-    return <EmptyState>{firstName(name)} has no Panas yet.</EmptyState>;
+    return (
+      <EmptyState>
+        You don&rsquo;t have any Panas yet.
+        <span className="mt-1.5 block font-medium opacity-80">
+          Follow someone who follows you back and they&rsquo;ll show up here.
+        </span>
+      </EmptyState>
+    );
   }
 
   return (
