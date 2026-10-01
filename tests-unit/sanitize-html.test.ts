@@ -224,12 +224,22 @@ describe('renderStatusMarkdown — ingest-side defence in depth', () => {
     assert.match(out, /&lt;script&gt;/);
   });
 
-  test('drops a javascript: markdown link but keeps its text', async () => {
-    const out = await renderStatusMarkdown('[click](javascript:alert(1))');
-    assert.doesNotMatch(out, /javascript:/i);
-    assert.doesNotMatch(out, /<a /);
-    assert.match(out, /click/);
-  });
+  // The custom link renderer overrides marked's built-in scheme check, so these
+  // are exercised through the markdown path and not just isSafeUrl: a future
+  // change to that renderer is exactly how this vector was introduced.
+  for (const [name, markdown] of [
+    ['javascript:', '[click](javascript:alert(1))'],
+    ['mixed-case javascript:', '[click](JaVaScRiPt:alert(1))'],
+    ['data:text/html', '[click](data:text/html,<script>alert(1)</script>)'],
+  ] as const) {
+    test(`drops a ${name} markdown link but keeps its text`, async () => {
+      const out = await renderStatusMarkdown(markdown);
+      assert.doesNotMatch(out, /javascript:/i);
+      assert.doesNotMatch(out, /data:/i);
+      assert.doesNotMatch(out, /<a /);
+      assert.match(out, /click/);
+    });
+  }
 
   test('still renders ordinary markdown', async () => {
     const out = await renderStatusMarkdown(
