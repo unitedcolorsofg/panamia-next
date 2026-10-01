@@ -19,6 +19,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/settings`          | Account settings — one page, either masthead                     |
 | `/mock/directory`         | Directory search results, pre-map                                |
 | `/mock/directory-unified` | One directory theme across businesses, panas, groups and events  |
+| `/mock/dms`               | Direct messages, as two competing models behind one switch       |
 
 ## Viewing the Pana Social surface
 
@@ -56,6 +57,28 @@ exercises the real production rule rather than a preview-only shortcut.
   it does not render.
 - Each mock ends with a footer note naming its own route, so a screenshot
   taken out of context still says where it came from.
+
+## Mocks that compare two designs
+
+`/mock/dms` is the first mock that renders **two** designs rather than one, so
+it has a convention of its own worth repeating if another comparison mock is
+built.
+
+- **One fixture set, both models.** Each design reads the same `_data/`
+  threads. A comparison where each side gets its own content is not a
+  comparison, it is two demos.
+- **Fixtures are written against the weaker case for each side.** Long
+  paragraphs flatter mail and short bursts flatter chat, so both appear: one
+  thread is two paragraphs, another is six-word replies. Choosing content that
+  suits the design you prefer is how a mock pre-decides the question it was
+  built to ask.
+- **Shared primitives stay small on purpose.** Only the pieces that should look
+  identical in both models — avatar, name, unread badge — are shared. Pushing
+  the list, the transcript, and the composer into one component with a
+  `variant` prop would converge the two designs and defeat the comparison.
+- **Both models' costs stay on screen.** The gains and costs of the inactive
+  model are rendered alongside the active one, so whichever is on screen cannot
+  appear free.
 
 ## Legal terms
 
