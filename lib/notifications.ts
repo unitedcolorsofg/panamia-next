@@ -12,12 +12,13 @@
  */
 
 import { db } from '@/lib/db';
-import { profiles, notifications } from '@/lib/schema';
+import { profiles, notifications, socialActors } from '@/lib/schema';
 import type {
   NotificationActivityType,
   NotificationContext,
 } from './interfaces';
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, sql } from 'drizzle-orm';
+import { isBlockedEitherWay } from './federation/wrappers/block-filter';
 
 // Retention periods in milliseconds
 const RETENTION = {
@@ -40,6 +41,43 @@ export interface CreateNotificationParams {
 }
 
 /**
+ * Whether a block stands between the two people in a notification.
+ *
+ * Notifications are keyed by User id and blocks are between social actors, so
+ * this resolves both sides through profiles in a single query rather than two
+ * round trips.
+ *
+ * Gating here rather than in each caller means every notification type is
+ * covered at once — likes, follows, mentions, replies, group invitations and
+ * event activity — and a new notification type added later inherits the rule
+ * instead of having to remember it. A notification is the one thing a block is
+ * most visibly supposed to stop.
+ *
+ * Fails open: if either side has no actor row (plenty of accounts never touch
+ * the social layer) there is no block to find, and ordinary directory
+ * notifications must keep working.
+ */
+async function isBlockedBetweenUsers(
+  actorUserId: string,
+  targetUserId: string
+): Promise<boolean> {
+  if (actorUserId === targetUserId) return false;
+
+  const rows = await db
+    .select({ actorId: socialActors.id, userId: profiles.userId })
+    .from(socialActors)
+    .innerJoin(profiles, eq(socialActors.profileId, profiles.id))
+    .where(inArray(profiles.userId, [actorUserId, targetUserId]));
+
+  const actorSide = rows.find((r) => r.userId === actorUserId)?.actorId;
+  const targetSide = rows.find((r) => r.userId === targetUserId)?.actorId;
+
+  if (!actorSide || !targetSide) return false;
+
+  return isBlockedEitherWay(actorSide, targetSide);
+}
+
+/**
  * Create a notification
  *
  * UPSTREAM REFERENCE: external/activities.next/lib/services/notifications/
@@ -48,6 +86,14 @@ export interface CreateNotificationParams {
 export async function createNotification(
   params: CreateNotificationParams
 ): Promise<void> {
+  // Silently drop rather than throw. Callers fire notifications as a side
+  // effect of an action that already succeeded, and a block is not an error
+  // condition — the like or the reply still happened, it just does not get to
+  // ring the other person's bell.
+  if (await isBlockedBetweenUsers(params.actorId, params.targetId)) {
+    return;
+  }
+
   // Get actor info from profile for denormalization
   const actorProfile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, params.actorId),

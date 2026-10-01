@@ -20,6 +20,7 @@ export * from './wrappers/group';
 export * from './wrappers/group-visibility';
 export * from './wrappers/timeline';
 export * from './wrappers/stories';
+export * from './wrappers/block';
 export {
   verify as verifyHttpSignature,
   parse as parseHttpSignature,

@@ -32,6 +32,7 @@ import {
   personalStatusesOnly,
   canViewStatusGroup,
 } from './group-visibility';
+import { getHiddenActorIds } from './block-filter';
 
 const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
 
@@ -61,6 +62,32 @@ function notExpired() {
  */
 function excludeStories() {
   return sql`${socialStatuses.type} <> ${STATUS_TYPE_STORY}`;
+}
+
+/**
+ * Drizzle SQL condition that removes blocked and muted actors from a feed.
+ *
+ * Applied at the top level of a query rather than inside any one arm, because
+ * every arm needs it for a different reason:
+ *
+ *  - the follow arm is mostly handled already, since a block severs follows —
+ *    but a MUTE does not, and a muted account you still follow is exactly the
+ *    case this exists for;
+ *  - the group arm has no follow involved at all, so a blocked person posting
+ *    into a group you share would otherwise walk straight back into your feed.
+ *    That is the failure people actually report, and it is the one that makes
+ *    a block feel broken;
+ *  - the public timeline has no relationship involved whatsoever.
+ *
+ * Takes the ids rather than the viewer so the caller fetches once per request
+ * instead of once per arm.
+ */
+function notHidden(hiddenActorIds: string[]) {
+  if (hiddenActorIds.length === 0) return undefined;
+  return sql`${socialStatuses.actorId} <> ALL(ARRAY[${sql.join(
+    hiddenActorIds.map((id) => sql`${id}`),
+    sql`, `
+  )}]::text[])`;
 }
 
 /**
@@ -237,6 +264,8 @@ export async function getHomeTimeline(
     )
     .then((rows) => rows.map((r) => r.groupId));
 
+  const hiddenActorIds = await getHiddenActorIds(actorId);
+
   const rows = await db.query.socialStatuses.findMany({
     /**
      * Two arms, not one filter with an extra clause.
@@ -277,6 +306,7 @@ export async function getHomeTimeline(
         isNull(s.inReplyToId),
         notExpired(),
         excludeStories(),
+        notHidden(hiddenActorIds),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -363,6 +393,12 @@ export async function getGroupTimeline(
   limit: number = 20
 ): Promise<TimelineResult> {
   const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+  // A group is shared ground, so a block cannot remove the other person from
+  // it — but it can stop their posts reaching the blocker's screen, which is
+  // what the blocker asked for.
+  const hiddenActorIds = viewerActorId
+    ? await getHiddenActorIds(viewerActorId)
+    : [];
 
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, eq: eqOp, isNotNull, isNull }) =>
@@ -372,6 +408,7 @@ export async function getGroupTimeline(
         isNull(s.inReplyToId),
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
+        notHidden(hiddenActorIds),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -405,6 +442,11 @@ export async function getPublicTimeline(
   limit: number = 20
 ): Promise<TimelineResult> {
   const viewerGroupIds = await getViewerGroupIds(viewerActorId);
+  // The public timeline has no relationship in it at all, so this is the only
+  // thing standing between a blocked account and the viewer's town square.
+  const hiddenActorIds = viewerActorId
+    ? await getHiddenActorIds(viewerActorId)
+    : [];
 
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, isNotNull, isNull }) =>
@@ -419,6 +461,7 @@ export async function getPublicTimeline(
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
         excludeStories(),
+        notHidden(hiddenActorIds),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -467,6 +510,11 @@ export async function getReceivedDirectMessages(
     return { statuses: [], nextCursor: null };
   }
 
+  // DMs from a blocked account must not land in the inbox. This is the single
+  // most direct harassment channel on the site, and the one where "they can
+  // still reach me" would make the block worthless.
+  const hiddenActorIds = await getHiddenActorIds(actorId);
+
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, isNotNull, ne }) =>
       and(
@@ -479,6 +527,7 @@ export async function getReceivedDirectMessages(
         personalStatusesOnly(),
         notExpired(),
         excludeStories(),
+        notHidden(hiddenActorIds),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {
@@ -562,6 +611,9 @@ export async function getAtMeTimeline(
   }
 
   const viewerGroupIds = await getViewerGroupIds(actorId);
+  // Being named by someone you blocked is a notification from them, which is
+  // the thing a block is supposed to end.
+  const hiddenActorIds = await getHiddenActorIds(actorId);
 
   const rows = await db.query.socialStatuses.findMany({
     where: (s, { and, isNotNull, ne }) =>
@@ -582,6 +634,7 @@ export async function getAtMeTimeline(
         visibleGroupStatuses(viewerGroupIds),
         notExpired(),
         excludeStories(),
+        notHidden(hiddenActorIds),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {

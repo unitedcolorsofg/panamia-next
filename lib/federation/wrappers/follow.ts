@@ -26,6 +26,7 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { canFollow, GateResult } from '../gates';
+import { getHiddenActorIds, isBlockedEitherWay } from './block-filter';
 import { socialConfig } from '../index';
 
 export type FollowResult =
@@ -85,6 +86,17 @@ export async function createFollow(
         gateResult,
       };
     }
+  }
+
+  // A block stops a follow in both directions. Mutes are excluded — a mute
+  // must never change what the muted actor is able to do, or it becomes
+  // detectable, and a detectable mute is a block with worse manners.
+  if (await isBlockedEitherWay(actorId, targetActorId)) {
+    // Deliberately the same message in both directions. "You have blocked this
+    // account" and "this account has blocked you" are different facts, and
+    // telling the follower which one applies leaks the target's decision back
+    // to the person they blocked.
+    return { success: false, error: 'Cannot follow this account' };
   }
 
   // Check if already following
@@ -193,18 +205,31 @@ export async function isFollowing(
 }
 
 /**
- * Get followers of an actor
+ * Get followers of an actor.
+ *
+ * `viewerActorId` is optional and only affects filtering: a block severs the
+ * follow, so a blocked account cannot appear in its own ex-follower's list,
+ * but it can still appear in a THIRD party's list. Passing the viewer removes
+ * accounts that blocked them from any list they are reading.
  */
 export async function getFollowers(
   actorId: string,
   cursor?: string,
-  limit: number = 20
+  limit: number = 20,
+  viewerActorId?: string
 ): Promise<{ actors: PublicSocialActor[]; nextCursor: string | null }> {
+  const hiddenActorIds = viewerActorId
+    ? await getHiddenActorIds(viewerActorId)
+    : [];
+
   const follows = await db.query.socialFollows.findMany({
-    where: (f, { and, eq, lt }) =>
+    where: (f, { and, eq, lt, notInArray: notIn }) =>
       and(
         eq(f.targetActorId, actorId),
         eq(f.status, 'accepted'),
+        hiddenActorIds.length > 0
+          ? notIn(f.actorId, hiddenActorIds)
+          : undefined,
         cursor ? lt(f.id, cursor) : undefined
       ),
     with: { actor: { columns: PUBLIC_ACTOR_COLUMNS } },
@@ -223,18 +248,28 @@ export async function getFollowers(
 }
 
 /**
- * Get actors that an actor is following
+ * Get actors that an actor is following.
+ *
+ * See getFollowers for why `viewerActorId` exists.
  */
 export async function getFollowing(
   actorId: string,
   cursor?: string,
-  limit: number = 20
+  limit: number = 20,
+  viewerActorId?: string
 ): Promise<{ actors: PublicSocialActor[]; nextCursor: string | null }> {
+  const hiddenActorIds = viewerActorId
+    ? await getHiddenActorIds(viewerActorId)
+    : [];
+
   const follows = await db.query.socialFollows.findMany({
-    where: (f, { and, eq, lt }) =>
+    where: (f, { and, eq, lt, notInArray: notIn }) =>
       and(
         eq(f.actorId, actorId),
         eq(f.status, 'accepted'),
+        hiddenActorIds.length > 0
+          ? notIn(f.targetActorId, hiddenActorIds)
+          : undefined,
         cursor ? lt(f.id, cursor) : undefined
       ),
     with: { targetActor: { columns: PUBLIC_ACTOR_COLUMNS } },
@@ -459,6 +494,18 @@ export async function listSuggestedActors(
     .from(socialFollows)
     .where(eq(socialFollows.actorId, actorId));
 
+  // Suggestions are where a blocked account walks back in. Blocking severs the
+  // follow in both directions, which is correct — but `alreadyAsked` is built
+  // from follow rows, so severing it also removes the only thing that was
+  // keeping them out of this list. Without this, the first thing a blocker
+  // sees after blocking somebody is that person's face in "Panas you may
+  // know", which reads as the block having failed.
+  //
+  // Mutes are included too. Being re-suggested someone you muted is a smaller
+  // harm but the same wrong answer.
+  const hiddenActorIds = await getHiddenActorIds(actorId);
+  const excludedIds = [actorId, ...hiddenActorIds];
+
   const mutualCount = sql<number>`count(distinct ${panaOut.targetActorId})`;
 
   const shared = await db
@@ -499,7 +546,10 @@ export async function listSuggestedActors(
         // lie for half the cards. Suggesting fediverse accounts is a separate
         // feature with its own copy.
         eq(socialActors.domain, socialConfig.domain),
-        notInArray(fofOut.targetActorId, alreadyAsked)
+        notInArray(fofOut.targetActorId, alreadyAsked),
+        hiddenActorIds.length > 0
+          ? notInArray(fofOut.targetActorId, hiddenActorIds)
+          : undefined
       )
     )
     // Grouping by the primary key lets Postgres carry the rest of the actor
@@ -529,7 +579,10 @@ export async function listSuggestedActors(
         // Local only. "Recently joined" is a claim about this instance, and a
         // remote actor's createdAt is just when we first cached them.
         eq(socialActors.domain, socialConfig.domain),
-        notInArray(socialActors.id, [actorId, ...suggestions.map((s) => s.id)]),
+        notInArray(socialActors.id, [
+          ...excludedIds,
+          ...suggestions.map((s) => s.id),
+        ]),
         notInArray(socialActors.id, alreadyAsked)
       )
     )

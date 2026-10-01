@@ -117,6 +117,13 @@ export const inventory: Record<TableExport, Classification> = {
   socialActors: ['activitypub_federated_content', 'visible_profile_info'],
   socialStatuses: ['social_posts', 'activitypub_federated_content'],
   socialFollows: ['social_graph'],
+  // Who someone has blocked or muted. Social graph data, but the most
+  // sensitive kind we hold: a block list is a list of people someone needed to
+  // get away from, which can be a record of harassment, an ex, or a former
+  // employer. It is never shown to the blocked party and never federated, and
+  // a data export hands the subject their own list -- not the inverse list of
+  // who blocked them, which is other people's data about their own safety.
+  socialBlocks: ['social_graph'],
   socialLikes: ['social_graph'],
   // Group configuration is not personal data, but created_by_profile_id is —
   // it records which human started a given group, the same kind of association

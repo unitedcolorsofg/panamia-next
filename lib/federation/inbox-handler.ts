@@ -11,9 +11,9 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { socialFollows, socialActors } from '@/lib/schema';
+import { socialFollows, socialActors, socialBlocks } from '@/lib/schema';
 import type { SocialActor } from '@/lib/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import { verify } from './crypto/verify';
 import { signedHeaders } from './crypto/sign';
 import {
@@ -129,6 +129,54 @@ async function handleFollow(
       { error: 'Could not resolve remote actor' },
       { status: 400 }
     );
+  }
+
+  // A block refuses the follow. This is the first code path that ever writes
+  // social_follow_status.rejected — the value existed from the beginning but
+  // was unreachable, because local follows auto-accept and nothing else ever
+  // said no, which made the enum read like an approval flow that had been
+  // built and then lost.
+  //
+  // Checked in both directions: the remote actor may be one this account
+  // blocked, or one that blocked this account from another instance we are
+  // aware of.
+  const blockRow = await db.query.socialBlocks.findFirst({
+    where: and(
+      eq(socialBlocks.kind, 'block'),
+      or(
+        and(
+          eq(socialBlocks.actorId, targetActor.id),
+          eq(socialBlocks.targetActorId, remoteActor.id)
+        ),
+        and(
+          eq(socialBlocks.actorId, remoteActor.id),
+          eq(socialBlocks.targetActorId, targetActor.id)
+        )
+      )
+    ),
+  });
+
+  if (blockRow) {
+    // Record the refusal so a retrying server does not look like a new request
+    // every time, then stop. No Accept is sent.
+    //
+    // We also do not send a Reject. The protocol permits one, but it would
+    // tell the blocked actor's server something happened at the exact moment
+    // they acted, and silence is indistinguishable from an unreachable or slow
+    // server. We return 202 because we did accept delivery of the activity —
+    // that is a statement about the HTTP request, not about the follow.
+    await db
+      .insert(socialFollows)
+      .values({
+        actorId: remoteActor.id,
+        targetActorId: targetActor.id,
+        status: 'rejected',
+        acceptedAt: null,
+        uri: activity.id,
+      })
+      .onConflictDoNothing();
+
+    return NextResponse.json({ status: 'rejected' }, { status: 202 });
   }
 
   // Check for existing follow

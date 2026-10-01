@@ -128,8 +128,18 @@ export const intakeFormType = pgEnum('intake_form_type', [
 export const socialFollowStatus = pgEnum('social_follow_status', [
   'pending',
   'accepted',
+  // Written when an incoming Follow arrives from an actor the target has
+  // blocked. Before blocking existed this value was unreachable, which made
+  // the enum read like an approval flow that had been built and lost.
   'rejected',
 ]);
+
+/**
+ * Block and mute are one table with a discriminator rather than two tables:
+ * every read path asks "is there anything between these two actors", and one
+ * indexed lookup beats two. See docs/SOCIAL-GRAPH.md section B.
+ */
+export const socialBlockKind = pgEnum('social_block_kind', ['block', 'mute']);
 
 // New Events enums
 export const eventStatus = pgEnum('event_status', [
@@ -1671,6 +1681,52 @@ export const socialFollows = pgTable(
   })
 );
 
+/**
+ * Block and mute. One row per direction per kind.
+ *
+ * `block` is safety: it severs follows both ways, stops re-following, and
+ * removes each actor from the other's view. `mute` is volume: it changes only
+ * what the muting actor sees and leaves every follow intact. Neither is
+ * announced to the other party.
+ *
+ * Enforcement is local only. ActivityPub has a `Block` activity but remote
+ * servers may ignore it, and announcing a block leaks it to the blocked
+ * instance, so we control what this server shows and delivers and say so in
+ * the UI. See docs/SOCIAL-GRAPH.md section B.
+ */
+export const socialBlocks = pgTable(
+  'social_blocks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    // The actor doing the blocking or muting.
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    targetActorId: text('target_actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    kind: socialBlockKind('kind').notNull(),
+  },
+  (table) => ({
+    // Blocking somebody you have muted is a real sequence, so the pair is
+    // unique per kind rather than per pair.
+    actorTargetKindUnique: uniqueIndex(
+      'social_blocks_actor_target_kind_unique'
+    ).on(table.actorId, table.targetActorId, table.kind),
+    // Reads go both ways: "who have I blocked" for my own feeds, and "who has
+    // blocked me" for whether I may see them.
+    actorIdIdx: index('social_blocks_actor_id_idx').on(table.actorId),
+    targetActorIdIdx: index('social_blocks_target_actor_id_idx').on(
+      table.targetActorId
+    ),
+  })
+);
+
 export const socialLikes = pgTable(
   'social_likes',
   {
@@ -2445,6 +2501,19 @@ export const socialFollowsRelations = relations(socialFollows, ({ one }) => ({
   }),
 }));
 
+export const socialBlocksRelations = relations(socialBlocks, ({ one }) => ({
+  actor: one(socialActors, {
+    fields: [socialBlocks.actorId],
+    references: [socialActors.id],
+    relationName: 'blockActor',
+  }),
+  targetActor: one(socialActors, {
+    fields: [socialBlocks.targetActorId],
+    references: [socialActors.id],
+    relationName: 'blockTarget',
+  }),
+}));
+
 export const socialLikesRelations = relations(socialLikes, ({ one }) => ({
   actor: one(socialActors, {
     fields: [socialLikes.actorId],
@@ -2820,6 +2889,8 @@ export function toPublicActor<T extends { privateKey?: string | null }>(
 export type SocialStatus = typeof socialStatuses.$inferSelect;
 export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;
+export type SocialBlock = typeof socialBlocks.$inferSelect;
+export type SocialBlockKind = (typeof socialBlockKind.enumValues)[number];
 export type SocialGroup = typeof socialGroups.$inferSelect;
 export type SocialGroupMember = typeof socialGroupMembers.$inferSelect;
 export type SocialLike = typeof socialLikes.$inferSelect;

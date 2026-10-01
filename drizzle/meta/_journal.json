@@ -358,6 +358,13 @@
       "when": 1788393600000,
       "tag": "0049_event_search_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1788480000000,
+      "tag": "0050_social_blocks",
+      "breakpoints": true
     }
   ]
 }

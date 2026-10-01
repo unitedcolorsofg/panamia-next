@@ -24,6 +24,7 @@ import {
   FollowButton,
   RelationshipBadge,
   SendVoiceMemoButton,
+  BlockMenu,
 } from '@/components/social';
 import { Button } from '@/components/ui/button';
 import { isUnoptimizableImageSrc } from '@/lib/image-src';
@@ -155,6 +156,8 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
 
   const isFollowing = Boolean(actorData?.isFollowing);
   const isFollowedBy = Boolean(actorData?.isFollowedBy);
+  const isBlocked = Boolean(actorData?.isBlocked);
+  const isMuted = Boolean(actorData?.isMuted);
 
   const actions = renderActions({
     isSelf,
@@ -162,6 +165,8 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
     actor,
     isFollowing,
     isFollowedBy,
+    isBlocked,
+    isMuted,
   });
 
   return (
@@ -276,11 +281,15 @@ function renderActions({
   actor,
   isFollowing,
   isFollowedBy,
+  isBlocked,
+  isMuted,
 }: {
   isSelf: boolean;
   isAuthenticated: boolean;
   isFollowing: boolean;
   isFollowedBy: boolean;
+  isBlocked: boolean;
+  isMuted: boolean;
   actor?: {
     id: string;
     username: string;
@@ -323,6 +332,17 @@ function renderActions({
         isFollowing={isFollowing}
         isFollowedBy={isFollowedBy}
         size="sm"
+      />
+      {/*
+        Last in the row, behind an overflow menu, deliberately away from
+        Follow. Blocking severs follows both ways and unblocking does not put
+        them back, so it should not be reachable by a mis-tap.
+      */}
+      <BlockMenu
+        username={actor.username}
+        displayName={actor.name || actor.username}
+        isBlocked={isBlocked}
+        isMuted={isMuted}
       />
     </>
   );
