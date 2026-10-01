@@ -102,17 +102,25 @@ before(async () => {
 });
 
 after(async () => {
-  if (createdActorIds.length === 0) return;
+  // Guard the deletes, not the pool close: if `before` threw before creating
+  // anything, an early return here would leave postgres.js holding the process
+  // open and `yarn test:db` (which has no --test-force-exit) would hang until
+  // the job timeout rather than reporting the failure.
+  if (createdActorIds.length > 0) {
+    await db
+      .delete(socialFollows)
+      .where(inArray(socialFollows.actorId, createdActorIds));
+    await db
+      .delete(socialFollows)
+      .where(inArray(socialFollows.targetActorId, createdActorIds));
+    await db
+      .delete(socialActors)
+      .where(inArray(socialActors.id, createdActorIds));
+  }
 
-  await db
-    .delete(socialFollows)
-    .where(inArray(socialFollows.actorId, createdActorIds));
-  await db
-    .delete(socialFollows)
-    .where(inArray(socialFollows.targetActorId, createdActorIds));
-  await db
-    .delete(socialActors)
-    .where(inArray(socialActors.id, createdActorIds));
+  const client = (db as unknown as { $client?: { end?: () => Promise<void> } })
+    .$client;
+  await client?.end?.();
 });
 
 test('a mutual accepted follow counts as a Pana', async () => {
