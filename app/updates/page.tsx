@@ -323,12 +323,19 @@ function MessagesSection({
 /**
  * Render stored status HTML as plain text.
  *
- * Status bodies are `marked.parse()` output and nothing strips raw HTML out of
- * them, so a held message is attacker-authored markup. The Requests folder is
- * the worst possible place to hand that to `dangerouslySetInnerHTML`: by
- * definition the sender is someone the reader has not accepted yet. Flattening
- * to text also defuses the lure where friendly anchor text hides a hostile
- * href, which is the whole point of a stranger's first message.
+ * Status bodies now pass through `renderStatusMarkdown()`, which escapes raw
+ * HTML at ingest, and every HTML sink renders via `<SafeHtml>`. Neither covers
+ * this case. Rows stored before sanitisation landed were never backfilled, so a
+ * held message can still be attacker-authored markup — and the Requests folder
+ * is the worst possible place to hand that to `dangerouslySetInnerHTML`, since
+ * by definition the sender is someone the reader has not accepted yet.
+ *
+ * The independent reason is the lure: friendly anchor text hiding a hostile
+ * href. Sanitising does not touch that — `<a href="https://evil.test">your
+ * bank</a>` survives any allowlist intact. Flattening to text is what defuses
+ * it, which is the whole point of a stranger's first message. Do not "simplify"
+ * this to `<SafeHtml>`; it would be safe from script injection and still lose
+ * the defence that matters here.
  *
  * The result is placed in a text node, so React escapes it no matter how
  * imperfectly this strips. A mangled strip is cosmetic here, never an
