@@ -25,6 +25,7 @@ import {
   getTableColumns,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { createId } from '@paralleldrive/cuid2';
 import { canFollow, GateResult } from '../gates';
 import { getHiddenActorIds, isBlockedEitherWay } from './block-filter';
 import { socialConfig } from '../index';
@@ -114,23 +115,31 @@ export async function createFollow(
   // Create the follow (local = immediately accepted)
   const isLocalTarget = targetActor.domain === socialConfig.domain;
 
-  const [follow] = await db
+  /**
+   * Generate the id before inserting so the row is never written with a
+   * placeholder uri.
+   *
+   * The URI is derived from the row's own id, which used to mean inserting
+   * with uri = '' and filling it in on a second statement. `uri` is UNIQUE,
+   * so for the width of that gap the table could hold only ONE such row
+   * instance-wide, and a second concurrent createFollow failed outright with
+   * a duplicate-key error on the empty string. Two people following anyone at
+   * the same moment was enough. cuid2 ids are generated client-side anyway,
+   * so there was never a reason to wait for the database to tell us what the
+   * id was.
+   */
+  const followId = createId();
+
+  const [updatedFollow] = await db
     .insert(socialFollows)
     .values({
+      id: followId,
       actorId,
       targetActorId,
       status: isLocalTarget ? 'accepted' : 'pending',
       acceptedAt: isLocalTarget ? new Date() : null,
-      uri: '',
+      uri: generateFollowUri(actor.username, followId),
     })
-    .returning();
-
-  // Update with proper URI
-  const uri = generateFollowUri(actor.username, follow.id);
-  const [updatedFollow] = await db
-    .update(socialFollows)
-    .set({ uri })
-    .where(eq(socialFollows.id, follow.id))
     .returning();
 
   // Update counts for accepted follows

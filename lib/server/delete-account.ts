@@ -31,6 +31,7 @@ import {
   socialStatuses,
   socialFollows,
   socialBlocks,
+  socialDmRequests,
   socialLikes,
   socialAttachments,
   socialTags,
@@ -572,6 +573,36 @@ export async function deleteAccount(
             .delete(socialBlocks)
             .where(eq(socialBlocks.targetActorId, socialActor.id))
             .returning({ id: socialBlocks.id }),
+        deletedTables,
+        warnings
+      );
+
+      // Delete DM requests (both directions)
+      //
+      // The foreign keys are ON DELETE CASCADE, so these rows would go anyway
+      // when the actor row below is deleted. They are deleted explicitly for
+      // the same reason the blocks above are: safeDelete records counts into
+      // deletedTables, which is the deletion log the privacy framework relies
+      // on. A cascade is silent, and "we deleted your correspondence requests"
+      // is exactly the kind of claim that should be evidenced rather than
+      // implied.
+      await safeDelete(
+        'socialDmRequests(sent)',
+        () =>
+          db
+            .delete(socialDmRequests)
+            .where(eq(socialDmRequests.senderActorId, socialActor.id))
+            .returning({ id: socialDmRequests.id }),
+        deletedTables,
+        warnings
+      );
+      await safeDelete(
+        'socialDmRequests(received)',
+        () =>
+          db
+            .delete(socialDmRequests)
+            .where(eq(socialDmRequests.recipientActorId, socialActor.id))
+            .returning({ id: socialDmRequests.id }),
         deletedTables,
         warnings
       );

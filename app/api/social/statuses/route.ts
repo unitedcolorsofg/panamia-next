@@ -161,24 +161,36 @@ export async function POST(request: NextRequest) {
 
   // Create notifications for DM recipients
   if (resolvedVisibility === 'direct' && recipientActorIds?.length > 0) {
-    // Look up recipient actors to get their user IDs
-    const recipientActors = await db.query.socialActors.findMany({
-      where: inArray(socialActors.id, recipientActorIds),
-      with: { profile: { with: { user: true } } },
-    });
+    // Recipients whose thread is held in Requests get no notification. This is
+    // the entire point of the Requests folder: the harm being prevented was
+    // never "a stranger wrote to me", it was "a stranger can make my phone
+    // buzz eight times". Filing the message somewhere quieter while still
+    // ringing the bell would prevent nothing. See docs/SOCIAL-GRAPH.md C1.
+    const heldActorIds = new Set(result.heldRecipientActorIds ?? []);
+    const notifiableActorIds = recipientActorIds.filter(
+      (id: string) => !heldActorIds.has(id)
+    );
 
-    // Create a notification for each recipient
-    for (const recipientActor of recipientActors) {
-      const recipientUserId = recipientActor.profile?.userId;
-      if (recipientUserId) {
-        await createNotification({
-          type: 'Create',
-          actorId: session.user.id,
-          targetId: recipientUserId,
-          context: 'message',
-          objectId: result.status?.id,
-          objectUrl: `/updates`,
-        });
+    if (notifiableActorIds.length > 0) {
+      // Look up recipient actors to get their user IDs
+      const recipientActors = await db.query.socialActors.findMany({
+        where: inArray(socialActors.id, notifiableActorIds),
+        with: { profile: { with: { user: true } } },
+      });
+
+      // Create a notification for each recipient
+      for (const recipientActor of recipientActors) {
+        const recipientUserId = recipientActor.profile?.userId;
+        if (recipientUserId) {
+          await createNotification({
+            type: 'Create',
+            actorId: session.user.id,
+            targetId: recipientUserId,
+            context: 'message',
+            objectId: result.status?.id,
+            objectUrl: `/updates`,
+          });
+        }
       }
     }
   }

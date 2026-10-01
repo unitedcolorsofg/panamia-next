@@ -91,6 +91,35 @@ function notHidden(hiddenActorIds: string[]) {
 }
 
 /**
+ * Hide direct messages that are still waiting in the viewer's Requests folder.
+ *
+ * Suppressing the notification is only half of the Requests design. Without
+ * this the held message still lands in the ordinary inbox, which means the
+ * recipient reads it anyway and the folder prevents nothing — it just arrives
+ * quietly. The message becomes visible here the moment the request is
+ * accepted, because the row flips to 'accepted' rather than being deleted.
+ *
+ * Identifies correspondence as "the viewer's own URI appears in recipientTo",
+ * which is deliberately narrower than getVisibilityFromRecipients' notion of
+ * 'direct'. Visibility is derived from the recipient arrays rather than stored
+ * in a column, so there is nothing to compare against here; re-deriving the
+ * full ladder in SQL would duplicate logic that is free to drift. The narrow
+ * test is also the safer one — a pending request must never hide a sender's
+ * public posts, and a public post never carries the viewer's URI in `to`.
+ */
+function notHeldRequest(viewerActorId: string, viewerUri: string) {
+  return sql`NOT (
+    ${jsonbArrayContains(socialStatuses.recipientTo, viewerUri)}
+    AND EXISTS (
+      SELECT 1 FROM social_dm_requests r
+      WHERE r.recipient_actor_id = ${viewerActorId}
+        AND r.sender_actor_id = ${socialStatuses.actorId}
+        AND r.state = 'pending'
+    )
+  )`;
+}
+
+/**
  * Check if a JSONB array column contains a specific string value.
  * PostgreSQL: column @> to_jsonb(value::text)
  */
@@ -635,6 +664,7 @@ export async function getAtMeTimeline(
         notExpired(),
         excludeStories(),
         notHidden(hiddenActorIds),
+        notHeldRequest(actorId, actor.uri),
         cursor ? sql`${s.id} < ${cursor}` : undefined
       ),
     with: {

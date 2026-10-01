@@ -23,9 +23,15 @@ import type {
   SocialGroupVisibility,
 } from '@/lib/schema';
 import { and, eq, sql } from 'drizzle-orm';
+import { createId } from '@paralleldrive/cuid2';
 import { renderStatusMarkdown } from '@/lib/federation/markdown';
 import { canPost, GateResult } from '../gates';
 import { socialConfig, getFollowersUrl } from '../index';
+import {
+  DIRECT_THREAD_REFUSED,
+  evaluateDirectThreads,
+  recordDirectThreadRequests,
+} from './dm-gate';
 import {
   getViewerGroupIds,
   visibleGroupStatuses,
@@ -39,7 +45,20 @@ import type { JsonValue } from '@/lib/types';
 // lib/federation/markdown.ts.
 
 export type CreateStatusResult =
-  | { success: true; status: SocialStatus }
+  | {
+      success: true;
+      status: SocialStatus;
+      /**
+       * Recipients whose thread was held as a request rather than delivered to
+       * their inbox. The caller MUST NOT notify these actors — suppressing the
+       * notification is the entire safety property of the Requests folder, not
+       * a presentational detail. See docs/SOCIAL-GRAPH.md section C1.
+       *
+       * Always present on a direct status so a caller cannot read `undefined`
+       * as "nothing held" when it actually means "this code forgot to say".
+       */
+      heldRecipientActorIds?: string[];
+    }
   | { success: false; error: string; gateResult?: GateResult };
 
 export type StatusWithActor = SocialStatus & {
@@ -193,10 +212,90 @@ export async function createStatus(
     inReplyToUri = parent.uri;
   }
 
-  // Create the status with placeholder URI
+  /**
+   * Resolve and gate direct-message recipients BEFORE anything is written.
+   *
+   * The insert below stores a placeholder `uri` of '' and fills in the real
+   * one afterwards, because the URI is derived from the row's own id. That
+   * makes the span between the insert and the update unsafe to return from:
+   * an early return leaves a row with uri = '', and `uri` is UNIQUE, so the
+   * orphan then collides with the next status created by ANY account on the
+   * instance. One rejected message would stop everybody posting.
+   *
+   * These checks used to live inside the `direct` case of the addressing
+   * switch, which runs after the insert. That was already a latent bug for
+   * the three validation failures below, but it was hard to reach — the
+   * composer prevents them. A gate refusal is different: it is a normal
+   * outcome that any stranger can trigger on purpose, which would have turned
+   * a latent bug into a trivial way to break posting site-wide.
+   */
+  let directRecipientUris: string[] = [];
+  let heldRecipientActorIds: string[] = [];
+
+  if (visibility === 'direct') {
+    if (!recipientActorIds || recipientActorIds.length === 0) {
+      return {
+        success: false,
+        error: 'Direct messages require at least one recipient',
+      };
+    }
+    if (recipientActorIds.length > 8) {
+      return {
+        success: false,
+        error: 'Direct messages can have at most 8 recipients',
+      };
+    }
+    const recipientActorsRows = await db
+      .select({ uri: socialActors.uri })
+      .from(socialActors)
+      .where(
+        sql`${socialActors.id} = ANY(ARRAY[${sql.join(
+          recipientActorIds.map((id) => sql`${id}`),
+          sql`, `
+        )}]::text[])`
+      );
+    if (recipientActorsRows.length !== recipientActorIds.length) {
+      return { success: false, error: 'One or more recipients not found' };
+    }
+    directRecipientUris = recipientActorsRows.map((r) => r.uri);
+
+    // Who is allowed to be written to at all, and who lands in Requests.
+    const gate = await evaluateDirectThreads(actorId, recipientActorIds);
+
+    // Fail the whole send if any recipient refuses, rather than delivering to
+    // the rest. Partial delivery on a group DM is both confusing and unsafe:
+    // the sender believes all eight people saw it. This also matches how the
+    // recipient-not-found case above already behaves.
+    if (gate.some((g) => g.decision === 'refuse')) {
+      return { success: false, error: DIRECT_THREAD_REFUSED };
+    }
+
+    heldRecipientActorIds = gate
+      .filter((g) => g.decision === 'hold')
+      .map((g) => g.recipientActorId);
+  }
+
+  /**
+   * Generate the id before inserting so the row is never written with a
+   * placeholder uri.
+   *
+   * The URI is derived from the row's own id, which used to mean inserting
+   * with uri = '' and filling it in on a second statement. `uri` is UNIQUE,
+   * so for the width of that gap the table could hold only ONE such row
+   * instance-wide, and a second concurrent createStatus failed outright with a
+   * duplicate-key error on the empty string. Two people posting at the same
+   * moment was enough. cuid2 ids are generated client-side anyway, so there
+   * was never a reason to wait for the database to tell us what the id was.
+   */
+  const statusId = createId();
+  const uri = generateStatusUri(actor.username, statusId);
+  const url = `https://${socialConfig.domain}/p/${actor.username}/${statusId}`;
+
+  // Create the status
   const [status] = await db
     .insert(socialStatuses)
     .values({
+      id: statusId,
       actorId,
       content: htmlContent,
       contentWarning: contentWarning || null,
@@ -206,15 +305,11 @@ export async function createStatus(
       inReplyToId: inReplyToId || null,
       inReplyToUri: inReplyToUri || null,
       groupId: groupId || null,
-      uri: '',
-      url: '',
+      uri,
+      url,
       ccLicense,
     })
     .returning();
-
-  // Update with proper URI now that we have the ID
-  const uri = generateStatusUri(actor.username, status.id);
-  const url = `https://${socialConfig.domain}/p/${actor.username}/${status.id}`;
 
   // Compute ActivityPub recipients
   const PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
@@ -234,31 +329,7 @@ export async function createStatus(
       recipientCc = [];
       break;
     case 'direct': {
-      if (!recipientActorIds || recipientActorIds.length === 0) {
-        return {
-          success: false,
-          error: 'Direct messages require at least one recipient',
-        };
-      }
-      if (recipientActorIds.length > 8) {
-        return {
-          success: false,
-          error: 'Direct messages can have at most 8 recipients',
-        };
-      }
-      const recipientActorsRows = await db
-        .select({ uri: socialActors.uri })
-        .from(socialActors)
-        .where(
-          sql`${socialActors.id} = ANY(ARRAY[${sql.join(
-            recipientActorIds.map((id) => sql`${id}`),
-            sql`, `
-          )}]::text[])`
-        );
-      if (recipientActorsRows.length !== recipientActorIds.length) {
-        return { success: false, error: 'One or more recipients not found' };
-      }
-      recipientTo = recipientActorsRows.map((r) => r.uri);
+      recipientTo = directRecipientUris;
       recipientCc = [];
       expiresAt = new Date(Date.now() + DM_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
       break;
@@ -290,8 +361,6 @@ export async function createStatus(
   const [updatedStatus] = await db
     .update(socialStatuses)
     .set({
-      uri,
-      url,
       recipientTo,
       recipientCc,
       expiresAt,
@@ -370,7 +439,13 @@ export async function createStatus(
       .where(eq(socialStatuses.id, inReplyToId));
   }
 
-  return { success: true, status: updatedStatus };
+  // Record the request rows only once the status actually exists, so a failed
+  // write cannot leave a pending request pointing at nothing.
+  if (heldRecipientActorIds.length > 0) {
+    await recordDirectThreadRequests(actorId, heldRecipientActorIds);
+  }
+
+  return { success: true, status: updatedStatus, heldRecipientActorIds };
 }
 
 /**

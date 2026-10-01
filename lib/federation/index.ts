@@ -22,6 +22,7 @@ export * from './wrappers/group-visibility';
 export * from './wrappers/timeline';
 export * from './wrappers/stories';
 export * from './wrappers/block';
+export * from './wrappers/dm-gate';
 export {
   verify as verifyHttpSignature,
   parse as parseHttpSignature,

@@ -11,7 +11,8 @@
 > - **[Discovery](#a--discovery-through-shared-activity)** and **[Block & mute](#b--block--mute)** —
 >   **proposals.** No table, route, or component described there exists.
 >
-> The next free migration number is `0050` (`origin/main` holds through `0049_event_search_vector`).
+> The next free migration number is `0052` (`origin/main` holds through `0050_social_blocks`;
+> `0051_social_dm_requests` is claimed by the DM-gating branch).
 
 ## Table of Contents
 
@@ -573,10 +574,11 @@ why those two boxes are still open.
 
 Ships with or immediately after Phase 3. Blocking without these leaves the first contact unguarded.
 
-- [ ] DM gating: `everyone` / `panas` / `nobody`, defaulting to `everyone`, enforced on thread
-      creation
-- [ ] Requests folder: threads from non-Panas held out of the inbox and **suppressed from
-      notifications** until accepted
+- [x] DM gating: `everyone` / `panas` / `nobody`, defaulting to `everyone`, enforced on thread
+      creation — migration `0051`, `lib/federation/wrappers/dm-gate.ts`
+- [x] Requests folder: threads from non-Panas held out of the inbox and **suppressed from
+      notifications** until accepted — `social_dm_requests` + `/api/social/dm-requests`. Server side
+      only; the Requests tab in `app/mock/dms` is still a mock with no API behind it.
 - [ ] Honour `manually_approves_followers` in `createFollow`, with somewhere to approve from — or
       drop the column
 - [ ] Rate limits on follow and DM-thread creation

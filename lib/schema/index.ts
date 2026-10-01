@@ -141,6 +141,45 @@ export const socialFollowStatus = pgEnum('social_follow_status', [
  */
 export const socialBlockKind = pgEnum('social_block_kind', ['block', 'mute']);
 
+/**
+ * Who may open a new direct-message thread with an account.
+ *
+ * Ordered most open to most closed. The default is deliberately `everyone`:
+ * the scarce resource in a network this size is first contacts that happen at
+ * all -- a pana finds a maker in the directory and writes to them -- and
+ * gating on mutual follow blocks exactly that person. `panas` is a weak proxy
+ * for consent anyway; it is a thinner claim than "I read your profile and want
+ * to work with you".
+ *
+ * The safety property that `panas` was standing in for is supplied instead by
+ * the Requests folder: a thread opened by a non-Pana is held and, the
+ * load-bearing part, rings nobody's phone. See docs/SOCIAL-GRAPH.md section C1.
+ *
+ * Local accounts only. ActivityPub has no equivalent field, so a remote actor's
+ * value is always the default and is never read -- we cannot know a remote
+ * server's policy and must not invent one.
+ */
+export const socialDmPolicy = pgEnum('social_dm_policy', [
+  'everyone',
+  'panas',
+  'nobody',
+]);
+
+/**
+ * Whether a recipient has consented to correspond with a sender.
+ *
+ * Only two values, because "declined" is deliberately not one of them. The
+ * Requests UI offers delete-without-replying and block as separate actions,
+ * and those mean different things: deleting is "not now", which must leave the
+ * sender able to try again, while block is the permanent answer and is already
+ * enforced by social_blocks. A `declined` state would be a third, invisible
+ * block with no settings screen to undo it from.
+ */
+export const socialDmRequestState = pgEnum('social_dm_request_state', [
+  'pending',
+  'accepted',
+]);
+
 // New Events enums
 export const eventStatus = pgEnum('event_status', [
   'draft',
@@ -1453,6 +1492,7 @@ export const socialActors = pgTable(
     manuallyApprovesFollowers: boolean('manually_approves_followers')
       .notNull()
       .default(false),
+    dmPolicy: socialDmPolicy('dm_policy').notNull().default('everyone'),
   },
   (table) => ({
     usernamedomainUnique: uniqueIndex(
@@ -1504,6 +1544,17 @@ export const PUBLIC_ACTOR_COLUMNS = {
   followersCount: true,
   statusCount: true,
   manuallyApprovesFollowers: true,
+  // `dmPolicy` is deliberately absent.
+  //
+  // Publishing it would let anyone read a preference off a profile, and worse,
+  // it makes blocks inferable: a blocked sender sees a policy of `everyone`,
+  // is refused anyway, and has their answer. The refusal strings are uniform
+  // precisely to stop that inference, and a public policy column would hand it
+  // back.
+  //
+  // The UI need it answers -- "should I show a message button" -- is better
+  // served by a viewer-specific boolean computed server side, because that
+  // answer already accounts for blocks and so leaks nothing.
 } as const;
 
 /**
@@ -1723,6 +1774,65 @@ export const socialBlocks = pgTable(
     actorIdIdx: index('social_blocks_actor_id_idx').on(table.actorId),
     targetActorIdIdx: index('social_blocks_target_actor_id_idx').on(
       table.targetActorId
+    ),
+  })
+);
+
+/**
+ * A request to open a direct-message thread, and the consent that answers it.
+ *
+ * Exists because the DM gate has to ask "has this recipient agreed to
+ * correspond with this sender" and there is no thread table to ask. Deriving
+ * the answer from social_statuses would mean scanning direct statuses in both
+ * directions, and it still could not represent the two states that matter
+ * most: accepted-but-not-yet-replied-to, and deleted-without-replying.
+ *
+ * Deliberately not a threads table. Threading is a property of the mail UI and
+ * can be derived from `in_reply_to_id` when that UI is built; this table holds
+ * only the consent decision, which is the part the gate needs and the part
+ * that must outlive any individual message. That matters because direct
+ * statuses expire -- see DM_EXPIRY_DAYS -- so consent inferred from messages
+ * would silently lapse and re-prompt a correspondent you had already accepted.
+ *
+ * Rows are keyed by recipient-then-sender because every read is "show me my
+ * requests" or "may this sender write to me", both of which start from the
+ * recipient.
+ */
+export const socialDmRequests = pgTable(
+  'social_dm_requests',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    // The actor whose consent is at stake, and who sees the Requests folder.
+    recipientActorId: text('recipient_actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    // The actor asking to open the thread.
+    senderActorId: text('sender_actor_id')
+      .notNull()
+      .references(() => socialActors.id, { onDelete: 'cascade' }),
+    state: socialDmRequestState('state').notNull().default('pending'),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // One decision per pair, in this direction. The mirrored pair is a
+    // separate row on purpose: accepting someone's request is not the same as
+    // them accepting yours, and collapsing the two would let one person's
+    // acceptance open a thread the other never agreed to.
+    recipientSenderUnique: uniqueIndex(
+      'social_dm_requests_recipient_sender_unique'
+    ).on(table.recipientActorId, table.senderActorId),
+    // Reads go both ways: the Requests folder lists by recipient, and the gate
+    // looks up a specific pair on every direct send.
+    recipientActorIdIdx: index('social_dm_requests_recipient_actor_id_idx').on(
+      table.recipientActorId
+    ),
+    senderActorIdIdx: index('social_dm_requests_sender_actor_id_idx').on(
+      table.senderActorId
     ),
   })
 );
@@ -2869,8 +2979,15 @@ export type SocialActor = typeof socialActors.$inferSelect;
  * that selects PUBLIC_ACTOR_COLUMNS. Use this in the return types of
  * anything a client can reach so a full SocialActor cannot be assigned
  * into a public response by mistake.
+ *
+ * `dmPolicy` is omitted for the same reason it is absent from
+ * PUBLIC_ACTOR_COLUMNS: publishing it makes blocks inferable. A blocked
+ * sender who sees `everyone` and is refused anyway has learned something the
+ * block exists to withhold. This Omit is what makes that decision hold —
+ * adding the column to the table alone would have quietly widened every
+ * public response, and the type is what caught it.
  */
-export type PublicSocialActor = Omit<SocialActor, 'privateKey'>;
+export type PublicSocialActor = Omit<SocialActor, 'privateKey' | 'dmPolicy'>;
 
 /**
  * Strip the signing key off an actor row.

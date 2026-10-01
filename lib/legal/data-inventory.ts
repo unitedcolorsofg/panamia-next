@@ -124,6 +124,16 @@ export const inventory: Record<TableExport, Classification> = {
   // a data export hands the subject their own list -- not the inverse list of
   // who blocked them, which is other people's data about their own safety.
   socialBlocks: ['social_graph'],
+  // Who has asked to open a DM thread with whom, and whether it was accepted.
+  // Social graph data of the same shape as a follow, but it additionally
+  // records attempted contact that the recipient has not answered — so the
+  // pending rows are a list of people who wrote to someone who did not write
+  // back. Never shown to the sender (that is the point of the hold: being told
+  // "your message is waiting in Requests" discloses the recipient's settings),
+  // and never federated. A data export hands the subject the requests they
+  // sent and the requests they received, both being records of their own
+  // correspondence.
+  socialDmRequests: ['social_graph'],
   socialLikes: ['social_graph'],
   // Group configuration is not personal data, but created_by_profile_id is —
   // it records which human started a given group, the same kind of association
