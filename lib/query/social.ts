@@ -855,6 +855,23 @@ export interface GroupRosterResponse {
   /** Active members in the group, not in `members` -- it is ungated. */
   total: number;
   nextOffset: number | null;
+  /**
+   * The viewer's own role, or null if they are not an active member. This is
+   * what decides whether the management controls render at all, and it comes
+   * from the server rather than being inferred from the roster, because the
+   * roster is paged -- a viewer who is an admin can easily be on page 3.
+   */
+  viewerRole?: 'admin' | 'moderator' | 'member' | null;
+  /** The viewer's own membership row id, so the UI can skip self-eviction. */
+  viewerMemberId?: string | null;
+  /**
+   * Sent to leaders only, and only on the first page -- they do not change as
+   * you page through the roster. Undefined for everyone else, which is not
+   * the same as empty: a member is not told the queue is empty, they are not
+   * told there is a queue.
+   */
+  pending?: GroupMemberSummary[];
+  banned?: GroupMemberSummary[];
 }
 
 /**
@@ -885,6 +902,53 @@ export const useGroupMembers = (
       );
     },
     enabled: Boolean(handle),
+  });
+};
+
+export type GroupModerationAction =
+  'approve' | 'reject' | 'setRole' | 'remove' | 'ban' | 'unban';
+
+/**
+ * Act on one membership: approve, reject, promote, remove, ban or unban.
+ *
+ * One hook for all six rather than six hooks, because they share a URL, a
+ * refetch and an error shape, and the only thing that differs is a word in
+ * the body. The server decides whether the action is allowed; this does not
+ * try to predict that, so there is no optimistic update -- a row that
+ * disappears and comes back because the server said no is worse than a row
+ * that takes a moment to go.
+ */
+export const useModerateMember = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      handle,
+      memberId,
+      action,
+      role,
+    }: {
+      handle: string;
+      memberId: string;
+      action: GroupModerationAction;
+      role?: 'admin' | 'moderator' | 'member';
+    }) =>
+      axios.patch(
+        `/api/social/groups/${encodeURIComponent(
+          handle
+        )}/members/${encodeURIComponent(memberId)}`,
+        { action, role }
+      ),
+    onSettled: (_data, _error, { handle }) => {
+      // Every action moves either the roster, the count or both, and the
+      // count is on the group itself -- so invalidate the whole subtree
+      // rather than trying to name which of the two moved.
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'group', handle],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'groups'],
+      });
+    },
   });
 };
 

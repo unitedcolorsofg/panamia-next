@@ -32,8 +32,10 @@ import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import {
   getGroupByHandle,
   getMembership,
+  listBannedMembers,
   listGroupLeaders,
   listGroupMembers,
+  listPendingRequests,
   MAX_ROSTER_PAGE,
 } from '@/lib/federation';
 
@@ -108,8 +110,39 @@ export async function GET(
 
   const page = await listGroupMembers(group.id, { limit, offset });
 
+  /* The moderation queues ride along with the roster rather than sitting on
+     their own endpoint, because the only screen that wants them is the one
+     already asking for this. A member gets neither: pending tells them who is
+     waiting at the door, banned tells them who was thrown out, and neither is
+     theirs to know.
+
+     Only sent on the first page. They are unpaginated lists that do not change
+     as you page through the roster, and re-sending them with every "Load more"
+     would be the same bytes again for no reason. */
+  const isLeader =
+    membership?.status === 'active' &&
+    (membership.role === 'admin' || membership.role === 'moderator');
+
+  const queues =
+    isLeader && offset === 0
+      ? {
+          pending: await listPendingRequests(group.id),
+          banned: await listBannedMembers(group.id),
+        }
+      : {};
+
   return NextResponse.json({
     success: true,
-    data: { canRead: true, leaders, ...page },
+    data: {
+      canRead: true,
+      leaders,
+      viewerRole: membership?.status === 'active' ? membership.role : null,
+      /* Which roster row is the viewer's own. The client needs this to refuse
+         to offer "remove" on yourself, and it cannot work it out from the
+         roster alone -- that is paged, and an admin can easily be on page 3. */
+      viewerMemberId: membership?.id ?? null,
+      ...queues,
+      ...page,
+    },
   });
 }
