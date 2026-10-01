@@ -23,6 +23,7 @@
 - [Decision 2 — The Pana Count Is Owner-Only](#decision-2--the-pana-count-is-owner-only)
 - [A — Discovery Through Shared Activity](#a--discovery-through-shared-activity)
 - [B — Block & Mute](#b--block--mute)
+- [C — Safety Beyond Blocking](#c--safety-beyond-blocking)
 - [Roadmap](#roadmap)
 - [Risks & Open Questions](#risks--open-questions)
 
@@ -402,6 +403,131 @@ the same spirit as `PRIVACY-ROADMAP.md`'s note that remote servers may ignore `D
 
 ---
 
+## C — Safety Beyond Blocking
+
+**Status: proposal. §B is one part of this, not the whole of it.**
+
+Blocking is **recourse**: it works after somebody has already reached you. A model with no approval
+step needs recourse, but recourse alone means every pana's first experience of a bad actor is the
+harm itself. The full set is three tools doing different jobs:
+
+|                      | Tool                                | When it acts                         |
+| -------------------- | ----------------------------------- | ------------------------------------ |
+| **Prevention**       | DM gating, optional follow approval | Before contact                       |
+| **Recourse**         | Block, mute                         | After contact, one person at a time  |
+| **Community remedy** | Reporting, moderation               | After contact, on behalf of everyone |
+
+We have none of the three. §B covers the middle column. This section covers the other two, plus the
+disclosure audit that is specific to a local network.
+
+### C1 — Direct messages are ungated
+
+**This is the largest open safety gap, and it is larger than the missing block.**
+
+`createStatus` in `lib/federation/wrappers/status.ts` validates exactly three things for
+`visibility: 'direct'` — that there is at least one recipient, that there are no more than eight,
+and that the recipient rows exist. `app/api/social/statuses/route.ts` adds one more: that the array
+is non-empty. **Neither layer checks any relationship between sender and recipient.**
+
+So any account can message eight panas at once, unsolicited, and the route then writes a
+notification for each one. Blocking does not help here: the first message is the harm, and blocking
+is only available afterwards. In a geographically local network the sender may also know the
+recipient's neighbourhood, their groups, and which venues they post from.
+
+**Proposal.** A per-account setting with three values, defaulting to the middle one:
+
+| Setting             | Who may open a DM thread               |
+| ------------------- | -------------------------------------- |
+| `everyone`          | Any local actor                        |
+| `panas` _(default)_ | Mutual follows only                    |
+| `nobody`            | No new threads; existing ones continue |
+
+The gate belongs on **thread creation**, not on every message, or replying inside a thread the
+recipient already accepted would break. An existing thread is itself the consent.
+
+Defaulting to `panas` is a real product trade: it makes cold outreach harder, which is a cost for a
+network whose point is connection. The judgement is that an unsolicited DM from a stranger who can
+find you physically is a worse failure than a missed introduction, and that the introduction has
+other routes — a public reply, a mention, a shared group.
+
+### C2 — Optional follow approval already half-exists
+
+`social_actors.manually_approves_followers` is in the schema and is populated for remote actors by
+`lib/federation/remote-actor.ts`. **`createFollow` never reads it.** A local pana cannot require
+approval, and the column currently implies an option that is not wired.
+
+This is the cheapest safety feature available: the gate for the minority who want one, without
+imposing approval on everyone. It does not change the default model described in
+[The Model](#the-model) — open follows stay the default — it just stops the schema from lying.
+
+Honouring it means `createFollow` sets `pending` instead of `accepted` for a locked target, and
+there has to be somewhere to approve from. If we decide not to do that, **drop the column**, because
+a field that looks like a safety setting and does nothing is worse than its absence.
+
+### C3 — There is no way to report anything
+
+No report, flag, or moderation table exists among the forty in `lib/schema/index.ts`. The
+consequence is structural rather than cosmetic: without it, a bad actor is handled by fifty people
+each independently blocking them, nobody can see that it happened fifty times, and the account
+stays. Blocking scales linearly with victims; that is the definition of a missing remedy.
+
+The schema is the easy half:
+
+```
+social_reports
+  id, reporter_actor_id, subject_actor_id, subject_status_id (nullable),
+  reason (enum), note (text), status ('open' | 'actioned' | 'dismissed'),
+  created_at, resolved_at, resolved_by
+```
+
+**The hard half is not schema, it is staffing.** A report queue nobody reads is worse than no report
+button, because it collects a promise of review that is never performed. See
+[Risks](#risks--open-questions) — this needs a named human before the table is worth writing.
+
+`social_groups` already has a `social_group_role` with moderators. Whether instance-level moderation
+reuses that vocabulary or is a separate role is an open design question.
+
+### C4 — Ban evasion and rate limits
+
+A blocked person makes a second account. Nothing in §B addresses that, and nothing can fully.
+
+Two cheap mitigations worth having before they are needed, neither of which is a real solution:
+
+- **Rate limits on follow and DM-thread creation per account per hour.** Caps the blast radius of a
+  fresh account without affecting anyone behaving normally.
+- **New-account friction for DMs specifically** — an account hours old opening threads with eight
+  strangers is the shape of the problem.
+
+A small, locally-rooted community is itself the strongest mitigation here, and it is worth not
+over-engineering this. The point is to make the cheap version exist rather than to solve it.
+
+### C5 — The disclosure audit is the local-first part
+
+Everything above exists on any social network. What is specific to Pana Mia is that its users
+**physically encounter each other**, which turns ordinary metadata into location data.
+
+`lib/event.ts` already gets this right and should be the standard the rest is held to.
+`getProfileEventsFeed` returns hosting publicly but attendance **only to the owner**, and the
+comment explains why: `event_attendees` has no per-row visibility column, so no pana has consented
+to publishing any given RSVP, and a profile listing every event someone is going to would be _"a
+location history assembled from rows they only ever agreed to share with the organizer."_
+
+The same question has not been asked of everything else. Each of these should get an explicit
+answer rather than inheriting whatever the query happens to do today:
+
+- **Story views** (`social_story_views`) — the viewer list tells an author who was watching
+- **Group membership lists** — a neighbourhood group is a location claim
+- **Venue and location tags on posts** — a pattern of them is a routine
+- **`screenname_history`** — a pana who changes handle to get away from someone should not have the
+  rename publicly link the two
+- **Suggestion reasons** — already flagged under [Risks](#risks--open-questions): _"you were both at
+  X"_ discloses attendance indirectly, which C5 and the co-attendance tier both depend on
+
+A block must subtract from every one of these too, which is why this section sits next to §B rather
+than after it.
+
+---
+
 ## Roadmap
 
 ### Phase 1 — Naming and legibility
@@ -431,6 +557,24 @@ why those two boxes are still open.
 - [ ] Reject incoming federated follows from blocked actors
 - [ ] Settings screen listing blocks and mutes
 
+### Phase 3.5 — Prevention
+
+Ships with or immediately after Phase 3. Blocking without these leaves the first contact unguarded.
+
+- [ ] DM gating: `everyone` / `panas` / `nobody`, defaulting to `panas`, enforced on thread creation
+- [ ] Honour `manually_approves_followers` in `createFollow`, with somewhere to approve from — or
+      drop the column
+- [ ] Rate limits on follow and DM-thread creation
+
+### Phase 3.6 — Community remedy
+
+Gated on the moderation-owner question in [Risks](#risks--open-questions). Do not build the table
+before that is answered.
+
+- [ ] `social_reports` + report action on profiles and posts
+- [ ] A queue, and a named human reading it
+- [ ] Decide whether instance moderators reuse `social_group_role` or get their own vocabulary
+
 ### Phase 4 — Activity-based discovery
 
 - [ ] Typed `SuggestionReason`
@@ -444,6 +588,19 @@ escape hatch is the wrong order.
 ---
 
 ## Risks & Open Questions
+
+**Who reads the reports?** [C3](#c3--there-is-no-way-to-report-anything) is blocked on this and not
+on engineering. A report button that files into a queue nobody opens is worse than no button: it
+collects a promise of review that is never performed, and it invites panas to disclose an incident
+to a system that will not answer. The options are a single owner, a rotating pana, or promoting
+group moderators to instance level — each with a different failure mode when that person is
+unavailable or is themselves the subject. **Name the human before building the table.**
+
+**DM gating's default is a product trade, not a technical one.**
+[C1](#c1--direct-messages-are-ungated) proposes defaulting to `panas`, which makes cold outreach
+harder in a network whose purpose is connection. If the community would rather accept unsolicited
+DMs than lose introductions, the default moves to `everyone` and the setting still has to exist.
+That is Pana's call, not the implementation's.
 
 **The `rejected` enum value stays dead until blocking ships.** Worth leaving a comment on the enum
 saying so, because it currently reads like an approval flow that was built and lost.
