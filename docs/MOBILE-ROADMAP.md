@@ -468,6 +468,57 @@ What would clear it decisively is native capability the browser cannot offer —
 push notifications first, then camera-backed uploads and share-sheet targets.
 Push is the highest-value next step for the product regardless of review.
 
+### Apple guideline 3.2.1(vi) — donations
+
+`/donate` takes money inside the app, and Apple treats charitable fundraising as
+a special case with a hard gate in front of it.
+
+**The gate.** Guideline 3.2.2(iv): unless you are an _approved nonprofit_, apps
+"may only collect funds outside of the app, such as via Safari or SMS." Being a
+registered 501(c)(3) is not the same as being approved — Apple runs its own
+process. Until that approval lands, shipping the donate page inside the WebView
+is a rejection rather than a gray area.
+
+**Getting approved.** US organizations need a [Candid Seal of
+Transparency](https://www.guidestar.org/UpdateNonprofitProfile/) — it is free,
+self-serve, and every seal holder is automatically approved. Organizations
+outside the US go through [Benevity](https://causes.benevity.org/apple-pay/apple-pay-landing/)
+instead, which asks for the Team ID. See
+<https://developer.apple.com/apple-pay/nonprofits/>.
+
+**What approval then requires**, from guideline 3.2.1(vi): offer Apple Pay,
+disclose how the funds will be used, abide by local and federal law, and make
+sure tax receipts reach donors. The app must also stay free. The upside is that
+donations sit outside In-App Purchase entirely, so Apple takes nothing.
+
+**Apple Pay does work in this WebView, on iOS 16+.** Expect to be told
+otherwise: from iOS 13 through 15.x WebKit deliberately deleted the Apple Pay
+APIs from any `WKWebView` that injected user scripts, which is exactly what
+Capacitor does. That restriction was removed in WebKit in February 2022
+([bug 236254](https://bugs.webkit.org/show_bug.cgi?id=236254)) and shipped in
+iOS 16; WebKit now carries regression tests asserting Apple Pay survives
+document-start `WKUserScript` injection. No entitlement, merchant ID, or
+configuration is needed on the app side. Advice predating iOS 16 is stale.
+
+Two consequences worth not relearning:
+
+- **Leave `limitsNavigationsToAppBoundDomains` false.** App-Bound Domains do not
+  gate Apple Pay, and turning it on would block the top-level navigation to
+  `checkout.stripe.com` unless that host were added to a list capped at ten.
+- **`submit_type: 'donate'`** is set in `app/api/create-checkout-session/route.ts`
+  so Checkout says "Donate" rather than "Pay".
+
+**Still open.** Apple asks approved nonprofits to use its "Donate with Apple
+Pay" button type, and Stripe's hosted Checkout renders its own button with no
+control over that — how strictly reviewers enforce this on web flows is not
+documented anywhere findable. If review pushes back, the fallbacks are a
+self-hosted page using Stripe's Payment Request Button with Apple's
+`<apple-pay-button type="donate">`, or routing the whole flow to
+`SFSafariViewController` via `@capacitor/browser` (the only in-app surface Apple
+explicitly documents as supporting Apple Pay). Separately, the donate page does
+not yet state how funds are used or how a tax receipt reaches the donor; both
+are conditions of 3.2.1(vi) and both need facts only Pana Mia has.
+
 ### Both stores
 
 - Bundle ID / application ID is `social.pana.app`, defined once in
@@ -493,7 +544,11 @@ Push is the highest-value next step for the product regardless of review.
 3. **Generate signing keys**, upload a first internal-test build, then set
    `ANDROID_APP_CERT_FINGERPRINTS` and `APPLE_APP_TEAM_ID` and verify deep links
    end to end. This is also when a release workflow becomes worth writing.
-4. **Push notifications** — the strongest answer to guideline 4.2 and the
+4. **Start the Candid Seal of Transparency.** Free and self-serve, but it gates
+   iOS submission: without it, guideline 3.2.2(iv) forbids collecting donations
+   inside the app at all. Independent of the Apple Developer Program enrollment,
+   so it can run in parallel.
+5. **Push notifications** — the strongest answer to guideline 4.2 and the
    clearest native win over the website. Needs `@capacitor/push-notifications`,
    APNs and FCM credentials, and device-token storage tied to the account.
-5. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
+6. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.

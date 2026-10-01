@@ -27,7 +27,19 @@ export async function POST(request: NextRequest) {
     const origin = request.headers.get('origin') || 'https://pana.social';
 
     const session = await stripe.checkout.sessions.create({
+      // Apple Pay and Google Pay ride along with `card`. Stripe models them as
+      // card wallets rather than separate payment method types -- an Apple Pay
+      // charge comes back as a `card` PaymentMethod with `card.wallet.type` set
+      // -- so there is no `apple_pay` value to add here. Hosted Checkout offers
+      // the wallet on its own whenever the device supports it, which is what
+      // satisfies the "offer Apple Pay support" half of guideline 3.2.1(vi).
       payment_method_types: ['card'],
+      // Labels the Checkout button "Donate" instead of "Pay". Not cosmetic:
+      // guideline 3.2.1(vi) only lets *approved* nonprofits raise money inside
+      // an app, so the flow has to read as a donation rather than a purchase.
+      // Valid in `payment` and `subscription` mode, the only two this route
+      // creates. See the nonprofit section of docs/MOBILE-ROADMAP.md.
+      submit_type: 'donate',
       line_items: [
         {
           price_data: {
