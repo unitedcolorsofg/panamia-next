@@ -3,9 +3,10 @@
 > **STATUS**: **Proposal. Nothing here is implemented.** No migration, table, route, Durable Object,
 > or component described below exists yet.
 >
-> **Where chat lives is deliberately undecided.** This document covers how real-time messaging
-> should be built in this repo — key custody, transport, persistence, and authentication — but not
-> which surface it hangs off. See [Open Questions](#risks--open-questions).
+> **Direct messages are no longer a candidate surface.** DMs ship as _mail_ on the existing
+> `visibility: 'direct'` status substrate, decided against the side-by-side mock at `/mock/dms`.
+> See `docs/SOCIAL-GRAPH.md` §C1. What is still undecided is whether chat hangs off groups or
+> standalone rooms. See [Open Questions](#risks--open-questions).
 >
 > This material was extracted from `docs/GROUPS-ROADMAP.md`, where it was originally phase 5. Groups
 > ship without it. The two features share a membership model if and only if chat ends up scoped to
@@ -233,9 +234,17 @@ standalone rooms imply different membership sources, and membership is what the 
 
 ### What is chat scoped to? — blocks everything else
 
-Direct messages between two panas, rooms attached to groups, standalone rooms, or some combination.
-This determines the membership source, the auth gate, the room ID scheme, and the UI surface.
-Nothing else in this document can be built until it is answered.
+**Half answered: not direct messages.** DMs ship as mail on the existing direct-status substrate,
+so chat does not inherit them. What remains is rooms attached to groups, standalone rooms, or both
+— which still determines the membership source, the auth gate, the room ID scheme, and the UI
+surface. Nothing else in this document can be built until that half is answered.
+
+The reasoning that settled the DM half is worth keeping, because it applies to group rooms too.
+Real-time affordances **advertise liveness**: on a network of a few hundred locals, a presence dot
+that always reads "offline" and a typing indicator that never fires make a room look abandoned,
+where an async thread with three messages in it reads as perfectly healthy. Chat earns its
+infrastructure where people are already talking — a group with a shared purpose — not in a cold
+two-person thread, which is the case this document originally assumed.
 
 ### Member cap per room
 

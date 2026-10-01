@@ -434,21 +434,33 @@ notification for each one. Blocking does not help here: the first message is the
 is only available afterwards. In a geographically local network the sender may also know the
 recipient's neighbourhood, their groups, and which venues they post from.
 
-**Proposal.** A per-account setting with three values, defaulting to the middle one:
+**Decision.** A per-account setting with three values, defaulting to the first:
 
-| Setting             | Who may open a DM thread               |
-| ------------------- | -------------------------------------- |
-| `everyone`          | Any local actor                        |
-| `panas` _(default)_ | Mutual follows only                    |
-| `nobody`            | No new threads; existing ones continue |
+| Setting                | Who may open a DM thread                        |
+| ---------------------- | ----------------------------------------------- |
+| `everyone` _(default)_ | Any local actor; non-Panas land in **Requests** |
+| `panas`                | Mutual follows only; no Requests folder         |
+| `nobody`               | No new threads; existing ones continue          |
 
 The gate belongs on **thread creation**, not on every message, or replying inside a thread the
 recipient already accepted would break. An existing thread is itself the consent.
 
-Defaulting to `panas` is a real product trade: it makes cold outreach harder, which is a cost for a
-network whose point is connection. The judgement is that an unsolicited DM from a stranger who can
-find you physically is a worse failure than a missed introduction, and that the introduction has
-other routes — a public reply, a mention, a shared group.
+**Why the default moved from `panas` to `everyone`.** An earlier draft of this section defaulted to
+`panas` and described it as a real product trade. The trade was being made in the wrong direction.
+The scarce resource in a network this size is not conversation volume, it is **first contacts that
+happen at all** — a pana finds a maker or a business in the directory and writes to them. Gating on
+mutual follow blocks precisely that person. A mutual follow is also a weak proxy for consent: it is
+a thinner claim than _"I read your profile and want to work with you."_
+
+**Requests supplies the consent that `panas` was standing in for.** A thread opened by a non-Pana is
+held in a separate Requests folder instead of the inbox, and — the load-bearing part — **it does not
+generate a notification.** That removes the harm this section opens with, which was never really
+"a stranger wrote to me" but "a stranger can make my phone buzz eight times." The recipient reviews
+on their own schedule and accepts, deletes, or blocks; accepting is what creates the thread, and
+until then there is nothing to reply to.
+
+This keeps the safety property and drops the cost. `panas` remains for panas who want no Requests
+folder at all, and `nobody` for those who want no new threads.
 
 ### C2 — Optional follow approval already half-exists
 
@@ -561,7 +573,10 @@ why those two boxes are still open.
 
 Ships with or immediately after Phase 3. Blocking without these leaves the first contact unguarded.
 
-- [ ] DM gating: `everyone` / `panas` / `nobody`, defaulting to `panas`, enforced on thread creation
+- [ ] DM gating: `everyone` / `panas` / `nobody`, defaulting to `everyone`, enforced on thread
+      creation
+- [ ] Requests folder: threads from non-Panas held out of the inbox and **suppressed from
+      notifications** until accepted
 - [ ] Honour `manually_approves_followers` in `createFollow`, with somewhere to approve from — or
       drop the column
 - [ ] Rate limits on follow and DM-thread creation
@@ -596,11 +611,10 @@ to a system that will not answer. The options are a single owner, a rotating pan
 group moderators to instance level — each with a different failure mode when that person is
 unavailable or is themselves the subject. **Name the human before building the table.**
 
-**DM gating's default is a product trade, not a technical one.**
-[C1](#c1--direct-messages-are-ungated) proposes defaulting to `panas`, which makes cold outreach
-harder in a network whose purpose is connection. If the community would rather accept unsolicited
-DMs than lose introductions, the default moves to `everyone` and the setting still has to exist.
-That is Pana's call, not the implementation's.
+**DM gating's default — resolved.** It is `everyone`, with threads from non-Panas held in a
+notification-free Requests folder. [C1](#c1--direct-messages-are-ungated) carries the reasoning and
+the reversal from the earlier `panas` default, decided against the `/mock/dms` comparison. The
+setting still has to exist; only its default moved.
 
 **The `rejected` enum value stays dead until blocking ships.** Worth leaving a comment on the enum
 saying so, because it currently reads like an approval flow that was built and lost.
