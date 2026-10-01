@@ -10,6 +10,11 @@
  * Returns mutualCount rather than a rendered reason string so the copy stays in
  * the component. When a second signal lands (shared groups, neighbourhood) this
  * should grow a discriminated reason field rather than more loose integers.
+ *
+ * followsYou rides alongside it because suggestions exclude people the viewer
+ * follows but not people who follow the viewer, so "follows you, follow back"
+ * is a state this module can genuinely be in -- and it is the one card here
+ * that is a tap away from a Pana.
  */
 
 import { NextResponse } from 'next/server';
@@ -47,6 +52,7 @@ export async function GET() {
         summary: a.summary,
         iconUrl: a.iconUrl,
         mutualCount: a.mutualCount,
+        followsYou: a.followsYou,
       })),
     },
   });

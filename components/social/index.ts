@@ -5,6 +5,7 @@ export { PostActions } from './PostActions';
 export { PostList } from './PostList';
 export { ActorCard } from './ActorCard';
 export { FollowButton } from './FollowButton';
+export { RelationshipBadge } from './RelationshipBadge';
 export { SocialEligibilityGate } from './SocialEligibilityGate';
 export { VoiceMemoComposer } from './VoiceMemoComposer';
 export { SendVoiceMemoButton } from './SendVoiceMemoButton';

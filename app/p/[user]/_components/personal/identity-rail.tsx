@@ -28,11 +28,14 @@ export function IdentityRail({
   stats,
   actions,
   panas,
+  badge,
 }: {
   profile: PersonalProfileView;
   stats: StatDef[];
   actions: ReactNode;
   panas: ReactNode;
+  /** The viewer's relationship to this person, when there is one to show. */
+  badge?: ReactNode;
 }) {
   return (
     <aside className="space-y-5 lg:sticky lg:top-[5.25rem]">
@@ -91,9 +94,16 @@ export function IdentityRail({
           <h1 className="mt-3 text-xl leading-tight font-black tracking-tight">
             {profile.name}
           </h1>
-          <p className="text-pana-burnt text-sm font-extrabold">
-            @{profile.handle}
-          </p>
+          {/* The badge rides on the handle rather than sitting with the county
+              and pronoun pills below. Those describe the person; this describes
+              the viewer's relationship to them, and it belongs with the name it
+              qualifies — next to the Follow back button it is prompting. */}
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <p className="text-pana-burnt text-sm font-extrabold">
+              @{profile.handle}
+            </p>
+            {badge}
+          </div>
 
           {(profile.county || profile.pronouns) && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">

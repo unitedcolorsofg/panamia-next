@@ -874,6 +874,12 @@ export interface SuggestedPana extends PanaSummary {
    * new Pana and needs different copy rather than a hidden card.
    */
   mutualCount: number;
+  /**
+   * Whether this person already follows the viewer. The server only excludes
+   * people the viewer follows, so this card can be one tap from a Pana -- which
+   * is worth saying ahead of any overlap count. See docs/SOCIAL-GRAPH.md.
+   */
+  followsYou: boolean;
 }
 
 export interface SuggestionsResponse {

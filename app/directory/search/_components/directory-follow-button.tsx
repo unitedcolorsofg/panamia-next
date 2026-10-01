@@ -51,6 +51,7 @@ export function DirectoryFollowButton({
     <FollowButton
       username={screenname}
       isFollowing={targetActorData.isFollowing || false}
+      isFollowedBy={targetActorData.isFollowedBy || false}
       variant="outline"
     />
   );

@@ -408,8 +408,14 @@ the same spirit as `PRIVACY-ROADMAP.md`'s note that remote servers may ignore `D
 
 - [ ] Rename feed tab `Panas` → `Following`; keep the explanatory hint
 - [ ] Fix the six "Pana = any member" strings
-- [ ] Add `Follows you` / `Pana` badges to profile, suggestions, follower and following lists
+- [x] Add `Follows you` / `Pana` badges to the personal profile, suggestion cards and directory results
+- [ ] Add the same badges to follower and following lists — blocked on the line below
 - [ ] Ensure list endpoints return both follow directions
+
+`/api/social/follows` currently returns the listed actor only, with no indication of whether the
+viewer follows them or they follow the viewer. `ActorList` therefore has nothing to render a badge
+from. That endpoint has to carry both directions before the list surfaces can be finished, which is
+why those two boxes are still open.
 
 ### Phase 2 — Pana count privacy
 

@@ -20,6 +20,7 @@ import {
   sql,
   asc,
   desc,
+  inArray,
   notInArray,
   getTableColumns,
 } from 'drizzle-orm';
@@ -287,9 +288,13 @@ export async function getFollowRelationship(
  * Panas — mutual follows.
  *
  * A Pana is a connection both people opted into: A follows B and B follows A,
- * both accepted. That bilateral consent is what makes the *count* safe to show
- * to everyone while a raw follower list is not — nobody lands in someone's
- * Panas without having followed back themselves.
+ * both accepted. Nobody lands in someone's Panas without having followed back
+ * themselves, which is what makes the per-person badge safe to show: knowing
+ * that you and someone are connected is context, not a graph map.
+ *
+ * The aggregate is a different matter and is owner-only — both the count and
+ * the list. A visible total reads as a scoreboard and turns a mutual follow
+ * from a relationship into a target. See docs/SOCIAL-GRAPH.md.
  *
  * The reciprocal row is found with a self-join rather than by intersecting two
  * result sets in JS, so the database does the set work and the count stays a
@@ -313,7 +318,8 @@ function outgoingAccepted(actorId: string) {
 }
 
 /**
- * How many Panas this actor has. Public — see the note above on why.
+ * How many Panas this actor has. Owner-only — callers must confirm the viewer
+ * is the actor before returning this. See the note above on why.
  */
 export async function countMutualFollows(actorId: string): Promise<number> {
   const [row] = await db
@@ -326,8 +332,8 @@ export async function countMutualFollows(actorId: string): Promise<number> {
 }
 
 /**
- * The Panas themselves. Callers gate this on the viewer being signed in; the
- * count above is the part that stays public.
+ * The Panas themselves. Owner-only, like the count above — callers gate this on
+ * the viewer being the actor, not merely on being signed in.
  *
  * This is a join rather than a relational query, so it cannot use
  * PUBLIC_ACTOR_COLUMNS -- the signing key is dropped from the projection
@@ -358,7 +364,53 @@ export type SuggestedActor = PublicSocialActor & {
    * came from the fallback tier rather than the graph.
    */
   mutualCount: number;
+  /**
+   * Whether this actor already follows the viewer. Suggestions exclude anyone
+   * the viewer follows but not anyone who follows the viewer, so this row is
+   * reachable and is the most actionable card in the module: one tap and the
+   * pair are Panas. See docs/SOCIAL-GRAPH.md.
+   */
+  followsYou: boolean;
 };
+
+/** A suggestion before the inbound-follow pass annotates it. */
+type SuggestionSeed = PublicSocialActor & { mutualCount: number };
+
+/**
+ * Mark which suggestions already follow the viewer.
+ *
+ * One query for the whole page rather than a join on each tier: the two tiers
+ * are assembled separately and `limit` is single digits, so a set lookup over
+ * the combined result is both simpler and fewer round trips than teaching each
+ * branch the same left join.
+ */
+async function annotateFollowsYou(
+  viewerActorId: string,
+  seeds: SuggestionSeed[]
+): Promise<SuggestedActor[]> {
+  if (seeds.length === 0) return [];
+
+  const inbound = await db
+    .select({ actorId: socialFollows.actorId })
+    .from(socialFollows)
+    .where(
+      and(
+        eq(socialFollows.targetActorId, viewerActorId),
+        eq(socialFollows.status, 'accepted'),
+        inArray(
+          socialFollows.actorId,
+          seeds.map((seed) => seed.id)
+        )
+      )
+    );
+
+  const followers = new Set(inbound.map((row) => row.actorId));
+
+  return seeds.map((seed) => ({
+    ...seed,
+    followsYou: followers.has(seed.id),
+  }));
+}
 
 /** me -> M */
 const panaOut = alias(socialFollows, 'pana_out');
@@ -459,14 +511,14 @@ export async function listSuggestedActors(
     .orderBy(desc(mutualCount), asc(socialActors.id))
     .limit(limit);
 
-  const suggestions: SuggestedActor[] = shared.map((r) => ({
+  const suggestions: SuggestionSeed[] = shared.map((r) => ({
     ...r.actor,
     mutualCount: Number(r.mutualCount ?? 0),
   }));
 
   const remaining = limit - suggestions.length;
   if (remaining <= 0) {
-    return suggestions;
+    return annotateFollowsYou(actorId, suggestions);
   }
 
   const fresh = await db
@@ -484,5 +536,8 @@ export async function listSuggestedActors(
     .orderBy(desc(socialActors.createdAt), desc(socialActors.id))
     .limit(remaining);
 
-  return suggestions.concat(fresh.map((r) => ({ ...r.actor, mutualCount: 0 })));
+  return annotateFollowsYou(
+    actorId,
+    suggestions.concat(fresh.map((r) => ({ ...r.actor, mutualCount: 0 })))
+  );
 }

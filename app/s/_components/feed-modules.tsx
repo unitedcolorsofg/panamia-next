@@ -302,13 +302,22 @@ export function SuggestionsModule() {
                 </p>
               )}
 
-              <p className="card-flag mt-2.5 self-start">
-                {suggestion.mutualCount > 0
-                  ? `${suggestion.mutualCount} ${
-                      suggestion.mutualCount === 1 ? 'Pana' : 'Panas'
-                    } in common`
-                  : 'New to Pana Social'}
-              </p>
+              {/* "Follows you" outranks the overlap count. One is a fact about
+                  other people, the other is an invitation addressed to the
+                  viewer -- and following back completes a Pana outright. */}
+              {suggestion.followsYou ? (
+                <p className="card-flag mt-2.5 self-start" data-tone="prompt">
+                  Follows you
+                </p>
+              ) : (
+                <p className="card-flag mt-2.5 self-start">
+                  {suggestion.mutualCount > 0
+                    ? `${suggestion.mutualCount} ${
+                        suggestion.mutualCount === 1 ? 'Pana' : 'Panas'
+                      } in common`
+                    : 'New to Pana Social'}
+                </p>
+              )}
 
               <Button
                 size="sm"
@@ -328,12 +337,15 @@ export function SuggestionsModule() {
                 {isFollowed ? (
                   <>
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                    Following
+                    {/* Following someone who already follows you makes the pair
+                        Panas on the spot, so the button says what just happened
+                        rather than making the viewer infer it. */}
+                    {suggestion.followsYou ? 'Panas' : 'Following'}
                   </>
                 ) : (
                   <>
                     <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                    Follow
+                    {suggestion.followsYou ? 'Follow back' : 'Follow'}
                   </>
                 )}
                 <span className="sr-only"> {displayName}</span>
