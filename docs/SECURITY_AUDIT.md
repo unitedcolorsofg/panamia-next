@@ -504,7 +504,7 @@ unmitigated exposure — see below.
 > sanitised post HTML at the time, so stored XSS was reachable by any poster.
 > Fixed in the change that added `lib/sanitize-html.ts`.
 
-### Known limitation: deceptive links (accepted, unmitigated)
+### Known limitation: deceptive links (unmitigated, not yet accepted)
 
 **Sanitisation fixes injection, not deception.** These are different problems
 and the allowlist only solves the first. A link whose visible text disagrees
@@ -533,9 +533,11 @@ the markup is already valid. The available mitigations are product decisions:
 showing the real destination domain next to link text, an interstitial on
 off-site links, or a hover preview. None are implemented.
 
-Recorded so this reads as an accepted risk rather than being rediscovered as a
-surprise. Do not infer from "XSS: Protected" above that hostile links are
-handled. They are not.
+Recorded so this is weighed deliberately rather than rediscovered as a
+surprise. **Not yet accepted**: no maintainer has reviewed and accepted this
+exposure, so "unmitigated" here means open, not signed off. Do not infer from
+"XSS: Protected" above that hostile links are handled, and do not infer from
+this section that carrying the risk was a decision.
 
 ### CSRF Protection
 
