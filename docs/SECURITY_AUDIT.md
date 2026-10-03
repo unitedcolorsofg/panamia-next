@@ -496,12 +496,48 @@ of the tag.
 
 **Regression tests**: `tests-unit/sanitize-html.test.ts` (`yarn test:unit`)
 
-**Status**: Protected — sanitised at render, enforced by a single chokepoint
+**Status**: Protected against **injection**. Deceptive links are a separate,
+unmitigated exposure — see below.
 
 > Prior revisions of this document claimed "Never dangerouslySetInnerHTML
 > used" / "Protected". That was false in four places, and nothing in the repo
 > sanitised post HTML at the time, so stored XSS was reachable by any poster.
 > Fixed in the change that added `lib/sanitize-html.ts`.
+
+### Known limitation: deceptive links (unmitigated, not yet accepted)
+
+**Sanitisation fixes injection, not deception.** These are different problems
+and the allowlist only solves the first. A link whose visible text disagrees
+with its destination is well-formed HTML, so it passes the allowlist untouched:
+
+```
+in   <a href="https://evil.test">your bank</a>
+out  <a href="https://evil.test" rel="noopener noreferrer ugc" target="_blank">your bank</a>
+```
+
+The sanitiser does not merely permit the lure — it decorates it, in the same
+call that strips an `onerror` handler off the markup beside it.
+
+**Scope**: live on every surface that renders post HTML, because anchors carry
+attacker-chosen `href` _and_ attacker-chosen text — `PostCard`,
+`feed-post-card`, `MastodonComments`. Federated content is the sharpest case:
+it is authored on instances we do not moderate.
+
+**Where it is mitigated**: only `/updates`. `htmlToText` flattens held DM
+requests to plain text, which removes the anchor entirely. That works there
+because a stranger's unsolicited first message has no legitimate need for
+links. **The feed cannot copy this** — links are the feature.
+
+**Not a sanitiser setting.** Narrowing the allowlist further cannot fix this;
+the markup is already valid. The available mitigations are product decisions:
+showing the real destination domain next to link text, an interstitial on
+off-site links, or a hover preview. None are implemented.
+
+Recorded so this is weighed deliberately rather than rediscovered as a
+surprise. **Not yet accepted**: no maintainer has reviewed and accepted this
+exposure, so "unmitigated" here means open, not signed off. Do not infer from
+"XSS: Protected" above that hostile links are handled, and do not infer from
+this section that carrying the risk was a decision.
 
 ### CSRF Protection
 
