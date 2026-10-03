@@ -421,6 +421,14 @@ harm itself. The full set is three tools doing different jobs:
 We have none of the three. §B covers the middle column. This section covers the other two, plus the
 disclosure audit that is specific to a local network.
 
+There is a fourth exposure that none of the three columns catches: a **deceptive link**, where the
+visible text disagrees with the destination. It is not prevention, recourse or remedy — it is a
+property of how post HTML renders, it is live on every feed surface, and sanitising does not touch
+it because the markup is perfectly valid. Held DM requests are safe only because `/updates`
+flattens them to plain text. See "Known limitation: deceptive links" in `docs/SECURITY_AUDIT.md`.
+Worth weighing here because federated posts are authored on instances we do not moderate, so
+blocking and reporting both arrive after the click.
+
 ### C1 — Direct messages are ungated
 
 **This is the largest open safety gap, and it is larger than the missing block.**
