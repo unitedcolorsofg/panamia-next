@@ -214,7 +214,7 @@ Admin-only endpoints (require admin role):
 | ------------------------------- | ------ | ----------------------------- |
 | `/api/createContactUs`          | POST   | Submit contact form           |
 | `/api/createSignup`             | POST   | Submit signup form            |
-| `/api/createExpressProfile`     | POST   | Quick profile creation        |
+| `/api/listings/intake`          | POST   | Submit a business listing     |
 | `/api/admin/contactSubmissions` | GET    | List contact submissions      |
 | `/api/admin/contactSubmissions` | PATCH  | Set contact submission status |
 | `/api/getSignupList`            | GET    | List signup requests          |

@@ -43,7 +43,11 @@ export const PANA_OFFERINGS: readonly PanaOffering[] = [
   // and joining the club does not need one — the form at the other end has
   // been live for years. Left as null it made the front page apologise for
   // being unbuilt directly above two working buttons.
-  { id: 'getInvolved', href: '/get-involved', appHref: '/form/become-a-pana' },
+  {
+    id: 'getInvolved',
+    href: '/get-involved',
+    appHref: '/form/list-your-business',
+  },
 ];
 
 export function getOffering(id: string): PanaOffering {

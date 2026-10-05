@@ -249,7 +249,7 @@ export function ProfileHero({
             {!showsPanaActions && (
               <p className="bizprofile-hero-note">
                 Saving and recommending come from a pana account.{' '}
-                <Link href="/form/become-a-pana">Add one</Link>
+                <Link href="/welcome">Add one</Link>
               </p>
             )}
           </div>

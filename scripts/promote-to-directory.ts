@@ -16,11 +16,14 @@
  * (search + browse), /api/directory/featured, /api/directory/suggest,
  * app/sitemap.ts and /api/admin/profile/action's member count.
  *
- * The trap is that `users.accountType` defaults to 'personal' and exactly ONE
- * route in the codebase ever writes anything else —
- * app/api/createExpressProfile/route.ts, behind /form/become-a-pana. An
- * account that never completed that form is invisible to the directory
- * forever, no matter how complete its profile is. Nothing surfaces this:
+ * The trap is that `users.accountType` defaults to 'personal' and NO route in
+ * the codebase writes anything else. The one that did,
+ * app/api/createExpressProfile/route.ts behind /form/become-a-pana, was
+ * removed along with that form: a business is now its own listing row owned
+ * through `profileOwners`, rather than a flag flipped on someone's personal
+ * account. This script is therefore the only way to set it, and it stays for
+ * the legacy accounts that still carry a listing on their own profile.
+ * Nothing surfaces this:
  * search returns `{"data":[],"total":0}` whether the table is empty or every
  * row is filtered out. As scripts/seed-dev-data.ts puts it, "empty and broken
  * look identical from the outside".

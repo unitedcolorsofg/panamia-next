@@ -55,14 +55,16 @@ test.describe('Public Navigation', () => {
     await expect(page.locator('h1').first()).toContainText('The Future');
   });
 
-  test('become a pana form sends anonymous visitors to sign in', async ({
+  test('become a pana forwards to the business listing form', async ({
     page,
   }) => {
     const res = await page.goto('/become-a-pana');
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+    await expect(page).toHaveURL(
+      /^https?:\/\/[^/]+\/form\/list-your-business$/
+    );
     await expect(page.locator('h1').first()).toContainText(
-      'Welcome to Pana MIA'
+      'List your business'
     );
   });
 

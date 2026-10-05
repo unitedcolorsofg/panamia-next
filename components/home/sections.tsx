@@ -350,7 +350,9 @@ export function HomePoint() {
                 asChild
                 className="story-btn story-btn-solid rounded-full font-extrabold"
               >
-                <Link href="/form/become-a-pana">{t('closing.ctaJoin')}</Link>
+                <Link href="/form/list-your-business">
+                  {t('closing.ctaJoin')}
+                </Link>
               </Button>
               <Button
                 size="lg"

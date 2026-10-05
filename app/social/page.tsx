@@ -22,7 +22,7 @@ export default function SocialFrontPage() {
   return (
     <OfferingFrontPage
       id="social"
-      actions={{ primary: '/s', secondary: '/form/become-a-pana' }}
+      actions={{ primary: '/s', secondary: '/form/list-your-business' }}
     />
   );
 }
