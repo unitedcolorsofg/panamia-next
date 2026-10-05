@@ -314,16 +314,20 @@ export function EventCard({ event }: { event: MockEvent }) {
  *
  * Who can see whom
  * ----------------
- * The group is public; its roster is not. A signed-out visitor gets every
- * fact that helps them decide to join — what it is, how often it meets, where,
- * how busy it is, and whether the door is open — but no faces, because the
- * membership list is other people's data and they did not publish it to the
- * open web by joining a club.
+ * The group is public, and so is the fact that real people are in it. Faces
+ * show either way: a wall of avatars is what tells a stranger this is a living
+ * group rather than an empty listing, and a bare number never carries that.
  *
- * The count stays either way. "88 members" is the signal that separates a
- * living group from an abandoned one, and it names nobody; dropping it would
- * cost the public page the one thing it most needs to show while protecting
- * no one. Aggregate yes, identity no.
+ * What never shows is anything that turns a face into a person you can look
+ * up — no names, no profile links, nothing in the alt text. The roster reads
+ * as a crowd instead of a list, which keeps the page persuasive without
+ * publishing a walkable directory of members.
+ *
+ * This matches what the business and event cards already did, so the rule is
+ * now one rule everywhere rather than a per-card judgement call.
+ *
+ * "You're in" still waits for sign-in. That one is a fact about the viewer
+ * rather than about the group, and a signed-out visitor is not in anything.
  */
 export function GroupCard({
   group,
@@ -398,8 +402,10 @@ export function GroupCard({
 
         <div className="dirsearch-card-foot">
           <div className="dirsearch-card-signals">
-            {/* Faces are the roster, so they are the part that goes away. */}
-            {signedIn && group.faces.length > 0 && (
+            {/* Faces, never names. The avatars are decorative by design — no
+                alt text, no link, nothing to click through to — so the crowd
+                reads as real without becoming a list of who to go find. */}
+            {group.faces.length > 0 && (
               <span className="dirsearch-card-avatars" aria-hidden="true">
                 {group.faces.map((face) => (
                   <Image key={face} src={face} alt="" width={26} height={26} />
@@ -409,15 +415,6 @@ export function GroupCard({
             <span className="dirsearch-card-counts">
               <strong>{group.members}</strong> members
             </span>
-            {!signedIn && (
-              <span
-                className="dirsearch-card-counts inline-flex items-center gap-1 opacity-60"
-                title="Join the club to see who is in this group"
-              >
-                <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
-                Sign in to see who&rsquo;s in it
-              </span>
-            )}
           </div>
 
           <div className="dirsearch-card-actions">

@@ -451,11 +451,16 @@ export function EventsView(props: ViewProps) {
  * member list is personal data; a group is a public notice board with a door
  * on it, and the door is `joinPolicy`, not the search index.
  *
- * The roster is the part that stays private. Public page, private membership:
- * a signed-out visitor sees every group and every fact that would make them
- * want to join one, but not who is already in it. That split is what lets the
- * page recruit without publishing the club's member list to the open web — see
- * `GroupCard` for where the line falls.
+ * Faces show either way; names never do. A signed-out visitor sees every
+ * group, how many people are in it, and the crowd itself — but nothing that
+ * turns an avatar into someone they can look up, because the faces carry no
+ * names, no links and no alt text. The roster reads as a crowd rather than a
+ * list, which recruits without publishing a walkable member directory. This is
+ * the same rule the business and event cards already followed; see `GroupCard`.
+ *
+ * What does stay behind sign-in is viewer state: the shelf below and the
+ * "You're in" badge both answer "where do I already belong", and a signed-out
+ * visitor has no answer to that yet.
  *
  * Second, the member's own groups get a shelf above the results. A group page
  * is somewhere you return to, unlike a directory listing, and burying "the
