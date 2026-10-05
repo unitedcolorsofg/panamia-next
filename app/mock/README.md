@@ -19,6 +19,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/settings`          | Account settings — one page, either masthead                     |
 | `/mock/directory`         | Directory search results, pre-map                                |
 | `/mock/directory-unified` | One directory theme across businesses, panas, groups and events  |
+| `/mock/explore`           | Scope moved into the search bar; directory narrowed to businesses |
 | `/mock/dms`               | Direct messages, as two competing models behind one switch       |
 
 ## Viewing the Pana Social surface
