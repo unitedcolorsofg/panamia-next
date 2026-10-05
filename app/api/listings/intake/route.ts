@@ -282,8 +282,14 @@ export async function POST(request: NextRequest) {
         source: BUSINESS_INTAKE_SOURCE,
         // An unclaimed row has no user to carry `users.accountType`, and the
         // eligibility answer is about the submission rather than the business.
-        // Both are kept here so review has them and the claim flow can apply
-        // the account type once there is an account to apply it to.
+        // Both are kept here as a record of what was submitted, for review.
+        //
+        // Do not copy accountType onto the claimant's user row when this
+        // listing is claimed. A listing is attached through profile_owners and
+        // the claimant's own account stays personal; writing it back would
+        // publish their identity profile in the directory, which is exactly
+        // the person/business conflation the become-a-pana removal undid. See
+        // app/api/listings/claim/verify/route.ts.
         accountType,
         locallyBased,
         agreedToTermsAt: new Date().toISOString(),
