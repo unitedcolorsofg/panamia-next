@@ -1,24 +1,27 @@
 name: Database Tests
 
 on:
-  # Deliberately manual-only, and this is a capacity decision, not a doubt
-  # about the job -- it passes (run 37367777590, green on Postgres 15, 16
-  # and 17).
+  # Deliberately manual-only. This is a capacity decision, not a doubt about
+  # the job -- it passes (run 37367777590, green on Postgres 15, 16 and 17).
   #
-  # This account gets roughly one concurrent hosted runner. A second workflow
-  # that triggers on push or pull_request therefore does not run *alongside*
-  # playwright.yml, it runs *instead of* it: the loser sits queued and is
-  # cancelled at 15m02s having executed zero steps and published no check-run.
-  # That was measured here twice on playwright.yml (run 37367777457, attempts 1
-  # and 2) and then once on this workflow (run 37371364531) after path filters
-  # were added, with timeout-minutes of 60 and 20 respectively -- different
-  # timeouts, identical 15m02s, so it is the runner queue, not the job.
+  # Hosted runners are intermittently unobtainable on this repo. When one is
+  # free a job starts within about a minute; when none is free the job sits
+  # queued and is cancelled at exactly 902 seconds having executed zero steps
+  # and published no check-run. Measured four times today: playwright.yml under
+  # a three-version matrix (run 37367777457, attempts 1 and 2), this workflow
+  # (run 37371364531), and then playwright.yml again (run 37373241671) with
+  # nothing else queued at all. Timeout-minutes was 60, 60, 20 and 60
+  # respectively, so the job timeout is not the cause, and the last of those had
+  # no competitor, so contention is not the cause either. It is ambient runner
+  # scarcity and it predates this change.
   #
-  # A zero-step cancellation is indistinguishable at a glance from the eviction
-  # this change exists to remove. Shipping a workflow that causes one would be
-  # self-defeating, so until the container replaces the shared database inside
-  # playwright.yml (PR 2) this stays off the automatic triggers and serves as a
-  # reproducible proof that the container path works.
+  # That matters here for one reason: a 902-second zero-step cancellation is
+  # indistinguishable at a glance from the concurrency eviction this PR exists
+  # to remove. Both report `cancelled` with no jobs. Runner capacity is the
+  # scarce resource, so a second always-on workflow spends it without being able
+  # to fix that, and PR 2 folds this container into playwright.yml's existing job
+  # rather than running beside it. Until then this stays on workflow_dispatch as
+  # a reproducible proof that the container path works.
   workflow_dispatch:
 
 # There is deliberately no `concurrency:` block here, and that is the entire
@@ -29,8 +32,10 @@ on:
 # queue: GitHub holds one running plus one pending run, and a third evicts the
 # pending one. Across the 500 most recent runs, 42 were cancelled and 41 of
 # those ran zero jobs -- publishing no check-run at all. Their lifetimes cluster
-# between 0 and 4 minutes, which is the eviction signature: displaced moments
-# after being queued, not timed out waiting for a runner.
+# between 0 and 4 minutes, none above 9, which is the eviction signature:
+# displaced moments after being queued rather than timing out at 902 seconds
+# waiting for a runner. The two causes are separable by lifetime, and both are
+# real.
 #
 # This job has no shared resource to serialise on. Its database is a service
 # container created with the runner and destroyed with it, so two runs cannot
