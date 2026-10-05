@@ -6,6 +6,7 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { sendTemplateEmail } from '@/lib/email';
 import { createUniqueString } from '@/lib/standardized';
 import { BUSINESS_INTAKE_SOURCE } from '@/lib/server/profile-owners';
+import { profileCategoryList } from '@/lib/lists';
 import type { ProfileDescriptions } from '@/lib/interfaces';
 
 /**
@@ -68,6 +69,43 @@ function asTrimmedString(raw: unknown, maxLength: number): string {
   return raw.trim().slice(0, maxLength);
 }
 
+/**
+ * Tags arrive as category *values* and are stored as their human labels.
+ *
+ * Filtering against the shared list rather than trusting the payload keeps a
+ * public endpoint from writing arbitrary text into a field that reviewers and
+ * the directory both read. Storing labels keeps `descriptions.tags` readable
+ * in the admin notification, which is what it was always for.
+ */
+function normalizeTags(raw: unknown): string {
+  if (!Array.isArray(raw)) return '';
+  const labels = new Map(profileCategoryList.map((c) => [c.value, c.desc]));
+  const picked: string[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'string') continue;
+    const label = labels.get(entry);
+    if (label && !picked.includes(label)) picked.push(label);
+  }
+  return picked.join(', ');
+}
+
+const PRONOUN_LABELS: Record<string, string> = {
+  sheher: 'She/Her',
+  hehim: 'He/Him',
+  theythem: 'They/Them',
+  none: 'No preference',
+};
+
+/** Collapse the pronoun choice to the single text column on `profiles`. */
+function normalizePronouns(choice: unknown, other: unknown): string {
+  if (typeof choice !== 'string' || !choice) return '';
+  if (choice === 'other') return asTrimmedString(other, 40);
+  return PRONOUN_LABELS[choice] || '';
+}
+
+const LISTING_TYPES = new Set(['small_business', 'hybrid']);
+const LOCALLY_BASED = new Set(['yes', 'no', 'other']);
+
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -86,6 +124,37 @@ export async function POST(request: NextRequest) {
   const phoneNumber = asTrimmedString(body.phoneNumber, 30);
   const instagram = normalizeInstagram(body.instagram);
   const website = normalizeWebsite(body.website);
+  const tags = normalizeTags(body.tags);
+  const hearaboutus = asTrimmedString(body.hearAboutUs, 500);
+  const pronouns = normalizePronouns(body.pronouns, body.pronounsOther);
+  const accountType = LISTING_TYPES.has(body.accountType as string)
+    ? (body.accountType as string)
+    : 'small_business';
+  const locallyBased = LOCALLY_BASED.has(body.locallyBased as string)
+    ? (body.locallyBased as string)
+    : '';
+  // Address is only meaningful when they said they have a storefront; ignoring
+  // it otherwise keeps a stale half-filled address from riding along if someone
+  // ticks the box, types, then unticks it.
+  const hasStorefront = body.hasStorefront === true;
+  const addressLine1 = hasStorefront
+    ? asTrimmedString(body.addressLine1, 120)
+    : '';
+  const addressLine2 = hasStorefront
+    ? asTrimmedString(body.addressLine2, 120)
+    : '';
+  const addressLocality = hasStorefront
+    ? asTrimmedString(body.addressLocality, 80)
+    : '';
+  const addressRegion = hasStorefront
+    ? asTrimmedString(body.addressRegion, 2).toUpperCase()
+    : '';
+  const addressPostalCode = hasStorefront
+    ? asTrimmedString(body.addressPostalCode, 10)
+    : '';
+  const addressHours = hasStorefront
+    ? asTrimmedString(body.addressHours, 300)
+    : '';
   const { turnstileToken } = body;
 
   if (name.length < 2) {
@@ -118,6 +187,22 @@ export async function POST(request: NextRequest) {
         error:
           'Please add an Instagram handle or a website so we can find you.',
       },
+      { status: 400 }
+    );
+  }
+
+  // Consent is a legal record, not a UI nicety — the client gates on it, and
+  // so does this, because the client is not the only thing that can post here.
+  if (body.agreeTos !== true) {
+    return NextResponse.json(
+      { error: 'Please accept the Terms and Conditions to continue.' },
+      { status: 400 }
+    );
+  }
+
+  if (hasStorefront && (!addressLine1 || !addressLocality)) {
+    return NextResponse.json(
+      { error: 'Please include the street address and city for your storefront.' },
       { status: 400 }
     );
   }
@@ -165,8 +250,8 @@ export async function POST(request: NextRequest) {
     const descriptions: ProfileDescriptions = {
       fiveWords,
       details,
-      tags: '',
-      hearaboutus: '',
+      tags,
+      hearaboutus,
     };
 
     await db.insert(profiles).values({
@@ -176,6 +261,14 @@ export async function POST(request: NextRequest) {
       name,
       email,
       phoneNumber: phoneNumber || null,
+      pronouns: pronouns || null,
+      addressLine1: addressLine1 || null,
+      addressLine2: addressLine2 || null,
+      addressLocality: addressLocality || null,
+      addressRegion: addressRegion || null,
+      addressPostalCode: addressPostalCode || null,
+      addressCountry: hasStorefront ? 'US' : null,
+      addressHours: addressHours || null,
       active: false,
       descriptions,
       socials: { instagram, website },
@@ -187,6 +280,13 @@ export async function POST(request: NextRequest) {
         // that claiming a business never overwrites someone's own identity —
         // see lib/server/profile-owners.ts.
         source: BUSINESS_INTAKE_SOURCE,
+        // An unclaimed row has no user to carry `users.accountType`, and the
+        // eligibility answer is about the submission rather than the business.
+        // Both are kept here so review has them and the claim flow can apply
+        // the account type once there is an account to apply it to.
+        accountType,
+        locallyBased,
+        agreedToTermsAt: new Date().toISOString(),
       },
     });
 
@@ -242,7 +342,8 @@ async function sendSubmissionEmails(email: string): Promise<void> {
         tags: descriptions?.tags || '',
         socials_website: socials?.website || 'n/a',
         socials_instagram: socials?.instagram || 'n/a',
-        hearaboutus: 'Public business intake form',
+        hearaboutus:
+          descriptions?.hearaboutus || 'Public business intake form',
         affiliate: profile.affiliate || 'n/a',
         approve_url: approveUrl.toString(),
         decline_url: declineUrl.toString(),
