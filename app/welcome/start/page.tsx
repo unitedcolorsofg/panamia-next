@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
+import { isDirectoryAccountType } from '@/lib/accounts';
+import { administersOtherProfile } from '@/lib/server/profile-owners';
 import { resolveSurface } from '@/lib/panaverse/surfaces';
 import { StartView } from './_components/start-view';
 
@@ -56,9 +58,22 @@ export default async function WelcomeStartPage() {
 
   // Offering a listing to an account that already has one is noise. The other
   // two doors are places to go, so they are always worth showing.
+  //
+  // This asks the same question the directory asks (lib/server/directory.ts),
+  // so the door cannot disagree with what is actually published:
+  //
+  //   - a profile they administer that is not their own identity profile.
+  //     Listings keep profiles.userId NULL and attach through profile_owners,
+  //     which is what lets one person run several.
+  //   - their own identity profile, but only once the account was promoted to
+  //     a directory account type.
+  //
+  // The second branch is legacy only: users.accountType is written by
+  // scripts/promote-to-directory.ts and by no runtime route. On its own it
+  // left this permanently false, so the door never hid for anyone.
   const alreadyListed =
-    currentUser.accountType === 'small_business' ||
-    currentUser.accountType === 'hybrid';
+    isDirectoryAccountType(currentUser.accountType) ||
+    (await administersOtherProfile(session.user.id));
 
   return (
     <StartView
