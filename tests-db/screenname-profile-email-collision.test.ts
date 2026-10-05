@@ -194,6 +194,17 @@ test('the insert the route falls through to is rejected on profiles_email_unique
 
   const details = describeDbError(rejection);
 
+  // Printed so the CI log carries the actual Postgres error, not just a green
+  // tick. The evidence is the deliverable here; a passing assertion proves the
+  // shape held but shows the reader nothing.
+  console.log('[repro] profiles.email collision:', {
+    code: details.code,
+    constraint: details.constraint,
+    table: details.table,
+    detail: details.detail,
+    message: details.message,
+  });
+
   assert.equal(
     details.code,
     '23505',
