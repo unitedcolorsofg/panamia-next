@@ -3,16 +3,23 @@ name: Database Tests
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - '.gitignore'
+    paths:
+      - 'drizzle/**'
+      - 'tests-db/**'
+      - 'lib/schema/**'
+      - 'lib/db.ts'
+      - 'scripts/validate-migrations.sh'
+      - '.github/workflows/db-tests.yml'
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - '.gitignore'
+    paths:
+      - 'drizzle/**'
+      - 'tests-db/**'
+      - 'lib/schema/**'
+      - 'lib/db.ts'
+      - 'scripts/validate-migrations.sh'
+      - '.github/workflows/db-tests.yml'
+  workflow_dispatch:
 
 # There is deliberately no `concurrency:` block here, and that is the entire
 # point of this workflow.
@@ -29,28 +36,38 @@ on:
 # see each other: no concurrency group, no eviction, no teardown step, and no
 # sweeper for schemas orphaned by runs that died before cleanup.
 #
-# Note it also runs while playwright.yml is being evicted, so the migration
-# validation and data-layer suite below keep their coverage during exactly the
-# window the shared-database job silently loses it.
+# When it does run it is unaffected by whatever playwright.yml is doing, so on
+# database-touching changes -- the ones where an evicted Playwright run is most
+# expensive -- migration validation and the data-layer suite still report.
+#
+# The path filters above are a runner-capacity decision, not a correctness one,
+# and they were measured. The first version of this file matrixed three Postgres
+# versions on every push, and those three extra queued jobs starved
+# playwright.yml of runners until it was cancelled with zero steps executed
+# after ~15 minutes queued -- twice, on this very PR (run 37367777457, attempts
+# 1 and 2), while earlier runs on main had acquired runners and executed all 20
+# steps. Adding a workflow that silently kills the existing one is the same
+# class of failure this change exists to remove, so the footprint is kept
+# deliberately small.
 jobs:
   tests-db:
     name: tests-db (postgres ${{ matrix.postgres }})
     timeout-minutes: 20
     runs-on: ubuntu-latest
 
-    # The shared Supabase project's major version is being measured in parallel
-    # (see "Record shared database characteristics" in playwright.yml). Until
-    # that number is in hand, testing the plausible range is cheaper than
-    # guessing one and discovering the mismatch after cutover. Once the version
-    # is known this can collapse to a single entry -- or stay, if portability
-    # across versions turns out to be worth keeping.
+    # Deliberately a one-entry matrix rather than a plain job: it keeps the
+    # version visible in the job name and makes widening it a one-line change.
     #
-    # fail-fast is off because "fails on 15, passes on 16 and 17" is the most
-    # useful result this matrix can produce, and fail-fast would hide half of it.
+    # It was briefly a three-entry matrix over 15, 16 and 17, which is how we
+    # know the migrations replay clean on all three -- all three passed in run
+    # 37367777590, each reporting the same peak of 10 connections. That question
+    # is answered, so paying three runners per PR to re-answer it is what
+    # starved playwright.yml. PR 2 pins this to whatever the shared project
+    # actually runs, once the probe in playwright.yml reports it.
     strategy:
       fail-fast: false
       matrix:
-        postgres: ['15', '16', '17']
+        postgres: ['17']
 
     services:
       postgres:
