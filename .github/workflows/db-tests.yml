@@ -1,24 +1,24 @@
 name: Database Tests
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'drizzle/**'
-      - 'tests-db/**'
-      - 'lib/schema/**'
-      - 'lib/db.ts'
-      - 'scripts/validate-migrations.sh'
-      - '.github/workflows/db-tests.yml'
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'drizzle/**'
-      - 'tests-db/**'
-      - 'lib/schema/**'
-      - 'lib/db.ts'
-      - 'scripts/validate-migrations.sh'
-      - '.github/workflows/db-tests.yml'
+  # Deliberately manual-only, and this is a capacity decision, not a doubt
+  # about the job -- it passes (run 37367777590, green on Postgres 15, 16
+  # and 17).
+  #
+  # This account gets roughly one concurrent hosted runner. A second workflow
+  # that triggers on push or pull_request therefore does not run *alongside*
+  # playwright.yml, it runs *instead of* it: the loser sits queued and is
+  # cancelled at 15m02s having executed zero steps and published no check-run.
+  # That was measured here twice on playwright.yml (run 37367777457, attempts 1
+  # and 2) and then once on this workflow (run 37371364531) after path filters
+  # were added, with timeout-minutes of 60 and 20 respectively -- different
+  # timeouts, identical 15m02s, so it is the runner queue, not the job.
+  #
+  # A zero-step cancellation is indistinguishable at a glance from the eviction
+  # this change exists to remove. Shipping a workflow that causes one would be
+  # self-defeating, so until the container replaces the shared database inside
+  # playwright.yml (PR 2) this stays off the automatic triggers and serves as a
+  # reproducible proof that the container path works.
   workflow_dispatch:
 
 # There is deliberately no `concurrency:` block here, and that is the entire
@@ -27,28 +27,15 @@ on:
 # playwright.yml has to serialise on a repo-wide group because it resets one
 # shared Supabase project with DROP SCHEMA public CASCADE. That group does not
 # queue: GitHub holds one running plus one pending run, and a third evicts the
-# pending one. Across the 300 most recent playwright.yml runs, 42 were cancelled
-# and 41 of those ran zero jobs -- publishing no check-run at all, 15 times on
-# main. Serialising a shared resource is what forces that trade.
+# pending one. Across the 500 most recent runs, 42 were cancelled and 41 of
+# those ran zero jobs -- publishing no check-run at all. Their lifetimes cluster
+# between 0 and 4 minutes, which is the eviction signature: displaced moments
+# after being queued, not timed out waiting for a runner.
 #
 # This job has no shared resource to serialise on. Its database is a service
 # container created with the runner and destroyed with it, so two runs cannot
 # see each other: no concurrency group, no eviction, no teardown step, and no
 # sweeper for schemas orphaned by runs that died before cleanup.
-#
-# When it does run it is unaffected by whatever playwright.yml is doing, so on
-# database-touching changes -- the ones where an evicted Playwright run is most
-# expensive -- migration validation and the data-layer suite still report.
-#
-# The path filters above are a runner-capacity decision, not a correctness one,
-# and they were measured. The first version of this file matrixed three Postgres
-# versions on every push, and those three extra queued jobs starved
-# playwright.yml of runners until it was cancelled with zero steps executed
-# after ~15 minutes queued -- twice, on this very PR (run 37367777457, attempts
-# 1 and 2), while earlier runs on main had acquired runners and executed all 20
-# steps. Adding a workflow that silently kills the existing one is the same
-# class of failure this change exists to remove, so the footprint is kept
-# deliberately small.
 jobs:
   tests-db:
     name: tests-db (postgres ${{ matrix.postgres }})
@@ -60,10 +47,14 @@ jobs:
     #
     # It was briefly a three-entry matrix over 15, 16 and 17, which is how we
     # know the migrations replay clean on all three -- all three passed in run
-    # 37367777590, each reporting the same peak of 10 connections. That question
-    # is answered, so paying three runners per PR to re-answer it is what
-    # starved playwright.yml. PR 2 pins this to whatever the shared project
-    # actually runs, once the probe in playwright.yml reports it.
+    # 37367777590, each reporting the same peak of 10 connections.
+    #
+    # 17 is the right pin: the probe added to playwright.yml reports the shared
+    # Supabase project runs 17.6 (run 37371364569). That probe also settles the
+    # one divergence worth worrying about -- Supabase resolves both pg_trgm and
+    # unaccent to `public`, exactly as stock postgres:17 does, so the
+    # schema-placement assertions in 0041 and 0045 take the same branch in the
+    # container as they do today. Nothing stops being exercised at cutover.
     strategy:
       fail-fast: false
       matrix:
