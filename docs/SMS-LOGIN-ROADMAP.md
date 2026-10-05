@@ -244,30 +244,108 @@ Fees we would be avoiding, for reference (verified from Twilio's fee table,
 | Campaign monthly — Low-volume mixed | $1.50/mo |
 | **Campaign monthly — Special: Charity / 501(c)(3) Nonprofit** | **$3/mo** |
 
-Worth noting that last row: if Pana MIA holds 501(c)(3) status and we ever do go
-direct, there is a dedicated nonprofit campaign category at $3/month. **This is
-an open question for the org** — see [Decisions needed](#decisions-needed).
-
 Unregistered traffic is not merely discouraged: Twilio applies surcharges and
 carriers filter it aggressively.
+
+### The 501(c)(3) position, confirmed
+
+Pana MIA is a registered 501(c)(3) with an EIN. That turns the direct path from
+an expensive fallback into something genuinely cheap at scale. Verified against
+Twilio's Special Use Cases tables, 2026-10-05:
+
+| | Charity / 501(c)(3) Nonprofit |
+| --- | --- |
+| Campaign registration | **$3/month** |
+| AT&T SMS carrier fee (outbound) | **$0.0000** |
+| AT&T MMS carrier fee (outbound) | **$0.0000** |
+| T-Mobile SMS carrier fee (in/outbound) | **$0.0000** |
+| T-Mobile MMS carrier fee (in/outbound) | **$0.0000** |
+| AT&T throughput | 40 MPS |
+| T-Mobile daily cap | none listed |
+| Volume minimum | none |
+
+It is the **only** use case in that table that is zero across all four
+carrier-fee columns; every other category pays $0.002–0.010 per message.
+T-Mobile's waiver has applied automatically since 2022-02-01, is no longer
+limited to fundraising, and needs no special business review. Outbound fees are
+waived at source; inbound fees still appear on the bill and are credited back at
+month end.
+
+Eligibility is verified automatically — at brand registration Twilio vets the
+brand against IRS tax-exempt records in the background, with no extra action
+from us. Success is observable two ways: Charity / 501(c)(3) appears in the
+campaign type list, and the brand's `tax_exempt_status` attribute reads `501c3`.
+
+Two caveats matter before anyone treats this as free money.
+
+**We would not get to choose a different use case.** Twilio is explicit that
+vetted 501(c)(3)s "will *only* qualify for the Charity / 501(c)(3) Nonprofit and
+Emergency special use cases." The standard 2FA/OTP use case would be closed to
+us.
+
+**And the Charity use case is not obviously an OTP use case.** Twilio defines it
+as "communications from a registered Charity / 501(c)(3) Nonprofit aimed at
+providing help and raising money for those in need," illustrated with a food
+bank sending appointment reminders. A sign-in code is neither. We would be
+registering authentication traffic under a charitable-messaging campaign because
+it is the only door open to us. That is a question for Twilio support **before**
+committing to the direct path, not after a campaign rejection.
+
+Both caveats disappear under Verify, which needs no brand, no campaign, and no
+use-case classification at all.
 
 ## Cost
 
 | Path | Unit cost |
 | --- | --- |
 | **Twilio Verify** | **$0.05 per successful verification** |
-| Raw Programmable Messaging | $0.0083/segment + ~$0.0035–0.005 carrier fee ≈ **$0.012** |
+| Direct, as a 501(c)(3) | $0.0083/segment + ~$0.002 blended carrier ≈ **$0.010** |
+| Direct, standard brand (for contrast) | $0.0083 + ~$0.0035–0.005 ≈ $0.012 |
 | Telnyx (comparison) | from $0.004/part + carrier ≈ $0.0078 |
 
-Verify is roughly 4× the raw send cost per message, and it is still the right
-call at our volume. The $0.05 bundles passcode generation, TTL, **rate
-limiting**, 42-language templates, and **Fraud Guard** (SMS-pumping protection,
-on by default, no extra charge). Against that, going direct costs 10DLC fees,
-four-to-six weeks of campaign lead time, and the engineering hours to build
-throttling and fraud detection we would otherwise be handed.
+The nonprofit waiver moves the per-message number less than you would expect —
+from ~$0.012 to ~$0.010. AT&T and T-Mobile go to zero, but Verizon's $0.005 is
+not waived and still lands on roughly a third of US traffic. The real saving is
+fixed: a $3/mo campaign instead of $10, and no per-message carrier drag on two
+of the three major networks.
 
-Rough breakeven is around **20k verifications/year** (~$1,000). We are nowhere
-near that. Revisit if we are.
+Annualized, the direct path for us is roughly **$50/year fixed** ($3/mo campaign
+plus ~$1.15/mo for the long code — that number is from Twilio's console pricing
+and was not independently re-verified here), plus **$19.50–61 one-time** (brand
+registration at $4.50 low-volume or $46 standard, plus $15 campaign use-case
+vetting), plus $0.010 per message.
+
+That puts the fee-only crossover far lower than it first appears:
+
+| Verifications/year | Verify @ $0.05 | Direct, 501(c)(3) | Difference |
+| --- | --- | --- | --- |
+| 1,000 | $50 | $60 | Verify cheaper by $10 |
+| 2,500 | $125 | $75 | Direct cheaper by $50 |
+| 5,000 | $250 | $100 | Direct cheaper by $150 |
+| 10,000 | $500 | $150 | Direct cheaper by $350 |
+| 25,000 | $1,250 | $300 | Direct cheaper by $950 |
+
+**Breakeven is ~1,250 verifications/year** (~100/month) in steady state, ~1,700
+in year one once registration is amortized. An earlier draft of this doc put it
+near 20k; that was written before nonprofit status was confirmed and was wrong.
+
+**The recommendation is still Verify**, but the reasoning is now about what the
+premium buys rather than about raw cost:
+
+- **Fraud Guard and rate limiting are included.** Gotchas 2 and 3 above are
+  precisely the controls we would otherwise have to build and operate ourselves
+  — on Cloudflare Workers, where better-auth's in-memory limiter is per-isolate
+  and close to meaningless. At 5,000 verifications/year the entire premium is
+  $150, well under the cost of building that once, never mind maintaining it.
+- **No four-to-six week campaign lead time**, so Phase 1 is not gated on carrier
+  approval.
+- **No use-case classification risk** — see the two caveats above.
+
+So: ship on Verify. Revisit the direct path when sustained volume clears roughly
+**10k verifications/year**, where the gap starts to exceed a few hundred dollars
+and the fixed engineering cost of running our own throttling begins to amortize.
+Because Verify and direct sending share the same better-auth seam (`sendOTP` /
+`verifyOTP`), that migration is a transport swap, not a redesign.
 
 Verify also happens to be the better Cloudflare fit: it is a single `fetch()`
 against `POST https://verify.twilio.com/v2/Services/{ServiceSid}/Verifications`,
@@ -455,11 +533,13 @@ off signup for lack of an email address — not before.
 
 ## Decisions needed
 
-1. **Org entity status.** 501(c)(3) with EIN, or unincorporated? It picks the
-   brand tier and unlocks the $3/mo nonprofit campaign — and is moot if we use
-   Verify.
-2. **Verify vs. direct.** Recommendation is Verify; confirm the volume
-   assumption.
+1. **Verify vs. direct.** Recommendation is Verify; confirm the volume
+   assumption and the ~10k/year trigger to revisit. (Entity status is settled:
+   Pana MIA is a 501(c)(3) with an EIN, so the direct path would be the
+   Charity / 501(c)(3) campaign at $3/mo with AT&T and T-Mobile fees waived.)
+2. **Before any direct-path work**, ask Twilio support whether authentication
+   OTPs are acceptable under the Charity / 501(c)(3) campaign type, given that
+   vetted 501(c)(3)s cannot register the standard 2FA use case.
 3. **Does SMS login appear in the native apps at launch?** It is the only
    provider besides magic link that can work there.
 4. **Number-recycling policy** — how long before an unused number is unbound.
@@ -501,6 +581,9 @@ off signup for lack of an email address — not before.
 - better-auth phone number plugin — https://www.better-auth.com/docs/plugins/phone-number
 - Twilio A2P 10DLC — https://www.twilio.com/docs/messaging/compliance/a2p-10dlc
 - Twilio A2P fees — https://help.twilio.com/articles/1260803965530
+- Twilio A2P special use cases (Charity / 501(c)(3) tier, fee waivers,
+  throughput) — https://help.twilio.com/articles/4402972441243
+- Twilio nonprofit & government 10DLC guide — https://help.twilio.com/articles/4405850570267
 - Twilio Verify pricing — https://www.twilio.com/en-us/verify/pricing
 - Twilio toll-fraud prevention — https://www.twilio.com/docs/verify/preventing-toll-fraud
 - NIST SP 800-63B Rev 4 — https://pages.nist.gov/800-63-4/sp800-63b.html
