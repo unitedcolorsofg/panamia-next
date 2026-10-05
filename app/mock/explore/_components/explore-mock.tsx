@@ -103,13 +103,23 @@ export function ExploreMock() {
     empty,
   };
 
+  // The directory is `.dirsearch-split`, which is a viewport-height layout:
+  // globals.css gives `body` a definite height and passes it down through
+  // `#layout-main` to the split. This wrapper sits in the middle of that
+  // chain, so unless it is also a flex column that passes height through, the
+  // panes have nothing to fill and collapse to their content.
+  const split = view === 'directory';
+
   return (
     /* `data-density="compact"` is what the live homepage wraps itself in, and
        it is the first selector in the `--story-*` palette block in
        app/globals.css. Without it — or a `.dirsearch` / `.dirscope` ancestor —
        every colour on these pages resolves to nothing and the mock renders on
        a transparent background with no error to explain it. */
-    <div data-density="compact">
+    <div
+      data-density="compact"
+      className={split ? 'flex min-h-0 flex-1 flex-col' : undefined}
+    >
       <MockBar
         view={view}
         onView={handleView}
@@ -132,10 +142,14 @@ export function ExploreMock() {
         <PanasView {...shared} />
       )}
 
-      <footer className="container mx-auto px-4 pt-4 pb-24 text-center text-[0.8125rem] font-semibold opacity-50">
-        Design mock at <code>/mock/explore</code> · static fixtures, no data ·
-        see <code>app/mock/explore/_data.ts</code> for the argument
-      </footer>
+      {/* The split owns the whole viewport and hides the site footer for the
+          same reason every map search does. This one goes with it. */}
+      {!split && (
+        <footer className="container mx-auto px-4 pt-4 pb-24 text-center text-[0.8125rem] font-semibold opacity-50">
+          Design mock at <code>/mock/explore</code> · static fixtures, no data ·
+          see <code>app/mock/explore/_data.ts</code> for the argument
+        </footer>
+      )}
     </div>
   );
 }
@@ -174,7 +188,15 @@ function MockBar({
           Design mock · Search &amp; explore
         </span>
 
-        <div className="mock-switch" role="radiogroup" aria-label="View">
+        {/* Six view chips do not fit a phone. Scrolling them inside this row
+            keeps the bar from widening the document — a mock bar that gives
+            the whole page a horizontal scrollbar makes every page under it
+            look broken when it is only the scaffolding that is too wide. */}
+        <div
+          className="mock-switch max-w-full overflow-x-auto"
+          role="radiogroup"
+          aria-label="View"
+        >
           {VIEWS.map((option) => (
             <button
               key={option.id}

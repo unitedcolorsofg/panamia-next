@@ -127,10 +127,17 @@ export interface FacetRow {
 export function FacetRail({
   rows,
   trailing,
+  inPane = false,
 }: {
   rows: FacetRow[];
   /** Extra controls pinned to the end of the row — a List/Map toggle, say. */
   trailing?: ReactNode;
+  /**
+   * Set when the rail sits inside the directory's results column rather than
+   * across the page. A `.container` centres itself at page width, which in a
+   * half-width pane indents the filters away from the cards they belong to.
+   */
+  inPane?: boolean;
 }) {
   // Which facet is open, by label. One at a time: two open menus overlapping
   // each other is a worse answer than the chip rail we are replacing.
@@ -164,7 +171,7 @@ export function FacetRail({
 
   return (
     <div className="dirsearch-filters">
-      <div className="container mx-auto px-4">
+      <div className={inPane ? 'px-4' : 'container mx-auto px-4'}>
         {/* Deliberately not `.dirsearch-chiprow`. That class is
             `overflow-x: auto` — correct for a scrolling strip of chips, fatal
             for anything that hangs below one, which would be clipped at the

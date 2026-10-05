@@ -194,6 +194,13 @@ export interface MockBusiness {
   faces: string[];
   nextEvent: string | null;
   certified: boolean;
+  /**
+   * Where the pin goes. Null for a business with no address to plot — an
+   * online-only shop, a service that travels. The map has to say so out loud
+   * rather than quietly dropping them, or the count beside the results stops
+   * matching the count on the map.
+   */
+  coords: { lat: number; lng: number } | null;
 }
 
 export const BUSINESSES: MockBusiness[] = [
@@ -212,6 +219,7 @@ export const BUSINESSES: MockBusiness[] = [
     faces: FACES.slice(0, 4),
     nextEvent: 'Tonight at Green Market',
     certified: true,
+    coords: { lat: 26.271, lng: -80.271 },
   },
   {
     id: 'b2',
@@ -228,6 +236,7 @@ export const BUSINESSES: MockBusiness[] = [
     faces: FACES.slice(0, 2),
     nextEvent: null,
     certified: false,
+    coords: { lat: 26.456, lng: -80.073 },
   },
   {
     /* No cover, no logo, no distance, nothing recommended yet — the listing a
@@ -247,6 +256,28 @@ export const BUSINESSES: MockBusiness[] = [
     faces: [],
     nextEvent: null,
     certified: false,
+    coords: { lat: 25.824, lng: -80.193 },
+  },
+  {
+    /* Online-only, so it matches the search and cannot be pinned. It exists
+       to keep the map honest: with a pane on screen permanently, "3 results"
+       beside two pins is a discrepancy a visitor will notice, and the map has
+       to account for the difference rather than let them assume it is broken. */
+    id: 'b4',
+    name: 'Sello Press',
+    tagline: 'Risograph zines, shipped',
+    where: 'Online · ships from Hialeah',
+    distance: null,
+    blurb:
+      'No storefront and no pickup — everything goes out by mail, which is the only reason this one is not on the map.',
+    categories: ['Products', 'Art'],
+    cover: null,
+    badge: null,
+    signal: '4 recommend',
+    faces: FACES.slice(1, 3),
+    nextEvent: null,
+    certified: false,
+    coords: null,
   },
 ];
 

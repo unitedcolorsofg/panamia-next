@@ -1,9 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
-import { Lock, Plus, Sparkles, Users } from 'lucide-react';
+import {
+  LayoutList,
+  Lock,
+  Map as MapIcon,
+  Plus,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { SkyClouds } from '@/components/home/scene-art';
 import { ScopeField } from './scope-field';
+import { MapPane } from './map-pane';
 import {
   BusinessCard,
   EventCard,
@@ -53,7 +62,7 @@ export interface ViewProps {
  * This is the whole proposal in one screen. Today the hero ships a plain
  * `DirectorySuggest` with `scope="all"`, and the comment next to it explains
  * why with unusual candour: the placeholder "says 'Search panas, businesses,
- * groups, events' … while Enter used to land in the businesses-only scope — so
+ * groups, events' â€¦ while Enter used to land in the businesses-only scope â€” so
  * three of the four kinds it names were advertised and then dropped on
  * submit." The fix at the time was to widen Enter to Everything and let the
  * scope chips on the results page sort it out afterwards.
@@ -66,7 +75,7 @@ export interface ViewProps {
  * placeholder's four-noun list existed only to stand in for the control that
  * is now sitting an inch to its left.
  *
- * Open the menu from the switcher to see the second half of this view — the
+ * Open the menu from the switcher to see the second half of this view â€” the
  * four destinations, named, before anyone presses Enter.
  */
 export function HomeView(props: ViewProps) {
@@ -106,7 +115,7 @@ export function HomeView(props: ViewProps) {
           </div>
 
           {/* The rotating short label on narrow screens cycled "Local
-              business / Local panas / Local groups / Local events" — four
+              business / Local panas / Local groups / Local events" â€” four
               words doing the job of a control because there was no control.
               With a scope button in the pill the rotation is noise competing
               with it, so the narrow-screen placeholder becomes the scope's own
@@ -122,7 +131,7 @@ export function HomeView(props: ViewProps) {
                     ? 'groups'
                     : 'panas'}
             </strong>{' '}
-            · change it in the box above
+            Â· change it in the box above
           </p>
         </div>
       </div>
@@ -136,18 +145,90 @@ export function HomeView(props: ViewProps) {
  * `/directory/search`, after the other three kinds leave.
  *
  * Almost a screenshot of today's page, which is the argument. The band, the
- * rail, the cards and the map toggle are untouched; the scope chip row that
- * used to sit directly under the band is gone, and nothing moved up to replace
- * it. The directory does not need redesigning to stop being four products —
- * it needs the three it was never shaped for to go somewhere else.
+ * rail, the cards and the map are untouched; the scope chip row that used to
+ * sit directly under the band is gone, and nothing moved up to replace it.
+ * The directory does not need redesigning to stop being four products â€” it
+ * needs the three it was never shaped for to go somewhere else.
  *
- * What the removal buys is the row the rail could never afford: a fourth facet
- * where the scope chips were. Here that is Sort, pulled out of the overflow
- * menu it currently hides in.
+ * What the removal buys is the row the rail could never afford: a fourth
+ * facet where the scope chips were. Here that is Sort, pulled out of the
+ * overflow menu it currently hides in.
+ *
+ * The two panes
+ * -------------
+ * This view used to be a single column with a List/Map toggle floating above
+ * it and no map anywhere â€” which was wrong, and wrong in a way a mock cannot
+ * afford, because it put a dead control on the one page the mock exists to
+ * argue about. The live directory is `.dirsearch-split`: results left, map
+ * right, both pinned to the viewport with only the column scrolling, and the
+ * toggle hidden by CSS because there is nothing left to toggle.
+ *
+ * The toggle is still rendered, exactly as live renders it, because below
+ * 72rem the two panes genuinely cannot share a phone and it is how you get
+ * between them. `data-view` is inert above that width.
  */
 export function DirectoryView(props: ViewProps) {
+  // Which pane owns a narrow screen. Inert above 72rem, where both show.
+  const [view, setView] = useState<'list' | 'map'>('map');
+
+  // Hovering a card lights its pin and vice versa. The reason the panes are
+  // worth pinning side by side is that each one answers what the other cannot
+  // â€” but only if it is obvious which row is which pin.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const facets = (
+    <FacetRail
+      inPane
+      rows={[
+        {
+          label: 'Category',
+          chips: ['All', 'Food', 'Products', 'Services', 'Art', 'Venues'],
+          active: 0,
+        },
+        {
+          label: 'Where',
+          chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach'],
+          active: 0,
+        },
+        {
+          label: 'Sort',
+          chips: ['Closest', 'Most recommended', 'Newest'],
+          active: 0,
+        },
+      ]}
+      trailing={
+        /* Hidden above 72rem by `.dirsearch-split .dirsearch-viewtoggle`.
+           Kept in the tree so the narrow case is reviewable. */
+        <span className="dirsearch-viewtoggle ml-auto">
+          <button
+            type="button"
+            data-on={view === 'list'}
+            aria-pressed={view === 'list'}
+            onClick={() => setView('list')}
+          >
+            <LayoutList className="h-4 w-4" aria-hidden="true" />
+            List
+          </button>
+          <button
+            type="button"
+            data-on={view === 'map'}
+            aria-pressed={view === 'map'}
+            onClick={() => setView('map')}
+          >
+            <MapIcon className="h-4 w-4" aria-hidden="true" />
+            Map
+          </button>
+        </span>
+      }
+    />
+  );
+
   return (
-    <main className="dirsearch">
+    <main
+      className="dirsearch dirsearch-split"
+      data-view={view}
+      data-tone={SCOPE_TONE.business}
+    >
       <ExploreBand
         scope="business"
         eyebrow="The directory"
@@ -168,67 +249,57 @@ export function DirectoryView(props: ViewProps) {
         }
       />
 
-      {/* The scope row is missing from this rail and that is the edit. Four
-          chips reading Everything / Businesses / Panas / Groups / Events used
-          to sit on top of these, which meant the first filter on a business
-          search was "is this a business search". */}
-      <FacetRail
-        rows={[
-          {
-            label: 'Category',
-            chips: ['All', 'Food', 'Products', 'Services', 'Art', 'Venues'],
-            active: 0,
-          },
-          {
-            label: 'Where',
-            chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach'],
-            active: 0,
-          },
-          {
-            label: 'Sort',
-            chips: ['Closest', 'Most recommended', 'Newest'],
-            active: 0,
-          },
-        ]}
-        trailing={
-          <span className="dirsearch-viewtoggle ml-auto">
-            <button type="button" data-on="true">
-              List
-            </button>
-            <button type="button" data-on="false">
-              Map
-            </button>
-          </span>
-        }
-      />
+      <div className="dirsearch-panes">
+        <section className="dirsearch-listpane" aria-label="Search results">
+          {/* Outside the scroller deliberately â€” the controls that change the
+              results are the ones you reach for after reading a few, and a
+              header you have to scroll back up to find gets used once. */}
+          <div className="dirsearch-listhead">{facets}</div>
 
-      {props.empty ? (
-        <div className="container mx-auto px-4 py-10">
-          <ExploreEmpty
-            accent="No businesses"
-            title="match that in Broward"
-            lede="The directory is businesses only now, so a search for a meetup or a person will land here empty. The chip in the search box is how you send it somewhere that can answer."
-            primary="Search all of South Florida"
-            secondary="Look for events instead"
-            suggestions={['Food', 'Products', 'Services', 'Art', 'Venues']}
-          />
-        </div>
-      ) : (
-        <>
-          <ResultSummary>
-            Showing <strong>{BUSINESSES.length}</strong> of{' '}
-            {SCOPE_COUNTS.business} businesses
-          </ResultSummary>
+          <div className="dirsearch-listscroll">
+            <div className="dirsearch-listbody">
+              {props.empty ? (
+                <div className="py-10">
+                  <ExploreEmpty
+                    accent="No businesses"
+                    title="match that in Broward"
+                    lede="The directory is businesses only now, so a search for a meetup or a person will land here empty. The chip in the search box is how you send it somewhere that can answer."
+                    primary="Search all of South Florida"
+                    secondary="Look for events instead"
+                    suggestions={['Food', 'Products', 'Services', 'Art', 'Venues']}
+                  />
+                </div>
+              ) : (
+                <>
+                  <ResultSummary>
+                    Showing <strong>{BUSINESSES.length}</strong> of{' '}
+                    {SCOPE_COUNTS.business} businesses
+                  </ResultSummary>
 
-          <div className="container mx-auto px-4 pt-5 pb-16">
-            <div className="dirsearch-grid">
-              {BUSINESSES.map((business) => (
-                <BusinessCard key={business.id} business={business} />
-              ))}
+                  <div className="dirsearch-grid pt-4 pb-10">
+                    {BUSINESSES.map((business) => (
+                      <div
+                        key={business.id}
+                        onMouseEnter={() => setSelectedId(business.id)}
+                        onFocus={() => setSelectedId(business.id)}
+                      >
+                        <BusinessCard business={business} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </>
-      )}
+        </section>
+
+        {/* Always mounted. Below the breakpoint the CSS collapses this to
+            nothing unless the toggle asks for it, which is cheaper than
+            unmounting and re-framing a map every time the toggle is used. */}
+        <aside className="dirsearch-mappane" aria-label="Results on a map">
+          <MapPane selectedId={selectedId} onSelect={setSelectedId} />
+        </aside>
+      </div>
     </main>
   );
 }
@@ -241,7 +312,7 @@ export function DirectoryView(props: ViewProps) {
  * Grouped by day, sorted by time, and that is the whole reason it cannot live
  * in the directory. A directory list is ranked by relevance and is stable:
  * ask the same question next week and you get the same answer. An events list
- * is ranked by *when* and decays — half of what it shows today is gone by
+ * is ranked by *when* and decays â€” half of what it shows today is gone by
  * Monday. Those two sorts cannot share a page, because the one thing a
  * relevance sort must not do is put a worse match first for being sooner.
  *
@@ -318,7 +389,7 @@ export function EventsView(props: ViewProps) {
       ) : (
         <>
           <ResultSummary>
-            <strong>{EVENTS.length}</strong> events · soonest first
+            <strong>{EVENTS.length}</strong> events Â· soonest first
           </ResultSummary>
 
           <div className="container mx-auto px-4 pt-5 pb-10">
@@ -375,7 +446,7 @@ export function EventsView(props: ViewProps) {
  *
  * First, groups become **public**. `SCOPE_REQUIRES_PANA` currently gates them
  * alongside panas, which means a group is invisible to exactly the people it
- * needs to recruit — you have to already be a member of the club to discover
+ * needs to recruit â€” you have to already be a member of the club to discover
  * the thing that would make you want to join it. Panas stay gated because a
  * member list is personal data; a group is a public notice board with a door
  * on it, and the door is `joinPolicy`, not the search index.
@@ -467,7 +538,7 @@ export function GroupsView(props: ViewProps) {
           )}
 
           <ResultSummary>
-            <strong>{rest.length}</strong> more groups · most active first
+            <strong>{rest.length}</strong> more groups Â· most active first
           </ResultSummary>
 
           <div className="container mx-auto px-4 pt-5 pb-10">
@@ -517,7 +588,7 @@ export function PanasView(props: ViewProps) {
         title="members"
         count={
           <>
-            <strong>{PANAS.length}</strong> panas · visible to members only
+            <strong>{PANAS.length}</strong> panas Â· visible to members only
           </>
         }
         field={
@@ -563,7 +634,7 @@ export function PanasView(props: ViewProps) {
       ) : (
         <>
           <ResultSummary>
-            <strong>{PANAS.length}</strong> panas · most connections in common
+            <strong>{PANAS.length}</strong> panas Â· most connections in common
             first
           </ResultSummary>
 
@@ -597,7 +668,7 @@ export function PanasGateView(props: ViewProps) {
         eyebrow="Explore panas"
         accent="The"
         title="members"
-        count="Members only — sign in to search panas"
+        count="Members only â€” sign in to search panas"
         field={
           <ScopeField
             {...props}
@@ -614,7 +685,7 @@ export function PanasGateView(props: ViewProps) {
             <em>Panas</em> are for panas
           </p>
           <p className="dirsearch-empty-lede">
-            Member profiles are not public. Join the club — it is free — and you
+            Member profiles are not public. Join the club â€” it is free â€” and you
             can search {PANAS.length} panas by craft, neighbourhood and who you
             already have in common.
           </p>
