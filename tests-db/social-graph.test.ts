@@ -11,6 +11,11 @@
  * Pana, the relationship is symmetric, the signing key never leaves the
  * database, and a suggestion knows whether it already follows the viewer.
  *
+ * Mutual Panas — the overlap between two people's Panas — is covered at the
+ * bottom. Its invariant is narrower and more important: it must never name
+ * somebody the viewer is not already a Pana of, because that is the only
+ * reason it may appear on a profile whose own Pana count may not.
+ *
  * Kept out of the Playwright suite (tests/) because there is no browser here:
  * this calls the wrappers directly, the same way the API routes do.
  *
@@ -29,10 +34,16 @@ config({ path: '.env.local' });
 
 const { db } = await import('@/lib/db');
 const { inArray } = await import('drizzle-orm');
-const { socialActors, socialFollows } = await import('@/lib/schema');
+const { socialActors, socialFollows, socialBlocks } =
+  await import('@/lib/schema');
 const { socialConfig } = await import('@/lib/federation');
-const { countMutualFollows, listMutualFollows, listSuggestedActors } =
-  await import('@/lib/federation/wrappers/follow');
+const {
+  countMutualFollows,
+  listMutualFollows,
+  listSuggestedActors,
+  getSharedPanas,
+} = await import('@/lib/federation/wrappers/follow');
+const { createBlock } = await import('@/lib/federation/wrappers/block');
 
 const suffix = Math.random().toString(36).slice(2, 8);
 
@@ -84,7 +95,24 @@ async function follow(
 
 before(async () => {
   await Promise.all(
-    ['viewer', 'pana', 'oneWayIn', 'pendingIn', 'stranger'].map(makeActor)
+    [
+      'viewer',
+      'pana',
+      'oneWayIn',
+      'pendingIn',
+      'stranger',
+      /* Mutual Panas fixtures get their own viewer. Hanging them off `viewer`
+         would quietly change what countMutualFollows returns above, and those
+         assertions are the ones proving the join this one builds on. */
+      'mpViewer',
+      'mpOther',
+      'mpShared',
+      'mpSharedTwo',
+      'mpOtherOnly',
+      'mpHalf',
+      'mpMuted',
+      'mpBlocked',
+    ].map(makeActor)
   );
 
   // viewer <-> pana: both accepted, so a Pana.
@@ -99,6 +127,41 @@ before(async () => {
   await follow('pendingIn', 'viewer', 'pending');
 
   // stranger has no edge in either direction.
+
+  // Two people both sides are Panas with: the overlap itself. Two of them so
+  // the paging test has something to page.
+  for (const key of ['mpShared', 'mpSharedTwo']) {
+    await follow('mpViewer', key, 'accepted');
+    await follow(key, 'mpViewer', 'accepted');
+    await follow('mpOther', key, 'accepted');
+    await follow(key, 'mpOther', 'accepted');
+  }
+
+  // A Pana of mpOther the viewer has no edge to. The overlap must not reach
+  // past the viewer's own graph, which is the whole safety argument.
+  await follow('mpOther', 'mpOtherOnly', 'accepted');
+  await follow('mpOtherOnly', 'mpOther', 'accepted');
+
+  // A Pana of the viewer who only follows mpOther one way. Being halfway into
+  // the far side's graph is not being in it.
+  await follow('mpViewer', 'mpHalf', 'accepted');
+  await follow('mpHalf', 'mpViewer', 'accepted');
+  await follow('mpHalf', 'mpOther', 'accepted');
+
+  // A genuine overlap the viewer has muted. Qualifies on the graph and must
+  // still be filtered out.
+  await follow('mpViewer', 'mpMuted', 'accepted');
+  await follow('mpMuted', 'mpViewer', 'accepted');
+  await follow('mpOther', 'mpMuted', 'accepted');
+  await follow('mpMuted', 'mpOther', 'accepted');
+  await createBlock(actorIds.mpViewer, actorIds.mpMuted, 'mute');
+
+  // A profile the viewer blocked, which shares a Pana with them. The block
+  // severs that pair's own follows but not this third-party overlap, so the
+  // guard against it has to be explicit.
+  await follow('mpBlocked', 'mpShared', 'accepted');
+  await follow('mpShared', 'mpBlocked', 'accepted');
+  await createBlock(actorIds.mpViewer, actorIds.mpBlocked, 'block');
 });
 
 after(async () => {
@@ -107,6 +170,12 @@ after(async () => {
   // open and `yarn test:db` (which has no --test-force-exit) would hang until
   // the job timeout rather than reporting the failure.
   if (createdActorIds.length > 0) {
+    await db
+      .delete(socialBlocks)
+      .where(inArray(socialBlocks.actorId, createdActorIds));
+    await db
+      .delete(socialBlocks)
+      .where(inArray(socialBlocks.targetActorId, createdActorIds));
     await db
       .delete(socialFollows)
       .where(inArray(socialFollows.actorId, createdActorIds));
@@ -187,4 +256,115 @@ test('suggestions exclude people the viewer already follows', async () => {
     suggestions.some((s) => s.id === actorIds.pana),
     false
   );
+});
+
+/* Mutual Panas — the overlap between two people's Panas.
+ *
+ * The invariant worth defending is that this never reaches past the viewer's
+ * own graph: every actor it returns must already be a Pana of the person
+ * asking. That is what makes it safe on a profile whose own Pana count is
+ * owner-only, so most of what follows is about who must *not* come back. */
+
+test('Mutual Panas are the Panas both people have', async () => {
+  const { count, actors } = await getSharedPanas(
+    actorIds.mpViewer,
+    actorIds.mpOther
+  );
+
+  assert.equal(count, 2);
+  assert.deepEqual(
+    new Set(actors.map((a) => a.id)),
+    new Set([actorIds.mpShared, actorIds.mpSharedTwo])
+  );
+});
+
+test('a Pana of only the other person is not a Mutual Pana', async () => {
+  const { actors } = await getSharedPanas(actorIds.mpViewer, actorIds.mpOther);
+
+  assert.equal(
+    actors.some((a) => a.id === actorIds.mpOtherOnly),
+    false,
+    'the overlap must not reveal someone the viewer has no connection to'
+  );
+});
+
+test('a one-way follow on the far side is not a Mutual Pana', async () => {
+  const { actors } = await getSharedPanas(actorIds.mpViewer, actorIds.mpOther);
+
+  assert.equal(
+    actors.some((a) => a.id === actorIds.mpHalf),
+    false,
+    'both sides of both relationships must be accepted'
+  );
+});
+
+test('the overlap is symmetric apart from the asker’s own mutes', async () => {
+  const forward = await getSharedPanas(actorIds.mpViewer, actorIds.mpOther);
+  const backward = await getSharedPanas(actorIds.mpOther, actorIds.mpViewer);
+
+  /* mpMuted is a Pana of both, so the graph overlap is three people. The
+     viewer sees two because they muted one of them, and hiding is applied from
+     the asker's side only -- on purpose, since filtering by the other person's
+     hidden list would leak their mutes one name at a time. Asymmetry here is
+     the privacy rule working, not a bug. */
+  assert.equal(forward.count, 2);
+  assert.equal(backward.count, 3);
+
+  assert.deepEqual(
+    new Set(backward.actors.map((a) => a.id)),
+    new Set([...forward.actors.map((a) => a.id), actorIds.mpMuted]),
+    'the only difference between the two answers is the viewer’s own mute'
+  );
+});
+
+test('the count is the whole overlap even when the list is paged', async () => {
+  const { count, actors } = await getSharedPanas(
+    actorIds.mpViewer,
+    actorIds.mpOther,
+    1
+  );
+
+  assert.equal(actors.length, 1, 'limit caps the faces');
+  assert.equal(count, 2, 'the window count must survive the limit');
+});
+
+test('Mutual Panas never project the signing key', async () => {
+  const { actors } = await getSharedPanas(actorIds.mpViewer, actorIds.mpOther);
+
+  assert.ok(actors.length > 0);
+  assert.equal(
+    'privateKey' in actors[0],
+    false,
+    'getSharedPanas must drop privateKey from the projection'
+  );
+});
+
+test('a muted Pana is left out of the overlap', async () => {
+  const { actors } = await getSharedPanas(actorIds.mpViewer, actorIds.mpOther);
+
+  assert.equal(
+    actors.some((a) => a.id === actorIds.mpMuted),
+    false,
+    'the viewer\u2019s hidden list applies here like every other list'
+  );
+});
+
+test('a blocked profile has no Mutual Panas at all', async () => {
+  const { count, actors } = await getSharedPanas(
+    actorIds.mpViewer,
+    actorIds.mpBlocked
+  );
+
+  assert.equal(count, 0);
+  assert.equal(actors.length, 0);
+});
+
+test('you have no Mutual Panas with yourself', async () => {
+  const { count, actors } = await getSharedPanas(
+    actorIds.mpViewer,
+    actorIds.mpViewer
+  );
+
+  assert.equal(count, 0, 'that list is just your Panas, and it is owner-only');
+  assert.equal(actors.length, 0);
 });

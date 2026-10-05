@@ -27,13 +27,19 @@ export function IdentityRail({
   profile,
   stats,
   actions,
-  panas,
+  connections,
   badge,
 }: {
   profile: PersonalProfileView;
   stats: StatDef[];
   actions: ReactNode;
-  panas: ReactNode;
+  /**
+   * The Panas module under the stats. Which one it is depends on who is
+   * looking: the owner's own wall of Panas, or a visitor's Mutual Panas. Both
+   * render nothing when there is nothing to show, so this slot is free to be
+   * empty.
+   */
+  connections: ReactNode;
   /** The viewer's relationship to this person, when there is one to show. */
   badge?: ReactNode;
 }) {
@@ -198,7 +204,7 @@ export function IdentityRail({
         </div>
       </section>
 
-      {panas}
+      {connections}
     </aside>
   );
 }

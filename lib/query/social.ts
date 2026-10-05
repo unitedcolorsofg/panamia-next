@@ -330,6 +330,11 @@ export interface PanasResponse {
   count: number;
   canSeeList: boolean;
   actors: PanaSummary[];
+  /* The Panas the viewer and this person share. Viewer-scoped, so unlike the
+     two fields above it is readable on someone else's profile: everyone in it
+     is already a Pana of the viewer. Empty for the owner and when signed out.
+     `count` is the whole overlap, `actors` only the first page of faces. */
+  mutualPanas: { count: number; actors: PanaSummary[] };
 }
 
 export interface ProfileGroupSummary {
@@ -355,7 +360,14 @@ async function fetchProfileGroups(
   return getSocialData(`/api/social/actors/${username}/groups`);
 }
 
-/** Panas (mutual follows) for a handle. Count public, list gated server-side. */
+/**
+ * Panas (mutual follows) for a handle.
+ *
+ * Count and list are owner-only, `mutualPanas` is viewer-scoped — all three
+ * gated server-side. The key is the handle alone while the response varies by
+ * who is asking, so switching identity clears this cache rather than keying
+ * every social query on the active profile. See identity-provider.tsx.
+ */
 export const usePanas = (username: string) => {
   return useQuery<PanasResponse | null, Error>({
     queryKey: [socialQueryKey, 'actor', username, 'panas'],

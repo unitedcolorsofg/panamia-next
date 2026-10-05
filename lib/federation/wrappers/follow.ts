@@ -402,6 +402,136 @@ export async function listMutualFollows(
   return rows.map((r) => r.actor);
 }
 
+/** viewer -> M */
+const sharedViewerOut = alias(socialFollows, 'shared_viewer_out');
+/** M -> viewer, which makes M a Pana of the viewer rather than someone they follow */
+const sharedViewerIn = alias(socialFollows, 'shared_viewer_in');
+/** other -> M */
+const sharedOtherOut = alias(socialFollows, 'shared_other_out');
+/** M -> other, so M is a Pana of the other person on the same bilateral terms */
+const sharedOtherIn = alias(socialFollows, 'shared_other_in');
+
+/** M follows the viewer back. */
+function sharedViewerReciprocal(viewerActorId: string) {
+  return and(
+    eq(sharedViewerIn.actorId, sharedViewerOut.targetActorId),
+    eq(sharedViewerIn.targetActorId, viewerActorId),
+    eq(sharedViewerIn.status, 'accepted')
+  );
+}
+
+/** The other person follows M. */
+function sharedOtherOutbound(otherActorId: string) {
+  return and(
+    eq(sharedOtherOut.actorId, otherActorId),
+    eq(sharedOtherOut.targetActorId, sharedViewerOut.targetActorId),
+    eq(sharedOtherOut.status, 'accepted')
+  );
+}
+
+/** M follows the other person back. */
+function sharedOtherReciprocal(otherActorId: string) {
+  return and(
+    eq(sharedOtherIn.actorId, sharedViewerOut.targetActorId),
+    eq(sharedOtherIn.targetActorId, otherActorId),
+    eq(sharedOtherIn.status, 'accepted')
+  );
+}
+
+/**
+ * Mutual Panas: the Panas the viewer and one other person have in common.
+ *
+ * `count` is the full size of the overlap; `actors` is the first `limit` of it,
+ * so a caller can render faces and still say "and 9 more" truthfully.
+ */
+export type SharedPanas = {
+  count: number;
+  actors: PublicSocialActor[];
+};
+
+/**
+ * Mutual Panas — the Panas two people share.
+ *
+ * M qualifies when M is a Pana of the viewer *and* a Pana of the other person:
+ * four accepted rows, all bilateral. The same walk listSuggestedActors makes to
+ * rank strangers, pinned to one person instead.
+ *
+ * This is viewer-scoped, and that is the whole safety argument. Every actor it
+ * can return is already a Pana of the person asking, so the answer is drawn
+ * from the viewer's own graph and tells them nothing about a person they are
+ * not already connected to. Visiting a hundred profiles reveals, at most, which
+ * of your own Panas each of those people is connected to — never who else is in
+ * their Panas. That is why it is safe to show on someone else's profile when
+ * countMutualFollows is not: the owner-only rule exists to stop a profile
+ * carrying a score, and an overlap the viewer is personally inside of is
+ * context, not a scoreboard. See docs/SOCIAL-GRAPH.md.
+ *
+ * "Mutual" here is the product's word, as in "Panas you both have". It does not
+ * mean a second degree of mutuality on top of the mutual follow that already
+ * makes a Pana — every edge walked below is bilateral.
+ *
+ * Blocks and mutes are subtracted from the *viewer's* side only. The viewer's
+ * hidden list is theirs to act on; the other person's would leak their mute
+ * list one name at a time. Blocks sever follows in both directions anyway, so
+ * anyone the other person blocked has already fallen out of the join. The
+ * overlap is therefore not symmetric between two people who have muted
+ * different members, which is the rule working rather than a bug.
+ *
+ * `count(*) over ()` carries the total alongside the page: window functions run
+ * before LIMIT, so the count is the full overlap while the rows are capped, and
+ * it stays one round trip.
+ */
+export async function getSharedPanas(
+  viewerActorId: string,
+  otherActorId: string,
+  limit = 12
+): Promise<SharedPanas> {
+  /* Your Panas in common with yourself are just your Panas, which is the
+     owner-only list this deliberately is not. */
+  if (viewerActorId === otherActorId) return { count: 0, actors: [] };
+
+  const hiddenActorIds = await getHiddenActorIds(viewerActorId);
+
+  /* A blocked profile gets nothing, not a filtered overlap. Everything about
+     the pair stops at the block. */
+  if (hiddenActorIds.includes(otherActorId)) return { count: 0, actors: [] };
+
+  const { privateKey: _privateKey, ...publicActorColumns } =
+    getTableColumns(socialActors);
+
+  const total = sql<number>`count(*) over ()`;
+
+  const rows = await db
+    .select({ actor: publicActorColumns, total })
+    .from(sharedViewerOut)
+    .innerJoin(sharedViewerIn, sharedViewerReciprocal(viewerActorId))
+    .innerJoin(sharedOtherOut, sharedOtherOutbound(otherActorId))
+    .innerJoin(sharedOtherIn, sharedOtherReciprocal(otherActorId))
+    .innerJoin(socialActors, eq(socialActors.id, sharedViewerOut.targetActorId))
+    .where(
+      and(
+        eq(sharedViewerOut.actorId, viewerActorId),
+        eq(sharedViewerOut.status, 'accepted'),
+        // Neither party is their own Pana. createFollow rejects a self-follow,
+        // so this is belt and braces against a row that should not exist.
+        ne(sharedViewerOut.targetActorId, otherActorId),
+        ne(sharedViewerOut.targetActorId, viewerActorId),
+        hiddenActorIds.length > 0
+          ? notInArray(sharedViewerOut.targetActorId, hiddenActorIds)
+          : undefined
+      )
+    )
+    // Recency of the viewer's own edge: the faces they will recognize fastest
+    // are the ones they connected with most recently.
+    .orderBy(desc(sharedViewerOut.acceptedAt), desc(sharedViewerOut.id))
+    .limit(limit);
+
+  return {
+    count: Number(rows[0]?.total ?? 0),
+    actors: rows.map((r) => r.actor),
+  };
+}
+
 export type SuggestedActor = PublicSocialActor & {
   /**
    * How many Panas the viewer and this actor share. Zero means the suggestion
