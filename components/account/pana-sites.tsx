@@ -7,7 +7,7 @@ import {
   Compass,
   MessageCircle,
   PenLine,
-  Sparkles,
+  Star,
   Users,
   Video,
 } from 'lucide-react';
@@ -30,11 +30,11 @@ const SITE_ICONS: Record<string, LucideIcon> = {
   directory: Compass,
   events: CalendarDays,
   getInvolved: Users,
-  /* Sparkles rather than the Connectors mark itself: the tile icon renders at
-     18px inside a 38px circle, and the constellation's five nodes close up
-     into a blob at that size. The star motif is what carries, so this borrows
-     it from lucide and leaves the drawn mark to the places it can be read. */
-  connectors: Sparkles,
+  /* A lucide star rather than the drawn mark: every tile here is a lucide
+     glyph at 18px inside a 38px circle, and dropping one real logo in among
+     them would read as a mismatch rather than as branding. The Connectors
+     mark is itself a star, so the borrowed glyph says the same thing. */
+  connectors: Star,
 };
 
 /**
