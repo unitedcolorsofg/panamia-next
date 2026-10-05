@@ -44,11 +44,22 @@ export const SURFACE_MARK: Record<SurfaceId, SurfaceMark> = {
   },
   /* Not from that hand. Nobody has drawn "Connectors" yet, and no typeface
    * traces hand lettering convincingly, so this is set in Nunito Black — the
-   * family the site already loads — borrowing the three things that actually
-   * make the family read: all caps set solid with no word space, pana-flame
-   * sampled off the Pana Mia mark rather than guessed, and a star inside the
-   * word. There is no `i` in CONNECTORS for the star to dot, so it stands in
-   * for the first `O`.
+   * family the site already loads — borrowing the four things that actually
+   * make the family read.
+   *
+   * Two-tier capitals: the house marks are not mixed case, they are capitals
+   * throughout with only the lead letter of each word drawn large. PanaSocial
+   * is P + ANA, S + OCIAL; PanaMiaClub does it three times. An all-caps or a
+   * true-lowercase setting both miss this, and both were tried first.
+   *
+   * Set solid with no word space. Pana-flame sampled off the Pana Mia mark
+   * rather than guessed. And a star inside the word — there is no `i` in
+   * CONNECTORS for it to dot, so it stands in for the first `O`.
+   *
+   * Every glyph also carries a small seeded rotation, baseline shift and
+   * weight change, because a uniform baseline is most of what makes type read
+   * as type instead of as lettering. What it still cannot fake is the
+   * irregular marker stroke of the real marks; that needs a person with a pen.
    *
    * Same 800px width and near-identical aspect as its siblings, because
    * `.panaverse-logo` sizes marks by height with `width: auto` — a tighter
