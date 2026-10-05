@@ -68,6 +68,22 @@ export async function canAdministerProfile(
 }
 
 /**
+ * Where a listing stands with review, as the member should see it.
+ *
+ * `active` alone cannot answer this. A listing is inactive both before anyone
+ * has looked at it and after it was declined, and calling the second one
+ * "under review" would tell someone to keep waiting for a decision that has
+ * already been made. The admin approve/decline route stamps status.approved /
+ * status.declined (app/api/admin/profile/action), so the undecided case is
+ * exactly "inactive, and neither stamp present".
+ *
+ * Only ever 'pending' for a business listing. An inactive personal profile is
+ * a draft its owner has not finished — nobody is reviewing it, and telling
+ * them to wait would be a lie.
+ */
+export type ProfileReviewState = 'published' | 'pending' | 'inactive';
+
+/**
  * Every profile this user administers, personal profile included.
  *
  * The union is expressed as an OR over the same left join used above rather
@@ -84,6 +100,13 @@ export async function listAdministeredProfiles(userId: string) {
       primaryImageCdn: profiles.primaryImageCdn,
       isPersonal: sql<boolean>`(${profiles.userId} = ${userId})`,
       role: sql<ProfileOwnerRole>`COALESCE(${profileOwners.role}, 'owner')`,
+      reviewState: sql<ProfileReviewState>`CASE
+        WHEN ${profiles.active} THEN 'published'
+        WHEN ${profiles.status}->>'source' = ${BUSINESS_INTAKE_SOURCE}
+         AND ${profiles.status}->>'approved' IS NULL
+         AND ${profiles.status}->>'declined' IS NULL THEN 'pending'
+        ELSE 'inactive'
+      END`,
     })
     .from(profiles)
     .leftJoin(

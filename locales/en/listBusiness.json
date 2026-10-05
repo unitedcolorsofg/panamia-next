@@ -57,6 +57,9 @@
   "emailLabel": "Email",
   "emailPlaceholder": "hello@yourbusiness.com",
   "emailNote": "Use the address you want to claim this listing with — we'll send the claim link here. Not displayed on your profile.",
+  "personalEmailLabel": "Your own email (optional)",
+  "personalEmailPlaceholder": "you@example.com",
+  "personalEmailNote": "If the address above is a shared or business inbox, add your own here. We'll email you a sign-in link so this listing is attached to your account and you can follow it while it's reviewed. Never shown publicly, and you can list without it.",
 
   "phoneLabel": "Phone (optional)",
   "phonePlaceholder": "(305) 555-0123",
@@ -121,6 +124,8 @@
   "errLocallyBased": "Please let us know whether you're based in South Florida.",
   "errName": "Please enter your business name (at least 2 characters).",
   "errEmail": "Please enter a valid email address.",
+  "errPersonalEmail": "That doesn't look like a valid email address. Fix it or leave it empty — it's optional.",
+  "errPersonalEmailSame": "This is the same as your business email above. Leave it empty if you only use one address.",
   "errDetails": "Please tell us a little more about your project.",
   "errFiveWords": "Please tell us what you do in a few words.",
   "errLinks": "Please add a website or an Instagram handle so we can find you.",
@@ -130,6 +135,7 @@
 
   "successTitle": "Got it — thank you!",
   "successBody": "We've received your listing and sent a confirmation to {{email}}.",
+  "successPersonalEmail": "We also sent a sign-in link to {{email}}. Open it to attach this listing to your account and follow its review.",
   "successNextTitle": "What happens next",
   "successNext1": "Our team reviews your submission, usually within a few days.",
   "successNext2": "Once approved, your listing goes live in the directory.",

@@ -754,6 +754,38 @@ export const profiles = pgTable(
     // being attached to a user — see drizzle/0036_profile_screenname.sql.
     screenname: text('screenname'),
     email: text('email').notNull().unique(),
+    /**
+     * A personal address that asked to be given this listing, before any
+     * account existed to give it to.
+     *
+     * The public intake form lets a submitter optionally name their own inbox
+     * alongside the business one. There is nothing to attach it to at that
+     * moment — intake is unauthenticated and the person may have no account —
+     * so the intent is parked here. When that address next signs in, the
+     * listing is *offered* to them, and a profile_owners row is written only
+     * if they confirm it is theirs (lib/server/pending-listing-owner.ts).
+     *
+     * An offer rather than an automatic grant because this value comes from a
+     * public form and is therefore attacker-controlled: anyone can submit a
+     * listing naming someone else. Granting silently would hand a stranger's
+     * business to whoever was named.
+     *
+     * Deliberately NOT inside `status`, which carries the rest of the intake
+     * record. This is looked up *by value* ("which listings are waiting for
+     * this address?") every time the account menu loads, which wants a real
+     * index, and it is cleared once answered — a one-line SET here versus a
+     * read-modify-write on the JSONB that would race the admin
+     * approve/decline path, which rewrites `status` wholesale.
+     *
+     * Not unique: two people may legitimately name the same personal address
+     * on two different listings, and failing the second submission over that
+     * would be worse than offering both.
+     *
+     * Holding this is not proof of anything. It records a request; the magic
+     * link and the explicit answer prove control of the inbox, and admin
+     * review is what covers whether the business is actually theirs.
+     */
+    pendingOwnerEmail: text('pending_owner_email'),
     name: text('name').notNull(),
     phoneNumber: text('phone_number'),
     pronouns: text('pronouns'),
@@ -851,6 +883,13 @@ export const profiles = pgTable(
   (table) => ({
     activeIdx: index('profiles_active_idx').on(table.active),
     nostrPubkeyIdx: index('profiles_nostr_pubkey_idx').on(table.nostrPubkey),
+    // Partial in the migration (WHERE pending_owner_email IS NOT NULL) — the
+    // column is null on virtually every row, and this is read every time the
+    // account menu loads. Drizzle has no partial-index builder, so the
+    // declaration here is the plain form; drizzle/0053 is authoritative.
+    pendingOwnerEmailIdx: index('profiles_pending_owner_email_idx').on(
+      table.pendingOwnerEmail
+    ),
   })
 );
 

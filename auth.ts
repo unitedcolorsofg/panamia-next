@@ -1087,3 +1087,49 @@ export async function auth(): Promise<AppSession | null> {
 }
 
 export const handler = (request: Request) => getBetterAuth().handler(request);
+
+/**
+ * The one magic-link endpoint we call from server code, narrowed to the shape
+ * we use.
+ *
+ * `BetterAuthInstance` is `ReturnType<typeof betterAuth>` — the
+ * unparameterized return type — so it carries none of the plugin endpoints
+ * that the real instance has. Typing it properly means threading the whole
+ * options object through the instance type, which also changes the exported
+ * `BetterAuthServer` other modules depend on. Not worth that churn for one
+ * call, so the assertion is confined here, next to the `magicLink()` entry in
+ * the plugin list that justifies it.
+ */
+type MagicLinkApi = {
+  signInMagicLink: (args: {
+    body: { email: string; callbackURL?: string };
+    headers: Headers;
+  }) => Promise<unknown>;
+};
+
+/**
+ * Mail a sign-in link to an address that may not have an account yet.
+ *
+ * better-auth's magic-link flow is findUserByEmail -> createUser ->
+ * createSession, so for a new address this creates the account as a side
+ * effect — which is exactly what lets the listing intake form turn an optional
+ * personal email into a usable Pana account without ever asking anyone to
+ * register first.
+ *
+ * Throws if the plugin is gone, rather than quietly resolving: a silent no-op
+ * would look identical to a delivered email from the caller's side.
+ */
+export async function sendMagicLinkTo(
+  email: string,
+  requestHeaders: Headers,
+  callbackURL?: string
+): Promise<void> {
+  const api = getBetterAuth().api as unknown as MagicLinkApi;
+  if (typeof api.signInMagicLink !== 'function') {
+    throw new Error('magicLink plugin is not configured');
+  }
+  await api.signInMagicLink({
+    body: { email, callbackURL },
+    headers: requestHeaders,
+  });
+}

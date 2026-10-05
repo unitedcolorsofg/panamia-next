@@ -379,6 +379,13 @@
       "when": 1788652800000,
       "tag": "0052_group_membership_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1788739200000,
+      "tag": "0053_profile_pending_owner_email",
+      "breakpoints": true
     }
   ]
 }
