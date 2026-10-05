@@ -353,6 +353,107 @@ with no SDK, no Node built-ins, and no `compatibility_date` coupling. We
 implement **both** `sendOTP` (create Verification) and `verifyOTP`
 (VerificationCheck).
 
+## Scale
+
+South Florida is roughly 6.2M people. If Pana MIA ever reaches a six-figure
+membership the arithmetic above stops being pocket change, so it is worth
+knowing in advance which parts bend and which parts break.
+
+The reframe that matters: **hundreds of thousands of members is not hundreds of
+thousands of texts.** SMS volume is a function of how often sessions lapse, not
+of how many people are registered — and session lifetime is a free configuration
+knob we are currently leaving at the default.
+
+### Session length is the dominant cost lever
+
+`auth.ts` never sets `session.expiresIn`, so we inherit better-auth's default: a
+**7-day sliding window**, refreshed at most once per day (`updateAge`, default 1
+day). An active member's session keeps rolling forward; a member who goes quiet
+for eight days has to authenticate again. On a community platform where people
+check in every few weeks, that means re-authenticating on nearly every visit.
+
+Modelling 200,000 members, of whom ~40% enroll a phone and prefer SMS (80,000),
+split 20% weekly-active / 40% monthly / 40% occasional:
+
+| Session window | Verifications/yr | Verify @ $0.05 | Direct, 501(c)(3) |
+| --- | --- | --- | --- |
+| 7 days (today's default) | ~600,000 | **$30,000** | **$6,050** |
+| 90 days | ~160,000 | $8,000 | **$1,650** |
+
+Two decisions that cost nothing — lengthening the window, and moving to the
+nonprofit direct path — take a $30,000/year line item down to about $1,650. The
+501(c)(3) status is worth considerably more at scale than it is at launch.
+
+Longer sessions are not free of tradeoffs: a stolen session cookie stays useful
+for longer. But we already treat that cookie as the durable credential, and the
+alternative is texting people constantly — which costs money *and* trains
+members to expect sign-in codes they did not request, that being precisely the
+reflex that makes phishing work.
+
+### Burst throughput is the real ceiling
+
+Average volume never strains carrier limits. 160,000/year is ~440/day against a
+Charity / 501(c)(3) campaign rated at **40 MPS on AT&T**. Bursts are the
+problem.
+
+Email 200,000 members "sign in to vote on the mural," have 10% act within the
+same few minutes, and that is 20,000 codes — roughly 6,000 of them AT&T-bound,
+which at 40 per second is about two and a half minutes of queue before the last
+one leaves. Codes arriving after someone has given up are worse than no codes:
+they generate support load *and* they teach members to ignore sign-in texts.
+
+Mitigations, cheapest first: stagger outbound announcements instead of blasting
+them; avoid campaigns whose call to action requires fresh authentication; keep
+magic link prominent as a parallel path with no carrier ceiling at all. A
+dedicated short code lifts throughput substantially but runs on the order of
+$1,000/month with an 8–12 week provisioning lead time — mass scale only.
+
+### Number recycling stops being a footnote
+
+US carriers reassign disconnected numbers after roughly 45–90 days. At a
+thousand members that is a policy question. At two hundred thousand, with
+ordinary churn, thousands of numbers change hands every year — and whoever
+receives a recycled number can request a sign-in code and take over a pana's
+account, including their public directory listing.
+
+Past that point the mitigation has to be mechanical rather than procedural: the
+FCC Reassigned Numbers Database, or Twilio Lookup's line-type and SIM-swap
+signals, consulted at send time, plus re-verification of any number dormant past
+some threshold rather than trusting a binding made years earlier. This appears
+under [Decisions needed](#decisions-needed) as a policy choice; somewhere around
+50,000 members it becomes a build item.
+
+### Two smaller things that bite
+
+**`verification_tokens` grows without bound.** Every send writes a row and every
+regeneration writes another (gotcha 3). At 600k sends/year with no pruning the
+table becomes a liability. A TTL cleanup job is trivial — but it has to exist
+before the volume does.
+
+**The rate limiter must be durable.** Gotcha 2 notes that better-auth's limiter
+is in-memory and therefore per-isolate on Cloudflare Workers. At launch that is
+a weakness; at scale it is an open cheque. KV or a Durable Object, not optional.
+
+### The honest ceiling: SMS is an on-ramp, not a daily driver
+
+Nobody runs six-figure consumer authentication on SMS one-time codes as the
+primary daily path, and the reasons are visible in every section above: it costs
+money per use, it has a carrier-imposed burst ceiling, delivery is best-effort,
+and the credential is bound to a phone number the user does not durably own.
+
+The shape that scales is **passkeys for daily sign-in**, with SMS and magic link
+as enrollment and recovery. Passkeys carry zero marginal cost, put no carrier in
+the loop, have no burst ceiling, and are the only option discussed here that
+clears the phishing-resistance bar in [Security posture](#security-posture).
+There is no passkey support anywhere in this codebase today; better-auth ships a
+plugin for it, and evaluating that is separate work from this document.
+
+None of which argues against building SMS login now. It argues for building it
+as what it actually is — the door that works for the members least served by the
+alternatives, the smartphone-dependent and mobile-only panas described in
+[Who this is for](#who-this-is-for) — rather than as the mechanism expected to
+carry everyone's daily authentication.
+
 ## Abuse: SMS pumping
 
 The attack: a fraudster drives OTP sends to blocks of adjacent numbers on an
@@ -543,6 +644,11 @@ off signup for lack of an email address — not before.
 3. **Does SMS login appear in the native apps at launch?** It is the only
    provider besides magic link that can work there.
 4. **Number-recycling policy** — how long before an unused number is unbound.
+   A policy choice at launch; past roughly 50,000 members it becomes a build
+   item (see [Scale](#scale)).
+5. **Session lifetime.** We are on better-auth's 7-day default by omission, not
+   by decision. It is the single largest driver of SMS spend — worth setting
+   deliberately before launch rather than after the first bill.
 
 ## Verification
 
@@ -579,6 +685,7 @@ off signup for lack of an email address — not before.
 ### External references
 
 - better-auth phone number plugin — https://www.better-auth.com/docs/plugins/phone-number
+- better-auth session management (7-day default, `updateAge`) — https://www.better-auth.com/docs/concepts/session-management
 - Twilio A2P 10DLC — https://www.twilio.com/docs/messaging/compliance/a2p-10dlc
 - Twilio A2P fees — https://help.twilio.com/articles/1260803965530
 - Twilio A2P special use cases (Charity / 501(c)(3) tier, fee waivers,
@@ -586,5 +693,7 @@ off signup for lack of an email address — not before.
 - Twilio nonprofit & government 10DLC guide — https://help.twilio.com/articles/4405850570267
 - Twilio Verify pricing — https://www.twilio.com/en-us/verify/pricing
 - Twilio toll-fraud prevention — https://www.twilio.com/docs/verify/preventing-toll-fraud
+- Twilio Lookup (line type, SIM swap) — https://www.twilio.com/docs/lookup
+- FCC Reassigned Numbers Database — https://www.reassigned.us/
 - NIST SP 800-63B Rev 4 — https://pages.nist.gov/800-63-4/sp800-63b.html
 - Pew Mobile Fact Sheet — https://www.pewresearch.org/internet/fact-sheet/mobile/
