@@ -59,6 +59,12 @@ export const PANA_SITES: readonly PanaSite[] = [
   { id: 'directory', labelKey: 'directory', href: '/d' },
   { id: 'events', labelKey: 'events', href: '/e' },
   { id: 'getInvolved', labelKey: 'getInvolved', href: null },
+  // Linked rather than null even though the HQ behind it is still fixtures:
+  // `/connectors` is a real route that explains the programme to anyone who
+  // is not in it yet, so the tile always lands somewhere true. The branch
+  // between the explainer and the member dashboard happens on that page, not
+  // in this registry -- a tile cannot know who is clicking it.
+  { id: 'connectors', labelKey: 'connectors', href: '/connectors' },
 ];
 
 /**

@@ -37,6 +37,12 @@ const SURFACE_COLORS: Record<string, { theme: string; background: string }> = {
   // The social mark is drawn on black and reads as an app tile already, so the
   // splash matches it rather than fighting it.
   social: { theme: '#ff8100', background: '#000000' },
+  // Same orange and the same cream as the main site: Connectors is a room in
+  // Pana Mia, not a second brand, and the splash is the first thing an
+  // installed app says. Spelled out rather than left to the `?? www` fallback
+  // below, so a future change to Pana Mia's splash cannot silently repaint
+  // this one.
+  connectors: { theme: '#ff8100', background: '#fff7ec' },
 };
 
 /**

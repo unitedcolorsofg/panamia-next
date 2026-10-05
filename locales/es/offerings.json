@@ -371,5 +371,65 @@
       "statement": "Nadie empieza desde <em>cero</em>.",
       "lede": "Pana MIA nació para que cualquiera con una idea para mejorar el sur de la Florida tuviera a dónde llevarla. Trae la tuya."
     }
+  },
+  "connectors": {
+    "name": "Pana Conectores",
+    "eyebrow": "Conectores Comunitarios",
+    "headline": "Organiza Donde<br/>Ya <em>Estás</em>",
+    "lede": "Los Conectores Comunitarios son las personas voluntarias que sostienen Pana MIA — células de barrio en Miami-Dade, Broward y Palm Beach, cada una construyendo el Sur de la Florida en el que quiere vivir.",
+    "ctaPrimary": "Súmate al programa",
+    "ctaSecondary": "Abrir el centro de conectores",
+    "problem": {
+      "eyebrow": "El problema",
+      "statement": "Aquí el buen trabajo se hace <em>en soledad</em>.",
+      "one": {
+        "title": "Cada quien empieza de cero",
+        "body": "El fanzine, el mercado libre, la olla común: alguien ya descubrió cómo hacerlo y no lo escribió en ningún lado. La siguiente persona vuelve a empezar."
+      },
+      "two": {
+        "title": "Nadie ve el conjunto",
+        "body": "Ahora mismo hay decenas de personas organizando en tres condados. Como nada se cuenta en conjunto, para quien financia parece esfuerzo disperso y no un movimiento."
+      },
+      "three": {
+        "title": "El agotamiento decide quién se queda",
+        "body": "Sin niveles ni relevos, la única forma de seguir es hacerlo todo. Así, quienes más se entregan son quienes primero se van."
+      }
+    },
+    "steps": {
+      "title": "Cómo <em>funciona</em>",
+      "lede": "Elige una casa, únete a una célula y empieza en el primer nivel. Todo el mundo empieza en el primer nivel.",
+      "one": {
+        "title": "Elige una casa",
+        "body": "Son cuatro, agrupadas por lo que ya te gusta hacer y no por lo que hace falta cubrir. Quien conversa y quien investiga no trabajan igual, y el programa deja de fingir que sí."
+      },
+      "two": {
+        "title": "Únete a tu célula",
+        "body": "Las células son territoriales: Miami-Dade, Broward, Palm Beach. Son un tercer espacio donde llevar un proyecto, discutirlo y rendir cuentas. Cada una tiene su propio chat de Signal."
+      },
+      "three": {
+        "title": "Empieza en el nivel uno",
+        "body": "Los niveles miden cuánto asumes, no qué tan buena eres. El uno acompaña, el dos construye y el tres sostiene a quienes construyen y devuelve lo aprendido al resto."
+      }
+    },
+    "highlights": {
+      "title": "Lo que <em>recibes</em>",
+      "one": {
+        "title": "Una célula en tu propia cuadra",
+        "body": "Panas de tu condado trabajando en la calle donde vives, no una lista de voluntariado a dos ciudades que te escribe cuando hay que cargar algo."
+      },
+      "two": {
+        "title": "Trabajo que suma",
+        "body": "Las células reportan lo que hicieron, así cien acciones pequeñas se pueden mostrar como una sola obra. Eso es lo que se convierte en fondos, espacios y voz propia sobre el Sur de la Florida."
+      },
+      "three": {
+        "title": "Una biblioteca desde donde partir",
+        "body": "Los PITbooks — libros de teoría informada por la práctica — son manuales vivos de lo que ya sabemos hacer: hidratación, ollas comunes, fanzines, mercados libres. Empiezas donde la otra persona lo dejó."
+      }
+    },
+    "closing": {
+      "eyebrow": "El punto",
+      "statement": "La historia no la transforman las <em>plazas llenas</em>.",
+      "lede": "La transforman los grupos y colectivos que se conocen y se reconocen, abajo y a la izquierda, y construyen otro mundo. Ese es todo el trabajo. Ven a hacerlo con nosotras."
+    }
   }
 }

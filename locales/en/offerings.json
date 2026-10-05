@@ -371,5 +371,65 @@
       "statement": "Nobody starts at <em>ground zero</em>.",
       "lede": "Pana MIA was started so that anyone with an idea for making South Florida better had somewhere to bring it. Bring yours."
     }
+  },
+  "connectors": {
+    "name": "Pana Connectors",
+    "eyebrow": "Community Connectors",
+    "headline": "Organize Where<br/>You <em>Already Are</em>",
+    "lede": "Community Connectors are the volunteers who keep Pana MIA running — neighborhood pods across Miami-Dade, Broward and Palm Beach, each one building the South Florida they actually want to live in.",
+    "ctaPrimary": "Become a Connector",
+    "ctaSecondary": "Open Connector HQ",
+    "problem": {
+      "eyebrow": "The Problem",
+      "statement": "Good work here happens <em>alone</em>.",
+      "one": {
+        "title": "Everyone starts from scratch",
+        "body": "The zine, the free market, the food share — somebody already worked out how to run each one, and wrote none of it down. The next person begins at zero."
+      },
+      "two": {
+        "title": "Nobody can see the whole",
+        "body": "Dozens of people are organizing across three counties right now. Because none of it is counted together, it reads to a funder as scattered effort rather than as a movement."
+      },
+      "three": {
+        "title": "Burnout does the sorting",
+        "body": "With no tiers and no handover, the only way to stay involved is to do everything. So the people who care most are the ones who leave first."
+      }
+    },
+    "steps": {
+      "title": "How It <em>Works</em>",
+      "lede": "Pick a house, join a pod, start at the first tier. Everybody starts at the first tier.",
+      "one": {
+        "title": "Choose a house",
+        "body": "Four of them, grouped by what you already like doing rather than by what needs covering. The yappers and the researchers do not belong in the same room, and the programme stops pretending they do."
+      },
+      "two": {
+        "title": "Join your pod",
+        "body": "Pods are geographic — Miami-Dade, Broward, Palm Beach. A pod is a third space: somewhere to bring a project, argue it out, and be held to it. Each one runs its own Signal chat."
+      },
+      "three": {
+        "title": "Start at Tier One",
+        "body": "Tiers are about how much you are taking on, not how good you are. One assists the builders, two builds, three supports other builders and brings what the pod learned back to everyone else."
+      }
+    },
+    "highlights": {
+      "title": "What You <em>Get</em>",
+      "one": {
+        "title": "A pod on your own block",
+        "body": "Panas in your county working on the street you live on — not a volunteer list two cities away that emails you when something needs carrying."
+      },
+      "two": {
+        "title": "Work that counts for something",
+        "body": "Pods report what they did back to roots, so a hundred small actions can be shown as one body of work. That is what turns into funding, venues and a say in the story being told about South Florida."
+      },
+      "three": {
+        "title": "A library to build from",
+        "body": "PITbooks — Praxis Informed Theory books — are living how-tos for the things we already know how to do. Hydration stations, food shares, zine displays, free markets. You start from the last person's ending."
+      }
+    },
+    "closing": {
+      "eyebrow": "The Point",
+      "statement": "History is not transformed by <em>packed squares</em>.",
+      "lede": "It is transformed by groups and collectives that know and recognize one another, below and to the left, and build another world. That is the whole job. Come do it with us."
+    }
   }
 }

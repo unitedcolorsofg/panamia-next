@@ -1,11 +1,10 @@
 /**
- * The six Pana offerings, and the front door each one has on the main site.
+ * The Pana offerings, and the front door each one has on the main site.
  *
- * `lib/panaverse/sites.ts` already names these six, but it answers a narrower
+ * `lib/panaverse/sites.ts` names the same set, but it answers a narrower
  * question — "where does this offering live once I am inside it" — so its
  * hrefs point straight at the working software (`/s` is a signed-in feed, `/d`
- * is a search form) and two of the six have no href at all because they are
- * not built.
+ * is a search form) and some have no href at all because they are not built.
  *
  * This list answers the question a visitor asks first: *what is this?* Every
  * offering gets a front page on the main site whether or not the software
@@ -48,6 +47,11 @@ export const PANA_OFFERINGS: readonly PanaOffering[] = [
     href: '/get-involved',
     appHref: '/form/list-your-business',
   },
+  // The Community Connectors programme, which `getInvolved` has been naming
+  // in its third step for a while without having anywhere to send anyone.
+  // Its app is the connector HQ rather than a sign-up form: the front page is
+  // for people deciding, `/connectors/hq` is for people already in.
+  { id: 'connectors', href: '/connectors', appHref: '/connectors/hq' },
 ];
 
 export function getOffering(id: string): PanaOffering {

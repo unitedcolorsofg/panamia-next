@@ -14,7 +14,7 @@
 
 import { getConfiguredFederationDomain } from '@/lib/federation/domain';
 
-export type SurfaceId = 'www' | 'social';
+export type SurfaceId = 'www' | 'social' | 'connectors';
 
 export interface PanaverseSurface {
   id: SurfaceId;
@@ -107,6 +107,19 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // only be stale documentation. Searching from this surface lands on
     // /directory/all/<term> -- see components/panaverse/SurfaceSearch.tsx.
     paths: ['/s', '/p', '/g', '/groups', '/timeline', '/inbox'],
+  },
+  {
+    id: 'connectors',
+    name: 'Pana Connectors',
+    tagline: 'Headquarters for the Community Connectors programme.',
+    subdomain: 'connectors',
+    rootPath: '/connectors',
+    // One prefix, unlike social's six. Connectors is a new surface with no
+    // history, so everything it owns was built under `/connectors` from the
+    // start and there are no older top-level routes to keep claiming. The
+    // rooms inside it -- `/connectors/hq`, `/connectors/admin` -- are covered
+    // by the prefix match and do not need naming individually.
+    paths: ['/connectors'],
   },
 ];
 

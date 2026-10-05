@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { Trans, useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
@@ -187,6 +188,7 @@ const TOUR_SHOTS: Record<string, Partial<Record<TourKey, TourShot>>> = {
 export function OfferingFrontPage({
   id,
   actions,
+  interlude,
 }: {
   /** An id from `PANA_OFFERINGS`; also the key into the `offerings` namespace. */
   id: string;
@@ -199,6 +201,22 @@ export function OfferingFrontPage({
    * the six pages themselves down to a single line each.
    */
   actions: OfferingActions;
+  /**
+   * One offering-specific band, dropped in after the mechanism and before the
+   * highlights.
+   *
+   * The locale-driven bands all count to three — `one`, `two`, `three` — which
+   * is the right shape for an argument and the wrong shape for a set. Pana
+   * Connectors has four houses, and they are the thing a reader is actually
+   * deciding between, so they cannot be squeezed into three cards or demoted
+   * below the closing band where nobody reads them.
+   *
+   * It is a slot rather than a fifth locale band because that content is a
+   * list of real programme objects with their own colours, not prose a
+   * translator should be editing in a JSON file. Offerings that do not need
+   * one pass nothing and render exactly as before.
+   */
+  interlude?: ReactNode;
 }) {
   const { t, i18n } = useTranslation('offerings');
   const offering = getOffering(id);
@@ -281,6 +299,8 @@ export function OfferingFrontPage({
         {hasPillars && <OfferingPillars id={id} />}
         {hasSteps && <OfferingSteps id={id} />}
         {hasTour && <OfferingTour id={id} />}
+
+        {interlude}
 
         <section className="home-section offering-highlights">
           <div className="container mx-auto px-4">
