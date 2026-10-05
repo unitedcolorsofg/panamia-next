@@ -15,6 +15,7 @@ import {
   useProfileLists,
 } from '@/lib/query/social';
 import type {
+  PanaSummary,
   ProfileEventSummary,
   ProfileGroupSummary,
   RecommendationListSummary,
@@ -189,13 +190,21 @@ export function PersonalProfile({ profile }: { profile: PersonalProfileView }) {
                 />
               ) : null
             }
-            panas={
+            connections={
               isSelf ? (
                 <PanasRailModule
                   data={panasData}
                   onSeeAll={() => setActiveTab('panas')}
                 />
-              ) : null
+              ) : (
+                /* The visitor's counterpart to the owner's Panas module. It is
+                   not the same list with a filter on it: it only contains
+                   people the viewer is already Panas with, which is why it can
+                   sit on someone else's profile at all. Signed-out viewers have
+                   no graph to intersect, so the endpoint returns nothing and
+                   the module doesn't render. */
+                <MutualPanasRailModule data={panasData?.mutualPanas} />
+              )
             }
           />
 
@@ -491,6 +500,38 @@ function RecommendsPanel({
   );
 }
 
+/* One face in a rail module. Shared by the owner's Panas wall and the
+   visitor's Mutual Panas, which differ in who they list, not how they look. */
+function PanaFace({
+  pana,
+}: {
+  pana: { name?: string | null; username: string; iconUrl?: string | null };
+}) {
+  const label = pana.name || pana.username;
+
+  return (
+    <span
+      className="border-pana-ink/10 bg-pana-butter relative block h-10 w-10 overflow-hidden rounded-full border-2"
+      title={`${label} (@${pana.username})`}
+    >
+      {pana.iconUrl ? (
+        <Image
+          src={pana.iconUrl}
+          alt={label}
+          fill
+          sizes="40px"
+          className="object-cover"
+          unoptimized={isUnoptimizableImageSrc(pana.iconUrl)}
+        />
+      ) : (
+        <span className="text-pana-ink flex h-full w-full items-center justify-center text-sm font-black">
+          {label.charAt(0).toUpperCase()}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /* The rail's Panas module: a wall of faces, not a list.
  *
  * Signed-out viewers get the count but no faces, the same split the endpoint
@@ -524,25 +565,7 @@ function PanasRailModule({
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {shown.map((pana) => (
             <li key={pana.id}>
-              <span
-                className="border-pana-ink/10 bg-pana-butter relative block h-10 w-10 overflow-hidden rounded-full border-2"
-                title={`${pana.name || pana.username} (@${pana.username})`}
-              >
-                {pana.iconUrl ? (
-                  <Image
-                    src={pana.iconUrl}
-                    alt={pana.name || pana.username}
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                    unoptimized={isUnoptimizableImageSrc(pana.iconUrl)}
-                  />
-                ) : (
-                  <span className="text-pana-ink flex h-full w-full items-center justify-center text-sm font-black">
-                    {(pana.name || pana.username).charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </span>
+              <PanaFace pana={pana} />
             </li>
           ))}
         </ul>
@@ -560,6 +583,59 @@ function PanasRailModule({
       >
         See all Panas
       </button>
+    </section>
+  );
+}
+
+/* Mutual Panas — what a visitor sees where the owner sees their own wall.
+ *
+ * Every face here is a Pana of the person looking, so this names nobody the
+ * viewer doesn't already know and can't be used to read the profile's own
+ * Panas. That is the whole reason it may sit on someone else's page while the
+ * owner's count may not. See docs/SOCIAL-GRAPH.md.
+ *
+ * Absent rather than empty when there is no overlap: "0 Mutual Panas" on a
+ * stranger's profile is a verdict on the relationship, and a new member would
+ * collect that verdict on every profile they open. */
+function MutualPanasRailModule({
+  data,
+}: {
+  data?: { count: number; actors: PanaSummary[] } | null;
+}) {
+  if (!data || data.count === 0) return null;
+
+  const { count, actors } = data;
+  /* The API already caps this, but the count is the full overlap and the
+     faces are a page of it — so the remainder is computed from what actually
+     arrived rather than assumed to be zero. */
+  const remaining = count - actors.length;
+
+  return (
+    <section className="profile-card p-4">
+      <h2 className="rail-heading">Mutual Panas</h2>
+
+      <ul className="mt-3 flex flex-wrap gap-1.5">
+        {actors.map((pana) => (
+          <li key={pana.id}>
+            <PanaFace pana={pana} />
+          </li>
+        ))}
+        {remaining > 0 && (
+          <li>
+            <span
+              className="border-pana-ink/10 bg-pana-ink/5 text-pana-ink/70 flex h-10 w-10 items-center justify-center rounded-full border-2 text-[12px] font-black"
+              title={`${remaining.toLocaleString('en-US')} more`}
+            >
+              +{remaining.toLocaleString('en-US')}
+            </span>
+          </li>
+        )}
+      </ul>
+
+      <p className="text-pana-ink/55 mt-3 text-[12px] leading-snug font-bold">
+        {count.toLocaleString('en-US')} {count === 1 ? 'Pana' : 'Panas'} you
+        both know.
+      </p>
     </section>
   );
 }

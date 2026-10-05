@@ -116,7 +116,7 @@ export default function LinksPage() {
             asChild
           >
             <Link
-              href="/form/become-a-pana"
+              href="/welcome"
               className="flex items-center justify-center gap-2"
             >
               <UserPlus className="h-5 w-5" aria-hidden="true" />

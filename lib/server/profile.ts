@@ -256,8 +256,9 @@ export const getProfileByUserId = async (userId: string) => {
  * 3. Profile should be linked to the authenticated user
  *
  * NOTE: This does NOT auto-create profiles because profiles require
- * user-provided fields (name, descriptions.fiveWords). Use createExpressProfile
- * API for explicit profile creation.
+ * user-provided fields (name, descriptions.fiveWords). Business listings are
+ * created by /api/listings/intake, behind /form/list-your-business; a member's
+ * own profile is created when they claim a screenname.
  *
  * @param userId - PostgreSQL User.id (cuid format)
  * @param email - User's email for claiming unclaimed profiles

@@ -823,8 +823,96 @@ Covered by `tests-db/group-moderation.test.ts` — 28 tests, built from the tabl
 re-reads the stored `member_count` rather than trusting a return value, because a drifted counter
 is not a loud failure, it is a group that quietly claims 41 members forever.
 
-**Still unbuilt:** invites, and any notification. Nobody is told they were approved, removed or
-banned — they find out by looking.
+**Still unbuilt:** invites. Notifications landed in phase 10 below.
+
+---
+
+## Phase 10 — Membership notifications
+
+The half of phase 9 that lets anyone find out it happened. Before this, being approved, promoted,
+removed or banned were all silent — you discovered them by visiting a page that had quietly
+changed.
+
+**This was not built from scratch.** A complete notification system already existed: the
+`notifications` table, `lib/notifications.ts`, the bell dropdown, read/unread, retention. Even
+`objectType: 'group'` was already in the enum. Phase 10 is an extension of it, which is why the
+code is small and most of the work was in the seams.
+
+### Three seams
+
+1. **Notifications are addressed to a `User.id`; the group layer speaks social actor ids.** They
+   join through `actor → profile → user`, and plenty of actors have no user at the far end: a group
+   is itself an actor and has no profile, remote actors have no local profile, and
+   `social_actors.profile_id` is `ON DELETE SET NULL` so a deleted profile leaves the actor
+   pointing at nobody. All three mean the same thing — there is no bell to ring — so
+   `userIdsForActors` returns a `Map` and a missing actor is simply an absent key.
+
+2. **`context: 'group'` was already taken** by the relay groups feature at `/r/groups/`, where
+   `Accept` means _"`actor` joined `object`"_ and is addressed to the **inviter**. Social groups
+   need `Accept` to mean _"your request was approved"_, addressed to the **requester**. Same
+   context plus same type is the same sentence, so they cannot share one. Hence the new
+   `group_membership` context, rather than sniffing `objectUrl` for `/g/` versus `/r/groups/`.
+
+3. **`createNotification` does not prevent self-notification.** Its block check returns early for a
+   self-pair, which correctly answers _"is this blocked"_ and says nothing about whether the row
+   should exist. It matters for exactly one action: an admin may change their own role, and "you
+   are no longer an admin" is a strange thing to be told by yourself. Guarded in `notifyOne`.
+
+### Who hears what
+
+| Action           | Type     | Who is told                         |
+| ---------------- | -------- | ----------------------------------- |
+| join requested   | `Join`   | every active admin _and_ moderator  |
+| request approved | `Accept` | the requester                       |
+| request rejected | `Reject` | the requester                       |
+| role changed     | `Update` | the member, unless it is themselves |
+| removed          | `Remove` | the member                          |
+| banned           | `Block`  | the member                          |
+| unbanned         | —        | nobody, deliberately                |
+
+**Negative outcomes do notify.** Rejected, removed and banned all tell the person. **Unban is the
+one exception**, because telling someone they have been unbanned tells them they were banned,
+which they may never have noticed, and a notification is a strange way to learn it.
+
+`Join`, `Remove` and `Block` are new activity types. They are standard ActivityPub verbs and each
+earns its place: `Join` travels person→group, the opposite direction to `Invite`; `Delete` would
+say the _group_ was deleted when the group is fine and the membership is not; and `Block` stays
+apart from `Remove` because being shown the door once and being barred are different outcomes —
+the same reasoning that kept remove and ban from being one request with a different field.
+
+### Decisions worth keeping
+
+- **The notify calls live inside the wrappers, not the route**, matching phase 9's rule that an
+  invariant lives in exactly one place. A future bulk-moderation job inherits them for free.
+- **They are awaited, not fire-and-forget.** An unawaited promise can be killed when a Workers
+  invocation ends. Awaiting is safe because every export swallows its own errors — the moderation
+  has already committed by then, and a failed notification must not turn a ban that demonstrably
+  worked into a 500.
+- **A join request fans out to all leaders.** Several rows per request is the intended cost: a
+  request nobody is told about is a request nobody answers, which is exactly what made the
+  `request` policy unusable. It links to `/g/{handle}/members`, where the queue actually is.
+- **Rejection does not name who declined.** The sentence is passive, because a rejection is the
+  group's answer and naming the moderator who clicked invites it to be taken personally.
+- **`objectId` is the group id, not the handle** — a handle can change and the notification should
+  still point at the same group. The navigable form rides in `objectUrl`.
+- **30-day retention for the whole context**, overriding the rule that invites and their answers
+  never expire. The membership row is the audit trail; a declined request pinned to someone's bell
+  forever serves nobody. This required putting the context check _above_ the type check in
+  `getExpirationDate` — written the other way round it is unreachable code for `Accept` and
+  `Reject`.
+- **The role-change sentence is built at the call site**, because gaining and losing a role read
+  differently and `member` is the absence of a role rather than one you are promoted into.
+
+`lib/interfaces.ts` duplicates both enums as hand-maintained string unions, and that copy is what
+`lib/notifications.ts` imports — not the schema. Both have to be updated together or `tsc` passes
+while the values are unusable.
+
+Covered by `tests-db/group-notifications.test.ts`. Four of its cases assert a **silence**: unban,
+self-role-change, an actor with no user behind it, and an action that was already true. Each is
+indistinguishable from a bug unless it is written down.
+
+**Still unbuilt:** invites, email delivery for these (they are in-app only), and notifying event
+attendees when an event is deleted along with its group.
 
 ---
 

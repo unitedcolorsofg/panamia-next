@@ -32,8 +32,9 @@ export const isDirectoryAccountType = (
 /**
  * Profile columns that must be cleared when an account reverts to 'personal'.
  *
- * Personal profiles must not retain street addresses — the rebuild notes in
- * app/form/become-a-pana/page.tsx set this to limit FIPA breach exposure. The
+ * Personal profiles must not retain street addresses — this was set to limit
+ * FIPA breach exposure by the rebuild notes on the retired become-a-pana form,
+ * whose public replacement is app/form/list-your-business/page.tsx. The
  * profile and its social identity survive a downgrade; only the listing data
  * goes.
  *

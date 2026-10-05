@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 
 export interface Identity {
@@ -91,6 +92,7 @@ export function IdentityProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,6 +139,13 @@ export function IdentityProvider({
       try {
         await axios.post('/api/profile/switch', { profileId });
         setActiveId(profileId);
+        /* Client-cached social data is keyed on a handle, not on who is
+           asking, and several of those responses are viewer-scoped — Mutual
+           Panas names people, and isSelf/isFollowing decide which buttons a
+           profile shows. With a 60s staleTime, a switch would otherwise leave
+           the new identity looking at the old one's answers. router.refresh()
+           does not touch this cache, so it has to be dropped here. */
+        queryClient.clear();
         // Profile-scoped data is keyed on the cookie server-side, so the
         // refresh is what actually swaps the page over.
         router.refresh();
@@ -146,7 +155,7 @@ export function IdentityProvider({
         setSwitching(null);
       }
     },
-    [activeId, router, switching]
+    [activeId, queryClient, router, switching]
   );
 
   const value = useMemo<IdentityState>(() => {

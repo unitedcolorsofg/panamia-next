@@ -38,7 +38,7 @@ const BROWSE_DOORS: readonly Door[] = [
 
 const BUSINESS_DOOR: Door = {
   id: 'business',
-  href: '/form/become-a-pana',
+  href: '/form/list-your-business',
   icon: Store,
   titleKey: 'onboarding.startBusinessTitle',
   bodyKey: 'onboarding.startBusinessBody',
@@ -111,8 +111,8 @@ export function StartView({
         {showBusinessDoor && (
           <div className="space-y-3">
             {/* Separated because it is a different kind of answer: the two
-                above are places to go, this one changes what the account is
-                (users.accountType) and opens a form. */}
+                above are places to go, this one opens a form and puts a
+                listing in the directory. */}
             <p className="text-muted-foreground text-center text-xs tracking-wide uppercase">
               {t('onboarding.startBusinessDivider')}
             </p>

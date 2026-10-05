@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useIsNativeApp } from '@/lib/mobile/use-native-app';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 function GoogleIcon() {
   return (
@@ -94,47 +94,6 @@ export interface SignInViewProps {
   mainSiteName: string;
 }
 
-/**
- * Crosses to the main site's own origin when rendered on a surface hostname.
- *
- * Reserved for the main site's front door. Borrowed pages — legal, forms —
- * used to arrive bare on a surface, which is why everything pointing at the
- * main site once crossed; guest chrome frames them now, so they link
- * relatively and keep the member on the hostname they chose. Sending someone
- * to another origin to read the terms is the dead end this page's own footer
- * exists to avoid.
- *
- * The homepage is the exception: going there is a deliberate departure, the
- * same intent as the footer's link home, so it still crosses.
- *
- * On the main site itself `base` is null and this stays a client-side
- * navigation.
- */
-function MainSiteLink({
-  href,
-  base,
-  className,
-  children,
-}: {
-  href: string;
-  base: string | null;
-  className?: string;
-  children: ReactNode;
-}) {
-  if (!base) {
-    return (
-      <Link href={href} className={className}>
-        {children}
-      </Link>
-    );
-  }
-  return (
-    <a href={`${base}${href}`} className={className}>
-      {children}
-    </a>
-  );
-}
-
 function SignInPageContent({
   surfaceId,
   surfaceName,
@@ -171,9 +130,6 @@ function SignInPageContent({
      means adding keys rather than branching here. */
   const ts = (key: string) =>
     t(`${key}_${surfaceId}`, { defaultValue: t(key) });
-
-  // Show different ad copy based on callback URL
-  const isBecomeAPana = callbackUrl.includes('form/become-a-pana');
 
   // Only providers with credentials configured are offered. All four flags
   // default to 'false' (lib/env.config.ts), so rendering the unconfigured ones
@@ -316,28 +272,11 @@ function SignInPageContent({
               className="h-auto w-64 max-w-full"
               priority
             />
-            {/* Copy depends on how the visitor got here: someone mid-way through
-              "Become a Pana" needs to know what they're signing up for, while
-              everyone else is most likely returning. */}
+            {/* Listing a business no longer starts here — /form/list-your-business
+              is public — so there is one audience left on this page: someone
+              returning to an account. */}
             <p className="text-pana-ink/75 dark:text-muted-foreground max-w-md text-center text-sm leading-relaxed">
-              {isBecomeAPana ? (
-                <>
-                  {t('adCopyBecomeAPana')}{' '}
-                  <MainSiteLink
-                    href="/#faq-what-is-a-pana"
-                    base={mainSiteUrl}
-                    className="text-pana-indigo dark:text-pana-flame font-semibold underline"
-                  >
-                    <Trans
-                      i18nKey="adCopyBecomeAPanaLink"
-                      t={t}
-                      components={{ em: <em /> }}
-                    />
-                  </MainSiteLink>
-                </>
-              ) : (
-                ts('adCopyDefault')
-              )}
+              {ts('adCopyDefault')}
             </p>
           </div>
 

@@ -18,7 +18,7 @@ export default async function EditProfilePage() {
 
   // Require profile to access mentoring features
   if (!profile) {
-    redirect('/form/become-a-pana?from=mentoring');
+    redirect('/welcome?next=/m/profile/edit');
   }
 
   const mentoring = profile?.mentoring as ProfileMentoring | null;

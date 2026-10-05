@@ -42,7 +42,11 @@ export const PANA_OFFERINGS: readonly PanaOffering[] = [
   // and joining the club does not need one — the form at the other end has
   // been live for years. Left as null it made the front page apologise for
   // being unbuilt directly above two working buttons.
-  { id: 'getInvolved', href: '/get-involved', appHref: '/form/become-a-pana' },
+  {
+    id: 'getInvolved',
+    href: '/get-involved',
+    appHref: '/form/list-your-business',
+  },
   // The Community Connectors programme, which `getInvolved` has been naming
   // in its third step for a while without having anywhere to send anyone.
   // Its app is the connector HQ rather than a sign-up form: the front page is

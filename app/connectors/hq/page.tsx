@@ -228,7 +228,7 @@ function NotAConnectorYet() {
             What is Pana Connectors?
           </SurfaceLink>
           <SurfaceLink
-            href="/form/become-a-pana"
+            href="/form/list-your-business"
             className="rounded-full border-2 border-pana-ink px-5 py-2.5 text-sm font-extrabold text-pana-ink"
           >
             Become a Pana

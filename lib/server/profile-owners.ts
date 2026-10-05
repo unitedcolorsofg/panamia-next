@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { profileOwners, profiles } from '@/lib/schema';
-import { and, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 
 /**
  * Marker written into profiles.status.source by the public intake form
@@ -97,6 +97,37 @@ export async function listAdministeredProfiles(userId: string) {
       or(eq(profiles.userId, userId), sql`${profileOwners.id} IS NOT NULL`)
     )
     .orderBy(profiles.id);
+}
+
+/**
+ * Does this user administer a profile that is not their own identity profile?
+ *
+ * In other words: do they already run a listing? Business listings keep
+ * profiles.userId NULL and attach through profile_owners, so anything a user
+ * administers that is not their personal profile is a listing.
+ *
+ * The personal profile is excluded explicitly. Every signed-in member has one,
+ * so counting it would make the answer true for everybody — which is the
+ * mistake listAdministeredProfiles invites, since that one includes it by
+ * design. This is existence-only so it stays a single lookup instead of
+ * loading every row.
+ */
+export async function administersOtherProfile(
+  userId: string
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: profileOwners.id })
+    .from(profileOwners)
+    .innerJoin(profiles, eq(profiles.id, profileOwners.profileId))
+    .where(
+      and(
+        eq(profileOwners.userId, userId),
+        or(isNull(profiles.userId), ne(profiles.userId, userId))
+      )
+    )
+    .limit(1);
+
+  return Boolean(row);
 }
 
 /**

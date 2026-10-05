@@ -42,7 +42,7 @@ const STATIC_ROUTES: SitemapEntry[] = [
   { url: `${SITE_URL}/donate`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/podcasts`, changeFrequency: 'weekly' },
   { url: `${SITE_URL}/m/discover`, changeFrequency: 'weekly' },
-  { url: `${SITE_URL}/form/become-a-pana`, changeFrequency: 'monthly' },
+  { url: `${SITE_URL}/form/list-your-business`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/contact-us`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/join-the-team`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/legal/terms`, changeFrequency: 'monthly' },

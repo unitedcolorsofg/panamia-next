@@ -21,6 +21,9 @@ import {
   Users,
   Bell,
   Video,
+  UserMinus,
+  Ban,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
@@ -55,10 +58,22 @@ function getNotificationIcon(
     return <Video className="h-4 w-4" />;
   }
 
+  // A role change is the one Update that is about you rather than about a
+  // document, so it gets the badge instead of the pencil.
+  if (context === 'group_membership' && type === 'Update') {
+    return <Shield className="h-4 w-4" />;
+  }
+
   // Type-specific icons
   switch (type) {
     case 'Invite':
       return <UserPlus className="h-4 w-4" />;
+    case 'Join':
+      return <UserPlus className="h-4 w-4" />;
+    case 'Remove':
+      return <UserMinus className="h-4 w-4" />;
+    case 'Block':
+      return <Ban className="h-4 w-4" />;
     case 'Accept':
       return <Check className="h-4 w-4" />;
     case 'Reject':
@@ -90,6 +105,10 @@ function getIconColor(
     case 'Reject':
       return 'text-red-600 dark:text-red-400';
     case 'Delete':
+      return 'text-red-600 dark:text-red-400';
+    case 'Remove':
+      return 'text-amber-600 dark:text-amber-400';
+    case 'Block':
       return 'text-red-600 dark:text-red-400';
     case 'Invite':
       return 'text-blue-600 dark:text-blue-400';

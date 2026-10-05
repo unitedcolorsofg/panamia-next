@@ -388,7 +388,7 @@ function SignupDialog({
             asChild
             className="bg-pana-flame text-pana-ink hover:bg-pana-burnt flex-1 rounded-full font-extrabold"
           >
-            <Link href="/form/become-a-pana">
+            <Link href="/welcome">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
               {signedInAsBusiness
                 ? t('gate.addPanaAccount')

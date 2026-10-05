@@ -127,7 +127,7 @@ an ActivityPub-style actor/status model so posts can federate (see
 | `/api/social/actors/[username]`        | GET         | Get an actor's public profile               |
 | `/api/social/actors/[username]/posts`  | GET         | An actor's public posts                     |
 | `/api/social/actors/[username]/follow` | POST/DELETE | Follow / unfollow an actor                  |
-| `/api/social/actors/[username]/panas`  | GET         | An actor's Panas (mutual follows)           |
+| `/api/social/actors/[username]/panas`  | GET         | Own Panas, or Mutual Panas with the viewer  |
 | `/api/social/actors/[username]/groups` | GET         | Public groups an actor belongs to           |
 | `/api/social/actors/[username]/events` | GET         | Events an actor hosts; RSVPs are owner-only |
 | `/api/social/follows`                  | GET         | List the current user's follows             |
@@ -214,7 +214,7 @@ Admin-only endpoints (require admin role):
 | ------------------------------- | ------ | ----------------------------- |
 | `/api/createContactUs`          | POST   | Submit contact form           |
 | `/api/createSignup`             | POST   | Submit signup form            |
-| `/api/createExpressProfile`     | POST   | Quick profile creation        |
+| `/api/listings/intake`          | POST   | Submit a business listing     |
 | `/api/admin/contactSubmissions` | GET    | List contact submissions      |
 | `/api/admin/contactSubmissions` | PATCH  | Set contact submission status |
 | `/api/getSignupList`            | GET    | List signup requests          |

@@ -23,7 +23,7 @@ export default function InkFrontPage() {
   return (
     <OfferingFrontPage
       id="ink"
-      actions={{ primary: '/a', secondary: '/form/become-a-pana' }}
+      actions={{ primary: '/a', secondary: '/form/list-your-business' }}
     />
   );
 }

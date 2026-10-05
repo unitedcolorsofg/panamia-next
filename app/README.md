@@ -100,7 +100,8 @@ Public submission forms:
 | Route                       | Description           |
 | --------------------------- | --------------------- |
 | `/form/contact-us`          | Contact form          |
-| `/form/become-a-pana`       | Profile signup form   |
+| `/form/list-your-business`  | Business listing form |
+| `/form/become-a-pana`       | Redirect to the above |
 | `/form/become-an-affiliate` | Affiliate application |
 | `/form/join-the-team`       | Team application      |
 
@@ -124,7 +125,7 @@ RSS and JSON feeds for articles:
 | `/donation/confirmation`              | Post-donation page       |
 | `/doc/terms-and-conditions`           | Terms of service         |
 | `/doc/affiliate-terms-and-conditions` | Affiliate terms          |
-| `/become-a-pana`                      | Signup landing page      |
+| `/become-a-pana`                      | Redirect to listing form |
 | `/contact-us`                         | Redirect to contact form |
 | `/migrate-email`                      | Email migration flow     |
 | `/verify-oauth-email`                 | OAuth email verification |

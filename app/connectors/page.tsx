@@ -48,7 +48,9 @@ export default async function ConnectorsFrontPage({
       <OfferingFrontPage
         id="connectors"
         actions={{
-          primary: '/form/become-a-pana',
+          // `/form/become-a-pana` was retired on main and now redirects here;
+          // pointing at the live intake directly rather than through the hop.
+          primary: '/form/list-your-business',
           secondary: '/connectors/hq?as=connector',
         }}
         interlude={<HouseBoard />}

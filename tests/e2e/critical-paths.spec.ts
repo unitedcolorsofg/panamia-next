@@ -16,20 +16,22 @@ test.describe('Critical User Paths', () => {
     await expect(page.locator('h1').first()).toContainText('Find your people');
   });
 
-  test('become a pana sends anonymous visitors to sign in', async ({
+  test('become a pana forwards to the business listing form', async ({
     page,
   }) => {
     const res = await page.goto('/become-a-pana', {
       waitUntil: 'domcontentloaded',
     });
 
-    // Unauthenticated visitors never reach the form; they land on sign-in with
-    // the form as the callback. The old assertion read the path out of that
-    // callback query string and reported it as the form having loaded.
+    // The become-a-pana form is retired; this landing path is kept as a
+    // redirect so indexed links still resolve. Its destination is public, so
+    // anonymous visitors now reach the form itself rather than sign-in.
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+    await expect(page).toHaveURL(
+      /^https?:\/\/[^/]+\/form\/list-your-business$/
+    );
     await expect(page.locator('h1').first()).toContainText(
-      'Welcome to Pana MIA'
+      'List your business'
     );
   });
 
@@ -102,12 +104,14 @@ test.describe('Form Pages', () => {
   // reference to it left in the repo, and both of the loop's assertions passed
   // on it.
 
-  test('become a pana form requires sign in', async ({ page }) => {
+  test('become a pana form redirects to the listing form', async ({ page }) => {
     const res = await page.goto('/form/become-a-pana', {
       waitUntil: 'domcontentloaded',
     });
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/signin\?callbackUrl=/);
+    await expect(page).toHaveURL(
+      /^https?:\/\/[^/]+\/form\/list-your-business$/
+    );
   });
 
   test('affiliate form asks anonymous visitors to sign in', async ({
