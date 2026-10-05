@@ -179,8 +179,8 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         email,
         name: displayName || session.user.name?.trim() || newScreenname,
-        // Consistent with createExpressProfile: self-created profiles are
-        // active immediately. Visibility is governed by accountType, not this.
+        // Self-created profiles are active immediately. Visibility is governed
+        // by accountType, not this.
         active: true,
       });
     }

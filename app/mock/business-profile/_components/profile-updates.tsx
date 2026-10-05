@@ -230,7 +230,7 @@ export function ProfileClaimPrompt({ profile }: ProfileUpdatesProps) {
               asChild
               className="bg-pana-flame text-pana-ink hover:bg-pana-burnt rounded-full font-extrabold"
             >
-              <Link href="/form/become-a-pana">
+              <Link href="/listings/claim/start">
                 <UserCheck className="h-4 w-4" aria-hidden="true" />
                 Claim this listing
               </Link>

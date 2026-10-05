@@ -326,9 +326,7 @@ export function ProfileHero({
             {!showsPanaActions && (
               <p className="bizprofile-hero-note">
                 {t('hero.businessNote')}{' '}
-                <Link href="/form/become-a-pana">
-                  {t('hero.businessNoteLink')}
-                </Link>
+                <Link href="/welcome">{t('hero.businessNoteLink')}</Link>
               </p>
             )}
 

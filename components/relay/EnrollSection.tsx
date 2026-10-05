@@ -47,7 +47,7 @@ const GAP_COPY: Record<
   profile: {
     label:
       'Set up your Pana profile so we have a display name to publish with your handle.',
-    href: '/form/become-a-pana',
+    href: '/welcome',
     cta: 'Set up your profile',
   },
   screenname: {

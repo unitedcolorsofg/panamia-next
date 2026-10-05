@@ -460,7 +460,7 @@ function email(value: unknown): string | null {
 
 /**
  * profiles.pronouns is a plain text column; legacy Mongo stored a boolean map.
- * Mirrors the collapse in app/api/createExpressProfile/route.ts so migrated and
+ * Mirrors the collapse in app/api/listings/intake/route.ts so migrated and
  * newly created profiles render identically.
  */
 function pronounsToText(value: unknown): string | null {

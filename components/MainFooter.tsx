@@ -30,7 +30,7 @@ export default function GlobalFooter() {
               <strong>{t('footer.support')}</strong>
             </li>
             <li>
-              <Link href="/form/become-a-pana">{t('footer.becomeAPana')}</Link>
+              <Link href="/welcome">{t('footer.becomeAPana')}</Link>
             </li>
             <li>
               <Link href="/impact">{t('footer.impactReport')}</Link>

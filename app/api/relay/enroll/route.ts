@@ -24,7 +24,7 @@ import type { NostrEvent } from '@/lib/nostr/sign';
 //   - 401 if not signed in.
 //   - 400 on malformed pubkey.
 //   - 412 if the caller's profile/screenname is incomplete — Resilience
-//     requires a finished become-a-pana submission and a screenname so the
+//     requires a profile and a screenname so the
 //     kind 0 metadata + NIP-05 record we publish on their behalf are
 //     coherent. Body: { error: 'profile_incomplete', missing: [...] }.
 //   - 409 if the caller already has a different pubkey on file (one identity

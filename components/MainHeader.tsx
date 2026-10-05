@@ -193,7 +193,7 @@ export default function MainHeader({
               {status !== 'loading' && !session && (
                 <>
                   <Link
-                    href="/form/become-a-pana"
+                    href="/welcome"
                     className={styles.drawerCta}
                     onClick={closeDrawer}
                   >

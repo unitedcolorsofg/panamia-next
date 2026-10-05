@@ -50,12 +50,12 @@ export default function NewArticlePage() {
 
           if (!profileExists) {
             requireProfile(false, 'write articles');
-            router.push('/form/become-a-pana?from=articles');
+            router.push('/welcome?next=/a/new');
           }
         } catch {
           setHasProfile(false);
           requireProfile(false, 'write articles');
-          router.push('/form/become-a-pana?from=articles');
+          router.push('/welcome?next=/a/new');
         }
       }
     }

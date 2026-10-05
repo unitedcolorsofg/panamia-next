@@ -28,7 +28,7 @@ export default function DirectoryFrontPage() {
   return (
     <OfferingFrontPage
       id="directory"
-      actions={{ primary: '/d', secondary: '/form/become-a-pana' }}
+      actions={{ primary: '/d', secondary: '/form/list-your-business' }}
     />
   );
 }

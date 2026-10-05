@@ -38,7 +38,7 @@ const BROWSE_DOORS: readonly Door[] = [
 
 const BUSINESS_DOOR: Door = {
   id: 'business',
-  href: '/form/become-a-pana',
+  href: '/form/list-your-business',
   icon: Store,
   titleKey: 'onboarding.startBusinessTitle',
   bodyKey: 'onboarding.startBusinessBody',
