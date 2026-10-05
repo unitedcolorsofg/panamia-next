@@ -20,6 +20,7 @@
     "manager": "Gerente",
     "owner": "Dueño",
     "sites": {
+      "connectors": "Conectores",
       "directory": "Directorio",
       "events": "Eventos",
       "getInvolved": "Participa",

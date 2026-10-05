@@ -7,6 +7,7 @@ import {
   Compass,
   MessageCircle,
   PenLine,
+  Sparkles,
   Users,
   Video,
 } from 'lucide-react';
@@ -29,6 +30,11 @@ const SITE_ICONS: Record<string, LucideIcon> = {
   directory: Compass,
   events: CalendarDays,
   getInvolved: Users,
+  /* Sparkles rather than the Connectors mark itself: the tile icon renders at
+     18px inside a 38px circle, and the constellation's five nodes close up
+     into a blob at that size. The star motif is what carries, so this borrows
+     it from lucide and leaves the drawn mark to the places it can be read. */
+  connectors: Sparkles,
 };
 
 /**

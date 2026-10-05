@@ -8833,6 +8833,21 @@ body:has(.dirscope) header {
   --offering-glow-alpha: 0.55;
 }
 
+/* Burnt, which is the tone `SURFACE_TONE` gives the connectors surface — the
+   masthead accent and the page's light agree rather than each picking their
+   own warm.
+
+   Glow only, no accent/fill override. Social overrides those because it is lit
+   by a drawn mark it has to answer to; the Connectors lettering is a
+   placeholder set in Nunito until somebody draws the real one, and committing
+   the page's whole colour system to a placeholder's hue is how a stopgap
+   becomes permanent. The default blue accent is what directory, vizión, ink
+   and get-involved all carry, so this is the convention rather than an
+   omission. */
+.offering[data-offering='connectors'] {
+  --offering-glow: 217 98 54;
+}
+
 @media (min-width: 48rem) {
   .offering {
     --home-pad: 3.5rem;
