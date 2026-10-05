@@ -62,7 +62,7 @@ export interface ViewProps {
  * This is the whole proposal in one screen. Today the hero ships a plain
  * `DirectorySuggest` with `scope="all"`, and the comment next to it explains
  * why with unusual candour: the placeholder "says 'Search panas, businesses,
- * groups, events' â€¦ while Enter used to land in the businesses-only scope â€” so
+ * groups, events' … while Enter used to land in the businesses-only scope — so
  * three of the four kinds it names were advertised and then dropped on
  * submit." The fix at the time was to widen Enter to Everything and let the
  * scope chips on the results page sort it out afterwards.
@@ -75,7 +75,7 @@ export interface ViewProps {
  * placeholder's four-noun list existed only to stand in for the control that
  * is now sitting an inch to its left.
  *
- * Open the menu from the switcher to see the second half of this view â€” the
+ * Open the menu from the switcher to see the second half of this view — the
  * four destinations, named, before anyone presses Enter.
  */
 export function HomeView(props: ViewProps) {
@@ -115,7 +115,7 @@ export function HomeView(props: ViewProps) {
           </div>
 
           {/* The rotating short label on narrow screens cycled "Local
-              business / Local panas / Local groups / Local events" â€” four
+              business / Local panas / Local groups / Local events" — four
               words doing the job of a control because there was no control.
               With a scope button in the pill the rotation is noise competing
               with it, so the narrow-screen placeholder becomes the scope's own
@@ -131,7 +131,7 @@ export function HomeView(props: ViewProps) {
                     ? 'groups'
                     : 'panas'}
             </strong>{' '}
-            Â· change it in the box above
+            · change it in the box above
           </p>
         </div>
       </div>
@@ -147,7 +147,7 @@ export function HomeView(props: ViewProps) {
  * Almost a screenshot of today's page, which is the argument. The band, the
  * rail, the cards and the map are untouched; the scope chip row that used to
  * sit directly under the band is gone, and nothing moved up to replace it.
- * The directory does not need redesigning to stop being four products â€” it
+ * The directory does not need redesigning to stop being four products — it
  * needs the three it was never shaped for to go somewhere else.
  *
  * What the removal buys is the row the rail could never afford: a fourth
@@ -157,7 +157,7 @@ export function HomeView(props: ViewProps) {
  * The two panes
  * -------------
  * This view used to be a single column with a List/Map toggle floating above
- * it and no map anywhere â€” which was wrong, and wrong in a way a mock cannot
+ * it and no map anywhere — which was wrong, and wrong in a way a mock cannot
  * afford, because it put a dead control on the one page the mock exists to
  * argue about. The live directory is `.dirsearch-split`: results left, map
  * right, both pinned to the viewport with only the column scrolling, and the
@@ -173,7 +173,7 @@ export function DirectoryView(props: ViewProps) {
 
   // Hovering a card lights its pin and vice versa. The reason the panes are
   // worth pinning side by side is that each one answers what the other cannot
-  // â€” but only if it is obvious which row is which pin.
+  // — but only if it is obvious which row is which pin.
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const facets = (
@@ -251,7 +251,7 @@ export function DirectoryView(props: ViewProps) {
 
       <div className="dirsearch-panes">
         <section className="dirsearch-listpane" aria-label="Search results">
-          {/* Outside the scroller deliberately â€” the controls that change the
+          {/* Outside the scroller deliberately — the controls that change the
               results are the ones you reach for after reading a few, and a
               header you have to scroll back up to find gets used once. */}
           <div className="dirsearch-listhead">{facets}</div>
@@ -312,7 +312,7 @@ export function DirectoryView(props: ViewProps) {
  * Grouped by day, sorted by time, and that is the whole reason it cannot live
  * in the directory. A directory list is ranked by relevance and is stable:
  * ask the same question next week and you get the same answer. An events list
- * is ranked by *when* and decays â€” half of what it shows today is gone by
+ * is ranked by *when* and decays — half of what it shows today is gone by
  * Monday. Those two sorts cannot share a page, because the one thing a
  * relevance sort must not do is put a worse match first for being sooner.
  *
@@ -389,7 +389,7 @@ export function EventsView(props: ViewProps) {
       ) : (
         <>
           <ResultSummary>
-            <strong>{EVENTS.length}</strong> events Â· soonest first
+            <strong>{EVENTS.length}</strong> events · soonest first
           </ResultSummary>
 
           <div className="container mx-auto px-4 pt-5 pb-10">
@@ -446,19 +446,30 @@ export function EventsView(props: ViewProps) {
  *
  * First, groups become **public**. `SCOPE_REQUIRES_PANA` currently gates them
  * alongside panas, which means a group is invisible to exactly the people it
- * needs to recruit â€” you have to already be a member of the club to discover
+ * needs to recruit — you have to already be a member of the club to discover
  * the thing that would make you want to join it. Panas stay gated because a
  * member list is personal data; a group is a public notice board with a door
  * on it, and the door is `joinPolicy`, not the search index.
  *
+ * The roster is the part that stays private. Public page, private membership:
+ * a signed-out visitor sees every group and every fact that would make them
+ * want to join one, but not who is already in it. That split is what lets the
+ * page recruit without publishing the club's member list to the open web — see
+ * `GroupCard` for where the line falls.
+ *
  * Second, the member's own groups get a shelf above the results. A group page
  * is somewhere you return to, unlike a directory listing, and burying "the
  * four I'm already in" under a search box treats a regular visit as a fresh
- * discovery every time.
+ * discovery every time. Signed out there is no such shelf, because there are
+ * no groups of yours to put on it — the page is then a flat list of everything.
  */
 export function GroupsView(props: ViewProps) {
-  const mine = GROUPS.filter((group) => group.joined);
-  const rest = GROUPS.filter((group) => !group.joined);
+  // Only a signed-in viewer has groups of their own, so the shelf/rest split
+  // collapses to a single list for everyone else.
+  const mine = props.signedIn ? GROUPS.filter((group) => group.joined) : [];
+  const rest = props.signedIn
+    ? GROUPS.filter((group) => !group.joined)
+    : GROUPS;
 
   return (
     <main className="dirsearch" data-tone={SCOPE_TONE.group}>
@@ -531,20 +542,29 @@ export function GroupsView(props: ViewProps) {
                   Your groups
                 </h2>
                 {mine.map((group) => (
-                  <GroupCard key={group.id} group={group} />
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    signedIn={props.signedIn}
+                  />
                 ))}
               </div>
             </div>
           )}
 
           <ResultSummary>
-            <strong>{rest.length}</strong> more groups Â· most active first
+            <strong>{rest.length}</strong>
+            {props.signedIn ? ' more groups' : ' groups'} · most active first
           </ResultSummary>
 
           <div className="container mx-auto px-4 pt-5 pb-10">
             <div className="dirsearch-grid">
               {rest.map((group) => (
-                <GroupCard key={group.id} group={group} />
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  signedIn={props.signedIn}
+                />
               ))}
             </div>
           </div>
@@ -588,7 +608,7 @@ export function PanasView(props: ViewProps) {
         title="members"
         count={
           <>
-            <strong>{PANAS.length}</strong> panas Â· visible to members only
+            <strong>{PANAS.length}</strong> panas · visible to members only
           </>
         }
         field={
@@ -634,7 +654,7 @@ export function PanasView(props: ViewProps) {
       ) : (
         <>
           <ResultSummary>
-            <strong>{PANAS.length}</strong> panas Â· most connections in common
+            <strong>{PANAS.length}</strong> panas · most connections in common
             first
           </ResultSummary>
 
@@ -668,7 +688,7 @@ export function PanasGateView(props: ViewProps) {
         eyebrow="Explore panas"
         accent="The"
         title="members"
-        count="Members only â€” sign in to search panas"
+        count="Members only — sign in to search panas"
         field={
           <ScopeField
             {...props}
@@ -685,7 +705,7 @@ export function PanasGateView(props: ViewProps) {
             <em>Panas</em> are for panas
           </p>
           <p className="dirsearch-empty-lede">
-            Member profiles are not public. Join the club â€” it is free â€” and you
+            Member profiles are not public. Join the club — it is free — and you
             can search {PANAS.length} panas by craft, neighbourhood and who you
             already have in common.
           </p>

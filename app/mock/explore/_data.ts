@@ -534,7 +534,11 @@ export const GROUPS: MockGroup[] = [
     tags: ['Food', 'Outdoors'],
     cover: '/img/impact/culture-zines-left.webp',
     faces: FACES.slice(0, 2),
-    joinPolicy: 'open',
+    /* The only invite-only group in the set, and it earns its place: the card
+       spends a word on join policy precisely so a pana does not click through
+       to a door they cannot open. If no fixture is invite-only, that case
+       never renders and the claim goes unreviewed. */
+    joinPolicy: 'invite',
     joined: false,
     activity: '2 posts this week',
   },

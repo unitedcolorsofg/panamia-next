@@ -311,8 +311,27 @@ export function EventCard({ event }: { event: MockEvent }) {
  * Join policy especially. Today a pana finds a group, clicks through, and only
  * then learns it is invite-only. That is a wasted click the card can spend one
  * word preventing.
+ *
+ * Who can see whom
+ * ----------------
+ * The group is public; its roster is not. A signed-out visitor gets every
+ * fact that helps them decide to join — what it is, how often it meets, where,
+ * how busy it is, and whether the door is open — but no faces, because the
+ * membership list is other people's data and they did not publish it to the
+ * open web by joining a club.
+ *
+ * The count stays either way. "88 members" is the signal that separates a
+ * living group from an abandoned one, and it names nobody; dropping it would
+ * cost the public page the one thing it most needs to show while protecting
+ * no one. Aggregate yes, identity no.
  */
-export function GroupCard({ group }: { group: MockGroup }) {
+export function GroupCard({
+  group,
+  signedIn,
+}: {
+  group: MockGroup;
+  signedIn: boolean;
+}) {
   return (
     <article className="dirsearch-card">
       <span className="dirsearch-card-media">
@@ -379,7 +398,8 @@ export function GroupCard({ group }: { group: MockGroup }) {
 
         <div className="dirsearch-card-foot">
           <div className="dirsearch-card-signals">
-            {group.faces.length > 0 && (
+            {/* Faces are the roster, so they are the part that goes away. */}
+            {signedIn && group.faces.length > 0 && (
               <span className="dirsearch-card-avatars" aria-hidden="true">
                 {group.faces.map((face) => (
                   <Image key={face} src={face} alt="" width={26} height={26} />
@@ -389,10 +409,21 @@ export function GroupCard({ group }: { group: MockGroup }) {
             <span className="dirsearch-card-counts">
               <strong>{group.members}</strong> members
             </span>
+            {!signedIn && (
+              <span
+                className="dirsearch-card-counts inline-flex items-center gap-1 opacity-60"
+                title="Join the club to see who is in this group"
+              >
+                <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
+                Sign in to see who&rsquo;s in it
+              </span>
+            )}
           </div>
 
           <div className="dirsearch-card-actions">
-            {group.joined ? (
+            {/* "You're in" is a fact about the viewer, so a signed-out visitor
+                never sees it — they are not in anything yet. */}
+            {signedIn && group.joined ? (
               <span className="dirsearch-card-active">
                 <CircleDot
                   className="mr-1 inline h-3.5 w-3.5"
