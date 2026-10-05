@@ -1,6 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { SCOPE_TONE, type ExploreScope } from '../_data';
 
 /**
@@ -81,12 +82,16 @@ export function ExploreBand({
 export interface FacetRow {
   label: string;
   chips: string[];
-  /** Index of the chip that reads as on. -1 for a row with nothing applied. */
+  /**
+   * Index of the option this facet starts on. Index 0 is treated as the
+   * neutral one (All / Any / the default sort) — the control tints itself
+   * only past it, which is how an applied filter is legible at a glance.
+   */
   active: number;
 }
 
 /**
- * The filter rail, with rows the caller chooses.
+ * The filter rail, with facets the caller chooses — one dropdown each.
  *
  * Which facets exist is a property of the kind, not of the template. A county
  * filter means something for a business, an in-person group and an event, and
@@ -101,36 +106,203 @@ export interface FacetRow {
  * The scope row is conspicuously absent, and that absence is the proposal.
  * Scope moved into the search pill at the top of this band, so the rail is
  * free to be about the kind in front of you.
+ *
+ * **Dropdowns rather than chip rows.** The shipped rail spends one full row
+ * per facet on a horizontally scrolling strip of chips, so four facets cost
+ * four rows of sticky chrome above the first result — and because the strip
+ * scrolls, the options past the fourth are invisible until you drag them into
+ * view, with nothing saying they are there. Collapsing each facet to a
+ * dropdown puts every facet on one row, shows the full option list when it is
+ * asked for, and states the current value on the face of the control rather
+ * than leaving it to be inferred from which chip is filled in.
+ *
+ * It also scales where the chip rail does not: the eleven categories the chip
+ * row comment worries about wrapping are a normal-length menu.
+ *
+ * The props are unchanged from the chip version — `FacetRow.active` is now
+ * read as the *initial* selection rather than a permanent one, because these
+ * are real controls here. Each page mounts its own set, so changing Category
+ * on the directory and then walking to events does not carry a stale pick.
  */
 export function FacetRail({
   rows,
   trailing,
 }: {
   rows: FacetRow[];
-  /** Extra controls pinned to the last row — a List/Map toggle, say. */
+  /** Extra controls pinned to the end of the row — a List/Map toggle, say. */
   trailing?: ReactNode;
 }) {
+  // Which facet is open, by label. One at a time: two open menus overlapping
+  // each other is a worse answer than the chip rail we are replacing.
+  const [openLabel, setOpenLabel] = useState<string | null>(null);
+
+  // Panels are anchored to the left of their trigger, which runs them off a
+  // phone screen when the trigger is the last one in a wrapped row. Measured
+  // on open rather than guessed from the index, because the rail wraps and
+  // which control sits at the right edge changes with the viewport.
+  const [alignRight, setAlignRight] = useState(false);
+
+  const openFacet = (label: string, trigger: HTMLElement) => {
+    const rect = trigger.getBoundingClientRect();
+    const PANEL = 240; // 15rem, matching the panel width below.
+    setAlignRight(rect.left + PANEL > document.documentElement.clientWidth - 16);
+    setOpenLabel(label);
+  };
+
+  // Keyed by label and seeded lazily from `row.active`, so a page whose facet
+  // set differs from the last one still reads its own defaults.
+  const [picked, setPicked] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!openLabel) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenLabel(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [openLabel]);
+
   return (
     <div className="dirsearch-filters">
       <div className="container mx-auto px-4">
-        {rows.map((row, rowIndex) => (
-          <div key={row.label} className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">{row.label}</span>
-            <div className="dirsearch-chiprow">
-              {row.chips.map((chip, index) => (
+        {/* Deliberately not `.dirsearch-chiprow`. That class is
+            `overflow-x: auto` — correct for a scrolling strip of chips, fatal
+            for anything that hangs below one, which would be clipped at the
+            strip's own edge. `flex-wrap` instead, so a narrow window stacks
+            the facets rather than hiding them. */}
+        <div className="relative flex flex-wrap items-center gap-2 py-0.5">
+          {rows.map((row) => {
+            const index = picked[row.label] ?? row.active;
+            const value = row.chips[index] ?? row.chips[0];
+            const open = openLabel === row.label;
+
+            // Every one of these rails leads with a neutral option — All,
+            // All of South Florida, Any, Closest — so "not index 0" is a
+            // reliable read on "the visitor narrowed something", and the
+            // control can carry that without a separate applied-count.
+            const applied = index > 0;
+            const menuId = `facet-${row.label.toLowerCase().replace(/\s+/g, '-')}`;
+
+            return (
+              <div key={row.label} className="relative">
                 <button
-                  key={chip}
                   type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={index === row.active}
+                  className="surface-pill"
+                  aria-haspopup="listbox"
+                  aria-expanded={open}
+                  aria-controls={open ? menuId : undefined}
+                  aria-label={`${row.label}: ${value}`}
+                  data-applied={applied}
+                  style={
+                    applied
+                      ? {
+                          borderColor: 'var(--surface-tone)',
+                          backgroundColor: 'var(--surface-tone-soft)',
+                        }
+                      : undefined
+                  }
+                  onClick={(event) =>
+                    open ? setOpenLabel(null) : openFacet(row.label, event.currentTarget)
+                  }
                 >
-                  {chip}
+                  <span className="dirsearch-filterlabel w-auto">
+                    {row.label}
+                  </span>
+                  {/* Deliberately NOT `.surface-pill-name`. That class is
+                      `display: none` under the design system's narrow
+                      breakpoint, which is fine when the name is decoration
+                      beside an icon — but here the value IS the control's
+                      content, and hiding it leaves a phone with four pills
+                      reading WHEN / WHERE / TYPE / PRICE and no way to see
+                      what is actually applied. Capped and ellipsised instead,
+                      so a long value shortens rather than widening the page. */}
+                  <span className="max-w-[9rem] truncate font-semibold">
+                    {value}
+                  </span>
+                  <ChevronDown
+                    className="h-3.5 w-3.5 flex-none opacity-60 transition-transform"
+                    style={{ transform: open ? 'rotate(180deg)' : undefined }}
+                    aria-hidden="true"
+                  />
                 </button>
-              ))}
-              {trailing && rowIndex === rows.length - 1 ? trailing : null}
-            </div>
-          </div>
-        ))}
+
+                {open && (
+                  <>
+                    {/* Closes on any click that is not a choice. A backdrop
+                        rather than a document listener because it also stops
+                        the click landing on whatever was behind it, which on
+                        a results page is a card. */}
+                    <button
+                      type="button"
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="fixed inset-0 cursor-default"
+                      style={{ zIndex: 44 }}
+                      onClick={() => setOpenLabel(null)}
+                    />
+
+                    <div
+                      id={menuId}
+                      role="listbox"
+                      aria-label={row.label}
+                      className="surface-panel"
+                      /* Same z-index reasoning as the scope menu: the sticky
+                         filter strip this sits inside claims 30, so a panel
+                         at the default would tie with its own container. */
+                      style={{
+                        top: 'calc(100% + 0.45rem)',
+                        left: alignRight ? 'auto' : 0,
+                        right: alignRight ? 0 : 'auto',
+                        zIndex: 45,
+                        width: '15rem',
+                        maxWidth: 'calc(100vw - 2rem)',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <p className="surface-panel-label">{row.label}</p>
+
+                      <div className="flex flex-col gap-0.5">
+                        {row.chips.map((chip, chipIndex) => {
+                          const current = chipIndex === index;
+                          return (
+                            <button
+                              key={chip}
+                              type="button"
+                              role="option"
+                              aria-selected={current}
+                              className="surface-option items-center"
+                              data-current={current}
+                              onClick={() => {
+                                setPicked((prev) => ({
+                                  ...prev,
+                                  [row.label]: chipIndex,
+                                }));
+                                setOpenLabel(null);
+                              }}
+                            >
+                              <span className="surface-option-name flex-1">
+                                {chip}
+                              </span>
+                              {current && (
+                                <Check
+                                  className="h-4 w-4 flex-none"
+                                  style={{ color: 'var(--surface-tone)' }}
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {trailing && <span className="ml-auto flex-none">{trailing}</span>}
+        </div>
       </div>
     </div>
   );

@@ -274,13 +274,17 @@ export function EventsView(props: ViewProps) {
 
       {/* Facets the directory could never offer, because three of these four
           are questions only an event can answer. "This weekend" is meaningless
-          against a storefront. */}
+          against a storefront.
+
+          "When" leads with the next 7 days because that is what the page says
+          it is showing up top. Every rail leads with its own neutral option so
+          that a tinted control always means "the visitor narrowed this". */}
       <FacetRail
         rows={[
           {
             label: 'When',
-            chips: ['Today', 'This weekend', 'Next 7 days', 'This month'],
-            active: 2,
+            chips: ['Next 7 days', 'Today', 'This weekend', 'This month'],
+            active: 0,
           },
           {
             label: 'Where',
