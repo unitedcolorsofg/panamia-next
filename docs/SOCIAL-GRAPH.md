@@ -22,6 +22,7 @@
 - [The Word Does Three Jobs](#the-word-does-three-jobs)
 - [Decision 1 — The "Follows You" Badge](#decision-1--the-follows-you-badge)
 - [Decision 2 — The Pana Count Is Owner-Only](#decision-2--the-pana-count-is-owner-only)
+- [Decision 3 — Mutual Panas](#decision-3--mutual-panas)
 - [A — Discovery Through Shared Activity](#a--discovery-through-shared-activity)
 - [B — Block & Mute](#b--block--mute)
 - [C — Safety Beyond Blocking](#c--safety-beyond-blocking)
@@ -284,6 +285,68 @@ The **Pana badge** on a profile stays visible to everyone. Knowing that you and 
 connected is different from being able to enumerate or count their connections — the first is
 context, the second is a graph map. Keeping the badge is what preserves the social meaning of the
 tier after the number goes away.
+
+---
+
+## Decision 3 — Mutual Panas
+
+**Status: built.** Product owner, after the panas meeting:
+
+> _"We moved to not showing any followers, panas, etc — but we came up with the idea of sharing
+> 'Mutual Panas', which is the panas you share with that person."_
+
+Decision 2 took the aggregate off other people's profiles and left a gap where a profile used to
+say something about connection. Mutual Panas fills it without reopening what Decision 2 closed.
+
+### What it is
+
+Given a viewer V looking at profile P, a Mutual Pana is any M who is a Pana of **both**. Four
+accepted follow rows, all bilateral — the same walk `listSuggestedActors` already makes to rank
+strangers, pinned to one person instead of ranging over the graph.
+
+`getSharedPanas` in `lib/federation/wrappers/follow.ts`. One query: the self-joins do the set
+intersection, and `count(*) over ()` carries the full total beside a capped page of faces, so the
+rail can say "and 9 more" truthfully without a second round trip.
+
+### Why this is not Decision 2 with extra steps
+
+It is **viewer-scoped**, and that is the entire argument. Every actor it can return is already a
+Pana of the person asking. Visiting a hundred profiles tells a viewer, at most, which of **their
+own** Panas each of those people is connected to. It never names a person the viewer is not
+already connected to, and it cannot be assembled into P's Pana list — the ceiling on everything it
+will ever disclose is V's own graph, which V already has.
+
+So the two rules do not conflict:
+
+| Surface                  | Scope         | Who sees it                             |
+| ------------------------ | ------------- | --------------------------------------- |
+| Pana count / list        | About P       | P only                                  |
+| Mutual Panas             | About V ∩ P   | Any signed-in visitor, not P's own page |
+| Pana badge on one person | About V and P | Everyone                                |
+
+Decision 2 exists so a profile does not carry a score. An overlap the viewer is personally inside
+of is not a score, it is the oldest introduction there is: _"you both know these people."_
+
+### Rules it still has to obey
+
+- **Owner gets nothing.** Your Mutual Panas with yourself are just your Panas, which is the
+  owner-only list. The field is empty on your own profile.
+- **Signed out gets nothing.** No graph, no intersection, and the module does not render.
+- **Blocks and mutes subtract, from the viewer's side only.** Filtering by P's hidden list would
+  leak P's mutes one name at a time. Blocks sever follows both ways, so anyone P blocked has
+  already fallen out of the join. A blocked P returns an empty overlap outright rather than a
+  filtered one. A consequence worth knowing: V and P can see different numbers on each other's
+  profiles, because each answer is filtered by the asker's own hidden list. That asymmetry is the
+  privacy rule working.
+- **Absent, not zero.** "0 Mutual Panas" is a verdict on a relationship, and a new member would
+  collect it on every profile they opened. No overlap means no module.
+
+### Naming
+
+"Mutual" is the product's word, as in _"Panas you both have"_. It does not mean a second degree of
+mutuality stacked on the mutual follow that already makes a Pana — every edge walked is bilateral.
+The wrapper is `getSharedPanas` to keep "mutual mutual follows" out of the code; the UI says Mutual
+Panas because that is what the panas called it.
 
 ---
 
@@ -579,10 +642,21 @@ why those two boxes are still open.
 
 ### Phase 2 — Pana count privacy
 
-- [ ] `/panas`: owner-only `count`, `canSeeList` becomes owner-only
-- [ ] Rewrite the route docblock in the same commit
-- [ ] Hide the Panas stat and tab for non-owners
-- [ ] Keep the Pana badge public
+- [x] `/panas`: owner-only `count`, `canSeeList` becomes owner-only
+- [x] Rewrite the route docblock in the same commit
+- [x] Hide the Panas stat and tab for non-owners
+- [x] Keep the Pana badge public
+
+### Phase 2.5 — Mutual Panas
+
+Fills the gap Phase 2 left on other people's profiles. See
+[Decision 3](#decision-3--mutual-panas).
+
+- [x] `getSharedPanas` wrapper — one query, window count beside a capped page
+- [x] Viewer-scoped `mutualPanas` on `/panas`, absent for the owner and signed-out viewers
+- [x] Profile rail module, hidden entirely when the overlap is empty
+- [x] Clear the query cache on identity switch — the response varies by viewer, the cache key
+      does not
 
 ### Phase 3 — Block & mute
 
