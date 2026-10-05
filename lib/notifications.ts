@@ -260,6 +260,16 @@ function getExpirationDate(
   type: NotificationActivityType,
   context: NotificationContext
 ): Date | null {
+  // Group membership expires after 30 days, every type of it. This sits above
+  // the invitation rule deliberately: the membership row is the audit trail
+  // here -- who is in the group, who is banned, and since when are all
+  // answerable from social_group_members long after the notification has gone.
+  // Keeping "your request was declined" pinned to someone's bell forever
+  // serves no one.
+  if (context === 'group_membership') {
+    return new Date(Date.now() + RETENTION.DAYS_30!);
+  }
+
   // Invitations never expire (audit trail)
   if (type === 'Invite' || type === 'Accept' || type === 'Reject') {
     return null;
@@ -376,6 +386,34 @@ export function getNotificationMessage(notif: {
       }
       if (notif.type === 'Reject') {
         return `${actor} declined your invitation to "${object}"`;
+      }
+      break;
+
+    case 'group_membership':
+      // Written from the reader's side. Every one of these lands on the person
+      // the thing happened to, except Join, which lands on the group's leaders
+      // and so names the person who asked rather than addressing them.
+      if (notif.type === 'Join') {
+        return `${actor} asked to join "${object}"`;
+      }
+      if (notif.type === 'Accept') {
+        return `Your request to join "${object}" was approved`;
+      }
+      if (notif.type === 'Reject') {
+        return `Your request to join "${object}" was declined`;
+      }
+      if (notif.type === 'Update') {
+        // The specific role change is written at the call site -- "You are now
+        // an admin" and "You are no longer a moderator" are different enough
+        // sentences that deriving them here would mean passing the old role
+        // and the new one just to rebuild what the caller already knew.
+        return notif.message || `Your role in "${object}" changed`;
+      }
+      if (notif.type === 'Remove') {
+        return `${actor} removed you from "${object}"`;
+      }
+      if (notif.type === 'Block') {
+        return `${actor} banned you from "${object}"`;
       }
       break;
 

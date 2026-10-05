@@ -30,6 +30,7 @@ import type {
 } from '@/lib/schema';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { generateActorKeyPair } from '../crypto/keys';
+import { notifyJoinRequested } from './group-notify';
 import { validateScreennameFull } from '@/lib/screenname';
 import {
   socialConfig,
@@ -472,6 +473,13 @@ export async function joinGroup(
 
     return row;
   });
+
+  // Only a request needs announcing. Walking into an open group is not news,
+  // and the leaders would get a notification per join for something they are
+  // not being asked to decide.
+  if (pending) {
+    await notifyJoinRequested(groupId, actorId);
+  }
 
   return { success: true, membership, pending };
 }

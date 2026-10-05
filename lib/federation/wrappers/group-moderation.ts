@@ -30,6 +30,13 @@ import { db } from '@/lib/db';
 import { socialGroupMembers, socialGroups } from '@/lib/schema';
 import type { SocialGroupMember, SocialGroupRole } from '@/lib/schema';
 import { and, eq, ne, sql } from 'drizzle-orm';
+import {
+  notifyBanned,
+  notifyRemoved,
+  notifyRequestApproved,
+  notifyRequestRejected,
+  notifyRoleChanged,
+} from './group-notify';
 
 export type ModerationResult =
   | { success: true; membership: SocialGroupMember | null }
@@ -264,6 +271,8 @@ export async function approveRequest(
     joinedAt: new Date(),
   });
 
+  await notifyRequestApproved(groupId, actorId, target.actorId);
+
   return { success: true, membership };
 }
 
@@ -289,6 +298,8 @@ export async function rejectRequest(
 
   // A pending row was never counted, so this changes nothing.
   await applyChange(target, false, false, { delete: true });
+
+  await notifyRequestRejected(groupId, actorId, target.actorId);
 
   return { success: true, membership: null };
 }
@@ -332,6 +343,8 @@ export async function setMemberRole(
   // A role change never touches active-ness, so the count does not move.
   const membership = await applyChange(target, true, true, { role });
 
+  await notifyRoleChanged(groupId, actorId, target.actorId, role);
+
   return { success: true, membership };
 }
 
@@ -369,6 +382,8 @@ export async function removeMember(
 
   const wasActive = target.status === 'active';
   await applyChange(target, wasActive, false, { delete: true });
+
+  await notifyRemoved(groupId, actorId, target.actorId);
 
   return { success: true, membership: null };
 }
@@ -415,6 +430,8 @@ export async function banMember(
     role: 'member',
     joinedAt: null,
   });
+
+  await notifyBanned(groupId, actorId, target.actorId);
 
   return { success: true, membership };
 }
