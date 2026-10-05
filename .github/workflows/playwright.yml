@@ -29,7 +29,34 @@ on:
 # cancel-in-progress stays false because the goal is to serialise, not to
 # discard. Killing a run midway through the migration replay would leave the
 # shared database half-migrated, which is the exact state this is here to
-# avoid. Queued runs wait instead, at the cost of some wall-clock time.
+# avoid.
+#
+# What this does NOT do is queue, and an earlier version of this comment
+# claimed it did. GitHub holds at most one running plus one *pending* run per
+# concurrency group. A third run does not join a queue -- it EVICTS the pending
+# one. cancel-in-progress: false protects the run that is already executing; it
+# offers nothing at all to the run that is waiting.
+#
+# So the cost is not wall-clock, it is coverage, and it is silent. An evicted
+# run completes with conclusion `cancelled` and an empty jobs list, which means
+# it publishes no check-run whatsoever -- `gh pr checks` can report clean having
+# executed zero tests. Measured across the 300 most recent runs of this workflow
+# (2026-08-07 to 2026-10-05): 42 cancelled, 41 of those with zero jobs, and 15
+# of those 41 on main. That is 13.7% of all runs testing nothing, and main
+# landing unverified 15 times.
+#
+# Per-run schemas on this same database do not fix it. The 15-connection session
+# pooler is a fixed supply and the number of concurrent runs is unbounded, so no
+# per-run connection budget is safe; and lib/server/directory.ts pins
+# search_path to 'public, extensions' per transaction, which would override any
+# per-run routing and silently read the wrong schema.
+#
+# The fix is to stop sharing one database. See .github/workflows/db-tests.yml,
+# which runs the data-layer suite against a throwaway Postgres service container
+# and therefore needs no concurrency group at all. When the Playwright phase
+# moves there too, this block and the DROP SCHEMA below go away together. They
+# must not be removed separately: dropping a shared schema without serialisation
+# is precisely the disaster this group exists to prevent.
 concurrency:
   group: playwright-shared-db
   cancel-in-progress: false
@@ -123,6 +150,40 @@ jobs:
             echo "=== $f ==="
             psql "$POSTGRES_DIRECT_URL" -v ON_ERROR_STOP=1 -f "$f"
           done < /tmp/migration-order.txt
+        env:
+          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
+
+      # Read-only probe, and temporary. The data-layer suite is moving to a
+      # throwaway Postgres service container (.github/workflows/db-tests.yml);
+      # this records what the shared project actually runs so that container can
+      # be pinned to a measured version instead of a guessed one.
+      #
+      # The extension placement query matters beyond version-pinning. Migrations
+      # 0041 and 0045 assert pg_trgm is in 'public' or 'extensions', and
+      # directory search sets search_path to exactly those two. On a vanilla
+      # container the extension always lands in public, so whichever branch this
+      # project actually uses is the branch CI would stop exercising after the
+      # cutover. Worth knowing before deciding that is acceptable.
+      #
+      # Runs after the migration replay on purpose: DROP SCHEMA public CASCADE
+      # takes any extension installed in public with it, and the migrations then
+      # recreate it, so this is the state the tests below actually see.
+      - name: Record shared database characteristics
+        run: |
+          set -e
+          probe() {
+            psql "$POSTGRES_DIRECT_URL" -At -c "$1"
+          }
+          {
+            echo '### Shared test database (read-only probe)'
+            echo
+            echo '```'
+            echo "server_version:  $(probe 'SHOW server_version')"
+            echo "max_connections: $(probe 'SHOW max_connections')"
+            echo 'extensions:'
+            probe "SELECT '  ' || e.extname || ' -> ' || n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace ORDER BY 1"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
