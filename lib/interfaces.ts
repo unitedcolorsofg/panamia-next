@@ -237,7 +237,10 @@ export type NotificationActivityType =
   | 'Announce'
   | 'Like'
   | 'Follow'
-  | 'Undo';
+  | 'Undo'
+  | 'Join'
+  | 'Remove'
+  | 'Block';
 
 export type NotificationContext =
   | 'coauthor'
@@ -249,7 +252,8 @@ export type NotificationContext =
   | 'message'
   | 'system'
   | 'event'
-  | 'group';
+  | 'group'
+  | 'group_membership';
 
 export interface NotificationInterface {
   _id: string;

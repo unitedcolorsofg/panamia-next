@@ -46,6 +46,12 @@ export const notificationActivityType = pgEnum('notification_activity_type', [
   'Like',
   'Follow',
   'Undo',
+  // Group membership. Join travels from a person toward a group, which is the
+  // opposite direction to Invite. Remove and Block stay separate because being
+  // removed once and being barred are different outcomes -- see drizzle/0052.
+  'Join',
+  'Remove',
+  'Block',
 ]);
 
 export const notificationContext = pgEnum('notification_context', [
@@ -60,6 +66,11 @@ export const notificationContext = pgEnum('notification_context', [
   'event',
   // Group invitations and their answers — see app/api/relay/groups.
   'group',
+  // Social group membership — see lib/federation/wrappers/group-notify.ts.
+  // Deliberately not 'group': that context reads Accept as "they joined your
+  // group" for the inviter, where this one needs "your request was approved"
+  // for the person who asked.
+  'group_membership',
 ]);
 
 export const notificationObjectType = pgEnum('notification_object_type', [
