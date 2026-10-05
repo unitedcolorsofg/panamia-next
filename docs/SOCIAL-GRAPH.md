@@ -424,10 +424,16 @@ disclosure audit that is specific to a local network.
 There is a fourth exposure that none of the three columns catches: a **deceptive link**, where the
 visible text disagrees with the destination. It is not prevention, recourse or remedy — it is a
 property of how post HTML renders, it is live on every feed surface, and sanitising does not touch
-it because the markup is perfectly valid. Held DM requests are safe only because `/updates`
-flattens them to plain text. See "Known limitation: deceptive links" in `docs/SECURITY_AUDIT.md`.
+it because the markup is perfectly valid. It now has a **fourth kind of answer: disclosure.**
+`lib/link-safety.ts` badges any link whose text does not already say where it goes, so the reader
+sees the real host before clicking. Held DM requests go further — `/updates` flattens them to plain
+text, which removes the anchor outright. See "Deceptive links" in `docs/SECURITY_AUDIT.md` for what
+the badge does and does not cover.
+
 Worth weighing here because federated posts are authored on instances we do not moderate, so
-blocking and reporting both arrive after the click.
+blocking and reporting both arrive after the click — and disclosure, unlike the other three columns,
+acts _before_ it. It also only informs: the badge reveals the host, it cannot judge whether the host
+is hostile, and it blocks nothing.
 
 ### C1 — Direct messages are ungated
 
