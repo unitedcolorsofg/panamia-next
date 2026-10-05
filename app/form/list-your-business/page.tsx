@@ -41,6 +41,9 @@ function ListYourBusinessForm() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  // Separate from `personalEmail` so the success screen keeps describing what
+  // was actually submitted even after resetForm clears the inputs.
+  const [submittedPersonalEmail, setSubmittedPersonalEmail] = useState('');
 
   // Step 2 — what kind of listing, and whether they qualify
   const [accountType, setAccountType] = useState('small_business');
@@ -50,6 +53,13 @@ function ListYourBusinessForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  // Optional, and deliberately so. Giving a personal address gets you signed
+  // in and holding the listing; withholding it costs nothing, which matters
+  // because plenty of these are submitted by someone other than the owner.
+  const [personalEmail, setPersonalEmail] = useState('');
+  // Kept inline rather than in a toast: the only way to resolve it is to edit
+  // or empty this one field, so the message belongs next to it.
+  const [personalEmailError, setPersonalEmailError] = useState('');
 
   // Step 4 — pronouns
   const [pronouns, setPronouns] = useState('');
@@ -131,6 +141,19 @@ function ListYourBusinessForm() {
       refuse(t('errEmail'));
       return;
     }
+    // An optional field must stay cheap to abandon. Both of these are shown
+    // against the field and clear the moment it is emptied, so nobody can get
+    // stuck behind something they never had to fill in.
+    const personal = personalEmail.trim();
+    if (personal && !EMAIL_PATTERN.test(personal)) {
+      setPersonalEmailError(t('errPersonalEmail'));
+      return;
+    }
+    if (personal && personal.toLowerCase() === email.trim().toLowerCase()) {
+      setPersonalEmailError(t('errPersonalEmailSame'));
+      return;
+    }
+    setPersonalEmailError('');
     goTo(4);
   }
 
@@ -193,6 +216,7 @@ function ListYourBusinessForm() {
         {
           name,
           email,
+          personalEmail,
           fiveWords,
           instagram,
           website,
@@ -219,6 +243,14 @@ function ListYourBusinessForm() {
 
       if (response.data?.success) {
         setSubmittedEmail(email);
+        // Mirrors the server's own rule for whether a link went out, so the
+        // success screen never promises an email that was dropped.
+        const personal = personalEmail.trim();
+        const linkWasSent =
+          personal !== '' &&
+          personal.toLowerCase() !== email.trim().toLowerCase() &&
+          EMAIL_PATTERN.test(personal);
+        setSubmittedPersonalEmail(linkWasSent ? personal : '');
         if (typeof window !== 'undefined') {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -250,6 +282,8 @@ function ListYourBusinessForm() {
     setName('');
     setEmail('');
     setPhoneNumber('');
+    setPersonalEmail('');
+    setPersonalEmailError('');
     setPronouns('');
     setPronounsOther('');
     setDetails('');
@@ -267,6 +301,7 @@ function ListYourBusinessForm() {
     setHearAboutUs('');
     setAgreeTos(false);
     setSubmittedEmail('');
+    setSubmittedPersonalEmail('');
     resetTurnstile();
   }
 
@@ -287,6 +322,13 @@ function ListYourBusinessForm() {
                 <p className="text-pana-ink/75 dark:text-muted-foreground text-lg">
                   {t('successBody', { email: submittedEmail })}
                 </p>
+                {submittedPersonalEmail && (
+                  <p className="text-pana-ink/75 dark:text-muted-foreground text-lg">
+                    {t('successPersonalEmail', {
+                      email: submittedPersonalEmail,
+                    })}
+                  </p>
+                )}
               </div>
 
               <div className="bg-pana-butter-2/60 dark:bg-muted rounded-xl p-6 text-left">
@@ -554,6 +596,47 @@ function ListYourBusinessForm() {
                   <p className="text-muted-foreground text-sm">
                     {t('emailNote')}
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="personal-email">
+                    {t('personalEmailLabel')}
+                  </Label>
+                  <Input
+                    id="personal-email"
+                    name="personalEmail"
+                    type="email"
+                    maxLength={100}
+                    placeholder={t('personalEmailPlaceholder')}
+                    value={personalEmail}
+                    onChange={(e) => {
+                      setPersonalEmail(e.target.value);
+                      if (personalEmailError) setPersonalEmailError('');
+                    }}
+                    disabled={isSubmitting}
+                    aria-invalid={personalEmailError ? true : undefined}
+                    aria-describedby={
+                      personalEmailError
+                        ? 'personal-email-error'
+                        : 'personal-email-note'
+                    }
+                  />
+                  {personalEmailError ? (
+                    <p
+                      id="personal-email-error"
+                      role="alert"
+                      className="text-destructive text-sm"
+                    >
+                      {personalEmailError}
+                    </p>
+                  ) : (
+                    <p
+                      id="personal-email-note"
+                      className="text-muted-foreground text-sm"
+                    >
+                      {t('personalEmailNote')}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

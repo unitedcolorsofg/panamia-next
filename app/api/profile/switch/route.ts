@@ -4,6 +4,7 @@ import {
   canAdministerProfile,
   listAdministeredProfiles,
 } from '@/lib/server/profile-owners';
+import { listPendingInvitations } from '@/lib/server/pending-listing-owner';
 import {
   ACTIVE_PROFILE_COOKIE,
   getActiveProfileId,
@@ -15,6 +16,13 @@ import {
  * The active id is resolved server-side rather than read from the cookie by the
  * client: the cookie is httpOnly, and it is only authoritative after being
  * re-validated against profile_owners.
+ *
+ * Pending listing invitations ride along on this response rather than getting
+ * an endpoint of their own. The shell already calls this once per load to fill
+ * the account menu, and that menu is where an invitation has to appear, so a
+ * second request would duplicate a round trip to tell the same component about
+ * the same account. The added cost is one partial-indexed lookup that matches
+ * nothing for almost everybody.
  */
 export async function GET() {
   const session = await auth();
@@ -25,10 +33,12 @@ export async function GET() {
     );
   }
 
-  const [administered, activeProfileId] = await Promise.all([
-    listAdministeredProfiles(session.user.id),
-    getActiveProfileId(session.user.id),
-  ]);
+  const [administered, activeProfileId, pendingInvitations] =
+    await Promise.all([
+      listAdministeredProfiles(session.user.id),
+      getActiveProfileId(session.user.id),
+      listPendingInvitations(session.user.email),
+    ]);
 
   // Your own profile first, then businesses alphabetically — a stable order, so
   // the menu doesn't reshuffle between loads.
@@ -41,6 +51,7 @@ export async function GET() {
     success: true,
     data: sorted,
     activeProfileId,
+    pendingInvitations,
   });
 }
 

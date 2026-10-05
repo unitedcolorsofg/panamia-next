@@ -170,11 +170,14 @@ export function IdentityMenu() {
     identities,
     activeId,
     personal,
+    invitations,
     switching,
+    answering,
     error,
     failed,
     loading,
     switchTo,
+    answerInvitation,
   } = identity;
 
   // Only claim the account is unfinished once we have actually heard back.
@@ -243,6 +246,58 @@ export function IdentityMenu() {
 
         return (
           <>
+            {/* Above the account list on purpose: it is the only thing in this
+                menu asking the member a question, and it disappears the moment
+                it is answered. */}
+            {invitations.length > 0 && (
+              <>
+                <div className={styles.menuHeading}>
+                  {t('identity.invitationHeading')}
+                </div>
+                {invitations.map((invite) => (
+                  <div key={invite.profileId} className={styles.invite}>
+                    <p className={styles.inviteText}>
+                      <span className={styles.inviteName}>{invite.name}</span>
+                      <span className={styles.inviteHint}>
+                        {invite.businessEmail
+                          ? t('identity.invitationListedAs', {
+                              email: invite.businessEmail,
+                            })
+                          : t('identity.invitationHint')}
+                      </span>
+                    </p>
+                    <div className={styles.inviteActions}>
+                      <button
+                        type="button"
+                        className={styles.inviteButton}
+                        disabled={answering !== null}
+                        onClick={() =>
+                          void answerInvitation(invite.profileId, 'accept')
+                        }
+                      >
+                        {answering === invite.profileId
+                          ? t('identity.invitationWorking')
+                          : t('identity.invitationAccept')}
+                      </button>
+                      <button
+                        type="button"
+                        className={cn(
+                          styles.inviteButton,
+                          styles.inviteDecline
+                        )}
+                        disabled={answering !== null}
+                        onClick={() =>
+                          void answerInvitation(invite.profileId, 'decline')
+                        }
+                      >
+                        {t('identity.invitationDecline')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
             {identities.length > 0 && (
               <div className={styles.menuHeading}>{t('identity.actingAs')}</div>
             )}
@@ -273,7 +328,9 @@ export function IdentityMenu() {
 
                   {item.active === false && (
                     <span className={styles.badge}>
-                      {t('identity.inactive')}
+                      {item.reviewState === 'pending'
+                        ? t('identity.underReview')
+                        : t('identity.inactive')}
                     </span>
                   )}
                   {item.isPersonal ? (

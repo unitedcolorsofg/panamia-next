@@ -401,6 +401,78 @@
   font-weight: 700;
 }
 
+/* ---------- pending listing invitation ----------
+   Someone typed this account's address into the public intake form while
+   listing a business. That is a question, not a row you can act on by tapping,
+   so it is drawn as a small notice with two explicit answers rather than as
+   another identity — nothing has been granted until one of them is clicked. */
+
+.invite {
+  margin: 4px 12px 8px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background-color: rgb(48 62 140 / 0.07);
+}
+
+.inviteText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.inviteName {
+  display: block;
+  font-weight: 800;
+}
+
+.inviteHint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.inviteActions {
+  display: flex;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.inviteButton {
+  flex: 1;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background-color: var(--color-pana-indigo);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.22s ease;
+}
+
+.inviteButton:hover {
+  opacity: 0.88;
+}
+
+/* The other rows in this menu indicate focus with a background change, which
+   works because they are full-width and otherwise transparent. These buttons
+   already carry a solid fill, so they need a real ring — matching .trigger. */
+.inviteButton:focus-visible {
+  outline: 2px solid var(--color-pana-indigo);
+  outline-offset: 2px;
+}
+
+.inviteButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.inviteDecline {
+  background-color: rgb(17 13 13 / 0.08);
+  color: inherit;
+}
+
 /* ---------- mobile sheet ----------
    A top-right dropdown is not reachable one-handed, so below the breakpoint the
    same list slides up from the bottom instead. */

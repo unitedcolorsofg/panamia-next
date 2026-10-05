@@ -6,6 +6,7 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { sendTemplateEmail } from '@/lib/email';
 import { createUniqueString } from '@/lib/standardized';
 import { BUSINESS_INTAKE_SOURCE } from '@/lib/server/profile-owners';
+import { sendMagicLinkTo } from '@/auth';
 import { profileCategoryList } from '@/lib/lists';
 import type { ProfileDescriptions } from '@/lib/interfaces';
 
@@ -119,6 +120,12 @@ export async function POST(request: NextRequest) {
 
   const name = asTrimmedString(body.name, 100);
   const email = asTrimmedString(body.email, 100).toLowerCase();
+  // Optional. The address of the human who should end up administering this
+  // listing, which is often not the address the business publishes. It is
+  // never required: someone listing a shop on its behalf has no personal
+  // address to give, and demanding one would put an account back in front of
+  // the form.
+  const personalEmail = asTrimmedString(body.personalEmail, 100).toLowerCase();
   const fiveWords = asTrimmedString(body.fiveWords, 120);
   const details = asTrimmedString(body.details, 1000);
   const phoneNumber = asTrimmedString(body.phoneNumber, 30);
@@ -170,6 +177,23 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // An optional field must never be able to cost someone their listing, so a
+  // personal address that is unusable is dropped rather than rejected. The
+  // form validates it inline where it can still be corrected or cleared; by
+  // the time it reaches here, refusing the whole submission over a field that
+  // was never required would be a worse outcome than silently not sending an
+  // invitation.
+  //
+  // Equal to the business address is the common case of the solo vendor who
+  // has exactly one inbox. Nothing to do for them: intake already mails that
+  // address a receipt, and an invitation to claim the listing they are in the
+  // middle of submitting is noise. Dropping it also keeps the column from
+  // duplicating profiles.email.
+  const pendingOwnerEmail =
+    personalEmail && personalEmail !== email && validateEmail(personalEmail)
+      ? personalEmail
+      : null;
 
   if (fiveWords.length < 3) {
     return NextResponse.json(
@@ -260,6 +284,11 @@ export async function POST(request: NextRequest) {
       userId: null,
       name,
       email,
+      // Recorded, not honoured. This is an attacker-writable field on a public
+      // form, so it only ever becomes an invitation the named person can
+      // accept or dismiss once signed in — never an ownership grant. See
+      // lib/server/pending-listing-owner.ts.
+      pendingOwnerEmail,
       phoneNumber: phoneNumber || null,
       pronouns: pronouns || null,
       addressLine1: addressLine1 || null,
@@ -298,6 +327,10 @@ export async function POST(request: NextRequest) {
 
     await sendSubmissionEmails(email);
 
+    if (pendingOwnerEmail) {
+      await sendOwnerMagicLink(pendingOwnerEmail, request);
+    }
+
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     console.error('[listings/intake] submission failed', error);
@@ -305,6 +338,35 @@ export async function POST(request: NextRequest) {
       { error: 'Something went wrong saving your listing. Please try again.' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Start the sign-in for the person named as the listing's owner.
+ *
+ * better-auth's magic-link flow is findUserByEmail -> createUser ->
+ * createSession, so this doubles as account creation for an address we have
+ * never seen. That is the whole accelerator: they finish the form, open one
+ * email, and land signed in with the invitation waiting for them.
+ *
+ * The link is a convenience, not the mechanism. Tokens expire in minutes and
+ * plenty of people will not open it, so the invitation lives on the profile
+ * row instead — any later sign-in, by any method, surfaces it. Nothing is lost
+ * by this call failing, which is why it cannot throw: the listing is already
+ * committed, and the submitter is owed their 201 regardless.
+ *
+ * Note this sends mail to an address supplied by an unauthenticated form.
+ * Turnstile is the control on that, the same as for every other address on
+ * this request — the business email already receives a receipt.
+ */
+async function sendOwnerMagicLink(
+  email: string,
+  request: NextRequest
+): Promise<void> {
+  try {
+    await sendMagicLinkTo(email, request.headers, '/account');
+  } catch (error) {
+    console.error('[listings/intake] owner magic link failed', error);
   }
 }
 

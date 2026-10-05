@@ -57,6 +57,9 @@
   "emailLabel": "Correo electrónico",
   "emailPlaceholder": "hola@tunegocio.com",
   "emailNote": "Usa el correo con el que quieres reclamar este perfil — ahí te enviaremos el enlace. No se muestra en tu perfil.",
+  "personalEmailLabel": "Tu correo personal (opcional)",
+  "personalEmailPlaceholder": "tu@ejemplo.com",
+  "personalEmailNote": "Si el correo de arriba es compartido o del negocio, agrega el tuyo aquí. Te enviaremos un enlace para entrar, así este perfil queda ligado a tu cuenta y puedes seguir su revisión. Nunca se muestra en público, y puedes registrar tu negocio sin darlo.",
 
   "phoneLabel": "Teléfono (opcional)",
   "phonePlaceholder": "(305) 555-0123",
@@ -121,6 +124,8 @@
   "errLocallyBased": "Por favor dinos si estás basado en el sur de la Florida.",
   "errName": "Por favor escribe el nombre de tu negocio (al menos 2 caracteres).",
   "errEmail": "Por favor escribe un correo electrónico válido.",
+  "errPersonalEmail": "Ese correo no parece válido. Corrígelo o déjalo vacío — es opcional.",
+  "errPersonalEmailSame": "Es el mismo correo del negocio que pusiste arriba. Déjalo vacío si solo usas una dirección.",
   "errDetails": "Por favor cuéntanos un poco más sobre tu proyecto.",
   "errFiveWords": "Por favor dinos a qué te dedicas en pocas palabras.",
   "errLinks": "Por favor agrega un sitio web o un Instagram para que podamos encontrarte.",
@@ -130,6 +135,7 @@
 
   "successTitle": "¡Listo — gracias!",
   "successBody": "Recibimos tu solicitud y enviamos una confirmación a {{email}}.",
+  "successPersonalEmail": "También enviamos un enlace para entrar a {{email}}. Ábrelo para ligar este perfil a tu cuenta y seguir su revisión.",
   "successNextTitle": "Qué sigue",
   "successNext1": "Nuestro equipo revisa tu solicitud, normalmente en unos pocos días.",
   "successNext2": "Una vez aprobada, tu negocio aparece en el directorio.",

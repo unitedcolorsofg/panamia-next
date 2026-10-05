@@ -21,6 +21,28 @@ export interface Identity {
   isPersonal: boolean;
   role: 'owner' | 'manager' | string;
   primaryImageCdn?: string | null;
+  /**
+   * Where this listing stands with review. `active: false` alone cannot say,
+   * because it covers both "nobody has looked yet" and "declined" — see
+   * lib/server/profile-owners.ts.
+   */
+  reviewState?: 'published' | 'pending' | 'inactive';
+}
+
+/**
+ * A listing that named this account's address as its owner at intake, waiting
+ * to be accepted or dismissed.
+ *
+ * Not an identity: nothing has been granted yet. The address was typed into a
+ * public form by someone who may or may not have been telling the truth, so it
+ * only becomes ownership when the person who actually holds the inbox says so.
+ */
+export interface PendingInvitation {
+  profileId: string;
+  name: string;
+  /** Masked — the full business address is not this account's to read yet. */
+  businessEmail: string | null;
+  active: boolean | null;
 }
 
 interface IdentityState {
@@ -29,6 +51,8 @@ interface IdentityState {
   active: Identity | null;
   /** The user's own profile, whatever they are currently acting as. */
   personal: Identity | null;
+  /** Listings claiming this account's address, awaiting a yes or no. */
+  invitations: PendingInvitation[];
   loading: boolean;
   /**
    * True when the lookup gave up after its retries. Distinct from an empty
@@ -38,8 +62,14 @@ interface IdentityState {
    */
   failed: boolean;
   switching: string | null;
+  /** The invitation currently being answered, if any. */
+  answering: string | null;
   error: string | null;
   switchTo: (profileId: string) => Promise<void>;
+  answerInvitation: (
+    profileId: string,
+    action: 'accept' | 'decline'
+  ) => Promise<void>;
   clearError: () => void;
 }
 
@@ -53,12 +83,14 @@ function isDefinitive(err: unknown): boolean {
 async function fetchIdentities(attempt = 0): Promise<{
   identities: Identity[];
   activeId: string | null;
+  invitations: PendingInvitation[];
 }> {
   try {
     const res = await axios.get('/api/profile/switch');
     return {
       identities: res.data?.data ?? [],
       activeId: res.data?.activeProfileId ?? null,
+      invitations: res.data?.pendingInvitations ?? [],
     };
   } catch (err) {
     if (attempt >= 2 || isDefinitive(err)) throw err;
@@ -95,15 +127,18 @@ export function IdentityProvider({
   const queryClient = useQueryClient();
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [answering, setAnswering] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!enabled) {
       setIdentities([]);
       setActiveId(null);
+      setInvitations([]);
       return;
     }
 
@@ -112,14 +147,16 @@ export function IdentityProvider({
     setFailed(false);
 
     fetchIdentities()
-      .then(({ identities: list, activeId: active }) => {
+      .then(({ identities: list, activeId: active, invitations: pending }) => {
         if (cancelled) return;
         setIdentities(list);
         setActiveId(active);
+        setInvitations(pending);
       })
       .catch(() => {
         if (cancelled) return;
         setIdentities([]);
+        setInvitations([]);
         setFailed(true);
       })
       .finally(() => {
@@ -158,6 +195,41 @@ export function IdentityProvider({
     [activeId, queryClient, router, switching]
   );
 
+  const answerInvitation = useCallback(
+    async (profileId: string, action: 'accept' | 'decline') => {
+      if (answering) return;
+      setAnswering(profileId);
+      setError(null);
+      try {
+        await axios.post('/api/listings/pending', { profileId, action });
+        // Gone from the prompt either way — accepted it is an identity now,
+        // declined it is nothing to this account.
+        setInvitations((prev) => prev.filter((i) => i.profileId !== profileId));
+        if (action === 'accept') {
+          // Re-read rather than synthesising a row: the server decides the
+          // role and the review state, and guessing them here would make the
+          // menu disagree with the next page load.
+          const next = await fetchIdentities();
+          setIdentities(next.identities);
+          setActiveId(next.activeId);
+          setInvitations(next.invitations);
+        }
+      } catch (err) {
+        const message =
+          axios.isAxiosError(err) &&
+          typeof err.response?.data?.error === 'string'
+            ? err.response.data.error
+            : 'Could not save that. Please try again.';
+        setError(message);
+        // Left in place on failure: it is still a real invitation, and
+        // removing it would strand someone with no way to try again.
+      } finally {
+        setAnswering(null);
+      }
+    },
+    [answering]
+  );
+
   const value = useMemo<IdentityState>(() => {
     const active = identities.find((i) => i.id === activeId) ?? null;
     return {
@@ -165,14 +237,28 @@ export function IdentityProvider({
       activeId,
       active,
       personal: identities.find((i) => i.isPersonal) ?? null,
+      invitations,
       loading,
       failed,
       switching,
+      answering,
       error,
       switchTo,
+      answerInvitation,
       clearError: () => setError(null),
     };
-  }, [identities, activeId, loading, failed, switching, error, switchTo]);
+  }, [
+    identities,
+    activeId,
+    invitations,
+    loading,
+    failed,
+    switching,
+    answering,
+    error,
+    switchTo,
+    answerInvitation,
+  ]);
 
   return (
     <IdentityContext.Provider value={value}>
