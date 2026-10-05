@@ -1,5 +1,6 @@
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { type ViewerRole, VIEWER_ROLES } from '@/lib/connectors/fixtures';
+import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
  * The mock's "viewing as" switch.
@@ -48,7 +49,7 @@ export function ViewerSwitch({ current }: { current: ViewerRole }) {
                 aria-current={active ? 'page' : undefined}
                 className={`rounded-full border-2 border-pana-ink px-3 py-1 text-xs font-bold transition-colors ${
                   active
-                    ? 'bg-pana-ink text-pana-cream'
+                    ? `${CONNECTORS_CHROME.FILL} ${CONNECTORS_CHROME.ON_FILL}`
                     : 'bg-transparent text-pana-ink hover:bg-pana-ink/10'
                 }`}
               >

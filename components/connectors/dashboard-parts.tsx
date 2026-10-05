@@ -16,6 +16,7 @@ import {
   getHouse,
   getTier,
 } from '@/lib/connectors/model';
+import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
  * The pieces both Connector dashboards are built from.
@@ -103,8 +104,12 @@ export function Panel({
     <section
       className={`overflow-hidden rounded-xl border-2 border-pana-ink bg-pana-cream ${className}`}
     >
-      <header className="flex items-center justify-between gap-4 bg-pana-ink px-5 py-3">
-        <h2 className="text-sm font-extrabold uppercase tracking-wide text-pana-cream">
+      <header
+        className={`flex items-center justify-between gap-4 ${CONNECTORS_CHROME.FILL} px-5 py-3`}
+      >
+        <h2
+          className={`text-sm font-extrabold uppercase tracking-wide ${CONNECTORS_CHROME.ON_FILL}`}
+        >
           {title}
         </h2>
         {action}
@@ -117,25 +122,32 @@ export function Panel({
 /**
  * The band of headline numbers.
  *
- * One black strip divided by rules rather than five separate cards, because
- * these are five readings of one programme and not five unrelated facts.
- * Orange on ink is the only pairing here that clears contrast at this size.
+ * One strip divided by rules rather than five separate cards, because these
+ * are five readings of one programme and not five unrelated facts.
  */
 export function StatBand({ stats }: { stats: readonly HeadlineStat[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border-2 border-pana-ink bg-pana-ink">
-      <dl className="grid divide-y-2 divide-pana-cream/20 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-5">
+    <div
+      className={`overflow-hidden rounded-xl border-2 border-pana-ink ${CONNECTORS_CHROME.FILL}`}
+    >
+      <dl
+        className={`grid ${CONNECTORS_CHROME.DIVIDE} divide-y-2 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-5`}
+      >
         {stats.map((stat, index) => (
           <div
             key={stat.id}
             className={`px-5 py-4 ${
-              index > 0 ? 'lg:border-l-2 lg:border-pana-cream/20' : ''
+              index > 0 ? `lg:border-l-2 ${CONNECTORS_CHROME.RULE_LG}` : ''
             }`}
           >
-            <dd className="text-4xl font-extrabold leading-none text-pana-orange">
+            <dd
+              className={`text-4xl font-extrabold leading-none ${CONNECTORS_CHROME.ACCENT}`}
+            >
               {stat.value}
             </dd>
-            <dt className="mt-2 text-sm font-bold text-pana-cream">
+            <dt
+              className={`mt-2 text-sm font-bold ${CONNECTORS_CHROME.ON_FILL}`}
+            >
               {stat.label}
             </dt>
             <p className="text-xs text-pana-cream/60">{stat.detail}</p>
@@ -342,7 +354,7 @@ export function CommitmentsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
         <thead>
-          <tr className="bg-pana-ink text-pana-cream">
+          <tr className={`${CONNECTORS_CHROME.FILL} ${CONNECTORS_CHROME.ON_FILL}`}>
             {showWho && <Th>Who</Th>}
             <Th>What</Th>
             <Th>When</Th>

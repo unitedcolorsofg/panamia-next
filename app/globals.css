@@ -8833,19 +8833,29 @@ body:has(.dirscope) header {
   --offering-glow-alpha: 0.55;
 }
 
-/* Burnt, which is the tone `SURFACE_TONE` gives the connectors surface — the
-   masthead accent and the page's light agree rather than each picking their
-   own warm.
+/* Warm ground, cool chrome — the arrangement the whole Connectors surface uses.
 
-   Glow only, no accent/fill override. Social overrides those because it is lit
-   by a drawn mark it has to answer to; the Connectors lettering is a
-   placeholder set in Nunito until somebody draws the real one, and committing
-   the page's whole colour system to a placeholder's hue is how a stopgap
-   becomes permanent. The default blue accent is what directory, vizión, ink
-   and get-involved all carry, so this is the convention rather than an
-   omission. */
+   The glow stays burnt, which is the tone `SURFACE_TONE` gives this surface, so
+   the masthead accent and the page's light still agree.
+
+   Accent and fill are overridden, which this block previously argued against on
+   the grounds that the lettering was a placeholder and the default blue was the
+   convention. That reasoning no longer holds: HQ and the admin console now take
+   their chrome from `lib/connectors/theme.ts`, which is indigo, so leaving the
+   front door on the default blue would have the one surface telling three
+   colour stories — blue landing, indigo HQ, burnt glow. This is not a new hue
+   being invented for a placeholder's sake, it is the decision already made
+   next door being carried to the door.
+
+   Indigo is not a preference here either. The contrast rule at the top of this
+   file allows cream text on indigo and ink only; every warm fill in the palette
+   fails against cream. Measured: indigo on this cream 9.0:1, which is display
+   type and a filled button both well clear. See `theme.ts` for the full table. */
 .offering[data-offering='connectors'] {
   --offering-glow: 217 98 54;
+  --offering-accent: var(--color-pana-indigo);
+  --offering-fill: var(--color-pana-indigo);
+  --offering-on-fill: var(--story-cream);
 }
 
 @media (min-width: 48rem) {

@@ -18,6 +18,7 @@ import {
   upcomingEvents,
 } from '@/lib/connectors/fixtures';
 import { getHouse, getPod, getTier } from '@/lib/connectors/model';
+import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
  * Connector HQ — the page a connector actually lives on.
@@ -71,12 +72,18 @@ export default async function ConnectorHqPage({
       <ViewerSwitch current={role} />
 
       <main className="bg-pana-cream pb-20 text-pana-ink">
-        <header className="border-b-2 border-pana-ink bg-pana-ink">
+        <header
+          className={`border-b-2 border-pana-ink ${CONNECTORS_CHROME.FILL}`}
+        >
           <div className="container mx-auto px-4 py-10">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-pana-orange">
+            <p
+              className={`text-xs font-extrabold uppercase tracking-[0.2em] ${CONNECTORS_CHROME.ACCENT}`}
+            >
               Connector HQ
             </p>
-            <h1 className="mt-2 text-4xl font-extrabold leading-tight text-pana-cream sm:text-5xl">
+            <h1
+              className={`mt-2 text-4xl font-extrabold leading-tight ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
+            >
               Hey, {me.name.split(' ')[0]}.
             </h1>
 
@@ -89,7 +96,9 @@ export default async function ConnectorHqPage({
                   {house ? (
                     house.name
                   ) : (
-                    <span className="text-pana-orange">Not chosen yet</span>
+                    <span className={CONNECTORS_CHROME.ACCENT}>
+                      Not chosen yet
+                    </span>
                   )}
                 </dd>
               </div>
@@ -214,7 +223,7 @@ function NotAConnectorYet() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <SurfaceLink
             href="/connectors"
-            className="rounded-full border-2 border-pana-ink bg-pana-ink px-5 py-2.5 text-sm font-extrabold text-pana-cream"
+            className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
           >
             What is Pana Connectors?
           </SurfaceLink>

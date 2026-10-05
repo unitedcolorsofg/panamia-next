@@ -21,6 +21,7 @@ import {
   upcomingEvents,
 } from '@/lib/connectors/fixtures';
 import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
+import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
  * The programme admin view.
@@ -127,7 +128,9 @@ export default async function ConnectorAdminPage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
                 <thead>
-                  <tr className="bg-pana-ink text-pana-cream">
+                  <tr
+                    className={`${CONNECTORS_CHROME.FILL} ${CONNECTORS_CHROME.ON_FILL}`}
+                  >
                     <th scope="col" className="px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide">
                       Connector
                     </th>
@@ -255,7 +258,10 @@ export default async function ConnectorAdminPage({
 
 function MockTag() {
   return (
-    <span className="rounded-full border-2 border-pana-orange px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-orange">
+    /* Orange on cream measures 2.37 at this size, which is a fail however
+     * loudly it shouts. Filling the pill instead puts ink on orange at 7.47
+     * and makes the tag louder, not quieter — which is the point of it. */
+    <span className="rounded-full border-2 border-pana-orange bg-pana-orange px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-ink">
       Mock
     </span>
   );
@@ -359,7 +365,7 @@ function NotAnAdmin() {
         <div className="mt-8">
           <SurfaceLink
             href="/connectors/hq"
-            className="rounded-full border-2 border-pana-ink bg-pana-ink px-5 py-2.5 text-sm font-extrabold text-pana-cream"
+            className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
           >
             Go to Connector HQ
           </SurfaceLink>
