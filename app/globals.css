@@ -6195,9 +6195,19 @@ body:has(.home-hero-field) .bizprofile-mockbar .mock-toolbar-link {
 
    Still scoped with `:has()` to the moment the panel is actually open, so the
    hero keeps its own clip in every other state instead of resting on that
-   reasoning holding forever. */
+   reasoning holding forever.
+
+   `.directory-suggest-scopemenu` is the same escape hatch for the scope menu.
+   Moving the scope toggle out of the directory results page and into this
+   search pill (see /mock/explore) gives the hero a second panel that hangs
+   below the pill, and it was being sheared to 33px for precisely the reason
+   written above. The two selectors are listed separately rather than merged
+   into one `:has()` because they open independently — picking a scope does not
+   open the typeahead, and typing does not open the scope menu. */
 .home-hero-banner:has(.directory-suggest-list),
-.home-hero-field:has(.directory-suggest-list) {
+.home-hero-field:has(.directory-suggest-list),
+.home-hero-banner:has(.directory-suggest-scopemenu),
+.home-hero-field:has(.directory-suggest-scopemenu) {
   overflow: visible;
 }
 
