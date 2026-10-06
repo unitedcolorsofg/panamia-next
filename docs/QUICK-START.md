@@ -206,7 +206,7 @@ BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_HOST_URL=http://localhost:3000
 ```
 
-The playwright config starts the dev server automatically via `yarn dev:http` (`vinext dev --hostname 0.0.0.0`, port 3000).
+The playwright config starts the dev server automatically via `yarn dev:http` (`vinext dev --host 0.0.0.0 --port 3000`).
 
 #### Run Tests
 
