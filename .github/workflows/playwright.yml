@@ -14,57 +14,56 @@ on:
       - '*.md'
       - '.gitignore'
 
-# The test database is one shared Supabase project, and the job below resets
-# it before every run: DROP SCHEMA public CASCADE, then replay every migration
-# with psql. Two runs overlapping therefore race the same database. One drops
-# the schema out from under the other's migration replay, and the loser dies
-# partway through with errors like `type "event_visibility" already exists` --
-# a failure that looks like a broken migration but is really just a collision.
+# There is deliberately no `concurrency:` block here any more. The job below
+# owns a Postgres service container created with the runner and destroyed with
+# it, so two runs cannot see each other: there is no shared resource left to
+# serialise on.
 #
-# This is deliberately a fixed, repo-wide group rather than one keyed on the
-# ref. The runs that actually collide are usually on *different* refs: a push
-# to main and a pull request that landed seconds apart, for instance. Grouping
-# per ref, which is the common default, would not separate those at all.
-#
-# cancel-in-progress stays false because the goal is to serialise, not to
-# discard. Killing a run midway through the migration replay would leave the
-# shared database half-migrated, which is the exact state this is here to
-# avoid.
-#
-# What this does NOT do is queue, and an earlier version of this comment
-# claimed it did. GitHub holds at most one running plus one *pending* run per
-# concurrency group. A third run does not join a queue -- it EVICTS the pending
-# one. cancel-in-progress: false protects the run that is already executing; it
-# offers nothing at all to the run that is waiting.
-#
-# So the cost is not wall-clock, it is coverage, and it is silent. An evicted
-# run completes with conclusion `cancelled` and an empty jobs list, which means
-# it publishes no check-run whatsoever -- `gh pr checks` can report clean having
-# executed zero tests. Measured across the 300 most recent runs of this workflow
-# (2026-08-07 to 2026-10-05): 42 cancelled, 41 of those with zero jobs, and 15
-# of those 41 on main. That is 13.7% of all runs testing nothing, and main
-# landing unverified 15 times.
-#
-# Per-run schemas on this same database do not fix it. The 15-connection session
-# pooler is a fixed supply and the number of concurrent runs is unbounded, so no
-# per-run connection budget is safe; and lib/server/directory.ts pins
-# search_path to 'public, extensions' per transaction, which would override any
-# per-run routing and silently read the wrong schema.
-#
-# The fix is to stop sharing one database. See .github/workflows/db-tests.yml,
-# which runs the data-layer suite against a throwaway Postgres service container
-# and therefore needs no concurrency group at all. When the Playwright phase
-# moves there too, this block and the DROP SCHEMA below go away together. They
-# must not be removed separately: dropping a shared schema without serialisation
-# is precisely the disaster this group exists to prevent.
-concurrency:
-  group: playwright-shared-db
-  cancel-in-progress: false
+# What was removed along with it was a repo-wide group guarding one shared
+# Supabase project that this job reset with DROP SCHEMA public CASCADE. That
+# group never queued -- GitHub holds one running plus one *pending* run and a
+# third evicts the pending one, which then reports `cancelled` with an empty
+# jobs list and publishes no check-run at all. Across the 300 most recent runs,
+# 42 were cancelled, 41 of those ran zero jobs, and 15 of those were on main:
+# 13.7% of runs testing nothing. Removing the shared database is what makes
+# removing the group safe, which is why both went in a single commit.
 
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
+    # Throwaway database, one per run. Pinned to 17 because that is the version
+    # measured on the shared Supabase project this replaced (17.6), not a guess
+    # -- and the same probe confirmed Supabase resolves both pg_trgm and
+    # unaccent to `public`, exactly as stock postgres:17 does, so the schema
+    # placement assertions in migrations 0041 and 0045 take the same branch here
+    # as they did there. The replay was also verified green on 15 and 16.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Set once at job level so no step can quietly diverge onto a different
+    # database. Plain TCP to the runner's loopback with no pooler in front of
+    # it, so none of the IPv4/IPv6 routing and 15-connection constraints that
+    # used to shape this file apply, and postgres.js defaults (ssl: false)
+    # connect to it as-is. 127.0.0.1 rather than localhost on purpose: the
+    # service container publishes on the host's IPv4 loopback, and naming it
+    # explicitly removes any IPv6-first resolution.
+    env:
+      POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+
     steps:
       - uses: actions/checkout@v7
 
@@ -90,29 +89,25 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Reset the test DB to a clean slate before each run so tests never
-      # inherit state from a previous run. POSTGRES_DIRECT_URL must point to a
-      # dedicated Supabase test project — never the production project.
-      #
-      # We bootstrap the `drizzle.__drizzle_migrations` table manually so
-      # migration 0015 (which enables RLS on it) has something to target.
-      # In production, drizzle-kit migrate creates this table on first run;
-      # in CI we apply migrations via raw psql (see "Apply migrations" step
-      # below for why), so we must seed it ourselves.
-      #
-      # Why psql instead of drizzle-kit migrate in CI:
-      # GitHub-hosted runners are IPv4-only, but Supabase's direct DB host
-      # (db.<ref>.supabase.co) is IPv6-only since early 2024. That forces us
-      # to use the session pooler (aws-X.pooler.supabase.com:5432) from CI.
-      # drizzle-kit's postgres.js client hangs indefinitely against the
-      # session pooler — psql does not. Prod (Cloudflare Workers via
-      # Hyperdrive) is unaffected and continues to use drizzle-kit migrate.
-      - name: Reset test database
+      # The container starts empty, so there is nothing to reset -- it is
+      # created with the runner and destroyed with it. What it does need is two
+      # things stock Postgres has no reason to provide.
+      - name: Bootstrap database
         run: |
-          psql "${{ secrets.POSTGRES_DIRECT_URL }}" -v ON_ERROR_STOP=1 <<'SQL'
-          DROP SCHEMA IF EXISTS drizzle CASCADE;
-          DROP SCHEMA public CASCADE;
-          CREATE SCHEMA public;
+          psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          -- Migration 0014 revokes privileges from `anon` and `authenticated`.
+          -- Those are Supabase's PostgREST roles; stock Postgres has neither, and
+          -- REVOKE against a role that does not exist is an error, not a no-op,
+          -- so without these two the replay dies on 0014 with
+          -- `role "anon" does not exist`. NOLOGIN because nothing ever connects
+          -- as them -- they exist purely to be revoked from, which is the only
+          -- thing 0014 asks of them.
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+
+          -- Migration 0015 enables RLS on drizzle.__drizzle_migrations, so the
+          -- table must exist for it to have a target. Production gets this table
+          -- from drizzle-kit migrate; a raw psql replay has to create it itself.
           CREATE SCHEMA drizzle;
           CREATE TABLE drizzle.__drizzle_migrations (
             id SERIAL PRIMARY KEY,
@@ -121,11 +116,10 @@ jobs:
           );
           SQL
 
-      # Apply hand-written migrations in order via psql. See "Reset test
-      # database" step above for the IPv4/IPv6 background on why we can't
-      # use drizzle-kit migrate here. Prod still uses drizzle-kit migrate
-      # (which tracks applied migrations in drizzle.__drizzle_migrations);
-      # CI wipes and reapplies every run, so tracking is unnecessary.
+      # Apply hand-written migrations in order via psql rather than drizzle-kit
+      # migrate. Prod still uses drizzle-kit migrate (which tracks applied
+      # migrations in drizzle.__drizzle_migrations); CI gets a fresh container
+      # every run, so tracking is unnecessary.
       #
       # Order comes from _journal.json, not a filesystem glob, so CI applies
       # migrations in exactly the order drizzle-kit migrate uses in prod.
@@ -148,69 +142,30 @@ jobs:
               exit 1
             fi
             echo "=== $f ==="
-            psql "$POSTGRES_DIRECT_URL" -v ON_ERROR_STOP=1 -f "$f"
+            psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f "$f"
           done < /tmp/migration-order.txt
-        env:
-          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
-
-      # Read-only probe, and temporary. The data-layer suite is moving to a
-      # throwaway Postgres service container (.github/workflows/db-tests.yml);
-      # this records what the shared project actually runs so that container can
-      # be pinned to a measured version instead of a guessed one.
-      #
-      # The extension placement query matters beyond version-pinning. Migrations
-      # 0041 and 0045 assert pg_trgm is in 'public' or 'extensions', and
-      # directory search sets search_path to exactly those two. On a vanilla
-      # container the extension always lands in public, so whichever branch this
-      # project actually uses is the branch CI would stop exercising after the
-      # cutover. Worth knowing before deciding that is acceptable.
-      #
-      # Runs after the migration replay on purpose: DROP SCHEMA public CASCADE
-      # takes any extension installed in public with it, and the migrations then
-      # recreate it, so this is the state the tests below actually see.
-      - name: Record shared database characteristics
-        run: |
-          set -e
-          probe() {
-            psql "$POSTGRES_DIRECT_URL" -At -c "$1"
-          }
-          {
-            echo '### Shared test database (read-only probe)'
-            echo
-            echo '```'
-            echo "server_version:  $(probe 'SHOW server_version')"
-            echo "max_connections: $(probe 'SHOW max_connections')"
-            echo 'extensions:'
-            probe "SELECT '  ' || e.extname || ' -> ' || n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace ORDER BY 1"
-            echo '```'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
-        env:
-          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
 
       # Data-layer tests (tests-db/) run here rather than in their own job so
       # they reuse the database the step above just migrated. They are fast,
       # need no browser, and failing now skips a Playwright install that was
-      # going to fail anyway. Fixtures are namespaced per run and cleaned up,
-      # so they do not disturb the Playwright specs that follow.
+      # going to fail anyway.
       #
       # test:db passes --test-concurrency=1. node --test runs one process per
-      # file, and each process opens its own postgres.js pool, so the number of
-      # connections scales with the number of test files while the pooler caps
-      # us at 15 in session mode. That ceiling was crossed by simply adding a
-      # tenth file: every test in it failed with EMAXCONNSESSION, which reads
-      # like a schema or fixture fault and is neither. Running the files in
-      # series keeps the connection count flat as the suite grows, and has the
-      # side benefit of removing cross-file interference between fixtures that
-      # share one database.
+      # file and each process opens its own postgres.js pool, so connection
+      # count scales with the number of test files. That used to collide with a
+      # hard ceiling -- the shared Supabase session pooler capped us at 15, and
+      # simply adding a tenth file crossed it, failing every test in that file
+      # with EMAXCONNSESSION. The container has no such ceiling
+      # (max_connections 100 against a measured peak of 10), so the flag is kept
+      # for its other effect: it removes cross-file interference between
+      # fixtures that share one database. Relaxing it is now possible, but it is
+      # a separate change with its own thing to verify.
       - name: Run database tests
         run: yarn test:db
-        env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
 
       - name: Validate environment variables
         run: npm run env:check
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -234,9 +189,15 @@ jobs:
 
       # wrangler dev reads .dev.vars and injects ALL entries as env bindings (env.KEY)
       # into the Worker. This is how POSTGRES_URL and auth secrets reach the workerd runtime.
+      #
+      # POSTGRES_URL comes from the job-level env (the service container) rather
+      # than a secret, so the Worker and the data-layer tests above address the
+      # same database. lib/db.ts prefers env.POSTGRES_URL over the HYPERDRIVE
+      # binding, and wrangler.jsonc's localConnectionString is a placeholder, so
+      # this file is genuinely the path the Worker takes in CI.
       - name: Create .dev.vars for wrangler dev
         run: |
-          echo "POSTGRES_URL=${{ secrets.POSTGRES_URL }}" >> .dev.vars
+          echo "POSTGRES_URL=$POSTGRES_URL" >> .dev.vars
           echo "BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}" >> .dev.vars
           echo "BETTER_AUTH_URL=${{ vars.BETTER_AUTH_URL }}" >> .dev.vars
           echo "ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" >> .dev.vars
@@ -255,11 +216,11 @@ jobs:
       # `yarn build` is now just `vinext build` (no migrate prefix), so this
       # is equivalent — kept explicit for clarity that CI does not migrate
       # during build (migrations were applied in the "Apply migrations" step).
+      # POSTGRES_DIRECT_URL is deliberately absent: its only reader is
+      # drizzle.config.ts, and drizzle-kit is never invoked here.
       - name: Build app
         run: yarn build
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-          POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
@@ -277,7 +238,6 @@ jobs:
       - name: Run Playwright tests
         run: yarn test
         env:
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
           NEXT_PUBLIC_HOST_URL: ${{ vars.NEXT_PUBLIC_HOST_URL }}
