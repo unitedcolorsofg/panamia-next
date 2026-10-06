@@ -34,7 +34,7 @@
     "db:migrate": "drizzle-kit migrate",
     "dev:setup": "npx tsx scripts/setup-dev-vars.ts",
     "dev:vinext": "vinext dev --port 3001",
-    "dev:http": "vinext dev --hostname 0.0.0.0",
+    "dev:http": "vinext dev --host 0.0.0.0 --port 3000",
     "build:vinext": "vinext build",
     "deploy:vinext": "drizzle-kit migrate && vinext deploy",
     "mobile": "npx tsx scripts/mobile-run.ts",
