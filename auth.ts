@@ -621,6 +621,39 @@ async function enrichUserFields(
 }
 
 /**
+ * Read the enriched fields off a session the `customSession` plugin has already
+ * decorated.
+ *
+ * That plugin (see the plugin list below) runs inside `api.getSession()`, so by
+ * the time a session reaches `auth()` the `profiles` read has already happened.
+ * `auth()` used to call `enrichUserFields` again on the result, issuing a
+ * second, byte-identical query on every authenticated request — multiplied
+ * across ~170 `auth()` call sites, and multiplied again on the routes that call
+ * `auth()` more than once.
+ *
+ * Returns null when the fields are absent, so the caller falls back to a live
+ * read. That fallback is the old behaviour exactly; it just no longer runs on
+ * the happy path. Keeping it means reordering or dropping the plugin degrades
+ * to an extra query rather than to a member silently losing their roles.
+ *
+ * `isAdmin` is the probe because `enrichUserFields` always sets it to a boolean,
+ * including when the profile lookup throws — so its presence proves enrichment
+ * ran, while a badge-only probe could not tell "not enriched" from "not verified".
+ */
+function readEnrichedFields(user: unknown): EnrichedUserFields | null {
+  const enriched = user as Partial<EnrichedUserFields> | null | undefined;
+  if (!enriched || typeof enriched.isAdmin !== 'boolean') return null;
+  return {
+    isAdmin: enriched.isAdmin,
+    panaVerified: enriched.panaVerified ?? false,
+    legalAgeVerified: enriched.legalAgeVerified ?? false,
+    isMentoringModerator: enriched.isMentoringModerator ?? false,
+    isEventOrganizer: enriched.isEventOrganizer ?? false,
+    isContentModerator: enriched.isContentModerator ?? false,
+  };
+}
+
+/**
  * Attach an unclaimed directory listing to the account that just signed in, and
  * link its GoHighLevel contact.
  *
@@ -875,6 +908,66 @@ function getBetterAuth(): BetterAuthInstance {
           }
         : {}),
     },
+    session: {
+      // 90 days, not better-auth's 7-day default.
+      //
+      // Session length is the dominant cost lever on this deployment, because
+      // production has no OAuth providers enabled — the magic link is the only
+      // way back in, so an expired session is an email. docs/SMS-LOGIN-ROADMAP.md
+      // models the same effect for SMS and puts the 7-day window at ~600k
+      // re-authentications/yr at 200k members, against ~160k at 90 days.
+      //
+      // On a community platform people check in every few weeks, so a 7-day
+      // window meant re-authenticating on nearly every visit. The tradeoff is
+      // that a stolen cookie stays useful for longer — accepted here because
+      // this cookie is already the durable credential, and the alternative
+      // mails people sign-in links constantly, which is both the expensive
+      // option and the one that trains the reflex phishing depends on.
+      expiresIn: 60 * 60 * 24 * 90,
+      // Sliding refresh, at most once a day. Matches better-auth's default;
+      // pinned so the window above cannot be silently halved by a default change.
+      updateAge: 60 * 60 * 24,
+      cookieCache: {
+        // Serve the session from a signed cookie instead of reading the
+        // sessions table on every request. This removes the session⋈user query
+        // from every authenticated request; `customSession` still runs after
+        // it, so the `profiles` read remains (see readEnrichedFields above for
+        // why it is now one query per request rather than two).
+        //
+        // 5 minutes bounds how long a *revoked* session keeps working. It does
+        // not make roles or verification badges stale: those come from
+        // `customSession`, which runs on every call regardless of whether the
+        // session itself was served from cache. Anything needing instant
+        // revocation should read the database directly rather than shortening
+        // this.
+        enabled: true,
+        maxAge: 5 * 60,
+      },
+    },
+    rateLimit: {
+      // `enabled` is deliberately unset: better-auth turns rate limiting on in
+      // production and off in development, which is what we want on both sides.
+      //
+      // Storage is the in-memory default. In Workers that is per-isolate rather
+      // than global, so this throttles a persistent attacker without being a
+      // hard guarantee. It is still worth having — it costs nothing, needs no
+      // binding, and no table (a database-backed limiter would add writes to
+      // the very budget this change is trimming). If abuse ever shows up in
+      // practice, the durable fix is a Cloudflare rate-limiting rule in front
+      // of /api/auth, not a different better-auth storage backend.
+      window: 60,
+      max: 30,
+      customRules: {
+        // This endpoint mails on demand, so leaving it on the general limit is
+        // both a cost leak and a way to use us to flood a third party's inbox.
+        // Three attempts per quarter-hour is ample for a real person who
+        // mistyped their address once.
+        '/sign-in/magic-link': { window: 60 * 15, max: 3 },
+      },
+      // Note this covers better-auth's own endpoints only. The app's own
+      // mail-sending routes (e.g. /api/user/request-email-migration) sit
+      // outside this and are still unthrottled.
+    },
     secret: process.env.BETTER_AUTH_SECRET,
     // BETTER_AUTH_URL is CF-RUNTIME only and gets baked in as undefined by Vite.
     // NEXT_PUBLIC_HOST_URL is in CF-BUILD and is correctly baked in at build time.
@@ -1056,13 +1149,19 @@ export async function auth(): Promise<AppSession | null> {
       headers: await headers(),
     });
     if (!session) return null;
-    // Breadcrumb: this is the last line before enrichUserFields issues its own
-    // query. A request that logs this and then produces no response at all
-    // stalled after the session read, which narrows a hang to the profile
-    // query (or to whatever the caller does next) rather than to better-auth.
-    console.log('[auth] session resolved', { userId: session.user.id });
 
-    const extras = await enrichUserFields(session.user.id, session.user.email);
+    // Breadcrumb for narrowing a hang: a request that logs this and then
+    // produces no response stalled after the session read, rather than inside
+    // better-auth. Off by default — at scale this fired on every authenticated
+    // request, and Workers Logs bills per event once past the included
+    // allowance. Set DEBUG_REQUEST_LOG=1 to bring it back while investigating.
+    if (process.env.DEBUG_REQUEST_LOG === '1') {
+      console.log('[auth] session resolved', { userId: session.user.id });
+    }
+
+    const extras =
+      readEnrichedFields(session.user) ??
+      (await enrichUserFields(session.user.id, session.user.email));
 
     return {
       user: {

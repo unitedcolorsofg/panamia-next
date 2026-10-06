@@ -33,6 +33,9 @@ export interface CloudflareEnv {
   // Available in local dev (vinext dev / wrangler dev) as a wrangler secret text binding,
   // populated from .dev.vars via wrangler's automatic secret loading.
   POSTGRES_URL?: string;
+  // '1' turns on per-query logging in production. Off by default — see the
+  // `debug` note in the Hyperdrive branch below.
+  DEBUG_REQUEST_LOG?: string;
 }
 
 export type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
@@ -128,16 +131,34 @@ export function getDb(env?: CloudflareEnv): DbInstance {
     //   with somewhere to verify it; it is not a free flip.
     //
     // debug — log every query so failures are visible in wrangler tail.
+    //   Opt-in rather than always-on. Workers Logs bills per event beyond the
+    //   included allowance, and this emitted one event per query on every
+    //   request — comfortably the largest single source of log volume in the
+    //   Worker, for output nobody reads outside an active investigation.
+    //   Set the DEBUG_REQUEST_LOG=1 secret to turn it back on; it gates the
+    //   matching per-request breadcrumb in auth.ts too.
+    //
+    //   Failures are unaffected: errors still surface through the
+    //   `observability` block in wrangler.jsonc, which samples at 100%. This
+    //   only drops the successful-query chatter around them.
+    const debugQueries = env.DEBUG_REQUEST_LOG === '1';
     const client = postgres(env.HYPERDRIVE.connectionString, {
       max: 5,
       prepare: false,
-      debug: (connection, query, params) => {
-        const short = (typeof query === 'string' ? query : String(query)).slice(
-          0,
-          80
-        );
-        console.log('[db]', short, params?.length ? `p[${params.length}]` : '');
-      },
+      ...(debugQueries
+        ? {
+            debug: (connection, query, params) => {
+              const short = (
+                typeof query === 'string' ? query : String(query)
+              ).slice(0, 80);
+              console.log(
+                '[db]',
+                short,
+                params?.length ? `p[${params.length}]` : ''
+              );
+            },
+          }
+        : {}),
     });
     const instance = drizzle(client, { schema });
     cachedInstance = instance;
