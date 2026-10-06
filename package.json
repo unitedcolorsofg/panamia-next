@@ -30,6 +30,7 @@
     "db:photos": "npx tsx scripts/seed-business-photos.ts",
     "photos:fetch": "npx tsx scripts/fetch-directory-photos.ts",
     "db:studio": "drizzle-kit studio",
+    "db:migrate-region": "npx tsx scripts/migrate-supabase-region.ts",
     "db:generate": "echo 'This project hand-writes migrations under drizzle/. The drizzle-kit snapshot is intentionally stale (see drizzle.config.ts). If you really need to run drizzle-kit generate, invoke it directly with: npx drizzle-kit generate' && exit 1",
     "db:migrate": "drizzle-kit migrate",
     "dev:setup": "npx tsx scripts/setup-dev-vars.ts",

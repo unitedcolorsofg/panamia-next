@@ -100,19 +100,20 @@ See [FEATURES.md](./docs/FEATURES.md) for a complete feature overview.
 
 ## Documentation
 
-| Document                                       | Description                            |
-| ---------------------------------------------- | -------------------------------------- |
-| [Quick Start](./docs/QUICK-START.md)           | Developer setup guide                  |
-| [Features](./docs/FEATURES.md)                 | Platform feature overview              |
-| [Database Design](./docs/DATABASE-DESIGN.md)   | Schema, migrations, connection setup   |
-| [Articles Roadmap](./docs/ARTICLE-ROADMAP.md)  | Community articles implementation plan |
-| [Social Roadmap](./docs/SOCIAL-ROADMAP.md)     | Social timeline & federation plan      |
-| [Groups Roadmap](./docs/GROUPS-ROADMAP.md)     | Interest groups, feed & events design  |
-| [Chat Roadmap](./docs/CHAT-ROADMAP.md)         | Real-time messaging design & roadmap   |
-| [Mentoring Guide](./docs/MENTORING-ROADMAP.md) | Peer mentoring guide & roadmap         |
-| [Search Roadmap](./docs/SEARCH-ROADMAP.md)     | Directory search design & roadmap      |
-| [Contributing](./docs/CONTRIBUTING.md)         | How to contribute                      |
-| [Security](./docs/SECURITY_AUDIT.md)           | Security architecture                  |
+| Document                                       | Description                             |
+| ---------------------------------------------- | --------------------------------------- |
+| [Quick Start](./docs/QUICK-START.md)           | Developer setup guide                   |
+| [Features](./docs/FEATURES.md)                 | Platform feature overview               |
+| [Database Design](./docs/DATABASE-DESIGN.md)   | Schema, migrations, connection setup    |
+| [Articles Roadmap](./docs/ARTICLE-ROADMAP.md)  | Community articles implementation plan  |
+| [Social Roadmap](./docs/SOCIAL-ROADMAP.md)     | Social timeline & federation plan       |
+| [Groups Roadmap](./docs/GROUPS-ROADMAP.md)     | Interest groups, feed & events design   |
+| [Chat Roadmap](./docs/CHAT-ROADMAP.md)         | Real-time messaging design & roadmap    |
+| [Mentoring Guide](./docs/MENTORING-ROADMAP.md) | Peer mentoring guide & roadmap          |
+| [Search Roadmap](./docs/SEARCH-ROADMAP.md)     | Directory search design & roadmap       |
+| [Hosting Costs](./docs/HOSTING-COSTS.md)       | What it costs to run, and how it scales |
+| [Contributing](./docs/CONTRIBUTING.md)         | How to contribute                       |
+| [Security](./docs/SECURITY_AUDIT.md)           | Security architecture                   |
 
 ---
 

@@ -594,6 +594,19 @@ export const envConfig: Record<string, EnvVarConfig> = {
     location: 'LOCAL',
     required: false,
   },
+  DEBUG_REQUEST_LOG: {
+    description:
+      'Set to "1" to turn on verbose per-request logging: every SQL statement ' +
+      '(lib/db.ts) and the session-resolution breadcrumb (auth.ts). Off by ' +
+      'default because these fire on every request and Workers Logs bills per ' +
+      'event past the included allowance. Errors are logged regardless, via the ' +
+      'observability block in wrangler.jsonc — this only controls the ' +
+      'successful-path chatter. Turn on while investigating, then turn it back off.',
+    location: 'VAR',
+    required: false,
+    example: '1',
+    docsUrl: 'https://developers.cloudflare.com/workers/observability/logs/',
+  },
 };
 
 /**
