@@ -67,14 +67,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Runs before anything expensive: this is cheap, needs no dependencies,
+      # Runs before anything expensive: this is cheap, needs no node_modules,
       # and catches the class of migration defect that CI otherwise cannot see.
-      # The migration replay below applies drizzle/[0-9]*.sql by filesystem
-      # glob, so it happily runs a migration that has no _journal.json entry --
-      # while production, which goes through drizzle-kit migrate, silently
-      # skips that same file. CI therefore passes and production ships without
-      # the tables. --strict makes missing tooling an error rather than a
-      # skipped check, so this cannot quietly become a no-op.
+      # It checks file naming, the required Purpose/Ticket/Reversible headers,
+      # strictly increasing _journal.json timestamps, and -- the one that
+      # matters most -- journal completeness: every drizzle/NNNN_*.sql file
+      # must have a journal entry. drizzle-kit migrate, which is what prod
+      # runs, silently skips any file the journal does not list. That is how
+      # 0048_recommendation_lists merged clean and shipped to production with
+      # its tables never created.
+      #
+      # The replay below is journal-driven as well, so an unjournaled migration
+      # is never applied here either and dependent tests fail loudly rather
+      # than passing against a schema prod lacks. That leaves this step as the
+      # only thing that names the actual defect, which is why --strict is set:
+      # it turns a missing Python interpreter into an error instead of a
+      # skipped check, so the guard cannot quietly become a no-op.
       - name: Validate migrations
         run: bash scripts/validate-migrations.sh --strict
 
