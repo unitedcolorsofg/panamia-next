@@ -6,6 +6,18 @@
  * drops (e.g. wifi → cellular) can reconnect and rejoin seamlessly.
  * All data is deleted once the last participant leaves.
  *
+ * Uses the WebSocket Hibernation API: sockets are handed to the runtime with
+ * state.acceptWebSocket() rather than ws.accept(), so this object can be
+ * evicted between messages and is billed only while it actually runs. That
+ * matters because signaling is almost entirely idle — the offer/answer/ICE
+ * exchange happens in the first seconds and the media then flows peer-to-peer
+ * without passing through here, so an hour-long call previously billed an hour
+ * of wall-clock duration for a few seconds of work.
+ *
+ * The consequence is that no instance field survives between messages. Room
+ * membership is reloaded from SQLite by the constructor on every wake, and each
+ * socket carries its own identity via serializeAttachment() — see attachmentOf.
+ *
  * Protocol (JSON messages over WebSocket):
  *   Client → Server:
  *     { type: "join", userId: string, userName: string }
@@ -53,21 +65,47 @@ const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 // the first join to the last leave timestamp.
 // ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Room membership, mirrored from the SQLite `participants` table.
+ *
+ * Deliberately holds no WebSocket reference. Under hibernation this object is
+ * evicted and rebuilt freely, so a socket stored here would be a dangling
+ * reference on the next wake. The live sockets are whatever
+ * state.getWebSockets() returns. Membership outlives connection on purpose: a
+ * participant who drops stays in the room until purgeStale() removes them.
+ */
 interface Participant {
   userId: string;
   userName: string;
-  ws: WebSocket | null; // null = disconnected but still in room
+}
+
+/** Identity pinned to a socket at join time, readable after a wake. */
+interface SocketIdentity {
+  userId: string;
+  userName: string;
 }
 
 export class SignalingRoom {
   private participants: Map<string, Participant> = new Map(); // keyed by userId
   private sql: SqlStorage;
+  private state: DurableObjectState;
 
   constructor(state: DurableObjectState, _env: unknown) {
+    this.state = state;
     this.sql = state.storage.sql;
     this.initDb();
     this.purgeStale();
     this.restoreParticipants();
+
+    // Answer keepalives in the runtime instead of here. No client sends these
+    // today, but a heartbeat is the natural thing to add for mobile, where the
+    // WebView is suspended on backgrounding and connections die quietly. Wired
+    // as an ordinary message it would wake this object on every beat and undo
+    // hibernation entirely; auto-responses are handled without incurring
+    // wall-clock time, so adding one later stays free.
+    this.state.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair('ping', 'pong')
+    );
   }
 
   private initDb() {
@@ -112,24 +150,22 @@ export class SignalingRoom {
     }
   }
 
-  /** Restore in-memory participant map from SQLite (ws=null until they reconnect) */
+  /**
+   * Rebuild the membership cache from SQLite.
+   *
+   * Under hibernation this runs on every wake rather than once per room, so it
+   * deliberately does not log — a line per message burst would be the single
+   * noisiest thing in this Worker. SQLite is the source of truth; this is only
+   * the in-memory view of it.
+   */
   private restoreParticipants() {
-    const rows = this.sql.exec('SELECT user_id, user_name FROM participants');
-    const restored: string[] = [];
-    for (const row of rows) {
-      const userId = row.user_id as string;
-      this.participants.set(userId, {
-        userId,
+    for (const row of this.sql.exec(
+      'SELECT user_id, user_name FROM participants'
+    )) {
+      this.participants.set(row.user_id as string, {
+        userId: row.user_id as string,
         userName: row.user_name as string,
-        ws: null,
       });
-      restored.push(userId);
-    }
-    if (restored.length > 0) {
-      // Can't send debug here (no ws yet), but logged for constructor awareness
-      console.log(
-        `[DO] Restored ${restored.length} participant(s) from SQLite: ${restored.join(', ')}`
-      );
     }
   }
 
@@ -141,44 +177,66 @@ export class SignalingRoom {
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
 
-    this.handleSession(server);
-    server.accept();
+    // Hand the socket to the runtime rather than calling server.accept().
+    // accept() pins this object in memory for the entire call and bills
+    // wall-clock duration throughout, nearly all of it idle. acceptWebSocket()
+    // lets the runtime evict us between messages and wake us on the next one.
+    this.state.acceptWebSocket(server);
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  private handleSession(ws: WebSocket) {
-    ws.addEventListener('message', (event) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        this.handleMessage(ws, data);
-      } catch {
-        this.send(ws, { type: 'error', message: 'Invalid JSON' });
-      }
-    });
+  // ── Hibernation handlers ──────────────────────────────────────────────
+  // The runtime calls these in place of the addEventListener closures this
+  // class used before. They have to be methods: a closure captured at accept
+  // time does not survive the object being evicted.
 
-    ws.addEventListener('close', () => {
-      this.handleDisconnect(ws);
-    });
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
+    const text =
+      typeof message === 'string' ? message : new TextDecoder().decode(message);
+    try {
+      this.handleMessage(ws, JSON.parse(text));
+    } catch {
+      this.send(ws, { type: 'error', message: 'Invalid JSON' });
+    }
+  }
 
-    ws.addEventListener('error', () => {
-      this.handleDisconnect(ws);
-    });
+  async webSocketClose(ws: WebSocket) {
+    this.handleDisconnect(ws);
+  }
+
+  async webSocketError(ws: WebSocket) {
+    this.handleDisconnect(ws);
   }
 
   private handleDisconnect(ws: WebSocket) {
-    // Find the participant by WebSocket reference
-    for (const [userId, p] of this.participants) {
-      if (p.ws === ws) {
-        // Mark as disconnected but keep in room — they may reconnect
-        p.ws = null;
-        this.debugAll(
-          `DO: participant ${userId} disconnected (kept in SQLite for reconnect)`
-        );
-        this.broadcast(null, { type: 'peer-left', userId });
-        break;
-      }
-    }
+    const who = this.attachmentOf(ws);
+    if (!who) return; // never completed a join
+
+    // An explicit `leave` already removed them and announced it, and the socket
+    // close that follows lands here straight after. The old code got this for
+    // free: removeParticipant() deleted the very map entry the lookup scanned,
+    // so the second pass found nothing. Identity now lives on the socket and
+    // outlives that deletion, so the guard has to be explicit.
+    if (!this.participants.has(who.userId)) return;
+
+    // Likewise a reconnect closes the previous socket for this identity, and
+    // that close arrives after the new one has joined. Announcing peer-left
+    // here would contradict the peer-joined that just went out. The old code
+    // was shielded by reassigning existing.ws before the close fired.
+    const stillConnected = this.state
+      .getWebSockets()
+      .some((s) => s !== ws && this.attachmentOf(s)?.userId === who.userId);
+    if (stillConnected) return;
+
+    // Membership deliberately survives the socket: the SQLite row stays so a
+    // reconnect re-attaches instead of arriving as a stranger. The disconnect
+    // is implicit now — the socket simply stops appearing in getWebSockets() —
+    // so there is no ws field left to null out.
+    this.debugAll(
+      `DO: participant ${who.userId} disconnected (kept in SQLite for reconnect)`
+    );
+    this.broadcast(ws, { type: 'peer-left', userId: who.userId });
   }
 
   private handleMessage(
@@ -206,15 +264,17 @@ export class SignalingRoom {
 
         const existing = this.participants.get(data.userId);
         if (existing) {
-          // Reconnect: close old WS if still lingering, attach new one
-          if (existing.ws && existing.ws !== ws) {
+          // Reconnect: drop any socket still lingering under this identity
+          // before the new one takes over, so a half-dead connection cannot
+          // keep receiving the room's traffic.
+          const stale = this.socketFor(data.userId);
+          if (stale && stale !== ws) {
             try {
-              existing.ws.close();
+              stale.close();
             } catch {
               /* already closed */
             }
           }
-          existing.ws = ws;
           existing.userName = data.userName;
           // Refresh joined_at so reconnecting users don't get purged
           this.sql.exec(
@@ -241,7 +301,6 @@ export class SignalingRoom {
           this.participants.set(data.userId, {
             userId: data.userId,
             userName: data.userName,
-            ws,
           });
           this.sql.exec(
             'INSERT OR REPLACE INTO participants (user_id, user_name, joined_at) VALUES (?, ?, ?)',
@@ -253,6 +312,14 @@ export class SignalingRoom {
             `DO: SQLite INSERT participants — ${data.userName} (${data.userId}), ${this.participants.size} total`
           );
         }
+
+        // Pin identity to the socket itself. This is what lets
+        // webSocketMessage and webSocketClose know who is speaking after a
+        // wake, when every in-memory reference is gone.
+        ws.serializeAttachment({
+          userId: data.userId,
+          userName: data.userName,
+        } satisfies SocketIdentity);
 
         // Send room state to the joining/reconnecting user
         const chatRows = [
@@ -291,7 +358,7 @@ export class SignalingRoom {
       }
 
       case 'chat': {
-        const sender = this.findByWs(ws);
+        const sender = this.attachmentOf(ws);
         if (!sender) {
           this.send(ws, { type: 'error', message: 'Must join first' });
           return;
@@ -319,14 +386,14 @@ export class SignalingRoom {
           text: data.text.trim(),
           ts,
         };
-        for (const [, p] of this.participants) {
-          if (p.ws) this.send(p.ws, chatMsg);
+        for (const peer of this.state.getWebSockets()) {
+          this.send(peer, chatMsg);
         }
         break;
       }
 
       case 'leave': {
-        const leaver = this.findByWs(ws);
+        const leaver = this.attachmentOf(ws);
         if (leaver) {
           this.debugAll(
             `DO: SQLite DELETE participants — ${leaver.userName} (${leaver.userId}) left`
@@ -345,7 +412,7 @@ export class SignalingRoom {
 
       case 'wb-sync': {
         // Whiteboard Yjs update — broadcast binary (base64) to all other participants
-        const wbSender = this.findByWs(ws);
+        const wbSender = this.attachmentOf(ws);
         if (!wbSender) {
           this.send(ws, { type: 'error', message: 'Must join first' });
           return;
@@ -361,7 +428,7 @@ export class SignalingRoom {
       case 'offer':
       case 'answer':
       case 'ice-candidate': {
-        const sender = this.findByWs(ws);
+        const sender = this.attachmentOf(ws);
         if (!sender) {
           this.send(ws, { type: 'error', message: 'Must join first' });
           return;
@@ -370,8 +437,8 @@ export class SignalingRoom {
           this.send(ws, { type: 'error', message: 'target required' });
           return;
         }
-        const target = this.participants.get(data.target);
-        if (!target?.ws) return; // not connected
+        const targetWs = this.socketFor(data.target);
+        if (!targetWs) return; // not connected
 
         const forwarded: Record<string, unknown> = {
           type: data.type,
@@ -379,7 +446,7 @@ export class SignalingRoom {
         };
         if (data.sdp !== undefined) forwarded.sdp = data.sdp;
         if (data.candidate !== undefined) forwarded.candidate = data.candidate;
-        this.send(target.ws, forwarded);
+        this.send(targetWs, forwarded);
         break;
       }
 
@@ -388,10 +455,31 @@ export class SignalingRoom {
     }
   }
 
-  private findByWs(ws: WebSocket): Participant | undefined {
-    for (const [, p] of this.participants) {
-      if (p.ws === ws) return p;
+  /**
+   * Identity of a socket, read back from the attachment set at join time.
+   *
+   * Replaces the old linear scan for `p.ws === ws`. The attachment is stored
+   * by the runtime alongside the socket, so it survives hibernation where an
+   * in-memory map would not.
+   */
+  private attachmentOf(ws: WebSocket): SocketIdentity | null {
+    try {
+      const raw = ws.deserializeAttachment();
+      if (raw && typeof raw === 'object' && 'userId' in raw) {
+        return raw as SocketIdentity;
+      }
+    } catch {
+      // Nothing attached — the socket has not completed a join.
     }
+    return null;
+  }
+
+  /** The live socket for a userId, or null when they are not connected. */
+  private socketFor(userId: string): WebSocket | null {
+    for (const ws of this.state.getWebSockets()) {
+      if (this.attachmentOf(ws)?.userId === userId) return ws;
+    }
+    return null;
   }
 
   private removeParticipant(userId: string) {
@@ -417,8 +505,8 @@ export class SignalingRoom {
 
   /** Send a debug message to all connected clients */
   private debugAll(message: string) {
-    for (const [, p] of this.participants) {
-      if (p.ws) this.send(p.ws, { type: 'do-debug', message });
+    for (const ws of this.state.getWebSockets()) {
+      this.send(ws, { type: 'do-debug', message });
     }
   }
 
@@ -432,13 +520,12 @@ export class SignalingRoom {
 
   private broadcast(exclude: WebSocket | null, msg: unknown) {
     const payload = JSON.stringify(msg);
-    for (const [, p] of this.participants) {
-      if (p.ws && p.ws !== exclude) {
-        try {
-          p.ws.send(payload);
-        } catch {
-          // Will be cleaned up on close event
-        }
+    for (const ws of this.state.getWebSockets()) {
+      if (ws === exclude) continue;
+      try {
+        ws.send(payload);
+      } catch {
+        // Will be cleaned up on close event
       }
     }
   }
