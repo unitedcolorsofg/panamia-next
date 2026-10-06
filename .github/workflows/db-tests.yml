@@ -1,0 +1,236 @@
+name: Database Tests
+
+on:
+  # Deliberately manual-only. This is a capacity decision, not a doubt about
+  # the job -- it passes (run 37367777590, green on Postgres 15, 16 and 17).
+  #
+  # Hosted runners are intermittently unobtainable on this repo. When one is
+  # free a job starts within about a minute; when none is free the job sits
+  # queued and is cancelled at exactly 902 seconds having executed zero steps
+  # and published no check-run. Measured four times today: playwright.yml under
+  # a three-version matrix (run 37367777457, attempts 1 and 2), this workflow
+  # (run 37371364531), and then playwright.yml again (run 37373241671) with
+  # nothing else queued at all. Timeout-minutes was 60, 60, 20 and 60
+  # respectively, so the job timeout is not the cause, and the last of those had
+  # no competitor, so contention is not the cause either. It is ambient runner
+  # scarcity and it predates this change.
+  #
+  # That matters here for one reason: a 902-second zero-step cancellation is
+  # indistinguishable at a glance from the concurrency eviction this PR exists
+  # to remove. Both report `cancelled` with no jobs. Runner capacity is the
+  # scarce resource, so a second always-on workflow spends it without being able
+  # to fix that, and PR 2 folds this container into playwright.yml's existing job
+  # rather than running beside it. Until then this stays on workflow_dispatch as
+  # a reproducible proof that the container path works.
+  workflow_dispatch:
+
+# There is deliberately no `concurrency:` block here, and that is the entire
+# point of this workflow.
+#
+# playwright.yml has to serialise on a repo-wide group because it resets one
+# shared Supabase project with DROP SCHEMA public CASCADE. That group does not
+# queue: GitHub holds one running plus one pending run, and a third evicts the
+# pending one. Across the 500 most recent runs, 42 were cancelled and 41 of
+# those ran zero jobs -- publishing no check-run at all. Their lifetimes cluster
+# between 0 and 4 minutes, none above 9, which is the eviction signature:
+# displaced moments after being queued rather than timing out at 902 seconds
+# waiting for a runner. The two causes are separable by lifetime, and both are
+# real.
+#
+# This job has no shared resource to serialise on. Its database is a service
+# container created with the runner and destroyed with it, so two runs cannot
+# see each other: no concurrency group, no eviction, no teardown step, and no
+# sweeper for schemas orphaned by runs that died before cleanup.
+jobs:
+  tests-db:
+    name: tests-db (postgres ${{ matrix.postgres }})
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+
+    # Deliberately a one-entry matrix rather than a plain job: it keeps the
+    # version visible in the job name and makes widening it a one-line change.
+    #
+    # It was briefly a three-entry matrix over 15, 16 and 17, which is how we
+    # know the migrations replay clean on all three -- all three passed in run
+    # 37367777590, each reporting the same peak of 10 connections.
+    #
+    # 17 is the right pin: the probe added to playwright.yml reports the shared
+    # Supabase project runs 17.6 (run 37371364569). That probe also settles the
+    # one divergence worth worrying about -- Supabase resolves both pg_trgm and
+    # unaccent to `public`, exactly as stock postgres:17 does, so the
+    # schema-placement assertions in 0041 and 0045 take the same branch in the
+    # container as they do today. Nothing stops being exercised at cutover.
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['17']
+
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # No pooler in front of this, so none of the IPv4/IPv6 and 15-connection
+    # constraints that shape playwright.yml apply. Plain TCP to the runner's
+    # loopback, and postgres.js defaults (ssl: false) connect to it as-is.
+    env:
+      POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same cheap pre-flight playwright.yml runs, repeated here on purpose
+      # rather than factored out: this workflow cannot be evicted, so when the
+      # shared-database job is displaced this is the only thing still checking
+      # that the journal and the migration files agree.
+      - name: Validate migrations
+        run: bash scripts/validate-migrations.sh --strict
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Bootstrap database
+        run: |
+          psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          -- Migration 0014 revokes privileges from `anon` and `authenticated`.
+          -- Those are Supabase's PostgREST roles; stock Postgres has neither, and
+          -- REVOKE against a role that does not exist is an error, not a no-op,
+          -- so without these two the replay dies on 0014 with
+          -- `role "anon" does not exist`. NOLOGIN because nothing ever connects
+          -- as them -- they exist purely to be revoked from, which is the only
+          -- thing 0014 asks of them.
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+
+          -- Same seeding the shared-database job does, for the same reason:
+          -- migration 0015 enables RLS on drizzle.__drizzle_migrations, so the
+          -- table must exist for it to have a target. Production gets this table
+          -- from drizzle-kit migrate; a raw psql replay has to create it itself.
+          CREATE SCHEMA drizzle;
+          CREATE TABLE drizzle.__drizzle_migrations (
+            id SERIAL PRIMARY KEY,
+            hash TEXT NOT NULL,
+            created_at BIGINT
+          );
+          SQL
+
+      # Byte-for-byte the same replay logic as playwright.yml, pointed at the
+      # container. Kept identical rather than simplified so the two cannot
+      # diverge while both exist: order comes from _journal.json and not a
+      # filesystem glob, because a glob applies files production silently skips
+      # and misorders shared numeric prefixes (0035 already has two).
+      - name: Apply migrations
+        run: |
+          set -e
+          python3 -c "import json; print('\n'.join(e['tag'] for e in sorted(json.load(open('drizzle/meta/_journal.json'))['entries'], key=lambda e: e['idx'])))" > /tmp/migration-order.txt
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            f="drizzle/$tag.sql"
+            if [ ! -f "$f" ]; then
+              echo "ERROR: journal lists '$tag' but $f does not exist"
+              exit 1
+            fi
+            echo "=== $f ==="
+            psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done < /tmp/migration-order.txt
+
+      # Where the extensions landed decides whether this container is a fair
+      # stand-in. Migrations 0041 and 0045 assert pg_trgm is in 'public' or
+      # 'extensions', and directory search pins search_path to exactly those two
+      # -- on stock Postgres both resolve to public. Printing it here makes the
+      # comparison against the shared project's probe a diff rather than an
+      # assumption.
+      - name: Record container characteristics
+        run: |
+          set -e
+          probe() { psql "$POSTGRES_URL" -At -c "$1"; }
+          {
+            echo "### Container (postgres ${{ matrix.postgres }})"
+            echo
+            echo '```'
+            echo "server_version:  $(probe 'SHOW server_version')"
+            echo "max_connections: $(probe 'SHOW max_connections')"
+            echo 'extensions:'
+            probe "SELECT '  ' || e.extname || ' -> ' || n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace ORDER BY 1"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The number that decides whether parallel CI runs could ever have worked
+      # against the shared database, measured instead of reasoned about.
+      #
+      # postgres.js defaults to max: 10 with idle_timeout: null, and tests-db
+      # reaches lib/db.ts through the plain-Node branch, which passes no options
+      # -- so one test process can hold ten connections open for its entire life
+      # against a session pooler that caps at 15. That is what the ceiling looks
+      # like on paper. This records what it looks like in practice.
+      #
+      # The sampler excludes its own backend via pg_backend_pid() and never has
+      # more than one connection open, so it cannot inflate its own reading.
+      - name: Start connection sampler
+        run: |
+          cat > /tmp/sample-connections.sh <<'EOF'
+          #!/usr/bin/env bash
+          peak=0
+          while true; do
+            n=$(psql "$POSTGRES_URL" -At -c \
+              "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()" \
+              2>/dev/null || echo 0)
+            case "$n" in
+              '' | *[!0-9]*) n=0 ;;
+            esac
+            if [ "$n" -gt "$peak" ]; then
+              peak=$n
+              echo "$peak" > /tmp/peak-connections
+            fi
+            sleep 0.2
+          done
+          EOF
+          chmod +x /tmp/sample-connections.sh
+          echo 0 > /tmp/peak-connections
+          /tmp/sample-connections.sh > /tmp/sampler.log 2>&1 &
+          echo $! > /tmp/sampler.pid
+
+      - name: Run database tests
+        run: yarn test:db
+
+      # always(), so a failing suite still reports what it cost. A connection
+      # exhaustion failure is the case where this number matters most, and it is
+      # also the case where the step before this one is red.
+      - name: Report peak connections
+        if: always()
+        run: |
+          if [ -f /tmp/sampler.pid ]; then
+            kill "$(cat /tmp/sampler.pid)" 2>/dev/null || true
+          fi
+          peak=$(cat /tmp/peak-connections 2>/dev/null || echo 0)
+          limit=$(psql "$POSTGRES_URL" -At -c 'SHOW max_connections' 2>/dev/null || echo 'unknown')
+          {
+            echo "### tests-db connection usage (postgres ${{ matrix.postgres }})"
+            echo
+            echo '| measure | value |'
+            echo '| --- | --- |'
+            echo "| peak concurrent backends | $peak |"
+            echo "| container max_connections | $limit |"
+            echo '| shared Supabase session pooler cap | 15 |'
+            if [ "$peak" -gt 0 ] 2>/dev/null; then
+              echo "| runs that would fit in a 15-connection pooler | $((15 / peak)) |"
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
