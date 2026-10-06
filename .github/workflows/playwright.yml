@@ -14,19 +14,37 @@ on:
       - '*.md'
       - '.gitignore'
 
-# There is deliberately no `concurrency:` block here any more. The job below
-# owns a Postgres service container created with the runner and destroyed with
-# it, so two runs cannot see each other: there is no shared resource left to
-# serialise on.
+# This is a NEW group with different semantics -- not the old one surviving.
+# The repo-wide shared-database group was removed in the same commit as
+# DROP SCHEMA public CASCADE, which is the constraint that actually matters.
+# That group guarded one shared Supabase project and never queued: GitHub
+# holds one running plus one *pending* run, and a third evicts the pending
+# one, which then reports `cancelled` with an empty jobs list and publishes no
+# check-run at all. Across the 300 most recent runs, 42 were cancelled, 41 of
+# those ran zero jobs, and 15 of those were on main -- 13.7% of runs testing
+# nothing, and main landing unverified 15 times.
 #
-# What was removed along with it was a repo-wide group guarding one shared
-# Supabase project that this job reset with DROP SCHEMA public CASCADE. That
-# group never queued -- GitHub holds one running plus one *pending* run and a
-# third evicts the pending one, which then reports `cancelled` with an empty
-# jobs list and publishes no check-run at all. Across the 300 most recent runs,
-# 42 were cancelled, 41 of those ran zero jobs, and 15 of those were on main:
-# 13.7% of runs testing nothing. Removing the shared database is what makes
-# removing the group safe, which is why both went in a single commit.
+# This group does something different: it caps runner consumption per ref.
+# Each run now owns a throwaway container that dies with the runner, so there
+# is no shared state to corrupt and cancellation is free. That is precisely
+# why the old group could never set cancel-in-progress -- killing a run
+# mid-DROP SCHEMA or mid-migration left the shared database indeterminate for
+# whatever ran next. Removing the shared database is what makes cancelling
+# safe, so this only became available once the container landed.
+#
+# Without it, three pushes to a PR branch mean three concurrent 13-minute runs
+# on a repo where runner scarcity is measured and recurring (jobs sit queued
+# and are cancelled at exactly 902 seconds having executed nothing). main is
+# excluded deliberately: never cancel main, always cancel a superseded
+# PR-branch run. That exclusion is the direct lesson of the 15 main runs that
+# tested nothing.
+#
+# Self-cancellation stays distinguishable from the eviction this replaced. A
+# superseded run *has jobs* and a newer commit on the same ref; an evicted run
+# has *zero jobs*. The diagnostic signature the team relies on survives.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   test:
