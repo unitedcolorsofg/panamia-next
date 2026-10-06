@@ -97,12 +97,19 @@ export class SignalingRoom {
     this.purgeStale();
     this.restoreParticipants();
 
-    // Answer keepalives in the runtime instead of here. No client sends these
-    // today, but a heartbeat is the natural thing to add for mobile, where the
-    // WebView is suspended on backgrounding and connections die quietly. Wired
-    // as an ordinary message it would wake this object on every beat and undo
-    // hibernation entirely; auto-responses are handled without incurring
+    // Answer application-level keepalives in the runtime instead of here. No
+    // client sends these today, but a heartbeat is the natural thing to add
+    // for mobile, where the WebView is suspended on backgrounding and
+    // connections die quietly. Browser JS cannot send a protocol ping frame,
+    // so a web or Capacitor keepalive has to be an ordinary message — and as
+    // an ordinary message it would wake this object on every beat and undo
+    // hibernation entirely. Auto-responses are handled without incurring
     // wall-clock time, so adding one later stays free.
+    //
+    // A genuinely native client would not need this: protocol-level ping
+    // frames (OkHttp's pingInterval, URLSessionWebSocketTask.sendPing) are
+    // answered by the runtime, never reach webSocketMessage, and do not
+    // interrupt hibernation.
     this.state.setWebSocketAutoResponse(
       new WebSocketRequestResponsePair('ping', 'pong')
     );
@@ -201,8 +208,24 @@ export class SignalingRoom {
     }
   }
 
-  async webSocketClose(ws: WebSocket) {
+  async webSocketClose(ws: WebSocket, code: number, reason: string) {
     this.handleDisconnect(ws);
+
+    // compatibility_date is 2026-02-24, which predates
+    // web_socket_auto_reply_to_close (2026-04-07), and the flag is not set in
+    // compatibility_flags either. So the runtime does not echo the Close frame
+    // for us and the server half stays open until we close it here. That is
+    // not just untidy: a lingering socket can keep appearing in
+    // getWebSockets(), which is now the only thing that knows who is present,
+    // so socketFor() could hand back a dead socket and the stillConnected
+    // check in handleDisconnect could swallow a real peer-left.
+    try {
+      // 1005 (no status received) and 1006 (abnormal closure) are receive-only
+      // codes; echoing either is rejected, so report a normal closure instead.
+      ws.close(code === 1005 || code === 1006 ? 1000 : code, reason);
+    } catch {
+      /* already closed */
+    }
   }
 
   async webSocketError(ws: WebSocket) {
