@@ -83,7 +83,7 @@ which is also where the raw file already is.
 ### 3. Stories are ephemeral, so media storage reaches a steady state
 
 A story is a row in `social_statuses` with `expires_at` set 24 hours out
-(`drizzle/0043_social_stories.sql`). The nightly job in
+(`drizzle/0043_social_stories.sql`). The hourly job in
 `lib/jobs/purge-expired.ts` deletes expired stories _and_ the R2 objects behind
 them.
 
@@ -91,8 +91,9 @@ That means story storage does not accumulate — in the steady state we are
 holding roughly one day of stories, not one year. At 200,000 members that is
 about 11 GB instead of about 4 TB.
 
-**This saving depends entirely on the purge keeping up. Right now it cannot.
-See [Risks](#what-would-change-this-answer).**
+**This saving depends on the purge keeping up. It now does, with roughly 6.7×
+headroom at 200,000 members — see
+[Risks](#what-would-change-this-answer).**
 
 ### 4. Nothing idles
 
@@ -154,38 +155,48 @@ edge.
 
 ## What would change this answer
 
-### The story purge saturates at about 11,000 members — this needs fixing
+### The story purge used to saturate at about 11,000 members — now fixed
 
-`lib/jobs/purge-expired.ts` sets `DEFAULT_STORY_BATCH = 200`, and
-`wrangler.jsonc` runs it on `"10 4 * * *"` — once a day. So the system can
-delete **200 expired stories per day, total.**
+`lib/jobs/purge-expired.ts` used to set `DEFAULT_STORY_BATCH = 200` and run on
+`"10 4 * * *"` — once a day. That capped the whole system at **200 expired
+story deletions per day**, while story creation scales with the community. If
+roughly one in ten daily actives posts a story a day, it kept up only to about
+2,000 daily actives — somewhere around 11,000 members. Past that, expired
+stories and their media accumulated permanently:
 
-The batch limit is deliberate and the reasoning in the file is sound: each
-story costs an R2 round trip, the job runs inside a Worker with a wall-clock
-budget, and a bounded run that drains a backlog over several nights beats an
-unbounded one that times out and drains nothing.
+| Members | Stories/day | Old capacity | Accumulating |
+| ------- | ----------- | ------------ | ------------ |
+| 10,000  | 180         | 200          | —            |
+| 50,000  | 900         | 200          | 700/day      |
+| 200,000 | 3,600       | 200          | 3,400/day    |
 
-But the ceiling is fixed while story creation scales with the community. If
-roughly one in ten daily actives posts a story a day, the purge keeps up only
-to about **2,000 daily actives — somewhere around 11,000 members.** Past that
-point expired stories and their R2 objects accumulate permanently:
+At 200,000 members that was about 1.24 million undeleted stories a year —
+roughly 3.7 TB of R2 we would pay to store and never serve, about $56/month
+and climbing indefinitely, plus roughly 130 million orphaned view rows a year,
+because `social_story_views` only cascades away when its story is deleted.
 
-| Members | Stories/day | Purged/day | Accumulating |
-| ------- | ----------- | ---------- | ------------ |
-| 10,000  | 180         | 180        | —            |
-| 50,000  | 900         | 200        | 700/day      |
-| 200,000 | 3,600       | 200        | 3,400/day    |
+Three changes removed the ceiling:
 
-At 200,000 members that is about 1.24 million undeleted stories a year. The
-media alone is roughly 3.7 TB of R2 we are paying to store and are not using —
-about $56/month and climbing indefinitely — plus the Postgres rows and,
-because `social_story_views` only cascades away when its story is deleted,
-roughly 130 million view rows a year that should not exist.
+- **Batched deletion.** R2's binding accepts up to 1000 keys per `delete()`
+  call. The job was deleting one object at a time and awaiting each one, which
+  is what made 200 expensive. A full batch is now one or two calls.
+- **Hourly instead of nightly.** Stories expire continuously, so there was
+  never a reason to sweep once a day. Hourly rather than more often because
+  the Cron Trigger CPU budget drops from 15 minutes to 30 seconds once the
+  interval falls below an hour.
+- **A larger batch**, now that a batch is no longer priced per object.
 
-**None of the figures in this document hold past ~11,000 members until this is
-addressed.** The fix is not complicated — raise the batch, run the cron more
-than once a day, or both — but it should happen before the community grows
-into it.
+Capacity is now about **24,000 stories a day** against roughly 3,600 needed at
+200,000 members — about 6.7× headroom, putting the ceiling north of a million
+members.
+
+The same change fixed a quieter bug. The old query applied its limit to a join
+against attachments, which yields one row per attachment rather than one per
+story. A story with several photos could straddle that limit, be read with
+only part of its media visible, and then be deleted as though fully cleared —
+orphaning whatever fell past the cut, which is the exact failure the job
+exists to prevent. Stories and their media are now read in two queries, so the
+limit bounds stories.
 
 ### Engagement is the assumption most likely to be wrong
 
@@ -290,6 +301,7 @@ specific engineering choices: storing media somewhere that does not charge to
 serve it, transcoding video on the member's phone instead of on a server, and
 running code that bills per request rather than per hour.
 
-The main cost risk is not traffic. It is the story cleanup job, which currently
-has a fixed ceiling that the community would outgrow at around 11,000 members.
-That is a known, fixable problem and should be dealt with before it matters.
+The main cost risk is not traffic. It is the database, which is 60–70% of the
+bill past 50,000 members, and the engagement assumptions these numbers rest
+on. The story cleanup job was the one structural ceiling in the system; that
+has been fixed.

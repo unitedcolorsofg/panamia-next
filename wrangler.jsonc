@@ -8,15 +8,24 @@
     "directory": "dist/client",
     "binding": "ASSETS",
   },
-  // Nightly maintenance at 04:10 UTC. Expiry in this app is a read filter,
+  // Hourly maintenance at ten past. Expiry in this app is a read filter,
   // so expired stories and notifications stay in Postgres (and their photos
   // stay in R2) until something deletes them -- see lib/jobs/purge-expired.ts
   // and the scheduled() handler in worker/index.ts.
   //
-  // Off-peak and deliberately not on the hour: shared cron minutes are the
-  // busiest, and this job competes with nothing if it runs slightly late.
+  // Deliberately not on the hour: shared cron minutes are the busiest, and
+  // this job competes with nothing if it runs slightly late.
+  //
+  // Hourly rather than more often because the Cron Trigger CPU budget is tied
+  // to the interval -- 15 minutes at an hour or longer, 30 seconds below it.
+  // Nothing here is CPU-heavy, but that is a cliff for no gain: stories expire
+  // continuously, so an hourly sweep already outpaces a community far larger
+  // than this one.
+  //
+  // This was nightly, which capped the sweep at a single batch of stories per
+  // day and let a backlog accumulate that could never drain.
   "triggers": {
-    "crons": ["10 4 * * *"],
+    "crons": ["10 * * * *"],
   },
 
   // Workers Cache: regional tiered cache in front of the Worker.

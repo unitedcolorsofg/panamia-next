@@ -1,5 +1,5 @@
 /**
- * Nightly sweep for data that has passed its expiry.
+ * Hourly sweep for data that has passed its expiry.
  *
  * Expiry in this codebase is a *read filter*, not a delete. `notExpired()` in
  * lib/federation/wrappers/timeline.ts hides rows whose `expiresAt` has passed,
@@ -19,19 +19,38 @@
  */
 
 import { db } from '@/lib/db';
-import { socialStatuses, socialAttachments, STATUS_TYPE_STORY } from '@/lib/schema';
+import {
+  socialStatuses,
+  socialAttachments,
+  STATUS_TYPE_STORY,
+} from '@/lib/schema';
 import { and, asc, eq, inArray, lt } from 'drizzle-orm';
-import { deleteFile } from '@/lib/blob/api';
+import { deleteFiles } from '@/lib/blob/api';
 import { cleanupExpiredNotifications } from '@/lib/notifications';
 
 /**
  * Most expired stories to handle in one run.
  *
- * Bounded because this runs in a Worker with a wall-clock budget and each
- * story costs an R2 round trip. A backlog drains over successive nights
- * rather than timing out the run and draining none of it.
+ * Bounded because this runs in a Worker, not because R2 is the constraint any
+ * more: a batch of this size is two delete calls (the binding carries 1000
+ * keys each) plus three Postgres statements, whichever way the media falls.
+ *
+ * Sized against the cron, which runs hourly -- 24,000 stories a day, roughly
+ * ten times what a 200,000-member community is modelled to produce. Headroom
+ * is the point: a backlog has to drain faster than it fills or it never
+ * drains at all, and story-view rows only cascade away once the story does.
  */
-const DEFAULT_STORY_BATCH = 200;
+const DEFAULT_STORY_BATCH = 1000;
+
+/**
+ * Consecutive per-story failures before the retry pass gives up for this run.
+ *
+ * The retry pass exists to find the one bad object in a failed batch. If R2
+ * is down instead, every story fails and retrying each one in turn is a few
+ * thousand pointless round trips and an error list to match. Ten in a row is
+ * not one stuck object, so the rest are deferred to the next run untried.
+ */
+const DEFER_AFTER_CONSECUTIVE_FAILURES = 10;
 
 export interface PurgeReport {
   storiesDeleted: number;
@@ -49,27 +68,30 @@ export interface PurgeReport {
  * status goes, which means the media URL is gone too. Read the URLs and clear
  * R2 first, or the object is orphaned with nothing left pointing at it.
  *
+ * Read in two queries rather than one join. The limit has to bound *stories*,
+ * and a join yields one row per attachment: a story straddling the boundary
+ * would be read with only part of its media visible, counted as fully
+ * cleared, and deleted -- orphaning whatever fell past the cut, which is the
+ * exact failure this job exists to prevent.
+ *
  * A story whose media cannot be deleted is left alone rather than having its
  * row removed anyway. Deleting the row would orphan the object permanently --
  * precisely the bug this exists to fix -- whereas leaving it costs one
- * invisible row and one retry per night, and fixes itself if R2 recovers.
+ * invisible row and one retry per run, and fixes itself if R2 recovers.
  */
 export async function purgeExpiredStories(
   limit: number = DEFAULT_STORY_BATCH
-): Promise<Pick<PurgeReport, 'storiesDeleted' | 'mediaDeleted' | 'storiesDeferred' | 'errors'>> {
+): Promise<
+  Pick<
+    PurgeReport,
+    'storiesDeleted' | 'mediaDeleted' | 'storiesDeferred' | 'errors'
+  >
+> {
   const errors: string[] = [];
 
   const expired = await db
-    .select({
-      id: socialStatuses.id,
-      url: socialAttachments.url,
-      previewUrl: socialAttachments.previewUrl,
-    })
+    .select({ id: socialStatuses.id })
     .from(socialStatuses)
-    .leftJoin(
-      socialAttachments,
-      eq(socialAttachments.statusId, socialStatuses.id)
-    )
     .where(
       and(
         eq(socialStatuses.type, STATUS_TYPE_STORY),
@@ -88,41 +110,69 @@ export async function purgeExpiredStories(
     };
   }
 
-  // The join yields one row per attachment, so a story with several collapses
-  // into one entry holding all of its URLs.
-  const byStatus = new Map<string, string[]>();
-  for (const row of expired) {
-    const urls = byStatus.get(row.id) ?? [];
+  const storyIds = expired.map((row) => row.id);
+
+  // Seeded with every id, so a story that never had an attachment is still a
+  // candidate: there is nothing of it in R2, so there is nothing to defer.
+  const byStatus = new Map<string, string[]>(storyIds.map((id) => [id, []]));
+
+  const attachments = await db
+    .select({
+      statusId: socialAttachments.statusId,
+      url: socialAttachments.url,
+      previewUrl: socialAttachments.previewUrl,
+    })
+    .from(socialAttachments)
+    .where(inArray(socialAttachments.statusId, storyIds));
+
+  for (const row of attachments) {
+    const urls = byStatus.get(row.statusId);
+    if (!urls) continue;
     // `remoteUrl` is deliberately absent: it points at another server's copy,
-    // which is not ours to delete. deleteFile() would skip it anyway.
+    // which is not ours to delete. deleteFiles() would skip it anyway.
     if (row.url) urls.push(row.url);
     if (row.previewUrl) urls.push(row.previewUrl);
-    byStatus.set(row.id, urls);
   }
 
   const deletable: string[] = [];
   let mediaDeleted = 0;
   let storiesDeferred = 0;
 
-  for (const [statusId, urls] of byStatus) {
-    let allCleared = true;
+  // One call for the whole batch first. This is the normal outcome, and it is
+  // the difference between two round trips per run and two per story.
+  const bulk = await deleteFiles(Array.from(byStatus.values()).flat());
 
-    for (const url of urls) {
-      // Returns true for a URL outside our bucket, which is the right answer:
-      // there is nothing to reclaim and nothing to retry.
-      const ok = await deleteFile(url);
-      if (ok) {
-        mediaDeleted += 1;
-      } else {
-        allCleared = false;
-        errors.push(`R2 delete failed for story ${statusId}: ${url}`);
+  if (bulk.ok) {
+    deletable.push(...byStatus.keys());
+    mediaDeleted = bulk.deleted;
+  } else {
+    // A batch delete reports no per-key outcome, so the only way to learn
+    // which story is stuck is to ask again one story at a time. Re-deleting
+    // keys the failed batch already removed is harmless -- deleting a key
+    // that is not there succeeds -- so this costs accuracy, not correctness.
+    let consecutiveFailures = 0;
+
+    for (const [statusId, urls] of byStatus) {
+      if (consecutiveFailures >= DEFER_AFTER_CONSECUTIVE_FAILURES) {
+        storiesDeferred += 1;
+        continue;
       }
-    }
 
-    if (allCleared) {
-      deletable.push(statusId);
-    } else {
-      storiesDeferred += 1;
+      const result = await deleteFiles(urls);
+      if (result.ok) {
+        deletable.push(statusId);
+        mediaDeleted += result.deleted;
+        consecutiveFailures = 0;
+      } else {
+        storiesDeferred += 1;
+        consecutiveFailures += 1;
+        errors.push(`R2 delete failed for story ${statusId}`);
+        if (consecutiveFailures === DEFER_AFTER_CONSECUTIVE_FAILURES) {
+          errors.push(
+            `R2 looks unavailable after ${DEFER_AFTER_CONSECUTIVE_FAILURES} consecutive failures; deferring the rest of this run`
+          );
+        }
+      }
     }
   }
 

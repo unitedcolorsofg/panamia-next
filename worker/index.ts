@@ -179,7 +179,7 @@ export default {
   },
 
   /**
-   * Nightly maintenance. Expiry across this app is a read filter, so rows
+   * Hourly maintenance. Expiry across this app is a read filter, so rows
    * whose `expiresAt` has passed are invisible but still stored -- along with
    * their R2 media, which nothing else ever reclaims. See lib/jobs/purge-expired.ts.
    *

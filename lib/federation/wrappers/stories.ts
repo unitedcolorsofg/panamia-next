@@ -643,7 +643,7 @@ export async function getStoryViewers(
  *
  * The view rows go with it through the FK cascade. The R2 object does not:
  * this deletes the row while the media stays in the bucket. That is not a
- * leak any more but it is a delay -- the nightly purge in lib/jobs/
+ * leak any more but it is a delay -- the hourly purge in lib/jobs/
  * purge-expired.ts only sweeps rows it can still see, so media orphaned by an
  * early delete is invisible to it.
  *
