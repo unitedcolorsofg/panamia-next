@@ -33,6 +33,40 @@
   "cache": {
     "enabled": true,
   },
+  // Placement: run the Worker next to Postgres rather than next to the member.
+  //
+  // The database is in us-west-2 (Oregon) and the audience is South Florida,
+  // which is close to the worst pairing available inside the US — roughly a
+  // 75ms round trip. By default a Worker runs in the data centre nearest the
+  // request, so every query on a server-rendered page crosses the continent
+  // and back. `prepare: false` in lib/db.ts costs an extra round trip per
+  // query on top of that (its own comment says so), making it two crossings
+  // per query, and a page issuing four sequential queries spends ~600ms doing
+  // nothing but waiting on the network.
+  //
+  // Placing the Worker in Oregon pays that distance once, on the way in,
+  // instead of once per query: the same page lands around 85ms.
+  //
+  // Explicit region rather than "mode": "smart" — they are mutually exclusive,
+  // and smart only considers locations where the Worker has already run. A
+  // single-metro audience means it only ever runs in Miami, so it has no
+  // faster candidate to discover and would sit at INSUFFICIENT_INVOCATIONS.
+  // We know where the database is; say so.
+  //
+  // Static assets are unaffected. They are served from the location nearest
+  // the request before the Worker is invoked, because run_worker_first is not
+  // set — so chunks still come from Miami. The ASSETS binding in
+  // worker/index.ts is only reached on the image-optimization path, which is
+  // Worker work regardless.
+  //
+  // Revisit if the database moves. Supabase cannot change a project's region
+  // in place, so that means a new project and a data migration — but putting
+  // it in us-east-1 would leave the Worker ~25ms from Miami instead of ~75ms,
+  // and this value would become "aws:us-east-1".
+  "placement": {
+    "mode": "targeted",
+    "region": "aws:us-west-2",
+  },
   // Hyperdrive binding for Supabase PostgreSQL access from Workers
   // https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
   "hyperdrive": [
