@@ -97,3 +97,9 @@ external/panamia-next-crm-bridge/.wrangler/
 mobile/android/keystore.properties
 mobile/ios/App/*.mobileprovision
 mobile/ios/App/*.p12
+
+# Local artifacts of scripts/migrate-supabase-region.ts. The manifest is a
+# point-in-time census of one database (table names, row counts) and the dump
+# is the data itself -- neither belongs in git, and the dump least of all.
+.migration-manifest.json
+*.dump
