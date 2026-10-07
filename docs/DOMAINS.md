@@ -12,14 +12,14 @@ Measured 2026-10-07 unless noted. Verify before acting on it; deployments move.
 | ------------------------ | --------------------------------- | -------------------------------------------------------------------- |
 | `pana.social`            | **200** (Cloudflare)              | **This app.** The live production deployment.                        |
 | `social.pana.social`     | **200**                           | Pana Social. Bound as a Worker Custom Domain 2026-09-24.             |
-| `connectors.pana.social` | **No DNS record**                 | Pana Connectors. Registered in code; needs a Custom Domain.          |
-| `admin.pana.social`      | **No DNS record**                 | The admin console. Registered in code; needs a Custom Domain.        |
+| `connectors.pana.social` | **200**                           | Pana Connectors. Bound as a Worker Custom Domain 2026-10-07.         |
+| `admin.pana.social`      | **200** at `/admin`               | The admin console. Bound as a Worker Custom Domain 2026-10-07.       |
 | `relay.pana.social`      | Resolves                          | The **separate** `panamia-nosflare` Worker, not this one.            |
 | `www.panamia.club`       | **200**                           | A **different, older site** — "All Things Local In SoFlo"            |
 | `panamia.club` (apex)    | **Fails** — timed out             | Nothing reachable. TLS cert expired when measured 2026-09-22; a bare timeout now. Both are consistent with the split A record — see [Known issues](#known-issues). |
 | `social.panamia.club`    | **Fails** — timeout (2026-09-22)  | Parked domain. Not part of the plan; see below.                      |
 
-The two surfaces with no record are a missing binding, not a fault: both answer on the apex today, at `pana.social/connectors` and `pana.social/admin`.
+All four app surfaces are bound. Both still answer on the apex as well, at `pana.social/connectors` and `pana.social/admin` — binding a subdomain adds a front door, it does not move a route.
 
 `www.panamia.club` is not this codebase. It is a Next.js **Pages Router** app; this one is App Router. The titles are similar enough to mislead, so tell them apart by markup:
 
@@ -124,18 +124,33 @@ The repo side is done: `PANAVERSE_ROOT_DOMAIN` is `pana.social` in `wrangler.jso
 
 ## Launching `connectors.pana.social` and `admin.pana.social`
 
-Both surfaces are registered in `lib/panaverse/surfaces.ts` and both already serve on the apex — `pana.social/connectors` and `pana.social/admin` each returned 200 on 2026-10-07. What is missing is only the hostname binding, so this is a nicety rather than a repair.
+Both surfaces are registered in `lib/panaverse/surfaces.ts` and both already served on the apex before they had hostnames — `pana.social/connectors` and `pana.social/admin` each returned 200 on 2026-10-07. The binding was the only missing piece, so this was a nicety rather than a repair.
 
-**Nothing links to the unbound hosts, so there is no ordering hazard to respect.** This is the one way these two differ from social's launch, where the ordering of steps 1 and 2 was the whole point: `PANAVERSE_SUBDOMAINS` is already `"1"` and both surfaces are already in the registry, yet the account-menu tile for the console is `{ id: 'admin', href: '/admin' }` in `lib/panaverse/sites.ts` — a relative path, which stays on the host in hand. The subdomains begin serving the moment they resolve, and `/connectors` and `/admin` keep working on every hostname either way.
+**Done 2026-10-07.** Both are bound as Worker Custom Domains and verified serving:
+
+```
+connectors.pana.social/            200  "Pana Connectors"
+connectors.pana.social/connectors  200  "Pana Connectors | Pana MIA Club"
+admin.pana.social/                 307 -> /admin
+admin.pana.social/admin            200  "Admin | Pana MIA Club"
+```
+
+**The two front doors are not symmetric, and that is by design rather than an oversight.** `app/page.tsx` switches on the resolved surface id, and `connectors` renders `<ConnectorsFrontDoor />` inline the way `social` renders the feed — so `connectors.pana.social/` serves the surface under that URL. `admin` is the one case that redirects, and the reason is layout, not routing: the console's sidebar lives in `app/admin/layout.tsx`, which a page sitting at the route-tree root never receives. Rendering it inline would serve the console without its chrome. So `admin.pana.social/` wears a path prefix in the address bar and `admin.pana.social/admin` is the real console. Retiring that redirect means lifting the sidebar out of the admin layout, not adding a branch.
+
+That switch is exhaustive over `surface.id` on purpose: a newly registered surface fails to compile until this file says what its front door is, instead of silently inheriting another surface's homepage. It consults the hostname only, never `PANAVERSE_SUBDOMAINS`, so `connectors.localhost` exercises the same branch without DNS.
+
+Certificates are still issued per hostname on binding — the cert now presented on both subdomains is `CN=pana.social` carrying them as SANs, valid to 2026-11-17. There is still **no `*.pana.social` wildcard**, which is why an unbound subdomain fails at connection rather than with a TLS warning: there is no certificate for it at all, the same symptom social showed before 2026-09-24.
+
+**Nothing linked to these hosts while they were unbound, so there was no ordering hazard to respect.** This is the one way they differed from social's launch, where the ordering of steps 1 and 2 was the whole point: `PANAVERSE_SUBDOMAINS` was already `"1"` and both surfaces were already in the registry, yet the account-menu tile for the console is `{ id: 'admin', href: '/admin' }` in `lib/panaverse/sites.ts` — a relative path, which stays on the host in hand. The subdomains began serving the moment they resolved, and `/connectors` and `/admin` keep working on every hostname either way.
 
 **Binding is dashboard work, and wrangler's OAuth token cannot do it.** Measured 2026-10-07: that token manages script secrets — `wrangler secret put` succeeds — but returns **403** on both `GET /accounts/{account}/workers/domains` and `GET /zones/{zone}/dns_records`. The account is not the problem: zone `pana.social` (`0e91bbfa…`, active) and the Worker are both in `Gschriss@gmail.com's Account`. Binding needs the dashboard, or an API token carrying Workers and DNS edit.
 
 Workers & Pages → `panamia-next` → Settings → Domains & Routes → Add → Custom Domain:
 
-- `connectors.pana.social`
-- `admin.pana.social`
+- ~~`connectors.pana.social`~~ **Done 2026-10-07.**
+- ~~`admin.pana.social`~~ **Done 2026-10-07.**
 
-Cloudflare creates the DNS record and issues the certificate on binding. There is still **no `*.pana.social` wildcard** — certs here remain per-hostname, which is why an unbound subdomain fails at connection rather than with a TLS warning: there is no certificate for it at all, the same symptom social showed before 2026-09-24.
+Cloudflare creates the DNS record and issues the certificate on binding. Expect a short window where DNS answers but HTTP does not — and beware the local negative DNS cache: probing a host while it is still unbound caches the `NXDOMAIN`, and the OS resolver will keep failing after the record exists. `Clear-DnsClientCache` before concluding a binding did not take. A `try/catch` around `Resolve-DnsName` is not a check either; it returns non-A records without throwing, so inspect the returned record rather than the absence of an exception.
 
 `GET /zones/{zone}/workers/routes` returned no pattern routes on 2026-10-07, confirming every hostname here is bound as a Custom Domain rather than by route pattern. That is why this Worker still has no `routes` block in `wrangler.jsonc`, and why adding one is a change of convention rather than a tidy-up.
 
