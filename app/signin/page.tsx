@@ -23,6 +23,31 @@ async function currentSurface() {
   return { host, surface: resolveSurface(host) };
 }
 
+/**
+ * Which OAuth buttons to offer, read from the runtime env.
+ *
+ * This has to happen on the server. The flags are plain runtime variables, but
+ * `signin-view.tsx` is a client component, so a `process.env` read there is
+ * resolved by the bundler at build time — and with no build variable present
+ * it compiles down to a constant `false`, leaving the button permanently
+ * hidden however the Worker is configured. Resolving here and passing the
+ * result down means one source of truth and no hydration mismatch.
+ *
+ * Read per request rather than at module scope: on Workers the env is bound
+ * per invocation, so a module-level read can run before it exists.
+ */
+function resolveEnabledOAuthProviders(): string[] {
+  const flags: Record<string, string | undefined> = {
+    google: process.env.NEXT_PUBLIC_GOOGLE_ENABLED,
+    apple: process.env.NEXT_PUBLIC_APPLE_ENABLED,
+    wikimedia: process.env.NEXT_PUBLIC_WIKIMEDIA_ENABLED,
+    mastodon: process.env.NEXT_PUBLIC_MASTODON_ENABLED,
+  };
+  return Object.entries(flags)
+    .filter(([, value]) => value === 'true')
+    .map(([id]) => id);
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const { surface } = await currentSurface();
   return {
@@ -48,6 +73,7 @@ export default async function SignInPage() {
          so signing in at social.localhost links back to localhost instead of
          sending a developer out to the live site. */
       mainSiteUrl={isMainSite ? null : originForFrom(DEFAULT_SURFACE, host)}
+      enabledOAuthProviders={resolveEnabledOAuthProviders()}
     />
   );
 }
