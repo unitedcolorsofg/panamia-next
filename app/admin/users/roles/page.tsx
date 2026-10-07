@@ -256,14 +256,21 @@ export default function AdminRolesPage() {
                         <p className="text-pana-ink/60 mt-1 text-sm break-all">
                           {person.email}
                         </p>
+                        {/*
+                          One note, not two. Every account-less holder is an
+                          ADMIN_EMAILS entry and so is also a super-admin, so
+                          these conditions both match and would stack. The
+                          no-account note already says where the access comes
+                          from, and the revoke note would be advice about
+                          removing something there is no account to remove.
+                        */}
                         {!person.hasAccount ? (
                           <p className="text-pana-ink/70 mt-2 max-w-xl text-xs leading-relaxed">
                             Listed in <code>ADMIN_EMAILS</code> but has never
                             signed in, so there is no account yet. They become
                             an admin the moment they do.
                           </p>
-                        ) : null}
-                        {role.id === 'admin' && person.isSuperAdmin ? (
+                        ) : role.id === 'admin' && person.isSuperAdmin ? (
                           <p className="text-pana-ink/70 mt-2 max-w-xl text-xs leading-relaxed">
                             Admin through <code>ADMIN_EMAILS</code>. Removing
                             this means editing that secret — clearing it here
