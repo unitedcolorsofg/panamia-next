@@ -3478,30 +3478,43 @@ button.bizprofile-update-action:hover {
    now and needs the same tokens outside that frame, and duplicating the pairs
    would be the first step towards the mock and the real chrome disagreeing
    about what colour Pana Social is. Custom properties only take effect where
-   something reads them, so widening the selector changes nothing else. */
+   something reads them, so widening the selector changes nothing else.
+
+   Three values, not two. `--surface-tone` is the fill — the colour the
+   surface *is* — and `--surface-tone-soft` its tint. `--surface-tone-ink` is
+   the only one of the three that may be set as type on a light surface:
+   four of the five fills fail AA as text on the cream the masthead paints
+   (burnt 3.44, red 3.86, flame 2.42, blue 2.21 — all need 4.5), so chrome
+   that tinted its links with `--surface-tone` was illegible on every surface
+   except indigo. Indigo passes at 9.01 and maps to itself. */
 [data-tone='indigo'] {
   --surface-tone: var(--color-pana-indigo);
   --surface-tone-soft: rgb(48 62 140 / 0.1);
+  --surface-tone-ink: var(--color-pana-indigo);
 }
 
 [data-tone='burnt'] {
   --surface-tone: var(--color-pana-burnt);
   --surface-tone-soft: rgb(217 98 54 / 0.12);
+  --surface-tone-ink: var(--color-pana-burnt-deep);
 }
 
 [data-tone='flame'] {
   --surface-tone: var(--color-pana-flame);
   --surface-tone-soft: rgb(242 132 68 / 0.14);
+  --surface-tone-ink: var(--color-pana-flame-deep);
 }
 
 [data-tone='blue'] {
   --surface-tone: var(--color-pana-blue);
   --surface-tone-soft: rgb(74 179 234 / 0.16);
+  --surface-tone-ink: var(--color-pana-blue-deep);
 }
 
 [data-tone='red'] {
   --surface-tone: var(--color-pana-red);
   --surface-tone-soft: rgb(217 78 65 / 0.12);
+  --surface-tone-ink: var(--color-pana-red-deep);
 }
 
 /* A browser window drawn around the mock. The address bar is part of the
@@ -3791,8 +3804,10 @@ body {
   color: var(--color-pana-ink);
 }
 
+/* The ink variant, not the fill: this sits on the masthead's cream and four
+   of the five tones fail AA as type there. See the tone registry above. */
 .panaverse-nav a:hover {
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
 }
 
 /* The bar a surface wears over a page borrowed from another surface — see
@@ -3818,7 +3833,7 @@ body {
   min-width: 0;
   font-size: 0.78125rem;
   font-weight: 700;
-  color: rgb(17 13 13 / 0.55);
+  color: rgb(17 13 13 / 0.62);
 }
 
 .panaverse-guest-link {
@@ -3830,7 +3845,7 @@ body {
   font-size: 0.78125rem;
   font-weight: 800;
   white-space: nowrap;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
   transition: opacity 0.2s ease;
 }
 
@@ -3860,7 +3875,7 @@ body {
   gap: 0.5rem;
   text-align: center;
   font-size: 0.78125rem;
-  color: rgb(17 13 13 / 0.55);
+  color: rgb(17 13 13 / 0.62);
 }
 
 .panaverse-guest-footer-nav {
@@ -3873,7 +3888,7 @@ body {
 
 .panaverse-guest-footer-nav a {
   font-weight: 700;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
   transition: opacity 0.2s ease;
 }
 
@@ -4129,7 +4144,7 @@ body {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
 }
 
 /* Rooms: one line, no hostname, because they do not have one. The visual gap
