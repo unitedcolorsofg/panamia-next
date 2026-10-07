@@ -1,3 +1,6 @@
+import { notFound, redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import {
   BirthdayList,
@@ -7,6 +10,8 @@ import {
   TallyBars,
 } from '@/components/connectors/dashboard-parts';
 import { Panel, StatBand } from '@/components/Admin/parts';
+import { ApplicationQueue } from '@/components/connectors/application-queue';
+import { listConnectorApplications } from '@/lib/connectors/membership';
 import {
   MockButton,
   MockInput,
@@ -56,6 +61,16 @@ import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
  * holding tools that change what other people see. House colours stay as they
  * are: those identify data, not the tool showing it.
  *
+ * ## The one real thing on it
+ *
+ * The applications panel is live. It lists people who have applied to the
+ * programme and the Accept and Decline buttons write the decision that opens
+ * or closes their HQ. Everything below the mock bar is still fixtures.
+ *
+ * That split is why the mock bar moved down the page instead of staying at the
+ * top: its banner says every number below it is invented, and that sentence
+ * cannot be allowed to sit above a working Accept button.
+ *
  * ## What is deliberately not carried over
  *
  * The sheet has a "Sync with Google Sheets" banner, an "Add to the sheet"
@@ -71,7 +86,31 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminConnectorsPage() {
+export default async function AdminConnectorsPage() {
+  /* Nothing under /admin is guarded — there is no middleware matcher and the
+   * layout has no check. That was survivable while every page here rendered
+   * fixtures: a stranger who found the URL saw invented people. The
+   * applications panel below shows real names and real email addresses, so
+   * this page can no longer be one of the open ones.
+   *
+   * Two different failures get two different answers. Signed out is probably
+   * a staff member whose session expired, so send them to sign in. Signed in
+   * but not an admin is somebody who should not know this exists, so it does
+   * not. */
+  const session = await auth();
+  if (!session?.user?.id) redirect('/signin');
+  if (!session.user.isAdmin) notFound();
+
+  const applications = (await listConnectorApplications()).map((row) => ({
+    profileId: row.profileId,
+    displayName: row.displayName,
+    email: row.email,
+    pod: row.membership.pod,
+    houses: row.membership.houses,
+    bring: row.membership.bring,
+    appliedAt: row.membership.appliedAt,
+  }));
+
   const unassigned = CONNECTORS.filter((c) => c.houseId === null);
   const openAsks = ASKS.filter((a) => !a.completed);
 
@@ -86,49 +125,57 @@ export default function AdminConnectorsPage() {
 
   return (
     <>
+      <header className="pb-6">
+        <AdminEyebrow>Community</AdminEyebrow>
+        <h1 className="mt-2 text-4xl leading-tight font-extrabold sm:text-5xl">
+          Connector Dashboard
+        </h1>
+        <p className="text-pana-ink/70 mt-3 max-w-2xl text-sm leading-relaxed">
+          Every number on this page is counted from the rows below it. If the
+          band and a table ever disagree, the bug is here and not in your
+          reading of it.
+        </p>
+        {/* The way back to the members' side. An admin is usually also a
+         * connector, and the two views answer different questions. */}
+        <p className="mt-4 text-sm">
+          <SurfaceLink
+            href="/connectors/hq"
+            className={`font-extrabold underline underline-offset-4 ${ADMIN_CHROME.ACCENT}`}
+          >
+            Open Connector HQ
+          </SurfaceLink>
+          <span className="text-pana-ink/60">
+            {' '}
+            — the members&rsquo; view of the same programme.
+          </span>
+        </p>
+      </header>
+
+      {/* Real data and real writes, which is the whole reason it is above the
+       * mock bar instead of in the grid below with everything else. */}
+      <div className="pb-6">
+        <Panel title="Applications">
+          <ApplicationQueue applications={applications} />
+        </Panel>
+      </div>
+
       <AdminMockBar />
 
       <>
-        <header className="pb-6">
-          <AdminEyebrow>Community</AdminEyebrow>
-          <h1 className="mt-2 text-4xl font-extrabold leading-tight sm:text-5xl">
-            Connector Dashboard
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-pana-ink/70">
-            Every number on this page is counted from the rows below it. If the
-            band and a table ever disagree, the bug is here and not in your
-            reading of it.
-          </p>
-          {/* The way back to the members' side. An admin is usually also a
-            * connector, and the two views answer different questions. */}
-          <p className="mt-4 text-sm">
-            <SurfaceLink
-              href="/connectors/hq"
-              className={`font-extrabold underline underline-offset-4 ${ADMIN_CHROME.ACCENT}`}
-            >
-              Open Connector HQ
-            </SurfaceLink>
-            <span className="text-pana-ink/60">
-              {' '}
-              — the members&rsquo; view of the same programme.
-            </span>
-          </p>
-        </header>
-
         <div className="flex flex-col gap-6">
           <StatBand stats={band} />
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Panel title="Connectors by pod">
               <TallyBars rows={podTallies()} />
-              <p className="mt-4 text-xs leading-relaxed text-pana-ink/60">
+              <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
                 Pods are geographic. {PODS.map((p) => p.region).join(', ')}.
               </p>
             </Panel>
 
             <Panel title="Connectors by house">
               <TallyBars rows={houseTallies()} />
-              <p className="mt-4 text-xs leading-relaxed text-pana-ink/60">
+              <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
                 {unassigned.length} of {CONNECTORS.length} have not picked a
                 house. That is the number worth moving.
               </p>
@@ -140,7 +187,7 @@ export default function AdminConnectorsPage() {
           </div>
 
           <Panel title="Assign a house" action={<MockTag />}>
-            <p className="mb-4 text-sm leading-relaxed text-pana-ink/70">
+            <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
               Everybody below joined without choosing a house. A house is not an
               assignment to hand down — have the conversation first, then record
               what they picked.
@@ -149,28 +196,30 @@ export default function AdminConnectorsPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
                 <thead>
-                  <tr className={`${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}>
+                  <tr
+                    className={`${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+                  >
                     <th
                       scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide"
+                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
                     >
                       Connector
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide"
+                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
                     >
                       Pod
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide"
+                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
                     >
                       House
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide"
+                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
                     >
                       Tier
                     </th>
@@ -180,10 +229,10 @@ export default function AdminConnectorsPage() {
                   {unassigned.map((connector) => (
                     <tr
                       key={connector.id}
-                      className="border-b-2 border-pana-ink/15 last:border-b-0"
+                      className="border-pana-ink/15 border-b-2 last:border-b-0"
                     >
                       <td className="px-3 py-2 font-bold">{connector.name}</td>
-                      <td className="px-3 py-2 text-pana-ink/70">
+                      <td className="text-pana-ink/70 px-3 py-2">
                         {getPod(connector.podId).name}
                       </td>
                       <td className="px-3 py-2">
@@ -209,7 +258,7 @@ export default function AdminConnectorsPage() {
 
           <section>
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-pana-ink/60">
+              <h2 className="text-pana-ink/60 text-sm font-extrabold tracking-wide uppercase">
                 Coming up
               </h2>
             </div>
@@ -224,8 +273,8 @@ export default function AdminConnectorsPage() {
           <Panel title="Commitments" action={<MockTag />}>
             <CommitmentsTable rows={COMMITMENTS} chrome={ADMIN_CHROME} />
 
-            <div className="mt-6 border-t-2 border-dashed border-pana-ink/25 pt-5">
-              <h3 className="text-sm font-extrabold uppercase tracking-wide">
+            <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
+              <h3 className="text-sm font-extrabold tracking-wide uppercase">
                 Set a task
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -260,8 +309,8 @@ export default function AdminConnectorsPage() {
                   className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm"
                 >
                   <div>
-                    <p className="font-bold leading-snug">{ask.what}</p>
-                    <p className="mt-1 text-pana-ink/60">
+                    <p className="leading-snug font-bold">{ask.what}</p>
+                    <p className="text-pana-ink/60 mt-1">
                       Asked by {ask.askedBy}
                     </p>
                   </div>
@@ -283,9 +332,9 @@ export default function AdminConnectorsPage() {
 /** The "add one" tile, sitting in the grid where the next event would go. */
 function NewEventCard() {
   return (
-    <article className="flex flex-col gap-3 rounded-xl border-2 border-dashed border-pana-ink/40 p-5">
+    <article className="border-pana-ink/40 flex flex-col gap-3 rounded-xl border-2 border-dashed p-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-extrabold leading-tight text-pana-ink/70">
+        <h3 className="text-pana-ink/70 text-lg leading-tight font-extrabold">
           Set an event
         </h3>
         <MockTag />

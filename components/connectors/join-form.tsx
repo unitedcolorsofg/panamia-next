@@ -30,6 +30,11 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * rank anybody and that everyone starts at Tier 1. A form that opens by
  * scoring people contradicts the programme on the way in.
  *
+ * That is still true with an approval step in front of it. Staff decide
+ * whether somebody joins; this form does not try to help them by collecting
+ * evidence, because the decision is a conversation about a person and not a
+ * score computed from a textarea.
+ *
  * Tier is shown and not asked, for the same reason. The API never reads a
  * tier off the request.
  *
@@ -40,10 +45,11 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  *
  * ## Submitting
  *
- * POSTs to `/api/connectors/join`, which writes `profiles.connector` on the
+ * POSTs to `/api/connectors/join`, which writes a `pending` record on the
  * signed-in human's own profile and is idempotent — re-submitting edits the
- * membership and keeps `joinedAt` and existing commitments. That is what makes
- * it safe to use this same form for "change my houses" later.
+ * application and carries over `appliedAt`, the staff decision and existing
+ * commitments. That is what makes it safe to use this same form for "change
+ * my houses" after being accepted.
  */
 
 const TIER_ONE = getTier(1);
@@ -53,11 +59,14 @@ export function ConnectorJoinForm({
   initialHouses = [],
   initialBring = '',
   isEditing = false,
+  isPending = false,
 }: {
   initialPod?: PodId | null;
   initialHouses?: HouseId[];
   initialBring?: string;
   isEditing?: boolean;
+  /** Editing an application that has not been decided on yet. */
+  isPending?: boolean;
 }) {
   const router = useRouter();
   const [pod, setPod] = useState<PodId | null>(initialPod);
@@ -112,7 +121,9 @@ export function ConnectorJoinForm({
 
   return (
     <main className="bg-pana-cream text-pana-ink pb-20">
-      <header className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}>
+      <header
+        className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}
+      >
         <div className="container mx-auto px-4 py-12">
           <p
             className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
@@ -127,15 +138,20 @@ export function ConnectorJoinForm({
               : 'Organize where you already are.'}
           </h1>
           <p className="text-pana-cream/70 mt-4 max-w-2xl text-base leading-relaxed">
-            Three questions. Which county you are in, what you already like
-            doing, and what you can bring. Nothing here is a test — read{' '}
-            <SurfaceLink
-              href="/connectors"
-              className={`font-bold underline underline-offset-4 ${CONNECTORS_CHROME.ACCENT}`}
-            >
-              what the programme is
-            </SurfaceLink>{' '}
-            first if you have not yet.
+            {isPending
+              ? 'Your application has not been decided on yet, so you can still change any of this.'
+              : 'Three questions. Which county you are in, what you already like doing, and what you can bring. Nothing here is a test — read '}
+            {!isPending && (
+              <>
+                <SurfaceLink
+                  href="/connectors"
+                  className={`font-bold underline underline-offset-4 ${CONNECTORS_CHROME.ACCENT}`}
+                >
+                  what the programme is
+                </SurfaceLink>{' '}
+                first if you have not yet.
+              </>
+            )}
           </p>
         </div>
       </header>
@@ -242,7 +258,7 @@ export function ConnectorJoinForm({
             <h2 className="text-base font-extrabold">
               {isEditing
                 ? `Tier ${TIER_ONE.id} — ${TIER_ONE.name}`
-                : `You will start at Tier ${TIER_ONE.id} — ${TIER_ONE.name}`}
+                : `You would start at Tier ${TIER_ONE.id} — ${TIER_ONE.name}`}
             </h2>
             <p className="text-pana-ink/70 mt-2 text-sm leading-relaxed">
               {TIER_ONE.blurb} Tiers are about how much you are carrying, not
@@ -292,11 +308,12 @@ export function ConnectorJoinForm({
                 ? 'Saving…'
                 : isEditing
                   ? 'Save changes'
-                  : 'Join the programme'}
+                  : 'Send my application'}
             </button>
             <p className="text-pana-ink/60 text-sm">
-              Your pod lead gets in touch — the programme runs on people, not on
-              an approval queue.
+              {isEditing
+                ? 'You can change any of this later.'
+                : 'Someone from the programme reviews applications by hand, so this is not instant. You will see where yours is up to in Connector HQ.'}
             </p>
           </div>
         </form>

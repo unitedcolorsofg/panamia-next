@@ -5,25 +5,33 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { HOUSES, PODS } from '@/lib/connectors/model';
-import { parseConnector, type ProfileConnector } from '@/lib/connectors/membership';
+import {
+  parseConnector,
+  type ProfileConnector,
+} from '@/lib/connectors/membership';
 
 /**
- * Join the Connectors programme, or change what you picked.
+ * Apply to the Connectors programme, or change what you picked.
  *
- * Self-serve by design. There is no pending/approved state because there is
- * no approval step to model: the programme recruits by asking people to show
- * up, everybody starts at Tier 1, and putting a gate on the first rung would
- * contradict what the tiers are for.
+ * Applying is not joining. The programme accepts people rather than letting
+ * anyone who finds this URL award themselves a place, so this writes a
+ * `pending` record and staff decide on it from the admin queue. This is the
+ * same shape as `venues.status`, which goes `pending_review` → `active`
+ * through `app/api/admin/venues/[slug]/approve/route.ts`.
  *
  * Writes `profiles.connector` on the signed-in human's OWN profile — matched
  * on `profiles.userId`, not through `getActiveProfile`. That helper resolves
  * the profile somebody is acting as, which may be a business listing they
  * administer, and membership belongs to the person rather than their shop.
  *
- * Re-posting is an edit, not a second membership: `joinedAt` and any existing
- * commitments are carried over from the current record, so changing your
- * houses later does not quietly reset how long you have been here or throw
- * away what you already said you would do.
+ * Re-posting is an edit, not a second application: `appliedAt`, the decision
+ * and any existing commitments are carried over from the current record. So
+ * an accepted member changing their houses stays accepted, and an applicant
+ * fixing a typo does not go to the back of the queue or quietly re-open a
+ * decision staff have already made.
+ *
+ * Neither `status` nor `tier` is ever read from the request body. Both are
+ * things the programme grants, not things you can ask for.
  */
 
 const POD_IDS = new Set<string>(PODS.map((p) => p.id));
@@ -98,12 +106,17 @@ export async function POST(request: NextRequest) {
   const current = parseConnector(existing.connector);
 
   const membership: ProfileConnector = {
+    // Carried over, never taken from the request: a decision staff made is
+    // not something the applicant can edit their way out of.
+    status: current?.status ?? 'pending',
     pod: pod as ProfileConnector['pod'],
     houses: houses as ProfileConnector['houses'],
     // Tier is never taken from the request. It is not a thing you ask for.
     tier: current?.tier ?? 1,
     bring,
-    joinedAt: current?.joinedAt ?? new Date().toISOString(),
+    appliedAt: current?.appliedAt ?? new Date().toISOString(),
+    decidedAt: current?.decidedAt ?? null,
+    decidedBy: current?.decidedBy ?? null,
     commitments: current?.commitments ?? [],
   };
 

@@ -39,6 +39,18 @@ const WHEN_MAX = 120;
 /** A guard against the blob growing without bound, not a product rule. */
 const MAX_COMMITMENTS = 200;
 
+/**
+ * The signed-in member's record, but only if they are actually in.
+ *
+ * Returns `null` for a pending or declined application as well as for no
+ * application at all. Recording commitments is a thing connectors do, so
+ * somebody still waiting on a decision must not be able to write them — and
+ * the admin queue would then be showing an application with work already
+ * logged against it, which reads as though the decision had been made.
+ *
+ * Both callers turn `null` into the same 403, which is the right answer for
+ * all three cases.
+ */
 async function loadMembership(userId: string) {
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
@@ -47,7 +59,7 @@ async function loadMembership(userId: string) {
   if (!profile) return null;
 
   const membership = parseConnector(profile.connector);
-  if (!membership) return null;
+  if (!membership || membership.status !== 'active') return null;
 
   return { profileId: profile.id, membership };
 }
@@ -81,7 +93,9 @@ export async function POST(request: NextRequest) {
   const payload = (body ?? {}) as Record<string, unknown>;
 
   const what =
-    typeof payload.what === 'string' ? payload.what.trim().slice(0, WHAT_MAX) : '';
+    typeof payload.what === 'string'
+      ? payload.what.trim().slice(0, WHAT_MAX)
+      : '';
   if (!what) {
     return NextResponse.json(
       { success: false, error: 'Say what you will do.' },
