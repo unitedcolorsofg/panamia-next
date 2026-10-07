@@ -82,6 +82,12 @@ external/panamia-next-crm-bridge/.wrangler/
 # Playwright MCP scratch output (snapshots, console logs)
 .playwright-mcp/
 
+# Scratch files for `git commit -F`. Written here rather than piped because
+# PowerShell 5.1's Set-Content emits a BOM, which git then puts in the commit
+# subject. One of these was committed by accident in e64b6691 — hence the rule.
+.commitmsg.tmp
+*.commitmsg.tmp
+
 # Mobile app signing material.
 #
 # The native projects under mobile/ are committed on purpose — they carry real

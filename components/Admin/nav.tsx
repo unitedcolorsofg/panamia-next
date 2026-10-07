@@ -2,9 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LayoutGrid, type LucideIcon } from 'lucide-react';
 
+import { StatusPill } from '@/components/Admin/status-pill';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
-import { ADMIN_GROUPS, ADMIN_VIEWS, type AdminView } from '@/lib/admin/views';
+import {
+  ADMIN_GROUPS,
+  adminGroup,
+  viewsInGroup,
+  type AdminView,
+} from '@/lib/admin/views';
 
 /**
  * The admin surface's navigation.
@@ -17,79 +24,123 @@ import { ADMIN_GROUPS, ADMIN_VIEWS, type AdminView } from '@/lib/admin/views';
  * Active state is an exact pathname match rather than a prefix match on
  * purpose: `/admin` is a prefix of every other route here, so prefix matching
  * would light up Overview on every page.
+ *
+ * ## The icons are not decoration
+ *
+ * Nine links of similar length in one column are nine identical shapes, and
+ * the only way to tell them apart is to read all nine. Each one now carries
+ * its view's icon on a chip in its group's colour, so the column can be
+ * navigated by position and colour the way a toolbar is — which is what
+ * someone who opens this every day actually does.
+ *
+ * Below `lg` this is still a horizontal strip, because a sidebar on a phone is
+ * either a drawer behind a tap or a column that pushes the work off-screen.
+ * The strip is 63px tall against the old menu's 244px, and it scrolls rather
+ * than wraps, so it stays one row however many tools get added.
  */
 
-function NavLink({ view, active }: { view: AdminView; active: boolean }) {
+function NavLink({
+  view,
+  active,
+  fill,
+  onFill,
+}: {
+  view: AdminView;
+  active: boolean;
+  fill: string;
+  onFill: string;
+}) {
+  const Icon = view.icon;
+
   return (
     <Link
       href={view.href}
       aria-current={active ? 'page' : undefined}
       className={[
-        'flex items-center justify-between gap-2 whitespace-nowrap rounded px-3 py-2 text-sm transition-colors',
+        'flex items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm transition-colors',
         active
-          ? `${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL} font-semibold`
-          : 'text-pana-ink/70 hover:bg-pana-ink/5 hover:text-pana-ink',
+          ? `${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL} font-bold`
+          : 'font-medium text-pana-ink/75 hover:bg-pana-ink/5 hover:text-pana-ink',
       ].join(' ')}
     >
-      <span>{view.name}</span>
-      {view.status !== 'live' && (
-        <span
-          className={[
-            'rounded px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide',
-            active ? 'bg-pana-ink/15 text-pana-ink' : 'bg-pana-ink/10 text-pana-ink/60',
-          ].join(' ')}
-        >
-          {view.status}
-        </span>
-      )}
+      {/* On the active row the chip drops its own colour. The row is already
+          filled with the surface blue, and a second fill inside it reads as a
+          button inside a button. */}
+      <span
+        aria-hidden="true"
+        className={[
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors',
+          active ? 'bg-pana-ink/15 text-pana-ink' : `${fill} ${onFill}`,
+        ].join(' ')}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="flex-1">{view.name}</span>
+      <StatusPill status={view.status} />
     </Link>
+  );
+}
+
+/* The overview is not in ADMIN_VIEWS — it is the page listing them, not one of
+   them — so its nav row is built here. It borrows the Directory colour rather
+   than inventing a fifth, since it is the shelf it sits above. */
+const OVERVIEW: AdminView = {
+  id: 'overview',
+  name: 'Overview',
+  href: '/admin',
+  group: 'directory',
+  blurb: '',
+  does: [],
+  status: 'live',
+  icon: LayoutGrid as LucideIcon,
+};
+
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <p
+      className={`hidden pb-1.5 pl-1 text-[0.6875rem] font-black uppercase tracking-[0.14em] lg:block ${ADMIN_CHROME.ACCENT}`}
+    >
+      {children}
+    </p>
   );
 }
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const directory = adminGroup('directory');
 
   return (
-    <nav aria-label="Admin sections" className="lg:w-56 lg:shrink-0">
-      <div className="flex gap-6 overflow-x-auto pb-3 lg:block lg:gap-0 lg:overflow-visible lg:pb-0">
-        <div className="lg:mb-6">
-          <p
-            className={`hidden pb-2 text-xs font-bold uppercase tracking-wide lg:block ${ADMIN_CHROME.ACCENT}`}
-          >
-            Admin
-          </p>
-          <ul className="flex gap-2 lg:flex-col lg:gap-1">
+    <nav aria-label="Admin sections" className="lg:w-60 lg:shrink-0">
+      <div className="flex gap-5 overflow-x-auto pb-3 lg:block lg:gap-0 lg:overflow-visible lg:pb-0">
+        <div className="lg:mb-5">
+          <GroupLabel>Admin</GroupLabel>
+          <ul className="flex gap-1.5 lg:flex-col lg:gap-0.5">
             <li>
               <NavLink
-                view={{
-                  id: 'overview',
-                  name: 'Overview',
-                  href: '/admin',
-                  group: 'directory',
-                  blurb: '',
-                  does: [],
-                  status: 'live',
-                }}
+                view={OVERVIEW}
                 active={pathname === '/admin'}
+                fill={directory.fill}
+                onFill={directory.onFill}
               />
             </li>
           </ul>
         </div>
 
         {ADMIN_GROUPS.map((group) => {
-          const views = ADMIN_VIEWS.filter((v) => v.group === group.id);
+          const views = viewsInGroup(group.id);
           if (views.length === 0) return null;
           return (
-            <div key={group.id} className="lg:mb-6">
-              <p
-                className={`hidden pb-2 text-xs font-bold uppercase tracking-wide lg:block ${ADMIN_CHROME.ACCENT}`}
-              >
-                {group.name}
-              </p>
-              <ul className="flex gap-2 lg:flex-col lg:gap-1">
+            <div key={group.id} className="lg:mb-5">
+              <GroupLabel>{group.name}</GroupLabel>
+              <ul className="flex gap-1.5 lg:flex-col lg:gap-0.5">
                 {views.map((view) => (
                   <li key={view.id}>
-                    <NavLink view={view} active={pathname === view.href} />
+                    <NavLink
+                      view={view}
+                      active={pathname === view.href}
+                      fill={group.fill}
+                      onFill={group.onFill}
+                    />
                   </li>
                 ))}
               </ul>

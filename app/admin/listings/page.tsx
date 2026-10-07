@@ -6,6 +6,7 @@ import {
   MockTag,
 } from '@/components/Admin/mock-controls';
 import { AdminMockBar } from '@/components/Admin/mock-bar';
+import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {
   CATEGORY_LABEL,
@@ -75,11 +76,7 @@ export default function AdminListingsPage() {
 
       <>
         <header className="pb-6">
-          <p
-            className={`text-xs font-extrabold uppercase tracking-[0.2em] ${ADMIN_CHROME.ACCENT}`}
-          >
-            Pana Admin
-          </p>
+          <AdminEyebrow>Directory</AdminEyebrow>
           <h1 className="mt-2 text-4xl font-extrabold leading-tight sm:text-5xl">
             Business listings
           </h1>

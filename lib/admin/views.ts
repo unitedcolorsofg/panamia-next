@@ -4,7 +4,28 @@
  * Kept as data rather than as markup so the sidebar, the overview and anything
  * else that wants to enumerate staff tools read from one list. Adding a view
  * should be an entry here plus a route.
+ *
+ * ## Why there are icons and colours in here
+ *
+ * Nine tools rendered as nine lines of text are nine identical shapes, and
+ * staff who use this daily navigate by shape long before they read. The icon
+ * and the group colour are the shape. They live beside the name because they
+ * are part of what a view *is*, not decoration a component adds later — and
+ * because the sidebar and the overview both need them and must not disagree.
  */
+
+import {
+  Download,
+  Flag,
+  GraduationCap,
+  HeartHandshake,
+  type LucideIcon,
+  Mail,
+  Mic,
+  Newspaper,
+  Store,
+  UsersRound,
+} from 'lucide-react';
 
 export type ViewStatus = 'mock' | 'live' | 'stub';
 
@@ -13,14 +34,61 @@ export type AdminGroupId = 'directory' | 'community' | 'content' | 'inbox';
 export interface AdminGroup {
   id: AdminGroupId;
   name: string;
+  /** One line, on the group's header band. What this shelf of tools is for. */
+  blurb: string;
+  /**
+   * The band fill, and the only text colour that is safe on it.
+   *
+   * Written as complete Tailwind class strings rather than a colour name the
+   * caller interpolates. Tailwind v4 only emits a utility it can see spelled
+   * out in a source file, so `bg-pana-${group.accent}` compiles to nothing —
+   * the band renders transparent and the bug is invisible in review. This has
+   * bitten this codebase twice; see the note on ADMIN_CHROME.RULE_LG.
+   *
+   * Measured against the CONTRAST RULE at the top of app/globals.css. Every
+   * pairing below clears AA for body text:
+   *
+   *   ink   / blue    8.21      ink  / flame   7.50
+   *   cream / indigo  9.01      ink  / butter 16.41
+   *
+   * Changing a fill means re-measuring its partner in the same edit. The warm
+   * fills here carry ink and the one dark fill carries cream, which is the
+   * rule the whole palette runs on.
+   */
+  fill: string;
+  onFill: string;
 }
 
-/** Sidebar order. */
+/** Sidebar order, and the order the overview stacks them in. */
 export const ADMIN_GROUPS: readonly AdminGroup[] = [
-  { id: 'directory', name: 'Directory' },
-  { id: 'community', name: 'Community' },
-  { id: 'content', name: 'Content' },
-  { id: 'inbox', name: 'Inbox' },
+  {
+    id: 'directory',
+    name: 'Directory',
+    blurb: 'Who is listed, and who is still waiting to get in.',
+    fill: 'bg-pana-blue',
+    onFill: 'text-pana-ink',
+  },
+  {
+    id: 'community',
+    name: 'Community',
+    blurb: 'The panas themselves, and the programmes they belong to.',
+    fill: 'bg-pana-indigo',
+    onFill: 'text-pana-cream',
+  },
+  {
+    id: 'content',
+    name: 'Content',
+    blurb: 'What members publish under the Pana name.',
+    fill: 'bg-pana-flame',
+    onFill: 'text-pana-ink',
+  },
+  {
+    id: 'inbox',
+    name: 'Inbox',
+    blurb: 'Things panas sent us that are waiting on an answer.',
+    fill: 'bg-pana-butter',
+    onFill: 'text-pana-ink',
+  },
 ];
 
 export interface AdminView {
@@ -33,6 +101,8 @@ export interface AdminView {
   /** The specific things an admin can do once they are in there. */
   does: readonly string[];
   status: ViewStatus;
+  /** Decorative. Every call site pairs it with aria-hidden. */
+  icon: LucideIcon;
 }
 
 export const ADMIN_VIEWS: readonly AdminView[] = [
@@ -48,6 +118,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
       'Approve or decline',
     ],
     status: 'mock',
+    icon: Store,
   },
   {
     id: 'download-profiles',
@@ -57,6 +128,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Pull the directory down as a spreadsheet.',
     does: ['Download every profile as CSV'],
     status: 'live',
+    icon: Download,
   },
   {
     id: 'connectors',
@@ -70,6 +142,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
       'Read the programme numbers',
     ],
     status: 'mock',
+    icon: HeartHandshake,
   },
   {
     id: 'mentoring',
@@ -79,6 +152,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Metrics and analytics for the mentoring programme.',
     does: ['Read session and participation charts'],
     status: 'live',
+    icon: GraduationCap,
   },
   {
     id: 'users',
@@ -88,6 +162,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Accounts and permissions.',
     does: ['Look up a user', 'Review account state'],
     status: 'live',
+    icon: UsersRound,
   },
   {
     id: 'articles',
@@ -97,6 +172,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Moderate community articles.',
     does: ['Review what is published', 'Remove and restore'],
     status: 'live',
+    icon: Newspaper,
   },
   {
     id: 'podcasts',
@@ -106,6 +182,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Podcast submissions.',
     does: [],
     status: 'stub',
+    icon: Mic,
   },
   {
     id: 'contactus',
@@ -115,6 +192,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Messages from the contact form.',
     does: ['Read the queue', 'Set status and category'],
     status: 'live',
+    icon: Mail,
   },
   {
     id: 'reports',
@@ -124,8 +202,17 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Moderation reports from the Nostr relay.',
     does: ['Triage a report', 'Act on the reported account'],
     status: 'live',
+    icon: Flag,
   },
 ];
+
+/** Looks a group up by id. Throws rather than returning undefined: every view
+ *  carries a group id from this same file, so a miss is a typo, not a state. */
+export function adminGroup(id: AdminGroupId): AdminGroup {
+  const group = ADMIN_GROUPS.find((g) => g.id === id);
+  if (!group) throw new Error(`Unknown admin group: ${id}`);
+  return group;
+}
 
 export function viewsInGroup(group: AdminGroupId): readonly AdminView[] {
   return ADMIN_VIEWS.filter((v) => v.group === group);

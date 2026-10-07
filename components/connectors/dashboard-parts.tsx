@@ -295,14 +295,22 @@ export function EventCard({ event }: { event: ConnectorEvent }) {
 
         <dt className="font-bold">Needs</dt>
         <dd>
+          {/* These two used to share `text-pana-burnt`, which is 3.44 on cream
+              and fails AA — and conflated two opposite meanings besides. Every
+              warm accent in the palette fails as text on this background
+              (burnt 3.44, red 3.86, pink 3.54, flame 2.42, orange 2.36); only
+              ink, navy and indigo clear it. So a warm colour is only available
+              on a filled chip, which is what the countdown above already does.
+
+              A shortfall is the one thing in this card somebody has to act on,
+              so it takes the chip: ink on burnt is 5.29. "No cap" is the
+              opposite of a problem and goes back to plain text. */}
           {event.volunteersNeeded === null ? (
-            <span className="font-bold text-pana-burnt">
-              No cap — bring whoever
-            </span>
+            <span className="font-bold">No cap — bring whoever</span>
           ) : short === 0 ? (
             <span>Covered ({event.volunteersFilled} signed up)</span>
           ) : (
-            <span className="font-bold text-pana-burnt">
+            <span className="inline-block rounded-full bg-pana-burnt px-2.5 py-0.5 text-xs font-extrabold text-pana-ink">
               {short} more of {event.volunteersNeeded}
             </span>
           )}

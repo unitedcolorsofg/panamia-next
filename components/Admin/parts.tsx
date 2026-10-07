@@ -12,7 +12,10 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
  * components that already shipped, to serve a mock, is the more expensive
  * mistake of the two.
  *
- * All server components. Nothing here needs a client bundle.
+ * All server components. Nothing here needs a client bundle — which is why
+ * `StatusPill` sits in its own file: the sidebar is a client component and
+ * imports it, and pulling these two in alongside it would be a cost paid by
+ * every admin page for furniture the sidebar never renders.
  */
 
 /** A bordered panel with a solid header bar. The basic unit of a view. */
