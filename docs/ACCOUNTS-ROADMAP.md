@@ -112,7 +112,7 @@ Two consequences worth stating plainly:
 ```ts
 export const accountType = pgEnum('account_type', [
   'personal',
-  'small_business',
+  'directory',
   'hybrid',
   'other',
 ]);
@@ -125,7 +125,7 @@ The column is selected and echoed by `/api/user/me`, `/api/user/get`,
 
 The rebuild notes at the top of `app/form/become-a-pana/page.tsx` already
 specify the intended branching — personal profiles collect neighborhoods and
-must not store a street address; `small_business` and `hybrid` collect the full
+must not store a street address; `directory` and `hybrid` collect the full
 address — with a stated rationale: name plus address is a notifiable
 combination under FIPA.
 
@@ -163,7 +163,7 @@ street address, is reachable at `/p/[screenname]`, and is absent from both the
 directory and the sitemap.
 
 A **vendor account** is the same record with `accountType` set to
-`small_business` or `hybrid` and the address fields populated.
+`directory` or `hybrid` and the address fields populated.
 
 ---
 
@@ -241,7 +241,7 @@ Source `profiles.name` as `users.name ?? screenname`.
 | #   | Area       | File                                       | Change                                                                                          |
 | --- | ---------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | 1   | Onboarding | `app/api/user/screenname/set/route.ts`     | Create a profile when none exists: `active: true`, `name: users.name ?? screenname`, no address |
-| 2   | Directory  | `app/api/directory/suggest/route.ts`       | Add `inArray(users.accountType, ['small_business', 'hybrid'])`                                  |
+| 2   | Directory  | `app/api/directory/suggest/route.ts`       | Add `inArray(users.accountType, ['directory', 'hybrid'])`                                       |
 | 3   | Directory  | `lib/server/directory.ts`                  | Same predicate on the `getSearch()` query                                                       |
 | 4   | Indexing   | `app/sitemap.ts`                           | Same predicate — see _Privacy_ below                                                            |
 | 5   | Readiness  | `lib/relay/profile-readiness.ts`           | Require profile + screenname only; drop `locallyBased`/`fiveWords` from the gate                |

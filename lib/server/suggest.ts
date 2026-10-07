@@ -122,19 +122,19 @@ const nameRank = (column: unknown, term: string) => {
 };
 
 // /p/[handle] resolves the profile's own screenname first and falls back to
-// its owner's, the same order lib/server/directory.ts uses. A business listing
+// its owner's, the same order lib/server/directory.ts uses. A directory listing
 // carries its handle here because it has no user row to carry one.
 const handle = sql<
   string | null
 >`COALESCE(${profiles.screenname}, ${users.screenname})`;
 
 /**
- * Businesses and other directory listings.
+ * Directory listings: shops, makers, bands, co-ops, non-profits.
  *
  * Public: this is the directory, and the directory is the thing anonymous
  * visitors come to browse.
  */
-async function suggestBusinesses(term: string): Promise<Suggestion[]> {
+async function suggestDirectory(term: string): Promise<Suggestion[]> {
   const { contains } = patterns(term);
 
   // `descriptions` is jsonb, so the searchable text comes out via ->>.
@@ -151,8 +151,8 @@ async function suggestBusinesses(term: string): Promise<Suggestion[]> {
       fiveWords,
     })
     .from(profiles)
-    // Left, not inner: a business listing submitted through
-    // /form/list-your-business keeps profiles.userId NULL permanently and is
+    // Left, not inner: a directory listing submitted through
+    // /form/get-listed keeps profiles.userId NULL permanently and is
     // administered through profileOwners, so an inner join drops the
     // directory's main content type before any filter below runs.
     .leftJoin(users, eq(profiles.userId, users.id))
@@ -183,7 +183,7 @@ async function suggestBusinesses(term: string): Promise<Suggestion[]> {
     .limit(PER_KIND_LIMIT);
 
   return rows.map((row) => ({
-    kind: 'business' as const,
+    kind: 'directory' as const,
     id: row.id,
     name: row.name,
     subtitle:
@@ -413,15 +413,15 @@ export async function getSuggestions(
   term: string,
   { viewerIsSignedIn }: { viewerIsSignedIn: boolean }
 ): Promise<Suggestion[]> {
-  const [businesses, panas, groups, upcoming] = await Promise.all([
-    suggestBusinesses(term),
+  const [listings, panas, groups, upcoming] = await Promise.all([
+    suggestDirectory(term),
     viewerIsSignedIn ? suggestPanas(term) : Promise.resolve([]),
     viewerIsSignedIn ? suggestGroups(term) : Promise.resolve([]),
     suggestEvents(term),
   ]);
 
   return mergeSuggestions({
-    business: businesses,
+    directory: listings,
     pana: panas,
     group: groups,
     event: upcoming,

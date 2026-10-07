@@ -2,7 +2,7 @@
  *
  * A personal profile IS a Pana Social profile: posts, Panas, groups. It is not
  * a directory listing — the schema already draws that line, since
- * DIRECTORY_ACCOUNT_TYPES is ['small_business', 'hybrid'] and 'personal' is
+ * DIRECTORY_ACCOUNT_TYPES is ['directory', 'hybrid'] and 'personal' is
  * deliberately excluded from the directory. Business listings get their own
  * design, so nothing here models galleries, categories, or storefront details.
  *
@@ -86,7 +86,7 @@ export interface MockProfile {
   coverAlt: string;
   /* Personal profiles deliberately have NO street address. Per the become-a-pana
      rebuild notes, addressLine1/addressLocality/addressRegion/lat/lng are
-     collected for small_business and hybrid only — name + address is a
+     collected for directory and hybrid only — name + address is a
      notifiable PII combination under FIPA, so a person's location is expressed
      at neighborhood and county granularity instead. */
 

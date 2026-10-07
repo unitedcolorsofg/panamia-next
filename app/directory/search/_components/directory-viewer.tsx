@@ -40,7 +40,7 @@ import { Button } from '@/components/ui/button';
  * stranger — it just gets different copy, because telling someone who is
  * already signed in to "sign up" reads as broken.
  */
-export type ViewerKind = 'anon' | 'business' | 'pana';
+export type ViewerKind = 'anon' | 'directory' | 'pana';
 
 export type GateAction = 'save' | 'recommend';
 
@@ -170,7 +170,7 @@ export function DirectoryViewerProvider({
       : maySignal === true
         ? 'pana'
         : maySignal === false && userId
-          ? 'business'
+          ? 'directory'
           : 'anon';
 
   // True only once we know which of the three states applies. Until then the
@@ -244,7 +244,7 @@ export function DirectoryViewerProvider({
   const value = useMemo<DirectoryViewerValue>(
     () => ({
       viewer,
-      showsPanaActions: !resolvedViewer || viewer !== 'business',
+      showsPanaActions: !resolvedViewer || viewer !== 'directory',
       requirePana,
       isSaved: (profileId) => listings[profileId]?.saved ?? false,
       isOwner: (profileId) => listings[profileId]?.isOwner ?? false,
@@ -306,7 +306,7 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
   // Pairs with the backstop in `requirePana`. A business account should no
   // longer be able to open this dialog at all, but if one does, it must not be
   // told to "sign up" when it is already signed in.
-  const signedInAsBusiness = viewer === 'business';
+  const signedInAsDirectory = viewer === 'directory';
 
   return (
     <Dialog open={action !== null} onOpenChange={(next) => !next && onClose()}>
@@ -331,16 +331,16 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
         </span>
 
         <DialogTitle className="bizprofile-gate-title">
-          {signedInAsBusiness ? t('gate.titleBusiness') : t('gate.title')}
+          {signedInAsDirectory ? t('gate.titleDirectory') : t('gate.title')}
         </DialogTitle>
 
         <DialogDescription className="bizprofile-gate-reason">
-          {signedInAsBusiness
-            ? `${t('gate.reasonBusinessPrefix')} ${t(`gate.reason.${resolved}`)}`
+          {signedInAsDirectory
+            ? `${t('gate.reasonDirectoryPrefix')} ${t(`gate.reason.${resolved}`)}`
             : t(`gate.reason.${resolved}`)}
         </DialogDescription>
 
-        {!signedInAsBusiness && (
+        {!signedInAsDirectory && (
           <ul className="bizprofile-gate-list">
             {(['save', 'recommend', 'follow'] as const).map((perk) => (
               <li key={perk}>
@@ -359,13 +359,13 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
           >
             <Link href="/welcome">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
-              {signedInAsBusiness
+              {signedInAsDirectory
                 ? t('gate.addPanaAccount')
                 : t('gate.becomeAPana')}
             </Link>
           </Button>
 
-          {!signedInAsBusiness && (
+          {!signedInAsDirectory && (
             <Button
               size="lg"
               variant="outline"

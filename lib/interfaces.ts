@@ -193,7 +193,7 @@ export interface UserStatusInterface {
   locked?: boolean;
 }
 
-export type AccountType = 'small_business' | 'personal' | 'hybrid' | 'other';
+export type AccountType = 'directory' | 'personal' | 'hybrid' | 'other';
 
 export interface UserInterface {
   _id: string;

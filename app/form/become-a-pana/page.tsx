@@ -9,9 +9,9 @@ import { redirect } from 'next/navigation';
  * lets a person run several of them.
  *
  * Kept as a redirect rather than deleted so existing links, bookmarks and the
- * indexed URL keep resolving. /form/list-your-business is the public intake
+ * indexed URL keep resolving. /form/get-listed is the public intake
  * that replaces it.
  */
 export default function BecomeAPanaFormRedirect() {
-  redirect('/form/list-your-business');
+  redirect('/form/get-listed');
 }

@@ -42,7 +42,7 @@ const STATIC_ROUTES: SitemapEntry[] = [
   { url: `${SITE_URL}/donate`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/podcasts`, changeFrequency: 'weekly' },
   { url: `${SITE_URL}/m/discover`, changeFrequency: 'weekly' },
-  { url: `${SITE_URL}/form/list-your-business`, changeFrequency: 'monthly' },
+  { url: `${SITE_URL}/form/get-listed`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/contact-us`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/form/join-the-team`, changeFrequency: 'monthly' },
   { url: `${SITE_URL}/legal/terms`, changeFrequency: 'monthly' },
@@ -68,7 +68,7 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
         updatedAt: profiles.updatedAt,
       })
       // Driven from `profiles`, with a LEFT join: a business listing submitted
-      // through /form/list-your-business keeps `profiles.userId` NULL
+      // through /form/get-listed keeps `profiles.userId` NULL
       // permanently and is administered through `profileOwners`, so driving
       // from `users` dropped every listing in the directory before any filter
       // below could run. /p/[handle] resolves the profile's own screenname
@@ -80,7 +80,7 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
       .where(
         and(
           sql`COALESCE(${profiles.screenname}, ${users.screenname}) IS NOT NULL`,
-          // Also the gate on unapproved submissions: /form/list-your-business
+          // Also the gate on unapproved submissions: /form/get-listed
           // writes active: false until a human approves it, and
           // delete-account's tombstone clears it. Not merely a liveness check.
           eq(profiles.active, true),

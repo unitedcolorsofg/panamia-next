@@ -784,9 +784,10 @@ async function claimProfileForUser(
       where: and(
         eq(profiles.email, email),
         isNull(profiles.userId),
-        // Business listings from /form/list-your-business are deliberately
-        // excluded: attaching one here would make this human *be* the
-        // business and consume their single profiles.userId slot. They are
+        // Directory listings from /form/get-listed (still marked
+        // `business_intake` in status.source) are deliberately excluded:
+        // attaching one here would make this human *be* the listing and
+        // consume their single profiles.userId slot. They are
         // claimed explicitly instead, which grants ownership without
         // overwriting identity. See lib/server/profile-owners.ts.
         notBusinessListing

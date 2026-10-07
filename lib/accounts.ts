@@ -13,14 +13,21 @@
  * 'personal' is excluded: those are members who search the directory rather
  * than appear in it. 'other' is excluded too — it is an unresolved
  * self-description, and defaulting it to public would leak accounts that never
- * asked to be listed. Opting in means choosing small_business or hybrid.
+ * asked to be listed. Opting in means choosing directory or hybrid.
+ *
+ * 'directory' is deliberately not named after a business. A listing can be a
+ * shop, but it can equally be a band, a co-op or a non-profit — the category
+ * list has carried Music, Artisanal and Non-Profit from the start, and the
+ * intake form asks for "a business, band, co-op, non-profit or project". The
+ * account type records that the account is published, not what kind of thing
+ * it is.
  *
  * One carve-out: the search typeahead (lib/server/suggest.ts) suggests
  * personal accounts as "panas" to signed-in visitors. That is a members-only
  * view, not publication — every pana is discoverable to another pana, while
  * anonymous visitors still see only the account types listed here.
  */
-export const DIRECTORY_ACCOUNT_TYPES = ['small_business', 'hybrid'] as const;
+export const DIRECTORY_ACCOUNT_TYPES = ['directory', 'hybrid'] as const;
 
 export type DirectoryAccountType = (typeof DIRECTORY_ACCOUNT_TYPES)[number];
 
@@ -34,7 +41,7 @@ export const isDirectoryAccountType = (
  *
  * Personal profiles must not retain street addresses — this was set to limit
  * FIPA breach exposure by the rebuild notes on the retired become-a-pana form,
- * whose public replacement is app/form/list-your-business/page.tsx. The
+ * whose public replacement is app/form/get-listed/page.tsx. The
  * profile and its social identity survive a downgrade; only the listing data
  * goes.
  *

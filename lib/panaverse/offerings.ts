@@ -45,7 +45,7 @@ export const PANA_OFFERINGS: readonly PanaOffering[] = [
   {
     id: 'getInvolved',
     href: '/get-involved',
-    appHref: '/form/list-your-business',
+    appHref: '/form/get-listed',
   },
   // The Community Connectors programme, which `getInvolved` has been naming
   // in its third step for a while without having anywhere to send anyone.

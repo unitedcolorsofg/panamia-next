@@ -138,7 +138,7 @@ export async function ScopePage({
  */
 function loadEverythingPreviews(term: string, signedIn: boolean) {
   return Promise.all([
-    searchKindSafely('business', term, 1, PREVIEW_LIMIT),
+    searchKindSafely('directory', term, 1, PREVIEW_LIMIT),
     signedIn ? searchKindSafely('pana', term, 1, PREVIEW_LIMIT) : null,
     signedIn ? searchKindSafely('group', term, 1, PREVIEW_LIMIT) : null,
     searchKindSafely('event', term, 1, PREVIEW_LIMIT),
@@ -296,10 +296,10 @@ async function EverythingResults({
   // not be searched" rather than "matched nothing" — so one kind's outage
   // costs the visitor that kind, not the page. Started in ScopePage, so by the
   // time this awaits, most of the wait has already happened alongside counts.
-  const [businesses, panas, groups, events] = await previews;
+  const [listings, panas, groups, events] = await previews;
 
   const down = new Set<ScopeKind>(unavailable);
-  if (businesses === null) down.add('business');
+  if (listings === null) down.add('directory');
   if (signedIn && panas === null) down.add('pana');
   if (signedIn && groups === null) down.add('group');
   if (events === null) down.add('event');
@@ -314,8 +314,8 @@ async function EverythingResults({
         <NoMatches term={term} />
       ) : (
         <>
-          {businesses && (
-            <KindSection kind="business" term={term} data={businesses} />
+          {listings && (
+            <KindSection kind="directory" term={term} data={listings} />
           )}
           {panas && <KindSection kind="pana" term={term} data={panas} />}
           {groups && <KindSection kind="group" term={term} data={groups} />}
@@ -499,8 +499,11 @@ function GatedScope({ scope, term }: { scope: Scope; term: string }) {
             <Link href="/signin" className="dirsearch-chip">
               Sign in
             </Link>
-            <Link href={scopePath('business', term)} className="dirsearch-chip">
-              Search businesses instead
+            <Link
+              href={scopePath('directory', term)}
+              className="dirsearch-chip"
+            >
+              Search the directory instead
             </Link>
           </div>
         </div>

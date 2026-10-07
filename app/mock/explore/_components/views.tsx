@@ -14,15 +14,20 @@ import { SkyClouds } from '@/components/home/scene-art';
 import { ScopeField } from './scope-field';
 import { MapPane } from './map-pane';
 import {
-  BusinessCard,
+  ListingCard,
   EventCard,
   ExploreEmpty,
   GroupCard,
   PanaCard,
 } from './cards';
-import { ExploreBand, ExploreTail, FacetRail, ResultSummary } from './explore-chrome';
 import {
-  BUSINESSES,
+  ExploreBand,
+  ExploreTail,
+  FacetRail,
+  ResultSummary,
+} from './explore-chrome';
+import {
+  LISTINGS,
   EVENTS,
   GROUPS,
   PANAS,
@@ -123,8 +128,8 @@ export function HomeView(props: ViewProps) {
           <p className="mt-3 text-center text-[0.8125rem] font-semibold opacity-55">
             Searching{' '}
             <strong style={{ color: 'var(--story-coral)' }}>
-              {props.scope === 'business'
-                ? 'local businesses'
+              {props.scope === 'directory'
+                ? 'the directory'
                 : props.scope === 'event'
                   ? 'events'
                   : props.scope === 'group'
@@ -139,7 +144,7 @@ export function HomeView(props: ViewProps) {
   );
 }
 
-/* --- 2. Directory (businesses only) -------------------------------------- */
+/* --- 2. Directory (listings only) ---------------------------------------- */
 
 /**
  * `/directory/search`, after the other three kinds leave.
@@ -187,7 +192,12 @@ export function DirectoryView(props: ViewProps) {
         },
         {
           label: 'Where',
-          chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach'],
+          chips: [
+            'All of South Florida',
+            'Miami-Dade',
+            'Broward',
+            'Palm Beach',
+          ],
           active: 0,
         },
         {
@@ -227,16 +237,16 @@ export function DirectoryView(props: ViewProps) {
     <main
       className="dirsearch dirsearch-split"
       data-view={view}
-      data-tone={SCOPE_TONE.business}
+      data-tone={SCOPE_TONE.directory}
     >
       <ExploreBand
-        scope="business"
+        scope="directory"
         eyebrow="The directory"
         accent="Local"
-        title="businesses"
+        title="listings"
         count={
           <>
-            <strong>{SCOPE_COUNTS.business}</strong> businesses in Miami-Dade,
+            <strong>{SCOPE_COUNTS.directory}</strong> listings in Miami-Dade,
             Broward and Palm Beach
           </>
         }
@@ -244,7 +254,7 @@ export function DirectoryView(props: ViewProps) {
           <ScopeField
             {...props}
             idPrefix="dir"
-            placeholder={SCOPE_PLACEHOLDER.business}
+            placeholder={SCOPE_PLACEHOLDER.directory}
           />
         }
       />
@@ -261,29 +271,35 @@ export function DirectoryView(props: ViewProps) {
               {props.empty ? (
                 <div className="py-10">
                   <ExploreEmpty
-                    accent="No businesses"
+                    accent="No listings"
                     title="match that in Broward"
-                    lede="The directory is businesses only now, so a search for a meetup or a person will land here empty. The chip in the search box is how you send it somewhere that can answer."
+                    lede="The directory is listings only now, so a search for a meetup or a person will land here empty. The chip in the search box is how you send it somewhere that can answer."
                     primary="Search all of South Florida"
                     secondary="Look for events instead"
-                    suggestions={['Food', 'Products', 'Services', 'Art', 'Venues']}
+                    suggestions={[
+                      'Food',
+                      'Products',
+                      'Services',
+                      'Art',
+                      'Venues',
+                    ]}
                   />
                 </div>
               ) : (
                 <>
                   <ResultSummary>
-                    Showing <strong>{BUSINESSES.length}</strong> of{' '}
-                    {SCOPE_COUNTS.business} businesses
+                    Showing <strong>{LISTINGS.length}</strong> of{' '}
+                    {SCOPE_COUNTS.directory} listings
                   </ResultSummary>
 
                   <div className="dirsearch-grid pt-4 pb-10">
-                    {BUSINESSES.map((business) => (
+                    {LISTINGS.map((listing) => (
                       <div
-                        key={business.id}
-                        onMouseEnter={() => setSelectedId(business.id)}
-                        onFocus={() => setSelectedId(business.id)}
+                        key={listing.id}
+                        onMouseEnter={() => setSelectedId(listing.id)}
+                        onFocus={() => setSelectedId(listing.id)}
                       >
-                        <BusinessCard business={business} />
+                        <ListingCard listing={listing} />
                       </div>
                     ))}
                   </div>
@@ -359,7 +375,13 @@ export function EventsView(props: ViewProps) {
           },
           {
             label: 'Where',
-            chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach', 'Online'],
+            chips: [
+              'All of South Florida',
+              'Miami-Dade',
+              'Broward',
+              'Palm Beach',
+              'Online',
+            ],
             active: 0,
           },
           {
@@ -429,7 +451,7 @@ export function EventsView(props: ViewProps) {
       <ExploreTail
         scope="event"
         title="Putting something on?"
-        lede="Any pana can list an event. It shows up here, on your profile, and on the business page it belongs to."
+        lede="Any pana can list an event. It shows up here, on your profile, and on the directory page it belongs to."
         action="Host an event"
         secondary="See the event guidelines"
       />
@@ -456,7 +478,7 @@ export function EventsView(props: ViewProps) {
  * turns an avatar into someone they can look up, because the faces carry no
  * names, no links and no alt text. The roster reads as a crowd rather than a
  * list, which recruits without publishing a walkable member directory. This is
- * the same rule the business and event cards already followed; see `GroupCard`.
+ * the same rule the listing and event cards already followed; see `GroupCard`.
  *
  * What does stay behind sign-in is viewer state: the shelf below and the
  * "You're in" badge both answer "where do I already belong", and a signed-out
@@ -501,12 +523,24 @@ export function GroupsView(props: ViewProps) {
         rows={[
           {
             label: 'Topic',
-            chips: ['All', 'Making', 'Business', 'Food', 'Outdoors', 'Mutual aid'],
+            chips: [
+              'All',
+              'Making',
+              'Business',
+              'Food',
+              'Outdoors',
+              'Mutual aid',
+            ],
             active: 0,
           },
           {
             label: 'Where',
-            chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach'],
+            chips: [
+              'All of South Florida',
+              'Miami-Dade',
+              'Broward',
+              'Palm Beach',
+            ],
             active: 0,
           },
           {
@@ -634,7 +668,12 @@ export function PanasView(props: ViewProps) {
           },
           {
             label: 'Where',
-            chips: ['All of South Florida', 'Miami-Dade', 'Broward', 'Palm Beach'],
+            chips: [
+              'All of South Florida',
+              'Miami-Dade',
+              'Broward',
+              'Palm Beach',
+            ],
             active: 0,
           },
           {
@@ -730,7 +769,7 @@ export function PanasGateView(props: ViewProps) {
           <div className="dirsearch-empty-cats">
             <button type="button">
               <Plus className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-              Browse businesses
+              Browse the directory
             </button>
             <button type="button">
               <Plus className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />

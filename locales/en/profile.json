@@ -14,39 +14,39 @@
     "shareCopied": "Link copied",
     "findThemAt": "Find them at",
     "noLinksYet": "This listing has not added any links yet.",
-    "businessNote": "Saving and recommending come from a pana account.",
-    "businessNoteLink": "Add one",
+    "directoryNote": "Saving and recommending come from a pana account.",
+    "directoryNoteLink": "Add one",
     "ownerNote": "This is your listing. Saves and recommendations come from other panas.",
     "distanceAsk": "How far is this from me?",
     "distanceNear": "less than 0.1 miles away",
     "distance_one": "{{count}} mile away",
     "distance_other": "{{count}} miles away",
     "distanceDenied": "Location off",
-    "onlineOnly": "Online business"
+    "onlineOnly": "Online only"
   },
   "gate": {
     "eyebrow": {
-      "save": "To save this business",
-      "recommend": "To recommend this business",
+      "save": "To save this listing",
+      "recommend": "To recommend this listing",
       "react": "To react to this update",
       "reply": "To reply to this update",
       "boost": "To boost this update"
     },
     "reason": {
-      "save": "Saved businesses live in your account so you can find them again, and the count on this page goes up by one.",
-      "recommend": "A recommendation is public and puts your name behind this business. That only means something coming from a real pana.",
-      "react": "Likes come from your pana profile, so the business knows who is listening.",
-      "reply": "Replies post to Pana Social under your screenname, and the business can answer you back.",
+      "save": "Saved listings live in your account so you can find them again, and the count on this page goes up by one.",
+      "recommend": "A recommendation is public and puts your name behind this listing. That only means something coming from a real pana.",
+      "react": "Likes come from your pana profile, so they know who is listening.",
+      "reply": "Replies post to Pana Social under your screenname, and they can answer you back.",
       "boost": "Boosting puts this update in front of the panas who follow you, so it has to come from somewhere."
     },
     "perks": {
-      "save": "Save businesses you want to come back to",
+      "save": "Save the listings you want to come back to",
       "recommend": "Recommend the ones worth vouching for",
       "follow": "Follow their updates on Pana Social"
     },
     "title": "Sign up to be a pana",
-    "titleBusiness": "You need a pana account",
-    "reasonBusinessPrefix": "You are signed in with a business account.",
+    "titleDirectory": "You need a pana account",
+    "reasonDirectoryPrefix": "You are signed in with a directory account.",
     "becomeAPana": "Become a Pana",
     "addPanaAccount": "Add a pana account",
     "haveOne": "I already have one",
@@ -59,7 +59,7 @@
   },
   "gallery": {
     "eyebrow": "Gallery",
-    "heading": "Inside the business",
+    "heading": "A look inside",
     "addPhotos": "Add photos",
     "addPhotosHint": "Owners can add up to three photos from the dashboard.",
     "empty": "No photos yet."
@@ -75,7 +75,7 @@
   },
   "updates": {
     "eyebrow": "Updates",
-    "heading": "Straight from the business",
+    "heading": "Straight from the source",
     "empty": "No updates yet.",
     "emptyHandle": "@{{handle}} hasn't posted anything yet.",
     "posts": "Posts",
@@ -86,7 +86,7 @@
     "noFollowing": "You're not following anyone yet.",
     "noFollowers": "You don't have any followers yet.",
     "claimEyebrow": "Unclaimed listing",
-    "claimHeading": "Is this your business?",
+    "claimHeading": "Is this yours?",
     "claimBody": "Claim this listing to post updates, add photos, and reply to the panas who save you.",
     "claimCta": "Claim this listing"
   },

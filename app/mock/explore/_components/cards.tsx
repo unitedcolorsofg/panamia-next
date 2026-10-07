@@ -22,7 +22,7 @@ import { KIND_ICON } from '@/components/kind-icon';
 import {
   JOIN_LABEL,
   type ExploreScope,
-  type MockBusiness,
+  type MockListing,
   type MockEvent,
   type MockGroup,
   type MockPana,
@@ -47,33 +47,33 @@ import {
  * without pretending to be the same card.
  */
 
-/* --- Businesses ---------------------------------------------------------- */
+/* --- Directory listings --------------------------------------------------- */
 
 /**
  * Unchanged from `app/directory/search/_components/result-card.tsx`, minus the
  * live data plumbing.
  *
- * Nothing in this proposal touches the business card, and that is the point
+ * Nothing in this proposal touches the listing card, and that is the point
  * worth seeing: the directory is not being rebuilt, it is being *relieved* of
  * three kinds it was serving badly. The one page that already worked keeps
  * working. The only change here is a row removed from the rail above it.
  */
-export function BusinessCard({ business }: { business: MockBusiness }) {
+export function ListingCard({ listing }: { listing: MockListing }) {
   return (
     <article className="dirsearch-card">
       <span className="dirsearch-card-media">
-        {business.cover ? (
+        {listing.cover ? (
           <Image
-            src={business.cover}
+            src={listing.cover}
             alt=""
             fill
             sizes="(max-width: 900px) 100vw, 260px"
             className="object-cover"
           />
         ) : (
-          <CoverFallback kind="business" />
+          <CoverFallback kind="directory" />
         )}
-        {business.certified && (
+        {listing.certified && (
           <span className="dirsearch-card-cert">
             <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
             Pana Certified
@@ -83,22 +83,22 @@ export function BusinessCard({ business }: { business: MockBusiness }) {
 
       <div className="dirsearch-card-body">
         <div className="dirsearch-card-head">
-          {business.badge && (
+          {listing.badge && (
             <span className="dirsearch-card-logo">
-              <Image src={business.badge} alt="" width={52} height={52} />
+              <Image src={listing.badge} alt="" width={52} height={52} />
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="dirsearch-card-name">{business.name}</h3>
-            <p className="dirsearch-card-tagline">{business.tagline}</p>
+            <h3 className="dirsearch-card-name">{listing.name}</h3>
+            <p className="dirsearch-card-tagline">{listing.tagline}</p>
           </div>
         </div>
 
         <p className="dirsearch-card-where">
           <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{business.where}</span>
-          {business.distance ? (
-            <span className="dirsearch-card-distance">{business.distance}</span>
+          <span>{listing.where}</span>
+          {listing.distance ? (
+            <span className="dirsearch-card-distance">{listing.distance}</span>
           ) : (
             <span className="dirsearch-card-distance-off">
               Share location for distance
@@ -106,37 +106,37 @@ export function BusinessCard({ business }: { business: MockBusiness }) {
           )}
         </p>
 
-        <p className="dirsearch-card-blurb">{business.blurb}</p>
+        <p className="dirsearch-card-blurb">{listing.blurb}</p>
 
         <ul className="dirsearch-card-cats">
-          {business.categories.map((category) => (
+          {listing.categories.map((category) => (
             <li key={category}>{category}</li>
           ))}
         </ul>
 
-        {/* The one place a business still mentions an event, and it survives
+        {/* The one place a listing still mentions an event, and it survives
             the split intact. This is not a search result for the event — it is
-            a reason to visit *this business* this week. Which is exactly why
+            a reason to visit *this place* this week. Which is exactly why
             one line of it here was never a substitute for an events page. */}
-        {business.nextEvent && (
+        {listing.nextEvent && (
           <span className="dirsearch-card-event">
             <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
             <strong>Next event</strong>
-            <span>{business.nextEvent}</span>
+            <span>{listing.nextEvent}</span>
           </span>
         )}
 
         <div className="dirsearch-card-foot">
           <div className="dirsearch-card-signals">
-            {business.faces.length > 0 && (
+            {listing.faces.length > 0 && (
               <span className="dirsearch-card-avatars" aria-hidden="true">
-                {business.faces.map((face) => (
+                {listing.faces.map((face) => (
                   <Image key={face} src={face} alt="" width={26} height={26} />
                 ))}
               </span>
             )}
             <span className="dirsearch-card-counts">
-              <strong>{business.signal}</strong>
+              <strong>{listing.signal}</strong>
             </span>
           </div>
 
@@ -161,7 +161,7 @@ export function BusinessCard({ business }: { business: MockBusiness }) {
 /**
  * One event.
  *
- * Reordered against the business card on purpose. A business is chosen by
+ * Reordered against the listing card on purpose. A listing is chosen by
  * *what it is*, so the name and the tagline lead. An event is chosen by
  * whether you can be there, so the time leads and everything else is a
  * tiebreaker. Someone scanning Saturday is reading for "7pm, Little Haiti,
@@ -323,7 +323,7 @@ export function EventCard({ event }: { event: MockEvent }) {
  * as a crowd instead of a list, which keeps the page persuasive without
  * publishing a walkable directory of members.
  *
- * This matches what the business and event cards already did, so the rule is
+ * This matches what the listing and event cards already did, so the rule is
  * now one rule everywhere rather than a per-card judgement call.
  *
  * "You're in" still waits for sign-in. That one is a fact about the viewer

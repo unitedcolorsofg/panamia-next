@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
  * gated the same as a stranger — it just gets different copy, because telling
  * someone who is already signed in to "sign up" reads as broken.
  */
-export type ViewerKind = 'anon' | 'business' | 'pana';
+export type ViewerKind = 'anon' | 'directory' | 'pana';
 
 /**
  * The actions that write something to your pana identity.
@@ -161,7 +161,7 @@ export function PanaGateProvider({
     () => ({
       viewer,
       isPana,
-      showsPanaActions: viewer !== 'business',
+      showsPanaActions: viewer !== 'directory',
       requirePana,
     }),
     [viewer, isPana, requirePana]
@@ -224,7 +224,7 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
   // Pairs with the backstop in `requirePana`. A business account should no
   // longer be able to open this dialog at all, but if one does, it must not
   // be told to "sign up" when it is already signed in.
-  const signedInAsBusiness = viewer === 'business';
+  const signedInAsDirectory = viewer === 'directory';
 
   return (
     <Dialog open={action !== null} onOpenChange={(next) => !next && onClose()}>
@@ -245,18 +245,18 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
         <span className="section-eyebrow mt-6">{ACTION_EYEBROW[resolved]}</span>
 
         <DialogTitle className="bizprofile-gate-title">
-          {signedInAsBusiness
+          {signedInAsDirectory
             ? 'You need a pana account'
             : 'Sign up to be a pana'}
         </DialogTitle>
 
         <DialogDescription className="bizprofile-gate-reason">
-          {signedInAsBusiness
+          {signedInAsDirectory
             ? `You are signed in with a business account. ${ACTION_REASON[resolved]}`
             : ACTION_REASON[resolved]}
         </DialogDescription>
 
-        {!signedInAsBusiness && (
+        {!signedInAsDirectory && (
           <ul className="bizprofile-gate-list">
             {PANA_PERKS.map((perk) => (
               <li key={perk}>
@@ -275,11 +275,11 @@ function SignupDialog({ action, subject, viewer, onClose }: SignupDialogProps) {
           >
             <Link href="/welcome">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
-              {signedInAsBusiness ? 'Add a pana account' : 'Become a Pana'}
+              {signedInAsDirectory ? 'Add a pana account' : 'Become a Pana'}
             </Link>
           </Button>
 
-          {!signedInAsBusiness && (
+          {!signedInAsDirectory && (
             <Button
               size="lg"
               variant="outline"

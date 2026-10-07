@@ -1,7 +1,7 @@
 {
   "eyebrow": "Listado gratis",
-  "title": "Registra tu negocio",
-  "intro1": "Pana MIA es un directorio de creadores, tiendas, artistas y pequeños negocios independientes del sur de la Florida. Aparecer en el directorio es gratis.",
+  "title": "Publica tu ficha",
+  "intro1": "Pana MIA es un directorio de creadores, tiendas, artistas, bandas, cooperativas y organizaciones sin fines de lucro independientes del sur de la Florida. Aparecer en el directorio es gratis.",
   "intro2": "Siete pasos cortos, una pregunta a la vez. Todavía no necesitas crear una cuenta.",
 
   "stepCounter": "Paso {{step}} de {{total}}",
@@ -40,7 +40,7 @@
 
   "listingTypeQuestion": "¿Qué tipo de perfil estás creando?",
   "listingTypeNote": "Esto es lo que te ubica en el directorio.",
-  "listingTypeBusiness": "Un negocio, proyecto u organización",
+  "listingTypeDirectory": "Un negocio, banda, cooperativa, organización sin fines de lucro o proyecto",
   "listingTypeHybrid": "Ambos — registro mi trabajo y mantengo una presencia personal",
 
   "locallyBasedQuestion": "¿Tú (creador, director, dueño, CEO) resides en el sur de la Florida o eres de aquí?",
@@ -50,16 +50,16 @@
   "locallyBasedOther": "Otro (por favor",
   "locallyBasedOtherLink": "contáctanos con los detalles)",
 
-  "nameLabel": "Nombre de tu negocio, proyecto u organización",
+  "nameLabel": "Nombre de tu negocio, banda, cooperativa o proyecto",
   "namePlaceholder": "Café Las Olas",
   "nameNote": "Este nombre aparecerá como el título de tu perfil.",
 
   "emailLabel": "Correo electrónico",
-  "emailPlaceholder": "hola@tunegocio.com",
+  "emailPlaceholder": "hola@tusitio.com",
   "emailNote": "Usa el correo con el que quieres reclamar este perfil — ahí te enviaremos el enlace. No se muestra en tu perfil.",
   "personalEmailLabel": "Tu correo personal (opcional)",
   "personalEmailPlaceholder": "tu@ejemplo.com",
-  "personalEmailNote": "Si el correo de arriba es compartido o del negocio, agrega el tuyo aquí. Te enviaremos un enlace para entrar, así este perfil queda ligado a tu cuenta y puedes seguir su revisión. Nunca se muestra en público, y puedes registrar tu negocio sin darlo.",
+  "personalEmailNote": "Si el correo de arriba es compartido o del equipo, agrega el tuyo aquí. Te enviaremos un enlace para entrar, así este perfil queda ligado a tu cuenta y puedes seguir su revisión. Nunca se muestra en público, y puedes publicar tu ficha sin darlo.",
 
   "phoneLabel": "Teléfono (opcional)",
   "phonePlaceholder": "(305) 555-0123",
@@ -75,7 +75,7 @@
   "detailsPlaceholder": "Cuéntanos qué haces, para quién es, y en qué parte del sur de la Florida estás.",
   "detailsNote": "¡Esta será tu presentación ante nuestros usuarios! Un fragmento aparece en la búsqueda del directorio. Por favor incluye dónde estás ubicado en SoFlo :)",
 
-  "fiveWordsLabel": "Danos cinco palabras que describan tu negocio o servicios",
+  "fiveWordsLabel": "Danos cinco palabras que describan lo que haces",
   "fiveWordsPlaceholder": "Café cubano y pastelitos",
   "fiveWordsNote": "En pocas palabras. Esto es lo primero que la gente ve en el directorio.",
 
@@ -83,14 +83,14 @@
   "tagsNote": "Elige todas las que apliquen. Con estas funcionan los filtros de búsqueda del directorio.",
 
   "linksTitle": "Sitio web e Instagram",
-  "linksNote": "Agrega al menos uno para que podamos confirmar que eres un negocio local real. Se muestran en tu perfil.",
+  "linksNote": "Agrega al menos uno para que podamos confirmar que de verdad eres local. Se muestran en tu perfil.",
   "websiteLabel": "Sitio web",
-  "websitePlaceholder": "tunegocio.com",
+  "websitePlaceholder": "tusitio.com",
   "instagramLabel": "Instagram",
-  "instagramPlaceholder": "@tunegocio",
+  "instagramPlaceholder": "@tuusuario",
 
   "storefrontLabel": "Tengo una dirección física que la gente puede visitar",
-  "storefrontNote": "Déjalo sin marcar si eres solo en línea, móvil, o por cita. Marca esto solo para una dirección comercial — nunca tu casa.",
+  "storefrontNote": "Déjalo sin marcar si eres solo en línea, móvil, o por cita. Marca esto solo para una dirección pública — nunca tu casa.",
 
   "addressLine1Label": "Dirección",
   "addressLine1Placeholder": "123 SW 8th St",
@@ -104,7 +104,7 @@
 
   "hoursLabel": "Horario de atención (opcional)",
   "hoursPlaceholder": "Lun–Vie 9am–6pm\nSáb 10am–4pm\nDom cerrado",
-  "hoursNote": "Formato libre — escríbelo como lo leerían tus clientes.",
+  "hoursNote": "Formato libre — escríbelo como lo leerían tus visitantes.",
 
   "hearAboutUsLabel": "¿Cómo te enteraste de nosotros? (opcional)",
   "hearAboutUsPlaceholder": "Un amigo, Instagram, un mercado, otro pana...",
@@ -122,10 +122,10 @@
 
   "errTitle": "Casi — falta algo",
   "errLocallyBased": "Por favor dinos si estás basado en el sur de la Florida.",
-  "errName": "Por favor escribe el nombre de tu negocio (al menos 2 caracteres).",
+  "errName": "Por favor escribe el nombre de tu ficha (al menos 2 caracteres).",
   "errEmail": "Por favor escribe un correo electrónico válido.",
   "errPersonalEmail": "Ese correo no parece válido. Corrígelo o déjalo vacío — es opcional.",
-  "errPersonalEmailSame": "Es el mismo correo del negocio que pusiste arriba. Déjalo vacío si solo usas una dirección.",
+  "errPersonalEmailSame": "Es el mismo correo de contacto que pusiste arriba. Déjalo vacío si solo usas una dirección.",
   "errDetails": "Por favor cuéntanos un poco más sobre tu proyecto.",
   "errFiveWords": "Por favor dinos a qué te dedicas en pocas palabras.",
   "errLinks": "Por favor agrega un sitio web o un Instagram para que podamos encontrarte.",
@@ -138,9 +138,9 @@
   "successPersonalEmail": "También enviamos un enlace para entrar a {{email}}. Ábrelo para ligar este perfil a tu cuenta y seguir su revisión.",
   "successNextTitle": "Qué sigue",
   "successNext1": "Nuestro equipo revisa tu solicitud, normalmente en unos pocos días.",
-  "successNext2": "Una vez aprobada, tu negocio aparece en el directorio.",
+  "successNext2": "Una vez aprobada, tu ficha aparece en el directorio.",
   "successNext3": "Te enviaremos un enlace para reclamarlo y agregar fotos, horarios y más.",
-  "successAnother": "Registrar otro negocio",
+  "successAnother": "Registrar otra ficha",
   "successHome": "Volver al inicio",
 
   "alreadyListed": "¿Ya tienes un perfil?",

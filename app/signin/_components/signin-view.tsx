@@ -285,7 +285,7 @@ function SignInPageContent({
               className="h-auto w-64 max-w-full"
               priority
             />
-            {/* Listing a business no longer starts here — /form/list-your-business
+            {/* Getting listed no longer starts here — /form/get-listed
               is public — so there is one audience left on this page: someone
               returning to an account. */}
             <p className="text-pana-ink/75 dark:text-muted-foreground max-w-md text-center text-sm leading-relaxed">
