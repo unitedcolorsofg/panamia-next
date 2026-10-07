@@ -13,12 +13,18 @@ import {
 import { BrowserFrame } from '../../_components/browser-frame';
 import { SURFACE_LOGO } from '../../_data/panaverse';
 import { AccountMenu } from './account-menu';
-import { DiscoverChrome, type DayChip } from './discover-chrome';
+import {
+  DiscoverChrome,
+  type DayChip,
+  type FacetCounts,
+} from './discover-chrome';
 import { EventCard } from './event-card';
 import {
   MOCK_EVENTS,
   MOCK_HOST,
   MOCK_PATH,
+  type EventCounty,
+  type EventSort,
   type EventType,
   type MockEvent,
   type WhenBucket,
@@ -110,6 +116,8 @@ export function EventsDiscover() {
   const [when, setWhen] = useState<WhenBucket | 'all'>('all');
   const [day, setDay] = useState<string | null>(null);
   const [types, setTypes] = useState<EventType[]>([]);
+  const [counties, setCounties] = useState<EventCounty[]>([]);
+  const [sort, setSort] = useState<EventSort>('soonest');
   const [going, setGoing] = useState<string[]>([]);
   const [signedIn, setSignedIn] = useState(true);
   const [menuOpen, setMenuOpen] = useState(true);
@@ -126,25 +134,59 @@ export function EventsDiscover() {
     return order.map((d) => ({ day: d, count: counts.get(d) ?? 0 }));
   }, []);
 
+  /* One count per facet option, so each menu row can say what it would return
+     before it is clicked. Counted off the fixtures rather than typed, and
+     deliberately counted against the *unfiltered* set: a count that moved as
+     you filtered would make an option read as empty when it is merely empty
+     in combination, which is the thing it exists to warn you about. */
+  const counts: FacetCounts = useMemo(() => {
+    const when: Record<string, number> = { all: MOCK_EVENTS.length };
+    const type: Record<string, number> = {};
+    const county: Record<string, number> = {};
+    for (const event of MOCK_EVENTS) {
+      when[event.bucket] = (when[event.bucket] ?? 0) + 1;
+      type[event.type] = (type[event.type] ?? 0) + 1;
+      county[event.county] = (county[event.county] ?? 0) + 1;
+    }
+    return { when, type, county };
+  }, []);
+
   const shown = useMemo(() => {
-    return MOCK_EVENTS.filter((event) => {
+    const matched = MOCK_EVENTS.filter((event) => {
       if (day !== null) {
         if (event.day !== day) return false;
       } else if (when !== 'all' && event.bucket !== when) {
         return false;
       }
       if (types.length > 0 && !types.includes(event.type)) return false;
+      if (counties.length > 0 && !counties.includes(event.county)) return false;
       return true;
     });
-  }, [when, day, types]);
+
+    /* Soonest is the fixture order, which `_data.ts` keeps chronological.
+       Sorting by anything else is a copy, because MOCK_EVENTS is module state
+       shared with the panas rail below. */
+    return sort === 'going'
+      ? [...matched].sort((a, b) => b.going - a.going)
+      : matched;
+  }, [when, day, types, counties, sort]);
 
   /* Grouped by day rather than listed flat, which is the one structural
      difference between this and a search results page. A search answers a word
      and ranks by relevance; a discover page answers a week, and a week has
      days in it. Grouping is also what makes an empty Tuesday legible — it
      simply has no heading, instead of silently not appearing between two
-     cards nobody realised were a day apart. */
+     cards nobody realised were a day apart.
+
+     It only holds while the list is chronological. Ranked by how many people
+     are going, the days interleave, and the same grouping walk would emit
+     "Sat 21 · 1 event" three times with other days in between — a heading per
+     card, which is not a grouping. So that sort renders one flat list, and the
+     day headings go away with the order that earned them. */
+  const grouped = sort === 'soonest';
+
   const groups = useMemo(() => {
+    if (!grouped) return [];
     const out: { day: string; bucket: WhenBucket; events: MockEvent[] }[] = [];
     for (const event of shown) {
       const last = out[out.length - 1];
@@ -152,7 +194,7 @@ export function EventsDiscover() {
       else out.push({ day: event.day, bucket: event.bucket, events: [event] });
     }
     return out;
-  }, [shown]);
+  }, [shown, grouped]);
 
   /* The "panas you follow" rail, ranked by how many of them are going rather
      than by date. It is a different question from the grid above — not "what
@@ -169,13 +211,6 @@ export function EventsDiscover() {
 
   const weekendCount = MOCK_EVENTS.filter((e) => e.bucket === 'weekend').length;
 
-  const toggleType = (next: EventType) =>
-    setTypes((current) =>
-      current.includes(next)
-        ? current.filter((t) => t !== next)
-        : [...current, next]
-    );
-
   const toggleGoing = (id: string) =>
     setGoing((current) =>
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
@@ -185,6 +220,7 @@ export function EventsDiscover() {
     setWhen('all');
     setDay(null);
     setTypes([]);
+    setCounties([]);
   };
 
   return (
@@ -253,15 +289,56 @@ export function EventsDiscover() {
             day={day}
             onDay={setDay}
             types={types}
-            onToggleType={toggleType}
+            onTypes={setTypes}
+            counties={counties}
+            onCounties={setCounties}
+            sort={sort}
+            onSort={setSort}
             days={days}
+            counts={counts}
             totalCount={MOCK_EVENTS.length}
             shownCount={shown.length}
             weekendCount={weekendCount}
           />
 
           <div className="container mx-auto px-4 pb-16">
-            {groups.length > 0 ? (
+            {shown.length === 0 ? (
+              /* The directory's own empty state, reused whole. An events page
+                 that invents a second one is an events page that will word it
+                 differently, and "nothing here" said two ways is the clearest
+                 possible signal that two teams built two pages. */
+              <div className="dirsearch-empty">
+                <CalendarPlus className="h-12 w-12" aria-hidden="true" />
+                <h2 className="dirsearch-empty-title">
+                  Nothing on with <em>those filters</em>
+                </h2>
+                <p className="dirsearch-empty-lede">
+                  The calendar thins out midweek. Widen the window, or check
+                  what else is happening around it.
+                </p>
+                <div className="dirsearch-empty-actions">
+                  <button
+                    type="button"
+                    className="dirsearch-empty-primary"
+                    onClick={clearFilters}
+                  >
+                    Show everything
+                  </button>
+                  <button
+                    type="button"
+                    className="dirsearch-empty-secondary"
+                    onClick={() => {
+                      setDay(null);
+                      setTypes([]);
+                      setCounties([]);
+                      setWhen('weekend');
+                    }}
+                  >
+                    This weekend instead
+                  </button>
+                </div>
+              </div>
+            ) : grouped ? (
               groups.map((group) => (
                 <section key={group.day} className="pt-8">
                   {/* Capped to `.dirsearch-grid`'s own 58rem and centred with
@@ -297,40 +374,17 @@ export function EventsDiscover() {
                 </section>
               ))
             ) : (
-              /* The directory's own empty state, reused whole. An events page
-                 that invents a second one is an events page that will word it
-                 differently, and "nothing here" said two ways is the clearest
-                 possible signal that two teams built two pages. */
-              <div className="dirsearch-empty">
-                <CalendarPlus className="h-12 w-12" aria-hidden="true" />
-                <h2 className="dirsearch-empty-title">
-                  Nothing on with <em>those filters</em>
-                </h2>
-                <p className="dirsearch-empty-lede">
-                  The calendar thins out midweek. Widen the window, or check
-                  what else is happening around it.
-                </p>
-                <div className="dirsearch-empty-actions">
-                  <button
-                    type="button"
-                    className="dirsearch-empty-primary"
-                    onClick={clearFilters}
-                  >
-                    Show everything
-                  </button>
-                  <button
-                    type="button"
-                    className="dirsearch-empty-secondary"
-                    onClick={() => {
-                      setDay(null);
-                      setTypes([]);
-                      setWhen('weekend');
-                    }}
-                  >
-                    This weekend instead
-                  </button>
-                </div>
-              </div>
+              <ul className="dirsearch-grid pt-8">
+                {shown.map((event) => (
+                  <li key={event.id}>
+                    <EventCard
+                      event={event}
+                      going={going.includes(event.id)}
+                      onToggleGoing={toggleGoing}
+                    />
+                  </li>
+                ))}
+              </ul>
             )}
 
             {/* Signed in, this is the section a search page cannot have: it is

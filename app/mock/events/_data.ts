@@ -35,6 +35,16 @@ export type WhenBucket = 'today' | 'weekend' | 'month';
  *  the tag vocabulary is already the thing hosts actually fill in. */
 export type EventType = 'market' | 'workshop' | 'show' | 'mixer' | 'talk';
 
+/** The Where facet, keyed the way `lib/lists` writes counties so the mock's
+ *  values are the production values. `online` is not a county and that is the
+ *  point: an online event belongs to no county, so without a term for it the
+ *  Where menu would silently drop it from every answer. */
+export type EventCounty = 'miami_dade' | 'broward' | 'palm_beach' | 'online';
+
+/** The Sort facet. `closest` needs a location to measure from and is offered
+ *  disabled, the same way the live filter bar offers "Nearest". */
+export type EventSort = 'soonest' | 'going' | 'closest';
+
 export interface MockEvent {
   /** events.id */
   id: string;
@@ -56,6 +66,8 @@ export interface MockEvent {
   day: string;
   /** venues.name · venues.city, or "Online" when mode is online. */
   where: string;
+  /** venues.county, for the Where facet. `online` when there is no venue. */
+  county: EventCounty;
   /** eventRsvps rows with status 'going'. */
   going: number;
   /** events.attendeeCap. Null means uncapped. */
@@ -108,6 +120,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'today',
     day: 'Thu 19',
     where: 'Little Haiti Cultural Complex · Miami',
+    county: 'miami_dade',
     going: 212,
     cap: null,
     tags: ['Market', 'Free', 'Family'],
@@ -129,6 +142,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'today',
     day: 'Thu 19',
     where: 'Barrio Arts Lab · Delray Beach',
+    county: 'palm_beach',
     going: 11,
     cap: 12,
     tags: ['Print', 'Workshop', 'Zines'],
@@ -150,6 +164,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Fri 20',
     where: 'Bakehouse Art Complex · Wynwood',
+    county: 'miami_dade',
     going: 148,
     cap: 300,
     tags: ['Art', 'Free', 'Opening'],
@@ -171,6 +186,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Fri 20',
     where: 'The Annex · Fort Lauderdale',
+    county: 'broward',
     going: 64,
     cap: 80,
     tags: ['Mixer', 'Members'],
@@ -192,6 +208,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Sat 21',
     where: 'Casa Mariposa · Coral Gables',
+    county: 'miami_dade',
     going: 18,
     cap: 18,
     tags: ['Food', 'Ticketed'],
@@ -213,6 +230,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Sat 21',
     where: 'Taller Lucía · Little Havana',
+    county: 'miami_dade',
     going: 22,
     cap: 24,
     tags: ['Print', 'Workshop', 'Beginner'],
@@ -234,6 +252,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Sun 22',
     where: 'Online',
+    county: 'online',
     going: 93,
     cap: null,
     tags: ['Talk', 'Funding', 'Free'],
@@ -255,6 +274,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'weekend',
     day: 'Sun 22',
     where: 'Pinecrest Gardens · Pinecrest',
+    county: 'miami_dade',
     going: 310,
     cap: null,
     tags: ['Market', 'Free', 'Family'],
@@ -276,6 +296,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'month',
     day: 'Tue 24',
     where: 'Maria Restrepo Studio · Little Haiti',
+    county: 'miami_dade',
     going: 8,
     cap: 8,
     tags: ['Ceramics', 'Workshop'],
@@ -297,6 +318,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'month',
     day: 'Wed 25',
     where: 'Miami Workers Center · Liberty City',
+    county: 'miami_dade',
     going: 56,
     cap: null,
     tags: ['Talk', 'Free', 'Rights'],
@@ -318,6 +340,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'month',
     day: 'Thu 26',
     where: 'O Cinema · South Beach',
+    county: 'miami_dade',
     going: 77,
     cap: 120,
     tags: ['Film', 'Ticketed'],
@@ -339,6 +362,7 @@ export const MOCK_EVENTS: MockEvent[] = [
     bucket: 'month',
     day: 'Sat 28',
     where: 'Miami Workers Center · Liberty City',
+    county: 'miami_dade',
     going: 41,
     cap: 60,
     tags: ['Mutual aid', 'Free', 'Volunteer'],
@@ -369,17 +393,32 @@ export const TYPE_CHIPS: { key: EventType; label: string }[] = [
   { key: 'talk', label: 'Talks' },
 ];
 
-/** Counties, as the directory's own Where facet writes them. Decorative in the
- *  mock — the fixtures carry a formatted `where` string rather than a county
- *  key, because the thing under review is the rail, not the geocoder. */
-export const WHERE_CHIPS = [
-  'Near me',
-  'Miami-Dade',
-  'Broward',
-  'Palm Beach',
-] as const;
+/** Counties as `lib/lists` writes them, plus Online. "Near me" leads because
+ *  it is the answer most people want, and is offered disabled for the same
+ *  reason the live filter bar disables "Nearest": there is nothing to measure
+ *  from until the viewer shares a location, and an option that silently
+ *  returns an order you cannot account for is worse than one you cannot pick. */
+export const WHERE_OPTIONS: {
+  key: EventCounty | 'near';
+  label: string;
+  needsLocation?: boolean;
+}[] = [
+  { key: 'near', label: 'Near me', needsLocation: true },
+  { key: 'miami_dade', label: 'Miami-Dade' },
+  { key: 'broward', label: 'Broward' },
+  { key: 'palm_beach', label: 'Palm Beach' },
+  { key: 'online', label: 'Online' },
+];
 
-export const SORT_CHIPS = ['Soonest', 'Most going', 'Closest'] as const;
+export const SORT_OPTIONS: {
+  key: EventSort;
+  label: string;
+  needsLocation?: boolean;
+}[] = [
+  { key: 'soonest', label: 'Soonest' },
+  { key: 'going', label: 'Most going' },
+  { key: 'closest', label: 'Closest', needsLocation: true },
+];
 
 /**
  * The host whose chrome this page is being designed for.

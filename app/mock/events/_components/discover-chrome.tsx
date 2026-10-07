@@ -3,17 +3,24 @@
 import {
   CalendarDays,
   ChevronDown,
-  List,
+  LayoutList,
   Map as MapIcon,
   Search,
+  X,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  SORT_CHIPS,
+  FilterMenu,
+  type FilterMenuOption,
+} from '@/app/directory/search/_components/filter-menu';
+import {
+  SORT_OPTIONS,
   TYPE_CHIPS,
   WHEN_CHIPS,
-  WHERE_CHIPS,
+  WHERE_OPTIONS,
+  type EventCounty,
+  type EventSort,
   type EventType,
   type WhenBucket,
 } from '../_data';
@@ -25,20 +32,34 @@ export interface DayChip {
   count: number;
 }
 
+/** How many fixtures sit behind each option, so every menu shows its own
+ *  distribution. Counted by the caller off the rendered list, per the README. */
+export interface FacetCounts {
+  when: Record<string, number>;
+  type: Record<string, number>;
+  county: Record<string, number>;
+}
+
 /**
- * The band, the date strip and the facet rail.
+ * The band, the filter menus and the active-filter row.
  *
  * Everything above `.dirsearch-grid` on a directory page, reproduced from
  * `app/directory/_components/scope-page.tsx` class for class — `.surface-indigo
  * .dirsearch-band`, `.section-eyebrow`, `.dirsearch-title`, `.dirsearch-count`,
  * `.dirsearch-searchrow`, the `.directory-suggest-pill` with its scope control
- * as the leading element, then `.dirsearch-filters` with one
- * `.dirsearch-filterrow` per facet. Reproduced rather than imported for the
- * same reason `/mock/directory-unified` reproduces it: the real controls
- * navigate, and a mock whose demonstration is filtering in place cannot have
- * its first click leave the page.
+ * as the leading element — then the menu row from
+ * `app/directory/search/_components/filter-bar.tsx`.
  *
- * Two things are different, and they are the proposal.
+ * The band is reproduced for the reason `/mock/directory-unified` reproduces
+ * it: the real controls navigate, and a mock whose demonstration is filtering
+ * in place cannot have its first click leave the page. `FilterMenu` is
+ * *imported* rather than reproduced, because that reason does not apply to it
+ * — it is a controlled component that takes `selected` and `onChange` and
+ * never touches the router. Copying it would give this page a lookalike free
+ * to drift from the real menu, which is the opposite of what a mock built out
+ * of shipping classes is for.
+ *
+ * Three things are different, and they are the proposal.
  *
  * **The scope pill is locked.** On `/directory/[scope]` the pill is a menu
  * because the page is one of five answers to a typed question. Here the
@@ -48,13 +69,18 @@ export interface DayChip {
  * is the same control; it opens the other rooms rather than re-scoping a
  * query.
  *
- * **There is a date strip**, carried as an ordinary `.dirsearch-filterrow` so
- * it inherits the rail's grammar rather than inventing a calendar widget. This
- * is the one affordance a search page genuinely cannot supply. Searching
- * requires a word, and "Saturday" is not a word about an event — it is the
- * whole question for most of the people arriving. Each chip carries its own
- * count, so an empty Tuesday is visible before it is clicked, which is the
- * failure mode of every date picker that renders all days alike.
+ * **There is a Dates menu**, which is the one affordance a search page
+ * genuinely cannot supply. Searching requires a word, and "Saturday" is not a
+ * word about an event — it is the whole question for most of the people
+ * arriving.
+ *
+ * **Every option carries its count.** This is what the menus bought. As five
+ * chip rails there was no room for a number beside each chip without wrapping
+ * to a second line, so only the dates had one; folded into menus, each option
+ * gets a full row and the count comes free. It matters more than it sounds:
+ * the failure mode of every date picker is rendering all days alike, and the
+ * failure mode of every category filter is offering a term that returns
+ * nothing. A count beside the option fixes both before the click.
  */
 export function DiscoverChrome({
   when,
@@ -62,8 +88,13 @@ export function DiscoverChrome({
   day,
   onDay,
   types,
-  onToggleType,
+  onTypes,
+  counties,
+  onCounties,
+  sort,
+  onSort,
   days,
+  counts,
   totalCount,
   shownCount,
   weekendCount,
@@ -73,13 +104,91 @@ export function DiscoverChrome({
   day: string | null;
   onDay: (next: string | null) => void;
   types: EventType[];
-  onToggleType: (next: EventType) => void;
+  onTypes: (next: EventType[]) => void;
+  counties: EventCounty[];
+  onCounties: (next: EventCounty[]) => void;
+  sort: EventSort;
+  onSort: (next: EventSort) => void;
   days: DayChip[];
+  counts: FacetCounts;
   totalCount: number;
   shownCount: number;
   weekendCount: number;
 }) {
   const filtered = shownCount !== totalCount;
+
+  /* Counts are hints rather than part of the label so the option still reads
+     as a place or a day first. `FilterMenu` puts them on a second line. */
+  const plural = (n: number) => `${n} event${n === 1 ? '' : 's'}`;
+
+  const whenOptions: FilterMenuOption[] = WHEN_CHIPS.map((chip) => ({
+    value: chip.key,
+    label: chip.label,
+    hint: plural(counts.when[chip.key] ?? 0),
+  }));
+
+  const dayOptions: FilterMenuOption[] = days.map((chip) => ({
+    value: chip.day,
+    label: chip.day,
+    hint: plural(chip.count),
+  }));
+
+  const typeOptions: FilterMenuOption[] = TYPE_CHIPS.map((chip) => ({
+    value: chip.key,
+    label: chip.label,
+    hint: plural(counts.type[chip.key] ?? 0),
+  }));
+
+  const whereOptions: FilterMenuOption[] = WHERE_OPTIONS.map((option) => ({
+    value: option.key,
+    label: option.label,
+    hint: option.needsLocation
+      ? undefined
+      : plural(counts.county[option.key] ?? 0),
+    disabledReason: option.needsLocation
+      ? 'Share your location first'
+      : undefined,
+  }));
+
+  const sortOptions: FilterMenuOption[] = SORT_OPTIONS.map((option) => ({
+    value: option.key,
+    label: option.label,
+    disabledReason: option.needsLocation
+      ? 'Share your location first'
+      : undefined,
+  }));
+
+  /* Every active choice repeated as one removable chip, which is the trade the
+     real filter bar makes and the reason folding the rails up is not a loss:
+     what is on stays on the page, and turning one off never requires opening
+     a menu first. */
+  const activeChips: { key: string; label: string; clear: () => void }[] = [
+    ...(when !== 'all'
+      ? [
+          {
+            key: `when:${when}`,
+            label:
+              WHEN_CHIPS.find((chip) => chip.key === when)?.label ??
+              String(when),
+            clear: () => onWhen('all'),
+          },
+        ]
+      : []),
+    ...(day !== null
+      ? [{ key: `day:${day}`, label: day, clear: () => onDay(null) }]
+      : []),
+    ...types.map((value) => ({
+      key: `type:${value}`,
+      label: TYPE_CHIPS.find((chip) => chip.key === value)?.label ?? value,
+      clear: () => onTypes(types.filter((item) => item !== value)),
+    })),
+    ...counties.map((value) => ({
+      key: `county:${value}`,
+      label:
+        WHERE_OPTIONS.find((option) => option.key === value)?.label ?? value,
+      clear: () => onCounties(counties.filter((item) => item !== value)),
+    })),
+  ];
 
   return (
     <>
@@ -149,127 +258,112 @@ export function DiscoverChrome({
       </section>
 
       <div className="dirsearch-filters">
-        <div className="container mx-auto px-4">
-          {/* When and Dates are two resolutions of one axis, so they sit
-              adjacent and clear each other: picking Saturday means the window
-              is Saturday, not "this weekend, and also Saturday". Keeping them
-              independent produced the state nobody could read — two controls
-              both lit, describing different windows. */}
-          <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">When</span>
-            <div className="dirsearch-chiprow">
-              {WHEN_CHIPS.map((chip) => (
-                <button
-                  key={chip.key}
-                  type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={day === null && when === chip.key}
-                  onClick={() => {
-                    onDay(null);
-                    onWhen(chip.key);
-                  }}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="dirsearch-filterinner dirsearch-filterinner--menus container mx-auto">
+          <div className="dirsearch-menurow">
+            {/* When and Dates are two resolutions of one axis, so they sit
+                adjacent and clear each other: picking Saturday means the window
+                is Saturday, not "this weekend, and also Saturday". As chip
+                rails this could be faked by un-lighting the When row, but a
+                menu trigger names its own state — it would have gone on
+                reading "Later this month" while a Tuesday was doing the
+                filtering — so here the clearing has to be real. */}
+            <FilterMenu
+              label="When"
+              options={whenOptions}
+              selected={[day === null ? when : 'all']}
+              single
+              defaultValue="all"
+              onChange={([next]) => {
+                onDay(null);
+                onWhen(next as WhenBucket | 'all');
+              }}
+            />
 
-          <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">Dates</span>
-            <div className="dirsearch-chiprow">
-              {days.map((chip) => (
-                <button
-                  key={chip.day}
-                  type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={day === chip.day}
-                  onClick={() => onDay(day === chip.day ? null : chip.day)}
-                >
-                  {chip.day}
-                  <span className="opacity-55">{chip.count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+            <FilterMenu
+              label="Dates"
+              options={dayOptions}
+              selected={day === null ? [] : [day]}
+              single
+              caption="One day at a time. Picking one replaces the window above."
+              onChange={([next]) => {
+                onWhen('all');
+                onDay(next ?? null);
+              }}
+            />
 
-          {/* Type is multi-select where the rest of the rail is not. Markets
-              and workshops are not alternatives to each other — a person free
-              on Saturday will take either — whereas two sorts or two windows
-              cannot both be true. */}
-          <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">Type</span>
-            <div className="dirsearch-chiprow">
-              {TYPE_CHIPS.map((chip) => (
-                <button
-                  key={chip.key}
-                  type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={types.includes(chip.key)}
-                  aria-pressed={types.includes(chip.key)}
-                  onClick={() => onToggleType(chip.key)}
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          </div>
+            {/* Type is multi-select where When and Sort are not. Markets and
+                workshops are not alternatives to each other — a person free on
+                Saturday will take either — whereas two windows or two orders
+                cannot both be true. */}
+            <FilterMenu
+              label="Type"
+              options={typeOptions}
+              selected={types}
+              onChange={(next) => onTypes(next as EventType[])}
+            />
 
-          <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">Where</span>
-            <div className="dirsearch-chiprow">
-              {WHERE_CHIPS.map((chip, index) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={index === 0}
-                >
-                  {chip}
-                </button>
-              ))}
-              {/* List/Map is a view mode, not a fifth place. It shares the Where
-                  row because choosing a map is how you ask a question about
-                  place, but the rule separates it so the row does not read as
-                  five mutually exclusive location chips. */}
-              <span
-                aria-hidden="true"
-                className="bg-pana-ink/15 mx-1 h-5 w-px self-center"
-              />
-              <button
-                type="button"
-                className="dirsearch-chip inline-flex items-center gap-1.5"
-                data-on={true}
-              >
-                <List className="h-3.5 w-3.5" aria-hidden="true" />
+            <FilterMenu
+              label="Where"
+              options={whereOptions}
+              selected={counties}
+              onChange={(next) => onCounties(next as EventCounty[])}
+            />
+
+            <FilterMenu
+              label="Sort"
+              options={sortOptions}
+              selected={[sort]}
+              single
+              defaultValue="soonest"
+              onChange={([next]) => onSort(next as EventSort)}
+            />
+
+            <div className="dirsearch-viewtoggle">
+              <button type="button" data-on={true} aria-pressed={true}>
+                <LayoutList className="h-4 w-4" aria-hidden="true" />
                 List
               </button>
-              <button
-                type="button"
-                className="dirsearch-chip inline-flex items-center gap-1.5"
-                data-on={false}
-              >
-                <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              <button type="button" data-on={false} aria-pressed={false}>
+                <MapIcon className="h-4 w-4" aria-hidden="true" />
                 Map
               </button>
             </div>
           </div>
 
-          <div className="dirsearch-filterrow">
-            <span className="dirsearch-filterlabel">Sort</span>
-            <div className="dirsearch-chiprow">
-              {SORT_CHIPS.map((chip, index) => (
+          {activeChips.length > 0 && (
+            <div className="dirsearch-activerow">
+              <ul className="dirsearch-chiprow">
+                {activeChips.map((chip) => (
+                  <li key={chip.key}>
+                    <button
+                      type="button"
+                      className="dirsearch-activechip"
+                      onClick={chip.clear}
+                    >
+                      {chip.label}
+                      <X className="h-3 w-3" aria-hidden="true" />
+                      <span className="sr-only">Remove filter</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              {activeChips.length > 1 && (
                 <button
-                  key={chip}
                   type="button"
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={index === 0}
+                  className="dirsearch-clear"
+                  onClick={() => {
+                    onWhen('all');
+                    onDay(null);
+                    onTypes([]);
+                    onCounties([]);
+                  }}
                 >
-                  {chip}
+                  Clear all
                 </button>
-              ))}
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 
