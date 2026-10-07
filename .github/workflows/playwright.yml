@@ -171,6 +171,18 @@ jobs:
             psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f "$f"
           done < /tmp/migration-order.txt
 
+      # Unit tests (tests-unit/) need no database, no browser and no server --
+      # they are pure functions over env vars and literals. Nothing ran them in
+      # CI until now, which meant every assertion in that directory was
+      # advisory: it could rot for months and only a developer running
+      # `yarn test:unit` by hand would notice. They cost about two seconds, so
+      # the only reason not to run them was that nobody had.
+      #
+      # Placed ahead of the database tests so a pure-logic failure reports
+      # immediately rather than after a full migration run.
+      - name: Run unit tests
+        run: yarn test:unit
+
       # Data-layer tests (tests-db/) run here rather than in their own job so
       # they reuse the database the step above just migrated. They are fast,
       # need no browser, and failing now skips a Playwright install that was
