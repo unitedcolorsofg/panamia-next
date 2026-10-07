@@ -7,7 +7,20 @@ test.describe('Events — Public Pages', () => {
   test('events discovery page route exists', async ({ page }) => {
     const res = await page.goto('/e', { waitUntil: 'domcontentloaded' });
     expect(res?.status()).toBe(200);
-    await expect(page.locator('h1').first()).toContainText('Community Events');
+    await expect(page.locator('h1').first()).toContainText('What’s happening');
+  });
+
+  test('events page searches by term', async ({ page }) => {
+    // The scope menu on the home page sends "Events" searches here, so the
+    // query parameter is the contract between the two and worth asserting.
+    const res = await page.goto('/e?q=market', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('h1').first()).toContainText('market');
+    await expect(
+      page.getByRole('button', { name: /Search scope/ })
+    ).toBeVisible();
   });
 
   test('venues discovery page route exists', async ({ page }) => {
