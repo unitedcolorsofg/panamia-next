@@ -12,7 +12,7 @@ import {
   MockInput,
   MockSelect,
   MockTag,
-} from '@/components/Admin/mock-controls';
+} from '@/components/mock-controls';
 import { AdminMockBar } from '@/components/Admin/mock-bar';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { ADMIN_CHROME } from '@/lib/admin/theme';

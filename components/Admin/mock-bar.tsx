@@ -5,10 +5,9 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
  *
  * ## Why there is no "viewing as" switch here
  *
- * The Connectors mock has one, because that surface genuinely renders three
+ * The Connectors mock has one, because that surface genuinely renders two
  * different things depending on who is looking — a visitor sees a pitch, a
- * connector sees their HQ, an admin sees the console — and all three are
- * screens somebody had to design.
+ * connector sees their HQ — and both are screens somebody had to design.
  *
  * This surface renders one thing. You are staff or you are not, and "not" is
  * not a screen: it is `checkAdminAuth()` turning you away before any of this

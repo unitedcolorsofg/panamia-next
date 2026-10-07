@@ -493,16 +493,22 @@ export function headlineStats(): HeadlineStat[] {
  * Who is looking at the page.
  *
  * In the real build this comes from the session — whether the signed-in user
- * has a connector record, and whether they are a programme admin. While this
- * is a mock it comes from `?as=` instead, so the panas can click between all
- * three states in a review without us standing up auth fixtures first.
+ * has a connector record. While this is a mock it comes from `?as=` instead,
+ * so the panas can click between both states in a review without us standing
+ * up auth fixtures first.
  *
  * It is wired as a query param rather than a build flag precisely so that a
  * link to the HQ in a review thread shows the reviewer what the reporter saw.
+ *
+ * There is no `admin` member. There was, while the programme console lived at
+ * `/connectors/admin`; it has since moved to the staff-gated admin surface,
+ * which answers to `checkAdminAuth()` and has no viewer roles of its own. A
+ * role you cannot preview is not a state of this surface, and leaving it in
+ * the union meant every map over it needed an entry explaining the exception.
  */
-export type ViewerRole = 'visitor' | 'connector' | 'admin';
+export type ViewerRole = 'visitor' | 'connector';
 
-export const VIEWER_ROLES: readonly ViewerRole[] = ['visitor', 'connector', 'admin'];
+export const VIEWER_ROLES: readonly ViewerRole[] = ['visitor', 'connector'];
 
 /** The connector whose shoes you stand in when previewing as a member. */
 export const DEMO_VIEWER_ID = 'bianca';
