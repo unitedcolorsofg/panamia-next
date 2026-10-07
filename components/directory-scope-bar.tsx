@@ -19,6 +19,7 @@ import {
   SCOPE_TONE,
   SCOPES,
   scopePath,
+  visibleScopes,
   type Scope,
   type ScopeCounts,
 } from '@/lib/directory-scopes';
@@ -46,6 +47,20 @@ interface ScopeMenuProps {
    * Rows become buttons that set state, and submit carries the chosen scope.
    */
   onSelect?: (scope: Scope) => void;
+  /**
+   * Shrinks the trigger to fit a masthead pill.
+   *
+   * The surface masthead's field is 2.125rem tall against the hero's much
+   * larger one, and the default trigger's 2px border and 0.3125rem padding do
+   * not fit inside it. Only the trigger changes: the panel is the same panel,
+   * because a dropdown has the whole viewport to open into regardless of how
+   * small the thing that opened it was.
+   *
+   * A prop rather than a second component, for the reason in this file's
+   * header -- a copy would be a second place for the members-only rule to
+   * drift.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -71,6 +86,7 @@ export function ScopeMenu({
   counts,
   signedIn,
   onSelect,
+  compact = false,
 }: ScopeMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,9 +96,12 @@ export function ScopeMenu({
 
   // Gated scopes are skipped by the arrow keys rather than merely dimmed; a
   // keyboard user should not have to arrow through a door that is locked.
-  const reachable = SCOPES.filter(
-    (option) => !(SCOPE_REQUIRES_PANA[option] && !signedIn)
-  );
+  //
+  // Through `visibleScopes` rather than filtering here, because that helper is
+  // documented as the single place the members-only rule is applied to a list
+  // of scopes — and this was the list that had quietly grown its own copy of
+  // it. The two agreed, which is the only reason the drift was invisible.
+  const reachable = visibleScopes(signedIn);
 
   const CurrentIcon = KIND_ICON[scope];
 
@@ -166,7 +185,7 @@ export function ScopeMenu({
       <button
         ref={triggerRef}
         type="button"
-        className="surface-pill"
+        className={compact ? 'surface-pill surface-pill-compact' : 'surface-pill'}
         data-tone={SCOPE_TONE[scope]}
         aria-haspopup="menu"
         aria-expanded={open}
