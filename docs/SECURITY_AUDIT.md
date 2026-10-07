@@ -32,14 +32,26 @@ OAUTH_MASTODON_SOCIAL=trusted
 
 - `OAUTH_EMAIL` is hardcoded to `trusted` (we send the magic link, confirming ownership)
 - `OAUTH_MASTODON_SOCIAL` is an explicit reference to the mastodon.social instance, not a generic domain-matching pattern
+- When one of these variables is unset, the trust level falls back to the
+  `defaultValue` declared for it in `lib/env.config.ts` — the values shown
+  above. Leaving `OAUTH_GOOGLE` unset therefore yields `trusted`, not a
+  blocked provider.
+- An unrecognised value (e.g. a mis-cased `Trusted`) is rejected and the
+  provider is treated as `disabled`, so a typo fails closed.
+- `verification-required` currently has no verification flow implemented — it
+  blocks account creation outright and the member sees a generic auth error.
+  Treat it as "off" until that TODO in `auth.ts` is finished.
 
 #### Trusted Providers (Immediate Auto-Claim)
 
 These providers verify email ownership before providing email addresses:
 
 - **Google** - Email verified by Google
-  - Scopes: `openid email profile https://www.googleapis.com/auth/calendar.events`
-  - Calendar scope allows creating/editing mentoring session events
+  - Scopes: `openid email profile`
+  - Sign-in only. Google's restricted `calendar.events` scope was requested here
+    for a mentoring-calendar sync that was never built; it was dropped so that
+    signing in does not demand calendar access or force an app-verification
+    review. Re-add it with the feature that needs it.
 - **Apple** - Email verified by Apple
   - Scopes: `name email`
   - Note: Calendar API not available via OAuth
@@ -83,6 +95,34 @@ These providers may not reliably verify email ownership:
 #### Disabled Providers
 
 Providers set to `disabled` will show greyed-out buttons on the sign-in page and reject authentication attempts.
+
+### Account Linking (OAuth alongside magic link)
+
+A member who signed up by magic link and later uses "Continue with Google" on
+the same address lands in the **same account** rather than a duplicate. This is
+better-auth's implicit linking, and it is load-bearing, so the conditions are
+worth stating. Linking proceeds only when all of these hold:
+
+- The incoming provider reports the email as verified, **or** the provider is
+  listed in `account.accountLinking.trustedProviders`. Google sets
+  `email_verified`, so this is satisfied.
+- The **existing** local user has `users.email_verified = true`
+  (better-auth's `requireLocalEmailVerified`, which defaults to on). The magic
+  link plugin creates users with `emailVerified: true` and promotes an
+  unverified user on sign-in, so magic-link accounts qualify.
+- Implicit linking is not switched off.
+
+Two consequences:
+
+- `users.email_verified` defaults to `false` at the schema level. Any account
+  created by some path that never verifies an email cannot be linked into by
+  Google; that sign-in fails with `account not linked`. Fixing such a case
+  means verifying the email, not relaxing the check — `requireLocalEmailVerified`
+  is what stops someone pre-registering an address to capture a later OAuth
+  sign-in.
+- Linking is keyed on the email address. A member whose Google address differs
+  from their magic-link address gets a second account, which is the correct and
+  intended outcome.
 
 ### Email Migration Security
 
