@@ -505,6 +505,8 @@ export interface GroupSearchSummary {
   name: string | null;
   summary: string | null;
   iconUrl: string | null;
+  /** Cover photo, or null. Actor identity, public for private groups too. */
+  headerUrl: string | null;
   topics: Record<string, boolean>;
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
@@ -516,6 +518,23 @@ export interface GroupSearchSummary {
    * SQL, so a client never has to.
    */
   faces: string[];
+  /**
+   * Posts in the last seven days. Always 0 for a private group, for the same
+   * reason faces is empty -- what a private group is discussing is the thing
+   * the setting protects. A card must not render "0 posts this week" for one;
+   * see activityLabel, which returns null rather than a number.
+   */
+  postsThisWeek: number;
+  /** Next published public event, or null. Always null for a private group. */
+  nextEvent: {
+    slug: string;
+    title: string;
+    startsAt: string;
+    /** The event's own timezone. A Miami event is on the day Miami says. */
+    timezone: string;
+  } | null;
+  /** Total upcoming events, so a card can say "+2 more". 0 when private. */
+  upcomingEventCount: number;
 }
 
 export interface GroupSearchResponse {
@@ -524,12 +543,43 @@ export interface GroupSearchResponse {
   query: string;
 }
 
+/**
+ * How a browse list is ordered. Ignored by the server once there is a term,
+ * where relevance decides instead.
+ */
+export type GroupSort = 'active' | 'members' | 'new';
+
+export const GROUP_SORTS: readonly { id: GroupSort; label: string }[] = [
+  { id: 'active', label: 'Most active' },
+  { id: 'members', label: 'Biggest' },
+  { id: 'new', label: 'Newest' },
+];
+
+/**
+ * Reads a sort out of a URL, falling back rather than throwing.
+ *
+ * Defaults to 'active', not 'members'. Sorted by size, new groups are
+ * invisible forever, and a browse page that only shows the biggest groups
+ * cannot grow the next one. The server's own default is 'members' because an
+ * API with no opinion should be stable; a browse page has an opinion.
+ */
+export function parseGroupSortId(value: string | null | undefined): GroupSort {
+  const match = GROUP_SORTS.find((option) => option.id === value);
+  return match ? match.id : 'active';
+}
+
 async function fetchGroupSearch(
-  term: string
+  term: string,
+  sort: GroupSort,
+  topic: string | null
 ): Promise<GroupSearchResponse | null> {
-  return getSocialData(
-    `/api/social/groups?q=${encodeURIComponent(term)}&limit=${GROUP_SEARCH_LIMIT}`
-  );
+  const params = new URLSearchParams({
+    q: term,
+    limit: String(GROUP_SEARCH_LIMIT),
+    sort,
+  });
+  if (topic) params.set('topic', topic);
+  return getSocialData(`/api/social/groups?${params.toString()}`);
 }
 
 /** How many groups a search page asks for. Server clamps at 50 regardless. */
@@ -541,11 +591,69 @@ const GROUP_SEARCH_LIMIT = 24;
  * An empty term is not an error and is not disabled: the endpoint browses the
  * liveliest groups instead, which is what makes the Groups tab worth opening
  * before anybody has typed anything.
+ *
+ * `sort` and `topic` are in the query key rather than applied client-side,
+ * because the server only returns one page: re-ordering or filtering 24 rows
+ * locally would promise a "biggest first" list and deliver the biggest of an
+ * arbitrary 24.
  */
-export const useGroupSearch = (term: string) => {
+export const useGroupSearch = (
+  term: string,
+  sort: GroupSort = 'members',
+  topic: string | null = null
+) => {
   return useQuery<GroupSearchResponse | null, Error>({
-    queryKey: [socialQueryKey, 'groups', 'search', term],
-    queryFn: () => fetchGroupSearch(term),
+    queryKey: [socialQueryKey, 'groups', 'search', term, sort, topic ?? ''],
+    queryFn: () => fetchGroupSearch(term, sort, topic),
+  });
+};
+
+/** One topic, with how many groups carry it. */
+export interface GroupTopicFacet {
+  topic: string;
+  count: number;
+}
+
+/**
+ * The topic chips on the landing and discover pages.
+ *
+ * Derived from the data rather than a fixed list, because the create form
+ * takes free text. Counts include private groups, matching what the search
+ * endpoint returns, so a chip can never advertise a number the filter behind
+ * it does not produce.
+ */
+export const useGroupTopics = () => {
+  return useQuery<{ topics: GroupTopicFacet[] } | null, Error>({
+    queryKey: [socialQueryKey, 'groups', 'topics'],
+    queryFn: () => getSocialData('/api/social/groups/topics'),
+    // Topics change when a group is created or edited, not between renders.
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/** An upcoming event, with the group hosting it named on it. */
+export interface UpcomingGroupEvent {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  timezone: string;
+  mode: string;
+  attendeeCount: number;
+  groupHandle: string;
+  groupName: string | null;
+  venue: { name: string; city: string; state: string } | null;
+}
+
+/**
+ * What groups have coming up, across all of them. Public groups only -- a
+ * private group's calendar is content, not identity.
+ */
+export const useUpcomingGroupEvents = () => {
+  return useQuery<{ events: UpcomingGroupEvent[] } | null, Error>({
+    queryKey: [socialQueryKey, 'groups', 'upcoming-events'],
+    queryFn: () => getSocialData('/api/social/groups/events'),
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -664,10 +772,14 @@ async function fetchMyGroups(): Promise<MyGroupsResponse | null> {
  * public one for the member's own surfaces is why the feed rail used to
  * undercount anyone in a private group.
  */
-export const useMyGroups = () => {
+export const useMyGroups = (options?: { enabled?: boolean }) => {
   return useQuery<MyGroupsResponse | null, Error>({
     queryKey: [socialQueryKey, 'me', 'groups'],
     queryFn: fetchMyGroups,
+    // Callers that render for signed-out visitors too pass `enabled` rather
+    // than calling conditionally, which hooks do not allow. The endpoint 401s
+    // without a session and there is nothing to show for it.
+    enabled: options?.enabled ?? true,
   });
 };
 
