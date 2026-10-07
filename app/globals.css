@@ -2224,17 +2224,31 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-indigo);
 }
 
+/* Solid rather than tinted, and ink rather than burnt, because the warm hues
+   cannot carry their own colour as text on a light tint. Measured:
+     burnt on 16% burnt over cream  2.87  (was shipping; needs 4.5)
+     burnt on 16% burnt over white  3.02
+   Darkening the text instead of filling the chip does not rescue it either —
+   the tint itself eats the headroom, so burnt has to go to #a54a29 before it
+   clears, by which point it is a dark brown and no longer reads as the brand
+   orange. Filling the chip keeps the hue and buys real margin:
+     ink on solid burnt  5.29
+   This is the same move `[data-on-media='true'][data-tone='admin']` below
+   already makes, for the same reason. */
 .card-flag[data-tone='admin'] {
-  background-color: rgb(217 98 54 / 0.16);
-  color: var(--color-pana-burnt);
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-ink);
 }
 
 /* A flag that is asking for something rather than describing something. Carries
-   the flame tint so "Follows you" reads as the live row in a strip where every
-   other flag is a static fact. See docs/SOCIAL-GRAPH.md. */
+   the flame fill so "Follows you" reads as the live row in a strip where every
+   other flag is a static fact. See docs/SOCIAL-GRAPH.md.
+   Solid for the same reason as the admin tone above:
+     burnt on 18% flame over cream  2.95  (was shipping)
+     ink on solid flame             7.50  (now) */
 .card-flag[data-tone='prompt'] {
-  background-color: rgb(242 132 68 / 0.18);
-  color: var(--color-pana-burnt);
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
 }
 
 /* Over imagery the translucent tints disappear and the warm text loses
