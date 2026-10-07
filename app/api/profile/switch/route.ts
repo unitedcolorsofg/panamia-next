@@ -33,12 +33,27 @@ export async function GET() {
     );
   }
 
-  const [administered, activeProfileId, pendingInvitations] =
-    await Promise.all([
+  const [administered, activeProfileId, pendingInvitations] = await Promise.all(
+    [
       listAdministeredProfiles(session.user.id),
       getActiveProfileId(session.user.id),
-      listPendingInvitations(session.user.email),
-    ]);
+      /* Degrades to "no invitations" instead of taking the response with it.
+         Invitations ride along here as a convenience, but the first two are
+         what the account menu is actually for, and a passenger must not be
+         able to crash the car.
+
+         This is not hypothetical. The column this reads was added in one
+         release and the migration did not reach production, so the query
+         threw on every signed-in request — and because the whole handler
+         rejected, members got a 500 and an account menu with no accounts in
+         it. A missing invitation is invisible; a missing identity list looks
+         like a deleted account. */
+      listPendingInvitations(session.user.email).catch((error) => {
+        console.error('Pending invitations lookup failed:', error);
+        return [];
+      }),
+    ]
+  );
 
   // Your own profile first, then businesses alphabetically — a stable order, so
   // the menu doesn't reshuffle between loads.
