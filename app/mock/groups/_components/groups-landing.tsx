@@ -10,10 +10,10 @@ import {
   Users,
 } from 'lucide-react';
 import {
-  MOCK_GROUP_EVENTS,
   sortGroups,
   searchGroups,
   topicsWithCounts,
+  upcomingEvents,
   yourGroups,
   type ViewerAuth,
 } from '../_data/mock-groups';
@@ -122,7 +122,7 @@ export function GroupsLanding({
       <section className="mt-12">
         <SectionHead
           title="Active right now"
-          hint="Open to join, busiest this week"
+          hint="Open to join, busiest this week, with anything they have coming up"
           action={
             <button
               type="button"
@@ -137,7 +137,7 @@ export function GroupsLanding({
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {active.map((group) => (
-            <GroupCard key={group.id} group={group} />
+            <GroupCard key={group.id} group={group} showEvents />
           ))}
         </div>
       </section>
@@ -149,7 +149,7 @@ export function GroupsLanding({
         />
 
         <div className="mt-4 grid gap-3">
-          {MOCK_GROUP_EVENTS.map((event) => (
+          {upcomingEvents().map((event) => (
             <GroupEventRow key={event.id} event={event} />
           ))}
         </div>

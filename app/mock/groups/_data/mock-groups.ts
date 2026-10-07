@@ -77,8 +77,19 @@ export interface MockGroupEvent {
   id: string;
   /** events.title */
   title: string;
-  /** events.starts_at, pre-formatted. */
-  when: string;
+  /**
+   * events.starts_at. Present as well as the formatted strings below because
+   * "Sat, Nov 7" cannot be ordered -- anything that sorts or picks the next
+   * event has to sort on this.
+   */
+  startsAt: string;
+  /**
+   * events.starts_at, formatted. Written out rather than computed from
+   * startsAt so the mock reads identically in every timezone, and so a
+   * reviewer in London is not shown a different day to one in Miami.
+   */
+  day: string;
+  time: string;
   /** events.location_name */
   where: string;
   /** The hosting group, via events.host_group_id. */
@@ -292,12 +303,24 @@ export const MOCK_TOPICS: MockTopic[] = [
 /* Group-hosted events, kept on the landing page because they are the clearest
    answer to "why a group rather than a group chat". A chat cannot put a date
    in your calendar. Every one of these belongs to a group in the list above,
-   checked by groupFor() rather than by eye. */
+   checked by groupFor() rather than by eye.
+
+   Spread across five groups rather than concentrated in one, because the
+   "Active right now" shelf shows an event label per card and that label has
+   three states to prove: one event, several events, and none. Two of the
+   groups below carry an event for a reason rather than for coverage -- the
+   salsa group's own summary already says "Second Friday", and a plant swap
+   with no swap on the calendar is not a plant swap.
+
+   Deliberately NOT given to Cafecito & Code, which sits in the same shelf, so
+   a card with no event is visible next to cards that have one. */
 export const MOCK_GROUP_EVENTS: MockGroupEvent[] = [
   {
     id: 'event-1',
     title: 'First Saturday Riso Workshop',
-    when: 'Sat, Mar 1 - 11:00am',
+    startsAt: '2026-11-07T11:00',
+    day: 'Sat, Nov 7',
+    time: '11:00am',
     where: 'Bakehouse Art Complex',
     groupId: 'group-1',
     going: 34,
@@ -305,18 +328,54 @@ export const MOCK_GROUP_EVENTS: MockGroupEvent[] = [
   {
     id: 'event-2',
     title: 'Rough Cut Night',
-    when: 'Thu, Mar 6 - 7:30pm',
+    startsAt: '2026-11-12T19:30',
+    day: 'Thu, Nov 12',
+    time: '7:30pm',
     where: 'O Cinema South Beach',
     groupId: 'group-3',
     going: 61,
   },
   {
     id: 'event-3',
-    title: 'Hurricane Prep Supply Drive',
-    when: 'Sun, Mar 9 - 10:00am',
+    title: 'Thanksgiving Food Run',
+    startsAt: '2026-11-15T10:00',
+    day: 'Sun, Nov 15',
+    time: '10:00am',
     where: 'Allapattah Community Garden',
     groupId: 'group-9',
     going: 118,
+  },
+  {
+    id: 'event-4',
+    title: 'Monthly Swap in the Park',
+    startsAt: '2026-11-14T09:00',
+    day: 'Sat, Nov 14',
+    time: '9:00am',
+    where: 'Amelia Earhart Park',
+    groupId: 'group-4',
+    going: 42,
+  },
+  {
+    id: 'event-5',
+    title: 'Second Friday Beginner Lesson',
+    startsAt: '2026-11-13T20:00',
+    day: 'Fri, Nov 13',
+    time: '8:00pm',
+    where: 'Allapattah Collective',
+    groupId: 'group-10',
+    going: 76,
+  },
+  /* The second event for group-9, and the only reason the plural label has
+     anything to render. */
+  {
+    id: 'event-6',
+    title: 'Ride Share Sign-Up',
+    startsAt: '2026-11-19T18:30',
+    day: 'Thu, Nov 19',
+    time: '6:30pm',
+    where: 'Online',
+    groupId: 'group-9',
+    going: 27,
   },
 ];
 
@@ -362,6 +421,30 @@ export function yourGroups(): MockGroupCard[] {
  */
 export function groupFor(event: MockGroupEvent): MockGroupCard | undefined {
   return MOCK_GROUPS.find((group) => group.id === event.groupId);
+}
+
+/**
+ * Every upcoming event, soonest first.
+ *
+ * Sorted here rather than maintained in order in the fixture, because the
+ * fixture is grouped by host for readability and the page has to show the
+ * nearest date first regardless of who is hosting it.
+ */
+export function upcomingEvents(): MockGroupEvent[] {
+  return [...MOCK_GROUP_EVENTS].sort((a, b) =>
+    a.startsAt.localeCompare(b.startsAt)
+  );
+}
+
+/**
+ * A group's upcoming events, soonest first.
+ *
+ * The card label and the events list below it both come through here, so the
+ * date a card advertises is the same row the visitor finds further down the
+ * page -- the same reason topic chips and topic filters share one function.
+ */
+export function eventsForGroup(groupId: string): MockGroupEvent[] {
+  return upcomingEvents().filter((event) => event.groupId === groupId);
 }
 
 /**

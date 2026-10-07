@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { CalendarDays, Lock, MessageSquare, Users } from 'lucide-react';
 import {
+  eventsForGroup,
   groupFor,
   type MockGroupCard,
   type MockGroupEvent,
@@ -85,8 +86,47 @@ function activityLabel(group: MockGroupCard): string | null {
   return `${group.postsThisWeek} posts this week`;
 }
 
-export function GroupCard({ group }: { group: MockGroupCard }) {
+/**
+ * The next event, phrased for a browse card rather than for a calendar.
+ *
+ * Returns the date when there is one event and a count when there are
+ * several, because a card that says "Sat, Nov 15" when the group also meets
+ * on the 19th has told a half-truth, and listing both dates turns a one-line
+ * summary into a schedule.
+ *
+ * Suppressed for private groups for the same reason the post count is: what a
+ * private group is doing, and when, is not public. The shelf that uses this
+ * filters to public groups anyway, so this guard is here for the next caller
+ * rather than for the current one.
+ */
+function eventLabel(group: MockGroupCard): string | null {
+  if (group.visibility === 'private') return null;
+
+  const events = eventsForGroup(group.id);
+  if (events.length === 0) return null;
+  if (events.length === 1) return `Event ${events[0].day}`;
+  return `${events.length} events coming up`;
+}
+
+/**
+ * `showEvents` is opt-in rather than always on.
+ *
+ * The landing page's "Active right now" shelf is four cards being argued for,
+ * where "they are meeting on Saturday" is the strongest thing that can be
+ * said about a group. Discover is a list of ten-plus being scanned, where a
+ * fourth fact on every row costs more in density than it returns -- and where
+ * the sort is explicitly about posts, so a date would be answering a question
+ * nobody asked.
+ */
+export function GroupCard({
+  group,
+  showEvents = false,
+}: {
+  group: MockGroupCard;
+  showEvents?: boolean;
+}) {
   const activity = activityLabel(group);
+  const nextEvent = showEvents ? eventLabel(group) : null;
 
   return (
     <article className="profile-card flex gap-3.5 p-4">
@@ -130,6 +170,17 @@ export function GroupCard({ group }: { group: MockGroupCard }) {
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
               {activity}
+            </span>
+          )}
+
+          {/* Indigo rather than the muted ink the other two facts use. The
+              member count and the post count describe a group; this one is
+              the only thing in the row a visitor can act on, and it should
+              not have to be hunted for among numbers. */}
+          {nextEvent && (
+            <span className="text-pana-indigo inline-flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+              {nextEvent}
             </span>
           )}
 
@@ -205,7 +256,7 @@ export function GroupEventRow({ event }: { event: MockGroupEvent }) {
           {event.title}
         </h3>
         <p className="text-pana-ink/60 mt-0.5 truncate text-[12px] font-bold">
-          {event.when} - {event.where}
+          {event.day} - {event.time} - {event.where}
         </p>
         <p className="text-pana-ink/45 mt-0.5 truncate text-[12px] font-bold">
           Hosted by {group.name} - {event.going} going
