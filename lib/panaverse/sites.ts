@@ -48,6 +48,21 @@ export interface PanaSite {
    * anything that crosses a surface boundary.
    */
   href: string | null;
+  /**
+   * Show this tile only to staff.
+   *
+   * Filtered in `components/account/pana-sites.tsx` against the client
+   * session's `isAdmin`, not here, because this registry is resolved in the
+   * root layout and the root layout has no session — adding one would mean an
+   * auth lookup on every page render of every surface to decide whether to
+   * draw one tile.
+   *
+   * Hiding is a courtesy, not the control. `/admin` is refused server-side by
+   * `checkAdminAuth()` whether or not a tile pointed at it, and the path is
+   * not a secret. What the flag buys is that the account menu does not offer
+   * every member a door they cannot open.
+   */
+  adminOnly?: boolean;
 }
 
 export const PANA_SITES: readonly PanaSite[] = [
@@ -65,6 +80,10 @@ export const PANA_SITES: readonly PanaSite[] = [
   // between the explainer and the member dashboard happens on that page, not
   // in this registry -- a tile cannot know who is clicking it.
   { id: 'connectors', labelKey: 'connectors', href: '/connectors' },
+  /* Last, and only for staff. It is a different kind of thing from everything
+   * above it — those are places a member goes, this is the back office — so it
+   * sits at the end rather than being sorted in among them. */
+  { id: 'admin', labelKey: 'admin', href: '/admin', adminOnly: true },
 ];
 
 /**

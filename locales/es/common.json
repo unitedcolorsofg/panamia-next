@@ -27,6 +27,7 @@
     "manager": "Gerente",
     "owner": "Dueño",
     "sites": {
+      "admin": "Administración",
       "connectors": "Conectores",
       "directory": "Directorio",
       "events": "Eventos",

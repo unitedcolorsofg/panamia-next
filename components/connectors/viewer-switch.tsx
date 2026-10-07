@@ -25,11 +25,15 @@ const ROLE_LABEL: Record<ViewerRole, string> = {
   admin: 'Programme admin',
 };
 
-/** Each role implies where it belongs, which is the behaviour being demoed. */
+/** Each role implies where it belongs, which is the behaviour being demoed.
+ *
+ *  The admin console moved to the admin surface, so this points off Connectors
+ *  entirely. `/connectors/admin` still answers and redirects here, so an old
+ *  link in somebody's notes keeps working. */
 const ROLE_HOME: Record<ViewerRole, string> = {
   visitor: '/connectors',
   connector: '/connectors/hq',
-  admin: '/connectors/admin',
+  admin: '/admin/connectors',
 };
 
 export function ViewerSwitch({ current }: { current: ViewerRole }) {

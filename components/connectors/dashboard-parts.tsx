@@ -17,6 +17,7 @@ import {
   getTier,
 } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
+import type { ChromeTokens } from '@/lib/panaverse/chrome-tokens';
 
 /**
  * The pieces both Connector dashboards are built from.
@@ -338,9 +339,17 @@ export function EventCard({ event }: { event: ConnectorEvent }) {
 export function CommitmentsTable({
   rows,
   showWho = true,
+  chrome = CONNECTORS_CHROME,
 }: {
   rows: readonly Commitment[];
   showWho?: boolean;
+  /** Which surface's header fill to wear.
+   *
+   *  Defaults to Connectors, so HQ is unchanged. The admin console renders
+   *  this table on the admin surface, where an indigo header under a blue
+   *  masthead reads as a bug rather than as a theme. The table is about
+   *  connectors; the furniture belongs to whichever tool is showing it. */
+  chrome?: ChromeTokens;
 }) {
   if (rows.length === 0) {
     return (
@@ -354,7 +363,7 @@ export function CommitmentsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
         <thead>
-          <tr className={`${CONNECTORS_CHROME.FILL} ${CONNECTORS_CHROME.ON_FILL}`}>
+          <tr className={`${chrome.FILL} ${chrome.ON_FILL}`}>
             {showWho && <Th>Who</Th>}
             <Th>What</Th>
             <Th>When</Th>

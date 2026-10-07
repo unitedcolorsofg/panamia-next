@@ -1,26 +1,11 @@
-import { redirect } from 'next/navigation';
-
-import { HouseBoard } from '@/components/connectors/house-board';
-import { ViewerSwitch } from '@/components/connectors/viewer-switch';
-import { OfferingFrontPage } from '@/components/offerings/offering-front-page';
-import { resolveViewerRole } from '@/lib/connectors/fixtures';
+import { ConnectorsFrontDoor } from '@/components/connectors/front-door';
 
 /**
- * The Pana Connectors front page.
+ * The Pana Connectors front page at its named path.
  *
- * Two audiences arrive at the same door and only one of them wants a pitch.
- * Someone who is already a connector clicked the bubble to get to their
- * events and their commitments, so they are sent straight through to the HQ;
- * everybody else gets the explanation of what the programme is.
- *
- * ## Why this page is dynamic
- *
- * Reading `?as=` costs the static cache the other offering front pages keep.
- * That is not a loss the mock is introducing: the real version of this branch
- * reads the session to find out whether you have a connector record, and a
- * page that reads the session was never going to be cached at the edge
- * anyway. When the fixtures go, `resolveViewerRole` is replaced by that
- * lookup and the shape of this file does not change.
+ * The page itself is `components/connectors/front-door.tsx`, shared with `/`
+ * on `connectors.pana.social`. This file exists to give it a route and
+ * metadata.
  */
 
 export const metadata = {
@@ -34,27 +19,5 @@ export default async function ConnectorsFrontPage({
 }: {
   searchParams: Promise<{ as?: string }>;
 }) {
-  const role = resolveViewerRole((await searchParams).as);
-
-  if (role !== 'visitor') {
-    // The role is carried through so the switch survives the hop. Without it
-    // every preview of the HQ would bounce straight back here.
-    redirect(`/connectors/hq?as=${role}`);
-  }
-
-  return (
-    <>
-      <ViewerSwitch current="visitor" />
-      <OfferingFrontPage
-        id="connectors"
-        actions={{
-          // `/form/become-a-pana` was retired on main and now redirects here;
-          // pointing at the live intake directly rather than through the hop.
-          primary: '/form/list-your-business',
-          secondary: '/connectors/hq?as=connector',
-        }}
-        interlude={<HouseBoard />}
-      />
-    </>
-  );
+  return <ConnectorsFrontDoor as={(await searchParams).as} />;
 }
