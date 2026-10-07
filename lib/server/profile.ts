@@ -295,9 +295,29 @@ export const ensureProfile = async (userId: string, email?: string) => {
     });
 
     if (unclaimedProfile) {
+      // Strip any admin flag the unclaimed row happens to carry.
+      //
+      // Claiming a profile adopts its `roles`, which was harmless while that
+      // column only held scoped moderator flags. Now that `roles.admin` grants
+      // the admin surface, an unclaimed row carrying it would hand admin to
+      // whoever claims it — and a row is claimed by proving control of an
+      // email address, which is a far weaker bar than the grant route's
+      // founder gate. No row can carry it today, since the only writer is
+      // /api/admin/users/admin-role, but seeded, imported or migrated data
+      // reaches this column without passing that gate, so the claim path
+      // should not be the thing standing between a JSON blob and admin.
+      const existingRoles = unclaimedProfile.roles as Record<
+        string,
+        unknown
+      > | null;
+      const safeRoles =
+        existingRoles && 'admin' in existingRoles
+          ? { ...existingRoles, admin: false }
+          : existingRoles;
+
       const [claimed] = await db
         .update(profiles)
-        .set({ userId })
+        .set({ userId, roles: safeRoles })
         .where(eq(profiles.id, unclaimedProfile.id))
         .returning();
 

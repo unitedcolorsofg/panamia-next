@@ -47,11 +47,13 @@ import {
  *    there since the initial schema. `getSessionUser` and `saveSessionUser`
  *    both read it out as `locked`. No code path anywhere writes it. So the
  *    product has a concept of a locked account, and no way to lock one.
- * 2. **Admin is an environment variable.** `isAdmin` is not a column —
- *    `enrichUserFields()` compares the signed-in address against
- *    `ADMIN_EMAILS` at session time. The most powerful permission in the
- *    product is invisible from inside it, cannot be granted or revoked here,
- *    and can name an address that has no account behind it.
+ * 2. **Admin has two tiers.** `isAdmin` is the union of an environment
+ *    variable and a column: `enrichUserFields()` compares the signed-in
+ *    address against `ADMIN_EMAILS`, then ORs in `profiles.roles.admin`.
+ *    Only the env tier can grant admin to anyone else, so a founder can mint
+ *    admins and an admin cannot. The env tier can also name an address that
+ *    has no account behind it, which is what makes it the recovery path.
+ *    Granting is done on the live list, not here.
  * 3. **Locking someone takes their listings with them.** `administers` is the
  *    `profile_owners` join. Three of the rows below run a listing; one runs
  *    two. That has to be on screen *before* the button, not discovered after.
@@ -95,18 +97,19 @@ export default function AdminUsersPage() {
           className={`rounded-xl border-2 border-dashed ${ADMIN_CHROME.BORDER} bg-pana-cream p-5`}
         >
           <h2 className="text-sm font-extrabold uppercase tracking-wide">
-            Two columns that exist and do nothing
+            A column that exists and does nothing
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-pana-ink/70">
             <code className="text-pana-ink/60">users.locked_at</code> has been
             in the schema since the first migration and is read back by two
             endpoints. Nothing in the product ever writes it, so there is a
-            concept of a locked account and no way to lock one. And{' '}
-            <code className="text-pana-ink/60">isAdmin</code> is not a column at
-            all — it is a comparison against the{' '}
+            concept of a locked account and no way to lock one. Admin is a
+            different shape: <code className="text-pana-ink/60">isAdmin</code>{' '}
+            is the union of the{' '}
             <code className="text-pana-ink/60">ADMIN_EMAILS</code> environment
-            variable, made fresh on every session. Both are shown below as what
-            they are rather than quietly left off the screen.
+            variable and a <code className="text-pana-ink/60">roles.admin</code>{' '}
+            flag on the profile, recomputed on every request. Both are shown
+            below as what they are rather than quietly left off the screen.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-pana-ink/70">
             The list this replaces is still at{' '}
@@ -165,12 +168,20 @@ export default function AdminUsersPage() {
 
         <Panel title="Who holds admin">
           <p className="mb-4 max-w-3xl text-sm leading-relaxed text-pana-ink/70">
-            Read from <code className="text-pana-ink/60">ADMIN_EMAILS</code>,
-            which is set on the deployment and not in the database. Nothing on
-            this page can change it — adding or removing an admin is an
-            environment change and a redeploy. It is listed here because
-            &ldquo;who can do this&rdquo; should be answerable from inside the
-            product even when the answer is held somewhere else.
+            Two tiers. Founders come from{' '}
+            <code className="text-pana-ink/60">ADMIN_EMAILS</code>, which is set
+            on the deployment and not in the database — changing that list is an
+            environment change, and it is the only tier that can grant admin to
+            anyone else. Everyone else is granted on the{' '}
+            <Link
+              href="/admin/users/live"
+              className="font-bold underline underline-offset-4"
+            >
+              live list
+            </Link>
+            , takes effect on their next page load, and can be revoked the same
+            way. Splitting it this way means a compromised admin account cannot
+            create more admins.
           </p>
 
           <ul
