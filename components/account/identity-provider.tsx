@@ -71,6 +71,15 @@ interface IdentityState {
     action: 'accept' | 'decline'
   ) => Promise<void>;
   clearError: () => void;
+  /**
+   * Re-run the identity fetch after it gave up.
+   *
+   * The automatic retries all happen within one page load; once they are spent
+   * the list stays empty until something remounts the provider. That left the
+   * only recovery being a full page reload, which a member has no reason to
+   * guess at, so the menu offers this instead.
+   */
+  reload: () => void;
 }
 
 const IdentityContext = createContext<IdentityState | null>(null);
@@ -106,14 +115,17 @@ async function fetchIdentities(attempt = 0): Promise<{
  * current selection, so this fetches once and hands both of them the result
  * rather than each component calling the API on its own.
  *
- * Deliberately silent on failure: if the list can't be loaded the switcher
- * simply doesn't appear, which is much better than blocking the header on a
- * request that is irrelevant to most page views.
+ * Quiet on failure: if the list can't be loaded the switcher doesn't appear in
+ * the masthead, which is much better than blocking the header on a request
+ * that is irrelevant to most page views.
  *
- * That silence is only acceptable because the fetch retries first. Giving up on
+ * That quiet is only acceptable because the fetch retries first. Giving up on
  * the first error made a brief blip look identical to "this account has nothing
  * to switch between", so the switcher would vanish from the masthead until the
  * next full page load happened to succeed.
+ *
+ * Once those retries are spent the menu says so and offers reload(), rather
+ * than opening on an empty list that looks like a broken account.
  */
 export function IdentityProvider({
   enabled,
@@ -133,6 +145,9 @@ export function IdentityProvider({
   const [switching, setSwitching] = useState<string | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumped by reload() to re-run the fetch effect below.
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((n) => n + 1), []);
 
   useEffect(() => {
     if (!enabled) {
@@ -166,7 +181,7 @@ export function IdentityProvider({
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, reloadToken]);
 
   const switchTo = useCallback(
     async (profileId: string) => {
@@ -246,6 +261,7 @@ export function IdentityProvider({
       switchTo,
       answerInvitation,
       clearError: () => setError(null),
+      reload,
     };
   }, [
     identities,
@@ -258,6 +274,7 @@ export function IdentityProvider({
     error,
     switchTo,
     answerInvitation,
+    reload,
   ]);
 
   return (

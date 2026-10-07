@@ -2,7 +2,15 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Check, LogOut, Plus, Settings, UserPlus, Users } from 'lucide-react';
+import {
+  Check,
+  LogOut,
+  Plus,
+  RefreshCw,
+  Settings,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 
 import { signOut } from '@/lib/auth-client';
 import { useMyGroups } from '@/lib/query/social';
@@ -178,6 +186,7 @@ export function IdentityMenu() {
     loading,
     switchTo,
     answerInvitation,
+    reload,
   } = identity;
 
   // Only claim the account is unfinished once we have actually heard back.
@@ -376,6 +385,35 @@ export function IdentityMenu() {
                   </span>
                 </span>
               </Link>
+            )}
+
+            {/* The fetch failed and its retries are spent. Saying nothing here
+                is what made a dropped connection look like a broken account:
+                no rows, no setup nudge, no explanation.
+
+                The button *is* the row rather than sitting inside one: the
+                roving arrow-key walk calls focus() on every [data-menu-row],
+                so a non-focusable wrapper would swallow a step. */}
+            {failed && (
+              <button
+                type="button"
+                role="menuitem"
+                data-menu-row
+                onClick={() => reload()}
+                className={styles.row}
+              >
+                <span className={styles.addIcon} aria-hidden="true">
+                  <RefreshCw className="h-4 w-4" />
+                </span>
+                <span className={styles.rowMeta}>
+                  <span className={styles.rowName}>
+                    {t('identity.loadFailed')}
+                  </span>
+                  <span className={styles.rowHandle}>
+                    {t('identity.tryAgain')}
+                  </span>
+                </span>
+              </button>
             )}
 
             {error && <p className={styles.error}>{error}</p>}
