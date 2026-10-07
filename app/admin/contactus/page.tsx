@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from '@/lib/auth-client';
+import { useAdminGate } from '@/components/Admin/gate';
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import PageMeta from '@/components/PageMeta';
@@ -44,6 +45,7 @@ const statusBadge: Record<ContactSubmission['status'], string> = {
 
 export default function AdminContactUsPage() {
   const { data: session } = useSession();
+  const { gate } = useAdminGate();
   const [page_number, setPageNumber] = useState(1);
   const [category, setCategory] = useState<ContactCategory | ''>('');
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
@@ -240,17 +242,7 @@ export default function AdminContactUsPage() {
     ));
   }
 
-  if (!session) {
-    return (
-      <>
-        <PageMeta title="Unauthorized" desc="" />
-        <div>
-          <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
-          <h3 className="text-xl">You must be logged in to view this page.</h3>
-        </div>
-      </>
-    );
-  }
+  if (gate) return gate;
 
   return (
     <>

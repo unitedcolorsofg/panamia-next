@@ -8,6 +8,7 @@
 'use client';
 
 import { useSession } from '@/lib/auth-client';
+import { useAdminGate } from '@/components/Admin/gate';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -69,6 +70,7 @@ interface Pagination {
 
 export default function AdminArticlesPage() {
   const { data: session } = useSession();
+  const { gate } = useAdminGate();
   const [articles, setArticles] = useState<AdminArticle[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -230,17 +232,7 @@ export default function AdminArticlesPage() {
     );
   };
 
-  if (!session) {
-    return (
-      <>
-        <PageMeta title="Unauthorized" desc="" />
-        <div>
-          <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
-          <h3 className="text-xl">You must be logged in to view this page.</h3>
-        </div>
-      </>
-    );
-  }
+  if (gate) return gate;
 
   return (
     <>

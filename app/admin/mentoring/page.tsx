@@ -1,5 +1,6 @@
 'use client';
 
+import { useAdminGate } from '@/components/Admin/gate';
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +76,7 @@ interface DashboardMetrics {
 }
 
 export default function MentoringDashboard() {
+  const { allowed, gate } = useAdminGate();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,9 +96,13 @@ export default function MentoringDashboard() {
     topExpertise: false,
   });
 
+  // Hold the request until the session resolves and says staff. This page used
+  // to have no access check of any kind, so a curious member rendered the whole
+  // dashboard and fired a request that could only ever 401.
   useEffect(() => {
+    if (!allowed) return;
     fetchMetrics();
-  }, [startDate, endDate]);
+  }, [allowed, startDate, endDate]);
 
   const fetchMetrics = async () => {
     setLoading(true);
@@ -136,6 +142,8 @@ export default function MentoringDashboard() {
     setStartDate(format(start, 'yyyy-MM-dd'));
     setEndDate(format(end, 'yyyy-MM-dd'));
   };
+
+  if (gate) return gate;
 
   if (loading && !metrics) {
     return (

@@ -1,23 +1,13 @@
 'use client';
 
-import { useSession } from '@/lib/auth-client';
+import { useAdminGate } from '@/components/Admin/gate';
 import PageMeta from '@/components/PageMeta';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function AdminPodcastsPage() {
-  const { data: session } = useSession();
+  const { gate } = useAdminGate();
 
-  if (!session) {
-    return (
-      <>
-        <PageMeta title="Unauthorized" desc="" />
-        <div>
-          <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
-          <h3 className="text-xl">You must be logged in to view this page.</h3>
-        </div>
-      </>
-    );
-  }
+  if (gate) return gate;
 
   return (
     <>
