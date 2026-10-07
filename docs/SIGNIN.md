@@ -172,39 +172,57 @@ Google sign-in is implemented end to end — provider config in `auth.ts`, the
 switched off because it needs credentials. To enable it:
 
 1. **Pick the right Google account first — this is hard to undo.** The OAuth
-   client belongs to a Google Cloud project owned by one Google account. Use a
-   dedicated project account (e.g. `panamia.ops@gmail.com`) kept in the shared
-   password manager, not anyone's personal Gmail, and add a second **Owner** to
-   the Cloud project straight away.
+   client belongs to a Google Cloud project owned by one Google account, and the
+   binding that matters is Search Console: `pana.social` has to be listed as an
+   **Authorized domain** before Google will accept the redirect URI, and
+   authorized domains are verified from the owning account. Lose the account and
+   nobody can edit the consent screen or the redirect URIs, so there is no way
+   to repair sign-in. Verification itself is a DNS TXT record in Cloudflare.
 
-   The binding that matters is Search Console: `pana.social` has to be listed as
-   an **Authorized domain** before Google will accept the redirect URI, and
-   authorized domains must be verified from the owning account. If that account
-   is personal and the person leaves, nobody can edit the consent screen or the
-   redirect URIs, and there is no way to repair sign-in. Verification itself is
-   a DNS TXT record in Cloudflare.
+   **Use the `panamia.club` Workspace account (`jose@panamia.club`).** A
+   Workspace identity is organisation-owned, so a super-admin can recover or
+   transfer it, and projects created by a Workspace user are placed under the
+   `panamia.club` Cloud **Organization** rather than owned by an individual.
+   That is the continuity property a personal Gmail cannot offer. Add a second
+   **Owner** to the project anyway.
 
-   There is no Google Workspace on `pana.social` — mail is Cloudflare Email
-   Sending — so `hola@pana.social` is not a Google identity and cannot own the
-   project or appear as the support email.
+   **The catch is that the Workspace domain is not the product domain.**
+   `panamia.club` is the older, separate deployment described in
+   [DOMAINS.md](./DOMAINS.md), whose future is an open product decision. If it
+   is ever retired _and_ the Workspace subscription is cancelled with it, the
+   account owning this OAuth client disappears and Google sign-in on
+   `pana.social` breaks. Retiring the website while keeping the domain and
+   Workspace is fine; cancelling both is not. Decide that before building on it.
+
+   `pana.social` itself has no Workspace — mail is Cloudflare — so
+   `hola@pana.social` is not a Google identity and cannot own the project or be
+   selected as the support email. Do not add `pana.social` as a Workspace
+   secondary domain just to obtain a matching address: that repoints MX at
+   Google and disturbs the Cloudflare email setup for no OAuth benefit.
 
 2. **Create an OAuth client** in the
    [Google Cloud console](https://console.cloud.google.com/apis/credentials) →
    _Create credentials_ → _OAuth client ID_ → _Web application_.
 
    Consent screen settings that catch people out:
-   - **User type must be External.** _Internal_ requires Workspace and would
-     admit only Workspace members, which is nobody — members sign in with their
-     own Google accounts.
+   - **Every URL on the consent screen must be `pana.social`.** Publishing asks
+     for homepage, privacy policy and terms links, and the instinct is to use
+     the email domain. Do not: the `panamia.club` apex has served an expired TLS
+     certificate since 2024-07-24, so those links land on a browser security
+     interstitial. See [DOMAINS.md](./DOMAINS.md).
+   - **User type must be External.** _Internal_ would admit only
+     `@panamia.club` Workspace members, whereas members sign in with their own
+     Google accounts.
    - **Press "Publish app".** External starts in _Testing_, which caps sign-in
      at 100 individually allowlisted addresses. Publishing to Production needs
      no Google verification review, because the scopes below are all
      non-sensitive. Keep it that way.
    - **User support email is a dropdown**, offering only the owning account or a
      Google Group it belongs to, and it is shown publicly on the consent screen.
-     Choose an address you are happy for members to read. The separate
-     _Developer contact information_ field is free text and not shown to users,
-     so `hola@pana.social` belongs there.
+     `jose@panamia.club` works; a Workspace group such as `hola@panamia.club` is
+     nicer. `hola@pana.social` will not be listed. The separate _Developer
+     contact information_ field is free text and not shown to users, so
+     `hola@pana.social` belongs there.
 
 3. **Register the redirect URI.** better-auth serves every provider from one
    mount, so the authorised redirect URI is:
