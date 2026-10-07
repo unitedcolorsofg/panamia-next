@@ -192,15 +192,11 @@ export const SURFACE_NAV: Record<SurfaceId, SurfaceNavItem[]> = {
    * link. It now lives on the admin surface at `/admin/connectors`, and admins
    * reach it from HQ or from the admin hub. */
   connectors: [{ label: 'HQ', href: '/connectors/hq' }],
-  /* Both views, because unlike the other surfaces there is no audience here
-   * who can be refused *some* of it — an admin can open everything and a
-   * non-admin is turned away at every door, so a link that bounces the reader
-   * bounces them from the hub too. Listing the destinations is honest about
-   * what the surface contains. */
-  admin: [
-    { label: 'Listings', href: '/admin/listings' },
-    { label: 'Connectors', href: '/admin/connectors' },
-  ],
+  /* Empty on purpose. This surface carries a persistent sidebar
+   * (`app/admin/layout.tsx`) listing every tool, including a way back to the
+   * overview, so masthead links would be a second, shorter copy of a nav the
+   * reader can already see. The sidebar is the nav here. */
+  admin: [],
 };
 
 /**

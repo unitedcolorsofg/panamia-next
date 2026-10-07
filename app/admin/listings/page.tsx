@@ -73,8 +73,8 @@ export default function AdminListingsPage() {
     <>
       <AdminMockBar />
 
-      <main className="bg-pana-cream pb-20 text-pana-ink">
-        <header className="container mx-auto px-4 pb-6 pt-10">
+      <>
+        <header className="pb-6">
           <p
             className={`text-xs font-extrabold uppercase tracking-[0.2em] ${ADMIN_CHROME.ACCENT}`}
           >
@@ -90,7 +90,7 @@ export default function AdminListingsPage() {
           </p>
         </header>
 
-        <div className="container mx-auto flex flex-col gap-6 px-4">
+        <div className="flex flex-col gap-6">
           <StatBand stats={listingStats(PENDING_LISTINGS)} />
 
           {/* The honest note about why this page exists. Sits under the band
@@ -195,7 +195,7 @@ export default function AdminListingsPage() {
             </ul>
           </Panel>
         </div>
-      </main>
+      </>
     </>
   );
 }

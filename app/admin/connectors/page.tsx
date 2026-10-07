@@ -87,8 +87,8 @@ export default function AdminConnectorsPage() {
     <>
       <AdminMockBar />
 
-      <main className="bg-pana-cream pb-20 text-pana-ink">
-        <header className="container mx-auto px-4 pb-6 pt-10">
+      <>
+        <header className="pb-6">
           <p
             className={`text-xs font-extrabold uppercase tracking-[0.2em] ${ADMIN_CHROME.ACCENT}`}
           >
@@ -118,7 +118,7 @@ export default function AdminConnectorsPage() {
           </p>
         </header>
 
-        <div className="container mx-auto flex flex-col gap-6 px-4">
+        <div className="flex flex-col gap-6">
           <StatBand stats={band} />
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -278,7 +278,7 @@ export default function AdminConnectorsPage() {
             </ul>
           </Panel>
         </div>
-      </main>
+      </>
     </>
   );
 }

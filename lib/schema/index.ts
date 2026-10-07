@@ -1269,7 +1269,7 @@ export const contactSubmissions = pgTable(
       onDelete: 'set null',
     }),
     screenname: text('screenname'),
-    // Moderation state, mirroring relay_reports: see /account/admin/contactus.
+    // Moderation state, mirroring relay_reports: see /admin/contactus.
     status: contactSubmissionStatus('status').notNull().default('open'),
     moderationReason: text('moderation_reason'),
     lastModerationActionAt: timestamp('last_moderation_action_at', {

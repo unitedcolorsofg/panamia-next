@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { resolveSurface } from '@/lib/panaverse/surfaces';
 import { HomePage } from '@/components/home/home-page';
-import { AdminHub } from '@/components/Admin/hub';
 import { ConnectorsFrontDoor } from '@/components/connectors/front-door';
 import { FeedPage } from './s/_components/feed-page';
 
@@ -53,7 +53,9 @@ export default async function RootPage({
     case 'connectors':
       return <ConnectorsFrontDoor as={as} />;
     case 'admin':
-      return <AdminHub />;
+      // Not rendered inline: the admin surface's sidebar lives in
+      // app/admin/layout.tsx, which a page at the route tree root never gets.
+      redirect('/admin');
     case 'www':
       return <HomePage />;
   }

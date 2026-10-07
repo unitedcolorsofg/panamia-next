@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
 
-import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
-import type { AdminView } from '@/lib/admin/views';
-import { MockTag } from '@/components/Admin/mock-controls';
 
 /**
  * Shared furniture for the admin views.
@@ -90,46 +87,5 @@ export function StatBand({ stats }: { stats: readonly BandStat[] }) {
         ))}
       </dl>
     </div>
-  );
-}
-
-/**
- * A tile on the hub.
- *
- * The whole card is the link rather than a "open" button in the corner,
- * because a hub is a set of doors and a door should be the size of a door.
- */
-export function ViewTile({ view }: { view: AdminView }) {
-  return (
-    <SurfaceLink
-      href={view.href}
-      className="group flex flex-col rounded-xl border-2 border-pana-ink bg-pana-cream p-5 transition-transform hover:-translate-y-0.5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-xl font-extrabold leading-tight">{view.name}</h3>
-        {view.status === 'mock' ? <MockTag /> : null}
-      </div>
-
-      <p className="mt-2 text-sm leading-relaxed text-pana-ink/70">
-        {view.blurb}
-      </p>
-
-      <ul className="mt-4 flex flex-col gap-1.5 text-sm text-pana-ink/70">
-        {view.does.map((item) => (
-          <li key={item} className="flex gap-2 leading-snug">
-            <span aria-hidden className={ADMIN_CHROME.ACCENT}>
-              →
-            </span>
-            {item}
-          </li>
-        ))}
-      </ul>
-
-      {view.signal ? (
-        <p className={`mt-4 text-sm font-extrabold ${ADMIN_CHROME.ACCENT}`}>
-          {view.signal}
-        </p>
-      ) : null}
-    </SurfaceLink>
   );
 }

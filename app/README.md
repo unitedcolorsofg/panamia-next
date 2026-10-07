@@ -44,24 +44,27 @@ Authenticated user pages for managing their own content:
 | `/account/profile/gentedepana` | Gente de Pana settings                                  |
 | `/account/articles`            | Manage your articles                                    |
 | `/updates`                     | View updates & send voice memos                         |
-| `/account/admin/*`             | Admin panel (admin users only)                          |
+| `/account/admin/*`             | Legacy admin paths; redirect to `/admin/*`              |
 
 ### Admin Pages (`/admin/*`)
 
-Site administration (requires admin role):
+Site administration (requires admin role). Served under `admin.pana.social`,
+which redirects `/` to `/admin`. Every page shares the sidebar defined in
+`app/admin/layout.tsx`; the tool list itself lives in `lib/admin/views.ts`.
 
-| Route                      | Description                |
-| -------------------------- | -------------------------- |
-| `/admin/profile`           | Admin profile management   |
-| `/admin/profile/action`    | Profile moderation actions |
-| `/admin/download-profiles` | Export profile data        |
-| `/account/admin/users`     | User management            |
-| `/account/admin/articles`  | Article moderation         |
-| `/account/admin/contactus` | Contact form submissions   |
-| `/account/admin/signups`   | Signup requests            |
-| `/account/admin/mentoring` | Mentoring program admin    |
-| `/account/admin/podcasts`  | Podcast management         |
-| `/account/admin/import`    | Import profiles            |
+| Route                      | Description                            |
+| -------------------------- | -------------------------------------- |
+| `/admin`                   | Overview — what each tool is for       |
+| `/admin/listings`          | Business listing approvals (mock)      |
+| `/admin/connectors`        | Pana Connectors console (mock)         |
+| `/admin/download-profiles` | Export profile data                    |
+| `/admin/mentoring`         | Mentoring program admin                |
+| `/admin/users`             | User management                        |
+| `/admin/articles`          | Article moderation                     |
+| `/admin/podcasts`          | Podcast management (placeholder)       |
+| `/admin/contactus`         | Contact form submissions               |
+| `/admin/reports`           | Relay abuse reports                    |
+| `/admin/profile/action`    | Profile moderation from an email link  |
 
 ### Mentoring (`/m/*`)
 

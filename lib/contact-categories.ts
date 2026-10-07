@@ -1,7 +1,7 @@
 import { contactSubmissionCategory } from '@/lib/schema';
 
 // The categories offered on /form/contact-us and used to triage the admin
-// queue at /account/admin/contactus. The values are the DB enum members, so the
+// queue at /admin/contactus. The values are the DB enum members, so the
 // list is derived from the schema rather than hand-repeated — adding a category
 // means adding an enum member (plus a migration) and a label below.
 export type ContactCategory =

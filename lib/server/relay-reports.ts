@@ -99,7 +99,7 @@ function buildReportEmail(
     report.reportedKind != null ? kindName(report.reportedKind) : '—';
   const adminUrl =
     (process.env.NEXT_PUBLIC_HOST_URL || 'https://daydream.pana.social') +
-    '/account/admin/reports';
+    '/admin/reports';
 
   const subject = `[Pana abuse report] ${type} — reported by ${
     names[report.reporterPubkey.toLowerCase()] ||
