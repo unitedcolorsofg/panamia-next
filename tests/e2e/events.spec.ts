@@ -7,12 +7,17 @@ test.describe('Events — Public Pages', () => {
   test('events discovery page route exists', async ({ page }) => {
     const res = await page.goto('/e', { waitUntil: 'domcontentloaded' });
     expect(res?.status()).toBe(200);
-    await expect(page.locator('h1').first()).toContainText('What’s happening');
+    // Was 'Community Events', the heading of the flat grid this replaced, and
+    // briefly 'What’s happening' when /e was a browse. With no term the page
+    // is the discovery feed and leads with the question it answers.
+    // Matched with a regex because the apostrophe is a typographic one.
+    await expect(page.locator('h1').first()).toContainText(/What.s on/);
   });
 
   test('events page searches by term', async ({ page }) => {
     // The scope menu on the home page sends "Events" searches here, so the
     // query parameter is the contract between the two and worth asserting.
+    // A term switches the page out of discovery and into the result grid.
     const res = await page.goto('/e?q=market', {
       waitUntil: 'domcontentloaded',
     });

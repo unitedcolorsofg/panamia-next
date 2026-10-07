@@ -4,6 +4,7 @@ import { resolveSurface } from '@/lib/panaverse/surfaces';
 import { HomePage } from '@/components/home/home-page';
 import { ConnectorsFrontDoor } from '@/components/connectors/front-door';
 import { FeedPage } from './s/_components/feed-page';
+import { EventsFrontDoor } from './e/_components/events-front-door';
 
 /**
  * The root of the shared route tree, which is a different front door on each
@@ -45,6 +46,11 @@ export default async function RootPage() {
   switch (surface.id) {
     case 'social':
       return <FeedPage />;
+    case 'events':
+      // Rendered inline rather than redirected to /e: unlike admin, the events
+      // surface has no layout of its own to miss, so the root can serve the
+      // page directly and keep events.pana.social/ a real address.
+      return <EventsFrontDoor />;
     case 'connectors':
       return <ConnectorsFrontDoor />;
     case 'admin':

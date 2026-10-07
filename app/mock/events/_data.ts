@@ -555,12 +555,13 @@ export const SORT_OPTIONS: {
  * toolbar address, the masthead, and the Events tile in the account menu — and
  * the whole point of the mock is that those three agree.
  *
- * `directory.pana.social` is not a surface in `lib/panaverse/surfaces.ts`
- * today; the registry holds www, social, connectors and admin, so this
- * hostname would currently fall back to www. This mock is the argument for
- * promoting the directory to the fifth surface, with events as a room inside
- * it rather than a hostname of its own — markets and workshops are how people
- * find the makers, so they belong next to the makers.
+ * This said `directory.pana.social/events` while the mock was an argument.
+ * The argument was settled the other way: events became the fifth surface in
+ * its own right rather than a room inside a promoted directory, because what
+ * this page turned into is not a filtered list of the directory's fourth kind
+ * — it is a page that states a reason for every row, and reasons about events
+ * are not reasons about makers. `events` is registered in
+ * `lib/panaverse/surfaces.ts` and the shipped page is `/e`.
  */
-export const MOCK_HOST = 'directory.pana.social';
-export const MOCK_PATH = '/events';
+export const MOCK_HOST = 'events.pana.social';
+export const MOCK_PATH = '/e';

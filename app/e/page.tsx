@@ -9,6 +9,7 @@ import EventCard from '@/components/events/EventCard';
 import { countFor, totalCount } from '@/lib/directory-scopes';
 import { countAllScopes } from '@/lib/server/search-kinds';
 import { getUpcomingEvents, searchUpcomingEvents } from '@/lib/event';
+import { EventsFrontDoor } from './_components/events-front-door';
 
 /** Events per page. One full grid; the calendar has never paginated. */
 const EVENT_LIMIT = 24;
@@ -56,10 +57,19 @@ interface PageProps {
  * Counts are only fetched when there is a term. The menu's numbers answer
  * "how many of these matched what I typed", and on an empty browse there is
  * nothing for them to count.
+ *
+ * With no term at all this is not a browse but the front door, so it hands
+ * off to the discovery feed. Those are two different questions: "show me
+ * everything matching cumbia" wants a complete grid, while someone arriving
+ * at /e with nothing typed is asking what is worth going to, which a flat
+ * list of everything upcoming answers badly. Search still lands here from the
+ * homepage scope menu and still renders the grid below.
  */
 export default async function EventsPage({ searchParams }: PageProps) {
   const { q } = await searchParams;
   const term = (q ?? '').trim();
+
+  if (!term) return <EventsFrontDoor />;
 
   return (
     <main className="dirscope">

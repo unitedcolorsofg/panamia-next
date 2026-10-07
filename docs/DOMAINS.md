@@ -14,12 +14,13 @@ Measured 2026-10-07 unless noted. Verify before acting on it; deployments move.
 | `social.pana.social`     | **200**                           | Pana Social. Bound as a Worker Custom Domain 2026-09-24.             |
 | `connectors.pana.social` | **200**                           | Pana Connectors. Bound as a Worker Custom Domain 2026-10-07.         |
 | `admin.pana.social`      | **200** at `/admin`               | The admin console. Bound as a Worker Custom Domain 2026-10-07.       |
+| `events.pana.social`     | Not created yet                   | The Pana Events surface. Needs a Worker Custom Domain.               |
 | `relay.pana.social`      | Resolves                          | The **separate** `panamia-nosflare` Worker, not this one.            |
 | `www.panamia.club`       | **200**                           | A **different, older site** — "All Things Local In SoFlo"            |
 | `panamia.club` (apex)    | **Fails** — timed out             | Nothing reachable. TLS cert expired when measured 2026-09-22; a bare timeout now. Both are consistent with the split A record — see [Known issues](#known-issues). |
 | `social.panamia.club`    | **Fails** — timeout (2026-09-22)  | Parked domain. Not part of the plan; see below.                      |
 
-All four app surfaces are bound. Both still answer on the apex as well, at `pana.social/connectors` and `pana.social/admin` — binding a subdomain adds a front door, it does not move a route.
+Four of the five app surfaces are bound; `events.pana.social` still needs its Custom Domain. The bound ones still answer on the apex as well, at `pana.social/connectors` and `pana.social/admin` — binding a subdomain adds a front door, it does not move a route. Events already answers at `pana.social/e` for the same reason.
 
 `www.panamia.club` is not this codebase. It is a Next.js **Pages Router** app; this one is App Router. The titles are similar enough to mislead, so tell them apart by markup:
 
@@ -153,6 +154,24 @@ Workers & Pages → `panamia-next` → Settings → Domains & Routes → Add →
 Cloudflare creates the DNS record and issues the certificate on binding. Expect a short window where DNS answers but HTTP does not — and beware the local negative DNS cache: probing a host while it is still unbound caches the `NXDOMAIN`, and the OS resolver will keep failing after the record exists. `Clear-DnsClientCache` before concluding a binding did not take. A `try/catch` around `Resolve-DnsName` is not a check either; it returns non-A records without throwing, so inspect the returned record rather than the absence of an exception.
 
 `GET /zones/{zone}/workers/routes` returned no pattern routes on 2026-10-07, confirming every hostname here is bound as a Custom Domain rather than by route pattern. That is why this Worker still has no `routes` block in `wrangler.jsonc`, and why adding one is a change of convention rather than a tidy-up.
+
+## Launching `events.pana.social`
+
+Registered in `lib/panaverse/surfaces.ts` as the `events` surface, `rootPath: '/e'`, and **shipped with `subdomainPending: true`** — which is the whole of what is left to undo.
+
+**That flag is the launch switch, and it exists because `PANAVERSE_SUBDOMAINS` is already `"1"`.** Social turned the subdomain flag on globally when it launched, so a new surface joining `SURFACES` would have had its cross-surface links, `metadataBase` and `canonical` re-pointed at `events.pana.social` the instant it was added — a host with no DNS record and, per step 1 of the social launch above, **no certificate**, because the pre-existing certs are per-hostname with no `*.pana.social` wildcard. `subdomainPending` is the per-surface opt-out of a global flag: `originForFrom` treats a pending surface as if subdomains were off and keeps its links on the host in hand. `connectors` and `admin` are untouched by it, and `*.localhost` is exempt as always, so `events.localhost:3002` exercises the subdomain path in dev today.
+
+Do these in order. Reversing 1 and 2 produces exactly the dead-link state the flag was added to prevent.
+
+1. Add `events.pana.social` as a Custom Domain on the `panamia-next` Worker. Cloudflare issues the certificate on binding. Until this is done the host returns a connection failure rather than a TLS error, because there is no certificate for it at all.
+2. Confirm `https://events.pana.social/e` serves, **then** delete `subdomainPending: true` from the `events` entry in `lib/panaverse/surfaces.ts` and deploy. There is no env var to flip: this one is in code, because it is a property of a surface's rollout rather than of an environment.
+3. Nothing else. `PANAVERSE_COOKIE_DOMAIN` is already `.pana.social`, so sessions span the new host with no change and no sign-out; `auth.ts` derives `trustedOrigins` from `SURFACES`, so the origin was trusted the moment the surface was registered; and `worker/index.ts` and `lib/panaverse/chrome.ts` are generic over surfaces, so Events gets its own masthead without a per-surface branch.
+
+**The front door is `/e`, and `/events` is a different page that stays on www.** `/e` is the calendar — `/e/new`, `/e/[slug]`, `/e/[slug]/manage` — and it is what every minted event link already points at, so it had to be the surface root. `/events` is the 27-line marketing `OfferingFrontPage` and keeps living on the apex. This is the same split as Social's `/s` versus its apex front door, and both prefixes are claimed in the surface's `paths`.
+
+**Known side effect, and it is intended:** `surfaceForPath('/e')` now resolves to Events, so `pana.social/e` renders wearing the Pana Events masthead instead of `MainHeader`. `/s` has behaved this way since Social launched.
+
+**Events was removed from `SHARED_ROOMS` in `lib/panaverse/branding.ts`.** It was listed there as a room that _could_ become a surface; it is one now, and leaving it in both lists would have printed it twice in the switcher.
 
 ## Known issues
 

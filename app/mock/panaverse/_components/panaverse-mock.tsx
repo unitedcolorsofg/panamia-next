@@ -176,10 +176,12 @@ function ArchitectureNotes() {
         icon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
         title="Rooms become surfaces"
       >
-        {SHARED_ROOMS.length} parts of Pana Mia already exist as routes without
-        a front door of their own. Promoting <code>/e</code> to{' '}
-        <code>{SHARED_ROOMS[0].couldBecome}</code> is a registry entry plus a
-        DNS record — not a second application to maintain.
+        {SHARED_ROOMS.length} parts of Pana Mia still exist as routes without a
+        front door of their own. Promoting <code>{SHARED_ROOMS[0].path}</code>{' '}
+        to <code>{SHARED_ROOMS[0].couldBecome}</code> is a registry entry plus a
+        DNS record — not a second application to maintain. Events was listed
+        here until recently and is now <code>events.pana.social</code>, which is
+        what that promotion costs in practice.
       </NoteCard>
     </div>
   );

@@ -143,6 +143,24 @@
           }
         },
         {
+          "name": "event_preferences",
+          "label": "Event Preferences",
+          "module": "events",
+          "data": ["dismissed_events", "dismissal_reason"],
+          "source": "user_action",
+          "purpose": "event_recommendations",
+          "retention": "active_account_lifetime",
+          "display": {
+            "icon": "calendar",
+            "source": "Your recorded choices",
+            "purpose": "Event recommendations",
+            "retention": "Account lifetime",
+            "sharedWith": "None",
+            "prose": "Events you've hidden, and the reason each was suggested",
+            "blurb": "The events you've marked 'not for me'. Only you see these — hosts are never told, and they're used to stop suggesting similar events."
+          }
+        },
+        {
           "name": "notifications",
           "label": "Notification Preferences",
           "data": ["notification_settings"],

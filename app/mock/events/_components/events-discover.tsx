@@ -184,8 +184,9 @@ function learned(reason: Reason): string {
  * Drawn inside a `BrowserFrame` rather than full bleed, which the README warns
  * makes a surface read as a picture of a website. That warning is about
  * `/mock/feed`, where the question was "does this feel like its own site".
- * Here the hostname *is* half the proposal — `directory.pana.social/events`
- * does not resolve today — so the address bar is part of what is under review.
+ * Here the hostname *is* half the proposal — `events.pana.social` does not
+ * resolve yet, pending a Cloudflare Custom Domain — so the address bar is part
+ * of what is under review.
  */
 export function EventsDiscover() {
   const [tab, setTab] = useState<'foryou' | 'calendar'>('foryou');

@@ -168,6 +168,14 @@ export const inventory: Record<TableExport, Classification> = {
   venues: ['events'],
   events: ['events'],
   eventAttendees: ['rsvps', 'event_attendance_info'],
+  // What a pana has hidden from their own event recommendations, and which
+  // reason the page had given for showing it. Classified under its own
+  // category rather than folded into `rsvps`, which is the nearest existing
+  // fit and would have been wrong in the one way that matters: every other
+  // events category is shared with organizers, and a dismissal is seen by
+  // nobody but its author. Telling a member in the privacy centre that their
+  // "not for me" taps go to hosts would be worse than not listing them.
+  eventDismissals: ['event_preferences'],
 
   // --- Community Connectors (the volunteer programme) ---
   // What a connector said they would do, plus anything staff put on their
