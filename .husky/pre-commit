@@ -458,18 +458,30 @@ CI_ALL_CONFIG_VARS=$(awk '
 # Extract var names referenced in the workflow as secrets.NAME or vars.NAME
 CI_WORKFLOW_VARS=$(grep -oE '(secrets|vars)\.[A-Z0-9_]+' "$WORKFLOW" | sed 's/^[^.]*\.//' | sort -u)
 
+# Extract var names the workflow assigns literally in an env: block. CI does
+# not pull every required var from a secret: POSTGRES_URL points at the
+# throwaway service container on the runner's loopback, so wiring it to
+# secrets.POSTGRES_URL would aim the test run at the production database.
+# Counted for the forward check only -- the reverse check must not see these,
+# because an env: block also carries the service container's own POSTGRES_USER
+# and POSTGRES_PASSWORD, which configure Postgres rather than the app and so
+# have no business in env.config.ts.
+CI_WORKFLOW_LITERALS=$(grep -oE '^ +[A-Z][A-Z0-9_]*:' "$WORKFLOW" | tr -d ' :' | sort -u)
+
 # Forward check: every required var must be in the workflow
 CI_TMP1=$(mktemp)
 CI_TMP2=$(mktemp)
+CI_TMP4=$(mktemp)
 echo "$CI_CONFIG_VARS" > "$CI_TMP1"
 echo "$CI_WORKFLOW_VARS" > "$CI_TMP2"
-CI_ONLY_IN_CONFIG=$(comm -23 "$CI_TMP1" "$CI_TMP2")
+printf '%s\n%s\n' "$CI_WORKFLOW_VARS" "$CI_WORKFLOW_LITERALS" | sort -u > "$CI_TMP4"
+CI_ONLY_IN_CONFIG=$(comm -23 "$CI_TMP1" "$CI_TMP4")
 
 # Reverse check: every workflow var must exist in env.config.ts (any location)
 CI_TMP3=$(mktemp)
 echo "$CI_ALL_CONFIG_VARS" > "$CI_TMP3"
 CI_ONLY_IN_WORKFLOW=$(comm -13 "$CI_TMP3" "$CI_TMP2")
-rm -f "$CI_TMP1" "$CI_TMP2" "$CI_TMP3"
+rm -f "$CI_TMP1" "$CI_TMP2" "$CI_TMP3" "$CI_TMP4"
 
 CI_SYNC_ERROR=""
 

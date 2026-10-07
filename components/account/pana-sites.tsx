@@ -31,7 +31,7 @@ const SITE_ICONS: Record<string, LucideIcon> = {
   vizion: Video,
   directory: Compass,
   events: CalendarDays,
-  getInvolved: Users,
+  groups: Users,
   /* A lucide star rather than the drawn mark: every tile here is a lucide
      glyph at 18px inside a 38px circle, and dropping one real logo in among
      them would read as a mismatch rather than as branding. The Connectors
