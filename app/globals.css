@@ -9209,13 +9209,85 @@ body:has(.dirscope) header {
 
 /* --- The row of the other five ----------------------------------------- */
 
-/* `.story-localrow` already paints itself cream and sizes its own padding, so
-   there is nothing to add here but the label's weight: on the homepage that
-   row is a set of county shortcuts sitting under an argument that has already
-   finished, and here it is the last thing on the page, so the chips want to
-   be the thing the eye lands on rather than the word above them. */
-.offering-switch .localrow-label {
-  opacity: 0.45;
+/* These rules used to live on the homepage as `.story-localrow` /
+   `.localrow-*`, styling a row of county shortcuts. Commit 2594e7a2 removed
+   that row and deleted its CSS, but this page had been reusing the class
+   names, so from that commit until now the switch row has rendered completely
+   unstyled on every offering front page — an undecorated vertical list of
+   links with no cream band, no chips and no label treatment. The only
+   survivor was an `.offering-switch .localrow-label { opacity: .45 }`
+   override whose comment claimed `.story-localrow` "already paints itself
+   cream", describing a rule that no longer existed.
+
+   Rebuilt here under `.offering-switch-*` rather than restored under the old
+   homepage names, because this page is now the only consumer. Homepage-named
+   CSS kept alive for an offering-page caller is exactly what produced the
+   silent breakage: the homepage was free to delete it without anything
+   pointing at the dependency. Naming the rules after the component that
+   renders them puts the coupling where a future editor will see it.
+
+   Not a verbatim restore, because the original did not pass AA either:
+     label at the original opacity .55   4.38  (needs 4.5)
+     label at the override's opacity .45 3.16
+     label at .6                         5.21  <- used here
+     chip hover, story-cream on story-blue  4.42  (needs 4.5)
+     chip hover, white on story-blue        4.89  <- used here
+   Chip rest state is story-ink on story-cream, 18.17. */
+.offering-switch {
+  padding-block: calc(var(--home-pad) * 0.42);
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-switch-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+/* The chips are the thing the eye should land on, not the word above them —
+   this row is the last thing on the page, so the label is a signpost rather
+   than a heading. Hence the small, tracked, lowered-contrast treatment; .6 is
+   as far down as it can go and still clear AA at this size. */
+.offering-switch-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.offering-switch-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.offering-switch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(2 8 17 / 0.18);
+  border-radius: 999px;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--story-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+/* White, not `--story-cream`. The cream measures 4.42 on this blue and the
+   chip label is 14.4px, so it needs 4.5; white gets it to 4.89. Darkening
+   `--story-blue` instead would have moved it under the homepage's pillars and
+   beats, which all read from the same token. */
+.offering-switch-chip:hover {
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: #fff;
 }
 
 /* --- The problem ------------------------------------------------------- */
