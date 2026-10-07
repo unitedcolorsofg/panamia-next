@@ -24,9 +24,44 @@ Server-side gates live in `lib/server/admin-auth.ts`:
 - `checkModeratorAuth()` — the abuse-report queue, and nothing else. Admits
   admins and content moderators.
 
+## The roles page
+
+`/admin/users/roles` is the canonical place to see and change staff roles. It
+has two halves:
+
+- **The roster** — everyone who holds a role, from
+  `GET /api/admin/users/roles`. Small and bounded, so it is returned whole
+  rather than paged.
+- **Search** — `GET /api/admin/users/search?q=`, an ILIKE over name,
+  screenname and email, to reach somebody who has no role yet.
+
+That split exists because the two questions are opposites. `/api/getUserList`
+pages every account and reports each one's roles, so finding the four people
+who hold one meant walking past everyone who does not — which stops being
+possible well before the member list stops growing.
+
+`lib/admin/roles.ts` is the catalogue the page renders, and it lists **only
+roles something enforces**. `mentoringModerator` and `eventOrganizer` are
+deliberately absent: a button that grants an unchecked flag would report
+success, show a badge, and confer nothing. Add one there only after it has a
+gate, in that order.
+
+### Why the roster is not one query
+
+Admin is the union of a column and an environment variable, and the two
+disagree about what a person is. `profiles.roles.admin` belongs to a profile,
+which belongs to an account. An `ADMIN_EMAILS` entry may have no profile, and
+may have no account at all — a founder who has never signed in is still an
+admin the moment they do.
+
+So the endpoint reads the column holders, the accounts behind `ADMIN_EMAILS`,
+and the `ADMIN_EMAILS` entries that match no account, then merges on user id.
+Addresses matching nothing are **shown** rather than dropped, because a
+typo'd secret and a correct one otherwise look identical.
+
 ## Granting admin
 
-From `/admin/users/live`, as a super admin. The toggle writes
+From `/admin/users/roles`, as a super admin. The button writes
 `profiles.roles.admin` through `POST /api/admin/users/admin-role`.
 
 A grant takes effect on the target's **next page load**. `enrichUserFields()`
@@ -55,8 +90,8 @@ A **content moderator** reaches the abuse-report queue at `/admin/reports` and
 is emailed when a new report arrives. That is the whole role: no other admin
 screen, and no ability to grant anything to anybody.
 
-Grant it from `/admin/users/live`, as an **admin** — not a super admin. The
-toggle writes `profiles.roles.contentModerator` through
+Grant it from `/admin/users/roles`, as an **admin** — not a super admin. The
+button writes `profiles.roles.contentModerator` through
 `POST /api/admin/users/content-moderator`.
 
 Three things follow from that choice, and they are the point of the role:

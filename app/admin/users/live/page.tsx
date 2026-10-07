@@ -299,6 +299,17 @@ export default function AdminUsersLivePage() {
               to anyone.
             </p>
           ) : null}
+          <p className="mt-3">
+            Looking for one specific person, or for who already holds a role?{' '}
+            <Link
+              href="/admin/users/roles"
+              className="font-bold underline underline-offset-4"
+            >
+              Roles &amp; permissions
+            </Link>{' '}
+            has a search box and lists the roster directly, instead of paging
+            through every account.
+          </p>
         </div>
         <div className="space-y-6">
           <div className="space-y-4">{createListElements()}</div>

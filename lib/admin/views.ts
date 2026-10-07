@@ -27,6 +27,7 @@ import {
   HeartHandshake,
   type LucideIcon,
   Mail,
+  ShieldCheck,
   Store,
   UsersRound,
 } from 'lucide-react';
@@ -167,6 +168,20 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     ],
     status: 'mock',
     icon: UsersRound,
+  },
+  {
+    id: 'roles',
+    name: 'Roles & permissions',
+    href: '/admin/users/roles',
+    group: 'community',
+    blurb: 'Who holds a staff role, and how to give someone one.',
+    does: [
+      'See every admin and everyone on the moderation rota',
+      'Search for a pana by name, handle or email',
+      'Grant or revoke a role, within what your own tier allows',
+    ],
+    status: 'live',
+    icon: ShieldCheck,
   },
   {
     id: 'contactus',
