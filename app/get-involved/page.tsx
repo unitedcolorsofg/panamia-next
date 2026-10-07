@@ -20,7 +20,7 @@ export default function GetInvolvedFrontPage() {
   return (
     <OfferingFrontPage
       id="getInvolved"
-      actions={{ primary: '/form/list-your-business', secondary: '/donate' }}
+      actions={{ primary: '/form/get-listed', secondary: '/donate' }}
     />
   );
 }

@@ -156,7 +156,7 @@ Article-specific notification contexts:
 ```typescript
 // Add to existing user model
 interface UserAdditions {
-  accountType: 'small_business' | 'personal' | 'hybrid' | 'other';
+  accountType: 'directory' | 'personal' | 'hybrid' | 'other';
 
   emailPreferences: {
     coauthorInvites: boolean; // Default: true

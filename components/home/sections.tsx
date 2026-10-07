@@ -193,7 +193,7 @@ function HeroCard() {
           {/* `scope="all"` because the placeholder already promises it. The
               field says "Search panas, businesses, groups, events" and the
               short label rotates through the same four, while Enter used to
-              land in the businesses-only scope — so three of the four kinds
+              land in the directory-only scope — so three of the four kinds
               it names were advertised and then dropped on submit. The
               Everything scope covers all four, and the scope chips on the
               results page are where someone narrows down afterwards. */}
@@ -350,9 +350,7 @@ export function HomePoint() {
                 asChild
                 className="story-btn story-btn-solid rounded-full font-extrabold"
               >
-                <Link href="/form/list-your-business">
-                  {t('closing.ctaJoin')}
-                </Link>
+                <Link href="/form/get-listed">{t('closing.ctaJoin')}</Link>
               </Button>
               <Button
                 size="lg"

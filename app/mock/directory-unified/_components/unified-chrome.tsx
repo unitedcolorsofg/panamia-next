@@ -9,11 +9,11 @@ import { UNIFIED_COUNTS } from '../_data';
 
 export type MockScope = 'all' | SuggestionKind;
 
-const SCOPE_ORDER: MockScope[] = ['all', 'business', 'pana', 'group', 'event'];
+const SCOPE_ORDER: MockScope[] = ['all', 'directory', 'pana', 'group', 'event'];
 
 const SCOPE_LABEL: Record<MockScope, string> = {
   all: 'Everything',
-  business: 'Businesses',
+  directory: 'Directory',
   pana: 'Panas',
   group: 'Groups',
   event: 'Events',
@@ -22,7 +22,7 @@ const SCOPE_LABEL: Record<MockScope, string> = {
 /** Panas and groups are signed-in only, same as the live scope bar. */
 const REQUIRES_PANA: Record<MockScope, boolean> = {
   all: false,
-  business: false,
+  directory: false,
   pana: true,
   group: true,
   event: false,
@@ -31,13 +31,13 @@ const REQUIRES_PANA: Record<MockScope, boolean> = {
 /**
  * Facets are per kind, not per template.
  *
- * The live Businesses view shows CATEGORY, WHERE, SORT and a List/Map toggle.
+ * The live Directory view shows CATEGORY, WHERE, SORT and a List/Map toggle.
  * The live scope views show none of them — a pana search cannot be narrowed at
  * all once you have typed it. Both are wrong in the same way: they treat the
  * facet rail as a property of which page rendered rather than of what is being
- * filtered. A county filter means something for a business, a pana and a group
+ * filtered. A county filter means something for a listing, a pana and a group
  * that meets somewhere, and nothing for an online group. A map needs
- * coordinates, which businesses and events have and panas mostly do not. "This
+ * coordinates, which listings and events have and panas mostly do not. "This
  * weekend" only exists for events.
  *
  * So each scope takes the rows it can actually answer. Everything takes the
@@ -46,7 +46,7 @@ const REQUIRES_PANA: Record<MockScope, boolean> = {
  */
 const FACETS: Record<MockScope, string[]> = {
   all: ['Where', 'Sort'],
-  business: ['Category', 'Where', 'Sort'],
+  directory: ['Category', 'Where', 'Sort'],
   pana: ['Interests', 'Where', 'Sort'],
   group: ['Tags', 'Where', 'Sort'],
   event: ['Tags', 'When', 'Where', 'Sort'],
@@ -66,20 +66,20 @@ const CHIPS: Record<string, string[]> = {
 /** Map only makes sense where the things have addresses. */
 const HAS_MAP: Record<MockScope, boolean> = {
   all: false,
-  business: true,
+  directory: true,
   pana: false,
   group: false,
   event: true,
 };
 
 /**
- * The summary is a sentence, so it has to count like one. The live Businesses
+ * The summary is a sentence, so it has to count like one. The live Directory
  * page hardcodes " businesses" and reads "1 businesses" at one result; a
  * merged view rendering all four kinds would be wrong four ways.
  */
 const NOUN: Record<MockScope, [singular: string, plural: string]> = {
   all: ['result', 'results'],
-  business: ['business', 'businesses'],
+  directory: ['listing', 'listings'],
   pana: ['pana', 'panas'],
   group: ['group', 'groups'],
   event: ['event', 'events'],
@@ -136,7 +136,7 @@ export function UnifiedChrome({
           <p className="dirsearch-count">
             {scope === 'all' ? (
               <>
-                <strong>{total}</strong> results across businesses, panas,
+                <strong>{total}</strong> results across the directory, panas,
                 groups and events
               </>
             ) : (
@@ -247,7 +247,7 @@ export function UnifiedChrome({
           </div>
 
           {/* New: the rail the scope pages have never had. Same row grammar as
-              the businesses filter bar, so the two rails are one rail. */}
+              the directory filter bar, so the two rails are one rail. */}
           {FACETS[scope].map((row) => (
             <div key={row} className="dirsearch-filterrow">
               <span className="dirsearch-filterlabel">{row}</span>
@@ -288,7 +288,7 @@ export function UnifiedChrome({
         </div>
       </div>
 
-      {/* The count the businesses page carries in `.dirsearch-summary`. The
+      {/* The count the directory page carries in `.dirsearch-summary`. The
           band already says how many results there are, so this says what the
           list below is showing after the facets narrowed it. */}
       <div className="container mx-auto px-4 pt-6">

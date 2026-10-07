@@ -16,16 +16,16 @@ import { ACTION_LABEL, type UnifiedResult } from '../_data';
  * One result, whatever kind it is.
  *
  * This replaces both `directory/search/_components/result-card.tsx` (238
- * lines, businesses only) and `directory/_components/scope-result-card.tsx`
+ * lines, directory listings only) and `directory/_components/scope-result-card.tsx`
  * (81 lines, everything else). It is not a compromise between them: it is the
- * business card, with the kind-specific nouns pulled out into the fields
+ * listing card, with the kind-specific nouns pulled out into the fields
  * documented in `_data.ts`.
  *
  * That direction is deliberate. The compact row was never chosen because
  * panas and events deserve less — its own comment says the four scopes "ended
- * up sharing one" layout and that the business card keeps its own because the
+ * up sharing one" layout and that the listing card keeps its own because the
  * others have nothing to put in certification, categories, recommendations or
- * distance. Two of those four are genuinely business-only. The other two are
+ * distance. Two of those four are genuinely listing-only. The other two are
  * not: a group has tags and members, an event has tags and attendees, and
  * both were being dropped for want of a slot rather than for want of data.
  *
@@ -38,7 +38,7 @@ export function UnifiedCard({ result }: { result: UnifiedResult }) {
   // Faces and storefronts are circles everywhere else in the product; a group
   // or event cover cropped to a circle loses most of itself. Same rule the
   // compact card already applied, kept because it was right.
-  const roundBadge = result.kind === 'business' || result.kind === 'pana';
+  const roundBadge = result.kind === 'directory' || result.kind === 'pana';
 
   return (
     <article className="dirsearch-card">
@@ -133,7 +133,7 @@ export function UnifiedCard({ result }: { result: UnifiedResult }) {
         {/* The one slot the compact card had no answer for at all. A group's
             next meetup and an event's start time are the reason someone acts
             this week instead of bookmarking and forgetting — the same job the
-            business card's next-event strip already does. */}
+            listing card's next-event strip already does. */}
         {result.when && (
           <p className="dirsearch-card-event">
             <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />

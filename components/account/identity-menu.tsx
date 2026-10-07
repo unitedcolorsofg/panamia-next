@@ -331,7 +331,7 @@ export function IdentityMenu() {
                         ? `@${item.screenname}`
                         : item.isPersonal
                           ? t('identity.you')
-                          : t('identity.business')}
+                          : t('identity.directory')}
                     </span>
                   </span>
 
@@ -421,7 +421,7 @@ export function IdentityMenu() {
             <div className={styles.separator} />
 
             <Link
-              href="/form/list-your-business"
+              href="/form/get-listed"
               role="menuitem"
               data-menu-row
               onClick={() => close(false)}
@@ -432,10 +432,10 @@ export function IdentityMenu() {
               </span>
               <span className={styles.rowMeta}>
                 <span className={styles.rowName}>
-                  {t('identity.listBusiness')}
+                  {t('identity.getListed')}
                 </span>
                 <span className={styles.rowHandle}>
-                  {t('identity.listBusinessHint')}
+                  {t('identity.getListedHint')}
                 </span>
               </span>
             </Link>

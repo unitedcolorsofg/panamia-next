@@ -1,4 +1,10 @@
-import { CalendarDays, Store, User, Users, type LucideIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  Store,
+  User,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import type { SuggestionKind } from '@/lib/suggest';
 
 /**
@@ -16,7 +22,7 @@ import type { SuggestionKind } from '@/lib/suggest';
  * event is a date rather than a month.
  */
 export const KIND_ICON: Record<SuggestionKind, LucideIcon> = {
-  business: Store,
+  directory: Store,
   pana: User,
   group: Users,
   event: CalendarDays,

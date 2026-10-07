@@ -17,7 +17,7 @@ import { searchPath } from '@/lib/directory-search-path';
 import { useViewerLocation } from '@/app/p/[user]/_lib/use-viewer-location';
 import { DirectoryViewerProvider } from './directory-viewer';
 import { SearchBand } from './search-band';
-import { BusinessScopeChips } from './business-scope-chips';
+import { DirectoryScopeChips } from './directory-scope-chips';
 import { FilterBar, type FilterState, type ResultView } from './filter-bar';
 import { ResultCard } from './result-card';
 import { MapPanel } from './map-panel';
@@ -245,7 +245,7 @@ export function DirectorySearchContent({
             — and confined to the left pane its last chip was cropped by the
             map. The filters below it stay in the pane, because narrowing a
             set of businesses really is that column's business. */}
-        <BusinessScopeChips term={params.searchTerm} />
+        <DirectoryScopeChips term={params.searchTerm} />
 
         <div className="dirsearch-panes">
           <section className="dirsearch-listpane" aria-label="Search results">
@@ -324,10 +324,7 @@ export function DirectorySearchContent({
                       A listing is how South Florida finds you — free, and yours
                       to run.
                     </p>
-                    <Link
-                      href="/form/list-your-business"
-                      className="link-arrow"
-                    >
+                    <Link href="/form/get-listed" className="link-arrow">
                       List your business
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>

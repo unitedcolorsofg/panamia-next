@@ -187,11 +187,11 @@ function writeSuggestCache(term: string, rows: Suggestion[]): void {
   }
 }
 
-// Businesses and panas are faces and storefronts, and read as circles
+// Listings and panas are faces and storefronts, and read as circles
 // everywhere else in the product. Groups and events are things rather than
 // someone, and a cover image cropped to a circle loses most of itself.
 const KIND_IMAGE_SHAPE: Record<SuggestionKind, string> = {
-  business: 'rounded-full',
+  directory: 'rounded-full',
   pana: 'rounded-full',
   group: 'rounded-lg',
   event: 'rounded-lg',

@@ -386,6 +386,13 @@
       "when": 1788739200000,
       "tag": "0053_profile_pending_owner_email",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1791331200000,
+      "tag": "0054_directory_account_type",
+      "breakpoints": true
     }
   ]
 }

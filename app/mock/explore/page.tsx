@@ -6,10 +6,10 @@ import { ExploreMock } from './_components/explore-mock';
  * move out of the directory.
  *
  * Why this exists: the club met and asked for three things. Put the
- * businesses / events / groups / panas toggle on the main page's search bar.
- * Leave the directory to businesses. Give events and groups their own explore
- * pages so people can find what is happening near them without going through
- * a directory that was never built for it.
+ * directory / events / groups / panas toggle on the main page's search bar.
+ * Leave the directory to its listings. Give events and groups their own
+ * explore pages so people can find what is happening near them without going
+ * through a directory that was never built for it.
  *
  * All three are the same change seen from different ends. The scope toggle
  * only ever existed because four unlike things shared one results page; once
@@ -23,8 +23,8 @@ import { ExploreMock } from './_components/explore-mock';
  *     ("Search panas, businesses, groups, events"), because it had no control
  *     to say it with. Its own comment in `components/home/sections.tsx` admits
  *     the previous behaviour advertised four kinds and dropped three on submit.
- *   - `/directory/search` serves businesses with a map, county and category
- *     facets and a rich card.
+ *   - `/directory/search` serves directory listings with a map, county and
+ *     category facets and a rich card.
  *   - `/directory/[scope]` serves the other three from one template, with no
  *     facets at all, 70px rows, and no RSVP, join or follow action anywhere.
  *   - Groups and panas are both members-only, so half the club's public
@@ -35,7 +35,7 @@ import { ExploreMock } from './_components/explore-mock';
  *   - Two separate explore pages, not one combined "community" page.
  *   - Panas gets a page too, still members-only, with a real gate.
  *   - "Everything" is dropped. The scope menu forces a choice and defaults to
- *     Businesses. A search that could mean four things usually meant one.
+ *     Directory. A search that could mean four things usually meant one.
  *
  * Decisions taken here and open for argument — flagged so review catches them:
  *

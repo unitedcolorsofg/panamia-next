@@ -9,8 +9,17 @@
  * so a result list that showed only a name and a photo would be asking people
  * to guess where a click goes. A cafe, the pana who runs it, the group they
  * organise in, and this Saturday's event can all be called the same thing.
+ *
+ * `directory` rather than `business` because a directory listing is not only
+ * ever a business: bands, co-ops and non-profits claim one too. The kind names
+ * the row's destination -- a directory page -- not the trade of whoever owns it.
  */
-export const SUGGESTION_KINDS = ['business', 'pana', 'group', 'event'] as const;
+export const SUGGESTION_KINDS = [
+  'directory',
+  'pana',
+  'group',
+  'event',
+] as const;
 
 export type SuggestionKind = (typeof SUGGESTION_KINDS)[number];
 
@@ -22,7 +31,7 @@ export interface Suggestion {
   /** One line of context under the name: a tagline, a city, a date. Optional. */
   subtitle: string | null;
   /** Where selecting the row goes. Built server-side so the client never
-   *  has to know that businesses live at /p and groups at /r/groups. */
+   *  has to know that listings live at /p and groups at /r/groups. */
   href: string;
   imageUrl: string | null;
 }

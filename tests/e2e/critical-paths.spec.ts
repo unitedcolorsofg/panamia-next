@@ -27,12 +27,8 @@ test.describe('Critical User Paths', () => {
     // redirect so indexed links still resolve. Its destination is public, so
     // anonymous visitors now reach the form itself rather than sign-in.
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(
-      /^https?:\/\/[^/]+\/form\/list-your-business$/
-    );
-    await expect(page.locator('h1').first()).toContainText(
-      'List your business'
-    );
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/form\/get-listed$/);
+    await expect(page.locator('h1').first()).toContainText('Get listed');
   });
 
   test('contact form loads without errors', async ({ page }) => {
@@ -109,9 +105,18 @@ test.describe('Form Pages', () => {
       waitUntil: 'domcontentloaded',
     });
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(
-      /^https?:\/\/[^/]+\/form\/list-your-business$/
-    );
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/form\/get-listed$/);
+  });
+
+  test('the old list-your-business URL still resolves', async ({ page }) => {
+    // This path was the public intake for a long time and is linked from old
+    // posts and printed material, so the rename to /form/get-listed has to
+    // keep it working rather than 404.
+    const res = await page.goto('/form/list-your-business', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/form\/get-listed$/);
   });
 
   test('affiliate form asks anonymous visitors to sign in', async ({

@@ -1,0 +1,42 @@
+-- Migration: 0054_directory_account_type
+-- Purpose: Rename the 'small_business' account type to 'directory'.
+--
+--          A directory listing was never only a business. Bands, co-ops and
+--          non-profits claim one too, and the category vocabulary has carried
+--          'Non-Profit', 'Music' and 'Artisanal' for as long as the list has
+--          existed -- so the breadth was already real in the data while the
+--          enum still insisted every listing was a small business. The intake
+--          form had already moved on ("a business, band, co-op, non-profit or
+--          project"), which left the enum as the last place the old assumption
+--          was asserted, and the first thing anyone reading the schema saw.
+--
+--          Renaming it also makes the account type agree with the surfaces
+--          built on top of it: DIRECTORY_ACCOUNT_TYPES, /api/listings/intake,
+--          lib/server/listing-claim.ts and scripts/promote-to-directory.ts all
+--          already speak of listings and directory accounts.
+-- Ticket: N/A
+-- Reversible: Yes -- see Rollback. Unlike dropping an enum value, renaming one
+--             is symmetric, so this does not need the type recreated.
+--
+-- Dependencies: 0000_initial_schema (account_type enum exists)
+--
+-- Data Migration: None. RENAME VALUE relabels the row in pg_enum; the stored
+--                 oid on every profiles.account_type value is unchanged, so no
+--                 table is rewritten, no row lock is taken, and the cost is the
+--                 same whether the table holds ten rows or ten million.
+--
+-- Deploy ordering: NOT backwards compatible with running code. Deploy this
+--   migration and the matching application revision together.
+--
+--   The moment this commits, 'small_business' stops being a valid account_type,
+--   so an old revision still writing it fails outright. The read path is worse
+--   because it fails quietly: old code comparing account_type === 'small_business'
+--   simply stops matching, and every directory listing drops out of the
+--   directory, search suggestions and the sitemap without raising an error.
+--
+-- Rollback:
+--   ALTER TYPE "public"."account_type" RENAME VALUE 'directory' TO 'small_business';
+--
+-- =============================================================================
+
+ALTER TYPE "public"."account_type" RENAME VALUE 'small_business' TO 'directory';

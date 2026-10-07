@@ -104,7 +104,7 @@ function normalizePronouns(choice: unknown, other: unknown): string {
   return PRONOUN_LABELS[choice] || '';
 }
 
-const LISTING_TYPES = new Set(['small_business', 'hybrid']);
+const LISTING_TYPES = new Set(['directory', 'hybrid']);
 const LOCALLY_BASED = new Set(['yes', 'no', 'other']);
 
 export async function POST(request: NextRequest) {
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
   const pronouns = normalizePronouns(body.pronouns, body.pronounsOther);
   const accountType = LISTING_TYPES.has(body.accountType as string)
     ? (body.accountType as string)
-    : 'small_business';
+    : 'directory';
   const locallyBased = LOCALLY_BASED.has(body.locallyBased as string)
     ? (body.locallyBased as string)
     : '';
@@ -226,7 +226,10 @@ export async function POST(request: NextRequest) {
 
   if (hasStorefront && (!addressLine1 || !addressLocality)) {
     return NextResponse.json(
-      { error: 'Please include the street address and city for your storefront.' },
+      {
+        error:
+          'Please include the street address and city for your storefront.',
+      },
       { status: 400 }
     );
   }
@@ -410,8 +413,7 @@ async function sendSubmissionEmails(email: string): Promise<void> {
         tags: descriptions?.tags || '',
         socials_website: socials?.website || 'n/a',
         socials_instagram: socials?.instagram || 'n/a',
-        hearaboutus:
-          descriptions?.hearaboutus || 'Public business intake form',
+        hearaboutus: descriptions?.hearaboutus || 'Public business intake form',
         affiliate: profile.affiliate || 'n/a',
         approve_url: approveUrl.toString(),
         decline_url: declineUrl.toString(),
