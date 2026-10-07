@@ -50,7 +50,7 @@ export default async function ConnectorsFrontPage({
         actions={{
           // `/form/become-a-pana` was retired on main and now redirects here;
           // pointing at the live intake directly rather than through the hop.
-          primary: '/form/list-your-business',
+          primary: '/form/get-listed',
           secondary: '/connectors/hq?as=connector',
         }}
         interlude={<HouseBoard />}

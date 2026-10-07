@@ -55,17 +55,13 @@ test.describe('Public Navigation', () => {
     await expect(page.locator('h1').first()).toContainText('The Future');
   });
 
-  test('become a pana forwards to the business listing form', async ({
+  test('become a pana forwards to the directory listing form', async ({
     page,
   }) => {
     const res = await page.goto('/become-a-pana');
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveURL(
-      /^https?:\/\/[^/]+\/form\/list-your-business$/
-    );
-    await expect(page.locator('h1').first()).toContainText(
-      'List your business'
-    );
+    await expect(page).toHaveURL(/^https?:\/\/[^/]+\/form\/get-listed$/);
+    await expect(page.locator('h1').first()).toContainText('Get listed');
   });
 
   test('contact form loads', async ({ page }) => {

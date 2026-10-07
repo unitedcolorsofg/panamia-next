@@ -88,12 +88,12 @@ before(async () => {
   strangerUserId = stranger.id;
   createdUserIds.push(owner.id, stranger.id);
 
-  // A directory listing: the account opted in by choosing small_business.
+  // A directory listing: the account opted in by choosing directory.
   const [bizUser] = await db
     .insert(users)
     .values({
       email: `rl-biz-${suffix}@test.invalid`,
-      accountType: 'small_business',
+      accountType: 'directory',
     })
     .returning();
   createdUserIds.push(bizUser.id);
@@ -158,7 +158,7 @@ before(async () => {
     .insert(users)
     .values({
       email: `rl-doomed-${suffix}@test.invalid`,
-      accountType: 'small_business',
+      accountType: 'directory',
     })
     .returning();
   createdUserIds.push(doomedUser.id);

@@ -207,7 +207,7 @@ Three details settled during the build:
   answer a question has not asked for a second screen. Skip goes straight to
   the destination.
 - **The listing door hides for accounts that already have one.** Offering
-  `become-a-pana` to a `small_business` or `hybrid` account is noise. No new
+  `become-a-pana` to a `directory` or `hybrid` account is noise. No new
   write path was needed: `createExpressProfile` already updates an existing
   profile rather than inserting a second one (`ACCOUNTS-ROADMAP.md` #7), which
   is what keeps the `UNIQUE` constraint on `profiles.userId` satisfied now that

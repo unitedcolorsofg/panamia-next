@@ -33,7 +33,7 @@ export function UnifiedDirectory() {
       />
 
       {/* The scope page's own results container. `px-4` is where the mobile
-          gutter comes from here — on the businesses page that job belongs to
+          gutter comes from here — on the directory page that job belongs to
           `.dirsearch-listbody`, part of the split scrolling pane this page
           does not have. */}
       <div className="container mx-auto px-4 pt-6 pb-16">

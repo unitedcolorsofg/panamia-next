@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ArrowRight, Globe, MapPin, Store } from 'lucide-react';
-import { BUSINESSES } from '../_data';
+import { LISTINGS } from '../_data';
 
 /**
  * The map half of the directory.
@@ -46,29 +46,28 @@ export function MapPane({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const pinned = BUSINESSES.filter((b) => b.coords !== null);
-  const offMap = BUSINESSES.filter((b) => b.coords === null);
+  const pinned = LISTINGS.filter((b) => b.coords !== null);
+  const offMap = LISTINGS.filter((b) => b.coords === null);
 
-  const selected =
-    pinned.find((b) => b.id === selectedId) ?? pinned[0] ?? null;
+  const selected = pinned.find((b) => b.id === selectedId) ?? pinned[0] ?? null;
 
   return (
     <div className="dirsearch-map">
       <div className="dirsearch-map-grid" aria-hidden="true" />
 
-      {pinned.map((business) => (
+      {pinned.map((listing) => (
         <button
-          key={business.id}
+          key={listing.id}
           type="button"
           className="dirsearch-map-pin"
-          data-on={business.id === selected?.id}
-          style={project(business.coords!)}
-          onClick={() => onSelect(business.id)}
-          aria-label={`${business.name}, ${business.where}`}
+          data-on={listing.id === selected?.id}
+          style={project(listing.coords!)}
+          onClick={() => onSelect(listing.id)}
+          aria-label={`${listing.name}, ${listing.where}`}
         >
-          {business.badge ? (
+          {listing.badge ? (
             <Image
-              src={business.badge}
+              src={listing.badge}
               alt=""
               width={34}
               height={34}
@@ -131,7 +130,10 @@ export function MapPane({
       {/* Top-right belongs to the off-map pill, which is positioned there by
           globals.css and is real information. This note is scaffolding, so it
           takes the free corner rather than fighting for that one. */}
-      <p className="dirsearch-map-note" style={{ right: 'auto', left: '0.8rem' }}>
+      <p
+        className="dirsearch-map-note"
+        style={{ right: 'auto', left: '0.8rem' }}
+      >
         Illustrative map — the built page plots these on real tiles.
       </p>
     </div>

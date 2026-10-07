@@ -13,40 +13,40 @@
     "share": "Compartir",
     "shareCopied": "Enlace copiado",
     "findThemAt": "Encuéntralos en",
-    "noLinksYet": "Este negocio todavía no ha agregado enlaces.",
-    "businessNote": "Guardar y recomendar requieren una cuenta pana.",
-    "businessNoteLink": "Crea una",
+    "noLinksYet": "Esta ficha todavía no ha agregado enlaces.",
+    "directoryNote": "Guardar y recomendar requieren una cuenta pana.",
+    "directoryNoteLink": "Crea una",
     "ownerNote": "Este es tu perfil. Los guardados y las recomendaciones vienen de otros panas.",
     "distanceAsk": "¿A qué distancia está de mí?",
     "distanceNear": "a menos de 0.1 millas",
     "distance_one": "a {{count}} milla",
     "distance_other": "a {{count}} millas",
     "distanceDenied": "Ubicación desactivada",
-    "onlineOnly": "Negocio en línea"
+    "onlineOnly": "Solo en línea"
   },
   "gate": {
     "eyebrow": {
-      "save": "Para guardar este negocio",
-      "recommend": "Para recomendar este negocio",
+      "save": "Para guardar esta ficha",
+      "recommend": "Para recomendar esta ficha",
       "react": "Para reaccionar a esta publicación",
       "reply": "Para responder a esta publicación",
       "boost": "Para compartir esta publicación"
     },
     "reason": {
-      "save": "Los negocios guardados quedan en tu cuenta para que los vuelvas a encontrar, y el número de esta página sube en uno.",
-      "recommend": "Una recomendación es pública y pone tu nombre detrás de este negocio. Eso solo significa algo viniendo de una pana de verdad.",
-      "react": "Los me gusta vienen de tu perfil pana, así el negocio sabe quién lo está escuchando.",
-      "reply": "Las respuestas se publican en Pana Social con tu nombre de usuario, y el negocio puede contestarte.",
+      "save": "Las fichas guardadas quedan en tu cuenta para que las vuelvas a encontrar, y el número de esta página sube en uno.",
+      "recommend": "Una recomendación es pública y pone tu nombre detrás de esta ficha. Eso solo significa algo viniendo de una pana de verdad.",
+      "react": "Los me gusta vienen de tu perfil pana, así saben quién los está escuchando.",
+      "reply": "Las respuestas se publican en Pana Social con tu nombre de usuario, y pueden contestarte.",
       "boost": "Compartir pone esta publicación frente a las panas que te siguen, así que tiene que venir de alguien."
     },
     "perks": {
-      "save": "Guarda los negocios a los que quieres volver",
-      "recommend": "Recomienda los que vale la pena respaldar",
+      "save": "Guarda las fichas a las que quieres volver",
+      "recommend": "Recomienda las que vale la pena respaldar",
       "follow": "Sigue sus publicaciones en Pana Social"
     },
     "title": "Hazte pana",
-    "titleBusiness": "Necesitas una cuenta pana",
-    "reasonBusinessPrefix": "Has iniciado sesión con una cuenta de negocio.",
+    "titleDirectory": "Necesitas una cuenta pana",
+    "reasonDirectoryPrefix": "Has iniciado sesión con una cuenta de directorio.",
     "becomeAPana": "Hazte Pana",
     "addPanaAccount": "Agregar una cuenta pana",
     "haveOne": "Ya tengo una",
@@ -75,7 +75,7 @@
   },
   "updates": {
     "eyebrow": "Novedades",
-    "heading": "Directo del negocio",
+    "heading": "Directo de la fuente",
     "empty": "Todavía no hay publicaciones.",
     "emptyHandle": "@{{handle}} todavía no ha publicado nada.",
     "posts": "Publicaciones",
@@ -85,10 +85,10 @@
     "followersPrivate": "La lista de seguidores solo la ve quien administra la cuenta.",
     "noFollowing": "Todavía no sigues a nadie.",
     "noFollowers": "Todavía no tienes seguidores.",
-    "claimEyebrow": "Negocio sin reclamar",
-    "claimHeading": "¿Es tuyo este negocio?",
-    "claimBody": "Reclama este negocio para publicar novedades, agregar fotos y responder a las panas que te guardan.",
-    "claimCta": "Reclamar este negocio"
+    "claimEyebrow": "Ficha sin reclamar",
+    "claimHeading": "¿Es tuya esta ficha?",
+    "claimBody": "Reclama esta ficha para publicar novedades, agregar fotos y responder a las panas que te guardan.",
+    "claimCta": "Reclamar esta ficha"
   },
   "location": {
     "eyebrow": "Visita",

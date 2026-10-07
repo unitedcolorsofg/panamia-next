@@ -34,25 +34,36 @@ import {
  */
 
 type ViewId =
-  | 'home'
-  | 'home-open'
-  | 'directory'
-  | 'events'
-  | 'groups'
-  | 'panas';
+  'home' | 'home-open' | 'directory' | 'events' | 'groups' | 'panas';
 
 const VIEWS: { id: ViewId; label: string; hint: string }[] = [
-  { id: 'home', label: 'Home', hint: 'The hero with the scope control in the pill' },
-  { id: 'home-open', label: 'Home · menu', hint: 'The scope menu open, destinations named' },
-  { id: 'directory', label: 'Directory', hint: '/directory/search — businesses only now' },
+  {
+    id: 'home',
+    label: 'Home',
+    hint: 'The hero with the scope control in the pill',
+  },
+  {
+    id: 'home-open',
+    label: 'Home · menu',
+    hint: 'The scope menu open, destinations named',
+  },
+  {
+    id: 'directory',
+    label: 'Directory',
+    hint: '/directory/search — listings only now',
+  },
   { id: 'events', label: 'Events', hint: '/explore/events — grouped by day' },
-  { id: 'groups', label: 'Groups', hint: '/explore/groups — public, with a joined shelf' },
+  {
+    id: 'groups',
+    label: 'Groups',
+    hint: '/explore/groups — public, with a joined shelf',
+  },
   { id: 'panas', label: 'Panas', hint: '/explore/panas — members only' },
 ];
 
 /** Which view a scope lands on when someone presses Enter. */
 const SCOPE_VIEW: Record<ExploreScope, ViewId> = {
-  business: 'directory',
+  directory: 'directory',
   event: 'events',
   group: 'groups',
   pana: 'panas',

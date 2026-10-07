@@ -219,8 +219,8 @@ export const getPublicProfile = async (handle: string) => {
  *
  *   - status.source marks it as created by the public business intake form.
  *     Such a row has no linked user at all, so there is no person to render.
- *   - the owning account opted into the directory by choosing small_business
- *     or hybrid. The row is otherwise identical to a personal one; the account
+ *   - the owning account opted into the directory by choosing directory or
+ *     hybrid. The row is otherwise identical to a personal one; the account
  *     type is the only thing that distinguishes "Ana" from "Ana's bakery".
  */
 export function isPersonalProfile(profile: LegacyProfile): boolean {
@@ -257,7 +257,7 @@ export const getProfileByUserId = async (userId: string) => {
  *
  * NOTE: This does NOT auto-create profiles because profiles require
  * user-provided fields (name, descriptions.fiveWords). Business listings are
- * created by /api/listings/intake, behind /form/list-your-business; a member's
+ * created by /api/listings/intake, behind /form/get-listed; a member's
  * own profile is created when they claim a screenname.
  *
  * @param userId - PostgreSQL User.id (cuid format)

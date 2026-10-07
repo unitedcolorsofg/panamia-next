@@ -48,8 +48,8 @@ const VIEWERS: { key: ViewerKind; label: string; hint: string }[] = [
     hint: 'Gated actions prompt for signup',
   },
   {
-    key: 'business',
-    label: 'Business account',
+    key: 'directory',
+    label: 'Directory account',
     hint: 'Signed in, but with no pana profile behind it',
   },
   {

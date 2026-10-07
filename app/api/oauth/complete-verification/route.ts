@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         isNull(profiles.userId),
         // Same exclusion as auth.ts: an unclaimed *business* listing must not
         // become this user's personal profile. Without this, a business owner
-        // who submits /form/list-your-business and later signs in with the
+        // who submits /form/get-listed and later signs in with the
         // same address through OAuth has their listing welded to their
         // identity, consuming their single profiles.userId slot and silently
         // barring them from ever running a second listing.

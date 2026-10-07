@@ -97,13 +97,14 @@ Community events and the venues that host them:
 
 Public submission forms:
 
-| Route                       | Description           |
-| --------------------------- | --------------------- |
-| `/form/contact-us`          | Contact form          |
-| `/form/list-your-business`  | Business listing form |
-| `/form/become-a-pana`       | Redirect to the above |
-| `/form/become-an-affiliate` | Affiliate application |
-| `/form/join-the-team`       | Team application      |
+| Route                       | Description            |
+| --------------------------- | ---------------------- |
+| `/form/contact-us`          | Contact form           |
+| `/form/get-listed`          | Directory listing form |
+| `/form/list-your-business`  | Redirect to the above  |
+| `/form/become-a-pana`       | Redirect to the above  |
+| `/form/become-an-affiliate` | Affiliate application  |
+| `/form/join-the-team`       | Team application       |
 
 ### Feeds (`/feed*`)
 

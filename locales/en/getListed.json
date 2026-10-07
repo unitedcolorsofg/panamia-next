@@ -1,7 +1,7 @@
 {
   "eyebrow": "Free listing",
-  "title": "List your business",
-  "intro1": "Pana MIA is a directory of South Florida's independent makers, shops, artists and small businesses. Getting listed is free.",
+  "title": "Get listed",
+  "intro1": "Pana MIA is a directory of South Florida's independent makers, shops, artists, bands, co-ops and non-profits. Getting listed is free.",
   "intro2": "Seven short steps, one question at a time. No account needed yet.",
 
   "stepCounter": "Step {{step}} of {{total}}",
@@ -40,7 +40,7 @@
 
   "listingTypeQuestion": "What kind of listing are you creating?",
   "listingTypeNote": "This is what places you in the directory.",
-  "listingTypeBusiness": "A business, project, or organization",
+  "listingTypeDirectory": "A business, band, co-op, non-profit or project",
   "listingTypeHybrid": "Both — I'm listing my work and keeping a personal presence",
 
   "locallyBasedQuestion": "Are you (the creator, director, owner, CEO) locally-based or a native of South Florida?",
@@ -50,16 +50,16 @@
   "locallyBasedOther": "Other (please",
   "locallyBasedOtherLink": "contact us with details)",
 
-  "nameLabel": "Name of your business, project, or organization",
+  "nameLabel": "Name of your business, band, co-op or project",
   "namePlaceholder": "Café Las Olas",
   "nameNote": "This name will display as the title of your profile.",
 
   "emailLabel": "Email",
-  "emailPlaceholder": "hello@yourbusiness.com",
+  "emailPlaceholder": "hello@yoursite.com",
   "emailNote": "Use the address you want to claim this listing with — we'll send the claim link here. Not displayed on your profile.",
   "personalEmailLabel": "Your own email (optional)",
   "personalEmailPlaceholder": "you@example.com",
-  "personalEmailNote": "If the address above is a shared or business inbox, add your own here. We'll email you a sign-in link so this listing is attached to your account and you can follow it while it's reviewed. Never shown publicly, and you can list without it.",
+  "personalEmailNote": "If the address above is a shared or team inbox, add your own here. We'll email you a sign-in link so this listing is attached to your account and you can follow it while it's reviewed. Never shown publicly, and you can list without it.",
 
   "phoneLabel": "Phone (optional)",
   "phonePlaceholder": "(305) 555-0123",
@@ -75,7 +75,7 @@
   "detailsPlaceholder": "Tell us what you make, who it's for, and where in South Florida you're based.",
   "detailsNote": "This will be your intro to our users! A trimmed snippet of this shows in directory search. Please include where you are based in SoFlo :)",
 
-  "fiveWordsLabel": "Give us five words that describe your business or services",
+  "fiveWordsLabel": "Give us five words that describe what you do",
   "fiveWordsPlaceholder": "Cuban coffee and pastelitos",
   "fiveWordsNote": "A few words. This is what people see first in the directory.",
 
@@ -83,14 +83,13 @@
   "tagsNote": "Pick every one that fits. These power the filters on directory search.",
 
   "linksTitle": "Website and Instagram",
-  "linksNote": "Add at least one so we can confirm you're a real local business. These are displayed on your profile.",
+  "linksNote": "Add at least one so we can confirm you're really local. These are displayed on your profile.",
   "websiteLabel": "Website",
-  "websitePlaceholder": "yourbusiness.com",
+  "websitePlaceholder": "yoursite.com",
   "instagramLabel": "Instagram",
-  "instagramPlaceholder": "@yourbusiness",
-
-  "storefrontLabel": "I have a physical business address people can visit",
-  "storefrontNote": "Leave this unchecked if you're online-only, mobile, or by appointment. Only check it for a business address — never your home.",
+  "instagramPlaceholder": "@yourhandle",
+  "storefrontLabel": "I have a physical address people can visit",
+  "storefrontNote": "Leave this unchecked if you're online-only, mobile, or by appointment. Only check it for a public address — never your home.",
 
   "addressLine1Label": "Street address",
   "addressLine1Placeholder": "123 SW 8th St",
@@ -104,7 +103,7 @@
 
   "hoursLabel": "Operating hours (optional)",
   "hoursPlaceholder": "Mon–Fri 9am–6pm\nSat 10am–4pm\nSun closed",
-  "hoursNote": "Free-form — write them however your customers would read them.",
+  "hoursNote": "Free-form — write them however your visitors would read them.",
 
   "hearAboutUsLabel": "How did you hear about us? (optional)",
   "hearAboutUsPlaceholder": "A friend, Instagram, a market, another pana...",
@@ -122,10 +121,10 @@
 
   "errTitle": "Almost — one thing first",
   "errLocallyBased": "Please let us know whether you're based in South Florida.",
-  "errName": "Please enter your business name (at least 2 characters).",
+  "errName": "Please enter the name of your listing (at least 2 characters).",
   "errEmail": "Please enter a valid email address.",
   "errPersonalEmail": "That doesn't look like a valid email address. Fix it or leave it empty — it's optional.",
-  "errPersonalEmailSame": "This is the same as your business email above. Leave it empty if you only use one address.",
+  "errPersonalEmailSame": "This is the same as the contact email above. Leave it empty if you only use one address.",
   "errDetails": "Please tell us a little more about your project.",
   "errFiveWords": "Please tell us what you do in a few words.",
   "errLinks": "Please add a website or an Instagram handle so we can find you.",
@@ -140,7 +139,7 @@
   "successNext1": "Our team reviews your submission, usually within a few days.",
   "successNext2": "Once approved, your listing goes live in the directory.",
   "successNext3": "We'll email you a link to claim it and add photos, hours and more.",
-  "successAnother": "Submit another business",
+  "successAnother": "Submit another listing",
   "successHome": "Back to home",
 
   "alreadyListed": "Already have a listing?",
