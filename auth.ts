@@ -19,6 +19,7 @@ import {
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
 import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
+import { envConfig } from '@/lib/env.config';
 
 // Custom email templates for magic link authentication
 function html(params: { url: string; host: string; email: string }) {
@@ -518,6 +519,44 @@ export type AppSession = {
 // Provider verification configuration
 // =============================================================================
 
+type ProviderTrustLevel = 'trusted' | 'verification-required' | 'disabled';
+
+const TRUST_LEVELS: readonly ProviderTrustLevel[] = [
+  'trusted',
+  'verification-required',
+  'disabled',
+];
+
+/**
+ * Resolve one OAUTH_* trust-level variable.
+ *
+ * Falls back to the `defaultValue` declared for that key in lib/env.config.ts.
+ * Those defaults used to be documentation only — nothing read them at runtime —
+ * so an operator who set GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_ENABLED but
+ * not OAUTH_GOOGLE got 'verification-required', which the account hook below
+ * turns into a flat refusal (the verification flow it names is still a TODO).
+ * The result was a Google button that always failed with a generic auth error,
+ * while env.config.ts advertised the default as 'trusted'.
+ *
+ * An unrecognised value is rejected rather than cast. The old blind cast failed
+ * open: `OAUTH_GOOGLE=Trusted` matched neither 'disabled' nor
+ * 'verification-required', so every check below waved it through — a typo
+ * quietly bought the provider more trust than it was meant to have.
+ */
+function readTrustLevel(envKey: string): ProviderTrustLevel | undefined {
+  const raw = process.env[envKey]?.trim();
+  const value = raw || envConfig[envKey]?.defaultValue;
+  if (!value) return undefined;
+
+  if (!TRUST_LEVELS.includes(value as ProviderTrustLevel)) {
+    console.error(
+      `Invalid ${envKey}="${value}" — expected one of ${TRUST_LEVELS.join(', ')}. Treating the provider as disabled.`
+    );
+    return 'disabled';
+  }
+  return value as ProviderTrustLevel;
+}
+
 function getProviderVerificationConfig(
   provider?: string
 ): 'trusted' | 'verification-required' | 'disabled' {
@@ -531,18 +570,15 @@ function getProviderVerificationConfig(
     const instance = process.env.MASTODON_INSTANCE || 'https://mastodon.social';
     const hostname = new URL(instance).hostname;
     if (hostname === 'mastodon.social') {
-      const config = process.env.OAUTH_MASTODON_SOCIAL;
-      if (config)
-        return config as 'trusted' | 'verification-required' | 'disabled';
+      const config = readTrustLevel('OAUTH_MASTODON_SOCIAL');
+      if (config) return config;
     }
-    const genericConfig = process.env.OAUTH_MASTODON;
-    if (genericConfig)
-      return genericConfig as 'trusted' | 'verification-required' | 'disabled';
+    const genericConfig = readTrustLevel('OAUTH_MASTODON');
+    if (genericConfig) return genericConfig;
   }
 
-  const envKey = `OAUTH_${provider.toUpperCase()}`;
-  const config = process.env[envKey];
-  if (config) return config as 'trusted' | 'verification-required' | 'disabled';
+  const config = readTrustLevel(`OAUTH_${provider.toUpperCase()}`);
+  if (config) return config;
 
   return 'verification-required';
 }
@@ -991,12 +1027,14 @@ function getBetterAuth(): BetterAuthInstance {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        scope: [
-          'openid',
-          'email',
-          'profile',
-          'https://www.googleapis.com/auth/calendar.events',
-        ],
+        // Sign-in only. `calendar.events` used to be requested here for a
+        // mentoring-calendar sync that was never built, and nothing reads the
+        // stored token except the revoke-on-delete path in lib/oauth-revoke.ts.
+        // It is one of Google's restricted scopes, so asking for it put the app
+        // through a verification review — and made a member granting calendar
+        // access the price of signing in. Re-add it alongside the feature that
+        // needs it, not before.
+        scope: ['openid', 'email', 'profile'],
       },
       apple: {
         clientId: process.env.APPLE_CLIENT_ID!,

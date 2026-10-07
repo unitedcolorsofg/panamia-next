@@ -163,6 +163,12 @@
     // stable if/when the UI moves to another hostname. Do not change it once
     // actors have federated — see lib/federation/domain.ts.
     "FEDERATION_DOMAIN": "pana.social",
+    // Public half of the Google OAuth credential pair: it travels in the
+    // browser's authorization URL, so it is config rather than a secret. The
+    // matching GOOGLE_CLIENT_SECRET is a Cloudflare secret and must never
+    // appear here. Unset leaves socialProviders.google inert, which is how
+    // this shipped before the client existed - see docs/SIGNIN.md.
+    "GOOGLE_CLIENT_ID": "76202212058-glc6e1h7noshav4mu2odhplh6ce31g6h.apps.googleusercontent.com",
     // Registrable domain the panaverse surfaces hang off — see
     // lib/panaverse/surfaces.ts. Hosts that don't match a surface (previews,
     // localhost) fall back to the main site with every route reachable.

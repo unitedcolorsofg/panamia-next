@@ -30,6 +30,12 @@ const KEYS = [
   'R2_PUBLIC_URL',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
+  // Google OAuth. Both halves must be listed or `dev:setup` drops them and
+  // local Google sign-in fails at the token exchange rather than at startup:
+  // the client ID would fall back to wrangler.jsonc `vars` while the secret
+  // resolved to nothing, so the button renders and only the callback breaks.
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
   // Must be carried through even when empty: wrangler.jsonc sets this to
   // ".pana.social" for production, and browsers reject that cookie domain on
   // a localhost host. An empty value here restores host-only cookies so local
