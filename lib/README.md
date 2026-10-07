@@ -94,6 +94,12 @@ entry alone via `sendTemplateEmail`'s fallback. Both are best-effort by
 contract — they never throw, because a failed notification must not fail the
 request that triggered it.
 
+`admin-auth.ts` exposes two gates, not one: `checkAdminAuth()` for ordinary
+admin work and `checkSuperAdminAuth()` for anything that changes *who* is an
+admin. See [docs/ADMIN-ACCESS.md](../docs/ADMIN-ACCESS.md) for the two tiers,
+how to grant admin, and why the bootstrap step is deliberately outside the
+product.
+
 ## Validations (`validations/`)
 
 Zod schemas for input validation:
