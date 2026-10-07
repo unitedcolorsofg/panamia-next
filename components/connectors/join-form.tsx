@@ -1,18 +1,15 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState, type ReactNode } from 'react';
 
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
-import {
-  MockButton,
-  MockInput,
-  MockSelect,
-  MockTag,
-  MockTextarea,
-} from '@/components/mock-controls';
 import { HOUSES, PODS, TIERS, getTier } from '@/lib/connectors/model';
+import type { HouseId, PodId } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
- * The connector intake, as a mock.
+ * The connector intake.
  *
  * ## Why this exists at all
  *
@@ -23,36 +20,96 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * about their business, or about a business they do not have. That was the one
  * genuine hole in the surface: the pitch had no door at the end of it.
  *
- * So the mock answers the question it was always going to have to answer —
- * what do we ask somebody who wants to join — before anybody writes the
- * schema that stores it.
- *
  * ## Why these three questions
  *
  * The offering page already tells readers how it works: "Pick a house, join a
  * pod, start at the first tier." This form is that sentence, in order, and
  * nothing else. Every field a reviewer might reach for — how long have you
  * been organizing, what are your qualifications, how many hours a week — is
- * absent on purpose, because the deck is emphatic that the tiers do not rank
- * anybody and that everyone starts at Tier 1. A form that opens by scoring
- * people contradicts the programme on the way in.
+ * absent on purpose, because the programme is emphatic that the tiers do not
+ * rank anybody and that everyone starts at Tier 1. A form that opens by
+ * scoring people contradicts the programme on the way in.
  *
- * Tier is shown and not asked, for the same reason.
+ * Tier is shown and not asked, for the same reason. The API never reads a
+ * tier off the request.
  *
- * ## Why it is inert
+ * Name and email are not asked either, because you have to be signed in to
+ * reach this page and we already have both. Asking a signed-in member to type
+ * their own name is how a form tells somebody it is not really connected to
+ * anything.
  *
- * Every control is `disabled`, like the rest of the mock controls. A form that
- * looked live, took an email address and dropped it would be worse than no
- * form: somebody would believe they had joined. See `components/mock-controls`
- * for why `disabled` is doing the accessibility work here too.
+ * ## Submitting
  *
- * Server component. A multi-step client form is the obvious next version, and
- * it is the wrong thing to build before the questions are settled.
+ * POSTs to `/api/connectors/join`, which writes `profiles.connector` on the
+ * signed-in human's own profile and is idempotent — re-submitting edits the
+ * membership and keeps `joinedAt` and existing commitments. That is what makes
+ * it safe to use this same form for "change my houses" later.
  */
 
 const TIER_ONE = getTier(1);
 
-export function ConnectorJoinForm() {
+export function ConnectorJoinForm({
+  initialPod = null,
+  initialHouses = [],
+  initialBring = '',
+  isEditing = false,
+}: {
+  initialPod?: PodId | null;
+  initialHouses?: HouseId[];
+  initialBring?: string;
+  isEditing?: boolean;
+}) {
+  const router = useRouter();
+  const [pod, setPod] = useState<PodId | null>(initialPod);
+  const [houses, setHouses] = useState<HouseId[]>(initialHouses);
+  const [bring, setBring] = useState(initialBring);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function toggleHouse(id: HouseId) {
+    setHouses((current) =>
+      current.includes(id) ? current.filter((h) => h !== id) : [...current, id]
+    );
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (!pod) {
+      setError('Pick the pod you can actually get to.');
+      return;
+    }
+    if (houses.length === 0) {
+      setError('Pick at least one house.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/connectors/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pod, houses, bring }),
+      });
+      const data = (await res.json()) as { success: boolean; error?: string };
+
+      if (!res.ok || !data.success) {
+        setError(data.error ?? 'Could not save that. Try again.');
+        setSaving(false);
+        return;
+      }
+
+      // Refresh as well as navigate: HQ reads membership on the server, so the
+      // cached RSC payload for it predates this write.
+      router.replace('/connectors/hq');
+      router.refresh();
+    } catch {
+      setError('Could not reach the server. Try again.');
+      setSaving(false);
+    }
+  }
+
   return (
     <main className="bg-pana-cream text-pana-ink pb-20">
       <header className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}>
@@ -65,7 +122,9 @@ export function ConnectorJoinForm() {
           <h1
             className={`mt-2 max-w-3xl text-4xl leading-tight font-extrabold ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
           >
-            Organize where you already are.
+            {isEditing
+              ? 'Change what you picked.'
+              : 'Organize where you already are.'}
           </h1>
           <p className="text-pana-cream/70 mt-4 max-w-2xl text-base leading-relaxed">
             Three questions. Which county you are in, what you already like
@@ -82,29 +141,37 @@ export function ConnectorJoinForm() {
       </header>
 
       <div className="container mx-auto max-w-3xl px-4 py-10">
-        <div className="border-pana-ink/30 bg-pana-butter-2 mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-2 border-dashed px-4 py-3">
-          <MockTag />
-          <p className="text-pana-ink/70 text-sm leading-snug">
-            This form does not submit. It is here to settle what we ask a new
-            connector before anybody builds the table that stores the answers.
-          </p>
-        </div>
-
-        <form className="flex flex-col gap-8">
+        <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
           <Step
             number={1}
             title="Join your pod"
             lede="Pods are geographic, and they meet. Pick the county you can actually get to on a weeknight."
           >
             <div className="grid gap-3 sm:grid-cols-3">
-              {PODS.map((pod) => (
-                <Choice
-                  key={pod.id}
-                  name="pod"
-                  value={pod.id}
-                  title={pod.name}
-                  detail={pod.region}
-                />
+              {PODS.map((p) => (
+                <label
+                  key={p.id}
+                  className={`border-pana-ink flex cursor-pointer items-start gap-2.5 rounded-xl border-2 px-4 py-3 ${
+                    pod === p.id ? 'bg-pana-butter-2' : 'bg-pana-cream'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pod"
+                    value={p.id}
+                    checked={pod === p.id}
+                    onChange={() => setPod(p.id)}
+                    className="border-pana-ink mt-0.5 size-4 shrink-0 border-2"
+                  />
+                  <span>
+                    <span className="block text-base leading-tight font-extrabold">
+                      {p.name}
+                    </span>
+                    <span className="text-pana-ink/60 mt-0.5 block text-sm">
+                      {p.region}
+                    </span>
+                  </span>
+                </label>
               ))}
             </div>
           </Step>
@@ -118,7 +185,7 @@ export function ConnectorJoinForm() {
               {HOUSES.map((house) => (
                 <label
                   key={house.id}
-                  className="border-pana-ink bg-pana-cream flex cursor-default flex-col overflow-hidden rounded-xl border-2"
+                  className="border-pana-ink bg-pana-cream flex cursor-pointer flex-col overflow-hidden rounded-xl border-2"
                 >
                   <span
                     className="flex items-center gap-2.5 px-4 py-3"
@@ -131,7 +198,8 @@ export function ConnectorJoinForm() {
                       type="checkbox"
                       name="house"
                       value={house.id}
-                      disabled
+                      checked={houses.includes(house.id)}
+                      onChange={() => toggleHouse(house.id)}
                       className="border-pana-ink size-4 shrink-0 rounded border-2"
                     />
                     <span className="text-base leading-tight font-extrabold">
@@ -151,40 +219,30 @@ export function ConnectorJoinForm() {
             title="Tell your pod what you can bring"
             lede="Not a résumé. The pod lead reads this to work out who to introduce you to first."
           >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MockInput label="Your name" placeholder="Name" />
-              <MockInput label="Email" placeholder="you@example.com" />
-            </div>
-            <div className="mt-3">
-              <MockTextarea
-                label="What you can bring"
-                placeholder="A van most weekends. I speak Creole. I can edit video. I know every venue in Little Haiti."
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-extrabold tracking-wide uppercase">
+                What you can bring
+              </span>
+              <textarea
+                name="bring"
                 rows={3}
+                value={bring}
+                onChange={(e) => setBring(e.target.value)}
+                maxLength={2000}
+                placeholder="A van most weekends. I speak Creole. I can edit video. I know every venue in Little Haiti."
+                className="border-pana-ink bg-pana-cream text-pana-ink placeholder:text-pana-ink/40 rounded-lg border-2 px-3 py-2 text-sm"
               />
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <MockSelect
-                label="How you heard about Pana Connectors"
-                placeholder="How did you hear about us?"
-                options={[
-                  'A connector invited me',
-                  'At an event or free market',
-                  'The Pana MIA directory',
-                  'Instagram',
-                  'A zine or postcard',
-                ]}
-              />
-              <MockSelect
-                label="Best way to reach you"
-                placeholder="Best way to reach you"
-                options={['Email', 'Text', 'Signal', 'Instagram DM']}
-              />
-            </div>
+              <span className="text-pana-ink/50 text-xs">
+                Optional. You can change it whenever.
+              </span>
+            </label>
           </Step>
 
           <section className="border-pana-ink bg-pana-butter-2 rounded-xl border-2 p-5">
             <h2 className="text-base font-extrabold">
-              You will start at Tier {TIER_ONE.id} — {TIER_ONE.name}
+              {isEditing
+                ? `Tier ${TIER_ONE.id} — ${TIER_ONE.name}`
+                : `You will start at Tier ${TIER_ONE.id} — ${TIER_ONE.name}`}
             </h2>
             <p className="text-pana-ink/70 mt-2 text-sm leading-relaxed">
               {TIER_ONE.blurb} Tiers are about how much you are carrying, not
@@ -205,9 +263,7 @@ export function ConnectorJoinForm() {
                   </span>
                   <span
                     className={
-                      tier.id === TIER_ONE.id
-                        ? 'font-bold'
-                        : 'text-pana-ink/60'
+                      tier.id === TIER_ONE.id ? 'font-bold' : 'text-pana-ink/60'
                     }
                   >
                     {tier.name}
@@ -217,25 +273,33 @@ export function ConnectorJoinForm() {
             </ol>
           </section>
 
+          {error && (
+            <p
+              role="alert"
+              className="border-pana-ink bg-pana-butter text-pana-ink rounded-lg border-2 px-4 py-3 text-sm font-bold"
+            >
+              {error}
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center gap-4">
-            <MockButton>Send this to my pod</MockButton>
+            <button
+              type="submit"
+              disabled={saving}
+              className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL} disabled:opacity-60`}
+            >
+              {saving
+                ? 'Saving…'
+                : isEditing
+                  ? 'Save changes'
+                  : 'Join the programme'}
+            </button>
             <p className="text-pana-ink/60 text-sm">
               Your pod lead gets in touch — the programme runs on people, not on
               an approval queue.
             </p>
           </div>
         </form>
-
-        <p className="text-pana-ink/60 mt-10 text-sm leading-relaxed">
-          Already a connector?{' '}
-          <SurfaceLink
-            href="/connectors/hq?as=connector"
-            className="text-pana-ink font-bold underline underline-offset-4"
-          >
-            Open Connector HQ
-          </SurfaceLink>
-          .
-        </p>
       </div>
     </main>
   );
@@ -266,36 +330,5 @@ function Step({
       <p className="text-pana-ink/70 mt-2 text-sm leading-relaxed">{lede}</p>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-/** A plain radio card, for choices that have no colour of their own. */
-function Choice({
-  name,
-  value,
-  title,
-  detail,
-}: {
-  name: string;
-  value: string;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <label className="border-pana-ink bg-pana-cream flex cursor-default items-start gap-2.5 rounded-xl border-2 px-4 py-3">
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        disabled
-        className="border-pana-ink mt-0.5 size-4 shrink-0 border-2"
-      />
-      <span>
-        <span className="block text-base leading-tight font-extrabold">
-          {title}
-        </span>
-        <span className="text-pana-ink/60 mt-0.5 block text-sm">{detail}</span>
-      </span>
-    </label>
   );
 }

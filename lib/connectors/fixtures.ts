@@ -488,32 +488,14 @@ export function headlineStats(): HeadlineStat[] {
 // ---------------------------------------------------------------------------
 // Viewer simulation
 // ---------------------------------------------------------------------------
-
-/**
- * Who is looking at the page.
- *
- * In the real build this comes from the session — whether the signed-in user
- * has a connector record. While this is a mock it comes from `?as=` instead,
- * so the panas can click between both states in a review without us standing
- * up auth fixtures first.
- *
- * It is wired as a query param rather than a build flag precisely so that a
- * link to the HQ in a review thread shows the reviewer what the reporter saw.
- *
- * There is no `admin` member. There was, while the programme console lived at
- * `/connectors/admin`; it has since moved to the staff-gated admin surface,
- * which answers to `checkAdminAuth()` and has no viewer roles of its own. A
- * role you cannot preview is not a state of this surface, and leaving it in
- * the union meant every map over it needed an entry explaining the exception.
- */
-export type ViewerRole = 'visitor' | 'connector';
-
-export const VIEWER_ROLES: readonly ViewerRole[] = ['visitor', 'connector'];
-
-/** The connector whose shoes you stand in when previewing as a member. */
-export const DEMO_VIEWER_ID = 'bianca';
-
-export function resolveViewerRole(value: string | string[] | undefined): ViewerRole {
-  const raw = Array.isArray(value) ? value[0] : value;
-  return VIEWER_ROLES.includes(raw as ViewerRole) ? (raw as ViewerRole) : 'visitor';
-}
+//
+// Removed. The member-facing pages — `/connectors`, `/connectors/join` and
+// `/connectors/hq` — no longer simulate anybody: they read the signed-in
+// member's own `profiles.connector` record through `lib/connectors/membership`
+// and show real data or nothing. `?as=` and the demo viewer went with them,
+// because a page that greets a signed-in member by a fixture's name is the
+// bug, not the preview.
+//
+// What is left in this file is the data the admin console still renders. That
+// console lives on admin.pana.social and is out of scope here; when it gets
+// real tables, this file goes.

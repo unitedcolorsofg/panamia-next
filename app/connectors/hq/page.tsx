@@ -1,59 +1,45 @@
+import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
+import { Panel, TierLabel } from '@/components/connectors/dashboard-parts';
+import { MyCommitments } from '@/components/connectors/my-commitments';
 import {
-  BirthdayList,
-  CommitmentsTable,
-  EventCard,
-  HousePill,
-  Panel,
-  TierLabel,
-} from '@/components/connectors/dashboard-parts';
-import { ViewerSwitch } from '@/components/connectors/viewer-switch';
-import {
-  MockButton,
-  MockInput,
-  MockSelect,
-  MockTag,
-} from '@/components/mock-controls';
-import {
-  ASKS,
-  DEMO_VIEWER_ID,
-  commitmentsFor,
-  connectorById,
-  connectorsInPod,
-  resolveViewerRole,
-  upcomingBirthdays,
-  upcomingEvents,
-} from '@/lib/connectors/fixtures';
-import { HOUSES, type ConnectorEvent, getHouse, getPod, getTier } from '@/lib/connectors/model';
+  countConnectorsInPod,
+  getMyConnector,
+} from '@/lib/connectors/membership';
+import { getHouse, getPod, getTier } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
  * Connector HQ — the page a connector actually lives on.
  *
- * Ordered by what somebody opens it to find out, which in practice is three
- * questions in this order: what have I said I would do, what is happening
- * soon, and what else needs picking up. The programme explainer is not
- * repeated here; by this point you have read it.
+ * ## What changed, and why
+ *
+ * This page used to render a fixture: a hardcoded demo connector called
+ * Bianca, shown to everybody who added `?as=connector` to the URL. Signed in
+ * as yourself, HQ greeted you by somebody else's name — which is exactly the
+ * bug that was reported against production. It now reads the signed-in
+ * member's own membership from `profiles.connector`.
+ *
+ * ## What was removed
+ *
+ * The events, open asks and birthdays panels are gone rather than kept. All
+ * three rendered invented people — asks "asked by" names that do not exist,
+ * birthdays for nobody — and there is no table behind any of them and no way
+ * to create one: events and asks are programme-wide content owned by an
+ * organiser, and the admin console lives on admin.pana.social, out of scope
+ * here. Leaving them in place would mean this page still shows fiction, which
+ * is the thing being fixed. They come back when they have real data behind
+ * them.
+ *
+ * What stays is what is true: your own commitments, which you write; your
+ * pod's real size, counted; and the tier ladder for your houses, which is
+ * programme content from `lib/connectors/model.ts` rather than a person.
  *
  * The "next in your house" panel is the one piece that is not in the
  * spreadsheet today. The deck lists example actions per house per tier, and
  * leaving that on a slide means it gets read once during onboarding and never
  * again — which is precisely when somebody starts wondering what Tier 2 would
  * actually involve.
- *
- * ## Why the controls are here and inert
- *
- * Each of the three questions above has an answer that ends in doing
- * something: I will add a commitment, I will take a shift, I will pick that
- * ask up. The admin console got its mock controls when it moved; this page
- * did not have any, which made HQ a noticeboard — it could tell a connector
- * three volunteers were missing from Saturday and offer no way to be one of
- * them.
- *
- * They are `disabled`, like every other mock control in the app. The point is
- * to settle what a connector reaches for before anybody writes the table that
- * records it. See `components/mock-controls` for why disabled rather than
- * live-but-dropped.
  */
 
 export const metadata = {
@@ -61,241 +47,145 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function ConnectorHqPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  const role = resolveViewerRole((await searchParams).as);
+export default async function ConnectorHqPage() {
+  const session = await auth();
 
-  if (role === 'visitor') {
-    return (
-      <>
-        <ViewerSwitch current="visitor" />
-        <NotAConnectorYet />
-      </>
-    );
+  // Not signed in and not a member land in the same place on purpose. HQ has
+  // nothing to show either of them, and "sign in" is the wrong first thing to
+  // say to somebody who has never heard of the programme.
+  if (!session?.user?.id) {
+    return <NotAConnectorYet signedIn={false} />;
   }
 
-  const me = connectorById(DEMO_VIEWER_ID);
-  if (!me) throw new Error('Demo viewer is missing from the fixture roster');
+  const me = await getMyConnector(session.user.id);
+  if (!me) {
+    return <NotAConnectorYet signedIn />;
+  }
 
-  const house = me.houseId ? getHouse(me.houseId) : null;
-  const tier = getTier(me.tier);
-  const pod = getPod(me.podId);
-  const myCommitments = commitmentsFor(me.id);
-  const podSize = connectorsInPod(me.podId).length;
-  const events = upcomingEvents(4);
-  const openAsks = ASKS.filter((a) => !a.completed);
+  const { displayName, membership } = me;
+  const houses = membership.houses.map(getHouse);
+  const tier = getTier(membership.tier);
+  const pod = getPod(membership.pod);
+  const podSize = await countConnectorsInPod(membership.pod);
 
   return (
-    <>
-      <ViewerSwitch current={role} />
+    <main className="bg-pana-cream text-pana-ink pb-20">
+      <header className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}>
+        <div className="container mx-auto px-4 py-10">
+          <p
+            className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
+          >
+            Connector HQ
+          </p>
+          <h1
+            className={`mt-2 text-4xl leading-tight font-extrabold ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
+          >
+            Hey, {displayName.split(' ')[0]}.
+          </h1>
 
-      <main className="bg-pana-cream text-pana-ink pb-20">
-        <header
-          className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}
-        >
-          <div className="container mx-auto px-4 py-10">
-            <p
-              className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
+          <dl className="text-pana-cream mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+            <div>
+              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
+                {houses.length === 1 ? 'House' : 'Houses'}
+              </dt>
+              <dd className="mt-0.5 font-bold">
+                {houses.map((h) => h.name).join(' · ')}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
+                Tier
+              </dt>
+              <dd className="mt-0.5 font-bold">
+                <TierLabel tier={membership.tier} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
+                Pod
+              </dt>
+              <dd className="mt-0.5 font-bold">
+                {pod.name} ·{' '}
+                {podSize === 1 ? 'just you so far' : `${podSize} connectors`}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="text-pana-cream/70 mt-4 max-w-2xl text-sm leading-relaxed">
+            {tier.blurb}
+          </p>
+
+          <p className="mt-4 text-sm">
+            <SurfaceLink
+              href="/connectors/join"
+              className={`font-bold underline underline-offset-4 ${CONNECTORS_CHROME.ACCENT}`}
             >
-              Connector HQ
-            </p>
-            <h1
-              className={`mt-2 text-4xl leading-tight font-extrabold ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
-            >
-              Hey, {me.name.split(' ')[0]}.
-            </h1>
-
-            <dl className="text-pana-cream mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-              <div>
-                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                  House
-                </dt>
-                <dd className="mt-0.5 font-bold">
-                  {house ? (
-                    house.name
-                  ) : (
-                    <span className={CONNECTORS_CHROME.ACCENT}>
-                      Not chosen yet
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                  Tier
-                </dt>
-                <dd className="mt-0.5 font-bold">
-                  <TierLabel tier={me.tier} />
-                </dd>
-              </div>
-              <div>
-                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                  Pod
-                </dt>
-                <dd className="mt-0.5 font-bold">
-                  {pod.name} · {podSize} connectors
-                </dd>
-              </div>
-            </dl>
-
-            <p className="text-pana-cream/70 mt-4 max-w-2xl text-sm leading-relaxed">
-              {tier.blurb}
-            </p>
-          </div>
-        </header>
-
-        <div className="container mx-auto grid gap-6 px-4 py-10 lg:grid-cols-3">
-          {/* `min-w-0` is load-bearing. A grid item defaults to
-              `min-width: auto`, which means it refuses to shrink below its
-              content's intrinsic width — so the commitments table's min-width
-              pushed this whole column wider than the viewport on a phone, and
-              the `overflow-x-auto` wrapper around the table never got the
-              chance to scroll because it was never the thing being squeezed.
-              The page scrolled sideways instead of the table. */}
-          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-            <Panel title="My commitments" action={<MockTag />}>
-              <CommitmentsTable rows={myCommitments} showWho={false} />
-
-              <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
-                <h3 className="text-sm font-extrabold tracking-wide uppercase">
-                  Say you will do something
-                </h3>
-                {/* No "who" field, unlike the admin console's version of this
-                  * form. A connector commits themselves; volunteering somebody
-                  * else is the pod lead's job and it happens in conversation,
-                  * not in a form. */}
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <MockInput
-                    label="What"
-                    placeholder="Table at the Little Haiti free market"
-                  />
-                  <MockInput label="When" placeholder="Early November" />
-                  <MockSelect
-                    label="House"
-                    placeholder={house ? house.name : 'Pick a house'}
-                    options={HOUSES.map((h) => h.name)}
-                  />
-                </div>
-                <MockButton>Add to my commitments</MockButton>
-              </div>
-            </Panel>
-
-            <section>
-              <h2 className="text-pana-ink/60 text-sm font-extrabold tracking-wide uppercase">
-                Coming up
-              </h2>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                {events.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    action={<EventSignUp event={event} />}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <aside className="flex flex-col gap-6">
-            <Panel title="Open asks" action={<MockTag />}>
-              <ul className="flex flex-col gap-5">
-                {openAsks.map((ask) => (
-                  <li key={ask.id} className="text-sm">
-                    <p className="leading-snug font-bold">{ask.what}</p>
-                    <p className="text-pana-ink/60 mt-1">
-                      Asked by {ask.askedBy}
-                    </p>
-                    {/* House pills are on the admin version of this list and
-                      * were missing here, which is backwards: a connector is
-                      * the one deciding whether an ask is theirs to take. */}
-                    {ask.houseIds.length > 0 && (
-                      <span className="mt-2 flex flex-wrap gap-1">
-                        {ask.houseIds.map((id) => (
-                          <HousePill key={id} houseId={id} />
-                        ))}
-                      </span>
-                    )}
-                    <MockButton className="mt-2.5">
-                      I&rsquo;ll pick this up
-                    </MockButton>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-
-            {house && (
-              <Panel title={`Next in ${house.name}`}>
-                <p className="text-pana-ink/70 text-sm leading-relaxed">
-                  What people at each tier are doing. Tiers are about how much
-                  you are carrying — not how good you are at it.
-                </p>
-
-                <div className="mt-4 flex flex-col gap-4">
-                  {([1, 2, 3] as const).map((t) => (
-                    <div
-                      key={t}
-                      className={
-                        t === me.tier
-                          ? 'border-pana-ink rounded-lg border-2 p-3'
-                          : 'px-3 opacity-60'
-                      }
-                    >
-                      <p className="text-xs font-extrabold tracking-wide uppercase">
-                        Tier {t}
-                        {t === me.tier ? ' · you' : ''}
-                      </p>
-                      <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-sm leading-snug">
-                        {house.actions[t].map((action) => (
-                          <li key={action}>{action}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
-            )}
-
-            <Panel title="Birthdays coming up">
-              <BirthdayList rows={upcomingBirthdays(4)} />
-            </Panel>
-          </aside>
+              Change your houses or pod
+            </SurfaceLink>
+          </p>
         </div>
-      </main>
-    </>
-  );
-}
+      </header>
 
-/**
- * The sign-up under an event card.
- *
- * The label tracks what the event actually needs, because "Sign up" on an
- * event that is already covered and "Sign up" on one that is three people
- * short are different offers, and a connector scanning four cards is choosing
- * between them. The shortfall maths matches `EventCard`'s "Needs" line — if
- * one ever changes, change both, or the card will contradict its own button.
- */
-function EventSignUp({ event }: { event: ConnectorEvent }) {
-  if (event.volunteersNeeded === null) {
-    return <MockButton>Count me in</MockButton>;
-  }
+      <div className="container mx-auto grid gap-6 px-4 py-10 lg:grid-cols-3">
+        {/* `min-w-0` is load-bearing. A grid item defaults to
+            `min-width: auto`, which means it refuses to shrink below its
+            content's intrinsic width — so the commitments table's min-width
+            pushed this whole column wider than the viewport on a phone, and
+            the `overflow-x-auto` wrapper around the table never got the
+            chance to scroll because it was never the thing being squeezed.
+            The page scrolled sideways instead of the table. */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          <Panel title="My commitments">
+            <MyCommitments
+              commitments={membership.commitments}
+              houses={membership.houses}
+            />
+          </Panel>
+        </div>
 
-  const short = Math.max(0, event.volunteersNeeded - event.volunteersFilled);
+        <aside className="flex flex-col gap-6">
+          {houses.map((house) => (
+            <Panel key={house.id} title={`Next in ${house.name}`}>
+              <p className="text-pana-ink/70 text-sm leading-relaxed">
+                What people at each tier are doing. Tiers are about how much you
+                are carrying — not how good you are at it.
+              </p>
 
-  if (short === 0) {
-    return <MockButton>Covered — add me as a spare</MockButton>;
-  }
+              <div className="mt-4 flex flex-col gap-4">
+                {([1, 2, 3] as const).map((t) => (
+                  <div
+                    key={t}
+                    className={
+                      t === membership.tier
+                        ? 'border-pana-ink rounded-lg border-2 p-3'
+                        : 'px-3 opacity-60'
+                    }
+                  >
+                    <p className="text-xs font-extrabold tracking-wide uppercase">
+                      Tier {t}
+                      {t === membership.tier ? ' · you' : ''}
+                    </p>
+                    <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-sm leading-snug">
+                      {house.actions[t].map((action) => (
+                        <li key={action}>{action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          ))}
 
-  if (short === 1) {
-    return <MockButton>I&rsquo;ll take the last one</MockButton>;
-  }
-
-  return (
-    <MockButton>
-      I&rsquo;ll take one of the {short}
-    </MockButton>
+          {membership.bring && (
+            <Panel title="What you said you can bring">
+              <p className="text-pana-ink/80 text-sm leading-relaxed">
+                {membership.bring}
+              </p>
+            </Panel>
+          )}
+        </aside>
+      </div>
+    </main>
   );
 }
 
@@ -307,7 +197,7 @@ function EventSignUp({ event }: { event: ConnectorEvent }) {
  * and was sent the link, and bouncing them to the front page without a word
  * loses the thread of why they clicked.
  */
-function NotAConnectorYet() {
+function NotAConnectorYet({ signedIn }: { signedIn: boolean }) {
   return (
     <main className="bg-pana-cream text-pana-ink py-24">
       <div className="container mx-auto max-w-xl px-4 text-center">
@@ -315,16 +205,16 @@ function NotAConnectorYet() {
           You are not a connector yet.
         </h1>
         <p className="text-pana-ink/70 mt-4 text-base leading-relaxed">
-          Connector HQ is where the pods keep their events, their commitments
-          and their open asks. Read what the programme is, and if it sounds like
-          you, there is a way in.
+          Connector HQ is where the pods keep their commitments and their
+          people. Read what the programme is, and if it sounds like you, there
+          is a way in.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <SurfaceLink
-            href="/connectors/join"
+            href={signedIn ? '/connectors/join' : '/signin'}
             className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
           >
-            Become a Connector
+            {signedIn ? 'Become a Connector' : 'Sign in to join'}
           </SurfaceLink>
           {/* The second button used to be "Become a Pana" pointing at
             * `/form/get-listed`, the business directory intake. Two buttons,

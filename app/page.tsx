@@ -38,20 +38,15 @@ import { FeedPage } from './s/_components/feed-page';
  * silently inherit somebody else's homepage: it fails to compile until this
  * file says what its front door is.
  */
-export default async function RootPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
+export default async function RootPage() {
   const requestHeaders = await headers();
   const surface = resolveSurface(requestHeaders.get('host') ?? '');
-  const { as } = await searchParams;
 
   switch (surface.id) {
     case 'social':
       return <FeedPage />;
     case 'connectors':
-      return <ConnectorsFrontDoor as={as} />;
+      return <ConnectorsFrontDoor />;
     case 'admin':
       // Not rendered inline: the admin surface's sidebar lives in
       // app/admin/layout.tsx, which a page at the route tree root never gets.

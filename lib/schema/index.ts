@@ -854,6 +854,12 @@ export const profiles = pgTable(
     verification: jsonb('verification'),
     roles: jsonb('roles'),
     gentedepana: jsonb('gentedepana'),
+    // Connectors programme membership for the human behind this profile.
+    // Written only by /api/connectors/join, read by /connectors/hq. NULL means
+    // "not a connector", which is the honest answer for almost every row.
+    // See drizzle/0055_profile_connector.sql for why this is a blob and not
+    // its own table.
+    connector: jsonb('connector'),
     status: jsonb('status'),
     administrative: jsonb('administrative'),
     linkedProfiles: jsonb('linked_profiles'),

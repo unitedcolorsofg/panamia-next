@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 
+import { auth } from '@/auth';
 import { HouseBoard } from '@/components/connectors/house-board';
-import { ViewerSwitch } from '@/components/connectors/viewer-switch';
 import { OfferingFrontPage } from '@/components/offerings/offering-front-page';
-import { resolveViewerRole } from '@/lib/connectors/fixtures';
+import { getMyConnector } from '@/lib/connectors/membership';
 
 /**
  * The Pana Connectors front door.
@@ -15,43 +15,42 @@ import { resolveViewerRole } from '@/lib/connectors/fixtures';
  * redirect in step forever.
  *
  * Two audiences arrive at the same door and only one of them wants a pitch.
- * Someone who is already a connector clicked the bubble to get to their events
- * and their commitments, so they are sent straight through to the HQ;
- * everybody else gets the explanation of what the programme is.
+ * Someone who is already a connector clicked the bubble to get to their
+ * commitments, so they are sent straight through to the HQ; everybody else
+ * gets the explanation of what the programme is.
  *
  * ## Why this is dynamic
  *
- * Reading `?as=` costs the static cache the other offering front pages keep.
- * That is not a loss the mock is introducing: the real version of this branch
- * reads the session to find out whether you have a connector record, and a
- * page that reads the session was never going to be cached at the edge
- * anyway. When the fixtures go, `resolveViewerRole` is replaced by that lookup
- * and the shape of this file does not change.
+ * It reads the session, so it cannot be cached at the edge the way the other
+ * offering front pages are. That is the cost of the redirect above, and it is
+ * the same cost the mock version paid for reading `?as=` — which this
+ * replaces. A connector who has to scroll past the recruitment pitch every
+ * time they open the bubble stops using the bubble.
  */
-export function ConnectorsFrontDoor({ as }: { as?: string }) {
-  const role = resolveViewerRole(as);
+export async function ConnectorsFrontDoor() {
+  const session = await auth();
+  const me = session?.user?.id ? await getMyConnector(session.user.id) : null;
 
-  if (role !== 'visitor') {
-    // The role is carried through so the switch survives the hop. Without it
-    // every preview of the HQ would bounce straight back here.
-    redirect(`/connectors/hq?as=${role}`);
+  if (me) {
+    redirect('/connectors/hq');
   }
 
   return (
-    <>
-      <ViewerSwitch current="visitor" />
-      <OfferingFrontPage
-        id="connectors"
-        actions={{
-          // "Become a Connector" used to point at `/form/get-listed`, which is
-          // the public *business directory* intake. Somebody who read this
-          // whole page and decided they wanted in was handed a form about
-          // their shop. `/connectors/join` is the programme's own door.
-          primary: '/connectors/join',
-          secondary: '/connectors/hq?as=connector',
-        }}
-        interlude={<HouseBoard />}
-      />
-    </>
+    <OfferingFrontPage
+      id="connectors"
+      actions={{
+        // "Become a Connector" used to point at `/form/get-listed`, which is
+        // the public *business directory* intake. Somebody who read this
+        // whole page and decided they wanted in was handed a form about
+        // their shop. `/connectors/join` is the programme's own door.
+        //
+        // Signed-out readers are sent to sign in first, because joining
+        // writes to their profile and there is nowhere to put the answers
+        // until there is an account to hang them on.
+        primary: session?.user?.id ? '/connectors/join' : '/signin',
+        secondary: '/connectors/hq',
+      }}
+      interlude={<HouseBoard />}
+    />
   );
 }
