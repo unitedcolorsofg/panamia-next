@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { relayReports, relayReportStatus } from '@/lib/schema';
 import { count, eq, and, isNotNull } from 'drizzle-orm';
-import { checkAdminAuth } from '@/lib/server/admin-auth';
+import { checkModeratorAuth } from '@/lib/server/admin-auth';
 import { lookupScreennames } from '@/lib/server/relay-reports';
 import { removeRelayEvents } from '@/lib/relay/crosspost-client';
 
@@ -11,13 +11,17 @@ import { removeRelayEvents } from '@/lib/relay/crosspost-client';
 // PATCH — flip a report's moderator status (open / actioned / dismissed).
 //
 // Unlike /api/internal/relay/report (Service-Binding ingest, no auth), this is
-// the operator surface and is admin-gated. See docs/RELAY-ABUSE-REPORTS-ROADMAP.MD.
+// the operator surface and is staff-gated. The gate is checkModeratorAuth, not
+// checkAdminAuth: working the report queue is the one job the contentModerator
+// role exists to hand out, so that somebody can be put on the moderation rota
+// without also being given the power to grant admin. See
+// docs/RELAY-ABUSE-REPORTS-ROADMAP.MD and docs/ADMIN-ACCESS.md.
 
 const VALID_STATUSES = new Set(relayReportStatus.enumValues);
 
 export async function GET(request: NextRequest) {
-  const adminUser = await checkAdminAuth();
-  if (!adminUser) {
+  const moderator = await checkModeratorAuth();
+  if (!moderator) {
     return NextResponse.json(
       { error: 'Not Authorized:admin' },
       { status: 401 }
@@ -119,8 +123,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const adminUser = await checkAdminAuth();
-  if (!adminUser) {
+  const moderator = await checkModeratorAuth();
+  if (!moderator) {
     return NextResponse.json(
       { error: 'Not Authorized:admin' },
       { status: 401 }

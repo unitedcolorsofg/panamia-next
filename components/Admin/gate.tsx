@@ -62,7 +62,19 @@ import { useSession } from '@/lib/auth-client';
  * putting it in a dependency array would re-fire the effect forever; `allowed`
  * is a boolean and does not.
  */
-export function useAdminGate(): { allowed: boolean; gate: ReactNode | null } {
+export function useAdminGate(options?: {
+  /**
+   * Which staff may pass. Defaults to `'admin'`.
+   *
+   * `'moderator'` additionally admits `isContentModerator`, for the one tool
+   * that role exists to unlock — the abuse-report queue. Pass it only where
+   * the matching API route calls `checkModeratorAuth()`, so that what is drawn
+   * and what is served agree; a page that admits moderators while its route
+   * still calls `checkAdminAuth()` renders the furniture and then 401s, which
+   * is the exact failure this hook exists to prevent.
+   */
+  allow?: 'admin' | 'moderator';
+}): { allowed: boolean; gate: ReactNode | null } {
   const { data: session, status } = useSession();
 
   if (status === 'loading') {
@@ -71,7 +83,7 @@ export function useAdminGate(): { allowed: boolean; gate: ReactNode | null } {
       gate: (
         <>
           <PageMeta title="Loading" desc="" />
-          <p className="text-sm font-bold text-pana-ink/60" role="status">
+          <p className="text-pana-ink/60 text-sm font-bold" role="status">
             Checking your access…
           </p>
         </>
@@ -79,7 +91,11 @@ export function useAdminGate(): { allowed: boolean; gate: ReactNode | null } {
     };
   }
 
-  if (!session?.user?.isAdmin) {
+  const permitted =
+    session?.user?.isAdmin ||
+    (options?.allow === 'moderator' && session?.user?.isContentModerator);
+
+  if (!permitted) {
     return {
       allowed: false,
       gate: (

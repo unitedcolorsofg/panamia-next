@@ -93,7 +93,7 @@ function Party({
 
 export default function AdminReportsPage() {
   const { data: session } = useSession();
-  const { gate } = useAdminGate();
+  const { gate } = useAdminGate({ allow: 'moderator' });
   const [page_number, setPageNumber] = useState(1);
   const [reports, setReports] = useState<RelayReport[]>([]);
   const [pagination, setPagination] = useState({} as Pagination);
