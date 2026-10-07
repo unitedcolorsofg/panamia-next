@@ -3,23 +3,26 @@
 Who can reach the admin surface at `admin.pana.social`, who can grant that
 access to somebody else, and why the second one is deliberately awkward.
 
-## Two tiers
+## The tiers
 
-| Tier            | Source                 | Uses admin screens | Grants admin |
-| --------------- | ---------------------- | ------------------ | ------------ |
-| **Super admin** | `ADMIN_EMAILS` secret  | yes                | **yes**      |
-| **Admin**       | `profiles.roles.admin` | yes                | no           |
+| Tier                  | Source                            | Uses admin screens | Grants admin |
+| --------------------- | --------------------------------- | ------------------ | ------------ |
+| **Super admin**       | `ADMIN_EMAILS` secret             | yes                | **yes**      |
+| **Admin**             | `profiles.roles.admin`            | yes                | no           |
+| **Content moderator** | `profiles.roles.contentModerator` | abuse reports only | no           |
 
-`session.user.isAdmin` is the union of the two. `session.user.isSuperAdmin` is
-the env tier alone and never reads the column. Both are computed in
+`session.user.isAdmin` is the union of the first two. `session.user.isSuperAdmin`
+is the env tier alone and never reads the column. Both are computed in
 `enrichUserFields()` in `auth.ts`, on every request.
 
 Server-side gates live in `lib/server/admin-auth.ts`:
 
 - `checkAdminAuth()` — ordinary admin work: reading a queue, working the
   inbox, exporting. Use this for almost everything.
-- `checkSuperAdminAuth()` — anything that changes *who* is an admin. Use it
+- `checkSuperAdminAuth()` — anything that changes _who_ is an admin. Use it
   for that and nothing else.
+- `checkModeratorAuth()` — the abuse-report queue, and nothing else. Admits
+  admins and content moderators.
 
 ## Granting admin
 
@@ -46,6 +49,69 @@ The write merges into the existing `roles` object rather than replacing it —
 that column also carries `mentoringModerator`, `eventOrganizer` and
 `contentModerator`.
 
+## The moderation rota
+
+A **content moderator** reaches the abuse-report queue at `/admin/reports` and
+is emailed when a new report arrives. That is the whole role: no other admin
+screen, and no ability to grant anything to anybody.
+
+Grant it from `/admin/users/live`, as an **admin** — not a super admin. The
+toggle writes `profiles.roles.contentModerator` through
+`POST /api/admin/users/content-moderator`.
+
+Three things follow from that choice, and they are the point of the role:
+
+- **It cannot replicate itself.** The grant route is gated on
+  `checkAdminAuth`, which a moderator does not pass. The founder bottleneck is
+  only needed where the power being handed out includes the power to hand it
+  out.
+- **A revoke always revokes.** There is no environment tier behind
+  `contentModerator`, so the column is the whole answer. The 409 that guards
+  the admin toggle has no analogue here.
+- **Mailing and acting stay in step.** `moderationTeamEmails()` in
+  `lib/server/relay-reports.ts` builds the recipient list from
+  `roles.admin ∪ roles.contentModerator ∪ ADMIN_EMAILS` — the same two fields
+  `checkModeratorAuth` reads, plus the founder tier, which is admin by
+  definition and may have no `profiles` row to find.
+
+### Why it exists
+
+Abuse reports used to be mailed to `ADMIN_EMAILS` and the queue was gated on
+`checkAdminAuth`. One variable was doing three unrelated jobs: naming the
+founder tier, acting as the default inbox for several notification streams,
+and standing in for the moderation team. They pull in opposite directions —
+the first wants one or two people, the last wants as many as will volunteer.
+
+The practical consequence was that **adding somebody to the moderation rota
+also gave them the power to make anybody an admin**, because the only way to
+start mailing them was to add them to that secret. Privilege escalation by
+mailing-list edit. So in practice nobody was added, and the queue stayed with
+one person.
+
+`contentModerator` already existed on the roles column and was read into the
+session — it was simply checked by nothing. Making it real split the smallest
+responsibility away from the largest one.
+
+Two roles in that column are still inert: `mentoringModerator` and
+`eventOrganizer` are computed into the session and read by nothing. They
+should either get a gate or be removed.
+
+### What the sidebar does
+
+`lib/admin/views.ts` carries an optional `access?: 'admin' | 'moderator'` on
+each tool, defaulting to `'admin'`; only `reports` is marked `'moderator'`.
+`components/Admin/nav.tsx` filters on it, so a moderator's sidebar is one row
+and the Overview shelf is hidden from them.
+
+That is about _drawing_, not _serving_ — the route is the boundary. Keeping
+both in one file is what stops a tool from being served to moderators but left
+out of their nav, or drawn for them and then refused.
+
+While the session is still resolving, the nav draws the full column and
+narrows it afterwards. Growing a sidebar moves every row under the pointer at
+the moment the page becomes clickable; shrinking one only removes rows the
+viewer was never going to hit.
+
 ## Bootstrapping the first super admin
 
 This is the one step that cannot happen inside the product, and it happens
@@ -69,15 +135,24 @@ Verify by loading `/api/admin/checkAdminStatus` while signed in. It returns
 
 `wrangler secret put` overwrites the whole value, and Cloudflare will not
 show you the current one. Writing only your own address therefore silently
-drops every other admin **and** breaks two mail paths:
+drops every other super admin **and** re-points the default notification
+inbox:
 
-- `lib/email.ts` falls back to `ADMIN_EMAILS[0]` for Contact Us
-- `lib/server/relay-reports.ts` fans abuse reports out to every entry
+- `lib/email.ts` falls back to `ADMIN_EMAILS[0]` for the four streams that
+  send without naming a recipient: newsletter signups, affiliate TOS
+  acceptances, public listing intake, and profile submissions. Contact Us is
+  **not** one of them — it always passes an explicit address from
+  `lib/contact-routing.ts`, and only an unauthenticated `press` enquiry fans
+  out to the secret.
+- Abuse reports are no longer affected. `moderationTeamEmails()` unions the
+  secret with everyone holding `roles.admin` or `roles.contentModerator`, so
+  the rota survives a secret overwrite.
 
 If the current list has been lost, it can be recovered without the secret:
-whichever inbox receives Contact Us mail is `ADMIN_EMAILS[0]`
+whichever inbox receives profile-submission mail is `ADMIN_EMAILS[0]`
 (`DEV_RECEIVER_EMAIL` is local-only, so the fallback applies in production),
-and any abuse report that has ever been sent went to every entry.
+and any abuse report sent before the moderation rota landed went to every
+entry.
 
 ## Why the website cannot do the bootstrap
 
@@ -107,7 +182,7 @@ Cloudflare's scoping does not go finer than "edit this Worker", which is
 equivalent to deploying arbitrary code. Holding that token on the site would
 turn any XSS or auth bug on pana.social into full infrastructure takeover.
 
-It is also self-defeating. The env tier is a usable recovery path *because* a
+It is also self-defeating. The env tier is a usable recovery path _because_ a
 web session cannot reach it. Give the website that reach and there are no
 longer two tiers — just one tier with extra moving parts and a very powerful
 credential sitting inside the blast radius it was supposed to be outside of.

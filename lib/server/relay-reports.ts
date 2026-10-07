@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
+import { adminEmailList } from '@/lib/server/admin-emails';
 import { kindName } from '@/lib/nostr/kinds';
 import { npubFromHex } from '@/lib/nostr/keys';
 
@@ -197,18 +198,74 @@ function buildReportEmail(
 }
 
 /**
- * Email every ADMIN_EMAILS recipient about a newly received report. Best-effort:
- * resolves names, builds the message, and sends to each admin independently;
- * never throws (callers must not let notification failure break ingest).
+ * Everyone who should hear about a new abuse report.
+ *
+ * The union of ADMIN_EMAILS and every account holding `roles.admin` or
+ * `roles.contentModerator`, deduplicated case-insensitively.
+ *
+ * ## The invariant
+ *
+ * Who gets mailed must equal who can act on the report. This used to be
+ * ADMIN_EMAILS alone, which broke that in both directions: a column-granted
+ * admin could work the queue but never heard a report had arrived, and the
+ * only way to start mailing somebody was to add them to the secret that
+ * decides who may grant admin — so putting a volunteer on the rota meant
+ * handing them the power to make anybody an admin. The role now carries the
+ * notification, and `checkModeratorAuth` reads the same two fields this query
+ * does.
+ *
+ * ADMIN_EMAILS is still unioned in rather than dropped: that tier is admin by
+ * definition, and a founder address need not have a `profiles` row at all —
+ * querying the column alone could mail nobody on a site that has admins.
+ *
+ * The email comes from `users`, not `profiles`: `profiles.email` is the
+ * public-facing business address and may be a shared inbox nobody reads.
+ *
+ * Never throws. A database that is unreachable degrades to the env list rather
+ * than losing the report notification entirely.
+ */
+export async function moderationTeamEmails(): Promise<string[]> {
+  let granted: string[] = [];
+  try {
+    const rows = await db
+      .select({ email: users.email })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.userId, users.id))
+      .where(
+        sql`${profiles.roles} ->> 'admin' = 'true' or ${profiles.roles} ->> 'contentModerator' = 'true'`
+      );
+    granted = rows.map((row) => row.email).filter(Boolean);
+  } catch (err) {
+    console.error('Failed to read the moderation rota:', err);
+  }
+
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  for (const raw of [...adminEmailList(), ...granted]) {
+    const address = raw.trim();
+    const key = address.toLowerCase();
+    if (!address || seen.has(key)) continue;
+    seen.add(key);
+    recipients.push(address);
+  }
+  return recipients;
+}
+
+/**
+ * Email the moderation team about a newly received report. Best-effort:
+ * resolves names, builds the message, and sends to each recipient
+ * independently; never throws (callers must not let notification failure break
+ * ingest).
+ *
+ * Separate sends rather than one message with many recipients: the rota can
+ * include volunteers, and a shared To: header would disclose their addresses
+ * to each other.
  */
 export async function notifyAdminsOfReport(
   report: ReportForEmail
 ): Promise<void> {
   try {
-    const admins =
-      process.env.ADMIN_EMAILS?.split(',')
-        .map((e) => e.trim())
-        .filter(Boolean) || [];
+    const admins = await moderationTeamEmails();
     if (admins.length === 0) return;
 
     const names = await lookupScreennames([

@@ -69,8 +69,11 @@ export async function GET(request: NextRequest) {
     // column. Computed here rather than inferred in the client so the list and
     // the session can never disagree about who is an admin.
     const isSuperAdmin = isAdminEmail(user.email);
-    const grantedAdmin =
-      (user.roles as { admin?: boolean } | null)?.admin === true;
+    const roles = user.roles as {
+      admin?: boolean;
+      contentModerator?: boolean;
+    } | null;
+    const grantedAdmin = roles?.admin === true;
     return {
       _id: user.id,
       email: user.email,
@@ -84,6 +87,9 @@ export async function GET(request: NextRequest) {
       // admin, and disable the toggle on the rows a toggle cannot affect.
       isSuperAdmin,
       grantedAdmin,
+      // The moderation rota. Unlike admin there is no env tier behind it, so
+      // the column is the whole answer and no union is needed.
+      isContentModerator: roles?.contentModerator === true,
       // A grant needs somewhere to live; an account with no profile has none.
       hasProfile: user.profileId !== null,
     };

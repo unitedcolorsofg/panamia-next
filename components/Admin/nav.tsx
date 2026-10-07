@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation';
 import { LayoutGrid, type LucideIcon } from 'lucide-react';
 
 import { StatusPill } from '@/components/Admin/status-pill';
+import { useSession } from '@/lib/auth-client';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {
   ADMIN_GROUPS,
   adminGroup,
-  viewsInGroup,
+  viewsInGroupFor,
   type AdminView,
+  type AdminViewer,
 } from '@/lib/admin/views';
 
 /**
@@ -57,10 +59,10 @@ function NavLink({
       href={view.href}
       aria-current={active ? 'page' : undefined}
       className={[
-        'flex items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm transition-colors',
+        'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm whitespace-nowrap transition-colors',
         active
           ? `${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL} font-bold`
-          : 'font-medium text-pana-ink/75 hover:bg-pana-ink/5 hover:text-pana-ink',
+          : 'text-pana-ink/75 hover:bg-pana-ink/5 hover:text-pana-ink font-medium',
       ].join(' ')}
     >
       {/* On the active row the chip drops its own colour. The row is already
@@ -98,7 +100,7 @@ const OVERVIEW: AdminView = {
 function GroupLabel({ children }: { children: string }) {
   return (
     <p
-      className={`hidden pb-1.5 pl-1 text-[0.6875rem] font-black uppercase tracking-[0.14em] lg:block ${ADMIN_CHROME.ACCENT}`}
+      className={`hidden pb-1.5 pl-1 text-[0.6875rem] font-black tracking-[0.14em] uppercase lg:block ${ADMIN_CHROME.ACCENT}`}
     >
       {children}
     </p>
@@ -108,26 +110,46 @@ function GroupLabel({ children }: { children: string }) {
 export default function AdminNav() {
   const pathname = usePathname();
   const directory = adminGroup('directory');
+  const { data: session, status } = useSession();
+
+  // While the session resolves, draw the full column and narrow it afterwards
+  // rather than the reverse. Growing a sidebar moves every row under the
+  // pointer at the moment the page becomes clickable; shrinking one only
+  // removes rows the viewer was never going to hit. This is not a boundary —
+  // every route behind it checks for itself — so being briefly generous costs
+  // nothing but a flicker, and only for moderators, who are the rarer viewer.
+  const viewer: AdminViewer =
+    status === 'loading'
+      ? { isAdmin: true, isContentModerator: true }
+      : {
+          isAdmin: session?.user?.isAdmin ?? false,
+          isContentModerator: session?.user?.isContentModerator ?? false,
+        };
 
   return (
     <nav aria-label="Admin sections" className="lg:w-60 lg:shrink-0">
       <div className="flex gap-5 overflow-x-auto pb-3 lg:block lg:gap-0 lg:overflow-visible lg:pb-0">
-        <div className="lg:mb-5">
-          <GroupLabel>Admin</GroupLabel>
-          <ul className="flex gap-1.5 lg:flex-col lg:gap-0.5">
-            <li>
-              <NavLink
-                view={OVERVIEW}
-                active={pathname === '/admin'}
-                fill={directory.fill}
-                onFill={directory.onFill}
-              />
-            </li>
-          </ul>
-        </div>
+        {/* Overview is the shelf listing every tool, so it is only useful to
+            someone who can open them. A moderator gets their one tool
+            directly. */}
+        {viewer.isAdmin && (
+          <div className="lg:mb-5">
+            <GroupLabel>Admin</GroupLabel>
+            <ul className="flex gap-1.5 lg:flex-col lg:gap-0.5">
+              <li>
+                <NavLink
+                  view={OVERVIEW}
+                  active={pathname === '/admin'}
+                  fill={directory.fill}
+                  onFill={directory.onFill}
+                />
+              </li>
+            </ul>
+          </div>
+        )}
 
         {ADMIN_GROUPS.map((group) => {
-          const views = viewsInGroup(group.id);
+          const views = viewsInGroupFor(group.id, viewer);
           if (views.length === 0) return null;
           return (
             <div key={group.id} className="lg:mb-5">

@@ -49,3 +49,37 @@ export async function checkSuperAdminAuth() {
   }
   return session.user;
 }
+
+/**
+ * Check if the current session user may work the abuse-report queue.
+ *
+ * Admits two groups: admins (either tier), and anyone holding
+ * `profiles.roles.contentModerator`. Use it for the report queue and nothing
+ * else — a content moderator is deliberately not an admin, and widening this
+ * to other staff tools would make it one by accident.
+ *
+ * ## Why this tier exists
+ *
+ * Abuse reports used to be mailed to every `ADMIN_EMAILS` entry, which meant
+ * the only way to put somebody on the moderation rota was to add them to the
+ * secret that decides who may grant admin. Moderation is a job a volunteer
+ * does; granting admin is not. Tying them together made the smaller
+ * responsibility impossible to hand out without the larger one, so in practice
+ * neither moved.
+ *
+ * `contentModerator` already existed on the roles column and was read into the
+ * session, but nothing checked it — this is the gate that gives it meaning.
+ *
+ * Admins are included rather than required to hold the role separately: they
+ * can already reach every other staff tool, so excluding them here would be a
+ * gate that protects nothing from anyone it does not also inconvenience.
+ *
+ * Returns the session user if admin or content moderator, null otherwise.
+ */
+export async function checkModeratorAuth() {
+  const session = await auth();
+  if (!session?.user?.isAdmin && !session?.user?.isContentModerator) {
+    return null;
+  }
+  return session.user;
+}

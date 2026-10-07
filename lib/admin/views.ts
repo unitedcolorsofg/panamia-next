@@ -98,6 +98,19 @@ export interface AdminView {
   /** The specific things an admin can do once they are in there. */
   does: readonly string[];
   status: ViewStatus;
+  /**
+   * Who may use this tool, which decides whether the nav draws it.
+   *
+   * Defaults to `'admin'`. `'moderator'` means content moderators reach it
+   * too — currently only the abuse-report queue, which is the one job the
+   * `contentModerator` role exists to hand out.
+   *
+   * This governs *drawing*, not *serving*: the route's own
+   * `checkModeratorAuth()` is the boundary. Keeping the two in one file means
+   * a tool added for moderators cannot be left out of their nav, and a tool
+   * that is not for them cannot be drawn into it.
+   */
+  access?: 'admin' | 'moderator';
   /** Decorative. Every call site pairs it with aria-hidden. */
   icon: LucideIcon;
 }
@@ -173,6 +186,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Moderation reports from the Nostr relay.',
     does: ['Triage a report', 'Act on the reported account'],
     status: 'live',
+    access: 'moderator',
     icon: Flag,
   },
 ];
@@ -187,6 +201,36 @@ export function adminGroup(id: AdminGroupId): AdminGroup {
 
 export function viewsInGroup(group: AdminGroupId): readonly AdminView[] {
   return ADMIN_VIEWS.filter((v) => v.group === group);
+}
+
+/** The access-bearing half of a session, so this file need not import auth. */
+export interface AdminViewer {
+  isAdmin: boolean;
+  isContentModerator: boolean;
+}
+
+/**
+ * Whether this viewer may use a tool.
+ *
+ * Admins reach everything. A content moderator who is not an admin reaches
+ * only the tools marked `access: 'moderator'`.
+ *
+ * Drawing a tool somebody cannot use is the bug `components/Admin/gate.tsx`
+ * was written to fix: it tells them the tool exists, invites them in, and then
+ * fails in a way indistinguishable from a broken page. A moderator seeing the
+ * whole admin sidebar would reproduce that for every tool but one.
+ */
+export function canSeeView(view: AdminView, viewer: AdminViewer): boolean {
+  if (viewer.isAdmin) return true;
+  return view.access === 'moderator' && viewer.isContentModerator;
+}
+
+/** `viewsInGroup` narrowed to what this viewer may actually use. */
+export function viewsInGroupFor(
+  group: AdminGroupId,
+  viewer: AdminViewer
+): readonly AdminView[] {
+  return viewsInGroup(group).filter((view) => canSeeView(view, viewer));
 }
 
 /**
