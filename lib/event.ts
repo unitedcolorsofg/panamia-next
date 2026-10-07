@@ -7,9 +7,20 @@
 
 import { db } from '@/lib/db';
 import { events, eventAttendees } from '@/lib/schema';
-import { and, asc, desc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lte,
+  sql,
+} from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 import { getFederationDomain } from '@/lib/federation/domain';
+import { searchTsQuery } from '@/lib/server/search-kinds';
 import type { Event, EventStatus } from '@/lib/schema';
 
 export function generateSlug(title: string): string {
@@ -81,6 +92,51 @@ export async function getUpcomingEvents(
       eq(events.status, 'published' as EventStatus),
       eq(events.visibility, 'public'),
       gte(events.startsAt, now)
+    ),
+    orderBy: [asc(events.startsAt)],
+    offset,
+    limit,
+    with: {
+      venue: { columns: { name: true, city: true, state: true, slug: true } },
+    },
+  });
+}
+
+/**
+ * Upcoming events matching a typed term.
+ *
+ * Deliberately returns the same rows as `getUpcomingEvents` — same filters,
+ * same `with`, same order — so /e can render one `EventCard` grid whether it
+ * is browsing or searching. The alternative was reusing `searchEvents` in
+ * lib/server/search-kinds.ts, but that flattens an event into a
+ * `ScopeSearchResult` and drops the cover art, attendance and venue object the
+ * card is built around; the calendar would have visibly degraded the moment
+ * someone typed into it.
+ *
+ * The term is matched against the same `search_vector` and the same
+ * three-configuration tsquery that scope search uses, so a term that found an
+ * event in the typeahead finds it here too.
+ *
+ * An empty term is the caller's business, not this function's: /e treats it as
+ * "browse", which is `getUpcomingEvents`. Asked for nothing, this returns
+ * nothing rather than quietly becoming an unfiltered listing.
+ */
+export async function searchUpcomingEvents(options: {
+  term: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const { term, limit = 24, offset = 0 } = options;
+  const trimmed = term.trim();
+  if (!trimmed) return [];
+
+  const now = new Date();
+  return await db.query.events.findMany({
+    where: and(
+      eq(events.status, 'published' as EventStatus),
+      eq(events.visibility, 'public'),
+      gte(events.startsAt, now),
+      sql`"events"."search_vector" @@ ${searchTsQuery(trimmed)}`
     ),
     orderBy: [asc(events.startsAt)],
     offset,

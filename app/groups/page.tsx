@@ -7,13 +7,21 @@ import { GroupsContent } from './_components/groups-content';
  * Splits the two questions a member arrives with. "Where do I already belong"
  * is answered first, from their own memberships including private ones; "what
  * else is out there" is answered underneath, by the same search endpoint the
- * directory's Groups scope uses.
+ * homepage's Groups scope sends people to.
  *
- * Distinct from /directory/groups/<term> on purpose. That page answers a typed
- * term and knows nothing about the reader. This one is the member's own shelf,
- * and it is where starting a group lives -- discovery and creation are the same
- * errand often enough that making someone search before they can create was
- * the gap that left groups unreachable from the UI entirely.
+ * This is now the only groups search. /directory/groups/<term> used to answer
+ * a typed term for a reader it knew nothing about, and this page was the
+ * member's own shelf; the directory narrowing to listings collapsed the two,
+ * and that old URL redirects here. The shelf survived the merge because a
+ * group is somewhere you return to, unlike a listing, and burying "the four
+ * I'm already in" under a search box treats a regular visit as a fresh
+ * discovery every time. Signed out there is no shelf, because there are no
+ * groups of yours to put on it, and the page is a flat list of everything.
+ *
+ * Public either way. Groups used to be gated alongside panas, which made a
+ * group invisible to exactly the people it needed to recruit. The door is
+ * `joinPolicy`, not the search index -- see the groups API route for what a
+ * signed-out reader is and is not told about a group.
  *
  * Not under /s -- see the note on the social surface's `paths` in
  * lib/panaverse/surfaces.ts.
@@ -24,10 +32,10 @@ import { GroupsContent } from './_components/groups-content';
 export const metadata = {
   title: 'Groups | Pana Social',
   description: 'Find a group on Pana Social, or start your own.',
-  /* Same stance as the directory's Groups scope, and for the same reason:
-     private groups are deliberately discoverable so a request-to-join group
-     can be asked to join, which assumes a person doing the asking rather than
-     a crawler enumerating every private group on the site. */
+  /* Public to people, not to crawlers, and the distinction is deliberate:
+     private groups are listed here so a request-to-join group can be asked to
+     join, which assumes a person doing the asking rather than a crawler
+     enumerating every private group on the site. */
   robots: { index: false, follow: true },
 };
 

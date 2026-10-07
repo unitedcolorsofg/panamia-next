@@ -3,9 +3,8 @@
 import { Crosshair, MapPin } from 'lucide-react';
 import type { LocationStatus } from '@/app/p/[user]/_lib/use-viewer-location';
 import { DirectorySuggest } from '@/components/directory-suggest';
-import { ScopeMenu } from '@/components/directory-scope-bar';
+import { ScopeMenuLive } from '@/components/scope-menu-live';
 import { COUNTY_FILTER_ID } from './filter-bar';
-import { useScopeCounts } from '../_lib/use-scope-counts';
 
 interface SearchBandProps {
   term: string;
@@ -20,37 +19,46 @@ interface SearchBandProps {
 }
 
 /**
- * The top of the businesses view.
+ * The top of the directory view.
  *
- * This is the same band the four scope pages render, and that is the point.
- * Until now businesses opened with a compact white toolbar and the scope
- * pages opened with a tall indigo band, so the same search for the same shop
- * looked like two different products depending on which URL you arrived
- * through. One of them had to give, and the band won: it carries the term as
- * a headline, names the scope in a way that can be changed in place, and
- * gives the field the typeahead every other search box on the site has.
+ * The directory is now the only thing this band sits on top of. It used to be
+ * shared with four scope pages — Everything, Panas, Groups, Events all
+ * rendered it — and the shape it has is still owed to that: a tall indigo
+ * band with the term as a headline, because a compact white toolbar and a
+ * tall band on the same search made the site look like two products depending
+ * on which URL you arrived through. The scope pages are gone, each kind now
+ * having a page built for it, but the band stays because it is the better of
+ * the two and the rest of the club now matches it.
  *
  * The cost is real and was accepted deliberately. This page does not scroll —
  * the map holds the right half and the list scrolls inside its own pane — so
  * every pixel spent here is a pixel taken from results rather than from empty
- * space. The previous comment here argued that made a band the wrong shape
- * for a page you refine five times in a row. That argument lost to
- * consistency: a member who cannot tell whether they are still in the same
- * product is a worse outcome than a member who sees three results instead of
- * four before scrolling.
+ * space. The counter-argument was that this makes a band the wrong shape for
+ * a page you refine five times in a row. That argument lost to consistency: a
+ * member who cannot tell whether they are still in the same product is a
+ * worse outcome than a member who sees three results instead of four before
+ * scrolling.
  *
- * Four things survived the swap and must keep surviving it:
+ * Four things must keep surviving any future edit here:
  *
- * - The count is `role="status"`. It changes client-side here, unlike the
- *   scope pages' server-rendered `.dirsearch-count`, so it has to announce.
+ * - The count is `role="status"`. It changes client-side, so it has to
+ *   announce rather than silently rewrite itself.
  * - Submitting runs `onSearch` rather than navigating. The filters, sort and
  *   map view live in this page's query string and a route push would drop
  *   them.
  * - The location bar stays. It is the one control that turns a list of
- *   businesses into a list you can get to, and it has no equivalent on the
- *   scope pages because only businesses have addresses to measure from.
- * - The scope menu sits inside the pill, not beside it, because scope is part
- *   of the question being asked rather than a setting on the page.
+ *   listings into a list you can get to, and it has no equivalent on the
+ *   other three pages because only directory listings have addresses to
+ *   measure from.
+ * - The scope menu stays, in link mode. The directory holds one kind now, so
+ *   the menu is no longer a filter over this page's results — it is the way
+ *   out to the other three, carrying the term you already typed. Someone who
+ *   searched "cumbia" and got listings should be one click from the events.
+ *
+ * "Listings" rather than "businesses" throughout, which is not a synonym
+ * swap: a directory account can be claimed by a band, a co-op or a non-profit
+ * as well as a shop, and calling all of them businesses told a good share of
+ * the people in here that the page was not for them.
  */
 export function SearchBand({
   term,
@@ -62,7 +70,6 @@ export function SearchBand({
   onSearch,
   onShareLocation,
 }: SearchBandProps) {
-  const { counts, signedIn } = useScopeCounts(term);
   const shared = locationStatus === 'granted';
 
   return (
@@ -70,24 +77,23 @@ export function SearchBand({
       <div className="container mx-auto px-4">
         <span className="section-eyebrow">Directory</span>
 
-        {/* The page's heading is the page's heading. On the scope pages this
-            is the visible title and there is no second one; the businesses
-            view used to hide an h1 behind a toolbar because the toolbar had
-            no room for type. It has room now. */}
+        {/* The page's heading is the page's heading. This view used to hide an
+            h1 behind a toolbar because the toolbar had no room for type. It
+            has room now. */}
         <h1 className="dirsearch-title">
           {term ? (
             <>
-              <em>{term}</em> — businesses
+              <em>{term}</em> — listings
             </>
           ) : (
             <>Find your people</>
           )}
         </h1>
 
-        {/* Headline and count are separate lines here, matching the scope
-            pages. It is a status message, not a heading — it says what the
-            search is doing right now, so it announces itself when the answer
-            changes instead of silently rewriting the page. */}
+        {/* Headline and count are separate lines. It is a status message, not
+            a heading — it says what the search is doing right now, so it
+            announces itself when the answer changes instead of silently
+            rewriting the page. */}
         <p className="dirsearch-count" role="status" aria-live="polite">
           {loading ? (
             <>Searching…</>
@@ -105,14 +111,14 @@ export function SearchBand({
           ) : (
             <>
               <strong>{resultCount}</strong>
-              {/* "1 businesses" is the kind of seam that makes a page look
+              {/* "1 listings" is the kind of seam that makes a page look
                   unfinished on the exact search that found one perfect
                   answer. Only the all-shown branch names the noun; the
                   "12 of 340" branch is a ratio, which needs none. */}
               {resultCount === totalCount
                 ? resultCount === 1
-                  ? ' business'
-                  : ' businesses'
+                  ? ' listing'
+                  : ' listings'
                 : ` of ${totalCount}`}
               {term ? (
                 <>
@@ -140,14 +146,7 @@ export function SearchBand({
             placeholder="Try food, art, Hialeah, bike repair…"
             buttonLabel="Search"
             onSearch={onSearch}
-            leading={
-              <ScopeMenu
-                scope="directory"
-                term={term}
-                counts={counts}
-                signedIn={signedIn}
-              />
-            }
+            leading={<ScopeMenuLive scope="directory" term={term} />}
           />
         </div>
 

@@ -1,16 +1,24 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation, Trans } from 'react-i18next';
 import { ArrowRight, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DirectorySuggest } from '@/components/directory-suggest';
+import { ScopeMenu } from '@/components/directory-scope-bar';
+import { useSession } from '@/lib/auth-client';
+import {
+  DEFAULT_SCOPE,
+  scopePlaceholderKey,
+  scopePlaceholderShortKey,
+  type Scope,
+} from '@/lib/directory-scopes';
 import { StoryBeats } from './story-beats';
 import { SkyClouds, StreetScene } from './scene-art';
 import { PillarPanels } from './pillar-panels';
-import { useIsRail, useMediaQuery } from './rail';
+import { useIsRail } from './rail';
 import { useStoryBeats, usePillars } from './content';
 
 /**
@@ -108,36 +116,53 @@ export function HomeFirstScreen() {
   );
 }
 
-/* The full placeholder is 277px of text; the input it sits in is 138px wide
-   on a 390px phone, so it was being cut mid-word. Below this width the short
-   label is used instead. */
+/* The full placeholder is ~270px of text; the input it sits in is 138px wide
+   on a 390px phone, so it was being cut mid-word. Below this width each scope
+   uses its short placeholder instead. */
 const HERO_SEARCH_SHORT_QUERY = '(max-width: 39.99rem)';
-
-/* The rotation is the one piece of motion on the page that runs on a timer
-   rather than on a scroll, and it sits inside a form field — so it is the
-   first thing that should go when someone has asked for less movement. They
-   get the static short label instead. */
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function HeroCard() {
   const { t } = useTranslation('home');
+  /* The scope placeholders live in `common` beside `search.kind.*`, which the
+     same field already reads, rather than in `home` — the directory and the
+     explore pages need the same four strings. */
+  const { t: tCommon } = useTranslation('common');
   const useShortSearchLabel = useIsRail(HERO_SEARCH_SHORT_QUERY);
-  const prefersReducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
 
-  /* "Search local business" is 160px of text in a field that has 138px to
-     give on a common phone, so the short label could only ever say that the
-     box searches, never what it searches. Dropping the verb is what buys the
-     room back, and the verb is the one word the field can afford to lose: it
-     already carries a magnifier at one end and a Search button at the other. */
-  const searchRotation = useMemo(() => {
-    const phrases = t('hero.searchRotation', {
-      returnObjects: true,
-    }) as unknown;
-    return Array.isArray(phrases) ? (phrases as string[]) : [];
-  }, [t]);
+  /* MainHeader already reads the session on this page, so this shares the
+     auth client's cache rather than costing the homepage a second request. */
+  const { data: session, status } = useSession();
+  const signedIn = status !== 'loading' && !!session;
 
-  const rotateSearchLabel =
-    useShortSearchLabel && !prefersReducedMotion && searchRotation.length > 1;
+  /* The scope the box will search, held here rather than in the URL. Nothing
+     has been searched yet, so there is no route to put it in — picking a scope
+     on the homepage is choosing a question, and submitting is asking it. */
+  const [scope, setScope] = useState<Scope>(DEFAULT_SCOPE);
+
+  /* The rotating placeholder went with the Everything scope. It cycled
+     "Businesses, Panas, Groups, Events" because the field had no other way to
+     say it covered all four; now a chip inside the same pill says which one,
+     and a placeholder cycling the other three would be the field arguing with
+     its own control. */
+  const placeholder = tCommon(
+    useShortSearchLabel
+      ? scopePlaceholderShortKey(scope)
+      : scopePlaceholderKey(scope)
+  );
+
+  /* The visible label and the field's accessible name, both scope-aware and
+     both the same string. They used to be two fixed `home` keys that said
+     "Search directory" and "Search the directory" — which was merely wordy
+     while the box only searched one thing, and became wrong the moment the
+     menu above could change what it searched: picking Events left a field
+     labelled "Search directory" sitting under a control that said Events.
+
+     The short placeholder is reused rather than a third set of strings being
+     added, because it is already the shortest true sentence about what this
+     box searches, which is exactly what a label is. Matching the two also
+     satisfies label-in-name: a voice-control user saying "search events" hits
+     the thing the screen says "Search events". */
+  const scopeLabel = tCommon(scopePlaceholderShortKey(scope));
 
   return (
     /* No scalloped trim across the top. The scallop is a good edge when two
@@ -190,26 +215,35 @@ function HeroCard() {
               groups get named. */}
           <p className="hero-subheadline">{t('hero.mission')}</p>
 
-          {/* `scope="all"` because the placeholder already promises it. The
-              field says "Search panas, businesses, groups, events" and the
-              short label rotates through the same four, while Enter used to
-              land in the directory-only scope — so three of the four kinds
-              it names were advertised and then dropped on submit. The
-              Everything scope covers all four, and the scope chips on the
-              results page are where someone narrows down afterwards. */}
+          {/* The scope control, and the whole point of this section.
+              
+              It sits inside the pill rather than beside it because scope is
+              part of the question being asked — "events this weekend" is one
+              query, not a query plus a page setting — and two adjacent
+              capsules say the opposite of that.
+
+              `onSelect` rather than links, unlike every other place this menu
+              appears. On a results page each scope is a real route and the
+              rows must be navigable. Here there is nothing to navigate to yet:
+              the visitor is choosing what to search before typing the thing to
+              search for, so the menu sets state and submit carries it. */}
           <DirectorySuggest
             layout="pill"
-            scope="all"
+            scope={scope}
             className="mt-[18px]"
-            label={t('hero.searchLabel')}
-            placeholder={
-              useShortSearchLabel
-                ? t('hero.searchPlaceholderShort')
-                : t('hero.searchPlaceholder')
-            }
-            placeholderRotation={rotateSearchLabel ? searchRotation : undefined}
-            ariaLabel={t('hero.searchAriaLabel')}
+            label={scopeLabel}
+            placeholder={placeholder}
+            ariaLabel={scopeLabel}
             buttonLabel={t('hero.searchButton')}
+            leading={
+              <ScopeMenu
+                scope={scope}
+                term=""
+                counts={null}
+                signedIn={signedIn}
+                onSelect={setScope}
+              />
+            }
             inputClassName="text-pana-ink h-auto border-0 bg-transparent px-4 py-[18px] text-[16.5px] font-semibold shadow-none placeholder:font-medium placeholder:text-[rgb(17_13_13_/_0.45)] focus-visible:ring-0 md:text-[16.5px]"
           />
         </div>

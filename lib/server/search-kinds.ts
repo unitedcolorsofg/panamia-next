@@ -83,12 +83,21 @@ const eventVector = sql`"events"."search_vector"`;
  * configurations because a term may be English, Spanish, or a proper noun
  * that no stemmer should touch — see migration 0040 for why the columns are
  * indexed the same three ways.
+ *
+ * Exported for `searchUpcomingEvents` in lib/event.ts. That one returns full
+ * event rows for `EventCard` rather than the flattened `ScopeSearchResult`
+ * this file deals in, so it cannot call `searchEvents` — but it must match the
+ * same term the same way, or /e would disagree with the typeahead that sent
+ * someone there.
  */
-const tsquery = (term: string) => sql`(
+export const searchTsQuery = (term: string) => sql`(
   websearch_to_tsquery('english', pana_unaccent(${term}))
   || websearch_to_tsquery('spanish', pana_unaccent(${term}))
   || websearch_to_tsquery('simple',  pana_unaccent(${term}))
 )`;
+
+/** Local alias, so the body of this file reads as it always has. */
+const tsquery = searchTsQuery;
 
 /**
  * Rank expression shared by all three scopes.
@@ -648,8 +657,15 @@ export async function countEvents(term: string): Promise<number> {
 
 /** A kind that could not be searched at all, as opposed to one that matched
  *  nothing. `null` results and the `unavailable` set below both mean the
- *  former; zero and an empty result list both mean the latter. */
-export type ScopeKind = Exclude<Scope, 'all'>;
+ *  former; zero and an empty result list both mean the latter.
+ *
+ *  An alias for `Scope` rather than a narrowing of it. It was
+ *  `Exclude<Scope, 'all'>` while the scope list carried an Everything option
+ *  that was a view over the other four rather than a kind anything could be
+ *  searched as. The option is gone, so every scope is now a searchable kind;
+ *  the name survives because the `unavailable` set and the per-kind runners
+ *  below read better saying "kind" than "scope". */
+export type ScopeKind = Scope;
 
 export interface ScopeCountsResult {
   counts: ScopeCounts;

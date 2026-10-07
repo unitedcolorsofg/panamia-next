@@ -162,6 +162,18 @@
       "pana": "Pana",
       "group": "Grupo",
       "event": "Evento"
+    },
+    "scopePlaceholder": {
+      "directory": "Busca en el directorio — café, tatuajes, cerámica…",
+      "event": "Busca eventos — mercados, shows, talleres…",
+      "group": "Busca grupos — club de running, club de lectura, ayuda mutua…",
+      "pana": "Busca panas por nombre, oficio o @usuario"
+    },
+    "scopePlaceholderShort": {
+      "directory": "Busca en el directorio",
+      "event": "Busca eventos",
+      "group": "Busca grupos",
+      "pana": "Busca panas"
     }
   }
 }

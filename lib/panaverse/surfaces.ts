@@ -102,10 +102,11 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // /g/<handle> is already where it will live. It also keeps the pair
     // legible -- /p/<user> is a person, /g/<handle> is a group.
     //
-    // `/search` is deliberately absent: it is now a redirect into the
-    // directory, so it never renders social chrome and claiming it here would
-    // only be stale documentation. Searching from this surface lands on
-    // /directory/all/<term> -- see components/panaverse/SurfaceSearch.tsx.
+    // `/search` is deliberately absent: it is now a redirect into whichever
+    // scope was asked for, so it never renders social chrome and claiming it
+    // here would only be stale documentation. Searching from this surface
+    // lands on /groups?q=<term> -- see components/panaverse/SurfaceSearch.tsx
+    // for why that field commits to groups rather than offering a scope menu.
     paths: ['/s', '/p', '/g', '/groups', '/timeline', '/inbox'],
   },
   {

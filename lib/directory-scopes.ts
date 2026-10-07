@@ -1,79 +1,110 @@
 import { searchPath } from '@/lib/directory-search-path';
-import { SUGGESTION_KINDS, type SuggestionKind } from '@/lib/suggest';
+import type { SuggestionKind } from '@/lib/suggest';
 
 /**
- * The scopes a directory search can be pointed at.
+ * The scopes a search can be pointed at, and where each one lands.
  *
- * "Everything" first, then the four kinds in the order the typeahead already
- * interleaves them, so the menu and the suggestion list agree about what comes
- * before what.
+ * This file used to describe four spellings of one results page. It now
+ * describes four different products, and that is the change: the scope control
+ * moved out of the directory and into the club's front door, so picking
+ * "Events" is no longer narrowing a list -- it is leaving the directory for a
+ * page with a calendar and an RSVP button.
  *
  * Kept free of server and React imports: the scope bar is a client component,
  * the routes are server components, and both need this.
  */
-export const SCOPES = ['all', ...SUGGESTION_KINDS] as const;
+
+/**
+ * The four kinds, in menu order, with no "Everything".
+ *
+ * Everything led the old bar while a bare search landed in the directory,
+ * which was two defaults disagreeing: the menu said the box searched all four,
+ * the submit said it searched one. Dropping it settles that in favour of the
+ * honest answer -- the box searches whatever the chip says.
+ *
+ * The cost is real and worth naming. Everything was the only place a visitor
+ * who does not know our nouns could type "art" and discover that groups exist
+ * at all. The replacement is the menu itself: it is on the homepage now rather
+ * than three clicks into the directory, it names all four kinds with a
+ * sentence each, and it says where each one goes -- so the teaching happens on
+ * the way in, before the query, instead of in a results page after it.
+ *
+ * Ordered directory-first because that is the default and a menu should open
+ * on its default, then events, groups, panas: public before members-only, so
+ * the locked row is last rather than sitting in the middle of the list.
+ */
+export const SCOPES = ['directory', 'event', 'group', 'pana'] as const;
 export type Scope = (typeof SCOPES)[number];
 
 /**
- * The URL segment each scope lives under.
+ * Compile-time proof that SCOPES and the typeahead's kinds are the same set.
  *
- * The directory is the exception and deliberately so: it keeps
- * /directory/search, the route that has always been the directory, because it
- * carries the map, the county and category facets and every inbound link the
- * product has ever published. Moving it to /directory/listings for tidiness
- * would break all of that to make a table symmetrical.
+ * SCOPES is hand-ordered rather than derived from SUGGESTION_KINDS, because
+ * menu order is a design decision and suggestion order is a ranking one. That
+ * freedom costs a guard: without this, adding a kind upstream would silently
+ * leave it out of the menu while every Record below still compiled, and the
+ * new kind would be unreachable from the only control that opens it.
  *
- * The other three are new, so they get the readable plural. Dedicated routes
- * rather than /directory/search?kind=events because these are four different
- * pages with four different titles that should be indexed, shared and linked
- * independently -- a query param is a filter, and this is not a filter.
+ * Checked both ways. A kind missing here is a scope nobody can pick; a scope
+ * here that is not a kind is a menu row the typeahead can never fill.
  */
-const SCOPE_SEGMENT: Record<Exclude<Scope, 'directory'>, string> = {
-  all: 'all',
-  pana: 'panas',
-  group: 'groups',
-  event: 'events',
+type _ScopeCoverage = [
+  Exclude<SuggestionKind, Scope>,
+  Exclude<Scope, SuggestionKind>,
+] extends [never, never]
+  ? true
+  : never;
+const _scopesMatchKinds: _ScopeCoverage = true;
+void _scopesMatchKinds;
+
+/**
+ * Where submitting in each scope goes, as a path a reader can see.
+ *
+ * Shown in the menu under each row. The one piece of information the old menu
+ * did not carry and this one must: when four scopes were four views of one
+ * page, where you landed needed no explanation. Now one has a map, one has a
+ * calendar and one has a join button, so the control says which product it is
+ * opening before Enter rather than after.
+ *
+ * These are routes that already ship, not new ones. /e is the calendar and
+ * /groups is the shelf-and-browse page; both are already linked from
+ * navigation, so inventing /explore/events beside them would have left two
+ * pages answering one question. /panas is the one addition, because panas had
+ * no home of their own -- they lived at /directory/panas, which stops being
+ * true once the directory means listings.
+ */
+export const SCOPE_DESTINATION: Record<Scope, string> = {
+  directory: '/directory/search',
+  event: '/e',
+  group: '/groups',
+  pana: '/panas',
 };
 
-/** Reverse of SCOPE_SEGMENT, for resolving a [scope] route param. */
-const SEGMENT_SCOPE: Record<string, Scope> = Object.fromEntries(
-  Object.entries(SCOPE_SEGMENT).map(([scope, segment]) => [segment, scope])
-) as Record<string, Scope>;
-
 /**
- * Resolve a URL segment to a scope, or null if it isn't one.
+ * Where a search for `term` in `scope` actually lives.
  *
- * Returns null rather than falling back to a default so the route can answer
- * 404. /directory/panaz is a typo or a probe, and silently serving panas for
- * it would put a working page at an unbounded number of URLs.
- */
-export function scopeFromSegment(segment: string): Scope | null {
-  return SEGMENT_SCOPE[segment] ?? null;
-}
-
-/**
- * Where a search for `term` in `scope` lives.
+ * The directory delegates to `searchPath` so its canonical URL is built in one
+ * place; it carries the term as a path segment, as it always has.
  *
- * Delegates to searchPath for the directory so the canonical listing URL is
- * built in exactly one place, and mirrors its encode-and-fall-back-to-browse
- * behaviour for the rest.
+ * The other three carry it as `?q=`, and that is forced rather than chosen.
+ * `/e/[slug]` and `/groups/new` already occupy the segment after those roots,
+ * so `/e/<term>` would collide with an event slug the moment someone searched
+ * for a word that is also a slug. `/groups?q=` already ships and works, so the
+ * three explore pages match it rather than each inventing a shape.
  */
 export function scopePath(scope: Scope, term: string): string {
   if (scope === 'directory') return searchPath(term);
 
-  const segment = SCOPE_SEGMENT[scope];
+  const base = SCOPE_DESTINATION[scope];
   const trimmed = term.trim();
-  return trimmed
-    ? `/directory/${segment}/${encodeURIComponent(trimmed)}`
-    : `/directory/${segment}`;
+  return trimmed ? `${base}?q=${encodeURIComponent(trimmed)}` : base;
 }
 
 export const SCOPE_LABEL: Record<Scope, string> = {
-  all: 'Everything',
   directory: 'Directory',
-  pana: 'Panas',
-  group: 'Groups',
   event: 'Events',
+  group: 'Groups',
+  pana: 'Panas',
 };
 
 /**
@@ -90,27 +121,64 @@ export const SCOPE_LABEL: Record<Scope, string> = {
  * description has to carry the breadth the label no longer spells out.
  */
 export const SCOPE_BLURB: Record<Scope, string> = {
-  all: 'A few of each kind, then go deeper',
   directory: 'Shops, makers, bands, co-ops and non-profits',
-  pana: 'Members by name or handle',
-  group: 'Chat groups on the relay',
-  event: 'Shows, markets and meetups',
+  event: 'Shows, markets and meetups near you',
+  group: 'Find your people, or start a group',
+  pana: 'Members by name, craft or handle',
 };
+
+/**
+ * i18n keys for what the search field says once a scope has been picked.
+ *
+ * A consequence of the move that is easy to miss and expensive to skip. The
+ * homepage placeholder was "Search panas, businesses, groups, events" -- it
+ * listed the four kinds precisely because the field had no other way to say it
+ * covered them. Once the scope is a visible control inside the same pill that
+ * list is redundant at best and contradictory at worst: a field reading
+ * "Directory" on the left should not invite you to type an event name on the
+ * right.
+ *
+ * So the placeholder narrows with the scope, and in doing so gets to say
+ * something useful about *how* to search each kind -- by craft for a listing,
+ * by night out for an event, by handle for a pana -- which the four-noun list
+ * never had room for.
+ *
+ * Keys rather than strings, unlike the label and blurb above. Those feed a
+ * menu that has never been translated; this feeds the placeholder of the
+ * biggest input on the homepage, which has been translated since the page
+ * shipped, and hardcoding English here would be a visible regression for every
+ * Spanish-speaking visitor. Lives in the `common` namespace beside
+ * `search.kind.*`, which the same field already reads.
+ *
+ * The short forms exist because the full phrase is ~270px of text in a field
+ * that has ~138px on a common phone. Same reason the hero already carried a
+ * short placeholder before scopes arrived.
+ */
+export const scopePlaceholderKey = (scope: Scope) =>
+  `search.scopePlaceholder.${scope}`;
+
+export const scopePlaceholderShortKey = (scope: Scope) =>
+  `search.scopePlaceholderShort.${scope}`;
 
 /**
  * Scopes only offered to signed-in visitors.
  *
- * Mirrors lib/server/suggest.ts exactly, and must keep mirroring it: panas and
- * groups are members-only there for reasons set out at length in that file,
- * and a menu that offered them to an anonymous visitor would be advertising a
- * page that answers nothing.
+ * Panas stay members-only: `lib/server/suggest.ts` treats an anonymous caller
+ * as a caller bug for that kind, and a menu offering it to a signed-out
+ * visitor would advertise a page that answers nothing.
+ *
+ * Groups are public as of this change, and that is a deliberate reversal. A
+ * group that cannot be found by someone who is not yet a member cannot recruit
+ * one, which made the members-only rule self-defeating for the exact case
+ * groups exist to serve. The privacy that mattered is kept, but moved to where
+ * it belongs -- onto the roster rather than onto the group. Faces and a member
+ * count are public; names and profile links are not.
  */
 export const SCOPE_REQUIRES_PANA: Record<Scope, boolean> = {
-  all: false,
   directory: false,
-  pana: true,
-  group: true,
   event: false,
+  group: false,
+  pana: true,
 };
 
 /**
@@ -118,16 +186,13 @@ export const SCOPE_REQUIRES_PANA: Record<Scope, boolean> = {
  * the panaverse switcher already uses.
  *
  * The dropdown, the row icon and the active chip all read from this one map,
- * so a kind cannot be burnt orange in the menu and blue in the results. `all`
- * takes indigo because indigo is the brand default, and "everything" should
- * look like the house rather than a fifth category competing with the rest.
+ * so a kind cannot be burnt orange in the menu and blue in the results.
  */
 export const SCOPE_TONE: Record<Scope, string> = {
-  all: 'indigo',
   directory: 'burnt',
-  pana: 'blue',
-  group: 'flame',
   event: 'red',
+  group: 'flame',
+  pana: 'blue',
 };
 
 /**
@@ -142,10 +207,17 @@ export function visibleScopes(viewerIsSignedIn: boolean): Scope[] {
   );
 }
 
-/** The scope a bare search lands in when nobody has chosen one. */
+/**
+ * The scope a bare search lands in when nobody has chosen one.
+ *
+ * The directory: the largest set, the only one that is entirely public, and
+ * what the club is most often asked for by someone arriving cold. It is also
+ * what a bare search already did, so no one's muscle memory breaks on the day
+ * this ships.
+ */
 export const DEFAULT_SCOPE: Scope = 'directory';
 
-export type ScopeCounts = Record<Exclude<Scope, 'all'>, number>;
+export type ScopeCounts = Record<Scope, number>;
 
 /** All zeroes — what a caller shows when counts are unknown or failed. */
 export const EMPTY_SCOPE_COUNTS: ScopeCounts = {
@@ -155,16 +227,29 @@ export const EMPTY_SCOPE_COUNTS: ScopeCounts = {
   event: 0,
 };
 
-/** Total across the four kinds, for the "Everything" label. */
+/** Total across the four kinds. */
 export function totalCount(counts: ScopeCounts): number {
   return counts.directory + counts.pana + counts.group + counts.event;
 }
 
 export function countFor(counts: ScopeCounts, scope: Scope): number {
-  return scope === 'all' ? totalCount(counts) : counts[scope];
+  return counts[scope];
 }
 
-/** Maps a scope to the suggestion kind it filters to, if it filters at all. */
-export function scopeKind(scope: Scope): SuggestionKind | null {
-  return scope === 'all' ? null : scope;
+/**
+ * Resolve an old /directory/<segment> URL to the scope it used to mean.
+ *
+ * Only the retired scope routes call this, to work out where an inbound link
+ * should be sent. Returns null rather than falling back to a default so those
+ * routes can answer 404 for a typo instead of serving a working redirect at an
+ * unbounded number of URLs.
+ */
+const SEGMENT_SCOPE: Record<string, Scope> = {
+  panas: 'pana',
+  groups: 'group',
+  events: 'event',
+};
+
+export function scopeFromSegment(segment: string): Scope | null {
+  return SEGMENT_SCOPE[segment] ?? null;
 }
