@@ -164,9 +164,57 @@ This is a **feature** of better-auth called "account linking" and it's secure be
 
 ## Implementation Details
 
+### Turning on Google sign-in
+
+Google sign-in is implemented end to end — provider config in `auth.ts`, the
+`signIn.social()` path in `lib/auth-client.ts`, and the button in
+`app/signin/_components/signin-view.tsx`. Nothing is left to build; it ships
+switched off because it needs credentials. To enable it:
+
+1. **Create an OAuth client** in the
+   [Google Cloud console](https://console.cloud.google.com/apis/credentials) →
+   _Create credentials_ → _OAuth client ID_ → _Web application_.
+
+2. **Register the redirect URI.** better-auth serves every provider from one
+   mount, so the authorised redirect URI is:
+
+   ```text
+   https://pana.social/api/auth/callback/google
+   ```
+
+   Add one entry per origin you sign in from, including
+   `http://localhost:3000/api/auth/callback/google` for local work. An origin
+   must also be in `trustedOrigins` (`auth.ts`), which already covers the
+   panaverse surfaces and localhost.
+
+3. **Set the variables.** The first two are the credentials, the third reveals
+   the button:
+
+   | Variable                     | Where    | Value            |
+   | ---------------------------- | -------- | ---------------- |
+   | `GOOGLE_CLIENT_ID`           | VAR      | from the console |
+   | `GOOGLE_CLIENT_SECRET`       | SECRET   | from the console |
+   | `NEXT_PUBLIC_GOOGLE_ENABLED` | CF build | `true`           |
+
+   `NEXT_PUBLIC_GOOGLE_ENABLED` is inlined by Vite at build time, so it belongs
+   in Cloudflare's **Build** variables, not Runtime — and a change to it only
+   takes effect on the next build. `OAUTH_GOOGLE` may be left unset: it
+   defaults to `trusted` from `lib/env.config.ts`.
+
+The consent screen asks for `openid`, `email` and `profile` only, which are
+Google's non-sensitive scopes, so this does not require an app-verification
+review.
+
 ### Account Linking for Trusted Providers
 
 Trusted providers (Google, Apple, Email, mastodon.social) create account links automatically through better-auth's default flow.
+
+A member who already signed in by magic link and then uses Google on the same
+address is linked into the existing account rather than given a second one.
+That holds because the magic link plugin marks those users
+`emailVerified: true` and Google reports a verified email — better-auth
+requires both. See "Account Linking" in `SECURITY_AUDIT.md` for the exact
+conditions and the two cases that do _not_ link.
 
 ### Account Linking for Verification-Required Providers
 
