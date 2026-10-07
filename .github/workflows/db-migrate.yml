@@ -1,0 +1,102 @@
+name: Database Migrations
+
+# Applies pending Drizzle migrations to production and verifies the result.
+#
+# Why this lives in the repo rather than the Cloudflare dashboard: until now the
+# only thing that applied migrations was a deploy command configured in the
+# Workers Builds UI. Nothing in version control could enforce it, review it, or
+# notice when it silently stopped working -- and it did, at least twice:
+#
+#   - 2026-09-25  0048_recommendation_lists deployed green, tables never created (#237)
+#   - 2026-10-07  0053 and 0054 unapplied; the account menu and directory broke
+#                 in production until they were applied by hand
+#
+# Both were caught by a human noticing broken UI, days later. A migration step
+# that is version-controlled, logged, and verified removes that class of outage.
+#
+# NOTE: the `drizzle-kit migrate` call in the Cloudflare Workers Builds deploy
+# command should be removed once this is live, so exactly one system owns
+# applying migrations. Two of them racing on the same ledger is worse than
+# either alone. See docs/QUICK-START.md.
+
+on:
+  push:
+    branches: [main]
+    # Only migrate when migration content actually changes. Drift from any
+    # other source is caught by the scheduled run below.
+    paths:
+      - 'drizzle/**'
+      - '.github/workflows/db-migrate.yml'
+  # Daily drift detector. Verifies only -- never applies. If someone restores a
+  # snapshot, repoints the app at a different database, or a migration is
+  # reverted, this fails within a day instead of waiting for a user report.
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+# Never cancel a run that may be mid-migration: an interrupted drizzle-kit
+# migrate leaves the ledger and the schema in an indeterminate state. Queue
+# instead. This is the same reasoning that kept cancel-in-progress off the
+# shared-database group in playwright.yml.
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Scheduled workflows run on forks too, where the secrets are absent and
+    # every run would fail noisily.
+    if: github.repository == 'unitedcolorsofg/panamia-next'
+
+    env:
+      # drizzle.config.ts prefers POSTGRES_DIRECT_URL and falls back to
+      # POSTGRES_URL. Migrations must not go through Supabase's transaction
+      # pooler (port 6543) -- it handles the session-scoped state drizzle-kit
+      # relies on poorly, and the resulting failures are intermittent rather
+      # than clean. POSTGRES_DIRECT_URL must be the direct endpoint (5432).
+      POSTGRES_DIRECT_URL: ${{ secrets.POSTGRES_DIRECT_URL }}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Cheap, needs no node_modules, and catches the defect class that makes
+      # migrations invisible: drizzle-kit migrate silently skips any .sql file
+      # with no entry in _journal.json. Running it before anything touches the
+      # database means an unjournaled migration fails here rather than
+      # appearing to deploy successfully.
+      - name: Validate migrations
+        run: bash scripts/validate-migrations.sh --strict
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fail fast if no database URL is configured
+        run: |
+          if [ -z "$POSTGRES_DIRECT_URL" ] && [ -z "$POSTGRES_URL" ]; then
+            echo "ERROR: neither POSTGRES_DIRECT_URL nor POSTGRES_URL is set."
+            echo "Set them in Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      # Skipped on the scheduled run: that one detects drift and must never
+      # mutate production on its own.
+      - name: Apply migrations
+        if: github.event_name != 'schedule'
+        run: npx drizzle-kit migrate
+
+      # Proof the step above did something, and the whole job on a schedule.
+      # Prints the target host so a run that passes against the wrong database
+      # is visible in the log rather than reassuring.
+      - name: Verify no pending migrations
+        run: yarn db:check-pending

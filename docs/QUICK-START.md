@@ -258,32 +258,64 @@ This runs `drizzle-kit migrate` then `vinext deploy` (Vite build + wrangler publ
 
 **Cloudflare Workers Builds — dashboard commands:**
 
-| Field                                   | Command                                          | Notes                                                                             |
-| --------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Build command                           | `yarn build`                                     | Compiles only — no DB side effects                                                |
-| Deploy command                          | `npx drizzle-kit migrate && npx wrangler deploy` | Runs migrations against prod DB, then ships the build; only fires on prod deploys |
-| Non-production branch / version command | `npx wrangler versions upload`                   | Uploads the build as a non-production Worker version; no DB migration             |
+| Field                                   | Command                        | Notes                                                                 |
+| --------------------------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| Build command                           | `yarn build`                   | Compiles only — no DB side effects                                    |
+| Deploy command                          | `npx wrangler deploy`          | Ships the build. Must **not** migrate — see below                     |
+| Non-production branch / version command | `npx wrangler versions upload` | Uploads the build as a non-production Worker version; no DB migration |
 
-The split keeps `drizzle-kit migrate` out of the build phase so retries and preview-branch builds never mutate prod schema. Migrations happen at deploy time only.
+Cloudflare only builds and ships code. It must not touch the database: keeping
+`drizzle-kit migrate` out of both the build and deploy phases means retries and
+preview-branch builds can never mutate prod schema.
 
-> **Verify this before relying on it.** The table above is the _intended_
-> configuration, not a confirmed one. These commands live in the Cloudflare
-> dashboard, not in this repo, so nothing here can enforce them or detect
-> drift. On 2026-09-25 `0048_recommendation_lists` merged, deployed, and
-> reported a successful build while its tables were never created in
-> production — every lists route returned 500. The deploy command actually in
-> use did not run a working `drizzle-kit migrate`.
+**Migrations are applied by GitHub Actions**, not by Cloudflare — see
+`.github/workflows/db-migrate.yml`. On any push to `main` that touches
+`drizzle/**` it validates the migration files, runs `npx drizzle-kit migrate`,
+then runs `yarn db:check-pending` to prove the database is actually in sync. The
+same workflow runs daily in verify-only mode as a drift detector, and can be
+triggered by hand from the Actions tab.
+
+It needs two repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret                | Value                                                                    |
+| --------------------- | ------------------------------------------------------------------------ |
+| `POSTGRES_DIRECT_URL` | Production **direct** connection string (port 5432, not the 6543 pooler) |
+| `POSTGRES_URL`        | Production connection string (fallback)                                  |
+
+> **If you move the database, update these secrets first.** The workflow has no
+> way to know which project it is pointed at, so it will report success after
+> migrating whatever it can reach. `db:check-pending` prints the target
+> `user@host` on every run for exactly this reason — read it before trusting a
+> green check.
+
+> **Why this moved into the repo.** The deploy command above used to read
+> `npx drizzle-kit migrate && npx wrangler deploy`. It lived only in the
+> Cloudflare dashboard, so nothing in version control could enforce it or
+> detect drift, and it silently failed at least twice:
 >
-> There is also a mechanical reason it cannot work as written: `POSTGRES_URL`
-> and `POSTGRES_DIRECT_URL` are declared `location: 'SECRET'` in
-> `lib/env.config.ts`, which places them in the **Worker runtime**
-> environment. The **build container** never receives them, so
-> `drizzle-kit migrate` invoked there exits 1 with `url: undefined`. Adding the
-> command without also exposing the database URL as a Build variable converts a
-> silent gap into a hard deploy block. Both halves are required. See #237.
+> - **2026-09-25** — `0048_recommendation_lists` merged, deployed, and reported
+>   a successful build while its tables were never created. Every lists route
+>   returned 500. (#237)
+> - **2026-10-07** — `0053_profile_pending_owner_email` and
+>   `0054_directory_account_type` were never applied. Signed-in requests to
+>   `/api/profile/switch` threw on the missing column and the account menu
+>   rendered empty; directory queries threw on the renamed `account_type` enum
+>   value. Both were applied by hand to restore service.
 >
-> Until that is fixed, **`yarn deploy:vinext` from a trusted machine is the only
-> path that actually applies migrations.**
+> There was also a mechanical reason it could not work as written:
+> `POSTGRES_URL` and `POSTGRES_DIRECT_URL` are declared `location: 'SECRET'` in
+> `lib/env.config.ts`, which places them in the **Worker runtime** environment.
+> The **build container** never receives them, so `drizzle-kit migrate` invoked
+> there exits 1 with `url: undefined`.
+>
+> Both incidents were found by a user noticing broken UI, days later. Running
+> migrations in CI — logged, reviewable, and verified by a second step —
+> removes that class of outage. **Do not re-add `drizzle-kit migrate` to the
+> Cloudflare deploy command**; two systems racing on the same migration ledger
+> is worse than either alone.
+
+`yarn deploy:vinext` still migrates and deploys in one step from a trusted
+machine, which remains useful for emergencies.
 
 **Database connection pooling** — configure a [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) binding in `wrangler.jsonc`:
 
