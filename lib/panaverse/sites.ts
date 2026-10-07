@@ -67,18 +67,34 @@ export interface PanaSite {
 
 export const PANA_SITES: readonly PanaSite[] = [
   { id: 'social', labelKey: 'panaSocial', href: '/s' },
+  /* Directly under Pana Social because it is a room inside it: `/groups` is
+   * one of that surface's paths, so this tile resolves to the social origin
+   * from the main site without needing a special case here.
+   *
+   * The account menu already has an "All groups" row above this grid, and the
+   * two are not redundant. That row sits with the member's own groups and
+   * reads as "the rest of mine"; this tile sits among the places to go and is
+   * the way in for a member who belongs to none yet — which is exactly who
+   * never sees a group listed above it. */
+  { id: 'groups', labelKey: 'groups', href: '/groups' },
   { id: 'ink', labelKey: 'panaInk', href: null },
   { id: 'vizion', labelKey: 'panaVizion', href: '/podcasts' },
   // `/d` is the canonical directory URL — `/directory` and `/directorio`
   // redirect here, so linking it directly saves a hop.
   { id: 'directory', labelKey: 'directory', href: '/d' },
   { id: 'events', labelKey: 'events', href: '/e' },
-  { id: 'getInvolved', labelKey: 'getInvolved', href: null },
   // Linked rather than null even though the HQ behind it is still fixtures:
   // `/connectors` is a real route that explains the programme to anyone who
   // is not in it yet, so the tile always lands somewhere true. The branch
   // between the explainer and the member dashboard happens on that page, not
   // in this registry -- a tile cannot know who is clicking it.
+  //
+  // "Get Involved" used to sit immediately above this as an unbuilt tile.
+  // Connectors is the built answer to the same question, so naming both only
+  // offered the member a choice between a working door and a closed one. The
+  // offering itself is untouched: `/get-involved` is still a live page and
+  // still listed in PANA_OFFERINGS -- it just no longer needs a seat in this
+  // grid to be found.
   { id: 'connectors', labelKey: 'connectors', href: '/connectors' },
   /* Last, and only for staff. It is a different kind of thing from everything
    * above it — those are places a member goes, this is the back office — so it

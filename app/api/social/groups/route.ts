@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getActiveProfileWithActor } from '@/lib/server/active-profile';
 import { createGroup } from '@/lib/federation';
-import { searchGroups } from '@/lib/server/group-search';
+import { searchGroups, parseGroupSort } from '@/lib/server/group-search';
 import type {
   SocialGroupJoinPolicy,
   SocialGroupVisibility,
@@ -39,7 +39,7 @@ function asStringArray(value: unknown): string[] | null {
 }
 
 /**
- * GET /api/social/groups?q=&limit=&offset=
+ * GET /api/social/groups?q=&limit=&offset=&sort=&topic=
  *
  * Deliberately unauthenticated. Discovery is how a pana finds a group to ask
  * to join, and requiring a session to search would make a private group with
@@ -59,15 +59,17 @@ export async function GET(request: NextRequest) {
 
   // Left unvalidated on purpose: searchGroups clamps both, so a junk value
   // falls back to the default rather than 400-ing a discovery page over a
-  // malformed query string.
+  // malformed query string. parseGroupSort takes the same position.
   const limit = limitParam ? Number(limitParam) : undefined;
   const offset = offsetParam ? Number(offsetParam) : undefined;
+  const sort = parseGroupSort(searchParams.get('sort'));
+  const topic = searchParams.get('topic');
 
-  const groups = await searchGroups({ term, limit, offset });
+  const groups = await searchGroups({ term, limit, offset, sort, topic });
 
   return NextResponse.json({
     success: true,
-    data: { groups, query: term.trim() },
+    data: { groups, query: term.trim(), topic: topic?.trim() || null },
   });
 }
 

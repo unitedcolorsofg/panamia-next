@@ -18,6 +18,26 @@ import type {
   SocialGroupVisibility,
 } from '@/lib/schema';
 
+/**
+ * The next thing a group has on its calendar, for the event line on a card.
+ *
+ * Deliberately four fields and not the full GroupEventSummary. A browse card
+ * names an event and dates it; venue, mode, status and attendee counts are
+ * the group page's job, and selecting them here would widen every row of
+ * every search for data nothing on this surface renders.
+ *
+ * `timezone` is not optional padding. An event in Miami is on the day Miami
+ * says it is regardless of where it is being browsed from, which is the same
+ * position search-kinds.ts and suggest.ts already take; dropping it would
+ * silently shift a Saturday event to Friday for a reader on the west coast.
+ */
+export interface GroupNextEvent {
+  slug: string;
+  title: string;
+  startsAt: string;
+  timezone: string;
+}
+
 export interface GroupSearchResult {
   id: string;
   actorId: string;
@@ -26,6 +46,8 @@ export interface GroupSearchResult {
   name: string | null;
   summary: string | null;
   iconUrl: string | null;
+  /** Cover photo. Actor identity, same class as iconUrl, public either way. */
+  headerUrl: string | null;
   topics: Record<string, boolean>;
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
@@ -35,12 +57,65 @@ export interface GroupSearchResult {
    * private groups -- see GROUP_COLUMNS.
    */
   faces: string[];
+  /** Posts in the last seven days. Always 0 for private groups. */
+  postsThisWeek: number;
+  /** Next published public event. Always null for private groups. */
+  nextEvent: GroupNextEvent | null;
+  /** How many upcoming events in total, so a card can say "+2 more". */
+  upcomingEventCount: number;
+}
+
+/**
+ * What "first" means on a browse page.
+ *
+ * `members` was the only order until the landing page needed an "active right
+ * now" shelf, and it cannot be the default for discovery: sorted by size, a
+ * new group is invisible forever and a browse page that only ever shows the
+ * ten biggest groups cannot grow an eleventh. `new` exists so the thing
+ * somebody just created is findable the same day.
+ *
+ * Only applies to browsing. Once there is a term, relevance wins and a sort
+ * control would be competing with the ranking rather than refining it.
+ */
+export type GroupSort = 'active' | 'members' | 'new';
+
+const GROUP_SORTS: readonly GroupSort[] = ['active', 'members', 'new'];
+
+export function parseGroupSort(value: string | null | undefined): GroupSort {
+  return GROUP_SORTS.includes(value as GroupSort)
+    ? (value as GroupSort)
+    : 'members';
 }
 
 export interface SearchGroupsOptions {
   term?: string;
   limit?: number;
   offset?: number;
+  sort?: GroupSort;
+  /**
+   * Exact topic key, as stored. Narrows rather than searches.
+   *
+   * Topics are in the search vector already, so `?q=zines` would find most of
+   * these -- but it would also find groups that merely mention zines in a
+   * summary, and then a chip reading "zines 4" would sit above five results.
+   * A facet count and the filter behind it have to be the same question, so
+   * this one is key equality.
+   */
+  topic?: string | null;
+}
+
+/**
+ * The topic narrowing clause, or nothing.
+ *
+ * `jsonb_exists(topics, key)` rather than the `?` operator it is an alias
+ * for. They are the same test, but a bare `?` in a SQL string is ambiguous
+ * with a driver placeholder, and the function form cannot be misread by
+ * anything between here and Postgres.
+ */
+function topicClause(topic: string | null | undefined) {
+  const trimmed = (topic ?? '').trim();
+  if (!trimmed) return null;
+  return sql`jsonb_exists(g.topics, ${trimmed})`;
 }
 
 /**
@@ -74,6 +149,17 @@ const TRIGRAM_THRESHOLD = 0.5;
  * makes a wider pile of the same signal.
  */
 const MAX_FACES = 5;
+
+/**
+ * The window "active right now" actually means.
+ *
+ * Seven days because it has to survive a group that meets weekly. A 24-hour
+ * window reports most healthy groups as dead six days out of seven, and a
+ * 30-day one cannot tell a group that stopped last week from one that
+ * stopped last month -- which is the single distinction this number exists
+ * to draw.
+ */
+const ACTIVITY_WINDOW_DAYS = 7;
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -121,9 +207,28 @@ const MAX_LIMIT = 50;
  * tombstone. Null icons are skipped because a pile of placeholders is noise,
  * not evidence that anyone is home.
  *
+ * `postsThisWeek`, `nextEvent` and `upcomingEventCount` get the same CASE for
+ * the same reason, and it is the reason rather than the pattern that matters:
+ * what a private group is discussing and when it next meets are exactly the
+ * things the visibility setting exists to protect. Leaking "14 posts this
+ * week" about a tenant union tells anyone running a search that the union is
+ * organising, which is most of what a hostile reader wanted to know.
+ *
+ * For a *public* group no further per-post gate is needed, and that is not an
+ * oversight: `visibleGroupStatuses` defines a public group's posts as
+ * readable by anyone including a signed-out visitor, so counting all of them
+ * is the same rule rather than a looser one. Events carry their own
+ * status/visibility columns, so those are filtered explicitly.
+ *
+ * Both counts are correlated subqueries over indexes that already exist --
+ * `social_statuses_group_published_idx` on (group_id, published) and
+ * `events_host_group_id_idx` -- so this costs an index range scan per row
+ * rather than a sequential scan.
+ *
  * @see app/api/social/groups/[handle]/route.ts
  * @see app/api/social/groups/[handle]/members/route.ts
  * @see lib/federation/wrappers/group-members.ts
+ * @see lib/federation/wrappers/group-visibility.ts
  */
 const GROUP_COLUMNS = sql`
   g.id              AS id,
@@ -133,6 +238,7 @@ const GROUP_COLUMNS = sql`
   a.name            AS name,
   a.summary         AS summary,
   a.icon_url        AS "iconUrl",
+  a.header_url      AS "headerUrl",
   g.topics          AS topics,
   g.visibility      AS visibility,
   g.join_policy     AS "joinPolicy",
@@ -149,7 +255,34 @@ const GROUP_COLUMNS = sql`
       fm.joined_at ASC NULLS LAST,
       fm.id ASC
     LIMIT ${MAX_FACES}
-  ) ELSE ARRAY[]::text[] END AS faces
+  ) ELSE ARRAY[]::text[] END AS faces,
+  CASE WHEN g.visibility = 'public' THEN (
+    SELECT count(*)::int
+    FROM social_statuses s
+    WHERE s.group_id = g.id
+      AND s.published > now() - ${`${ACTIVITY_WINDOW_DAYS} days`}::interval
+  ) ELSE 0 END AS "postsThisWeek",
+  CASE WHEN g.visibility = 'public' THEN (
+    SELECT row_to_json(e)
+    FROM (
+      SELECT ev.slug, ev.title, ev.starts_at AS "startsAt", ev.timezone
+      FROM events ev
+      WHERE ev.host_group_id = g.id
+        AND ev.status = 'published'
+        AND ev.visibility = 'public'
+        AND ev.starts_at > now()
+      ORDER BY ev.starts_at ASC
+      LIMIT 1
+    ) e
+  ) ELSE NULL END AS "nextEvent",
+  CASE WHEN g.visibility = 'public' THEN (
+    SELECT count(*)::int
+    FROM events ev
+    WHERE ev.host_group_id = g.id
+      AND ev.status = 'published'
+      AND ev.visibility = 'public'
+      AND ev.starts_at > now()
+  ) ELSE 0 END AS "upcomingEventCount"
 `;
 
 interface RawGroupRow {
@@ -160,11 +293,20 @@ interface RawGroupRow {
   name: string | null;
   summary: string | null;
   iconUrl: string | null;
+  headerUrl: string | null;
   topics: Record<string, boolean> | null;
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   memberCount: number | string;
   faces: string[] | null;
+  postsThisWeek: number | string | null;
+  nextEvent: {
+    slug: string;
+    title: string;
+    startsAt: string;
+    timezone: string;
+  } | null;
+  upcomingEventCount: number | string | null;
 }
 
 function toResult(row: RawGroupRow): GroupSearchResult {
@@ -176,11 +318,25 @@ function toResult(row: RawGroupRow): GroupSearchResult {
     name: row.name,
     summary: row.summary,
     iconUrl: row.iconUrl,
+    headerUrl: row.headerUrl,
     topics: row.topics ?? {},
     visibility: row.visibility,
     joinPolicy: row.joinPolicy,
     memberCount: Number(row.memberCount) || 0,
     faces: row.faces ?? [],
+    postsThisWeek: Number(row.postsThisWeek) || 0,
+    nextEvent: row.nextEvent
+      ? {
+          slug: row.nextEvent.slug,
+          title: row.nextEvent.title,
+          // row_to_json renders a timestamptz as a string already; normalising
+          // through Date keeps it a real ISO string whichever driver is in
+          // play rather than Postgres's own ' '-separated rendering.
+          startsAt: new Date(row.nextEvent.startsAt).toISOString(),
+          timezone: row.nextEvent.timezone,
+        }
+      : null,
+    upcomingEventCount: Number(row.upcomingEventCount) || 0,
   };
 }
 
@@ -197,20 +353,37 @@ function clampOffset(offset: number | undefined): number {
 /**
  * What discovery shows before anyone types anything.
  *
- * Ordered by member count so the browse view opens on groups that are
- * actually alive, with created_at as a stable tiebreak -- without it, two
- * groups on the same count can swap places between pages and a paginating
- * client sees the same group twice.
+ * Every order ends in the same two tiebreaks -- created_at then id -- and
+ * that is not tidiness. Without a total order, two groups on the same count
+ * can swap places between pages and a paginating client sees the same group
+ * twice while never seeing another.
+ *
+ * `active` orders on the post count already in the select list rather than
+ * recomputing it, so the number a card prints and the position it holds can
+ * never disagree. Member count is its first tiebreak so a brand-new silent
+ * group does not outrank a large silent one.
  */
 async function browseGroups(
   limit: number,
-  offset: number
+  offset: number,
+  sort: GroupSort,
+  topic: string | null | undefined
 ): Promise<GroupSearchResult[]> {
+  const order =
+    sort === 'active'
+      ? sql`"postsThisWeek" DESC, g.member_count DESC`
+      : sort === 'new'
+        ? sql`g.created_at DESC`
+        : sql`g.member_count DESC`;
+
+  const narrow = topicClause(topic);
+
   const rows = (await db.execute(sql`
     SELECT ${GROUP_COLUMNS}
     FROM social_groups g
     JOIN social_actors a ON a.id = g.actor_id
-    ORDER BY g.member_count DESC, g.created_at DESC, g.id DESC
+    ${narrow ? sql`WHERE ${narrow}` : sql``}
+    ORDER BY ${order}, g.created_at DESC, g.id DESC
     LIMIT ${limit} OFFSET ${offset}
   `)) as unknown as RawGroupRow[];
 
@@ -235,8 +408,11 @@ async function browseGroups(
 async function trigramSearch(
   trimmed: string,
   limit: number,
-  offset: number
+  offset: number,
+  topic: string | null | undefined
 ): Promise<GroupSearchResult[]> {
+  const narrow = topicClause(topic);
+
   const rows = (await db.transaction(async (tx) => {
     // pg_trgm's operators live wherever the extension was installed --
     // "extensions" on Supabase, public on plain Postgres. Naming both covers
@@ -256,6 +432,7 @@ async function trigramSearch(
       FROM social_groups g
       JOIN social_actors a ON a.id = g.actor_id
       WHERE pana_unaccent(a.name) %> ${trimmed}
+      ${narrow ? sql`AND ${narrow}` : sql``}
       ORDER BY sim DESC, g.member_count DESC, g.id DESC
       LIMIT ${limit} OFFSET ${offset}
     `);
@@ -268,7 +445,10 @@ async function trigramSearch(
  * Search groups by name, topic and summary.
  *
  * An empty term is browse rather than an error, so one endpoint serves both
- * the discovery page and the search box.
+ * the discovery page and the search box. `sort` applies only to that browse
+ * path: once there is a term, relevance decides, and letting a sort override
+ * it would mean a group that matched exactly could appear below one that
+ * merely mentioned the word.
  */
 export async function searchGroups(
   options: SearchGroupsOptions = {}
@@ -276,8 +456,13 @@ export async function searchGroups(
   const limit = clampLimit(options.limit);
   const offset = clampOffset(options.offset);
   const trimmed = (options.term ?? '').trim();
+  const topic = options.topic ?? null;
 
-  if (!trimmed) return browseGroups(limit, offset);
+  if (!trimmed) {
+    return browseGroups(limit, offset, options.sort ?? 'members', topic);
+  }
+
+  const narrow = topicClause(topic);
 
   // Three configurations OR'd together. english and spanish because the
   // community writes in both; simple because it is the only arm that survives
@@ -296,7 +481,8 @@ export async function searchGroups(
            starts_with(lower(pana_unaccent(coalesce(a.name, ''))), lower(pana_unaccent(${trimmed}))) AS prefix_name
     FROM social_groups g
     JOIN social_actors a ON a.id = g.actor_id, q
-    WHERE a.search_vector @@ q.tsq OR g.search_vector @@ q.tsq
+    WHERE (a.search_vector @@ q.tsq OR g.search_vector @@ q.tsq)
+    ${narrow ? sql`AND ${narrow}` : sql``}
     ORDER BY
       (
         ts_rank_cd(${RANK_WEIGHTS}::float4[], a.search_vector, q.tsq)
@@ -311,9 +497,145 @@ export async function searchGroups(
     LIMIT ${limit} OFFSET ${offset}
   `)) as unknown as RawGroupRow[];
 
-  if (rows.length === 0) return trigramSearch(trimmed, limit, offset);
+  if (rows.length === 0) return trigramSearch(trimmed, limit, offset, topic);
 
   return rows.map(toResult);
+}
+
+/**
+ * The topics people have actually used, with how many groups use each.
+ *
+ * Topics are free text -- the create form takes a comma-separated list and
+ * stores whatever was typed -- so there is no vocabulary to render a chip row
+ * from. This derives one from the data instead, which has the side effect of
+ * making the chips self-maintaining: a topic nobody uses stops appearing, and
+ * one that catches on appears without a deploy.
+ *
+ * Private groups are counted, and that is deliberate rather than an
+ * oversight. Search returns private groups by design, so a chip that excluded
+ * them would advertise "3" above a filtered list of four -- the derived-number
+ * disagreement that makes a page look broken. A topic is identity, not
+ * content; it is already on the public card.
+ *
+ * `jsonb_each` over a flag map rather than a key list, because that is the
+ * shape migration 0040 settled on and `pana_jsonb_flags` reads the same way.
+ * The `= 'true'` check matters: the writer only ever sets true, but a map
+ * that once held a false would otherwise count a topic a group opted out of.
+ */
+export interface GroupTopicFacet {
+  topic: string;
+  count: number;
+}
+
+const DEFAULT_TOPIC_FACETS = 18;
+
+export async function listGroupTopics(
+  limit = DEFAULT_TOPIC_FACETS
+): Promise<GroupTopicFacet[]> {
+  const rows = (await db.execute(sql`
+    SELECT t.key AS topic, count(*)::int AS count
+    FROM social_groups g,
+         LATERAL jsonb_each(g.topics) AS t(key, value)
+    WHERE jsonb_typeof(g.topics) = 'object'
+      AND t.value = 'true'::jsonb
+    GROUP BY t.key
+    ORDER BY count DESC, t.key ASC
+    LIMIT ${Math.max(1, Math.min(Math.floor(limit), 50))}
+  `)) as unknown as { topic: string; count: number | string }[];
+
+  return rows.map((row) => ({
+    topic: row.topic,
+    count: Number(row.count) || 0,
+  }));
+}
+
+/**
+ * What groups have coming up, across all of them.
+ *
+ * The argument for putting events on a groups page rather than leaving them
+ * to /events is that they show what joining actually gets you, which is why
+ * every row names its host group. An events list that did not would just be
+ * the events page with fewer rows.
+ *
+ * Private groups are excluded outright here, unlike everywhere else in this
+ * file. Their *existence* is public; their calendar is not, and an event row
+ * names a time and a place, which is the most actionable thing a private
+ * group has.
+ */
+export interface UpcomingGroupEvent {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  timezone: string;
+  mode: string;
+  attendeeCount: number;
+  groupHandle: string;
+  groupName: string | null;
+  venue: { name: string; city: string; state: string } | null;
+}
+
+const DEFAULT_UPCOMING_EVENTS = 4;
+
+export async function listUpcomingGroupEvents(
+  limit = DEFAULT_UPCOMING_EVENTS
+): Promise<UpcomingGroupEvent[]> {
+  const rows = (await db.execute(sql`
+    SELECT ev.id                AS id,
+           ev.slug              AS slug,
+           ev.title             AS title,
+           ev.starts_at         AS "startsAt",
+           ev.timezone          AS timezone,
+           ev.mode              AS mode,
+           ev.attendee_count    AS "attendeeCount",
+           a.username           AS "groupHandle",
+           a.name               AS "groupName",
+           v.name               AS "venueName",
+           v.city               AS "venueCity",
+           v.state              AS "venueState"
+    FROM events ev
+    JOIN social_groups g ON g.id = ev.host_group_id
+    JOIN social_actors a ON a.id = g.actor_id
+    LEFT JOIN venues v ON v.id = ev.venue_id
+    WHERE g.visibility = 'public'
+      AND ev.status = 'published'
+      AND ev.visibility = 'public'
+      AND ev.starts_at > now()
+    ORDER BY ev.starts_at ASC, ev.id ASC
+    LIMIT ${Math.max(1, Math.min(Math.floor(limit), 20))}
+  `)) as unknown as {
+    id: string;
+    slug: string;
+    title: string;
+    startsAt: string | Date;
+    timezone: string;
+    mode: string;
+    attendeeCount: number | string;
+    groupHandle: string;
+    groupName: string | null;
+    venueName: string | null;
+    venueCity: string | null;
+    venueState: string | null;
+  }[];
+
+  return rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    startsAt: new Date(row.startsAt).toISOString(),
+    timezone: row.timezone,
+    mode: row.mode,
+    attendeeCount: Number(row.attendeeCount) || 0,
+    groupHandle: row.groupHandle,
+    groupName: row.groupName,
+    venue: row.venueName
+      ? {
+          name: row.venueName,
+          city: row.venueCity ?? '',
+          state: row.venueState ?? '',
+        }
+      : null,
+  }));
 }
 
 /**
