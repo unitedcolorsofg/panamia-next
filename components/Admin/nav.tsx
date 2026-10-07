@@ -27,11 +27,11 @@ import {
  *
  * ## The icons are not decoration
  *
- * Nine links of similar length in one column are nine identical shapes, and
- * the only way to tell them apart is to read all nine. Each one now carries
- * its view's icon on a chip in its group's colour, so the column can be
- * navigated by position and colour the way a toolbar is — which is what
- * someone who opens this every day actually does.
+ * Six links of similar length in one column are six identical shapes, and the
+ * only way to tell them apart is to read all six. Each one now carries its
+ * view's icon on a chip in its group's colour, so the column can be navigated
+ * by position and colour the way a toolbar is — which is what someone who
+ * opens this every day actually does.
  *
  * Below `lg` this is still a horizontal strip, because a sidebar on a phone is
  * either a drawer behind a tap or a column that pushes the work off-screen.

@@ -52,19 +52,28 @@ Site administration (requires admin role). Served under `admin.pana.social`,
 which redirects `/` to `/admin`. Every page shares the sidebar defined in
 `app/admin/layout.tsx`; the tool list itself lives in `lib/admin/views.ts`.
 
-| Route                      | Description                            |
-| -------------------------- | -------------------------------------- |
-| `/admin`                   | Overview — what each tool is for       |
-| `/admin/listings`          | Business listing approvals (mock)      |
-| `/admin/connectors`        | Pana Connectors console (mock)         |
-| `/admin/download-profiles` | Export profile data                    |
-| `/admin/mentoring`         | Mentoring program admin                |
-| `/admin/users`             | User management                        |
-| `/admin/articles`          | Article moderation                     |
-| `/admin/podcasts`          | Podcast management (placeholder)       |
-| `/admin/contactus`         | Contact form submissions               |
-| `/admin/reports`           | Relay abuse reports                    |
-| `/admin/profile/action`    | Profile moderation from an email link  |
+| Route                      | Description                                  |
+| -------------------------- | -------------------------------------------- |
+| `/admin`                   | Overview — what each tool is for             |
+| `/admin/listings`          | Directory listing approvals (mock)           |
+| `/admin/connectors`        | Pana Connectors console (mock)               |
+| `/admin/users`             | Account management (mock)                    |
+| `/admin/users/live`        | The real account list the mock replaces       |
+| `/admin/download-profiles` | Export profile data                          |
+| `/admin/contactus`         | Contact form submissions                     |
+| `/admin/reports`           | Relay abuse reports                          |
+| `/admin/profile/action`    | Profile moderation from an email link        |
+| `/admin/mentoring`         | Mentoring program admin — parked, see below  |
+| `/admin/articles`          | Article moderation — parked, see below       |
+| `/admin/podcasts`          | Podcast management — parked, see below       |
+
+**Parked tools.** Mentoring, Articles and Podcasts still work but are no
+longer in the sidebar or the overview, so that the surface stays pointed at
+the things being used now. The routes and their API endpoints are untouched,
+and the `/account/admin/*` redirects still reach them — which matters, because
+staff notification emails embed those old URLs. `PARKED_TOOLS` in
+`lib/admin/views.ts` is the list, and the overview renders it so the decision
+is visible rather than remembered.
 
 ### Mentoring (`/m/*`)
 

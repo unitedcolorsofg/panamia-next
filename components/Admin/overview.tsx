@@ -5,6 +5,7 @@ import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { StatusPill } from '@/components/Admin/status-pill';
 import {
   ADMIN_GROUPS,
+  PARKED_TOOLS,
   UNBUILT_TOOLS,
   type AdminGroup,
   viewsInGroup,
@@ -15,7 +16,7 @@ import {
  *
  * The sidebar does the navigating, so this page does not repeat it as a flat
  * list of links. What the sidebar cannot carry is what each tool is *for* — a
- * column of nine names tells a new staff member nothing — so this is the same
+ * column of six names tells a new staff member nothing — so this is the same
  * set, shelved by group, with a sentence on every row.
  *
  * ## Why it looks like the homepage now
@@ -39,10 +40,10 @@ import {
  *   so it takes the homepage's *character* — uppercase, black weight, tight
  *   tracking, one accent word — at a size that leaves room for the work.
  *
- * It deliberately shows no counts. Two of these tools are mocked and seven are
- * real; a "14 waiting" on this page would be a fixture sitting directly above
- * links to live queues, and there is no honest way to label that in passing.
- * Counts belong inside the tool that owns them.
+ * It deliberately shows no counts. Three of these tools are mocked and three
+ * are real; a "14 waiting" on this page would be a fixture sitting directly
+ * above links to live queues, and there is no honest way to label that in
+ * passing. Counts belong inside the tool that owns them.
  */
 export function AdminOverview() {
   return (
@@ -78,6 +79,7 @@ export function AdminOverview() {
         ))}
 
         <UnbuiltSection />
+        <ParkedSection />
       </div>
     </>
   );
@@ -180,9 +182,9 @@ function UnbuiltSection() {
         Exists as an API, has no screen
       </h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-pana-ink/70">
-        Listed so the gap stays visible rather than becoming folklore. Of the
-        thirteen endpoints under <code>app/api/admin/</code>, these are what the
-        sidebar still cannot reach.
+        Listed so the gap stays visible rather than becoming folklore. These
+        endpoints under <code>app/api/admin/</code> have never had a screen
+        built for them at all.
       </p>
 
       <ul className="mt-4 flex flex-col gap-3">
@@ -197,6 +199,53 @@ function UnbuiltSection() {
             </p>
             <code className="mt-1.5 block break-all text-xs text-pana-ink/50">
               {tool.api}
+            </code>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Built, and taken off the sidebar on purpose.
+ *
+ * The same quiet dashed treatment as the block above, for the same reason —
+ * neither is a shelf of tools you are being offered. The difference is that
+ * every row here still works, so the names are links. Someone who used
+ * Articles last week should be able to find it from this page rather than
+ * concluding it was deleted.
+ */
+function ParkedSection() {
+  return (
+    <section className="rounded-2xl border-2 border-dashed border-pana-ink/35 p-5 sm:p-6">
+      <h2 className="text-sm font-black uppercase tracking-[0.12em] text-pana-ink/60">
+        Built, parked for now
+      </h2>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-pana-ink/70">
+        Off the sidebar so this surface carries only what is being worked on
+        now. Nothing was removed — these routes still render and their
+        endpoints still answer, including from the older{' '}
+        <code>/account/admin/</code> links that staff mail still contains.
+      </p>
+
+      <ul className="mt-4 flex flex-col gap-3">
+        {PARKED_TOOLS.map((tool) => (
+          <li
+            key={tool.name}
+            className="rounded-xl border border-pana-ink/15 bg-pana-ink/[0.03] px-4 py-3"
+          >
+            <Link
+              href={tool.href}
+              className="font-bold leading-snug underline decoration-pana-ink/25 underline-offset-4 hover:decoration-pana-ink"
+            >
+              {tool.name}
+            </Link>
+            <p className="mt-0.5 text-sm leading-relaxed text-pana-ink/70">
+              {tool.note}
+            </p>
+            <code className="mt-1.5 block break-all text-xs text-pana-ink/50">
+              {tool.href}
             </code>
           </li>
         ))}

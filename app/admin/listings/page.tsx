@@ -24,7 +24,7 @@ import {
 } from '@/lib/admin/fixtures';
 
 /**
- * The business listing approval queue.
+ * The directory listing approval queue.
  *
  * ## What this replaces
  *
@@ -63,7 +63,7 @@ import {
  */
 
 export const metadata = {
-  title: 'Business listings | Pana Admin',
+  title: 'Directory listings | Pana Admin',
   robots: { index: false, follow: false },
 };
 
@@ -78,7 +78,7 @@ export default function AdminListingsPage() {
         <header className="pb-6">
           <AdminEyebrow>Directory</AdminEyebrow>
           <h1 className="mt-2 text-4xl font-extrabold leading-tight sm:text-5xl">
-            Business listings
+            Directory listings
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-pana-ink/70">
             Businesses that applied to the directory and have not been answered

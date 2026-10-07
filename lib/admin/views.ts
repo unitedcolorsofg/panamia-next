@@ -7,29 +7,33 @@
  *
  * ## Why there are icons and colours in here
  *
- * Nine tools rendered as nine lines of text are nine identical shapes, and
- * staff who use this daily navigate by shape long before they read. The icon
- * and the group colour are the shape. They live beside the name because they
- * are part of what a view *is*, not decoration a component adds later — and
- * because the sidebar and the overview both need them and must not disagree.
+ * Six tools rendered as six lines of text are six identical shapes, and staff
+ * who use this daily navigate by shape long before they read. The icon and the
+ * group colour are the shape. They live beside the name because they are part
+ * of what a view *is*, not decoration a component adds later — and because the
+ * sidebar and the overview both need them and must not disagree.
+ *
+ * ## What is deliberately not in here
+ *
+ * Mentoring, Articles and Podcasts were dropped from the sidebar so the
+ * surface carries only the work being prioritised now. Their routes and their
+ * endpoints are untouched and still answer — see `PARKED_TOOLS` at the bottom,
+ * which keeps them written down rather than letting them become folklore.
  */
 
 import {
   Download,
   Flag,
-  GraduationCap,
   HeartHandshake,
   type LucideIcon,
   Mail,
-  Mic,
-  Newspaper,
   Store,
   UsersRound,
 } from 'lucide-react';
 
 export type ViewStatus = 'mock' | 'live' | 'stub';
 
-export type AdminGroupId = 'directory' | 'community' | 'content' | 'inbox';
+export type AdminGroupId = 'directory' | 'community' | 'inbox';
 
 export interface AdminGroup {
   id: AdminGroupId;
@@ -76,13 +80,6 @@ export const ADMIN_GROUPS: readonly AdminGroup[] = [
     onFill: 'text-pana-cream',
   },
   {
-    id: 'content',
-    name: 'Content',
-    blurb: 'What members publish under the Pana name.',
-    fill: 'bg-pana-flame',
-    onFill: 'text-pana-ink',
-  },
-  {
     id: 'inbox',
     name: 'Inbox',
     blurb: 'Things panas sent us that are waiting on an answer.',
@@ -108,7 +105,7 @@ export interface AdminView {
 export const ADMIN_VIEWS: readonly AdminView[] = [
   {
     id: 'listings',
-    name: 'Business listings',
+    name: 'Directory listings',
     href: '/admin/listings',
     group: 'directory',
     blurb: 'Applications from businesses waiting to be let into the directory.',
@@ -145,44 +142,18 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     icon: HeartHandshake,
   },
   {
-    id: 'mentoring',
-    name: 'Mentoring',
-    href: '/admin/mentoring',
-    group: 'community',
-    blurb: 'Metrics and analytics for the mentoring programme.',
-    does: ['Read session and participation charts'],
-    status: 'live',
-    icon: GraduationCap,
-  },
-  {
     id: 'users',
     name: 'Users',
     href: '/admin/users',
     group: 'community',
-    blurb: 'Accounts and permissions.',
-    does: ['Look up a user', 'Review account state'],
-    status: 'live',
+    blurb: 'Every account on the site, and what staff can do about one.',
+    does: [
+      'Find an account by name, handle or email',
+      'Lock an account the abuse queue has escalated',
+      'See who holds admin, and why it cannot be granted here',
+    ],
+    status: 'mock',
     icon: UsersRound,
-  },
-  {
-    id: 'articles',
-    name: 'Articles',
-    href: '/admin/articles',
-    group: 'content',
-    blurb: 'Moderate community articles.',
-    does: ['Review what is published', 'Remove and restore'],
-    status: 'live',
-    icon: Newspaper,
-  },
-  {
-    id: 'podcasts',
-    name: 'Podcasts',
-    href: '/admin/podcasts',
-    group: 'content',
-    blurb: 'Podcast submissions.',
-    does: [],
-    status: 'stub',
-    icon: Mic,
   },
   {
     id: 'contactus',
@@ -221,8 +192,8 @@ export function viewsInGroup(group: AdminGroupId): readonly AdminView[] {
 /**
  * Capability that exists as an API and has no screen.
  *
- * Short, and worth keeping short. Of the thirteen endpoints under
- * `app/api/admin/`, all but the venue pair are now reachable from the sidebar.
+ * Distinct from `PARKED_TOOLS` below: these were never built, those were built
+ * and set aside.
  */
 export interface UnbuiltTool {
   name: string;
@@ -240,5 +211,42 @@ export const UNBUILT_TOOLS: readonly UnbuiltTool[] = [
     name: 'Events',
     api: 'none',
     note: 'The old admin menu linked to /account/admin/events, which has never had a page or an endpoint behind it. Dropped rather than carried over.',
+  },
+];
+
+/**
+ * Built, working, and deliberately off the sidebar.
+ *
+ * These three came across in the move from `/account/admin/*` and were then
+ * taken out of the navigation to keep the surface on the work being done now.
+ * Nothing was deleted: the routes still render, the endpoints still answer,
+ * and the `/account/admin/*` redirects still land on them — which matters,
+ * because staff notification mail contains those old URLs.
+ *
+ * Written down rather than dropped silently so that "where did Articles go"
+ * has an answer in the codebase. Putting one back is this entry becoming an
+ * `ADMIN_VIEWS` row again.
+ */
+export interface ParkedTool {
+  name: string;
+  href: string;
+  note: string;
+}
+
+export const PARKED_TOOLS: readonly ParkedTool[] = [
+  {
+    name: 'Mentoring',
+    href: '/admin/mentoring',
+    note: 'Session and participation charts, reading /api/admin/mentoring/dashboard.',
+  },
+  {
+    name: 'Articles',
+    href: '/admin/articles',
+    note: 'Remove and restore community articles. Three endpoints behind it, all live.',
+  },
+  {
+    name: 'Podcasts',
+    href: '/admin/podcasts',
+    note: 'Was a placeholder before the move and still is — no endpoint was ever written.',
   },
 ];

@@ -16,7 +16,7 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
  * two too many, and it spent the one line above the title on nothing.
  *
  * On a tool page it now names the shelf the tool sits on — "Directory" above
- * Business listings — so the line answers *where am I* instead of *what site
+ * Directory listings — so the line answers *where am I* instead of *what site
  * is this*, and matches the grouping the sidebar is already sorted by. The
  * overview keeps "Pana Admin", because there it is true and it is the front
  * door of the surface rather than a tool within it.

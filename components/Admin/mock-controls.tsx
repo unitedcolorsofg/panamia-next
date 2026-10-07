@@ -85,11 +85,18 @@ export function MockButton({
    * `quiet` is the default outline. `danger` is for the one control on a
    * screen that cannot be undone.
    *
-   * Red is spent deliberately and sparingly. On an approval queue the decline
+   * red is spent deliberately and sparingly. On an approval queue the decline
    * button is the only genuinely irreversible thing on the page, and if the
    * chrome had been red too there would be nothing left to say so. Measured:
    * red on cream is 3.86, which fails body copy, so the label stays ink and
    * only the border carries the colour.
+   *
+   * Both tones measure under 4.5 against cream — quiet is 2.83, danger 3.86.
+   * That is deliberate, and it is not a contrast bug: WCAG 1.4.3 exempts text
+   * that is "part of an inactive user interface component", and every control
+   * in this file is `disabled`. The dimness is what says so. An audit that
+   * walks computed styles will keep flagging these, so check for `:disabled`
+   * before believing it.
    */
   tone?: 'quiet' | 'danger';
   className?: string;
