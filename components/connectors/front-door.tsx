@@ -19,6 +19,12 @@ import { getMyConnector } from '@/lib/connectors/membership';
  * commitments, so they are sent straight through to the HQ; everybody else
  * gets the explanation of what the programme is.
  *
+ * Only an *accepted* member is redirected. Somebody still waiting on a
+ * decision, or who was turned down, keeps the pitch — bouncing them would mean
+ * a declined applicant could never read the page again without being shown
+ * their rejection, and a pending one would lose the explanation of the thing
+ * they are waiting to be let into.
+ *
  * ## Why this is dynamic
  *
  * It reads the session, so it cannot be cached at the edge the way the other
@@ -31,7 +37,7 @@ export async function ConnectorsFrontDoor() {
   const session = await auth();
   const me = session?.user?.id ? await getMyConnector(session.user.id) : null;
 
-  if (me) {
+  if (me?.membership.status === 'active') {
     redirect('/connectors/hq');
   }
 

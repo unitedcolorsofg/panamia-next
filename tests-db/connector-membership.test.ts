@@ -26,6 +26,11 @@
  *     SQL over a JSONB operator, so it is the single most likely thing in the
  *     module to be syntactically wrong in a way TypeScript cannot see.
  *
+ *   - Applying is not joining. Everything in the second half of this file is
+ *     about the gate: a pending record must not count as a member anywhere,
+ *     and a decision must be takeable exactly once. Both of those are plain
+ *     JSONB string comparisons that no type checker can verify.
+ *
  * Every fixture is created under a per-run random suffix and deleted in the
  * `after` hook, so this is safe against a shared or seeded database. It never
  * truncates anything.
@@ -42,9 +47,12 @@ config({ path: '.env.local' });
 const { db } = await import('@/lib/db');
 const { eq } = await import('drizzle-orm');
 const { profiles, users } = await import('@/lib/schema');
-const { getMyConnector, countConnectorsInPod } = await import(
-  '@/lib/connectors/membership'
-);
+const {
+  getMyConnector,
+  countConnectorsInPod,
+  listConnectorApplications,
+  decideConnectorApplication,
+} = await import('@/lib/connectors/membership');
 
 const suffix = Math.random().toString(36).slice(2, 8);
 
@@ -88,11 +96,14 @@ async function makeMember(
 
 function membership(overrides: Record<string, unknown> = {}) {
   return {
+    status: 'active',
     pod: POD,
     houses: ['education'],
     tier: 1,
     bring: 'A van most weekends',
-    joinedAt: '2025-01-01T00:00:00.000Z',
+    appliedAt: '2025-01-01T00:00:00.000Z',
+    decidedAt: '2025-01-02T00:00:00.000Z',
+    decidedBy: 'admin-fixture',
     commitments: [],
     ...overrides,
   };
@@ -223,4 +234,125 @@ test('the pod headcount counts real members through the JSONB index', async () =
     `expected two more connectors in ${POD}, went from ${before} to ${after}`
   );
   assert.ok(after >= baseline, 'the count must never go backwards');
+});
+
+test('a pending applicant is not counted as a member of their pod', async () => {
+  const before = await countConnectorsInPod(POD);
+
+  await makeMember(
+    'pending-uncounted',
+    membership({ status: 'pending', decidedAt: null, decidedBy: null })
+  );
+  await makeMember('declined-uncounted', membership({ status: 'declined' }));
+
+  assert.equal(
+    await countConnectorsInPod(POD),
+    before,
+    'only accepted connectors belong to a pod'
+  );
+});
+
+test('the applications queue shows people waiting and nobody else', async () => {
+  const { profileId: waiting } = await makeMember(
+    'queued',
+    membership({
+      status: 'pending',
+      decidedAt: null,
+      decidedBy: null,
+      bring: 'A projector and a long extension lead',
+    })
+  );
+  const { profileId: accepted } = await makeMember(
+    'queued-accepted',
+    membership({ status: 'active' })
+  );
+  const { profileId: refused } = await makeMember(
+    'queued-declined',
+    membership({ status: 'declined' })
+  );
+
+  const queue = await listConnectorApplications();
+  const ids = queue.map((a) => a.profileId);
+
+  assert.ok(
+    ids.includes(waiting),
+    'a pending application must be in the queue'
+  );
+  assert.ok(
+    !ids.includes(accepted),
+    'an accepted member is not an application'
+  );
+  assert.ok(!ids.includes(refused), 'a declined application is done with');
+
+  const mine = queue.find((a) => a.profileId === waiting);
+  assert.equal(mine?.displayName, 'Ada queued');
+  assert.equal(mine?.membership.bring, 'A projector and a long extension lead');
+});
+
+test('accepting an application is what opens HQ', async () => {
+  const { userId, profileId } = await makeMember(
+    'to-accept',
+    membership({ status: 'pending', decidedAt: null, decidedBy: null })
+  );
+
+  // Before: the record parses, but it is not a membership.
+  assert.equal((await getMyConnector(userId))?.membership.status, 'pending');
+
+  const decided = await decideConnectorApplication(
+    profileId,
+    'active',
+    'admin-7'
+  );
+
+  assert.equal(decided?.status, 'active');
+  assert.equal(decided?.decidedBy, 'admin-7');
+  assert.ok(decided?.decidedAt, 'a decision is dated');
+
+  const me = await getMyConnector(userId);
+  assert.equal(me?.membership.status, 'active');
+  // The thing they applied with is not lost by deciding on it.
+  assert.equal(me?.membership.bring, 'A van most weekends');
+  assert.equal(me?.membership.appliedAt, '2025-01-01T00:00:00.000Z');
+});
+
+test('declining keeps the record rather than pretending they never applied', async () => {
+  const { userId, profileId } = await makeMember(
+    'to-decline',
+    membership({ status: 'pending', decidedAt: null, decidedBy: null })
+  );
+
+  await decideConnectorApplication(profileId, 'declined', 'admin-7');
+
+  const me = await getMyConnector(userId);
+  assert.equal(me?.membership.status, 'declined');
+  assert.ok(me, 'the record stays so the page can say what happened');
+});
+
+test('an application can only be decided once', async () => {
+  const { profileId } = await makeMember(
+    'decided-twice',
+    membership({ status: 'pending', decidedAt: null, decidedBy: null })
+  );
+
+  assert.ok(await decideConnectorApplication(profileId, 'active', 'admin-a'));
+
+  // Two admins working the queue at once, or a double-clicked button. The
+  // second decision must not quietly overwrite the first.
+  assert.equal(
+    await decideConnectorApplication(profileId, 'declined', 'admin-b'),
+    null,
+    'a settled application is not re-decidable'
+  );
+
+  const queue = await listConnectorApplications();
+  assert.ok(!queue.some((a) => a.profileId === profileId));
+});
+
+test('deciding on a profile with no application does nothing', async () => {
+  const { profileId } = await makeMember('no-application', null);
+
+  assert.equal(
+    await decideConnectorApplication(profileId, 'active', 'admin-7'),
+    null
+  );
 });

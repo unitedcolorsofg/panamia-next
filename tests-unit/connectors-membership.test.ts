@@ -10,22 +10,27 @@ import { parseConnector } from '@/lib/connectors/membership';
  * It is worth testing in isolation for two reasons. The first is that the
  * column is schemaless, so nothing upstream guarantees the shape — a blob
  * written by an older build, hand-edited during support, or restored from a
- * backup all arrive here looking like `unknown`. The second is that there is
- * no database available in CI or locally, so this parser is the only part of
- * the membership module that can be verified before it reaches production.
+ * backup all arrive here looking like `unknown`. The second is that it is pure
+ * and synchronous, so the whole decision table can be pinned down here without
+ * waiting on the database tests.
  *
  * The behaviour being pinned down is specifically the *degrading*: a bad
  * record must come back as `null` ("not a connector yet", a state the UI
  * already renders) rather than as a half-built object that crashes later in
  * `getHouse`, somewhere far from the cause.
+ *
+ * The status rules get their own block at the bottom. Those are the ones with
+ * teeth — everything else here decides how a membership renders, but status
+ * decides whether somebody is in the programme at all.
  */
 
 const VALID = {
+  status: 'active',
   pod: 'miami',
   houses: ['education'],
   tier: 1,
   bring: 'A van most weekends',
-  joinedAt: '2025-01-01T00:00:00.000Z',
+  appliedAt: '2025-01-01T00:00:00.000Z',
   commitments: [],
 };
 
@@ -76,7 +81,10 @@ describe('parseConnector — keeping what can be rendered', () => {
   });
 
   test('trims bring and tolerates it being absent', () => {
-    assert.equal(parseConnector({ ...VALID, bring: '  a van  ' })?.bring, 'a van');
+    assert.equal(
+      parseConnector({ ...VALID, bring: '  a van  ' })?.bring,
+      'a van'
+    );
     assert.equal(parseConnector({ ...VALID, bring: undefined })?.bring, '');
     assert.equal(parseConnector({ ...VALID, bring: 12 })?.bring, '');
   });
@@ -143,5 +151,59 @@ describe('parseConnector — commitments', () => {
       parseConnector({ ...VALID, commitments: 'none' })?.commitments,
       []
     );
+  });
+});
+
+describe('parseConnector — status is the gate', () => {
+  test('keeps each of the three real statuses', () => {
+    for (const status of ['pending', 'active', 'declined']) {
+      assert.equal(parseConnector({ ...VALID, status })?.status, status);
+    }
+  });
+
+  /* The important one. A record with no status is either a row written before
+   * the gate existed or a blob somebody hand-edited badly, and in both cases
+   * the safe reading is that nobody has accepted this person yet. Defaulting
+   * the other way would silently let anyone through whose record predates the
+   * gate, and an unearned membership is invisible — whereas somebody waiting
+   * on an approval they already had just asks, and an admin clicks Accept. */
+  test('treats a missing or unrecognised status as pending, never active', () => {
+    for (const status of [undefined, null, '', 'approved', 'ACTIVE', 7, {}]) {
+      assert.equal(parseConnector({ ...VALID, status })?.status, 'pending');
+    }
+  });
+
+  test('does not let a legacy record imply membership', () => {
+    const legacy = {
+      pod: 'miami',
+      houses: ['education'],
+      tier: 2,
+      bring: 'A van',
+      joinedAt: '2025-01-01T00:00:00.000Z',
+    };
+
+    const parsed = parseConnector(legacy);
+
+    assert.equal(parsed?.status, 'pending');
+    // The old field still carries the only date the record has.
+    assert.equal(parsed?.appliedAt, '2025-01-01T00:00:00.000Z');
+  });
+
+  test('leaves a membership undecided until somebody decides it', () => {
+    const parsed = parseConnector(VALID);
+
+    assert.equal(parsed?.decidedAt, null);
+    assert.equal(parsed?.decidedBy, null);
+  });
+
+  test('keeps who decided it and when', () => {
+    const parsed = parseConnector({
+      ...VALID,
+      decidedAt: '2025-03-01T00:00:00.000Z',
+      decidedBy: 'admin-1',
+    });
+
+    assert.equal(parsed?.decidedAt, '2025-03-01T00:00:00.000Z');
+    assert.equal(parsed?.decidedBy, 'admin-1');
   });
 });

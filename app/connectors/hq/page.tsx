@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { Panel, TierLabel } from '@/components/connectors/dashboard-parts';
@@ -5,6 +7,7 @@ import { MyCommitments } from '@/components/connectors/my-commitments';
 import {
   countConnectorsInPod,
   getMyConnector,
+  type ProfileConnector,
 } from '@/lib/connectors/membership';
 import { getHouse, getPod, getTier } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
@@ -40,6 +43,13 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * leaving that on a slide means it gets read once during onboarding and never
  * again — which is precisely when somebody starts wondering what Tier 2 would
  * actually involve.
+ *
+ * ## Three ways not to see HQ
+ *
+ * Applying is not joining. This page is only the dashboard for an accepted
+ * member; a pending applicant, a declined one and somebody who has never
+ * applied each get their own message instead, because telling all three "you
+ * are not a connector yet" would be wrong for two of them.
  */
 
 export const metadata = {
@@ -62,6 +72,16 @@ export default async function ConnectorHqPage() {
     return <NotAConnectorYet signedIn />;
   }
 
+  // Applying is not joining. Only an accepted member gets HQ; the other two
+  // states each get an answer of their own, because "we have your
+  // application" and "the answer was no" are different things to be told.
+  if (me.membership.status === 'pending') {
+    return <ApplicationPending membership={me.membership} />;
+  }
+  if (me.membership.status === 'declined') {
+    return <ApplicationDeclined />;
+  }
+
   const { displayName, membership } = me;
   const houses = membership.houses.map(getHouse);
   const tier = getTier(membership.tier);
@@ -70,7 +90,9 @@ export default async function ConnectorHqPage() {
 
   return (
     <main className="bg-pana-cream text-pana-ink pb-20">
-      <header className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}>
+      <header
+        className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}
+      >
         <div className="container mx-auto px-4 py-10">
           <p
             className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
@@ -190,6 +212,75 @@ export default async function ConnectorHqPage() {
 }
 
 /**
+ * The full-page message states HQ can show instead of a dashboard.
+ *
+ * One shell for all of them so that "not a connector", "waiting" and
+ * "declined" cannot drift apart visually. They are the same page answering
+ * the same question — why am I not looking at HQ — with different reasons.
+ */
+function HqMessage({
+  title,
+  children,
+  actions,
+}: {
+  title: string;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <main className="bg-pana-cream text-pana-ink py-24">
+      <div className="container mx-auto max-w-xl px-4 text-center">
+        <h1 className="text-3xl leading-tight font-extrabold sm:text-4xl">
+          {title}
+        </h1>
+        <div className="text-pana-ink/70 mt-4 text-base leading-relaxed">
+          {children}
+        </div>
+        {actions && (
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {actions}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function PrimaryAction({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <SurfaceLink
+      href={href}
+      className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
+    >
+      {children}
+    </SurfaceLink>
+  );
+}
+
+function SecondaryAction({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <SurfaceLink
+      href={href}
+      className="border-pana-ink text-pana-ink rounded-full border-2 px-5 py-2.5 text-sm font-extrabold"
+    >
+      {children}
+    </SurfaceLink>
+  );
+}
+
+/**
  * What somebody who is not in the programme sees if they reach the HQ URL.
  *
  * A redirect would be tidier, but this is the more useful answer: the person
@@ -199,34 +290,107 @@ export default async function ConnectorHqPage() {
  */
 function NotAConnectorYet({ signedIn }: { signedIn: boolean }) {
   return (
-    <main className="bg-pana-cream text-pana-ink py-24">
-      <div className="container mx-auto max-w-xl px-4 text-center">
-        <h1 className="text-3xl leading-tight font-extrabold sm:text-4xl">
-          You are not a connector yet.
-        </h1>
-        <p className="text-pana-ink/70 mt-4 text-base leading-relaxed">
-          Connector HQ is where the pods keep their commitments and their
-          people. Read what the programme is, and if it sounds like you, there
-          is a way in.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <SurfaceLink
-            href={signedIn ? '/connectors/join' : '/signin'}
-            className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
-          >
-            {signedIn ? 'Become a Connector' : 'Sign in to join'}
-          </SurfaceLink>
+    <HqMessage
+      title="You are not a connector yet."
+      actions={
+        <>
+          <PrimaryAction href={signedIn ? '/connectors/join' : '/signin'}>
+            {signedIn ? 'Apply to be a Connector' : 'Sign in to apply'}
+          </PrimaryAction>
           {/* The second button used to be "Become a Pana" pointing at
-            * `/form/get-listed`, the business directory intake. Two buttons,
-            * neither of which joined the programme. */}
-          <SurfaceLink
-            href="/connectors"
-            className="border-pana-ink text-pana-ink rounded-full border-2 px-5 py-2.5 text-sm font-extrabold"
-          >
+           * `/form/get-listed`, the business directory intake. Two buttons,
+           * neither of which joined the programme. */}
+          <SecondaryAction href="/connectors">
             What is Pana Connectors?
-          </SurfaceLink>
+          </SecondaryAction>
+        </>
+      }
+    >
+      <p>
+        Connector HQ is where the pods keep their commitments and their people.
+        Read what the programme is, and if it sounds like you, there is a way
+        in.
+      </p>
+    </HqMessage>
+  );
+}
+
+/**
+ * Somebody has applied and is waiting on a decision.
+ *
+ * Their answers are shown back to them for two reasons: it confirms the form
+ * actually saved something, and it is the moment they are most likely to spot
+ * that they picked the wrong pod — so the edit link is right there rather
+ * than requiring them to guess that the join page still works.
+ */
+function ApplicationPending({ membership }: { membership: ProfileConnector }) {
+  const pod = getPod(membership.pod);
+  const houses = membership.houses.map(getHouse);
+
+  return (
+    <HqMessage
+      title="Your application is in."
+      actions={
+        <>
+          <PrimaryAction href="/connectors/join">
+            Change your answers
+          </PrimaryAction>
+          <SecondaryAction href="/connectors">
+            What is Pana Connectors?
+          </SecondaryAction>
+        </>
+      }
+    >
+      <p>
+        Someone from the programme reviews these by hand, so this is not
+        instant. You will keep access to this page — when you have been taken
+        on, this is where your HQ appears.
+      </p>
+      <dl className="border-pana-ink/20 mt-6 flex flex-col gap-3 rounded-xl border-2 border-dashed p-5 text-left text-sm">
+        <div>
+          <dt className="text-pana-ink/60 text-xs font-bold tracking-wide uppercase">
+            Pod
+          </dt>
+          <dd className="mt-0.5 font-bold">{pod.name}</dd>
         </div>
-      </div>
-    </main>
+        <div>
+          <dt className="text-pana-ink/60 text-xs font-bold tracking-wide uppercase">
+            {houses.length === 1 ? 'House' : 'Houses'}
+          </dt>
+          <dd className="mt-0.5 font-bold">
+            {houses.map((h) => h.name).join(' · ')}
+          </dd>
+        </div>
+      </dl>
+    </HqMessage>
+  );
+}
+
+/**
+ * The answer was no.
+ *
+ * Deliberately short, and deliberately without a re-apply button. Re-posting
+ * the join form carries the decision over rather than resetting it, so a
+ * button here would look like a second chance and deliver nothing — see
+ * `app/api/admin/connectors/[profileId]/decline/route.ts` for why reversing a
+ * decision is a conversation rather than a click.
+ */
+function ApplicationDeclined() {
+  return (
+    <HqMessage
+      title="You are not in the programme."
+      actions={
+        <SecondaryAction href="/connectors">
+          What is Pana Connectors?
+        </SecondaryAction>
+      }
+    >
+      <p>
+        Your application was reviewed and not taken forward this time. If you
+        think that is a mistake, or things have changed, talk to whoever you
+        know in the programme — there are plenty of other ways to be in this
+        community in the meantime.
+      </p>
+    </HqMessage>
   );
 }

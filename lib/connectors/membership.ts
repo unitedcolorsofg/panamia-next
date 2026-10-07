@@ -39,6 +39,18 @@ import {
  * It also drops unknown houses rather than rejecting the whole record, which
  * is what lets a house be retired from `HOUSES` without stranding every member
  * who had picked it.
+ *
+ * ## Why there is a status
+ *
+ * Applying is not joining. The programme accepts people rather than letting
+ * anyone who finds the URL award themselves a place, so a record exists from
+ * the moment somebody applies and only counts as membership once staff have
+ * said yes. This mirrors `venues.status`, which goes `pending_review` →
+ * `active` through `app/api/admin/venues/[slug]/approve/route.ts`.
+ *
+ * The status lives inside this blob rather than in a new column, so adding the
+ * gate needed no migration — 0055 already shipped the column, and a jsonb
+ * value has no shape for the database to disagree with.
  */
 
 export interface ConnectorCommitment {
@@ -51,7 +63,17 @@ export interface ConnectorCommitment {
   createdAt: string;
 }
 
+/**
+ * Where an application has got to.
+ *
+ * `pending` is the state everybody starts in. `active` is the only one that
+ * means "is a connector" — it is what gates HQ, the pod headcount and the
+ * ability to record a commitment.
+ */
+export type ConnectorStatus = 'pending' | 'active' | 'declined';
+
 export interface ProfileConnector {
+  status: ConnectorStatus;
   pod: PodId;
   houses: HouseId[];
   /**
@@ -61,17 +83,22 @@ export interface ProfileConnector {
   tier: TierId;
   /** What this person said they can bring. Free text, may be empty. */
   bring: string;
-  joinedAt: string;
+  /** When they applied. Not when they were accepted — see `decidedAt`. */
+  appliedAt: string;
+  /** When staff accepted or declined them, and who did it. */
+  decidedAt: string | null;
+  decidedBy: string | null;
   commitments: ConnectorCommitment[];
 }
 
 const POD_IDS = new Set<string>(PODS.map((p) => p.id));
 const HOUSE_IDS = new Set<string>(HOUSES.map((h) => h.id));
-const PROGRESS: ReadonlySet<string> = new Set([
-  'notSet',
-  'inProgress',
-  'done',
+const STATUSES: ReadonlySet<string> = new Set([
+  'pending',
+  'active',
+  'declined',
 ]);
+const PROGRESS: ReadonlySet<string> = new Set(['notSet', 'inProgress', 'done']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -94,7 +121,8 @@ function parseCommitment(value: unknown): ConnectorCommitment | null {
       typeof progress === 'string' && PROGRESS.has(progress)
         ? (progress as CommitmentProgress)
         : 'notSet',
-    createdAt: typeof createdAt === 'string' ? createdAt : new Date(0).toISOString(),
+    createdAt:
+      typeof createdAt === 'string' ? createdAt : new Date(0).toISOString(),
   };
 }
 
@@ -105,6 +133,13 @@ function parseCommitment(value: unknown): ConnectorCommitment | null {
  * malformed one. A connector who is in no house has nothing for HQ to show
  * and no way to reach the tier ladder, so treating that as "not joined yet"
  * routes them back to the form instead of to an empty dashboard.
+ *
+ * A missing or unrecognised status reads as `pending`, never `active`. This
+ * fails closed: the failure mode of guessing wrong is either "somebody waits
+ * for an approval they already had" or "somebody is in the programme without
+ * being accepted", and only the first is recoverable by a human clicking
+ * Accept. It also means the records written in the window between the column
+ * shipping and this gate landing are reviewed rather than grandfathered in.
  */
 export function parseConnector(value: unknown): ProfileConnector | null {
   if (!isRecord(value)) return null;
@@ -126,15 +161,27 @@ export function parseConnector(value: unknown): ProfileConnector | null {
         .filter((c): c is ConnectorCommitment => c !== null)
     : [];
 
+  /* `joinedAt` is the name this field had before applying and being accepted
+   * were separate events. Records written then are applications. */
+  const appliedAt =
+    typeof value.appliedAt === 'string'
+      ? value.appliedAt
+      : typeof value.joinedAt === 'string'
+        ? value.joinedAt
+        : new Date(0).toISOString();
+
   return {
+    status:
+      typeof value.status === 'string' && STATUSES.has(value.status)
+        ? (value.status as ConnectorStatus)
+        : 'pending',
     pod: pod as PodId,
     houses: [...new Set(houses)],
     tier: tier === 1 || tier === 2 || tier === 3 ? (tier as TierId) : 1,
     bring: typeof value.bring === 'string' ? value.bring.trim() : '',
-    joinedAt:
-      typeof value.joinedAt === 'string'
-        ? value.joinedAt
-        : new Date(0).toISOString(),
+    appliedAt,
+    decidedAt: typeof value.decidedAt === 'string' ? value.decidedAt : null,
+    decidedBy: typeof value.decidedBy === 'string' ? value.decidedBy : null,
     commitments,
   };
 }
@@ -146,8 +193,26 @@ export interface ConnectorIdentity {
   membership: ProfileConnector;
 }
 
+/** The best name a profile has, preferring what they chose to be called. */
+function displayNameOf(profile: {
+  name: string;
+  screenname: string | null;
+  email: string;
+}): string {
+  return (
+    profile.name.trim() ||
+    profile.screenname?.trim() ||
+    profile.email.split('@')[0]
+  );
+}
+
 /**
- * The signed-in person's own membership, or `null` if they have not joined.
+ * The signed-in person's own membership, or `null` if they have not applied.
+ *
+ * Returns pending and declined applications too. HQ needs to tell those three
+ * states apart — "we have your application", "you were not taken on this time"
+ * and "you have not applied" are different pages — so the filtering is left to
+ * the caller rather than done here.
  *
  * Deliberately keyed on `profiles.userId` rather than going through
  * `getActiveProfile`. That helper resolves the profile somebody is *acting
@@ -161,7 +226,13 @@ export async function getMyConnector(
 ): Promise<ConnectorIdentity | null> {
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
-    columns: { id: true, name: true, screenname: true, email: true, connector: true },
+    columns: {
+      id: true,
+      name: true,
+      screenname: true,
+      email: true,
+      connector: true,
+    },
   });
   if (!profile) return null;
 
@@ -170,10 +241,7 @@ export async function getMyConnector(
 
   return {
     profileId: profile.id,
-    displayName:
-      profile.name.trim() ||
-      profile.screenname?.trim() ||
-      profile.email.split('@')[0],
+    displayName: displayNameOf(profile),
     membership,
   };
 }
@@ -181,9 +249,13 @@ export async function getMyConnector(
 /**
  * How many connectors are in a pod.
  *
- * Uses the partial expression index from 0055. Counts real members only, so a
- * brand-new pod honestly reads 1 — you — rather than borrowing a number from
- * the fixtures it replaced.
+ * Counts accepted members only. A pending applicant is not yet a connector,
+ * so including them would inflate the number HQ shows every member of that
+ * pod and would quietly tell an applicant their application had landed.
+ *
+ * Uses the partial expression index from 0055 to find the pod, then filters on
+ * status. Counts real members only, so a brand-new pod honestly reads 1 — you
+ * — rather than borrowing a number from the fixtures it replaced.
  */
 export async function countConnectorsInPod(pod: PodId): Promise<number> {
   const [row] = await db
@@ -192,9 +264,99 @@ export async function countConnectorsInPod(pod: PodId): Promise<number> {
     .where(
       and(
         isNotNull(profiles.connector),
-        sql`${profiles.connector} ->> 'pod' = ${pod}`
+        sql`${profiles.connector} ->> 'pod' = ${pod}`,
+        sql`${profiles.connector} ->> 'status' = 'active'`
       )
     );
 
   return row?.count ?? 0;
+}
+
+export interface ConnectorApplication {
+  profileId: string;
+  displayName: string;
+  email: string;
+  membership: ProfileConnector;
+}
+
+/**
+ * Everybody waiting to be let into the programme, oldest application first.
+ *
+ * Oldest first because this is a queue somebody works through, and the person
+ * who has been waiting longest is the one most likely to have given up.
+ */
+export async function listConnectorApplications(): Promise<
+  ConnectorApplication[]
+> {
+  const rows = await db.query.profiles.findMany({
+    where: and(
+      isNotNull(profiles.connector),
+      sql`${profiles.connector} ->> 'status' = 'pending'`
+    ),
+    columns: {
+      id: true,
+      name: true,
+      screenname: true,
+      email: true,
+      connector: true,
+    },
+  });
+
+  return rows
+    .flatMap((profile) => {
+      const membership = parseConnector(profile.connector);
+      if (!membership) return [];
+      return [
+        {
+          profileId: profile.id,
+          displayName: displayNameOf(profile),
+          email: profile.email,
+          membership,
+        },
+      ];
+    })
+    .sort((a, b) =>
+      a.membership.appliedAt.localeCompare(b.membership.appliedAt)
+    );
+}
+
+/**
+ * Accept or decline an application.
+ *
+ * Reads the record first and writes the parsed shape back, so a decision also
+ * normalises whatever was in the column. Returns `null` when there is nothing
+ * to decide on, which the route turns into a 404 rather than silently
+ * reporting success.
+ *
+ * Only `pending` records can be decided. Re-deciding an answered application
+ * would let a second click on a stale queue page overturn a decision somebody
+ * else had already made.
+ */
+export async function decideConnectorApplication(
+  profileId: string,
+  decision: 'active' | 'declined',
+  adminUserId: string
+): Promise<ProfileConnector | null> {
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, profileId),
+    columns: { id: true, connector: true },
+  });
+  if (!profile) return null;
+
+  const membership = parseConnector(profile.connector);
+  if (!membership || membership.status !== 'pending') return null;
+
+  const decided: ProfileConnector = {
+    ...membership,
+    status: decision,
+    decidedAt: new Date().toISOString(),
+    decidedBy: adminUserId,
+  };
+
+  await db
+    .update(profiles)
+    .set({ connector: decided })
+    .where(eq(profiles.id, profileId));
+
+  return decided;
 }
