@@ -850,7 +850,7 @@ export function UserSettingsView({
                       </span>
                     )}
                     {screennameError && (
-                      <span className="text-pana-red font-extrabold">
+                      <span className="text-pana-red-deep font-extrabold">
                         {screennameError}
                       </span>
                     )}

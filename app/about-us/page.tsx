@@ -96,7 +96,7 @@ export default function AboutUsPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="panavizion"
-                  className="border-pana-pink hover:bg-pana-pink data-[state=active]:bg-pana-pink data-[state=inactive]:text-pana-pink rounded-t-lg rounded-b-none border-4 py-3 transition-colors hover:text-white data-[state=active]:text-white data-[state=inactive]:bg-white"
+                  className="border-pana-pink hover:bg-pana-pink data-[state=active]:bg-pana-pink data-[state=inactive]:text-pana-pink-deep rounded-t-lg rounded-b-none border-4 py-3 transition-colors hover:text-white data-[state=active]:text-white data-[state=inactive]:bg-white"
                 >
                   {t('projects.tab3')}
                 </TabsTrigger>

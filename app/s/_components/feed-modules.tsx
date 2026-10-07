@@ -124,7 +124,7 @@ export function EventsModule() {
 
               <div className="p-3.5">
                 {when && (
-                  <p className="text-pana-burnt text-[11px] font-extrabold tracking-widest uppercase">
+                  <p className="text-pana-burnt-deep text-[11px] font-extrabold tracking-widest uppercase">
                     {when}
                   </p>
                 )}

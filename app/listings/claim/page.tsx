@@ -66,13 +66,13 @@ function ClaimContent() {
             <CardTitle className="flex items-center gap-2 font-black tracking-tight">
               {status === 'loading' && (
                 <>
-                  <Loader2 className="text-pana-flame h-5 w-5 animate-spin" />
+                  <Loader2 className="text-pana-burnt dark:text-pana-flame h-5 w-5 animate-spin" />
                   Confirming…
                 </>
               )}
               {status === 'success' && (
                 <>
-                  <CheckCircle2 className="text-pana-flame h-5 w-5" />
+                  <CheckCircle2 className="text-pana-burnt dark:text-pana-flame h-5 w-5" />
                   It&apos;s yours
                 </>
               )}
@@ -142,7 +142,7 @@ export default function ClaimListingPage() {
     <Suspense
       fallback={
         <div className="auth-surface flex items-center justify-center px-4 py-24">
-          <Loader2 className="text-pana-flame h-6 w-6 animate-spin" />
+          <Loader2 className="text-pana-burnt dark:text-pana-flame h-6 w-6 animate-spin" />
         </div>
       }
     >

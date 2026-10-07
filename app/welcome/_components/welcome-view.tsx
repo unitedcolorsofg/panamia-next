@@ -154,7 +154,7 @@ function WelcomeForm({ rootPath }: { rootPath: string }) {
   if (!ready) {
     return (
       <div className="auth-surface flex items-center justify-center px-4 py-24">
-        <Loader2 className="text-pana-flame h-6 w-6 animate-spin" />
+        <Loader2 className="text-pana-burnt dark:text-pana-flame h-6 w-6 animate-spin" />
       </div>
     );
   }
@@ -163,7 +163,7 @@ function WelcomeForm({ rootPath }: { rootPath: string }) {
     <div className="auth-surface flex flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-lg space-y-6">
         <div className="space-y-2 text-center">
-          <p className="text-pana-flame text-sm font-extrabold tracking-wide uppercase">
+          <p className="text-pana-flame-deep dark:text-pana-flame text-sm font-extrabold tracking-wide uppercase">
             {t('onboarding.welcomeEyebrow')}
           </p>
           <h1 className="text-pana-ink dark:text-pana-cream text-3xl font-extrabold">
@@ -299,7 +299,7 @@ export function WelcomeView({ rootPath }: { rootPath: string }) {
     <Suspense
       fallback={
         <div className="auth-surface flex items-center justify-center px-4 py-24">
-          <Loader2 className="text-pana-flame h-6 w-6 animate-spin" />
+          <Loader2 className="text-pana-burnt dark:text-pana-flame h-6 w-6 animate-spin" />
         </div>
       }
     >

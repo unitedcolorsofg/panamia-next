@@ -662,23 +662,26 @@ function OfferingSwitch({ currentId }: { currentId: string }) {
   const others = PANA_OFFERINGS.filter((offering) => offering.id !== currentId);
 
   return (
-    <section className="home-section story-localrow offering-switch">
+    <section className="home-section offering-switch">
       <div className="container mx-auto px-4" data-rv>
-        <div className="localrow-inner">
-          <div className="localrow-group">
-            <span className="localrow-label">{t('switchLabel')}</span>
-            <div className="localrow-links">
-              {others.map((other) => (
-                <SurfaceLink
-                  key={other.id}
-                  href={other.href}
-                  className="localrow-chip"
-                >
-                  {t(`${other.id}.name`)}
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </SurfaceLink>
-              ))}
-            </div>
+        {/* One flat row. The homepage markup this was copied from wrapped an
+            inner space-between flex around a group, because it had a second
+            group (a donate button) to push to the far end. There is only ever
+            one group here, so the wrapper had nothing to distribute and is
+            gone along with it. */}
+        <div className="offering-switch-inner">
+          <span className="offering-switch-label">{t('switchLabel')}</span>
+          <div className="offering-switch-links">
+            {others.map((other) => (
+              <SurfaceLink
+                key={other.id}
+                href={other.href}
+                className="offering-switch-chip"
+              >
+                {t(`${other.id}.name`)}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </SurfaceLink>
+            ))}
           </div>
         </div>
       </div>

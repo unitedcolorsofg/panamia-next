@@ -105,7 +105,7 @@ export function IdentityRail({
               the viewer's relationship to them, and it belongs with the name it
               qualifies — next to the Follow back button it is prompting. */}
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            <p className="text-pana-burnt text-sm font-extrabold">
+            <p className="text-pana-burnt-deep text-sm font-extrabold">
               @{profile.handle}
             </p>
             {badge}

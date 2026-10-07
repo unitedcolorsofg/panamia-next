@@ -55,6 +55,30 @@
   --color-pana-red: #d94e41;
   --color-pana-cream: #fff7ec;
 
+  /* The deep rank. Same hues, darkened until they clear 4.5:1 as *text* on
+     both cream and white, because the colours above do not:
+       on cream / on white      deep      on cream / on white
+       burnt   3.44 / 3.65  ->  #ae4e2b   5.04 / 5.35
+       flame   2.42 / 2.57  ->  #a0572d   5.07 / 5.39
+       red     3.86 / 4.10  ->  #b84237   5.10 / 5.42
+       pink    3.54 / 3.76  ->  #cc1a5b   5.11 / 5.43
+       orange  2.36 / 2.50  ->  #a65400   5.08 / 5.40
+       blue    2.21 / 2.35  ->  #2f7193   5.06 / 5.38
+     Each also clears 4.5 on butter (the lightest fill the app paints under
+     type), so one token works on every light surface rather than needing a
+     per-background judgement at each call site.
+
+     Use the rank above for fills and this one for type. A warm accent set as
+     type on a light surface is the single most common contrast failure in
+     this codebase; `text-pana-burnt` etc. are kept for icons, which only owe
+     3:1 under WCAG 1.4.11 and which burnt and red already meet. */
+  --color-pana-burnt-deep: #ae4e2b;
+  --color-pana-flame-deep: #a0572d;
+  --color-pana-red-deep: #b84237;
+  --color-pana-pink-deep: #cc1a5b;
+  --color-pana-orange-deep: #a65400;
+  --color-pana-blue-deep: #2f7193;
+
   /* Shadcn/ui color tokens.
      ------------------------------------------------------------------------
      These MUST be complete colors, not bare HSL triples. Tailwind v4 emits
@@ -1872,7 +1896,7 @@ button.bizprofile-update-action:hover {
 }
 
 .bizprofile-hero-note a:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dark .bizprofile-hero-note {
@@ -1910,7 +1934,7 @@ button.bizprofile-update-action:hover {
 }
 
 .bizprofile-distance-ask:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dark .bizprofile-distance-ask {
@@ -2018,7 +2042,7 @@ button.bizprofile-update-action:hover {
   font-weight: 800;
   font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
   letter-spacing: 0.02em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Pronouns and other small identity facts. Outlined rather than filled so a
@@ -2054,7 +2078,7 @@ button.bizprofile-update-action:hover {
 
 .identity-pill[data-tone='follows-you'] {
   border-color: var(--color-pana-flame);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Stat rail. Grid rather than flex so the figures keep equal columns and the
@@ -2200,17 +2224,31 @@ button.bizprofile-update-action:hover {
   color: var(--color-pana-indigo);
 }
 
+/* Solid rather than tinted, and ink rather than burnt, because the warm hues
+   cannot carry their own colour as text on a light tint. Measured:
+     burnt on 16% burnt over cream  2.87  (was shipping; needs 4.5)
+     burnt on 16% burnt over white  3.02
+   Darkening the text instead of filling the chip does not rescue it either —
+   the tint itself eats the headroom, so burnt has to go to #a54a29 before it
+   clears, by which point it is a dark brown and no longer reads as the brand
+   orange. Filling the chip keeps the hue and buys real margin:
+     ink on solid burnt  5.29
+   This is the same move `[data-on-media='true'][data-tone='admin']` below
+   already makes, for the same reason. */
 .card-flag[data-tone='admin'] {
-  background-color: rgb(217 98 54 / 0.16);
-  color: var(--color-pana-burnt);
+  background-color: var(--color-pana-burnt);
+  color: var(--color-pana-ink);
 }
 
 /* A flag that is asking for something rather than describing something. Carries
-   the flame tint so "Follows you" reads as the live row in a strip where every
-   other flag is a static fact. See docs/SOCIAL-GRAPH.md. */
+   the flame fill so "Follows you" reads as the live row in a strip where every
+   other flag is a static fact. See docs/SOCIAL-GRAPH.md.
+   Solid for the same reason as the admin tone above:
+     burnt on 18% flame over cream  2.95  (was shipping)
+     ink on solid flame             7.50  (now) */
 .card-flag[data-tone='prompt'] {
-  background-color: rgb(242 132 68 / 0.18);
-  color: var(--color-pana-burnt);
+  background-color: var(--color-pana-flame);
+  color: var(--color-pana-ink);
 }
 
 /* Over imagery the translucent tints disappear and the warm text loses
@@ -2238,7 +2276,7 @@ button.bizprofile-update-action:hover {
 }
 
 .post-action:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Touch targets.
@@ -2630,9 +2668,10 @@ button.bizprofile-update-action:hover {
 
 /* Lit state for an engagement count the reader has already acted on. The base
    `.post-action` is muted by design, so likes and boosts need somewhere to go
-   once they are on. */
+   once they are on. Deep pink rather than the fill pink: this paints a count,
+   and pink on the card's white measures 3.76 where 13px type needs 4.5. */
 .post-action[data-active='true'] {
-  color: var(--color-pana-pink);
+  color: var(--color-pana-pink-deep);
 }
 
 .post-action[data-active='true'] svg {
@@ -2648,7 +2687,10 @@ button.bizprofile-update-action:hover {
 }
 
 /* Content-warning disclosure. Burnt rather than a red alert colour: a CW is a
-   courtesy from the poster, not an error the reader has to clear. */
+   courtesy from the poster, not an error the reader has to clear. The border
+   and fill stay burnt — they are non-text — but the label takes the deep
+   rank, because burnt on this 7% burnt wash measures 3.36 and the label is
+   13px. */
 .cw-toggle {
   display: flex;
   width: 100%;
@@ -2659,7 +2701,7 @@ button.bizprofile-update-action:hover {
   border-radius: 0.875rem;
   border: 2px dashed rgb(217 98 54 / 0.45);
   background-color: rgb(217 98 54 / 0.07);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   font-size: 0.8125rem;
   font-weight: 800;
   text-align: left;
@@ -2748,7 +2790,9 @@ button.bizprofile-update-action:hover {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--color-pana-burnt);
+  /* 11px caps on the card's white: burnt measures 3.65 here, so this takes
+     the deep rank. */
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Quoted top reply. The left rule is the only thing marking it as nested,
@@ -3177,7 +3221,7 @@ button.bizprofile-update-action:hover {
 .settings-consequence-title {
   font-weight: 900;
   letter-spacing: -0.01em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Irreversible actions. Red edge, no fill — a solid red block at the foot of
@@ -3279,7 +3323,7 @@ button.bizprofile-update-action:hover {
 .settings-btn[data-variant='danger'] {
   border-color: var(--color-pana-red);
   background-color: transparent;
-  color: var(--color-pana-red);
+  color: var(--color-pana-red-deep);
 }
 
 .settings-btn[data-variant='danger']:hover {
@@ -3440,30 +3484,43 @@ button.bizprofile-update-action:hover {
    now and needs the same tokens outside that frame, and duplicating the pairs
    would be the first step towards the mock and the real chrome disagreeing
    about what colour Pana Social is. Custom properties only take effect where
-   something reads them, so widening the selector changes nothing else. */
+   something reads them, so widening the selector changes nothing else.
+
+   Three values, not two. `--surface-tone` is the fill — the colour the
+   surface *is* — and `--surface-tone-soft` its tint. `--surface-tone-ink` is
+   the only one of the three that may be set as type on a light surface:
+   four of the five fills fail AA as text on the cream the masthead paints
+   (burnt 3.44, red 3.86, flame 2.42, blue 2.21 — all need 4.5), so chrome
+   that tinted its links with `--surface-tone` was illegible on every surface
+   except indigo. Indigo passes at 9.01 and maps to itself. */
 [data-tone='indigo'] {
   --surface-tone: var(--color-pana-indigo);
   --surface-tone-soft: rgb(48 62 140 / 0.1);
+  --surface-tone-ink: var(--color-pana-indigo);
 }
 
 [data-tone='burnt'] {
   --surface-tone: var(--color-pana-burnt);
   --surface-tone-soft: rgb(217 98 54 / 0.12);
+  --surface-tone-ink: var(--color-pana-burnt-deep);
 }
 
 [data-tone='flame'] {
   --surface-tone: var(--color-pana-flame);
   --surface-tone-soft: rgb(242 132 68 / 0.14);
+  --surface-tone-ink: var(--color-pana-flame-deep);
 }
 
 [data-tone='blue'] {
   --surface-tone: var(--color-pana-blue);
   --surface-tone-soft: rgb(74 179 234 / 0.16);
+  --surface-tone-ink: var(--color-pana-blue-deep);
 }
 
 [data-tone='red'] {
   --surface-tone: var(--color-pana-red);
   --surface-tone-soft: rgb(217 78 65 / 0.12);
+  --surface-tone-ink: var(--color-pana-red-deep);
 }
 
 /* A browser window drawn around the mock. The address bar is part of the
@@ -3753,8 +3810,10 @@ body {
   color: var(--color-pana-ink);
 }
 
+/* The ink variant, not the fill: this sits on the masthead's cream and four
+   of the five tones fail AA as type there. See the tone registry above. */
 .panaverse-nav a:hover {
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
 }
 
 /* The bar a surface wears over a page borrowed from another surface — see
@@ -3780,7 +3839,7 @@ body {
   min-width: 0;
   font-size: 0.78125rem;
   font-weight: 700;
-  color: rgb(17 13 13 / 0.55);
+  color: rgb(17 13 13 / 0.62);
 }
 
 .panaverse-guest-link {
@@ -3792,7 +3851,7 @@ body {
   font-size: 0.78125rem;
   font-weight: 800;
   white-space: nowrap;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
   transition: opacity 0.2s ease;
 }
 
@@ -3822,7 +3881,7 @@ body {
   gap: 0.5rem;
   text-align: center;
   font-size: 0.78125rem;
-  color: rgb(17 13 13 / 0.55);
+  color: rgb(17 13 13 / 0.62);
 }
 
 .panaverse-guest-footer-nav {
@@ -3835,7 +3894,7 @@ body {
 
 .panaverse-guest-footer-nav a {
   font-weight: 700;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
   transition: opacity 0.2s ease;
 }
 
@@ -3993,7 +4052,7 @@ body {
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* The sentence the panel exists to make believable. On butter so it reads as
@@ -4091,7 +4150,7 @@ body {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--surface-tone, var(--color-pana-indigo));
+  color: var(--surface-tone-ink, var(--color-pana-indigo));
 }
 
 /* Rooms: one line, no hostname, because they do not have one. The visual gap
@@ -4723,7 +4782,7 @@ body {
   border-top: 1px solid rgb(48 62 140 / 0.12);
   font-size: 0.8125rem;
   font-weight: 800;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   text-align: left;
 }
 
@@ -4813,7 +4872,7 @@ body {
   gap: 0.35rem;
   font-size: 0.8125rem;
   font-weight: 800;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dirsearch-clear:hover {
@@ -5029,7 +5088,7 @@ body {
   padding: 0.5rem 0.75rem;
   border-radius: 0.7rem;
   background-color: rgb(217 98 54 / 0.09);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   font-size: 0.875rem;
   font-weight: 700;
 }
@@ -9156,13 +9215,85 @@ body:has(.dirscope) header {
 
 /* --- The row of the other five ----------------------------------------- */
 
-/* `.story-localrow` already paints itself cream and sizes its own padding, so
-   there is nothing to add here but the label's weight: on the homepage that
-   row is a set of county shortcuts sitting under an argument that has already
-   finished, and here it is the last thing on the page, so the chips want to
-   be the thing the eye lands on rather than the word above them. */
-.offering-switch .localrow-label {
-  opacity: 0.45;
+/* These rules used to live on the homepage as `.story-localrow` /
+   `.localrow-*`, styling a row of county shortcuts. Commit 2594e7a2 removed
+   that row and deleted its CSS, but this page had been reusing the class
+   names, so from that commit until now the switch row has rendered completely
+   unstyled on every offering front page — an undecorated vertical list of
+   links with no cream band, no chips and no label treatment. The only
+   survivor was an `.offering-switch .localrow-label { opacity: .45 }`
+   override whose comment claimed `.story-localrow` "already paints itself
+   cream", describing a rule that no longer existed.
+
+   Rebuilt here under `.offering-switch-*` rather than restored under the old
+   homepage names, because this page is now the only consumer. Homepage-named
+   CSS kept alive for an offering-page caller is exactly what produced the
+   silent breakage: the homepage was free to delete it without anything
+   pointing at the dependency. Naming the rules after the component that
+   renders them puts the coupling where a future editor will see it.
+
+   Not a verbatim restore, because the original did not pass AA either:
+     label at the original opacity .55   4.38  (needs 4.5)
+     label at the override's opacity .45 3.16
+     label at .6                         5.21  <- used here
+     chip hover, story-cream on story-blue  4.42  (needs 4.5)
+     chip hover, white on story-blue        4.89  <- used here
+   Chip rest state is story-ink on story-cream, 18.17. */
+.offering-switch {
+  padding-block: calc(var(--home-pad) * 0.42);
+  background-color: var(--story-cream);
+  color: var(--story-ink);
+}
+
+.offering-switch-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+/* The chips are the thing the eye should land on, not the word above them —
+   this row is the last thing on the page, so the label is a signpost rather
+   than a heading. Hence the small, tracked, lowered-contrast treatment; .6 is
+   as far down as it can go and still clear AA at this size. */
+.offering-switch-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.offering-switch-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.offering-switch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 2px solid rgb(2 8 17 / 0.18);
+  border-radius: 999px;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--story-ink);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+/* White, not `--story-cream`. The cream measures 4.42 on this blue and the
+   chip label is 14.4px, so it needs 4.5; white gets it to 4.89. Darkening
+   `--story-blue` instead would have moved it under the homepage's pillars and
+   beats, which all read from the same token. */
+.offering-switch-chip:hover {
+  border-color: var(--story-blue);
+  background-color: var(--story-blue);
+  color: #fff;
 }
 
 /* --- The problem ------------------------------------------------------- */
