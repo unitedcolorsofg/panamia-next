@@ -119,7 +119,7 @@ export function EventsModule() {
             </div>
 
             <div className="p-3.5">
-              <p className="text-pana-burnt text-[11px] font-extrabold tracking-widest uppercase">
+              <p className="text-pana-burnt-deep text-[11px] font-extrabold tracking-widest uppercase">
                 {event.when}
               </p>
               <h3 className="mt-1 text-[15px] leading-tight font-extrabold">

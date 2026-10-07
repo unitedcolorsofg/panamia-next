@@ -209,7 +209,7 @@ export function AutoSaved({
   }
   if (state === 'error') {
     return (
-      <span className="text-pana-red text-[13px] font-extrabold">
+      <span className="text-pana-red-deep text-[13px] font-extrabold">
         Not saved
       </span>
     );

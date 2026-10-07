@@ -49,7 +49,7 @@ export default function ImpactContent() {
           priority
           className="mx-auto mb-8 h-auto w-56"
         />
-        <p className="text-pana-orange text-sm font-semibold tracking-[0.2em] uppercase">
+        <p className="text-pana-orange-deep text-sm font-semibold tracking-[0.2em] uppercase">
           {t('hero.eyebrow')}
         </p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
@@ -102,7 +102,7 @@ export default function ImpactContent() {
       {/* Subtropic Film Fest */}
       <section className="bg-muted/40 py-16">
         <div className="container mx-auto max-w-3xl space-y-6 px-4">
-          <p className="text-pana-pink text-sm font-semibold tracking-wider uppercase">
+          <p className="text-pana-pink-deep text-sm font-semibold tracking-wider uppercase">
             {t('filmfest.eyebrow')}
           </p>
           <h2 className="text-3xl font-bold">{t('filmfest.title')}</h2>
@@ -177,7 +177,7 @@ export default function ImpactContent() {
       <section className="bg-muted/40 py-16">
         <div className="container mx-auto grid max-w-3xl gap-8 px-4 sm:grid-cols-2 sm:items-center">
           <div className="space-y-4">
-            <p className="text-pana-pink text-sm font-semibold tracking-wider uppercase">
+            <p className="text-pana-pink-deep text-sm font-semibold tracking-wider uppercase">
               {t('heatwave.eyebrow')}
             </p>
             <h2 className="text-3xl font-bold">{t('heatwave.title')}</h2>
@@ -199,7 +199,7 @@ export default function ImpactContent() {
 
       {/* Pana Zine series */}
       <section className="container mx-auto max-w-3xl space-y-6 px-4 py-16">
-        <p className="text-pana-pink text-sm font-semibold tracking-wider uppercase">
+        <p className="text-pana-pink-deep text-sm font-semibold tracking-wider uppercase">
           {t('zine.eyebrow')}
         </p>
         <h2 className="text-3xl font-bold">{t('zine.title')}</h2>
@@ -234,7 +234,7 @@ export default function ImpactContent() {
             <div className="space-y-4">
               <Link
                 href="/signin?callbackUrl=/feed"
-                className="bg-pana-orange inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+                className="bg-pana-orange text-pana-ink inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold transition-opacity hover:opacity-90"
               >
                 {t('panaSocial.cta')}
               </Link>

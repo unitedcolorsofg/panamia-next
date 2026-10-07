@@ -211,12 +211,12 @@ export function IdentitySection({
               </span>
             )}
             {status === 'taken' && (
-              <span className="text-pana-red font-extrabold">
+              <span className="text-pana-red-deep font-extrabold">
                 @{screenname} is taken.
               </span>
             )}
             {status === 'invalid' && (
-              <span className="text-pana-red font-extrabold">
+              <span className="text-pana-red-deep font-extrabold">
                 Too short, or uses a character that is not allowed.
               </span>
             )}

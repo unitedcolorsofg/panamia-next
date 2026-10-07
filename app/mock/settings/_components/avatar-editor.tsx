@@ -157,7 +157,7 @@ export function AvatarEditor({
             </p>
 
             {error && (
-              <p className="text-pana-red text-center text-[13px] font-bold">
+              <p className="text-pana-red-deep text-center text-[13px] font-bold">
                 {error}
               </p>
             )}

@@ -1896,7 +1896,7 @@ button.bizprofile-update-action:hover {
 }
 
 .bizprofile-hero-note a:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dark .bizprofile-hero-note {
@@ -1934,7 +1934,7 @@ button.bizprofile-update-action:hover {
 }
 
 .bizprofile-distance-ask:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dark .bizprofile-distance-ask {
@@ -2042,7 +2042,7 @@ button.bizprofile-update-action:hover {
   font-weight: 800;
   font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
   letter-spacing: 0.02em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Pronouns and other small identity facts. Outlined rather than filled so a
@@ -2078,7 +2078,7 @@ button.bizprofile-update-action:hover {
 
 .identity-pill[data-tone='follows-you'] {
   border-color: var(--color-pana-flame);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Stat rail. Grid rather than flex so the figures keep equal columns and the
@@ -2276,7 +2276,7 @@ button.bizprofile-update-action:hover {
 }
 
 .post-action:hover {
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Touch targets.
@@ -2668,9 +2668,10 @@ button.bizprofile-update-action:hover {
 
 /* Lit state for an engagement count the reader has already acted on. The base
    `.post-action` is muted by design, so likes and boosts need somewhere to go
-   once they are on. */
+   once they are on. Deep pink rather than the fill pink: this paints a count,
+   and pink on the card's white measures 3.76 where 13px type needs 4.5. */
 .post-action[data-active='true'] {
-  color: var(--color-pana-pink);
+  color: var(--color-pana-pink-deep);
 }
 
 .post-action[data-active='true'] svg {
@@ -2686,7 +2687,10 @@ button.bizprofile-update-action:hover {
 }
 
 /* Content-warning disclosure. Burnt rather than a red alert colour: a CW is a
-   courtesy from the poster, not an error the reader has to clear. */
+   courtesy from the poster, not an error the reader has to clear. The border
+   and fill stay burnt — they are non-text — but the label takes the deep
+   rank, because burnt on this 7% burnt wash measures 3.36 and the label is
+   13px. */
 .cw-toggle {
   display: flex;
   width: 100%;
@@ -2697,7 +2701,7 @@ button.bizprofile-update-action:hover {
   border-radius: 0.875rem;
   border: 2px dashed rgb(217 98 54 / 0.45);
   background-color: rgb(217 98 54 / 0.07);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   font-size: 0.8125rem;
   font-weight: 800;
   text-align: left;
@@ -2786,7 +2790,9 @@ button.bizprofile-update-action:hover {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--color-pana-burnt);
+  /* 11px caps on the card's white: burnt measures 3.65 here, so this takes
+     the deep rank. */
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Quoted top reply. The left rule is the only thing marking it as nested,
@@ -3215,7 +3221,7 @@ button.bizprofile-update-action:hover {
 .settings-consequence-title {
   font-weight: 900;
   letter-spacing: -0.01em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* Irreversible actions. Red edge, no fill — a solid red block at the foot of
@@ -3317,7 +3323,7 @@ button.bizprofile-update-action:hover {
 .settings-btn[data-variant='danger'] {
   border-color: var(--color-pana-red);
   background-color: transparent;
-  color: var(--color-pana-red);
+  color: var(--color-pana-red-deep);
 }
 
 .settings-btn[data-variant='danger']:hover {
@@ -4046,7 +4052,7 @@ body {
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 /* The sentence the panel exists to make believable. On butter so it reads as
@@ -4776,7 +4782,7 @@ body {
   border-top: 1px solid rgb(48 62 140 / 0.12);
   font-size: 0.8125rem;
   font-weight: 800;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   text-align: left;
 }
 
@@ -4866,7 +4872,7 @@ body {
   gap: 0.35rem;
   font-size: 0.8125rem;
   font-weight: 800;
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
 }
 
 .dirsearch-clear:hover {
@@ -5082,7 +5088,7 @@ body {
   padding: 0.5rem 0.75rem;
   border-radius: 0.7rem;
   background-color: rgb(217 98 54 / 0.09);
-  color: var(--color-pana-burnt);
+  color: var(--color-pana-burnt-deep);
   font-size: 0.875rem;
   font-weight: 700;
 }

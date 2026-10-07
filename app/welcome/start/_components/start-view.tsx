@@ -52,7 +52,7 @@ function DoorCard({ door }: { door: Door }) {
     <Link href={door.href} className="group block" data-door={door.id}>
       <Card className="border-pana-ink/10 hover:border-pana-flame focus-within:border-pana-flame h-full rounded-2xl transition-colors dark:border-white/10">
         <CardContent className="flex items-start gap-4 p-5 sm:p-6">
-          <span className="bg-pana-butter/60 dark:bg-pana-indigo text-pana-flame rounded-xl p-3">
+          <span className="bg-pana-butter/60 dark:bg-pana-indigo text-pana-burnt dark:text-pana-flame rounded-xl p-3">
             <Icon className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
@@ -64,7 +64,7 @@ function DoorCard({ door }: { door: Door }) {
             </span>
           </span>
           <ArrowRight
-            className="text-muted-foreground group-hover:text-pana-flame mt-1 h-4 w-4 shrink-0 transition-colors"
+            className="text-muted-foreground group-hover:text-pana-burnt dark:group-hover:text-pana-flame mt-1 h-4 w-4 shrink-0 transition-colors"
             aria-hidden="true"
           />
         </CardContent>
@@ -88,7 +88,7 @@ export function StartView({
     <div className="auth-surface flex flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-lg space-y-6">
         <div className="space-y-2 text-center">
-          <p className="text-pana-flame text-sm font-extrabold tracking-wide uppercase">
+          <p className="text-pana-flame-deep dark:text-pana-flame text-sm font-extrabold tracking-wide uppercase">
             {t('onboarding.startEyebrow')}
           </p>
           <h1 className="text-pana-ink dark:text-pana-cream text-3xl font-extrabold">

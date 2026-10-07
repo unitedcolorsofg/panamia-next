@@ -60,7 +60,7 @@ export function IdentityRail() {
           <h1 className="mt-3 text-xl leading-tight font-black tracking-tight">
             {profile.name}
           </h1>
-          <p className="text-pana-burnt text-sm font-extrabold">
+          <p className="text-pana-burnt-deep text-sm font-extrabold">
             @{profile.handle}
           </p>
 
