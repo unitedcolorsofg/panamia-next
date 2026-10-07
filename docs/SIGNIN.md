@@ -171,11 +171,42 @@ Google sign-in is implemented end to end — provider config in `auth.ts`, the
 `app/signin/_components/signin-view.tsx`. Nothing is left to build; it ships
 switched off because it needs credentials. To enable it:
 
-1. **Create an OAuth client** in the
+1. **Pick the right Google account first — this is hard to undo.** The OAuth
+   client belongs to a Google Cloud project owned by one Google account. Use a
+   dedicated project account (e.g. `panamia.ops@gmail.com`) kept in the shared
+   password manager, not anyone's personal Gmail, and add a second **Owner** to
+   the Cloud project straight away.
+
+   The binding that matters is Search Console: `pana.social` has to be listed as
+   an **Authorized domain** before Google will accept the redirect URI, and
+   authorized domains must be verified from the owning account. If that account
+   is personal and the person leaves, nobody can edit the consent screen or the
+   redirect URIs, and there is no way to repair sign-in. Verification itself is
+   a DNS TXT record in Cloudflare.
+
+   There is no Google Workspace on `pana.social` — mail is Cloudflare Email
+   Sending — so `hola@pana.social` is not a Google identity and cannot own the
+   project or appear as the support email.
+
+2. **Create an OAuth client** in the
    [Google Cloud console](https://console.cloud.google.com/apis/credentials) →
    _Create credentials_ → _OAuth client ID_ → _Web application_.
 
-2. **Register the redirect URI.** better-auth serves every provider from one
+   Consent screen settings that catch people out:
+   - **User type must be External.** _Internal_ requires Workspace and would
+     admit only Workspace members, which is nobody — members sign in with their
+     own Google accounts.
+   - **Press "Publish app".** External starts in _Testing_, which caps sign-in
+     at 100 individually allowlisted addresses. Publishing to Production needs
+     no Google verification review, because the scopes below are all
+     non-sensitive. Keep it that way.
+   - **User support email is a dropdown**, offering only the owning account or a
+     Google Group it belongs to, and it is shown publicly on the consent screen.
+     Choose an address you are happy for members to read. The separate
+     _Developer contact information_ field is free text and not shown to users,
+     so `hola@pana.social` belongs there.
+
+3. **Register the redirect URI.** better-auth serves every provider from one
    mount, so the authorised redirect URI is:
 
    ```text
@@ -187,7 +218,7 @@ switched off because it needs credentials. To enable it:
    must also be in `trustedOrigins` (`auth.ts`), which already covers the
    panaverse surfaces and localhost.
 
-3. **Set the variables.** The first two are the credentials, the third reveals
+4. **Set the variables.** The first two are the credentials, the third reveals
    the button:
 
    | Variable                     | Where    | Value            |
