@@ -92,7 +92,11 @@ export const SHARED_ROOMS: MockRoom[] = [
        fit — a room that needs two lines to explain itself is arguing to be a
        surface. */
     blurb: 'Markets, mixers, shows',
-    tone: 'flame',
+    /* Matches SHARED_ROOMS in lib/panaverse/branding.ts, which moved off flame
+       because the switcher opens over social chrome — which is flame — and an
+       accent the same colour as the thing behind it is no accent. See there
+       for the full reasoning. */
+    tone: 'pink',
     couldBecome: 'events.panamia.club',
   },
   {

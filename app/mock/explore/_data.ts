@@ -146,18 +146,20 @@ export const SCOPE_REQUIRES_PANA: Record<ExploreScope, boolean> = {
 /**
  * Tone tokens from the `[data-tone]` set in app/globals.css.
  *
- * Carried over unchanged from lib/directory-scopes.ts so a kind cannot be one
- * colour in the menu and another on the page it opens. The explore pages tint
- * their own eyebrow and primary action from this, which is new: today every
- * scope page is the same indigo, so the only thing telling you which one you
- * are on is the heading.
+ * Re-exported from lib/directory-scopes.ts rather than copied, so a kind
+ * cannot be one colour in the menu and another on the page it opens. It was a
+ * copy, with a comment promising it matched — which is a promise nothing
+ * enforced, and the kind of promise that is true right up until someone edits
+ * one of the two. `ExploreScope` is `SuggestionKind`, and lib/directory-scopes
+ * carries a compile-time proof that `SuggestionKind` and its own `Scope` are
+ * the same set, so `Record<ExploreScope, …>` and `Record<Scope, …>` are the
+ * same type and this costs nothing.
+ *
+ * The explore pages tint their own eyebrow and primary action from this, which
+ * is new: today every scope page is the same indigo, so the only thing telling
+ * you which one you are on is the heading.
  */
-export const SCOPE_TONE: Record<ExploreScope, string> = {
-  directory: 'burnt',
-  event: 'red',
-  group: 'flame',
-  pana: 'blue',
-};
+export { SCOPE_TONE } from '@/lib/directory-scopes';
 
 /* -------------------------------------------------------------------------
    Results

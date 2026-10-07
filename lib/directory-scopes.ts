@@ -1,4 +1,5 @@
 import { searchPath } from '@/lib/directory-search-path';
+import type { SurfaceTone } from '@/lib/panaverse/branding';
 import type { SuggestionKind } from '@/lib/suggest';
 
 /**
@@ -187,11 +188,48 @@ export const SCOPE_REQUIRES_PANA: Record<Scope, boolean> = {
  *
  * The dropdown, the row icon and the active chip all read from this one map,
  * so a kind cannot be burnt orange in the menu and blue in the results.
+ *
+ * Four hues far enough apart to be read as four. The previous mapping was
+ * burnt / red / flame / blue, which put three of the four inside a 17-degree
+ * hue band: directory and events landed 23 units apart in RGB, under the
+ * threshold at which most people see two colours rather than one. Those two
+ * are the same hue at different brightness, so colour blindness is not the
+ * mechanism and normal vision does not rescue it — the system was signalling
+ * orange, orange, orange, blue for four different products. Orange leads
+ * because app/globals.css says orange carries the brand and the directory is
+ * the largest surface.
+ *
+ * Typed `SurfaceTone` rather than `string` on purpose. These values go
+ * straight into a `data-tone` attribute, and a name CSS has no block for
+ * resolves to nothing — the accent silently vanishes rather than rendering
+ * visibly wrong, so a typo like 'idigo' would ship looking merely plain. The
+ * import is type-only and erased at compile time; the two modules do not
+ * otherwise reference each other.
+ *
+ * Three overlaps with SURFACE_TONE in lib/panaverse/branding.ts, which uses
+ * these same tokens to answer "which room am I in". Recorded here so the next
+ * person does not have to rediscover them:
+ *
+ * - Moving `group` off flame is a fix, not a regression. `/groups` belongs to
+ *   the social surface, whose chrome is flame, so the old `group: 'flame'`
+ *   painted a flame accent inside flame chrome — where it could not do its
+ *   job at all. Indigo is legible there.
+ * - `group: 'indigo'` echoes the www chrome in the home scope menu, since `/`
+ *   is the www surface and the menu lists all four scopes on it. This is the
+ *   known cost of the mapping rather than a free win: the menu sits on a light
+ *   panel so indigo stays legible, it just shares a hue with the masthead
+ *   behind it.
+ * - `pana: 'blue'` matches the admin surface. Pre-existing, and admin is
+ *   staff-only, so a member never sees both at once. Left alone.
+ *
+ * The Events room in SHARED_ROOMS moved to pink alongside `event` here, so the
+ * noun reads one colour whether you reach it through the scope bar or the
+ * switcher. See the comment on that entry for why flame could not stay.
  */
-export const SCOPE_TONE: Record<Scope, string> = {
-  directory: 'burnt',
-  event: 'red',
-  group: 'flame',
+export const SCOPE_TONE: Record<Scope, SurfaceTone> = {
+  directory: 'orange',
+  event: 'pink',
+  group: 'indigo',
   pana: 'blue',
 };
 
