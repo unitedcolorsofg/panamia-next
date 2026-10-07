@@ -148,7 +148,12 @@ export default function AdminContactUsPage() {
                 <span className="font-semibold">Email:</span>{' '}
                 <a
                   href={`mailto:${item.email}`}
-                  className="text-pana-blue hover:underline"
+                  /* Was `text-pana-blue`, which measures 2.21 on cream and
+                   * 2.35 on white — both well under AA. Navy is 15.54. The
+                   * underline is permanent rather than hover-only because
+                   * navy against ink body copy is under 3:1, so colour alone
+                   * cannot be what marks this as a link (WCAG 1.4.1). */
+                  className="text-pana-navy underline underline-offset-2"
                 >
                   {item.email}
                 </a>
