@@ -55,6 +55,30 @@
   --color-pana-red: #d94e41;
   --color-pana-cream: #fff7ec;
 
+  /* The deep rank. Same hues, darkened until they clear 4.5:1 as *text* on
+     both cream and white, because the colours above do not:
+       on cream / on white      deep      on cream / on white
+       burnt   3.44 / 3.65  ->  #ae4e2b   5.04 / 5.35
+       flame   2.42 / 2.57  ->  #a0572d   5.07 / 5.39
+       red     3.86 / 4.10  ->  #b84237   5.10 / 5.42
+       pink    3.54 / 3.76  ->  #cc1a5b   5.11 / 5.43
+       orange  2.36 / 2.50  ->  #a65400   5.08 / 5.40
+       blue    2.21 / 2.35  ->  #2f7193   5.06 / 5.38
+     Each also clears 4.5 on butter (the lightest fill the app paints under
+     type), so one token works on every light surface rather than needing a
+     per-background judgement at each call site.
+
+     Use the rank above for fills and this one for type. A warm accent set as
+     type on a light surface is the single most common contrast failure in
+     this codebase; `text-pana-burnt` etc. are kept for icons, which only owe
+     3:1 under WCAG 1.4.11 and which burnt and red already meet. */
+  --color-pana-burnt-deep: #ae4e2b;
+  --color-pana-flame-deep: #a0572d;
+  --color-pana-red-deep: #b84237;
+  --color-pana-pink-deep: #cc1a5b;
+  --color-pana-orange-deep: #a65400;
+  --color-pana-blue-deep: #2f7193;
+
   /* Shadcn/ui color tokens.
      ------------------------------------------------------------------------
      These MUST be complete colors, not bare HSL triples. Tailwind v4 emits
