@@ -82,6 +82,24 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
           onBack={() => selectPage('landing')}
         />
       )}
+
+      {/* Rendered on both pages because both show group covers, and the cover
+          pool is the directory's Pexels one. The Pexels API guidelines ask
+          for a visible link back wherever their photographs appear -- the
+          directory carries the same line under its results. Real groups
+          upload their own headers, so this retires itself along with the
+          placeholder art. */}
+      <p className="dirsearch-photocredit container mx-auto max-w-5xl px-4 pt-10">
+        Group cover photos from{' '}
+        <a
+          href="https://www.pexels.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Pexels
+        </a>
+        .
+      </p>
     </main>
   );
 }

@@ -165,7 +165,7 @@ export function GroupsDiscover({
         </h2>
 
         {results.length > 0 ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3">
             {results.map((group) => (
               <GroupCard key={group.id} group={group} />
             ))}

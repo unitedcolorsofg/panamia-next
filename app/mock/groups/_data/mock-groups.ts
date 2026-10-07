@@ -40,6 +40,13 @@ export interface MockGroupCard {
   handle: string;
   /** social_actors.icon_url */
   avatar: string;
+  /**
+   * social_actors.header_url. Optional on purpose. Setting a header is an
+   * extra deliberate step most groups will never take, so the card has to
+   * look finished without one -- otherwise every new group starts life
+   * looking broken, which is the moment it can least afford to.
+   */
+  cover?: string;
   /** social_actors.summary */
   summary: string;
   /** social_groups.topics, the `{ topic: true }` JSONB flag map, flattened to
@@ -61,6 +68,15 @@ export interface MockGroupCard {
    * finding, and better found now than after the page ships.
    */
   postsThisWeek: number;
+  /**
+   * Icons of a few members, via social_group_members -> social_actors.icon_url.
+   * The card caps the stack, so this only ever needs to hold enough to fill
+   * it. Never populated for a private group: who is inside a private group is
+   * exactly the thing privacy is protecting, and a row of recognisable faces
+   * on a public browse page would leak it more effectively than the member
+   * list ever could.
+   */
+  memberFaces: string[];
   /** social_group_members row exists for the viewer with status 'active'. */
   joined?: boolean;
   /** A pending join request: status 'pending', joined_at still null. */
@@ -123,6 +139,7 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Miami Print & Zine Makers',
     handle: 'printmakers',
     avatar: '/img/impact/zine-series.webp',
+    cover: '/img/directory/art-01.jpg',
     summary:
       'Risograph, screenprint, and photocopy. We trade paper, split ink orders, and run a free bilingual workshop on the first Saturday of the month. Total beginners are the entire point.',
     topics: ['art', 'printmaking', 'workshops'],
@@ -130,6 +147,12 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'open',
     memberCount: 428,
     postsThisWeek: 31,
+    memberFaces: [
+      '/img/about/anette_mago.jpg',
+      '/img/about/bee_maria.jpg',
+      '/img/about/claribel_avila.jpg',
+      '/img/about/gbarrios.jpg',
+    ],
     joined: true,
   },
   {
@@ -137,6 +160,7 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Little Haiti Tenant Union',
     handle: 'lhtenants',
     avatar: '/img/impact/community-group.webp',
+    cover: '/img/directory/non-profit-01.jpg',
     summary:
       'Organising space for tenants in Little Haiti and Lemon City. An existing member confirms you before you see anything inside.',
     topics: ['organising', 'housing'],
@@ -148,6 +172,10 @@ export const MOCK_GROUPS: MockGroupCard[] = [
        entitled to. The card renders the absence rather than a zero, so this
        never reads as a dead group to the people it most needs. */
     postsThisWeek: 0,
+    /* Deliberately empty, and the only group where that is true. See the
+       field comment: the faces are a bigger privacy leak than the member
+       list, because you do not need to click anything to recognise one. */
+    memberFaces: [],
     requested: true,
   },
   {
@@ -155,6 +183,7 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Subtropic Film Collective',
     handle: 'subtropic',
     avatar: '/img/impact/filmmaker-participant.webp',
+    cover: '/img/directory/venue-01.jpg',
     summary:
       'Crew calls, gear lending, and rough-cut screenings for independent filmmakers across South Florida.',
     topics: ['film', 'art'],
@@ -162,6 +191,12 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'open',
     memberCount: 212,
     postsThisWeek: 14,
+    memberFaces: [
+      '/img/about/jdowns.jpg',
+      '/img/about/gbarrios.jpg',
+      '/img/about/bee_maria.jpg',
+      '/img/about/anette_mago.jpg',
+    ],
     joined: true,
   },
   {
@@ -169,6 +204,7 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Hialeah Plant Swap',
     handle: 'hialeahplants',
     avatar: '/img/impact/heatwave-visions.webp',
+    cover: '/img/directory/market-01.jpg',
     summary:
       'Cuttings, repotting help, and a monthly swap in the park. Bring something, take something.',
     topics: ['gardening', 'swap'],
@@ -176,6 +212,11 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'open',
     memberCount: 156,
     postsThisWeek: 9,
+    memberFaces: [
+      '/img/about/claribel_avila.jpg',
+      '/img/about/anette_mago.jpg',
+      '/img/about/jdowns.jpg',
+    ],
   },
   {
     id: 'group-5',
@@ -186,18 +227,27 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Westchester Run Club',
     handle: 'westrun',
     avatar: '/img/impact/pana-social-app.webp',
+    /* No cover, and the only group without one. Three weeks old: nobody has
+       got round to a header image yet, which is the normal state of a new
+       group rather than an exception. If the card only looks right with one,
+       the card is wrong. */
     summary: 'Saturday mornings, 6am, flexible pace. Started three weeks ago.',
     topics: ['fitness', 'outdoors'],
     visibility: 'public',
     joinPolicy: 'open',
     memberCount: 6,
     postsThisWeek: 1,
+    /* Two faces for six members. The stack has to stay honest against the
+       count next to it -- four overlapping photographs on a six-person group
+       would imply a crowd that is not there. */
+    memberFaces: ['/img/about/gbarrios.jpg', '/img/about/bee_maria.jpg'],
   },
   {
     id: 'group-6',
     name: 'Miami Artist Census Organisers',
     handle: 'artistcensus',
     avatar: '/img/impact/partner-miami-artist-census.webp',
+    cover: '/img/directory/art-02.jpg',
     summary:
       'Working group for the census. Invite only while the current round is open.',
     topics: ['art', 'organising'],
@@ -208,12 +258,18 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'invite',
     memberCount: 24,
     postsThisWeek: 4,
+    memberFaces: [
+      '/img/about/bee_maria.jpg',
+      '/img/about/claribel_avila.jpg',
+      '/img/about/gbarrios.jpg',
+    ],
   },
   {
     id: 'group-7',
     name: 'Cafecito & Code',
     handle: 'cafecitocode',
     avatar: '/img/impact/partner-allpeep.webp',
+    cover: '/img/directory/tech-01.jpg',
     summary:
       'Developers, designers and the self-taught. Weekly coworking at a rotating cafe, plus a thread for job leads that is actually used.',
     topics: ['tech', 'coworking'],
@@ -221,6 +277,12 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'open',
     memberCount: 389,
     postsThisWeek: 22,
+    memberFaces: [
+      '/img/about/gbarrios.jpg',
+      '/img/about/jdowns.jpg',
+      '/img/about/anette_mago.jpg',
+      '/img/about/claribel_avila.jpg',
+    ],
   },
   {
     id: 'group-8',
@@ -230,18 +292,21 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     name: 'Coconut Grove Book Swap',
     handle: 'grovebooks',
     avatar: '/img/impact/culture-zines-right.webp',
+    cover: '/img/directory/market-02.jpg',
     summary: 'Paperbacks, trades, and a shelf at the corner shop.',
     topics: ['books', 'swap'],
     visibility: 'public',
     joinPolicy: 'open',
     memberCount: 94,
     postsThisWeek: 0,
+    memberFaces: ['/img/about/jdowns.jpg', '/img/about/claribel_avila.jpg'],
   },
   {
     id: 'group-9',
     name: 'Mutual Aid Miami',
     handle: 'mutualaidmia',
     avatar: '/img/impact/partner-miami-workers-center.webp',
+    cover: '/img/directory/non-profit-02.jpg',
     summary:
       'Food runs, ride shares, and hurricane season prep. Anyone can ask and anyone can offer.',
     topics: ['organising', 'mutualaid'],
@@ -249,18 +314,30 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     joinPolicy: 'open',
     memberCount: 517,
     postsThisWeek: 48,
+    memberFaces: [
+      '/img/about/anette_mago.jpg',
+      '/img/about/claribel_avila.jpg',
+      '/img/about/jdowns.jpg',
+      '/img/about/bee_maria.jpg',
+    ],
   },
   {
     id: 'group-10',
     name: 'Allapattah Salsa Social',
     handle: 'allapattahsalsa',
     avatar: '/img/impact/pana-social-dinner.webp',
+    cover: '/img/directory/music-01.jpg',
     summary: 'Beginner lessons at 8, social dancing until late. Second Friday.',
     topics: ['music', 'dance'],
     visibility: 'public',
     joinPolicy: 'open',
     memberCount: 231,
     postsThisWeek: 7,
+    memberFaces: [
+      '/img/about/bee_maria.jpg',
+      '/img/about/gbarrios.jpg',
+      '/img/about/anette_mago.jpg',
+    ],
   },
 ];
 
@@ -396,6 +473,17 @@ export function groupsForTopic(topic: string): MockGroupCard[] {
 }
 
 /** Topics that actually have groups, with their counts, busiest first. */
+/**
+ * The display name for a topic key. Falls back to the raw key, which is the
+ * honest answer: topics are free-form JSONB flags, so a group can carry one
+ * that was never added to MOCK_TOPICS. Showing the key beats dropping the
+ * chip, because a missing chip looks like the group has fewer interests
+ * rather than like the label list is behind.
+ */
+export function topicLabel(id: string): string {
+  return MOCK_TOPICS.find((topic) => topic.id === id)?.label ?? id;
+}
+
 export function topicsWithCounts(): { topic: MockTopic; count: number }[] {
   return MOCK_TOPICS.map((topic) => ({
     topic,

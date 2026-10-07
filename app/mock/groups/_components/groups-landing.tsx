@@ -17,7 +17,7 @@ import {
   yourGroups,
   type ViewerAuth,
 } from '../_data/mock-groups';
-import { GroupCard, GroupEventRow, TopicChip } from './group-cards';
+import { GroupCard, GroupEventRow, GroupRow, TopicChip } from './group-cards';
 
 /**
  * The proposed /groups landing page.
@@ -90,7 +90,7 @@ export function GroupsLanding({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {mine.map((group) => (
-              <GroupCard key={group.id} group={group} />
+              <GroupRow key={group.id} group={group} />
             ))}
           </div>
         </section>
@@ -135,7 +135,13 @@ export function GroupsLanding({
           }
         />
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {/* One column, not a grid of tiles -- the same call the directory
+            results make, and for the same reason. Each card carries a cover,
+            a logo, an access line, a summary, topics, an event and a row of
+            faces; two across squeezes all of that into half a column and the
+            cover is the first thing to go. The shelf is short enough that the
+            height is affordable. */}
+        <div className="mt-4 grid gap-3">
           {active.map((group) => (
             <GroupCard key={group.id} group={group} showEvents />
           ))}
