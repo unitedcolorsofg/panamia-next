@@ -509,6 +509,13 @@ export interface GroupSearchSummary {
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   memberCount: number;
+  /**
+   * A handful of member avatar URLs for the card's face pile, newest-ranked
+   * first. Always empty for a private group: avatar URLs are roster data, and
+   * the roster of a private group is not public. The server decides this in
+   * SQL, so a client never has to.
+   */
+  faces: string[];
 }
 
 export interface GroupSearchResponse {

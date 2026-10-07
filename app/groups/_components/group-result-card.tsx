@@ -15,6 +15,13 @@ const TOPIC_PREVIEW_LIMIT = 3;
  * marker there would always say the same thing. Search returns private groups
  * too -- identity fields alone -- so here the distinction is real and a member
  * needs it before clicking, not after.
+ *
+ * The face pile follows the same split. A public group shows a few member
+ * avatars because a wall of faces is what tells a stranger this is a living
+ * group rather than an empty listing, and a bare number never carries that.
+ * A private group shows none: its roster is not public, and avatar URLs are
+ * roster. The server decides that in SQL, so `faces` is simply empty here and
+ * this component has no privacy rule of its own to get wrong.
  */
 export function GroupResultCard({ group }: { group: GroupSearchSummary }) {
   const topics = Object.keys(group.topics ?? {}).filter(
@@ -24,6 +31,7 @@ export function GroupResultCard({ group }: { group: GroupSearchSummary }) {
   const remaining = topics.length - shown.length;
 
   const isPrivate = group.visibility === 'private';
+  const faces = group.faces ?? [];
 
   return (
     <SurfaceLink
@@ -64,6 +72,26 @@ export function GroupResultCard({ group }: { group: GroupSearchSummary }) {
         )}
 
         <div className="text-pana-ink/55 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-bold">
+          {/* Faces, never names. Decorative by design -- no alt text, no
+              link, nothing to click through to -- so the crowd reads as real
+              without becoming a list of who to go find. Matches what the
+              listing and event cards already do.
+
+              Empty for private groups; the server withholds the URLs rather
+              than trusting this component to skip them. */}
+          {faces.length > 0 && (
+            <span className="inline-flex shrink-0" aria-hidden="true">
+              {faces.map((face, index) => (
+                <img
+                  key={`${face}-${index}`}
+                  src={face}
+                  alt=""
+                  className="bg-pana-butter -ml-[0.55rem] h-[26px] w-[26px] rounded-full border-2 border-white object-cover first:ml-0"
+                />
+              ))}
+            </span>
+          )}
+
           <span className="inline-flex items-center gap-1">
             <Users className="h-3.5 w-3.5" aria-hidden="true" />
             {group.memberCount}

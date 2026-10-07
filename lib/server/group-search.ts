@@ -30,6 +30,11 @@ export interface GroupSearchResult {
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   memberCount: number;
+  /**
+   * A few member avatar URLs, for the face pile on a result card. Empty for
+   * private groups -- see GROUP_COLUMNS.
+   */
+  faces: string[];
 }
 
 export interface SearchGroupsOptions {
@@ -64,6 +69,12 @@ const PREFIX_NAME_BOOST = 100;
 
 const TRIGRAM_THRESHOLD = 0.5;
 
+/**
+ * Faces on a card, not a roster. Five is enough to read as a crowd; more just
+ * makes a wider pile of the same signal.
+ */
+const MAX_FACES = 5;
+
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
@@ -80,7 +91,39 @@ const MAX_LIMIT = 50;
  * If that stance ever changes, change it here and in the [handle] route
  * together -- the leak that matters is the two disagreeing.
  *
+ * `faces` is the one near-exception, and it is why the CASE below is not
+ * decoration. Avatar URLs are roster data: a face pile on a private group
+ * would publish "these specific people are in it" to anyone who can run a
+ * search, which is everyone, since this endpoint is unauthenticated. The
+ * members route draws the same line -- member *count* is public even for a
+ * private group, the roster is not -- so this matches it rather than
+ * inventing a second rule.
+ *
+ * The gate lives in SQL so a private group's avatar URLs are never selected
+ * at all. Filtering in toResult() or in the card would mean the data had
+ * already left the database, one careless `console.log` away from the wire.
+ *
+ * Expressed as a correlated ARRAY subquery rather than a LEFT JOIN LATERAL
+ * for one reason: this fragment is a select list, and all three query paths
+ * (browse, full-text, trigram) interpolate it. A lateral would have to be
+ * repeated in three FROM clauses, and the failure mode of forgetting one is
+ * faces that appear while browsing and vanish the moment you type. ARRAY()
+ * preserves its subquery's ORDER BY, so the ordering below is guaranteed
+ * rather than incidental.
+ *
+ * Ordering mirrors ROLE_THEN_SENIORITY in the roster helper -- admins, then
+ * moderators, then everyone else, oldest first within a rank, id as the
+ * stable tiebreak -- so the faces are the same people in the same order as
+ * the top of the roster rather than an unrelated five.
+ *
+ * 'active' only, for the reason the roster helper spells out: a pending row
+ * is somebody who asked and has not been let in, and a banned row is a
+ * tombstone. Null icons are skipped because a pile of placeholders is noise,
+ * not evidence that anyone is home.
+ *
  * @see app/api/social/groups/[handle]/route.ts
+ * @see app/api/social/groups/[handle]/members/route.ts
+ * @see lib/federation/wrappers/group-members.ts
  */
 const GROUP_COLUMNS = sql`
   g.id              AS id,
@@ -93,7 +136,20 @@ const GROUP_COLUMNS = sql`
   g.topics          AS topics,
   g.visibility      AS visibility,
   g.join_policy     AS "joinPolicy",
-  g.member_count    AS "memberCount"
+  g.member_count    AS "memberCount",
+  CASE WHEN g.visibility = 'public' THEN ARRAY(
+    SELECT fa.icon_url
+    FROM social_group_members fm
+    JOIN social_actors fa ON fa.id = fm.actor_id
+    WHERE fm.group_id = g.id
+      AND fm.status = 'active'
+      AND fa.icon_url IS NOT NULL
+    ORDER BY
+      CASE fm.role WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END,
+      fm.joined_at ASC NULLS LAST,
+      fm.id ASC
+    LIMIT ${MAX_FACES}
+  ) ELSE ARRAY[]::text[] END AS faces
 `;
 
 interface RawGroupRow {
@@ -108,6 +164,7 @@ interface RawGroupRow {
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   memberCount: number | string;
+  faces: string[] | null;
 }
 
 function toResult(row: RawGroupRow): GroupSearchResult {
@@ -123,6 +180,7 @@ function toResult(row: RawGroupRow): GroupSearchResult {
     visibility: row.visibility,
     joinPolicy: row.joinPolicy,
     memberCount: Number(row.memberCount) || 0,
+    faces: row.faces ?? [],
   };
 }
 

@@ -11,6 +11,10 @@
  * the reason a profile can show group cards without leaking membership of a
  * private group.
  *
+ * The face-pile tests at the end guard the same boundary one layer down: a
+ * private group stays discoverable but must never disclose which actors are
+ * in it, and the gate for that lives in the search SQL.
+ *
  * Every fixture is created under a per-run random suffix and deleted in the
  * `after` hook, so this is safe to run against a shared or seeded database. It
  * never truncates anything (scripts/reset-test-db.ts does that, and it is
@@ -56,6 +60,9 @@ const mkActor = (username: string) => ({
   followingUrl: `https://test.invalid/users/${username}/following`,
   publicKey: 'test-public-key',
   privateKey: 'test-private-key',
+  // Face-pile fixtures need a real URL here; the query skips null icons on
+  // purpose, so an actor without one is invisible to those tests.
+  iconUrl: `https://test.invalid/avatars/${username}.png`,
 });
 
 let profileId: string;
@@ -349,4 +356,97 @@ test('listMyGroups excludes a group someone has only asked to join', async () =>
 
   const mine = await listMyGroups(joinerId);
   assert.equal(mine.length, 0, 'a pending request is not a group you are in');
+});
+
+/* --- Face piles ---------------------------------------------------------- */
+
+/**
+ * The avatar URL of an actor created by mkActor, for asserting on who is in
+ * a face pile without the pile ever carrying a name.
+ */
+const avatarOf = (username: string) =>
+  `https://test.invalid/avatars/${username}.png`;
+
+test('a public group carries member faces', async () => {
+  const results = await searchGroups({ term: `${token} Zines` });
+  const found = results.find((g) => g.handle === zineHandle);
+
+  assert.ok(found, 'fixture group missing from results');
+  assert.deepEqual(found.faces, [avatarOf(`sf${suffix}`)]);
+});
+
+test('a private group never carries faces, however it was found', async () => {
+  // The leak this guards against is specific: a private group is deliberately
+  // discoverable, so without the SQL gate a search by anyone -- this endpoint
+  // is unauthenticated -- would publish exactly which people are inside it.
+  // Member count stays public; the roster does not. Avatar URLs are roster.
+  //
+  // Checked on all three query paths because they share one select-list
+  // fragment, and the point of that sharing is that the gate cannot be
+  // present on one path and missing on another.
+  const fullText = await searchGroups({ term: token });
+  const priv = fullText.find((g) => g.handle === privateHandle);
+  assert.ok(priv, 'a private group must still be findable');
+  assert.equal(priv.visibility, 'private');
+  assert.deepEqual(priv.faces, [], 'full-text leaked a private roster');
+  assert.ok(priv.memberCount > 0, 'the count stays public');
+
+  // Trigram fallback: a misspelling full-text cannot match at all.
+  const fuzzy = await searchGroups({ term: `Hidden ${token.slice(0, -1)}` });
+  const fuzzyPriv = fuzzy.find((g) => g.handle === privateHandle);
+  assert.ok(fuzzyPriv, 'expected the trigram fallback to find it');
+  assert.deepEqual(fuzzyPriv.faces, [], 'trigram leaked a private roster');
+
+  // Browse, which is what the Groups tab shows before anyone types.
+  const browsed = await searchGroups({ term: '', limit: 50 });
+  const browsedPriv = browsed.find((g) => g.handle === privateHandle);
+  if (browsedPriv) {
+    assert.deepEqual(browsedPriv.faces, [], 'browse leaked a private roster');
+  }
+});
+
+test('faces follow the roster ordering and skip members with no avatar', async () => {
+  // Two joiners: one with an avatar, one without. The group's admin is its
+  // founder, so a correct ordering puts the founder first and the plain
+  // member second, and the actor with no icon never appears at all -- a pile
+  // of placeholder images is noise rather than a signal that anyone is home.
+  const [withIcon] = await db
+    .insert(socialActors)
+    .values(mkActor(`sk${suffix}`))
+    .returning();
+  const [withoutIcon] = await db
+    .insert(socialActors)
+    .values({ ...mkActor(`sl${suffix}`), iconUrl: null })
+    .returning();
+  createdActorIds.push(withIcon.id, withoutIcon.id);
+
+  const open = await createGroup({
+    handle: `sgf${suffix}`,
+    name: `Open ${token} Yard`,
+    summary: 'anyone may join',
+    topics: ['open'],
+    visibility: 'public',
+    joinPolicy: 'open',
+    createdByProfileId: profileId,
+    founderActorId: founderId,
+  });
+  assert.equal(open.success, true);
+  if (!open.success) return;
+  createdActorIds.push(open.actor.id);
+
+  for (const actor of [withIcon, withoutIcon]) {
+    const join = await joinGroup(open.group.id, actor.id);
+    assert.equal(join.success, true);
+    if (join.success) assert.equal(join.pending, false);
+  }
+
+  const results = await searchGroups({ term: `Open ${token} Yard` });
+  const found = results.find((g) => g.handle === `sgf${suffix}`);
+
+  assert.ok(found, 'fixture group missing from results');
+  assert.deepEqual(found.faces, [
+    avatarOf(`sf${suffix}`),
+    avatarOf(`sk${suffix}`),
+  ]);
+  assert.equal(found.memberCount, 3, 'the avatar-less member still counts');
 });
