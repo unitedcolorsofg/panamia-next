@@ -14,10 +14,6 @@ export const metadata = {
     'Community Connectors are the volunteers who keep Pana MIA running — neighborhood pods across Miami-Dade, Broward and Palm Beach.',
 };
 
-export default async function ConnectorsFrontPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  return <ConnectorsFrontDoor as={(await searchParams).as} />;
+export default async function ConnectorsFrontPage() {
+  return <ConnectorsFrontDoor />;
 }

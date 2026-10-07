@@ -1,16 +1,26 @@
+import { redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
 import { ConnectorJoinForm } from '@/components/connectors/join-form';
-import { ViewerSwitch } from '@/components/connectors/viewer-switch';
+import { getMyConnector } from '@/lib/connectors/membership';
 
 /**
  * Where "Become a Connector" goes.
  *
  * The form is `components/connectors/join-form.tsx`; this file gives it a
- * route, metadata and the surface's viewer switch, so a reviewer who lands
- * here can get back to either state without using the back button.
+ * route, metadata, and the session it needs.
  *
- * `noindex` while it is a mock. A form that cannot be submitted has no
- * business ranking for "become a community connector miami" — the search
- * result would be a promise the page does not keep.
+ * Joining writes to the signed-in member's own profile, so there is nowhere to
+ * put the answers until there is an account to hang them on — hence the
+ * redirect to sign in rather than an anonymous form that asks for an email and
+ * tries to match it up later.
+ *
+ * Somebody who has already joined gets the same form with their answers in it.
+ * The API treats a second POST as an edit, so this is also the "change my
+ * houses" page, and that is one page fewer to keep in step with the first.
+ *
+ * `noindex`, because it requires a session. A search result that lands every
+ * visitor on a sign-in redirect is a worse answer than not ranking at all.
  */
 
 export const metadata = {
@@ -20,11 +30,20 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function ConnectorJoinPage() {
+export default async function ConnectorJoinPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/signin');
+  }
+
+  const me = await getMyConnector(session.user.id);
+
   return (
-    <>
-      <ViewerSwitch current="visitor" />
-      <ConnectorJoinForm />
-    </>
+    <ConnectorJoinForm
+      initialPod={me?.membership.pod ?? null}
+      initialHouses={me?.membership.houses ?? []}
+      initialBring={me?.membership.bring ?? ''}
+      isEditing={me !== null}
+    />
   );
 }

@@ -393,6 +393,13 @@
       "when": 1791331200000,
       "tag": "0054_directory_account_type",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791417600000,
+      "tag": "0055_profile_connector",
+      "breakpoints": true
     }
   ]
 }
