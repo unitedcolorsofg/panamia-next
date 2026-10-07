@@ -3,10 +3,17 @@ import {
   BirthdayList,
   CommitmentsTable,
   EventCard,
+  HousePill,
   Panel,
   TierLabel,
 } from '@/components/connectors/dashboard-parts';
 import { ViewerSwitch } from '@/components/connectors/viewer-switch';
+import {
+  MockButton,
+  MockInput,
+  MockSelect,
+  MockTag,
+} from '@/components/mock-controls';
 import {
   ASKS,
   DEMO_VIEWER_ID,
@@ -17,7 +24,7 @@ import {
   upcomingBirthdays,
   upcomingEvents,
 } from '@/lib/connectors/fixtures';
-import { getHouse, getPod, getTier } from '@/lib/connectors/model';
+import { HOUSES, type ConnectorEvent, getHouse, getPod, getTier } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
@@ -33,6 +40,20 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * leaving that on a slide means it gets read once during onboarding and never
  * again — which is precisely when somebody starts wondering what Tier 2 would
  * actually involve.
+ *
+ * ## Why the controls are here and inert
+ *
+ * Each of the three questions above has an answer that ends in doing
+ * something: I will add a commitment, I will take a shift, I will pick that
+ * ask up. The admin console got its mock controls when it moved; this page
+ * did not have any, which made HQ a noticeboard — it could tell a connector
+ * three volunteers were missing from Saturday and offer no way to be one of
+ * them.
+ *
+ * They are `disabled`, like every other mock control in the app. The point is
+ * to settle what a connector reaches for before anybody writes the table that
+ * records it. See `components/mock-controls` for why disabled rather than
+ * live-but-dropped.
  */
 
 export const metadata = {
@@ -127,9 +148,39 @@ export default async function ConnectorHqPage({
         </header>
 
         <div className="container mx-auto grid gap-6 px-4 py-10 lg:grid-cols-3">
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            <Panel title="My commitments">
+          {/* `min-w-0` is load-bearing. A grid item defaults to
+              `min-width: auto`, which means it refuses to shrink below its
+              content's intrinsic width — so the commitments table's min-width
+              pushed this whole column wider than the viewport on a phone, and
+              the `overflow-x-auto` wrapper around the table never got the
+              chance to scroll because it was never the thing being squeezed.
+              The page scrolled sideways instead of the table. */}
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+            <Panel title="My commitments" action={<MockTag />}>
               <CommitmentsTable rows={myCommitments} showWho={false} />
+
+              <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
+                <h3 className="text-sm font-extrabold tracking-wide uppercase">
+                  Say you will do something
+                </h3>
+                {/* No "who" field, unlike the admin console's version of this
+                  * form. A connector commits themselves; volunteering somebody
+                  * else is the pod lead's job and it happens in conversation,
+                  * not in a form. */}
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <MockInput
+                    label="What"
+                    placeholder="Table at the Little Haiti free market"
+                  />
+                  <MockInput label="When" placeholder="Early November" />
+                  <MockSelect
+                    label="House"
+                    placeholder={house ? house.name : 'Pick a house'}
+                    options={HOUSES.map((h) => h.name)}
+                  />
+                </div>
+                <MockButton>Add to my commitments</MockButton>
+              </div>
             </Panel>
 
             <section>
@@ -138,21 +189,38 @@ export default async function ConnectorHqPage({
               </h2>
               <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 {events.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    action={<EventSignUp event={event} />}
+                  />
                 ))}
               </div>
             </section>
           </div>
 
           <aside className="flex flex-col gap-6">
-            <Panel title="Open asks">
-              <ul className="flex flex-col gap-4">
+            <Panel title="Open asks" action={<MockTag />}>
+              <ul className="flex flex-col gap-5">
                 {openAsks.map((ask) => (
                   <li key={ask.id} className="text-sm">
                     <p className="leading-snug font-bold">{ask.what}</p>
                     <p className="text-pana-ink/60 mt-1">
                       Asked by {ask.askedBy}
                     </p>
+                    {/* House pills are on the admin version of this list and
+                      * were missing here, which is backwards: a connector is
+                      * the one deciding whether an ask is theirs to take. */}
+                    {ask.houseIds.length > 0 && (
+                      <span className="mt-2 flex flex-wrap gap-1">
+                        {ask.houseIds.map((id) => (
+                          <HousePill key={id} houseId={id} />
+                        ))}
+                      </span>
+                    )}
+                    <MockButton className="mt-2.5">
+                      I&rsquo;ll pick this up
+                    </MockButton>
                   </li>
                 ))}
               </ul>
@@ -201,6 +269,37 @@ export default async function ConnectorHqPage({
 }
 
 /**
+ * The sign-up under an event card.
+ *
+ * The label tracks what the event actually needs, because "Sign up" on an
+ * event that is already covered and "Sign up" on one that is three people
+ * short are different offers, and a connector scanning four cards is choosing
+ * between them. The shortfall maths matches `EventCard`'s "Needs" line — if
+ * one ever changes, change both, or the card will contradict its own button.
+ */
+function EventSignUp({ event }: { event: ConnectorEvent }) {
+  if (event.volunteersNeeded === null) {
+    return <MockButton>Count me in</MockButton>;
+  }
+
+  const short = Math.max(0, event.volunteersNeeded - event.volunteersFilled);
+
+  if (short === 0) {
+    return <MockButton>Covered — add me as a spare</MockButton>;
+  }
+
+  if (short === 1) {
+    return <MockButton>I&rsquo;ll take the last one</MockButton>;
+  }
+
+  return (
+    <MockButton>
+      I&rsquo;ll take one of the {short}
+    </MockButton>
+  );
+}
+
+/**
  * What somebody who is not in the programme sees if they reach the HQ URL.
  *
  * A redirect would be tidier, but this is the more useful answer: the person
@@ -222,16 +321,19 @@ function NotAConnectorYet() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <SurfaceLink
-            href="/connectors"
+            href="/connectors/join"
             className={`rounded-full border-2 ${CONNECTORS_CHROME.BORDER} ${CONNECTORS_CHROME.FILL} px-5 py-2.5 text-sm font-extrabold ${CONNECTORS_CHROME.ON_FILL}`}
           >
-            What is Pana Connectors?
+            Become a Connector
           </SurfaceLink>
+          {/* The second button used to be "Become a Pana" pointing at
+            * `/form/get-listed`, the business directory intake. Two buttons,
+            * neither of which joined the programme. */}
           <SurfaceLink
-            href="/form/get-listed"
+            href="/connectors"
             className="border-pana-ink text-pana-ink rounded-full border-2 px-5 py-2.5 text-sm font-extrabold"
           >
-            Become a Pana
+            What is Pana Connectors?
           </SurfaceLink>
         </div>
       </div>

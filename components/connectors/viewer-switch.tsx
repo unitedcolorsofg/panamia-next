@@ -5,15 +5,24 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 /**
  * The mock's "viewing as" switch.
  *
- * In the real build none of this exists: whether you see the front page, the
- * HQ or the admin view falls out of the session — do you have a connector
- * record, and are you a programme admin. While Connectors is fixtures, the
- * panas still need to review all three states, and asking them to sign in and
- * out of three accounts to do it would make the review itself the hard part.
+ * In the real build none of this exists: whether you see the front page or the
+ * HQ falls out of the session — do you have a connector record. While
+ * Connectors is fixtures, the panas still need to review both states, and
+ * asking them to sign in and out of two accounts to do it would make the
+ * review itself the hard part.
  *
  * It is a link carrying `?as=` rather than a toggle holding client state so a
- * reviewer can paste "the admin view looks wrong" into a thread with a URL
- * that actually reproduces what they saw.
+ * reviewer can paste "the HQ looks wrong" into a thread with a URL that
+ * actually reproduces what they saw.
+ *
+ * ## Why there is no admin pill
+ *
+ * There was one, back when the programme console lived at `/connectors/admin`.
+ * The console has since moved to the admin surface, which is staff-gated and
+ * carries its own mock bar. A pill linking there was not a third state of this
+ * mock — it was a door out of it, dressed as a state, and reviewers followed
+ * it expecting to come back. `/connectors/admin` still answers and redirects,
+ * so an old link in somebody's notes keeps working.
  *
  * Deliberately loud. It is a scaffold, and a scaffold that looks like part of
  * the design is one somebody eventually ships.
@@ -22,27 +31,12 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 const ROLE_LABEL: Record<ViewerRole, string> = {
   visitor: 'Not a connector',
   connector: 'Connector',
-  admin: 'Programme admin',
 };
 
-/** Each role implies where it belongs, which is the behaviour being demoed.
- *
- *  `admin` is the odd one out: the console moved to the admin surface, which
- *  is staff-gated and has no viewer roles of its own. So it is a door out of
- *  this mock rather than a state of it, and the link below carries no `?as=`.
- *  `/connectors/admin` still answers and redirects there, so an old link in
- *  somebody's notes keeps working. */
+/** Each role implies where it belongs, which is the behaviour being demoed. */
 const ROLE_HOME: Record<ViewerRole, string> = {
   visitor: '/connectors',
   connector: '/connectors/hq',
-  admin: '/admin/connectors',
-};
-
-/** Roles this surface actually renders, and so can preview with `?as=`. */
-const PREVIEWABLE: Record<ViewerRole, boolean> = {
-  visitor: true,
-  connector: true,
-  admin: false,
 };
 
 export function ViewerSwitch({ current }: { current: ViewerRole }) {
@@ -58,11 +52,7 @@ export function ViewerSwitch({ current }: { current: ViewerRole }) {
             return (
               <SurfaceLink
                 key={role}
-                href={
-                  PREVIEWABLE[role]
-                    ? `${ROLE_HOME[role]}?as=${role}`
-                    : ROLE_HOME[role]
-                }
+                href={`${ROLE_HOME[role]}?as=${role}`}
                 aria-current={active ? 'page' : undefined}
                 className={`rounded-full border-2 border-pana-ink px-3 py-1 text-xs font-bold transition-colors ${
                   active

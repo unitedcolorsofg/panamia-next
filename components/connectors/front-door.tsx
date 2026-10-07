@@ -43,10 +43,11 @@ export function ConnectorsFrontDoor({ as }: { as?: string }) {
       <OfferingFrontPage
         id="connectors"
         actions={{
-          // Both older names for this intake -- `/form/become-a-pana` and
-          // `/form/list-your-business` -- are now redirect stubs. Point at the
-          // live route directly rather than through either hop.
-          primary: '/form/get-listed',
+          // "Become a Connector" used to point at `/form/get-listed`, which is
+          // the public *business directory* intake. Somebody who read this
+          // whole page and decided they wanted in was handed a form about
+          // their shop. `/connectors/join` is the programme's own door.
+          primary: '/connectors/join',
           secondary: '/connectors/hq?as=connector',
         }}
         interlude={<HouseBoard />}

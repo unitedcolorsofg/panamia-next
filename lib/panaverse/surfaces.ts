@@ -118,7 +118,7 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // One prefix, unlike social's six. Connectors is a new surface with no
     // history, so everything it owns was built under `/connectors` from the
     // start and there are no older top-level routes to keep claiming. The
-    // rooms inside it -- `/connectors/hq`, `/connectors/admin` -- are covered
+    // rooms inside it -- `/connectors/hq`, `/connectors/join` -- are covered
     // by the prefix match and do not need naming individually.
     paths: ['/connectors'],
   },

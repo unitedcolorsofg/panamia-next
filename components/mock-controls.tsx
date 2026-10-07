@@ -4,9 +4,15 @@ import type { ReactNode } from 'react';
  * Real-looking, deliberately inert controls.
  *
  * Lifted out of the connectors console so the listings queue does not grow a
- * second, slightly-different set. The point of a mock is to settle what an
- * admin should be able to do and what they need in front of them while they do
- * it; wiring writes before that is agreed means building the wrong writes.
+ * second, slightly-different set, and since moved out of `components/Admin`
+ * because the connector-facing pages need the same vocabulary. A mock of what
+ * a connector can do and a mock of what staff can do are the same exercise:
+ * settle what somebody should be able to reach for, and what they need in
+ * front of them while they reach for it. Wiring writes before that is agreed
+ * means building the wrong writes.
+ *
+ * Nothing in here is admin-flavoured — the palette is cream and ink, and the
+ * callers supply their own surrounding chrome — so sharing it costs nothing.
  *
  * Every control is `disabled`, which does two jobs. It keeps them out of the
  * tab order, so a keyboard user is not marched through thirty dead selects to
@@ -70,6 +76,29 @@ export function MockInput({
         aria-label={label}
         placeholder={placeholder}
         className="w-full rounded-lg border-2 border-pana-ink/40 bg-pana-cream px-2.5 py-1.5 text-sm text-pana-ink/60 placeholder:text-pana-ink/40"
+      />
+    </label>
+  );
+}
+
+export function MockTextarea({
+  label,
+  placeholder,
+  rows = 3,
+}: {
+  label: string;
+  placeholder: string;
+  rows?: number;
+}) {
+  return (
+    <label className="block">
+      <span className="sr-only">{label}</span>
+      <textarea
+        disabled
+        rows={rows}
+        aria-label={label}
+        placeholder={placeholder}
+        className="w-full resize-none rounded-lg border-2 border-pana-ink/40 bg-pana-cream px-2.5 py-1.5 text-sm text-pana-ink/60 placeholder:text-pana-ink/40"
       />
     </label>
   );

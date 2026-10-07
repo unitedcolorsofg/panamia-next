@@ -7,7 +7,7 @@ import {
   MockInput,
   MockSelect,
   MockTag,
-} from '@/components/Admin/mock-controls';
+} from '@/components/mock-controls';
 import { Panel, StatBand } from '@/components/Admin/parts';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {

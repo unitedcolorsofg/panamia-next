@@ -248,7 +248,22 @@ export function ProgressPill({ progress }: { progress: CommitmentProgress }) {
  * and collapsing them would turn the most welcoming events into the ones that
  * look full.
  */
-export function EventCard({ event }: { event: ConnectorEvent }) {
+export function EventCard({
+  event,
+  action,
+}: {
+  event: ConnectorEvent;
+  /**
+   * An optional control in a footer under the card.
+   *
+   * HQ puts a sign-up here, because "Needs: 3 more of 8" is an ask and a card
+   * that states an ask without offering a way to answer it is a poster. The
+   * admin console passes nothing: staff set events up, they do not volunteer
+   * for them from this screen, and a button that did both would be lying
+   * about one of them.
+   */
+  action?: ReactNode;
+}) {
   const countdown = daysUntil(event.startsAt);
   const short = event.volunteersNeeded === null
     ? null
@@ -329,6 +344,12 @@ export function EventCard({ event }: { event: ConnectorEvent }) {
           {event.contactPhone ? ` · ${event.contactPhone}` : ''}
         </dd>
       </dl>
+
+      {action && (
+        <div className="mt-auto border-t-2 border-dashed border-pana-ink/25 pt-3">
+          {action}
+        </div>
+      )}
     </article>
   );
 }
@@ -369,7 +390,16 @@ export function CommitmentsTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+      {/* The min-width follows the column count. It was a flat 40rem, which is
+          right for the admin console's six columns and too wide for HQ's five
+          — HQ renders this in a two-thirds column, so the extra 8rem bought
+          nothing and pushed Progress, the column a connector opens the page
+          for, behind a horizontal scrollbar. */}
+      <table
+        className={`w-full ${
+          showWho ? 'min-w-[40rem]' : 'min-w-[32rem]'
+        } border-collapse text-left text-sm`}
+      >
         <thead>
           <tr className={`${chrome.FILL} ${chrome.ON_FILL}`}>
             {showWho && <Th>Who</Th>}
