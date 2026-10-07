@@ -325,8 +325,8 @@ export function ProfileHero({
                 which account type is missing and where to get one. */}
             {!showsPanaActions && (
               <p className="bizprofile-hero-note">
-                {t('hero.businessNote')}{' '}
-                <Link href="/welcome">{t('hero.businessNoteLink')}</Link>
+                {t('hero.directoryNote')}{' '}
+                <Link href="/welcome">{t('hero.directoryNoteLink')}</Link>
               </p>
             )}
 

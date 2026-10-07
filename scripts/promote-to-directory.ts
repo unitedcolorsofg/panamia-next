@@ -9,7 +9,7 @@
  *   1. `profiles.active = true`   — the moderation state.
  *   2. `profiles.userId IS NULL`  — an unclaimed intake listing, which is a
  *      OR the owning `users.accountType`  listing by definition and carries no
- *      is 'small_business' or 'hybrid'    account type to test.
+ *      is 'directory' or 'hybrid'         account type to test.
  *
  * That predicate is `DIRECTORY_ACCOUNT_TYPES`, imported below rather than
  * restated, and it gates all five read paths: lib/server/directory.ts
@@ -49,7 +49,7 @@
  *
  * Flags:
  *   --apply       Write. Without it every run is a dry run.
- *   --type=hybrid Account type to set. 'small_business' (default) or 'hybrid'.
+ *   --type=hybrid Account type to set. 'directory' (default) or 'hybrid'.
  *   --activate    Also set profiles.active = true on the named accounts.
  *
  * Deliberately does NOT touch unclaimed business-intake rows. Those are
@@ -98,7 +98,7 @@ interface Candidate {
 
 function parseType(argv: string[]): TargetType {
   const raw = argv.find((a) => a.startsWith('--type='))?.split('=')[1];
-  if (!raw) return 'small_business';
+  if (!raw) return 'directory';
   if ((DIRECTORY_ACCOUNT_TYPES as readonly string[]).includes(raw)) {
     return raw as TargetType;
   }
@@ -154,7 +154,7 @@ async function main() {
         (SELECT count(*) FROM profiles WHERE active)::int                 AS profiles_active,
         (SELECT count(*) FROM users)::int                                 AS users_total,
         (SELECT count(*) FROM users
-           WHERE account_type IN ('small_business','hybrid'))::int        AS users_listed_type,
+           WHERE account_type IN ('directory','hybrid'))::int             AS users_listed_type,
         (SELECT count(*) FROM profiles
            WHERE status->>'source' = 'business_intake'
              AND NOT active)::int                                         AS intake_pending,
@@ -162,7 +162,7 @@ async function main() {
            LEFT JOIN users u ON u.id = p.user_id
            WHERE p.active
              AND (p.user_id IS NULL
-                  OR u.account_type IN ('small_business','hybrid')))::int  AS directory_visible
+                  OR u.account_type IN ('directory','hybrid')))::int       AS directory_visible
     `)) as unknown as {
       profiles_total: number;
       profiles_active: number;
@@ -208,7 +208,7 @@ async function main() {
                (p.status->>'source' = 'business_intake') AS intake
         FROM users u
         LEFT JOIN profiles p ON p.user_id = u.id
-        WHERE u.account_type NOT IN ('small_business','hybrid')
+        WHERE u.account_type NOT IN ('directory','hybrid')
            OR p.id IS NULL
            OR NOT p.active
         ORDER BY u.email

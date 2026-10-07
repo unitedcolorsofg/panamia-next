@@ -71,25 +71,25 @@ export default async function ConnectorHqPage({
     <>
       <ViewerSwitch current={role} />
 
-      <main className="bg-pana-cream pb-20 text-pana-ink">
+      <main className="bg-pana-cream text-pana-ink pb-20">
         <header
-          className={`border-b-2 border-pana-ink ${CONNECTORS_CHROME.FILL}`}
+          className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}
         >
           <div className="container mx-auto px-4 py-10">
             <p
-              className={`text-xs font-extrabold uppercase tracking-[0.2em] ${CONNECTORS_CHROME.ACCENT}`}
+              className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
             >
               Connector HQ
             </p>
             <h1
-              className={`mt-2 text-4xl font-extrabold leading-tight ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
+              className={`mt-2 text-4xl leading-tight font-extrabold ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
             >
               Hey, {me.name.split(' ')[0]}.
             </h1>
 
-            <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm text-pana-cream">
+            <dl className="text-pana-cream mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-pana-cream/60">
+                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
                   House
                 </dt>
                 <dd className="mt-0.5 font-bold">
@@ -103,7 +103,7 @@ export default async function ConnectorHqPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-pana-cream/60">
+                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
                   Tier
                 </dt>
                 <dd className="mt-0.5 font-bold">
@@ -111,7 +111,7 @@ export default async function ConnectorHqPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-pana-cream/60">
+                <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
                   Pod
                 </dt>
                 <dd className="mt-0.5 font-bold">
@@ -120,7 +120,7 @@ export default async function ConnectorHqPage({
               </div>
             </dl>
 
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-pana-cream/70">
+            <p className="text-pana-cream/70 mt-4 max-w-2xl text-sm leading-relaxed">
               {tier.blurb}
             </p>
           </div>
@@ -133,7 +133,7 @@ export default async function ConnectorHqPage({
             </Panel>
 
             <section>
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-pana-ink/60">
+              <h2 className="text-pana-ink/60 text-sm font-extrabold tracking-wide uppercase">
                 Coming up
               </h2>
               <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -149,8 +149,8 @@ export default async function ConnectorHqPage({
               <ul className="flex flex-col gap-4">
                 {openAsks.map((ask) => (
                   <li key={ask.id} className="text-sm">
-                    <p className="font-bold leading-snug">{ask.what}</p>
-                    <p className="mt-1 text-pana-ink/60">
+                    <p className="leading-snug font-bold">{ask.what}</p>
+                    <p className="text-pana-ink/60 mt-1">
                       Asked by {ask.askedBy}
                     </p>
                   </li>
@@ -160,7 +160,7 @@ export default async function ConnectorHqPage({
 
             {house && (
               <Panel title={`Next in ${house.name}`}>
-                <p className="text-sm leading-relaxed text-pana-ink/70">
+                <p className="text-pana-ink/70 text-sm leading-relaxed">
                   What people at each tier are doing. Tiers are about how much
                   you are carrying — not how good you are at it.
                 </p>
@@ -171,11 +171,11 @@ export default async function ConnectorHqPage({
                       key={t}
                       className={
                         t === me.tier
-                          ? 'rounded-lg border-2 border-pana-ink p-3'
+                          ? 'border-pana-ink rounded-lg border-2 p-3'
                           : 'px-3 opacity-60'
                       }
                     >
-                      <p className="text-xs font-extrabold uppercase tracking-wide">
+                      <p className="text-xs font-extrabold tracking-wide uppercase">
                         Tier {t}
                         {t === me.tier ? ' · you' : ''}
                       </p>
@@ -210,12 +210,12 @@ export default async function ConnectorHqPage({
  */
 function NotAConnectorYet() {
   return (
-    <main className="bg-pana-cream py-24 text-pana-ink">
+    <main className="bg-pana-cream text-pana-ink py-24">
       <div className="container mx-auto max-w-xl px-4 text-center">
-        <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">
+        <h1 className="text-3xl leading-tight font-extrabold sm:text-4xl">
           You are not a connector yet.
         </h1>
-        <p className="mt-4 text-base leading-relaxed text-pana-ink/70">
+        <p className="text-pana-ink/70 mt-4 text-base leading-relaxed">
           Connector HQ is where the pods keep their events, their commitments
           and their open asks. Read what the programme is, and if it sounds like
           you, there is a way in.
@@ -228,8 +228,8 @@ function NotAConnectorYet() {
             What is Pana Connectors?
           </SurfaceLink>
           <SurfaceLink
-            href="/form/list-your-business"
-            className="rounded-full border-2 border-pana-ink px-5 py-2.5 text-sm font-extrabold text-pana-ink"
+            href="/form/get-listed"
+            className="border-pana-ink text-pana-ink rounded-full border-2 px-5 py-2.5 text-sm font-extrabold"
           >
             Become a Pana
           </SurfaceLink>

@@ -16,8 +16,8 @@ interface MockControlsProps {
 const VIEWERS: { key: ViewerKind; label: string; hint: string }[] = [
   { key: 'anon', label: 'Signed out', hint: 'Save prompts for signup' },
   {
-    key: 'business',
-    label: 'Business account',
+    key: 'directory',
+    label: 'Directory account',
     hint: 'Signed in, but with no pana profile — Save is not offered at all',
   },
   { key: 'pana', label: 'Pana', hint: 'Everything works' },

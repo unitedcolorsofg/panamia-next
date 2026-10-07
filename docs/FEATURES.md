@@ -33,7 +33,7 @@ User-curated collections of local businesses, implemented as [ActivityPub Collec
 A list is a named, ordered set of directory listings a pana vouches for, and every entry carries that pana's own note — the point of the feature. The directory can already tell you a cafe exists; it cannot tell you that someone you trust orders the same thing there every Tuesday.
 
 - Lists belong to a **person**, not a profile, so switching hats never re-attributes them and a business cannot vouch for anyone. Same rule as `profile_signals`.
-- Only directory listings (`small_business` / `hybrid` accounts, or business-intake rows) can be added. You cannot put a person on a list.
+- Only directory listings (`directory` / `hybrid` accounts, or business-intake rows) can be added. You cannot put a person on a list.
 - Visibility is `private` (default) / `unlisted` / `public`. There is no "panas-only": followers-only cannot be enforced on a pull endpoint without signed GETs, and an unenforceable visibility level is worse than none.
 - Public lists are served as an AS2 `OrderedCollection` from `/api/federation/lists/[listId]`, advertising `/p/{handle}/lists/{slug}` as the `id`. Addressing only — push delivery is deferred alongside statuses (see SOCIAL-ROADMAP Phase 6).
 

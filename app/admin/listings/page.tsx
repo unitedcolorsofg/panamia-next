@@ -81,8 +81,8 @@ export default function AdminListingsPage() {
             Directory listings
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-pana-ink/70">
-            Businesses that applied to the directory and have not been answered
-            yet. Oldest first, because the oldest one is the one somebody has
+            Applications to the directory that have not been answered yet.
+            Oldest first, because the oldest one is the one somebody has
             been waiting on.
           </p>
         </header>
@@ -118,7 +118,7 @@ export default function AdminListingsPage() {
           >
             <div className="flex flex-col gap-3">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <MockInput label="Search" placeholder="Business name" />
+                <MockInput label="Search" placeholder="Listing name" />
                 <MockSelect
                   label="County"
                   placeholder="All counties"

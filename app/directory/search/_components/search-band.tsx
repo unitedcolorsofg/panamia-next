@@ -133,7 +133,7 @@ export function SearchBand({
         <div className="dirsearch-searchrow">
           <DirectorySuggest
             layout="pill"
-            scope="business"
+            scope="directory"
             initialTerm={term}
             label="Search the Pana Mia directory"
             ariaLabel="Search the Pana Mia directory"
@@ -142,7 +142,7 @@ export function SearchBand({
             onSearch={onSearch}
             leading={
               <ScopeMenu
-                scope="business"
+                scope="directory"
                 term={term}
                 counts={counts}
                 signedIn={signedIn}

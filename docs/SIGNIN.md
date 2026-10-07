@@ -164,9 +164,123 @@ This is a **feature** of better-auth called "account linking" and it's secure be
 
 ## Implementation Details
 
+### Turning on Google sign-in
+
+Google sign-in is implemented end to end — provider config in `auth.ts`, the
+`signIn.social()` path in `lib/auth-client.ts`, and the button in
+`app/signin/_components/signin-view.tsx`. Nothing is left to build; it ships
+switched off because it needs credentials. To enable it:
+
+1. **Pick the right Google account first — this is hard to undo.** The OAuth
+   client belongs to a Google Cloud project owned by one Google account, and the
+   binding that matters is Search Console: `pana.social` has to be listed as an
+   **Authorized domain** before Google will accept the redirect URI, and
+   authorized domains are verified from the owning account. Lose the account and
+   nobody can edit the consent screen or the redirect URIs, so there is no way
+   to repair sign-in. Verification itself is a DNS TXT record in Cloudflare.
+
+   **Use the `panamia.club` Workspace account (`jose@panamia.club`).** A
+   Workspace identity is organisation-owned, so a super-admin can recover or
+   transfer it, and projects created by a Workspace user are placed under the
+   `panamia.club` Cloud **Organization** rather than owned by an individual.
+   That is the continuity property a personal Gmail cannot offer. Add a second
+   **Owner** to the project anyway.
+
+   **The catch is that the Workspace domain is not the product domain.**
+   `panamia.club` is the older, separate deployment described in
+   [DOMAINS.md](./DOMAINS.md), whose future is an open product decision. If it
+   is ever retired _and_ the Workspace subscription is cancelled with it, the
+   account owning this OAuth client disappears and Google sign-in on
+   `pana.social` breaks. Retiring the website while keeping the domain and
+   Workspace is fine; cancelling both is not. Decide that before building on it.
+
+   `pana.social` itself has no Workspace — mail is Cloudflare — so
+   `hola@pana.social` is not a Google identity and cannot own the project or be
+   selected as the support email. Do not add `pana.social` as a Workspace
+   secondary domain just to obtain a matching address: that repoints MX at
+   Google and disturbs the Cloudflare email setup for no OAuth benefit.
+
+2. **Create an OAuth client** in the
+   [Google Cloud console](https://console.cloud.google.com/apis/credentials) →
+   _Create credentials_ → _OAuth client ID_ → _Web application_.
+
+   Consent screen settings that catch people out:
+   - **Every URL on the consent screen must be `pana.social`.** Publishing asks
+     for homepage, privacy policy and terms links, and the instinct is to use
+     the email domain. Do not: the `panamia.club` apex has served an expired TLS
+     certificate since 2024-07-24, so those links land on a browser security
+     interstitial. See [DOMAINS.md](./DOMAINS.md).
+   - **User type must be External.** _Internal_ would admit only
+     `@panamia.club` Workspace members, whereas members sign in with their own
+     Google accounts.
+   - **Press "Publish app".** External starts in _Testing_, which caps sign-in
+     at 100 individually allowlisted addresses. Publishing to Production needs
+     no Google verification review, because the scopes below are all
+     non-sensitive. Keep it that way.
+   - **User support email is a dropdown**, offering only the owning account or a
+     Google Group it belongs to, and it is shown publicly on the consent screen.
+     `jose@panamia.club` works; a Workspace group such as `hola@panamia.club` is
+     nicer. `hola@pana.social` will not be listed. The separate _Developer
+     contact information_ field is free text and not shown to users, so
+     `hola@pana.social` belongs there.
+
+3. **Register the redirect URI.** better-auth serves every provider from one
+   mount, so the authorised redirect URI is:
+
+   ```text
+   https://pana.social/api/auth/callback/google
+   ```
+
+   Add one entry per origin you sign in from, including
+   `http://localhost:3000/api/auth/callback/google` for local work. An origin
+   must also be in `trustedOrigins` (`auth.ts`), which already covers the
+   panaverse surfaces and localhost.
+
+4. **Set the variables.** The first two are the credentials, the third reveals
+   the button:
+
+   | Variable                     | Where  | Value            |
+   | ---------------------------- | ------ | ---------------- |
+   | `GOOGLE_CLIENT_ID`           | VAR    | from the console |
+   | `GOOGLE_CLIENT_SECRET`       | SECRET | from the console |
+   | `NEXT_PUBLIC_GOOGLE_ENABLED` | VAR    | `true`           |
+
+   All three are **runtime** values. `NEXT_PUBLIC_GOOGLE_ENABLED` is already
+   set to `"true"` in `wrangler.jsonc`, so production needs nothing further —
+   and keeping it there is deliberate, because plaintext variables set in the
+   Cloudflare dashboard are wiped on every Workers Builds deploy.
+
+   `OAUTH_GOOGLE` may be left unset: it defaults to `trusted` from
+   `lib/env.config.ts`.
+
+   > **Do not move this flag to Build variables.** The `NEXT_PUBLIC_` prefix
+   > suggests it is inlined at build time, and for a value read inside a client
+   > component it would be. This one is not: `app/signin/page.tsx` reads it on
+   > the server and passes the result to `signin-view.tsx` as a prop.
+   >
+   > It used to be read directly in that client component, and the failure mode
+   > is worth knowing because it is silent. With no build variable set, the
+   > bundler collapses `process.env` and the check compiles to
+   > `{}.NEXT_PUBLIC_GOOGLE_ENABLED === 'true'` — false forever, whatever the
+   > runtime env says. The server, reading the real runtime value, renders the
+   > button anyway; hydration then deletes it. `curl` shows a working page and
+   > the browser shows none. The same trap is armed for the Apple, Wikimedia
+   > and Mastodon flags, which is why all four are resolved server-side.
+
+The consent screen asks for `openid`, `email` and `profile` only, which are
+Google's non-sensitive scopes, so this does not require an app-verification
+review.
+
 ### Account Linking for Trusted Providers
 
 Trusted providers (Google, Apple, Email, mastodon.social) create account links automatically through better-auth's default flow.
+
+A member who already signed in by magic link and then uses Google on the same
+address is linked into the existing account rather than given a second one.
+That holds because the magic link plugin marks those users
+`emailVerified: true` and Google reports a verified email — better-auth
+requires both. See "Account Linking" in `SECURITY_AUDIT.md` for the exact
+conditions and the two cases that do _not_ link.
 
 ### Account Linking for Verification-Required Providers
 

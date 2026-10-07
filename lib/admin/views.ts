@@ -108,7 +108,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     name: 'Directory listings',
     href: '/admin/listings',
     group: 'directory',
-    blurb: 'Applications from businesses waiting to be let into the directory.',
+    blurb: 'Applications waiting to be let into the directory.',
     does: [
       'See everything waiting, oldest first',
       'Read the application without leaving the queue',

@@ -116,12 +116,12 @@ export function listVisibilityFilter(viewerUserId: string | null): SQL {
 // ---------------------------------------------------------------------------
 
 /**
- * You can recommend a business. You cannot recommend a person.
+ * You can recommend a directory listing. You cannot recommend a person.
  *
  * Enforced here rather than as a DB CHECK because the test is cross-table:
  * a profile is a directory listing if it came from the public business intake
  * form (no linked user at all) or if its owning account opted into the
- * directory by choosing small_business or hybrid. That mirrors
+ * directory by choosing directory or hybrid. That mirrors
  * isPersonalProfile() in lib/server/profile.ts, inverted — and like that
  * function it resolves ambiguity conservatively, refusing anything it cannot
  * positively identify as a listing.

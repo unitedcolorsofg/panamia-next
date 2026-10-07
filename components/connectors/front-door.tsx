@@ -43,9 +43,10 @@ export function ConnectorsFrontDoor({ as }: { as?: string }) {
       <OfferingFrontPage
         id="connectors"
         actions={{
-          // `/form/become-a-pana` was retired on main and now redirects here;
-          // pointing at the live intake directly rather than through the hop.
-          primary: '/form/list-your-business',
+          // Both older names for this intake -- `/form/become-a-pana` and
+          // `/form/list-your-business` -- are now redirect stubs. Point at the
+          // live route directly rather than through either hop.
+          primary: '/form/get-listed',
           secondary: '/connectors/hq?as=connector',
         }}
         interlude={<HouseBoard />}

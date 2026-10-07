@@ -133,7 +133,7 @@ test('owning a claimed listing counts', async () => {
 test('a non-owner role on a listing still counts', async () => {
   // Deliberate: anyone trusted to edit a listing is already connected to one,
   // so the onboarding nudge to create a first listing is noise for them. The
-  // door is a shortcut, not a gate — /form/list-your-business stays reachable
+  // door is a shortcut, not a gate — /form/get-listed stays reachable
   // from the nav either way.
   assert.equal(await administersOtherProfile(editorUserId), true);
 });

@@ -5,13 +5,13 @@ import type { SuggestionKind } from '@/lib/suggest';
  *
  * The proposal, in one paragraph: the scope toggle stops being a directory
  * control and becomes part of the front door's search box, the directory
- * narrows to businesses only, and events, groups and panas each get a page
- * built around the question that kind is actually asked.
+ * narrows to directory listings only, and events, groups and panas each get a
+ * page built around the question that kind is actually asked.
  *
  * Everything below exists to make that argument checkable rather than
  * assertable, so the fixtures are written against the awkward cases — an
  * online group with no county, an event with no cover, a pana who publishes
- * no neighbourhood, a business claimed last week with nothing in it yet.
+ * no neighbourhood, a listing claimed last week with nothing in it yet.
  * Those are the rows a layout designed for the happy case quietly drops, and
  * a mock that only contains complete records cannot show you that it does.
  */
@@ -33,7 +33,7 @@ export type ExploreScope = SuggestionKind;
 /**
  * The four kinds, with no "Everything".
  *
- * Today's bar leads with Everything and lands a bare search in businesses,
+ * Today's bar leads with Everything and lands a bare search in the directory,
  * which is two defaults disagreeing: the menu says the box searches all four,
  * the submit says it searches one. Dropping Everything settles that in favour
  * of the honest answer — the box searches whatever the chip says — at a cost
@@ -47,12 +47,12 @@ export type ExploreScope = SuggestionKind;
  * happens on the way in, before the query, instead of in a results page after
  * it.
  *
- * Ordered businesses-first because that is the default and a menu should open
+ * Ordered directory-first because that is the default and a menu should open
  * on its default, then events, groups, panas: public before members-only, so
  * the locked row is last rather than sitting in the middle of the list.
  */
 export const EXPLORE_SCOPES: readonly ExploreScope[] = [
-  'business',
+  'directory',
   'event',
   'group',
   'pana',
@@ -61,15 +61,15 @@ export const EXPLORE_SCOPES: readonly ExploreScope[] = [
 /**
  * The scope a visitor who has not chosen one gets.
  *
- * Businesses: the largest set, the only one that is entirely public, and the
- * thing the club is most often asked for by someone arriving cold. It is also
- * what a bare search already does today, so no one's muscle memory breaks on
- * the day this ships.
+ * The directory: the largest set, the only one that is entirely public, and
+ * the thing the club is most often asked for by someone arriving cold. It is
+ * also what a bare search already does today, so no one's muscle memory breaks
+ * on the day this ships.
  */
-export const DEFAULT_EXPLORE_SCOPE: ExploreScope = 'business';
+export const DEFAULT_EXPLORE_SCOPE: ExploreScope = 'directory';
 
 export const SCOPE_LABEL: Record<ExploreScope, string> = {
-  business: 'Businesses',
+  directory: 'Directory',
   event: 'Events',
   group: 'Groups',
   pana: 'Panas',
@@ -78,12 +78,12 @@ export const SCOPE_LABEL: Record<ExploreScope, string> = {
 /**
  * One line of plain description per scope, as the live scope menu carries.
  *
- * Nouns are ambiguous here: "Groups" could be read as businesses with several
+ * Nouns are ambiguous here: "Groups" could be read as listings with several
  * locations, and "Panas" means nothing at all on a first visit. One line of
  * description is the difference between a menu you read and one you guess at.
  */
 export const SCOPE_BLURB: Record<ExploreScope, string> = {
-  business: 'Shops, makers, studios and venues',
+  directory: 'Shops, makers, bands, co-ops and non-profits',
   event: 'Shows, markets and meetups near you',
   group: 'Find your people, or start a group',
   pana: 'Members by name, craft or handle',
@@ -97,16 +97,16 @@ export const SCOPE_BLURB: Record<ExploreScope, string> = {
  * lists the four kinds precisely because the field had no other way to tell
  * you it covered them. Once the scope is a visible control sitting inside the
  * same pill, that list is redundant at best and contradictory at worst: a
- * field reading "Businesses" on the left should not be inviting you to type
+ * field reading "Directory" on the left should not be inviting you to type
  * an event name on the right.
  *
  * So the placeholder narrows with the scope, and in doing so it gets to say
- * something useful about *how* to search each kind — by craft for a business,
+ * something useful about *how* to search each kind — by craft for a listing,
  * by night out for an event, by handle for a pana — which the four-noun list
  * never had room for.
  */
 export const SCOPE_PLACEHOLDER: Record<ExploreScope, string> = {
-  business: 'Search local businesses — coffee, tattoo, ceramics…',
+  directory: 'Search the directory — coffee, tattoo, ceramics…',
   event: 'Search events — markets, shows, workshops…',
   group: 'Search groups — run club, book club, mutual aid…',
   pana: 'Search panas by name, craft or @handle',
@@ -122,7 +122,7 @@ export const SCOPE_PLACEHOLDER: Record<ExploreScope, string> = {
  * product you land in should say so before Enter, not after.
  */
 export const SCOPE_DESTINATION: Record<ExploreScope, string> = {
-  business: '/directory/search',
+  directory: '/directory/search',
   event: '/explore/events',
   group: '/explore/groups',
   pana: '/explore/panas',
@@ -137,7 +137,7 @@ export const SCOPE_DESTINATION: Record<ExploreScope, string> = {
  * who is not yet a member cannot recruit one.
  */
 export const SCOPE_REQUIRES_PANA: Record<ExploreScope, boolean> = {
-  business: false,
+  directory: false,
   event: false,
   group: false,
   pana: true,
@@ -153,7 +153,7 @@ export const SCOPE_REQUIRES_PANA: Record<ExploreScope, boolean> = {
  * are on is the heading.
  */
 export const SCOPE_TONE: Record<ExploreScope, string> = {
-  business: 'burnt',
+  directory: 'burnt',
   event: 'red',
   group: 'flame',
   pana: 'blue',
@@ -171,14 +171,14 @@ const FACES = [
 ];
 
 /**
- * A business, as the directory already renders one.
+ * A directory listing, as the directory already renders one.
  *
  * Unchanged from what ships, deliberately. The directory is not being
- * redesigned here, it is being narrowed — so the business card appearing in
+ * redesigned here, it is being narrowed — so the listing card appearing in
  * this mock exactly as it appears today is the point. The only thing that
  * leaves that page is the scope chip row.
  */
-export interface MockBusiness {
+export interface MockListing {
   id: string;
   name: string;
   tagline: string;
@@ -195,7 +195,7 @@ export interface MockBusiness {
   nextEvent: string | null;
   certified: boolean;
   /**
-   * Where the pin goes. Null for a business with no address to plot — an
+   * Where the pin goes. Null for a listing with no address to plot — an
    * online-only shop, a service that travels. The map has to say so out loud
    * rather than quietly dropping them, or the count beside the results stops
    * matching the count on the map.
@@ -203,7 +203,7 @@ export interface MockBusiness {
   coords: { lat: number; lng: number } | null;
 }
 
-export const BUSINESSES: MockBusiness[] = [
+export const LISTINGS: MockListing[] = [
   {
     id: 'b1',
     name: 'El Fogón Food Truck',
@@ -318,7 +318,7 @@ export interface MockEvent {
   /** `events.attendeeCap`. Null means uncapped. */
   cap: number | null;
   faces: string[];
-  /** The business or pana putting it on. */
+  /** The listing or pana putting it on. */
   host: string;
 }
 
@@ -565,7 +565,7 @@ export interface MockPana {
   avatar: string;
   mutuals: number;
   followers: number;
-  /** The business this pana is behind, if any. */
+  /** The directory listing this pana is behind, if any. */
   runs: string | null;
 }
 
@@ -624,12 +624,12 @@ export const PANAS: MockPana[] = [
 /**
  * Counts shown beside each scope in the menu.
  *
- * Businesses is larger than its three fixtures because the directory genuinely
- * is; the other three are derived from their arrays rather than typed, per the
+ * The directory is larger than its three fixtures because it genuinely is;
+ * the other three are derived from their arrays rather than typed, per the
  * README rule that a mock must not advertise a number it does not render.
  */
 export const SCOPE_COUNTS: Record<ExploreScope, number> = {
-  business: 17,
+  directory: 17,
   event: EVENTS.length,
   group: GROUPS.length,
   pana: PANAS.length,

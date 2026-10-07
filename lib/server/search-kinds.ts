@@ -480,7 +480,7 @@ function formatEventWhen(startsAt: Date, timezone: string): string | null {
  * to stay copied: active, reachable at a handle, and not a personal account.
  * If that one changes, this must too.
  */
-export async function searchBusinesses(
+export async function searchDirectory(
   term: string,
   page = 1,
   pageSize = SCOPE_PAGE_SIZE
@@ -566,13 +566,13 @@ export async function searchBusinesses(
 }
 
 /**
- * Businesses that match, counted but not fetched.
+ * Directory listings that match, counted but not fetched.
  *
- * Used only to label the business tab from a non-business scope, so the count
- * is honest about what pressing it will show. Mirrors getSearch()'s account
+ * Used only to label the directory tab from another scope, so the count is
+ * honest about what pressing it will show. Mirrors getSearch()'s account
  * type predicate exactly; if that one changes, this must too.
  */
-export async function countBusinesses(term: string): Promise<number> {
+export async function countDirectory(term: string): Promise<number> {
   const trimmed = term.trim();
   if (!trimmed) return 0;
 
@@ -710,8 +710,8 @@ export async function countAllScopes(
   viewerIsSignedIn: boolean
 ): Promise<ScopeCountsResult> {
   const unavailable = new Set<ScopeKind>();
-  const [business, pana, group, event] = await Promise.all([
-    perKind('business', () => countBusinesses(term), 0, unavailable),
+  const [directory, pana, group, event] = await Promise.all([
+    perKind('directory', () => countDirectory(term), 0, unavailable),
     viewerIsSignedIn
       ? perKind('pana', () => countPanas(term), 0, unavailable)
       : Promise.resolve(0),
@@ -720,7 +720,7 @@ export async function countAllScopes(
       : Promise.resolve(0),
     perKind('event', () => countEvents(term), 0, unavailable),
   ]);
-  return { counts: { business, pana, group, event }, unavailable };
+  return { counts: { directory, pana, group, event }, unavailable };
 }
 
 /**
@@ -739,8 +739,8 @@ export async function searchKindSafely(
   const failed = new Set<ScopeKind>();
   const run = () => {
     switch (kind) {
-      case 'business':
-        return searchBusinesses(term, page, pageSize);
+      case 'directory':
+        return searchDirectory(term, page, pageSize);
       case 'pana':
         return searchPanas(term, page, pageSize);
       case 'group':

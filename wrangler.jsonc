@@ -44,17 +44,25 @@
   },
   // Placement: run the Worker next to Postgres rather than next to the member.
   //
-  // The database is in us-west-2 (Oregon) and the audience is South Florida,
-  // which is close to the worst pairing available inside the US — roughly a
-  // 75ms round trip. By default a Worker runs in the data centre nearest the
-  // request, so every query on a server-rendered page crosses the continent
-  // and back. `prepare: false` in lib/db.ts costs an extra round trip per
-  // query on top of that (its own comment says so), making it two crossings
-  // per query, and a page issuing four sequential queries spends ~600ms doing
-  // nothing but waiting on the network.
+  // The database is in us-east-1 (N. Virginia) and the audience is South
+  // Florida — roughly a 25ms round trip. By default a Worker runs in the data
+  // centre nearest the request, so every query on a server-rendered page
+  // crosses to Virginia and back, and a page issuing four sequential queries
+  // spends ~200ms doing nothing but waiting on the network.
   //
-  // Placing the Worker in Oregon pays that distance once, on the way in,
-  // instead of once per query: the same page lands around 85ms.
+  // Placing the Worker in Virginia pays that distance once, on the way in,
+  // instead of once per query: the same page lands around 60ms.
+  //
+  // This matters more than the query count alone suggests, because production
+  // reaches Postgres through the POSTGRES_URL secret rather than the
+  // HYPERDRIVE binding — lib/db.ts checks env.POSTGRES_URL first and returns
+  // before the Hyperdrive branch, and that secret is set on the deployed
+  // Worker despite the comment there saying it never is. Nothing pools that
+  // path, so every request pays a fresh TCP + TLS + SCRAM handshake — four to
+  // five round trips — before its first query. Co-locating the Worker with
+  // the database turns that handshake from ~125ms into single digits.
+  // Deleting the POSTGRES_URL secret so the Hyperdrive pool is used again is
+  // the actual fix; this keeps the fallback cheap until that happens.
   //
   // Explicit region rather than "mode": "smart" — they are mutually exclusive,
   // and smart only considers locations where the Worker has already run. A
@@ -68,13 +76,13 @@
   // worker/index.ts is only reached on the image-optimization path, which is
   // Worker work regardless.
   //
-  // Revisit if the database moves. Supabase cannot change a project's region
-  // in place, so that means a new project and a data migration — but putting
-  // it in us-east-1 would leave the Worker ~25ms from Miami instead of ~75ms,
-  // and this value would become "aws:us-east-1".
+  // The cost is requests that never touch Postgres: they now run ~25ms from
+  // the member instead of ~5ms. Static assets bypass the Worker entirely, so
+  // that is a small share of traffic, and it is the right trade while every
+  // server-rendered page is a database read.
   "placement": {
     "mode": "targeted",
-    "region": "aws:us-west-2",
+    "region": "aws:us-east-1",
   },
   // Hyperdrive binding for Supabase PostgreSQL access from Workers
   // https://dash.cloudflare.com -> Workers & Pages -> Hyperdrive
@@ -136,9 +144,17 @@
   // deploy unless they're in this file or promoted to secrets.
   //
   // Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
-  // NEXT_PUBLIC_* and explicitly build-baked vars (e.g. TURNSTILE_SITE_KEY,
-  // EMAIL_SENDER_*) belong in CF dashboard Build variables, NOT here —
-  // they're inlined at build time.
+  // Genuinely build-baked vars — ones read by a client component, such as
+  // NEXT_PUBLIC_TURNSTILE_SITE_KEY or EMAIL_SENDER_* — belong in CF dashboard
+  // Build variables, NOT here: they are inlined at build time, so a runtime
+  // value arrives far too late to reach the bundle.
+  //
+  // The NEXT_PUBLIC_*_ENABLED sign-in flags are the exception. They keep the
+  // prefix for continuity with lib/env.config.ts, but app/signin/page.tsx
+  // resolves them on the server and passes them down as props, so they are
+  // ordinary runtime vars and belong here. See the note on `oauthProviders`
+  // in app/signin/_components/signin-view.tsx for why that distinction is
+  // what decides whether the buttons render.
   //
   // The values below are PRODUCTION CF Workers values. They are intentionally
   // distinct from .env.local — that file is for local-dev values only. Most
@@ -155,6 +171,19 @@
     // stable if/when the UI moves to another hostname. Do not change it once
     // actors have federated — see lib/federation/domain.ts.
     "FEDERATION_DOMAIN": "pana.social",
+    // Public half of the Google OAuth credential pair: it travels in the
+    // browser's authorization URL, so it is config rather than a secret. The
+    // matching GOOGLE_CLIENT_SECRET is a Cloudflare secret and must never
+    // appear here. Unset leaves socialProviders.google inert, which is how
+    // this shipped before the client existed - see docs/SIGNIN.md.
+    "GOOGLE_CLIENT_ID": "76202212058-glc6e1h7noshav4mu2odhplh6ce31g6h.apps.googleusercontent.com",
+    // Shows the "Continue with Google" button. Despite the NEXT_PUBLIC_ prefix
+    // this is a plain runtime var, not a build-baked one: app/signin/page.tsx
+    // resolves it on the server and hands the result to the client component
+    // as a prop. Setting it as a dashboard variable works but does not last —
+    // plaintext dashboard vars are wiped on each Workers Builds deploy, which
+    // is exactly why it lives here. Turn the button off by setting "false".
+    "NEXT_PUBLIC_GOOGLE_ENABLED": "true",
     // Registrable domain the panaverse surfaces hang off — see
     // lib/panaverse/surfaces.ts. Hosts that don't match a surface (previews,
     // localhost) fall back to the main site with every route reachable.

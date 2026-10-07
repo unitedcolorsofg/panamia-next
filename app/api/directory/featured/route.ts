@@ -19,7 +19,7 @@ import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
  *
  * Eligibility deliberately mirrors `getSearch()`. Anything the directory can
  * return, this can feature. That is not a stylistic preference: business
- * listings submitted through /form/list-your-business keep `profiles.userId`
+ * listings submitted through /form/get-listed keep `profiles.userId`
  * NULL permanently and are administered through `profileOwners`, because
  * `userId` is unique and would otherwise cap a Pana at one listing (see
  * lib/server/profile-owners.ts). An inner join on `users` therefore excluded

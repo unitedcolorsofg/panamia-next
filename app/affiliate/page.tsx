@@ -27,7 +27,7 @@ function AffiliateContent() {
       if (redirect_key === 'BECOMEAPANA') {
         console.log('Redirect:BECOMEAPANA');
         setTimeout(() => {
-          router.replace('/form/list-your-business');
+          router.replace('/form/get-listed');
         }, 250);
         return;
       }

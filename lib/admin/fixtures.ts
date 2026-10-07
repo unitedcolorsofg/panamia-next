@@ -62,10 +62,10 @@ export const FLAG_LABEL: Record<ReviewFlag, string> = {
 };
 
 export const FLAG_NOTE: Record<ReviewFlag, string> = {
-  'no-socials': 'No Instagram or site on the application, so there is nothing to check the business against.',
+  'no-socials': 'No Instagram or site on the application, so there is nothing to check the listing against.',
   'possible-duplicate': 'A live listing already uses a name this close. One of them is probably a re-submission.',
   'outside-area': 'Service area falls outside the three counties the directory covers.',
-  'thin-details': 'Description is too short to tell a visitor what the business actually does.',
+  'thin-details': 'Description is too short to tell a visitor what they actually do.',
   'national-brand': 'Reads like a franchise or a reseller rather than an independent Pana.',
 };
 
@@ -82,7 +82,7 @@ export interface PendingListing {
   id: string;
   name: string;
   slug: string;
-  /** The business contact on the listing itself. */
+  /** The contact on the listing itself. */
   email: string;
   /** `profiles.createdAt`. */
   submittedAt: Date;

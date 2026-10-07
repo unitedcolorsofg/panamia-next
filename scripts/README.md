@@ -184,7 +184,7 @@ screenname and silently skips the ones it cannot find.
 The fixture is deliberately shaped so that local results mean something:
 
 - Both branches of directory eligibility are present — an unclaimed intake
-  listing (`profiles.userId` null) and a `small_business` sole trader — so the
+  listing (`profiles.userId` null) and a `directory` sole trader — so the
   `featured` and `suggest` read paths can be told apart from dead code.
 - Two rows must stay invisible: an unapproved submission (`active: false`) and
   an unclaimed personal profile. A read path that returns them is widened, not

@@ -92,6 +92,13 @@ export interface SignInViewProps {
    */
   mainSiteUrl: string | null;
   mainSiteName: string;
+  /**
+   * Which OAuth providers to offer, resolved from the runtime env on the
+   * server. Deliberately a prop rather than a `process.env` read in this
+   * file — see the note on `oauthProviders` below for why that distinction
+   * decides whether the buttons appear at all.
+   */
+  enabledOAuthProviders: readonly string[];
 }
 
 function SignInPageContent({
@@ -101,6 +108,7 @@ function SignInPageContent({
   mark,
   mainSiteUrl,
   mainSiteName,
+  enabledOAuthProviders,
 }: SignInViewProps) {
   const searchParams = useSearchParams();
   /* Default to this surface's front door, not the main site's. Signing in on
@@ -135,16 +143,24 @@ function SignInPageContent({
   // default to 'false' (lib/env.config.ts), so rendering the unconfigured ones
   // as disabled buttons meant a default deployment showed four dead controls
   // with the magic link — the one path that always works — buried beneath them.
+  //
+  // Which ones are on arrives from the server in `enabledOAuthProviders`.
+  // Reading process.env.NEXT_PUBLIC_*_ENABLED here instead looks equivalent
+  // and is not: this is a client component, so the bundler resolves those at
+  // build time. With no *build* variable set, `process.env` collapses and the
+  // test compiles to `{}.NEXT_PUBLIC_GOOGLE_ENABLED === 'true'` — false for
+  // good, no matter what the runtime env says. The server, reading the real
+  // runtime env, would render the button regardless; the two disagree and
+  // hydration quietly deletes it, so the HTML has a button nobody can see.
+  // Keep this resolved server-side. See docs/SIGNIN.md.
   const oauthProviders: {
     id: string;
-    enabled: boolean;
     label: string;
     icon: ReactNode;
     className: string;
   }[] = [
     {
       id: 'google',
-      enabled: process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true',
       label: t('continueGoogle'),
       icon: <GoogleIcon />,
       className:
@@ -152,14 +168,12 @@ function SignInPageContent({
     },
     {
       id: 'apple',
-      enabled: process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true',
       label: t('continueApple'),
       icon: <AppleIcon />,
       className: 'w-full bg-black text-white hover:bg-gray-900',
     },
     {
       id: 'wikimedia',
-      enabled: process.env.NEXT_PUBLIC_WIKIMEDIA_ENABLED === 'true',
       label: t('continueWikimedia'),
       icon: <WikimediaIcon />,
       className:
@@ -167,7 +181,6 @@ function SignInPageContent({
     },
     {
       id: 'mastodon',
-      enabled: process.env.NEXT_PUBLIC_MASTODON_ENABLED === 'true',
       label: t('continueMastodon'),
       icon: <MastodonIcon />,
       className: 'w-full bg-[#6364FF] text-white hover:bg-[#563ACC]',
@@ -193,7 +206,7 @@ function SignInPageContent({
      * sign-in options, and this app offers none.
      *
      * See docs/MOBILE-ROADMAP.md for what it would take to change this. */
-    (provider) => provider.enabled && !isNativeApp
+    (provider) => enabledOAuthProviders.includes(provider.id) && !isNativeApp
   );
 
   const hasOAuth = oauthProviders.length > 0;
@@ -272,7 +285,7 @@ function SignInPageContent({
               className="h-auto w-64 max-w-full"
               priority
             />
-            {/* Listing a business no longer starts here — /form/list-your-business
+            {/* Getting listed no longer starts here — /form/get-listed
               is public — so there is one audience left on this page: someone
               returning to an account. */}
             <p className="text-pana-ink/75 dark:text-muted-foreground max-w-md text-center text-sm leading-relaxed">

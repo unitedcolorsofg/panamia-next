@@ -7,7 +7,7 @@ import type { SuggestionKind } from '@/lib/suggest';
  * reading before the components.
  *
  * Today the directory has two result types that share almost nothing. A
- * business is an `article` with a cover, a logo, a certification badge, city
+ * listing is an `article` with a cover, a logo, a certification badge, city
  * and distance, a blurb, category pills, a next-event strip, recommend and
  * save counts, and three actions. A pana, group or event is a 48px thumbnail
  * with a name, a subtitle and one line of meta. They do not merely look
@@ -20,7 +20,7 @@ import type { SuggestionKind } from '@/lib/suggest';
  * community signal and something to do next — the nouns change, the slots do
  * not:
  *
- *                business        pana            group           event
+ *                listing        pana            group           event
  *   tagline      five words      headline        purpose         —
  *   where        city + miles    city            online/city     venue + city
  *   when         next event      —               next meetup     starts at
@@ -29,12 +29,12 @@ import type { SuggestionKind } from '@/lib/suggest';
  *   action       Save / Follow   Follow          Join            RSVP
  *
  * So the card takes one shape and lets each kind fill it. A row with no data
- * does not render, which is what already makes the business card vary between
+ * does not render, which is what already makes the listing card vary between
  * a claimed and an unclaimed listing — this extends that rule across kinds
  * instead of forking the component.
  *
- * `certified` and `distance` stay business-only on purpose. Pana Certified is
- * a statement about a business's standing in the directory and means nothing
+ * `certified` and `distance` stay listing-only on purpose. Pana Certified is
+ * a statement about a listing's standing in the directory and means nothing
  * on an event; distance is measured from a listing's address and most panas
  * do not publish one. A slot no kind can honestly fill is not worth unifying.
  */
@@ -51,7 +51,7 @@ export interface UnifiedResult {
   tagline: string | null;
   /** Where this is. Already a formatted string — the mock does not geocode. */
   where: string | null;
-  /** Distance from the viewer. Business-only; see the header. */
+  /** Distance from the viewer. Directory-only; see the header. */
   distance: string | null;
   /** A moment worth acting on: a next event, a next meetup, a start time. */
   when: string | null;
@@ -78,7 +78,7 @@ const FACES = [
 export const UNIFIED_RESULTS: UnifiedResult[] = [
   {
     id: 'b1',
-    kind: 'business',
+    kind: 'directory',
     name: 'El Fogon Food Truck',
     href: '/p/el-fogon',
     cover: '/img/impact/hero-mixer.webp',
@@ -97,7 +97,7 @@ export const UNIFIED_RESULTS: UnifiedResult[] = [
   },
   {
     id: 'b2',
-    kind: 'business',
+    kind: 'directory',
     name: 'Barrio Arts Lab',
     href: '/p/barrio-arts-lab',
     cover: '/img/impact/culture-zines-left.webp',
@@ -175,7 +175,7 @@ export const UNIFIED_RESULTS: UnifiedResult[] = [
 
 /** Counts shown on the scope chips. Invented, and consistent with the list. */
 export const UNIFIED_COUNTS: Record<SuggestionKind, number> = {
-  business: 17,
+  directory: 17,
   pana: 6,
   group: 3,
   event: 4,

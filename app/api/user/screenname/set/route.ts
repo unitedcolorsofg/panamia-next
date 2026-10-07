@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
   //
   // This does NOT put anyone in the directory. Directory and sitemap listing is
   // filtered on users.accountType, which defaults to 'personal'; only
-  // small_business and hybrid are published.
+  // directory and hybrid are published.
   if (!currentUser?.profile) {
     // An unclaimed profile may already exist for this email — a listing created
     // before the account existed. auth.ts claims those at sign-in, but re-check

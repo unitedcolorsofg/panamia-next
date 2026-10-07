@@ -36,12 +36,12 @@ const BROWSE_DOORS: readonly Door[] = [
   },
 ];
 
-const BUSINESS_DOOR: Door = {
-  id: 'business',
-  href: '/form/list-your-business',
+const DIRECTORY_DOOR: Door = {
+  id: 'directory',
+  href: '/form/get-listed',
   icon: Store,
-  titleKey: 'onboarding.startBusinessTitle',
-  bodyKey: 'onboarding.startBusinessBody',
+  titleKey: 'onboarding.getListedTitle',
+  bodyKey: 'onboarding.getListedBody',
 };
 
 function DoorCard({ door }: { door: Door }) {
@@ -114,9 +114,9 @@ export function StartView({
                 above are places to go, this one opens a form and puts a
                 listing in the directory. */}
             <p className="text-muted-foreground text-center text-xs tracking-wide uppercase">
-              {t('onboarding.startBusinessDivider')}
+              {t('onboarding.getListedDivider')}
             </p>
-            <DoorCard door={BUSINESS_DOOR} />
+            <DoorCard door={DIRECTORY_DOOR} />
           </div>
         )}
 

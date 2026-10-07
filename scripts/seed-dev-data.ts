@@ -162,7 +162,7 @@ async function main(): Promise<void> {
     {
       // The branch nothing covered. app/api/directory/featured and getSearch
       // admit a row EITHER because it has no user at all (an intake listing)
-      // OR because its user is small_business/hybrid. With every seeded user
+      // OR because its user is directory/hybrid. With every seeded user
       // personal, the second branch never ran and could not be distinguished
       // from dead code.
       id: 'seed_u_15',
@@ -170,7 +170,7 @@ async function main(): Promise<void> {
       emailVerified: true,
       name: 'Lucia Ferrer',
       screenname: 'taller-lucia',
-      accountType: 'small_business' as const,
+      accountType: 'directory' as const,
     },
   ];
 
@@ -181,7 +181,7 @@ async function main(): Promise<void> {
       .onConflictDoUpdate({ target: schema.users.id, set: u });
   }
   line('upserted', userRows.length);
-  line('small_business / hybrid', 1);
+  line('directory / hybrid', 1);
 
   // ------------------------------------------------------------- profiles --
   console.log('\nProfiles');
@@ -430,7 +430,7 @@ async function main(): Promise<void> {
     WHERE p.active = true
       AND COALESCE(p.screenname, u.screenname) IS NOT NULL
       AND p.primary_image_cdn IS NOT NULL
-      AND (p.user_id IS NULL OR u.account_type IN ('small_business', 'hybrid'))
+      AND (p.user_id IS NULL OR u.account_type IN ('directory', 'hybrid'))
   `)) as unknown as { eligible: number }[];
 
   const [{ marked }] = (await db.execute(sql`

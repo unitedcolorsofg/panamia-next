@@ -9,12 +9,27 @@
  * Dates are relative to `now()` so the data never rots into "joined in 2023".
  */
 
-/** `account_type` pgEnum, verbatim. */
-export type AccountType = 'personal' | 'small_business' | 'hybrid' | 'other';
+import type { accountType } from '@/lib/schema';
+
+/**
+ * `account_type` pgEnum, derived rather than retyped.
+ *
+ * This was originally hand-written as a literal union including
+ * `small_business`. Migration 0054 renamed that value to `directory` and this
+ * file kept compiling for the rest of the branch, because a standalone union
+ * has no source of truth to disagree with -- it just quietly described an
+ * enum value that no longer existed.
+ *
+ * Reading it off the schema instead means the next rename fails the typecheck
+ * here. `import type` is erased at build time, so this pulls no Drizzle code
+ * into the bundle. `ACCOUNT_TYPE_LABEL` below is a `Record` over this union,
+ * so a renamed or added value breaks there too.
+ */
+export type AccountType = (typeof accountType.enumValues)[number];
 
 export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {
   personal: 'Personal',
-  small_business: 'Small business',
+  directory: 'Directory listing',
   hybrid: 'Hybrid',
   other: 'Other',
 };
@@ -170,7 +185,7 @@ export const ACCOUNTS: AccountUser[] = [
     screenname: 'dulcevida',
     email: 'hola@example.com',
     emailVerified: true,
-    accountType: 'small_business',
+    accountType: 'directory',
     lockedAt: null,
     createdAt: daysAgo(34),
     lastScreennameChange: daysAgo(30),
@@ -298,7 +313,7 @@ export const ACCOUNTS: AccountUser[] = [
     screenname: 'solarismendi',
     email: 'sol@example.com',
     emailVerified: true,
-    accountType: 'small_business',
+    accountType: 'directory',
     lockedAt: null,
     createdAt: daysAgo(64),
     lastScreennameChange: daysAgo(64),
@@ -362,7 +377,7 @@ export const ACCOUNTS: AccountUser[] = [
     screenname: 'cafecito',
     email: 'orders@example.com',
     emailVerified: true,
-    accountType: 'small_business',
+    accountType: 'directory',
     lockedAt: null,
     createdAt: daysAgo(19),
     lastScreennameChange: daysAgo(19),
@@ -456,7 +471,7 @@ export function userStats(): UserStat[] {
     {
       label: 'In the directory',
       value: t.inDirectory.toLocaleString(),
-      note: 'Small business or hybrid. The rest read it.',
+      note: 'Directory or hybrid. The rest read it.',
     },
     {
       label: 'Email unconfirmed',

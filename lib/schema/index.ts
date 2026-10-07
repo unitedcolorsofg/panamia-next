@@ -30,7 +30,7 @@ import { createId } from '@paralleldrive/cuid2';
 
 export const accountType = pgEnum('account_type', [
   'personal',
-  'small_business',
+  'directory',
   'hybrid',
   'other',
 ]);
@@ -736,8 +736,8 @@ export const profiles = pgTable(
     // NULLs as distinct, so the unique constraint still allows many such rows.
     //
     // This is the human's OWN identity profile, and stays 1:1 — it is not the
-    // general "who can edit this listing" link. Business listings created
-    // through /form/list-your-business leave this NULL permanently and are
+    // general "who can edit this listing" link. Directory listings created
+    // through /form/get-listed leave this NULL permanently and are
     // administered through profileOwners instead, which is what allows one
     // person to run several of them. See drizzle/0035_profile_owners.sql.
     userId: text('user_id')
