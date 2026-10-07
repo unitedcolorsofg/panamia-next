@@ -67,6 +67,7 @@ export function useSession(): {
   const u = data?.user as
     | (NonNullable<typeof data>['user'] & {
         isAdmin?: boolean;
+        isSuperAdmin?: boolean;
         panaVerified?: boolean;
         legalAgeVerified?: boolean;
         isMentoringModerator?: boolean;
@@ -80,6 +81,7 @@ export function useSession(): {
   const userEmail = u?.email;
   const emailVerified = u?.emailVerified ?? false;
   const isAdmin = u?.isAdmin ?? false;
+  const isSuperAdmin = u?.isSuperAdmin ?? false;
   const panaVerified = u?.panaVerified ?? false;
   const legalAgeVerified = u?.legalAgeVerified ?? false;
   const isMentoringModerator = u?.isMentoringModerator ?? false;
@@ -105,6 +107,7 @@ export function useSession(): {
           name: '',
           image: '',
           isAdmin,
+          isSuperAdmin,
           panaVerified,
           legalAgeVerified,
           isMentoringModerator,
@@ -121,6 +124,7 @@ export function useSession(): {
     userEmail,
     emailVerified,
     isAdmin,
+    isSuperAdmin,
     panaVerified,
     legalAgeVerified,
     isMentoringModerator,

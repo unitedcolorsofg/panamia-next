@@ -18,6 +18,7 @@ import {
   notBusinessListing,
 } from '@/lib/server/profile-owners';
 import { describeDbError } from '@/lib/server/db-error';
+import { isAdminEmail } from '@/lib/server/admin-emails';
 import { SURFACES, originFor, originForFrom } from '@/lib/panaverse/surfaces';
 import { envConfig } from '@/lib/env.config';
 
@@ -500,8 +501,14 @@ export type AppSession = {
     name?: string | null;
     image?: string | null;
 
-    // Admin role (from environment variable)
+    // Admin role. True for ADMIN_EMAILS members and for anyone granted
+    // profiles.roles.admin through /admin/users/live.
     isAdmin: boolean;
+
+    // The founder tier: ADMIN_EMAILS membership alone, never the column.
+    // Gates who may grant admin to somebody else — see checkSuperAdminAuth().
+    // Every super admin is also an admin; the reverse does not hold.
+    isSuperAdmin: boolean;
 
     // Verification badges (from profile)
     panaVerified: boolean;
@@ -600,10 +607,17 @@ interface ProfileRoles {
   mentoringModerator?: boolean;
   eventOrganizer?: boolean;
   contentModerator?: boolean;
+  // Granted from /admin/users/live by a super admin. Deliberately on the same
+  // JSONB column as the scoped roles rather than a new `users` column: the
+  // identity profile is 1:1 with the user (profiles.userId is UNIQUE) and
+  // cascades on account delete, so a grant cannot outlive the account it was
+  // made to. See drizzle/0021_drop_users_role.sql for why users.role is gone.
+  admin?: boolean;
 }
 
 type EnrichedUserFields = {
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   panaVerified: boolean;
   legalAgeVerified: boolean;
   isMentoringModerator: boolean;
@@ -615,10 +629,12 @@ async function enrichUserFields(
   userId: string,
   email: string | null | undefined
 ): Promise<EnrichedUserFields> {
-  const adminEmails =
-    process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) ||
-    [];
-  const isAdmin = email ? adminEmails.includes(email.toLowerCase()) : false;
+  // The founder tier. This is the only input that does not depend on the
+  // database, which is exactly what makes it the break-glass path: it still
+  // resolves when the `profiles` read below throws, and it cannot be revoked
+  // through any screen in the product. The last admin can therefore never be
+  // locked out by a bad write.
+  const isSuperAdmin = isAdminEmail(email);
 
   let profileVerification: ProfileVerification | null = null;
   let profileRoles: ProfileRoles | null = null;
@@ -647,7 +663,13 @@ async function enrichUserFields(
   }
 
   return {
-    isAdmin,
+    // The union of the two tiers. Note the ordering consequence of the catch
+    // above: if the profile read fails, profileRoles stays null and this
+    // degrades to env-only admin. A database problem can cost a granted admin
+    // their access until it recovers, but it can never hand access to someone
+    // who had none — the safe direction for a failure in a privilege check.
+    isAdmin: isSuperAdmin || profileRoles?.admin === true,
+    isSuperAdmin,
     panaVerified: profileVerification?.panaVerified || false,
     legalAgeVerified: profileVerification?.legalAgeVerified || false,
     isMentoringModerator: profileRoles?.mentoringModerator || false,
@@ -681,6 +703,12 @@ function readEnrichedFields(user: unknown): EnrichedUserFields | null {
   if (!enriched || typeof enriched.isAdmin !== 'boolean') return null;
   return {
     isAdmin: enriched.isAdmin,
+    // Defaults to false rather than to isAdmin. A session decorated by an
+    // older build carries isAdmin but not this field, and the two possible
+    // wrong answers are not symmetric: defaulting to false costs a founder
+    // the grant button for one request, while defaulting to isAdmin would
+    // hand the grant button to every column-granted admin.
+    isSuperAdmin: enriched.isSuperAdmin ?? false,
     panaVerified: enriched.panaVerified ?? false,
     legalAgeVerified: enriched.legalAgeVerified ?? false,
     isMentoringModerator: enriched.isMentoringModerator ?? false,
@@ -796,9 +824,21 @@ async function claimProfileForUser(
 
     if (unclaimedProfile) {
       console.log('Auto-claiming profile for user:', email, 'via:', source);
+      // Strip any admin flag the unclaimed row carries — see the matching
+      // comment in lib/server/profile.ts. Claiming is proof of an email
+      // address; it must not also be a way to inherit admin out of seeded or
+      // imported data that never passed the grant route's founder gate.
+      const existingRoles = unclaimedProfile.roles as Record<
+        string,
+        unknown
+      > | null;
+      const safeRoles =
+        existingRoles && 'admin' in existingRoles
+          ? { ...existingRoles, admin: false }
+          : existingRoles;
       await db
         .update(profiles)
-        .set({ userId })
+        .set({ userId, roles: safeRoles })
         .where(eq(profiles.id, unclaimedProfile.id));
       // Keep the ownership table in step with the identity link so permission
       // checks have one consistent answer.

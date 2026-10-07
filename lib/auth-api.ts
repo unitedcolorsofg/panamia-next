@@ -65,6 +65,11 @@ export async function getApiSession(
         name: '',
         image: '',
         isAdmin: false,
+        // Every privilege flag is false on this path by design: it reads the
+        // session row directly and never calls enrichUserFields, so it has no
+        // basis for granting anything. False is the safe default for both
+        // tiers — callers needing real privileges must use auth().
+        isSuperAdmin: false,
         panaVerified: false,
         legalAgeVerified: false,
         isMentoringModerator: false,
