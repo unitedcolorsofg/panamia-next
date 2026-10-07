@@ -53,7 +53,7 @@ export default async function RootPage({
     case 'connectors':
       return <ConnectorsFrontDoor as={as} />;
     case 'admin':
-      return <AdminHub as={as} path="/" />;
+      return <AdminHub />;
     case 'www':
       return <HomePage />;
   }

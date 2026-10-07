@@ -5,8 +5,7 @@ import {
   MockSelect,
   MockTag,
 } from '@/components/Admin/mock-controls';
-import { AdminPreviewBar, NotStaff } from '@/components/Admin/preview-bar';
-import { resolveAdminRole } from '@/lib/admin/preview';
+import { AdminMockBar } from '@/components/Admin/mock-bar';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {
   CATEGORY_LABEL,
@@ -67,27 +66,12 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminListingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  const role = resolveAdminRole((await searchParams).as);
-
-  if (role !== 'admin') {
-    return (
-      <>
-        <AdminPreviewBar current={role} path="/admin/listings" />
-        <NotStaff />
-      </>
-    );
-  }
-
+export default function AdminListingsPage() {
   const queue = queueOrder(PENDING_LISTINGS);
 
   return (
     <>
-      <AdminPreviewBar current={role} path="/admin/listings" />
+      <AdminMockBar />
 
       <main className="bg-pana-cream pb-20 text-pana-ink">
         <header className="container mx-auto px-4 pb-6 pt-10">

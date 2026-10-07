@@ -1,6 +1,5 @@
-import { AdminPreviewBar, NotStaff } from '@/components/Admin/preview-bar';
+import { AdminMockBar } from '@/components/Admin/mock-bar';
 import { ViewTile } from '@/components/Admin/parts';
-import { resolveAdminRole } from '@/lib/admin/preview';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import { ADMIN_VIEWS, UNBUILT_TOOLS } from '@/lib/admin/views';
 
@@ -31,21 +30,10 @@ import { ADMIN_VIEWS, UNBUILT_TOOLS } from '@/lib/admin/views';
  * codebase exists as an endpoint with nothing in front of it, and a hub that
  * showed only the finished tiles would quietly claim that is all there is.
  */
-export function AdminHub({ as, path }: { as?: string; path: string }) {
-  const role = resolveAdminRole(as);
-
-  if (role !== 'admin') {
-    return (
-      <>
-        <AdminPreviewBar current={role} path={path} />
-        <NotStaff />
-      </>
-    );
-  }
-
+export function AdminHub() {
   return (
     <>
-      <AdminPreviewBar current={role} path={path} />
+      <AdminMockBar />
 
       <main className="bg-pana-cream pb-20 text-pana-ink">
         <header className="container mx-auto px-4 pb-8 pt-10">

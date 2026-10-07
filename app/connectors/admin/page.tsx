@@ -12,16 +12,11 @@ import { redirect } from 'next/navigation';
  * were reviewing it. A redirect costs one file; a dead link costs somebody
  * ten minutes working out whether the feature was removed.
  *
- * `?as=` is carried across so a link that was previewing a particular role
- * still previews it after the hop — the admin surface reads the same
- * parameter, though it only recognises `visitor`.
+ * Any `?as=` on the old URL is dropped rather than carried. The admin surface
+ * has no viewer roles — it is staff or nothing — so the parameter would mean
+ * nothing on arrival.
  */
 
-export default async function MovedConnectorAdminPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  const { as } = await searchParams;
-  redirect(as ? `/admin/connectors?as=${encodeURIComponent(as)}` : '/admin/connectors');
+export default function MovedConnectorAdminPage() {
+  redirect('/admin/connectors');
 }

@@ -12,10 +12,6 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminHubPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ as?: string }>;
-}) {
-  return <AdminHub as={(await searchParams).as} path="/admin" />;
+export default function AdminHubPage() {
+  return <AdminHub />;
 }
