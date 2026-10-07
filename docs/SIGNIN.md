@@ -239,16 +239,33 @@ switched off because it needs credentials. To enable it:
 4. **Set the variables.** The first two are the credentials, the third reveals
    the button:
 
-   | Variable                     | Where    | Value            |
-   | ---------------------------- | -------- | ---------------- |
-   | `GOOGLE_CLIENT_ID`           | VAR      | from the console |
-   | `GOOGLE_CLIENT_SECRET`       | SECRET   | from the console |
-   | `NEXT_PUBLIC_GOOGLE_ENABLED` | CF build | `true`           |
+   | Variable                     | Where  | Value            |
+   | ---------------------------- | ------ | ---------------- |
+   | `GOOGLE_CLIENT_ID`           | VAR    | from the console |
+   | `GOOGLE_CLIENT_SECRET`       | SECRET | from the console |
+   | `NEXT_PUBLIC_GOOGLE_ENABLED` | VAR    | `true`           |
 
-   `NEXT_PUBLIC_GOOGLE_ENABLED` is inlined by Vite at build time, so it belongs
-   in Cloudflare's **Build** variables, not Runtime — and a change to it only
-   takes effect on the next build. `OAUTH_GOOGLE` may be left unset: it
-   defaults to `trusted` from `lib/env.config.ts`.
+   All three are **runtime** values. `NEXT_PUBLIC_GOOGLE_ENABLED` is already
+   set to `"true"` in `wrangler.jsonc`, so production needs nothing further —
+   and keeping it there is deliberate, because plaintext variables set in the
+   Cloudflare dashboard are wiped on every Workers Builds deploy.
+
+   `OAUTH_GOOGLE` may be left unset: it defaults to `trusted` from
+   `lib/env.config.ts`.
+
+   > **Do not move this flag to Build variables.** The `NEXT_PUBLIC_` prefix
+   > suggests it is inlined at build time, and for a value read inside a client
+   > component it would be. This one is not: `app/signin/page.tsx` reads it on
+   > the server and passes the result to `signin-view.tsx` as a prop.
+   >
+   > It used to be read directly in that client component, and the failure mode
+   > is worth knowing because it is silent. With no build variable set, the
+   > bundler collapses `process.env` and the check compiles to
+   > `{}.NEXT_PUBLIC_GOOGLE_ENABLED === 'true'` — false forever, whatever the
+   > runtime env says. The server, reading the real runtime value, renders the
+   > button anyway; hydration then deletes it. `curl` shows a working page and
+   > the browser shows none. The same trap is armed for the Apple, Wikimedia
+   > and Mastodon flags, which is why all four are resolved server-side.
 
 The consent screen asks for `openid`, `email` and `profile` only, which are
 Google's non-sensitive scopes, so this does not require an app-verification

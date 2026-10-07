@@ -136,9 +136,17 @@
   // deploy unless they're in this file or promoted to secrets.
   //
   // Sensitive values (API keys, DB URLs, auth secrets) → `wrangler secret put`.
-  // NEXT_PUBLIC_* and explicitly build-baked vars (e.g. TURNSTILE_SITE_KEY,
-  // EMAIL_SENDER_*) belong in CF dashboard Build variables, NOT here —
-  // they're inlined at build time.
+  // Genuinely build-baked vars — ones read by a client component, such as
+  // NEXT_PUBLIC_TURNSTILE_SITE_KEY or EMAIL_SENDER_* — belong in CF dashboard
+  // Build variables, NOT here: they are inlined at build time, so a runtime
+  // value arrives far too late to reach the bundle.
+  //
+  // The NEXT_PUBLIC_*_ENABLED sign-in flags are the exception. They keep the
+  // prefix for continuity with lib/env.config.ts, but app/signin/page.tsx
+  // resolves them on the server and passes them down as props, so they are
+  // ordinary runtime vars and belong here. See the note on `oauthProviders`
+  // in app/signin/_components/signin-view.tsx for why that distinction is
+  // what decides whether the buttons render.
   //
   // The values below are PRODUCTION CF Workers values. They are intentionally
   // distinct from .env.local — that file is for local-dev values only. Most
@@ -161,6 +169,13 @@
     // appear here. Unset leaves socialProviders.google inert, which is how
     // this shipped before the client existed - see docs/SIGNIN.md.
     "GOOGLE_CLIENT_ID": "76202212058-glc6e1h7noshav4mu2odhplh6ce31g6h.apps.googleusercontent.com",
+    // Shows the "Continue with Google" button. Despite the NEXT_PUBLIC_ prefix
+    // this is a plain runtime var, not a build-baked one: app/signin/page.tsx
+    // resolves it on the server and hands the result to the client component
+    // as a prop. Setting it as a dashboard variable works but does not last —
+    // plaintext dashboard vars are wiped on each Workers Builds deploy, which
+    // is exactly why it lives here. Turn the button off by setting "false".
+    "NEXT_PUBLIC_GOOGLE_ENABLED": "true",
     // Registrable domain the panaverse surfaces hang off — see
     // lib/panaverse/surfaces.ts. Hosts that don't match a surface (previews,
     // localhost) fall back to the main site with every route reachable.
