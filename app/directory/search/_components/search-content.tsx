@@ -17,7 +17,6 @@ import { searchPath } from '@/lib/directory-search-path';
 import { useViewerLocation } from '@/app/p/[user]/_lib/use-viewer-location';
 import { DirectoryViewerProvider } from './directory-viewer';
 import { SearchBand } from './search-band';
-import { DirectoryScopeChips } from './directory-scope-chips';
 import { FilterBar, type FilterState, type ResultView } from './filter-bar';
 import { ResultCard } from './result-card';
 import { MapPanel } from './map-panel';
@@ -238,14 +237,6 @@ export function DirectorySearchContent({
           onSearch={handleSearch}
           onShareLocation={request}
         />
-
-        {/* Full width with the band, not inside the list pane. Scope is
-            navigation — it changes what kind of thing you are looking at,
-            which is a property of the page rather than of the results column
-            — and confined to the left pane its last chip was cropped by the
-            map. The filters below it stay in the pane, because narrowing a
-            set of businesses really is that column's business. */}
-        <DirectoryScopeChips term={params.searchTerm} />
 
         <div className="dirsearch-panes">
           <section className="dirsearch-listpane" aria-label="Search results">

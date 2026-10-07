@@ -1,59 +1,47 @@
-import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
-import { ScopePage } from '../_components/scope-page';
-import {
-  SCOPE_BLURB,
-  SCOPE_LABEL,
-  scopeFromSegment,
-  scopePath,
-} from '@/lib/directory-scopes';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { scopeFromSegment, scopePath } from '@/lib/directory-scopes';
 
 /**
- * Query-form scoped search: /directory/events?q=salsa, and the bare
- * /directory/events browse view.
+ * Retired. /directory/events?q=salsa now lands on /e?q=salsa.
  *
- * Exists for the same reason /directory/search does alongside its [q] sibling:
- * a `<form method="get">` with scripting off can only produce this shape, so
- * it is the no-JS landing point. A term arriving here is redirected to the
- * canonical path form, which keeps one URL per search in the index rather
- * than two spellings of it.
+ * These segments — events, groups, panas and the old `all` — were the
+ * directory's other scopes back when it was the club's single index and the
+ * scope control was a row of chips above the results. Each kind now has a page
+ * built for it, so this route has nothing left to render and exists only to
+ * forward the links that already point at it.
+ *
+ * Permanent, unlike the term-carrying redirects in /search: the move is
+ * structural rather than a product guess. /directory/panas is not coming back
+ * under that name, because the word "directory" stopped covering people the
+ * moment it started covering bands and co-ops.
+ *
+ * 404 for anything else. A working redirect at an unbounded set of URLs is
+ * worse than an honest miss at one, and `scopeFromSegment` returning null is
+ * how a typo is told apart from a retired route.
+ *
+ * @see lib/directory-scopes.ts - SCOPE_DESTINATION, the map these resolve through
  */
 interface PageProps {
   params: Promise<{ scope: string }>;
-  searchParams: Promise<{ q?: string; p?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { scope: segment } = await params;
-  const scope = scopeFromSegment(segment);
-  if (!scope) return {};
-
-  return {
-    title: `${SCOPE_LABEL[scope]} | Pana Mia Directory`,
-    description: SCOPE_BLURB[scope],
-    alternates: { canonical: `/directory/${segment}` },
-    robots: scope === 'pana' ? { index: false, follow: false } : undefined,
-  };
-}
-
-export default async function DirectoryScopePage({
+export default async function RetiredDirectoryScopePage({
   params,
   searchParams,
 }: PageProps) {
   const { scope: segment } = await params;
+  const { q } = await searchParams;
+  const term = (q ?? '').trim();
+
+  // `all` was the Everything scope: one page previewing four kinds. There is
+  // no Everything any more, and the directory is both the default scope and
+  // the largest of the four, so that is the honest landing place for a link
+  // that asked for breadth.
+  if (segment === 'all') permanentRedirect(scopePath('directory', term));
+
   const scope = scopeFromSegment(segment);
   if (!scope) notFound();
 
-  const { q, p } = await searchParams;
-  const term = (q ?? '').trim();
-  if (term) redirect(scopePath(scope, term));
-
-  return <ScopePage scope={scope} term="" page={pageNumber(p)} />;
-}
-
-function pageNumber(value: string | undefined): number {
-  const parsed = Number.parseInt(value ?? '1', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  permanentRedirect(scopePath(scope, term));
 }

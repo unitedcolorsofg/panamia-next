@@ -165,6 +165,18 @@
       "pana": "Pana",
       "group": "Group",
       "event": "Event"
+    },
+    "scopePlaceholder": {
+      "directory": "Search the directory — coffee, tattoo, ceramics…",
+      "event": "Search events — markets, shows, workshops…",
+      "group": "Search groups — run club, book club, mutual aid…",
+      "pana": "Search panas by name, craft or @handle"
+    },
+    "scopePlaceholderShort": {
+      "directory": "Search the directory",
+      "event": "Search events",
+      "group": "Search groups",
+      "pana": "Search panas"
     }
   }
 }

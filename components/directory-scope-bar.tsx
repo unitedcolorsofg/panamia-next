@@ -8,11 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ChevronDown, Lock } from 'lucide-react';
+import { ArrowRight, ChevronDown, Lock } from 'lucide-react';
 import { KIND_ICON } from '@/components/kind-icon';
 import {
   countFor,
   SCOPE_BLURB,
+  SCOPE_DESTINATION,
   SCOPE_LABEL,
   SCOPE_REQUIRES_PANA,
   SCOPE_TONE,
@@ -22,39 +23,59 @@ import {
   type ScopeCounts,
 } from '@/lib/directory-scopes';
 
-interface ScopeNavProps {
+interface ScopeMenuProps {
   /** The term the counts were computed for; scope links carry it across. */
   term: string;
   scope: Scope;
-  /** Null while unknown — the businesses view fetches these after mount, and
-      chips are navigation first, so they render without numbers until then. */
+  /**
+   * Null while unknown. The directory fetches these after mount and the home
+   * hero never has them at all -- nothing has been searched yet, so there is
+   * no number to show. The menu is navigation first and renders without them.
+   */
   counts: ScopeCounts | null;
   signedIn: boolean;
+  /**
+   * Turns the menu from navigation into a control.
+   *
+   * Omitted on results pages, where each scope is a real, shareable route and
+   * the rows must be `<Link>`s -- middle-clickable and crawlable, which is the
+   * whole reason dedicated routes were chosen over a `?kind=` param.
+   *
+   * Passed by the home hero, where there is nothing to navigate to yet: the
+   * visitor is choosing what to search before typing the thing to search for.
+   * Rows become buttons that set state, and submit carries the chosen scope.
+   */
+  onSelect?: (scope: Scope) => void;
 }
 
 /**
- * The scope selector, promoted from the approved scoped-directory mock.
+ * The scope selector that sits inside the search pill.
  *
- * One change from the mock, and it is the important one: scopes are `<Link>`s
- * rather than buttons calling back into local state. Each scope is a real
- * route, so it has to be middle-clickable, shareable and crawlable — that is
- * the whole reason dedicated routes were chosen over a `?kind=` param. A
- * button would have thrown that away at the last step.
+ * One control in two modes, rather than two components. The hero needs it to
+ * set state and the results pages need it to navigate, but everything else --
+ * the roving focus, the gated rows, the tones, the blurbs, the destinations --
+ * is identical, and a second copy would be a second place for the members-only
+ * rule to drift.
  *
  * Why not a native `<select>`: a select renders in OS chrome, so the design
- * system stops at its edge, and it cannot carry an icon, a count or a reason.
- * Every scope here needs all three. "Panas" means nothing on a first visit,
- * and a scope holding zero results should say so before you pick it.
+ * system stops at its edge, and it cannot carry an icon, a count, a reason or
+ * a destination. Every scope here needs all five.
  *
  * Built on `.surface-panel` / `.surface-option`, the primitives the panaverse
  * switcher already uses, so this is the same dropdown the masthead has rather
  * than a second one that looks nearly like it.
  */
-export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
+export function ScopeMenu({
+  term,
+  scope,
+  counts,
+  signedIn,
+  onSelect,
+}: ScopeMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const itemRefs = useRef<(HTMLElement | null)[]>([]);
   const menuId = useId();
 
   // Gated scopes are skipped by the arrow keys rather than merely dimmed; a
@@ -63,7 +84,7 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
     (option) => !(SCOPE_REQUIRES_PANA[option] && !signedIn)
   );
 
-  const CurrentIcon = scope === 'all' ? null : KIND_ICON[scope];
+  const CurrentIcon = KIND_ICON[scope];
 
   useEffect(() => {
     if (!open) return;
@@ -106,7 +127,7 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
   };
 
   const onItemKeyDown = (
-    event: ReactKeyboardEvent<HTMLAnchorElement>,
+    event: ReactKeyboardEvent<HTMLElement>,
     index: number
   ) => {
     switch (event.key) {
@@ -156,15 +177,11 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
         }
         onKeyDown={onTriggerKeyDown}
       >
-        {CurrentIcon ? (
-          <CurrentIcon
-            className="h-3.5 w-3.5 flex-none"
-            style={{ color: 'var(--surface-tone)' }}
-            aria-hidden="true"
-          />
-        ) : (
-          <span className="surface-dot" aria-hidden="true" />
-        )}
+        <CurrentIcon
+          className="h-3.5 w-3.5 flex-none"
+          style={{ color: 'var(--surface-tone)' }}
+          aria-hidden="true"
+        />
         <span className="surface-pill-name">{SCOPE_LABEL[scope]}</span>
         <ChevronDown
           className="h-3.5 w-3.5 flex-none transition-transform"
@@ -178,21 +195,28 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
           id={menuId}
           role="menu"
           aria-label="Search scope"
-          className="surface-panel"
+          /* `directory-suggest-scopemenu` carries no styling of its own. It is
+             a hook for the hero's `:has()` un-clip rule in globals.css, and it
+             is load-bearing: `.home-hero-banner` and `.home-hero-field` are
+             both `overflow: hidden` and the hero is `min-height: 100svh`, so
+             the pill sits near its bottom edge and without the hook this panel
+             renders a few pixels tall with the rest sheared off. */
+          className="surface-panel directory-suggest-scopemenu"
           /* `.surface-panel` is written for the masthead: it hangs off the
              right edge, sizes against its positioned ancestor — which here is
              a button about eleven characters wide — and claims `z-index: 30`,
-             enough to beat page content but not the sticky scope strip below,
-             which also claims 30 and wins the tie by being later in the DOM.
-             45 clears both that strip and any page chrome, so an open menu is
-             never sliced in half. Inline so all of it beats the class
-             regardless of how the utility layers end up ordered. */
+             enough to beat page content but not a sticky filter strip, which
+             also claims 30 and wins the tie by being later in the DOM. 45
+             clears both, so an open menu is never sliced in half. Inline so
+             all of it beats the class regardless of utility layer order. */
           style={{
+            top: 'calc(100% + 0.6rem)',
             left: 0,
             right: 'auto',
             zIndex: 45,
-            width: '19.5rem',
+            width: '23rem',
             maxWidth: 'calc(100vw - 2rem)',
+            textAlign: 'left',
           }}
         >
           <p className="surface-panel-label">Search for</p>
@@ -200,7 +224,7 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
           <div className="flex flex-col gap-1">
             {SCOPES.map((option) => {
               const gated = SCOPE_REQUIRES_PANA[option] && !signedIn;
-              const Icon = option === 'all' ? null : KIND_ICON[option];
+              const Icon = KIND_ICON[option];
               const isCurrent = option === scope;
               const count = counts ? countFor(counts, option) : null;
               const index = reachable.indexOf(option);
@@ -212,14 +236,12 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
                       className="text-pana-ink/40 h-4 w-4 flex-none"
                       aria-hidden="true"
                     />
-                  ) : Icon ? (
+                  ) : (
                     <Icon
                       className="h-4 w-4 flex-none"
                       style={{ color: 'var(--surface-tone)' }}
                       aria-hidden="true"
                     />
-                  ) : (
-                    <span className="surface-dot" aria-hidden="true" />
                   )}
 
                   <span className="min-w-0 flex-1">
@@ -245,16 +267,32 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
                         </span>
                       )}
                     </span>
+
                     <span className="surface-option-blurb">
                       {gated
                         ? 'Sign in as a pana to search members'
                         : SCOPE_BLURB[option]}
                     </span>
+
+                    {/* Where this row goes. The four scopes used to be four
+                        views of one results page, so the destination needed no
+                        saying; they are four different products now — one with
+                        a map, one with a calendar, one with a join button — and
+                        a control that changes which one you land in should say
+                        so before Enter. Shown on the gated row too: knowing the
+                        page exists is most of why anyone would sign in for it. */}
+                    <span className="mt-1 flex items-center gap-1 font-mono text-[0.68rem] font-bold tracking-tight opacity-55">
+                      <ArrowRight
+                        className="h-3 w-3 flex-none"
+                        aria-hidden="true"
+                      />
+                      {SCOPE_DESTINATION[option]}
+                    </span>
                   </span>
                 </>
               );
 
-              // A gated scope is a span, not a disabled link: there is no
+              // A gated scope is a span, not a disabled control: there is no
               // destination to offer, and an <a href> that refuses to navigate
               // is worse than one that was never a link.
               if (gated) {
@@ -263,11 +301,42 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
                     key={option}
                     role="menuitem"
                     aria-disabled="true"
-                    className="surface-option cursor-not-allowed items-center opacity-45"
+                    className="surface-option cursor-not-allowed items-start opacity-45"
                     data-tone={SCOPE_TONE[option]}
                   >
                     {body}
                   </span>
+                );
+              }
+
+              const shared = {
+                role: 'menuitem' as const,
+                className: 'surface-option items-start',
+                'data-tone': SCOPE_TONE[option],
+                'data-current': isCurrent,
+                'aria-current': isCurrent ? ('true' as const) : undefined,
+                onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) =>
+                  onItemKeyDown(event, index),
+              };
+
+              // Control mode: the hero, where nothing has been searched yet.
+              if (onSelect) {
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    ref={(node) => {
+                      if (index >= 0) itemRefs.current[index] = node;
+                    }}
+                    {...shared}
+                    className={`${shared.className} w-full text-left`}
+                    onClick={() => {
+                      onSelect(option);
+                      close(true);
+                    }}
+                  >
+                    {body}
+                  </button>
                 );
               }
 
@@ -278,13 +347,8 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
                     if (index >= 0) itemRefs.current[index] = node;
                   }}
                   href={scopePath(option, term)}
-                  role="menuitem"
-                  className="surface-option items-center"
-                  data-tone={SCOPE_TONE[option]}
-                  data-current={isCurrent}
-                  aria-current={isCurrent ? 'true' : undefined}
+                  {...shared}
                   onClick={() => close(false)}
-                  onKeyDown={(event) => onItemKeyDown(event, index)}
                 >
                   {body}
                 </Link>
@@ -293,79 +357,6 @@ export function ScopeMenu({ term, scope, counts, signedIn }: ScopeNavProps) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/**
- * The scopes again, as chips carrying counts.
- *
- * These live on the cream filter strip rather than inside the indigo band, for
- * two reasons. `.dirsearch-chip` draws indigo-on-transparent, so on the indigo
- * band every unselected chip is invisible — the primitive was built for the
- * light filter row and only works there. And being sticky means the scope
- * stays switchable while you are twenty results deep, which is exactly when
- * you realise you wanted groups, not businesses.
- *
- * Hidden below 48rem. The search pill directly above carries the same five
- * scopes in its menu, and on a 390px screen this row cost 66px to say a second
- * time what was already on screen one control up. Above 48rem it is free —
- * the row is there either way — so the duplication is only worth removing
- * where height is scarce.
- */
-export function ScopeChips({ term, scope, counts, signedIn }: ScopeNavProps) {
-  return (
-    <div className="dirsearch-filters dirsearch-scopestrip">
-      <div className="container mx-auto px-4">
-        <div className="dirsearch-filterrow">
-          <span className="dirsearch-filterlabel">Scope</span>
-          <nav className="dirsearch-chiprow" aria-label="Search scope">
-            {SCOPES.map((option) => {
-              const gated = SCOPE_REQUIRES_PANA[option] && !signedIn;
-              const Icon = option === 'all' ? null : KIND_ICON[option];
-              const count = counts ? countFor(counts, option) : null;
-
-              const inner = (
-                <>
-                  {gated ? (
-                    <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : (
-                    Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                  {SCOPE_LABEL[option]}
-                  {!gated && count !== null && (
-                    <span className="opacity-55">{count}</span>
-                  )}
-                </>
-              );
-
-              if (gated) {
-                return (
-                  <span
-                    key={option}
-                    className="dirsearch-chip inline-flex cursor-not-allowed items-center gap-1.5 opacity-40"
-                    title="Sign in as a pana to search members"
-                  >
-                    {inner}
-                  </span>
-                );
-              }
-
-              return (
-                <Link
-                  key={option}
-                  href={scopePath(option, term)}
-                  className="dirsearch-chip inline-flex items-center gap-1.5"
-                  data-on={option === scope}
-                  aria-current={option === scope ? 'page' : undefined}
-                >
-                  {inner}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
     </div>
   );
 }

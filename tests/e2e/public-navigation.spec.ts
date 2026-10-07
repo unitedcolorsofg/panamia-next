@@ -38,6 +38,47 @@ test.describe('Public Navigation', () => {
     await expect(page.locator('h1').first()).toContainText('Find your people');
   });
 
+  // The scope menu moved to the home hero and the four scopes became four
+  // pages. These assert the halves of that: the menu exists where the search
+  // is now chosen, and each scope's page answers on its own route.
+  test('home search offers a scope menu', async ({ page }) => {
+    const res = await page.goto('/');
+    expect(res?.status()).toBe(200);
+    await expect(
+      page.getByRole('button', { name: /Search scope/ })
+    ).toBeVisible();
+  });
+
+  test('panas search page loads', async ({ page }) => {
+    const res = await page.goto('/panas');
+    expect(res?.status()).toBe(200);
+    // Signed out, so the gate rather than the grid. Asserted deliberately:
+    // member search is the one scope of the four that is not public, and a
+    // regression here would leak rather than merely look wrong.
+    await expect(page.locator('h1').first()).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('panas matched');
+  });
+
+  // /directory/<scope> was how all four scopes were reached before they became
+  // separate pages. Those URLs are public and were linked, so they redirect
+  // rather than 404. Asserted at the origin so a callbackUrl cannot satisfy it.
+  for (const [legacy, destination] of [
+    ['/directory/all/art', '/directory/search/art'],
+    ['/directory/events/salsa', '/e?q=salsa'],
+    ['/directory/groups/art', '/groups?q=art'],
+    ['/directory/panas/maria', '/panas?q=maria'],
+  ]) {
+    test(`${legacy} redirects to ${destination}`, async ({ page }) => {
+      const res = await page.goto(legacy, { waitUntil: 'domcontentloaded' });
+      expect(res?.status()).toBe(200);
+      await expect(page).toHaveURL(
+        new RegExp(
+          `^https?://[^/]+${destination.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`
+        )
+      );
+    });
+  }
+
   test('donate page loads', async ({ page }) => {
     const res = await page.goto('/donate');
     expect(res?.status()).toBe(200);
