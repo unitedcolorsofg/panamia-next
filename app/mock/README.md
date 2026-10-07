@@ -22,6 +22,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/explore`           | Scope moved into the search bar; directory narrowed to businesses |
 | `/mock/groups`            | Groups landing and discover, as two steps of one flow             |
 | `/mock/dms`               | Direct messages, as two competing models behind one switch        |
+| `/mock/events`            | Events discover page, drawn as `directory.pana.social/events`     |
 
 ## Viewing the Pana Social surface
 
