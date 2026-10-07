@@ -89,6 +89,16 @@ jobs:
             exit 1
           fi
 
+      # Runs before anything mutates, and deliberately never fails the job: its
+      # only purpose is to put the target user@host, the applied count, and the
+      # pending list into the log. drizzle-kit migrate exits 1 having printed
+      # nothing actionable when it fails, so without this a bad run reports
+      # "Process completed with exit code 1" and nothing else -- which is how
+      # the first run of this workflow went.
+      - name: Report migration state
+        continue-on-error: true
+        run: yarn db:check-pending
+
       # Skipped on the scheduled run: that one detects drift and must never
       # mutate production on its own.
       - name: Apply migrations
