@@ -29,6 +29,7 @@
     "manager": "Manager",
     "owner": "Owner",
     "sites": {
+      "admin": "Admin",
       "connectors": "Connectors",
       "directory": "Directory",
       "events": "Events",

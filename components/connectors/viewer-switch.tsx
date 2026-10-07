@@ -25,11 +25,24 @@ const ROLE_LABEL: Record<ViewerRole, string> = {
   admin: 'Programme admin',
 };
 
-/** Each role implies where it belongs, which is the behaviour being demoed. */
+/** Each role implies where it belongs, which is the behaviour being demoed.
+ *
+ *  `admin` is the odd one out: the console moved to the admin surface, which
+ *  is staff-gated and has no viewer roles of its own. So it is a door out of
+ *  this mock rather than a state of it, and the link below carries no `?as=`.
+ *  `/connectors/admin` still answers and redirects there, so an old link in
+ *  somebody's notes keeps working. */
 const ROLE_HOME: Record<ViewerRole, string> = {
   visitor: '/connectors',
   connector: '/connectors/hq',
-  admin: '/connectors/admin',
+  admin: '/admin/connectors',
+};
+
+/** Roles this surface actually renders, and so can preview with `?as=`. */
+const PREVIEWABLE: Record<ViewerRole, boolean> = {
+  visitor: true,
+  connector: true,
+  admin: false,
 };
 
 export function ViewerSwitch({ current }: { current: ViewerRole }) {
@@ -45,7 +58,11 @@ export function ViewerSwitch({ current }: { current: ViewerRole }) {
             return (
               <SurfaceLink
                 key={role}
-                href={`${ROLE_HOME[role]}?as=${role}`}
+                href={
+                  PREVIEWABLE[role]
+                    ? `${ROLE_HOME[role]}?as=${role}`
+                    : ROLE_HOME[role]
+                }
                 aria-current={active ? 'page' : undefined}
                 className={`rounded-full border-2 border-pana-ink px-3 py-1 text-xs font-bold transition-colors ${
                   active

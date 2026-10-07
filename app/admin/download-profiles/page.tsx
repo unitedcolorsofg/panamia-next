@@ -1,8 +1,7 @@
 'use client';
 
-import { useSession } from '@/lib/auth-client';
+import { useAdminGate } from '@/components/Admin/gate';
 import PageMeta from '@/components/PageMeta';
-import AdminMenu from '@/components/Admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,7 +11,7 @@ import {
 import { Download } from 'lucide-react';
 
 export default function AdminDownloadProfilesPage() {
-  const { data: session } = useSession();
+  const { gate } = useAdminGate();
   const { data, isLoading, isError } = useAdminActiveProfiles();
 
   const downloadCSV = (data: AdminProfileInterface[]) => {
@@ -34,22 +33,11 @@ export default function AdminDownloadProfilesPage() {
     link.click();
   };
 
-  if (!session) {
-    return (
-      <main className="container mx-auto max-w-7xl px-4 py-8">
-        <PageMeta title="Unauthorized" desc="" />
-        <div>
-          <h2 className="mb-6 text-3xl font-bold">UNAUTHORIZED</h2>
-          <h3 className="text-xl">You must be logged in to view this page.</h3>
-        </div>
-      </main>
-    );
-  }
+  if (gate) return gate;
 
   return (
-    <main className="container mx-auto max-w-7xl px-4 py-8">
+    <>
       <PageMeta title="Download Profiles | Admin" desc="" />
-      <AdminMenu />
       <div>
         <h2 className="mb-6 text-3xl font-bold">Download Profiles</h2>
         <Card>
@@ -70,6 +58,6 @@ export default function AdminDownloadProfilesPage() {
           </CardContent>
         </Card>
       </div>
-    </main>
+    </>
   );
 }

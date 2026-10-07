@@ -7,12 +7,14 @@ import {
   Compass,
   MessageCircle,
   PenLine,
+  ShieldCheck,
   Star,
   Users,
   Video,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+import { useSession } from '@/lib/auth-client';
 import { usePanaSites } from '@/components/panaverse/PanaSitesProvider';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import styles from './identity.module.css';
@@ -35,6 +37,10 @@ const SITE_ICONS: Record<string, LucideIcon> = {
      them would read as a mismatch rather than as branding. The Connectors
      mark is itself a star, so the borrowed glyph says the same thing. */
   connectors: Star,
+  /* A shield rather than a cog. A cog says "settings", which is what a member
+     would reasonably expect their own preferences to live behind; this is
+     somebody else's business being administered. */
+  admin: ShieldCheck,
 };
 
 /**
@@ -65,7 +71,17 @@ export function PanaSites({
   const { t } = useTranslation('common');
   /* Resolved on the server against the host being served, so a site on
      another surface links to that surface's origin. See PanaSitesProvider. */
-  const sites = usePanaSites();
+  const resolved = usePanaSites();
+  const { data: session } = useSession();
+
+  /* Staff-only tiles are dropped here rather than in the registry because the
+     registry is resolved in the root layout, which has no session. While the
+     session is still loading `session` is null, so an admin sees the tile
+     appear a beat late — the right way round, since the alternative is every
+     member seeing it flash and disappear. */
+  const sites = resolved.filter(
+    (site) => !site.adminOnly || session?.user?.isAdmin
+  );
 
   return (
     <>

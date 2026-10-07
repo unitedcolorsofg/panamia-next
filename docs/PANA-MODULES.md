@@ -47,7 +47,7 @@ This document cross-references every platform module by its URL namespace, matur
 - **`/s`** — Social module; `/timeline` redirects here.
 - **`/e`** — reserved for Events; not yet implemented.
 - **`/r`** — Resilience Network; the relay itself is a standalone Worker consumed over a Service Binding, so only the enrollment and group-management surface lives here.
-- **`/admin`** — admin routes live under `/account/admin`; `/admin` is the conceptual namespace used in commit scopes and docs.
+- **`/admin`** — admin routes; served under `admin.pana.social`, which redirects `/` to `/admin`. Legacy `/account/admin/*` paths redirect here. Tool list in `lib/admin/views.ts`.
 
 ---
 

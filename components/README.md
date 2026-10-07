@@ -35,10 +35,16 @@ Base components from [shadcn/ui](https://ui.shadcn.com/) - the building blocks:
 
 Components for admin interfaces:
 
-| Component         | Description          |
-| ----------------- | -------------------- |
-| `AdminButton.tsx` | Admin action buttons |
-| `AdminHeader.tsx` | Admin page headers   |
+| Component            | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `nav.tsx`            | Sidebar navigation; active state by pathname    |
+| `overview.tsx`       | The `/admin` index — tools as rows with blurbs  |
+| `gate.tsx`           | `useAdminGate()` — client-side admin check      |
+| `eyebrow.tsx`        | Group label above a page title                  |
+| `status-pill.tsx`    | `MOCK` / `SOON` tag on a tool name              |
+| `parts.tsx`          | Shared furniture: `Panel`, `StatBand`           |
+| `mock-controls.tsx`  | Inert controls for the mocked views             |
+| `mock-bar.tsx`       | "This page is fixtures" banner                  |
 
 ## Form Components (`Form/`)
 

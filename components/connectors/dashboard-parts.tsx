@@ -17,6 +17,7 @@ import {
   getTier,
 } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
+import type { ChromeTokens } from '@/lib/panaverse/chrome-tokens';
 
 /**
  * The pieces both Connector dashboards are built from.
@@ -294,14 +295,22 @@ export function EventCard({ event }: { event: ConnectorEvent }) {
 
         <dt className="font-bold">Needs</dt>
         <dd>
+          {/* These two used to share `text-pana-burnt`, which is 3.44 on cream
+              and fails AA — and conflated two opposite meanings besides. Every
+              warm accent in the palette fails as text on this background
+              (burnt 3.44, red 3.86, pink 3.54, flame 2.42, orange 2.36); only
+              ink, navy and indigo clear it. So a warm colour is only available
+              on a filled chip, which is what the countdown above already does.
+
+              A shortfall is the one thing in this card somebody has to act on,
+              so it takes the chip: ink on burnt is 5.29. "No cap" is the
+              opposite of a problem and goes back to plain text. */}
           {event.volunteersNeeded === null ? (
-            <span className="font-bold text-pana-burnt">
-              No cap — bring whoever
-            </span>
+            <span className="font-bold">No cap — bring whoever</span>
           ) : short === 0 ? (
             <span>Covered ({event.volunteersFilled} signed up)</span>
           ) : (
-            <span className="font-bold text-pana-burnt">
+            <span className="inline-block rounded-full bg-pana-burnt px-2.5 py-0.5 text-xs font-extrabold text-pana-ink">
               {short} more of {event.volunteersNeeded}
             </span>
           )}
@@ -338,9 +347,17 @@ export function EventCard({ event }: { event: ConnectorEvent }) {
 export function CommitmentsTable({
   rows,
   showWho = true,
+  chrome = CONNECTORS_CHROME,
 }: {
   rows: readonly Commitment[];
   showWho?: boolean;
+  /** Which surface's header fill to wear.
+   *
+   *  Defaults to Connectors, so HQ is unchanged. The admin console renders
+   *  this table on the admin surface, where an indigo header under a blue
+   *  masthead reads as a bug rather than as a theme. The table is about
+   *  connectors; the furniture belongs to whichever tool is showing it. */
+  chrome?: ChromeTokens;
 }) {
   if (rows.length === 0) {
     return (
@@ -354,7 +371,7 @@ export function CommitmentsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
         <thead>
-          <tr className={`${CONNECTORS_CHROME.FILL} ${CONNECTORS_CHROME.ON_FILL}`}>
+          <tr className={`${chrome.FILL} ${chrome.ON_FILL}`}>
             {showWho && <Th>Who</Th>}
             <Th>What</Th>
             <Th>When</Th>

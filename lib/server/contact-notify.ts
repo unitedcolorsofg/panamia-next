@@ -38,7 +38,7 @@ export async function notifyStaffOfContactSubmission(
 
     const queueUrl =
       (process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000') +
-      '/account/admin/contactus';
+      '/admin/contactus';
 
     const params = {
       name: submission.name,

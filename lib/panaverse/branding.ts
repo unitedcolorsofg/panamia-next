@@ -72,6 +72,27 @@ export const SURFACE_MARK: Record<SurfaceId, SurfaceMark> = {
     height: 121,
     alt: 'Pana Connectors',
   },
+  /* Set with the same script as the Connectors mark, with one difference that
+   * matters: ADMIN contains a real `i`, so the star goes back to doing its
+   * actual job. The family does not replace a letter with a star — look at the
+   * MIA of the Pana Mia mark and the `i` keeps its stem, with the star sitting
+   * just clear of it as an oversized dot. Connectors had to fake that because
+   * the word has no `i` at all. This one does not, so the proportions are
+   * measured straight off the Pana Mia lockup: star radius about 0.30 of the
+   * stem height, with a gap of roughly a tenth of the stem between them.
+   *
+   * Taller than its siblings (179 rather than ~130 at 800 wide) because the
+   * canvas has to clear the star, and ADMIN is a short word so there are fewer
+   * glyphs to spread that height across. `.panaverse-logo` sizes by height
+   * with `width: auto`, so the practical effect is that this mark flies
+   * narrower than the others rather than larger — which is what a shorter word
+   * should do. */
+  admin: {
+    src: '/logos/pana_admin_long_orange.png',
+    width: 800,
+    height: 179,
+    alt: 'Pana Admin',
+  },
 };
 
 /** Square marks, per surface. Separate from SURFACE_MARK above, which holds
@@ -87,6 +108,13 @@ export const SURFACE_ICON: Record<SurfaceId, string> = {
   www: 'pana_mia_icon',
   social: 'pana_social_icon',
   connectors: 'pana_connectors_icon',
+  /* Borrows the Pana Mia tile rather than getting one of its own. An icon is
+   * for a thing you install to a home screen, and this surface is the back
+   * office of Pana Mia rather than a product a member would keep next to
+   * their other apps. If a pana does install it, the Pana Mia tile is the
+   * honest answer to what they just installed. Give it a tile of its own when
+   * somebody actually wants the admin console pinned. */
+  admin: 'pana_mia_icon',
 };
 
 /** What each surface is for, in the second person — written for a member
@@ -96,6 +124,11 @@ export const SURFACE_BLURB: Record<SurfaceId, string> = {
   social: 'Post, reply, and read what your Panas are making this week.',
   connectors:
     'Your house, your pod, and what you said you would do this month.',
+  /* Second person like the rest, but this one is never read by a member
+   * deciding where to click — the surface is not offered in the switcher. It
+   * exists so the record is complete and so anything that enumerates surfaces
+   * has a sentence to print. */
+  admin: 'Approvals, the connector programme, and the rest of the back office.',
 };
 
 /**
@@ -113,6 +146,10 @@ export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
     'The Pana Mia community timeline — post, reply, and follow Panas across the fediverse.',
   connectors:
     'Headquarters for the Pana Mia Community Connectors — houses, pods, commitments and events across Miami-Dade, Broward and Palm Beach.',
+  /* Written to be unhelpful to a search engine on purpose. Every admin route
+   * also sets `robots: { index: false }` in its own metadata; this is the
+   * fallback for anything that forgets to. */
+  admin: 'Staff tools for Pana Mia. Not a public page.',
 };
 
 /** Which colour a surface carries through its chrome. Values are token names
@@ -149,11 +186,17 @@ export interface SurfaceNavItem {
 export const SURFACE_NAV: Record<SurfaceId, SurfaceNavItem[]> = {
   www: [],
   social: [{ label: 'Home', href: '/s' }],
-  /* HQ only. `/connectors/admin` exists but is not listed: it is the one
+  /* HQ only. The programme's admin console is not listed: it is the one
    * destination on this surface a signed-in connector can be refused, and a
    * masthead link that bounces most of the people who see it is worse than no
-   * link. Admins reach it from HQ. */
+   * link. It now lives on the admin surface at `/admin/connectors`, and admins
+   * reach it from HQ or from the admin hub. */
   connectors: [{ label: 'HQ', href: '/connectors/hq' }],
+  /* Empty on purpose. This surface carries a persistent sidebar
+   * (`app/admin/layout.tsx`) listing every tool, including a way back to the
+   * overview, so masthead links would be a second, shorter copy of a nav the
+   * reader can already see. The sidebar is the nav here. */
+  admin: [],
 };
 
 /**
@@ -229,4 +272,14 @@ export const SURFACE_TONE: Record<SurfaceId, SurfaceTone> = {
    * if the house board ever moves into the chrome, one of the two has to give.
    */
   connectors: 'burnt',
+  /* The only cool accent in the set, and the only one that is not a wayfinding
+   * decision so much as a warning. Every member surface is warm; a staff tool
+   * that looked like one would invite somebody to forget which they were
+   * looking at while holding a button that publishes or refuses a business.
+   *
+   * Blue is also the one tone no member surface had claimed, so nothing had to
+   * move to make room. See lib/admin/theme.ts for why the page chrome fills
+   * with this same colour and sets ink on it rather than cream — unlike every
+   * other surface, this fill is light. */
+  admin: 'blue',
 };

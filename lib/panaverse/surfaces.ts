@@ -14,7 +14,7 @@
 
 import { getConfiguredFederationDomain } from '@/lib/federation/domain';
 
-export type SurfaceId = 'www' | 'social' | 'connectors';
+export type SurfaceId = 'www' | 'social' | 'connectors' | 'admin';
 
 export interface PanaverseSurface {
   id: SurfaceId;
@@ -120,6 +120,35 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // rooms inside it -- `/connectors/hq`, `/connectors/admin` -- are covered
     // by the prefix match and do not need naming individually.
     paths: ['/connectors'],
+  },
+  {
+    id: 'admin',
+    name: 'Admin',
+    tagline: 'Staff tools for running Pana Mia.',
+    subdomain: 'admin',
+    rootPath: '/admin',
+    // Unlike the three surfaces above, this one is not for members. It is
+    // listed here anyway rather than left as a bare `/admin` section, because
+    // the registry is what mints a trusted auth origin (see auth.ts) and what
+    // hands a surface its own chrome — and an admin console wearing the
+    // directory's masthead is how a staff tool gets mistaken for a public
+    // page. Membership here is not an advertisement: nothing in the shipping
+    // masthead enumerates SURFACES, so a surface becomes visible only when
+    // something deliberately links it. See lib/panaverse/sites.ts.
+    //
+    // The doubled path in admin.pana.social/admin/connectors is real and is
+    // the accepted cost. Paths are global — every route answers on every
+    // hostname, and the Worker deliberately does not rewrite them (see
+    // worker/index.ts: vinext has no middleware-rewrite signalling, so serving
+    // /admin/connectors under the URL /connectors would leave the client
+    // router fetching RSC payloads for a path that does not exist). So
+    // admin.pana.social/connectors cannot mean the admin console; it would
+    // serve the public Connectors landing page, which is what /connectors
+    // already is for everyone. Social dodges this by owning short top-level
+    // paths it claimed first; /connectors was taken before this surface
+    // existed. Admins land on the front door and click through, so the long
+    // URL is the one they share, not the one they navigate.
+    paths: ['/admin'],
   },
 ];
 

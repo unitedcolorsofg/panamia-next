@@ -53,7 +53,7 @@ function ProfileActionContent() {
   }, [searchParams]);
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
+    <div>
       <div>
         <Card>
           <CardContent className="space-y-4 p-6 text-center">
@@ -85,7 +85,7 @@ export default function AdminProfileActionPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-7xl px-4 py-8">
+        <div>
           <div>
             <Card>
               <CardContent className="p-6 text-center">Loading...</CardContent>

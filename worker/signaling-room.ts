@@ -42,7 +42,7 @@
 const MAX_PARTICIPANTS = 3;
 const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 
-// ── Future: Session Metrics for /account/admin/mentoring ─────────────
+// ── Future: Session Metrics for /admin/mentoring ─────────────
 // When video sessions move beyond PoC, copy session metrics into the
 // Supabase mentoring tables before deleting SQLite data. The admin
 // dashboard should only query Supabase — never SQLite directly.
