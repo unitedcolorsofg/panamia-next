@@ -21,6 +21,8 @@
     "invitationWorking": "Saving…",
     "getListed": "Get listed",
     "getListedHint": "Add a shop, studio, band or project",
+    "loadFailed": "Couldn't load your accounts",
+    "tryAgain": "Try again",
     "yourGroups": "Groups you run",
     "allGroups": "All groups",
     "allGroupsHint": "Find a group, or start one",

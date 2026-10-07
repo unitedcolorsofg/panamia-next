@@ -6,21 +6,18 @@ export const getUserSession = async (host?: string) => {
     host = process.env.NEXT_PUBLIC_HOST_URL;
   }
   const url = host ? `${host}${path}` : path;
-  const userSession = await axios
-    .get(url, {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-    .catch((error: Error) => {
-      console.log(error.name, error.message, error.cause);
-      return null;
-    });
-  if (userSession) {
-    return userSession.data.data;
-  }
-  return null;
+  /* Deliberately uncaught. This used to swallow the error and return null,
+     which the caller could not tell apart from "this account has nothing in
+     it" — so a failed request rendered the settings form completely blank,
+     with every field empty and no indication anything had gone wrong. Letting
+     it throw is what lets the caller say so. */
+  const userSession = await axios.get(url, {
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+  return userSession.data.data;
 };
 
 export const saveUserSession = async (

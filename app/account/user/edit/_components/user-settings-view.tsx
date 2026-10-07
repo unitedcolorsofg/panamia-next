@@ -165,6 +165,7 @@ export function UserSettingsView({
   const [sessionEmail, setSessionEmail] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [userData, setUserData] = useState({} as UserInterface);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -199,14 +200,24 @@ export function UserSettingsView({
   const [screennameError, setScreennameError] = useState('');
 
   const setUserSession = async () => {
-    const userSession = await getUserSession();
-    if (userSession) {
-      setSessionEmail(userSession.email == null ? '' : userSession.email);
-      setSessionName(userSession.name == null ? '' : userSession.name);
-      setSessionScreenname(
-        userSession.screenname == null ? '' : userSession.screenname
-      );
-      setUserData(userSession);
+    try {
+      const userSession = await getUserSession();
+      if (userSession) {
+        setSessionEmail(userSession.email == null ? '' : userSession.email);
+        setSessionName(userSession.name == null ? '' : userSession.name);
+        setSessionScreenname(
+          userSession.screenname == null ? '' : userSession.screenname
+        );
+        setUserData(userSession);
+      }
+      setLoadFailed(false);
+    } catch (error) {
+      /* Every field below stays empty when this fails. Saying so matters more
+         than it looks: the form is still editable, so a member who assumed the
+         blanks were real could type into it and save a half-empty account over
+         a perfectly good one. */
+      setLoadFailed(true);
+      console.error('Could not load account settings:', error);
     }
   };
 
@@ -348,9 +359,19 @@ export function UserSettingsView({
       const data = await res.json();
       setGhlContact(res.ok ? (data.data ?? 'empty') : 'empty');
       if (!res.ok) {
+        /* This used to blame HighLevel for every non-ok status, including 401
+           and 404 — neither of which involves HighLevel at all. Reading an
+           expired session or a missing profile as "HighLevel is down" sends
+           you looking at the wrong system entirely. */
+        const description =
+          res.status === 401
+            ? 'Your session has expired. Please sign in again.'
+            : res.status === 404
+              ? 'We could not find your profile, so there is no marketing data to show.'
+              : 'Could not reach HighLevel, please try again later.';
         toast({
           title: 'Error',
-          description: 'Could not reach HighLevel, please try again later.',
+          description,
           variant: 'destructive',
         });
       }
@@ -358,7 +379,7 @@ export function UserSettingsView({
       setGhlContact('empty');
       toast({
         title: 'Error',
-        description: 'Could not reach HighLevel, please try again later.',
+        description: 'Could not load your marketing data. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -726,6 +747,32 @@ export function UserSettingsView({
           </p>
         </header>
 
+        {/* The fields below render empty when the load fails, which looks
+            exactly like a brand-new account. Without this, the fix is to
+            reload the page and there is nothing on screen that says so. */}
+        {loadFailed && (
+          <div
+            role="alert"
+            className="border-pana-red/30 bg-pana-red/10 mt-6 rounded-xl border px-4 py-3"
+          >
+            <p className="text-[13px] font-extrabold">
+              We couldn&apos;t load your account.
+            </p>
+            <p className="settings-note mt-1">
+              The fields below are empty because nothing came back — not because
+              your account is empty. Don&apos;t save until this loads, or you
+              could overwrite what&apos;s already there.
+            </p>
+            <button
+              type="button"
+              className="settings-btn mt-3"
+              onClick={() => setUserSession()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         <div className="mt-8 grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
           <SettingsNav />
 
@@ -892,7 +939,10 @@ export function UserSettingsView({
                       aria-hidden="true"
                     />
                     <span className="truncate">{sessionEmail}</span>
-                    <span className="identity-pill ml-auto" data-tone="verified">
+                    <span
+                      className="identity-pill ml-auto"
+                      data-tone="verified"
+                    >
                       Verified
                     </span>
                   </p>
@@ -980,7 +1030,10 @@ export function UserSettingsView({
               {ghlLoading || ghlContact === null ? (
                 <SettingsCard>
                   <div className="settings-row settings-note flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                     Loading your preferences…
                   </div>
                 </SettingsCard>
@@ -1019,7 +1072,9 @@ export function UserSettingsView({
 
                     <SettingsRow
                       label={
-                        ghlContact.dnd ? 'Turn everything on' : 'Turn everything off'
+                        ghlContact.dnd
+                          ? 'Turn everything on'
+                          : 'Turn everything off'
                       }
                       note={
                         ghlContact.dnd
@@ -1084,7 +1139,10 @@ export function UserSettingsView({
               {ghlLoading || ghlContact === null ? (
                 <SettingsCard>
                   <div className="settings-row settings-note flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                     Loading…
                   </div>
                 </SettingsCard>
@@ -1431,7 +1489,6 @@ export function UserSettingsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </main>
   );
 }
