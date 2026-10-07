@@ -154,8 +154,17 @@ export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
 
 /** Which colour a surface carries through its chrome. Values are token names
  *  from app/globals.css, not raw hex, so a surface cannot introduce a colour
- *  that is not already in the palette. */
-export type SurfaceTone = 'indigo' | 'burnt' | 'flame' | 'blue' | 'red';
+ *  that is not already in the palette.
+ *
+ *  Specifically, this union is the set of names that have a `[data-tone]`
+ *  block in app/globals.css — not the set of colours in the palette, which is
+ *  larger. Every consumer below ends up in a `data-tone` attribute, and a
+ *  value CSS has no block for resolves to nothing: the element renders with
+ *  no accent at all rather than visibly wrong, which is the failure mode
+ *  hardest to catch by looking. Adding a name here without adding the block
+ *  there is the one way to reintroduce it, so the two move together. */
+export type SurfaceTone =
+  'indigo' | 'burnt' | 'flame' | 'blue' | 'red' | 'orange' | 'pink';
 
 /** One masthead nav link. `href` is a real route in `app/`, never a fixture —
  *  see SURFACE_NAV. */
@@ -234,7 +243,15 @@ export const SHARED_ROOMS: readonly PanaverseRoom[] = [
     name: 'Events',
     path: '/e',
     blurb: 'Markets, mixers, shows',
-    tone: 'flame',
+    /* Pink rather than flame, for the same reason `group` moved off flame in
+     * SCOPE_TONE. Room paths are relative, so the switcher panel opens over
+     * whatever surface the member is standing on — including Pana Social,
+     * whose chrome is flame. A flame chip inside flame chrome is not a weak
+     * accent, it is no accent. Pink also matches the `event` scope, so the
+     * same noun reads one colour whether it is reached through the scope bar
+     * or through here. Flame is still live: it is the social surface itself.
+     */
+    tone: 'pink',
   },
   {
     name: 'Peer Mentoring',

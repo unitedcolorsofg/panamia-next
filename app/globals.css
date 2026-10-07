@@ -3489,10 +3489,22 @@ button.bizprofile-update-action:hover {
    Three values, not two. `--surface-tone` is the fill — the colour the
    surface *is* — and `--surface-tone-soft` its tint. `--surface-tone-ink` is
    the only one of the three that may be set as type on a light surface:
-   four of the five fills fail AA as text on the cream the masthead paints
-   (burnt 3.44, red 3.86, flame 2.42, blue 2.21 — all need 4.5), so chrome
-   that tinted its links with `--surface-tone` was illegible on every surface
-   except indigo. Indigo passes at 9.01 and maps to itself. */
+   six of the seven fills fail AA as text on the cream the masthead paints
+   (orange 2.36, blue 2.21, flame 2.42, burnt 3.44, pink 3.54, red 3.86 — all
+   need 4.5), so chrome that tinted its links with `--surface-tone` was
+   illegible on every surface except indigo. Indigo passes at 9.01 and maps to
+   itself; every other tone maps to its `-deep` twin, which clears 4.5 on
+   cream, white and butter alike. The per-tone numbers and the twins they
+   resolve to are tabulated with the tokens near the top of this file.
+
+   Orange and pink joined the set when the four search scopes were given
+   distinct accents (see SCOPE_TONE in lib/directory-scopes.ts): three of the
+   four had been sitting inside a 17-degree hue band, which is a colour system
+   signalling one thing four times. Note that orange is the *worst* fill in
+   the set as type at 2.36 despite being the brand colour — it carries the
+   directory, the largest surface, so the temptation to set it as type is
+   correspondingly the strongest. It is also the one that most needs its
+   twin. */
 [data-tone='indigo'] {
   --surface-tone: var(--color-pana-indigo);
   --surface-tone-soft: rgb(48 62 140 / 0.1);
@@ -3521,6 +3533,18 @@ button.bizprofile-update-action:hover {
   --surface-tone: var(--color-pana-red);
   --surface-tone-soft: rgb(217 78 65 / 0.12);
   --surface-tone-ink: var(--color-pana-red-deep);
+}
+
+[data-tone='orange'] {
+  --surface-tone: var(--color-pana-orange);
+  --surface-tone-soft: rgb(255 129 0 / 0.12);
+  --surface-tone-ink: var(--color-pana-orange-deep);
+}
+
+[data-tone='pink'] {
+  --surface-tone: var(--color-pana-pink);
+  --surface-tone-soft: rgb(252 32 112 / 0.12);
+  --surface-tone-ink: var(--color-pana-pink-deep);
 }
 
 /* A browser window drawn around the mock. The address bar is part of the
