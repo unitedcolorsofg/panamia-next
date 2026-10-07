@@ -79,6 +79,27 @@ async function main(): Promise<void> {
     `Checking migrations against ${describeTarget(connectionString)}`
   );
 
+  // Supabase exposes two ports on the pooler host. 6543 is the transaction
+  // pooler: it rewrites session state between statements, which breaks the
+  // transaction drizzle-kit migrate wraps its work in. The symptom is ugly --
+  // drizzle-kit catches the failure and exits 1 having printed nothing at all,
+  // so the log shows a successful connection followed by silence. Naming the
+  // port here turns that dead end into an actionable message.
+  const port = (() => {
+    try {
+      return new URL(connectionString).port;
+    } catch {
+      return '';
+    }
+  })();
+  if (port === '6543') {
+    console.warn(
+      '  WARNING: port 6543 is the transaction pooler. Migrations need the\n' +
+        '           direct endpoint (port 5432). drizzle-kit migrate will fail\n' +
+        '           against this URL, usually without printing an error.'
+    );
+  }
+
   const client = postgres(connectionString, {
     max: 1,
     prepare: false,
