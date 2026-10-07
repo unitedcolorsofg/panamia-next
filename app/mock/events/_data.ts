@@ -8,12 +8,15 @@
  * would like" — a question nobody can type into a search box because it has
  * four clauses and three of them are not words.
  *
- * So the shape below is not a list of events. It is a list of events carrying
- * the four facts that question is made of: *when* (bucket, day), *where*
- * (where, mode), *what kind* (type, tags) and *who else* (going, faces,
- * followedGoing). Every section of the page uses one of those four as its
- * organising axis, which is why the fixtures carry each one explicitly rather
- * than leaving the page to infer it from a timestamp.
+ * The first draft of this mock answered it with five filter menus, which was
+ * the same mistake in a new costume: a search page still demands that the
+ * viewer already know the answer and merely narrow to it. A discover page has
+ * to propose, and to say why it proposed. So these fixtures are shaped to
+ * support *reasons* rather than facets — the records below carry who hosts an
+ * event, which panas have RSVPed, what it is tagged, and how much the host has
+ * run before, because those are the four things that can justify showing it to
+ * someone. The justification itself is computed in `_reasons.ts`, never typed
+ * here; a fixture that carried its own reason would prove nothing.
  *
  * Fields are annotated with the column they stand in for, per
  * app/mock/README.md, so wiring this to real data is mechanical. Nothing here
@@ -75,32 +78,181 @@ export interface MockEvent {
   /** events.tags */
   tags: string[];
   type: EventType;
-  /** profiles.primaryImageCdn for attendees the viewer follows. */
-  faces: string[];
-  /** profiles.name of the host — events.hostProfileId. */
+  /** HOSTS.id — stands in for events.hostProfileId, or hostGroupId when the
+   *  host record is a group. Migration 0047 enforces exactly one of the two. */
   host: string;
-  /** Door price as the host wrote it. Free is the common case and is said
-   *  plainly rather than as "$0". */
-  price: string;
   /**
-   * How many of the going are panas the viewer follows.
+   * PANAS.id for every pana the viewer follows who has a 'going' RSVP, as
+   * `event_attendees` ∩ `social_follows` would return them.
    *
-   * This is the only viewer-dependent field on the record, and the "Panas you
-   * follow" section is built entirely on it. Signed out it is not merely zero,
-   * it is unknowable — so that section becomes the reason to sign in rather
-   * than a heading over an empty list. Same distinction the directory draws
-   * between a scope being gated and a scope matching nothing.
+   * A list rather than the count it replaced, because a count can only produce
+   * "3 panas are going" while the list produces "Bee, Claribel and Gabriel
+   * are going" — and a reason the viewer can check by name is the difference
+   * between a recommendation and an assertion. The count is derived from
+   * `.length` wherever it is needed.
+   *
+   * This is the only viewer-dependent field on the record. Signed out it is
+   * not merely empty, it is unknowable, and `_reasons.ts` treats those two
+   * cases differently on purpose.
    */
-  followedGoing: number;
+  panasGoing: string[];
 }
 
-const FACES = [
-  '/img/about/anette_mago.jpg',
-  '/img/about/bee_maria.jpg',
-  '/img/about/claribel_avila.jpg',
-  '/img/about/gbarrios.jpg',
-  '/img/about/jdowns.jpg',
+/* No `price` field, and that absence is a finding rather than an omission.
+   An earlier draft of this mock put a "Free" / "$15" chip on every card, which
+   looked right and was fiction: `events` has no price or ticket column at all.
+   `rentalModel` and `venues.isFree` are venue-side, describing what a host pays
+   for a room rather than what a guest pays at the door. Keeping the chip would
+   have meant designing a page around a column nobody has agreed to add, so the
+   chip is gone and the gap is written down here instead. If door price should
+   be on the card, that is a schema decision to take first. */
+
+/**
+ * People the viewer follows, for the "your panas are going" reason.
+ *
+ * Named and faced rather than anonymous avatars: the whole value of a social
+ * signal is that you recognise the people in it.
+ */
+export interface MockPana {
+  /** profiles.id */
+  id: string;
+  /** profiles.name */
+  name: string;
+  /** profiles.primaryImageCdn */
+  avatar: string;
+}
+
+export const PANAS: MockPana[] = [
+  { id: 'anette', name: 'Anette', avatar: '/img/about/anette_mago.jpg' },
+  { id: 'bee', name: 'Bee', avatar: '/img/about/bee_maria.jpg' },
+  { id: 'claribel', name: 'Claribel', avatar: '/img/about/claribel_avila.jpg' },
+  { id: 'gabriel', name: 'Gabriel', avatar: '/img/about/gbarrios.jpg' },
+  { id: 'jess', name: 'Jess', avatar: '/img/about/jdowns.jpg' },
 ];
+
+/**
+ * Whoever is putting the event on.
+ *
+ * `pastEvents` is the field that makes the anti-popularity lane possible. It is
+ * a count of this host's previous published events — `count(*) from events
+ * where host_profile_id = ?` — and it is the only way to distinguish a quiet
+ * event by someone established from a first event by someone who has never had
+ * an audience. Those two look identical under any attendance-based ranking,
+ * and only one of them is a discovery.
+ */
+export interface MockHost {
+  /** profiles.id or socialGroups.id */
+  id: string;
+  /** profiles.name / socialGroups.name */
+  name: string;
+  /** True when the host is a socialGroup rather than a profile. */
+  isGroup: boolean;
+  /** Published events by this host before this one. */
+  pastEvents: number;
+  /** socialFollows row from the viewer to this host. */
+  youFollow: boolean;
+}
+
+export const HOSTS: MockHost[] = [
+  {
+    id: 'panamia',
+    name: 'Pana Mia Club',
+    isGroup: true,
+    pastEvents: 48,
+    youFollow: false,
+  },
+  {
+    id: 'barrio',
+    name: 'Barrio Arts Lab',
+    isGroup: true,
+    pastEvents: 23,
+    youFollow: true,
+  },
+  {
+    id: 'subtropic',
+    name: 'Subtropic Collective',
+    isGroup: true,
+    pastEvents: 9,
+    youFollow: true,
+  },
+  {
+    id: 'lucia',
+    name: 'Lucía Serrano',
+    isGroup: false,
+    pastEvents: 1,
+    youFollow: false,
+  },
+  {
+    id: 'taller',
+    name: 'Taller Lucía',
+    isGroup: false,
+    pastEvents: 14,
+    youFollow: false,
+  },
+  {
+    id: 'census',
+    name: 'Miami Artist Census',
+    isGroup: true,
+    pastEvents: 6,
+    youFollow: false,
+  },
+  {
+    id: 'ourflorida',
+    name: 'Our Florida',
+    isGroup: true,
+    pastEvents: 31,
+    youFollow: false,
+  },
+  {
+    id: 'maria',
+    name: 'Maria Restrepo',
+    isGroup: false,
+    pastEvents: 0,
+    youFollow: false,
+  },
+  {
+    id: 'mwc',
+    name: 'Miami Workers Center',
+    isGroup: true,
+    pastEvents: 19,
+    youFollow: false,
+  },
+  {
+    id: 'subfilm',
+    name: 'Subtropic Film Festival',
+    isGroup: true,
+    pastEvents: 4,
+    youFollow: false,
+  },
+  {
+    id: 'resilience',
+    name: 'Resilience Network',
+    isGroup: true,
+    pastEvents: 7,
+    youFollow: false,
+  },
+];
+
+/**
+ * The signed-in viewer.
+ *
+ * `attended` is deliberately a history of events *turned up to* rather than a
+ * list of chosen interests. Both could drive the tag lane, but they produce
+ * different sentences: a stored interest yields "because you like print",
+ * which the viewer cannot verify and may not even remember setting, while an
+ * attendance row yields "like the MIA Zine Fair you went to", which is checkable
+ * in one glance. It also needs no new column — `event_attendees` joined back to
+ * `events.tags` already has it — where an interests list would mean asking
+ * every new account to fill in a form before the page works at all.
+ */
+export const VIEWER = {
+  name: 'you',
+  /** event_attendees where attendee = viewer, joined to events.tags. */
+  attended: [
+    { title: 'MIA Zine Fair', tags: ['Print', 'Zines', 'Workshop'] },
+    { title: 'Climate Futures Teach-In', tags: ['Talk', 'Rights'] },
+  ],
+};
 
 /* Kept in strict chronological order, because both the date strip and the day
    groups derive their order from this array rather than sorting it. That is
@@ -125,10 +277,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: null,
     tags: ['Market', 'Free', 'Family'],
     type: 'market',
-    faces: FACES.slice(0, 3),
-    host: 'Pana Mia Club',
-    price: 'Free',
-    followedGoing: 4,
+    host: 'panamia',
+    panasGoing: ['anette', 'bee', 'claribel'],
   },
   {
     id: 'e2',
@@ -147,10 +297,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 12,
     tags: ['Print', 'Workshop', 'Zines'],
     type: 'workshop',
-    faces: FACES.slice(2, 4),
-    host: 'Barrio Arts Lab',
-    price: '$15',
-    followedGoing: 2,
+    host: 'barrio',
+    panasGoing: ['claribel', 'gabriel'],
   },
   {
     id: 'e3',
@@ -169,10 +317,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 300,
     tags: ['Art', 'Free', 'Opening'],
     type: 'show',
-    faces: FACES.slice(0, 4),
-    host: 'Subtropic Collective',
-    price: 'Free',
-    followedGoing: 7,
+    host: 'subtropic',
+    panasGoing: ['anette', 'bee', 'claribel', 'gabriel'],
   },
   {
     id: 'e4',
@@ -191,10 +337,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 80,
     tags: ['Mixer', 'Members'],
     type: 'mixer',
-    faces: FACES.slice(1, 5),
-    host: 'Pana Mia Club',
-    price: 'Free',
-    followedGoing: 9,
+    host: 'panamia',
+    panasGoing: ['anette', 'bee', 'claribel', 'gabriel', 'jess'],
   },
   {
     id: 'e5',
@@ -213,10 +357,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 18,
     tags: ['Food', 'Ticketed'],
     type: 'mixer',
-    faces: FACES.slice(0, 2),
-    host: 'Lucía Serrano',
-    price: '$65',
-    followedGoing: 1,
+    host: 'lucia',
+    panasGoing: ['anette'],
   },
   {
     id: 'e6',
@@ -235,10 +377,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 24,
     tags: ['Print', 'Workshop', 'Beginner'],
     type: 'workshop',
-    faces: FACES.slice(2, 5),
-    host: 'Taller Lucía',
-    price: '$30',
-    followedGoing: 3,
+    host: 'taller',
+    panasGoing: ['claribel', 'gabriel', 'jess'],
   },
   {
     id: 'e7',
@@ -257,10 +397,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: null,
     tags: ['Talk', 'Funding', 'Free'],
     type: 'talk',
-    faces: FACES.slice(3, 5),
-    host: 'Miami Artist Census',
-    price: 'Free',
-    followedGoing: 5,
+    host: 'census',
+    panasGoing: ['gabriel', 'jess'],
   },
   {
     id: 'e8',
@@ -279,10 +417,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: null,
     tags: ['Market', 'Free', 'Family'],
     type: 'market',
-    faces: FACES.slice(0, 3),
-    host: 'Our Florida',
-    price: 'Free',
-    followedGoing: 2,
+    host: 'ourflorida',
+    panasGoing: ['anette', 'bee'],
   },
   {
     id: 'e11',
@@ -301,10 +437,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 8,
     tags: ['Ceramics', 'Workshop'],
     type: 'workshop',
-    faces: FACES.slice(1, 3),
-    host: 'Maria Restrepo',
-    price: '$80',
-    followedGoing: 1,
+    host: 'maria',
+    panasGoing: ['bee'],
   },
   {
     id: 'e12',
@@ -323,10 +457,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: null,
     tags: ['Talk', 'Free', 'Rights'],
     type: 'talk',
-    faces: FACES.slice(2, 5),
-    host: 'Miami Workers Center',
-    price: 'Free',
-    followedGoing: 3,
+    host: 'mwc',
+    panasGoing: ['claribel', 'jess'],
   },
   {
     id: 'e9',
@@ -345,10 +477,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 120,
     tags: ['Film', 'Ticketed'],
     type: 'show',
-    faces: FACES.slice(1, 4),
-    host: 'Subtropic Film Festival',
-    price: '$12',
-    followedGoing: 6,
+    host: 'subfilm',
+    panasGoing: ['bee', 'claribel', 'gabriel'],
   },
   {
     id: 'e10',
@@ -367,10 +497,8 @@ export const MOCK_EVENTS: MockEvent[] = [
     cap: 60,
     tags: ['Mutual aid', 'Free', 'Volunteer'],
     type: 'mixer',
-    faces: FACES.slice(0, 4),
-    host: 'Resilience Network',
-    price: 'Free',
-    followedGoing: 8,
+    host: 'resilience',
+    panasGoing: ['anette', 'bee', 'claribel', 'gabriel'],
   },
 ];
 

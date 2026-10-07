@@ -1,15 +1,6 @@
 'use client';
 
-import {
-  CalendarDays,
-  ChevronDown,
-  LayoutList,
-  Map as MapIcon,
-  Search,
-  X,
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { LayoutList, Map as MapIcon, X } from 'lucide-react';
 import {
   FilterMenu,
   type FilterMenuOption,
@@ -41,33 +32,31 @@ export interface FacetCounts {
 }
 
 /**
- * The band, the filter menus and the active-filter row.
+ * The calendar tab's filter menus and active-filter row.
  *
- * Everything above `.dirsearch-grid` on a directory page, reproduced from
- * `app/directory/_components/scope-page.tsx` class for class — `.surface-indigo
- * .dirsearch-band`, `.section-eyebrow`, `.dirsearch-title`, `.dirsearch-count`,
- * `.dirsearch-searchrow`, the `.directory-suggest-pill` with its scope control
- * as the leading element — then the menu row from
+ * This is the second tab of the page, not the page. It used to be the whole
+ * thing — a search band, five facets and a chronological list — which is a
+ * directory results page with events in it rather than a discover page: it
+ * requires the viewer to already know what they want and merely narrow to it.
+ * The spine is now the reason lanes in `events-discover.tsx`, and this is what
+ * is left for the viewer who genuinely does know, and wants Saturday.
+ *
+ * It no longer carries a band or a search box. The band became the page's own,
+ * holding the one availability control and the tabs; the search box went
+ * because a text query over events is what `/directory/events` already is, and
+ * reproducing it here was most of what made this read as a search page. What
+ * remains is the menu row from
  * `app/directory/search/_components/filter-bar.tsx`.
  *
- * The band is reproduced for the reason `/mock/directory-unified` reproduces
- * it: the real controls navigate, and a mock whose demonstration is filtering
- * in place cannot have its first click leave the page. `FilterMenu` is
- * *imported* rather than reproduced, because that reason does not apply to it
- * — it is a controlled component that takes `selected` and `onChange` and
- * never touches the router. Copying it would give this page a lookalike free
- * to drift from the real menu, which is the opposite of what a mock built out
- * of shipping classes is for.
+ * `FilterMenu` is *imported* rather than reproduced. The README reproduces
+ * real controls because real controls navigate, and a mock whose demonstration
+ * is filtering in place cannot have its first click leave the page — but that
+ * reason does not apply to a controlled component that takes `selected` and
+ * `onChange` and never touches the router. Copying it would give this page a
+ * lookalike free to drift from the real menu, which is the opposite of what a
+ * mock built out of shipping classes is for.
  *
- * Three things are different, and they are the proposal.
- *
- * **The scope pill is locked.** On `/directory/[scope]` the pill is a menu
- * because the page is one of five answers to a typed question. Here the
- * hostname already said which answer — `directory.pana.social/events` is the
- * events room, not the directory with a filter on — so the pill states the
- * scope and does not offer to change it. The chevron stays because the control
- * is the same control; it opens the other rooms rather than re-scoping a
- * query.
+ * Two things are different, and they are the proposal.
  *
  * **There is a Dates menu**, which is the one affordance a search page
  * genuinely cannot supply. Searching requires a word, and "Saturday" is not a
@@ -97,7 +86,6 @@ export function DiscoverChrome({
   counts,
   totalCount,
   shownCount,
-  weekendCount,
 }: {
   when: WhenBucket | 'all';
   onWhen: (next: WhenBucket | 'all') => void;
@@ -113,7 +101,6 @@ export function DiscoverChrome({
   counts: FacetCounts;
   totalCount: number;
   shownCount: number;
-  weekendCount: number;
 }) {
   const filtered = shownCount !== totalCount;
 
@@ -192,71 +179,6 @@ export function DiscoverChrome({
 
   return (
     <>
-      <section className="surface-indigo dirsearch-band">
-        <div className="container mx-auto px-4">
-          <span className="section-eyebrow">Directory</span>
-
-          <h1 className="dirsearch-title">
-            What&rsquo;s on in <em>South Florida</em>
-          </h1>
-
-          <p className="dirsearch-count">
-            <strong>{totalCount}</strong> events in the next 30 days ·{' '}
-            <strong>{weekendCount}</strong> this weekend
-          </p>
-
-          <div className="dirsearch-searchrow">
-            <form
-              className="scroll-mt-24"
-              onSubmit={(event) => event.preventDefault()}
-            >
-              <label htmlFor="mock-events-input" className="sr-only">
-                Search events in the Pana Mia directory
-              </label>
-              <div className="directory-suggest-pill directory-suggest-pill-lead">
-                <div className="relative shrink-0">
-                  <button type="button" className="surface-pill">
-                    <CalendarDays className="h-3.5 w-3.5 flex-none" />
-                    <span className="surface-pill-name">Events</span>
-                    <ChevronDown
-                      className="h-3.5 w-3.5 flex-none transition-transform"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-
-                <span className="dirsearch-chipdivide" aria-hidden="true" />
-
-                <Search
-                  className="directory-suggest-pill-icon text-pana-ink h-5 w-5 shrink-0 opacity-45"
-                  aria-hidden="true"
-                />
-
-                <div className="directory-suggest-field relative w-full">
-                  <div className="directory-suggest-input-shell">
-                    <Input
-                      id="mock-events-input"
-                      type="search"
-                      placeholder="Try zine fair, salsa, ceramics, Wynwood…"
-                      autoComplete="off"
-                      className="text-pana-ink"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="directory-suggest-pill-button"
-                >
-                  Search
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-
       <div className="dirsearch-filters">
         <div className="dirsearch-filterinner dirsearch-filterinner--menus container mx-auto">
           <div className="dirsearch-menurow">
