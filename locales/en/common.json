@@ -24,8 +24,6 @@
     "loadFailed": "Couldn't load your accounts",
     "tryAgain": "Try again",
     "yourGroups": "Groups you run",
-    "allGroups": "All groups",
-    "allGroupsHint": "Find a group, or start one",
     "manager": "Manager",
     "owner": "Owner",
     "sites": {
