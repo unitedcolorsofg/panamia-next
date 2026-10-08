@@ -299,6 +299,65 @@ Implemented via scheduled cleanup on `expiresAt` field. Set at creation time bas
 
 ---
 
+## Coverage by Domain
+
+One table, one bell, one `/updates` page. Every domain writes into the same
+`notifications` table through `createNotification`, and the `context` column is
+what makes a row legible — it is the switch `getNotificationMessage` reads to
+decide which sentence a row becomes. Adding a domain means adding a context and
+a `case`, not a new table or a new surface.
+
+### Where each domain stands
+
+| Domain          | Contexts in use                       | State                                                                    |
+| --------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| **Pana Social** | `follow`, `mention`, `article`        | Partial — `mention` has no `case` in `getNotificationMessage`; reply and boost-of-your-post are unwritten |
+| **Events**      | `event`                               | Organizer lifecycle done (Invite/Accept/Reject/Create/Update/Delete); RSVP and reminders missing; `venue` is an objectType with no context |
+| **Groups**      | `group`, `group_membership`           | Complete — invitations, join requests, role changes, removal, bans       |
+| **Messages**    | `message`                             | Context and retention exist; needs per-conversation collapsing           |
+| **Connectors**  | —                                     | **No context.** `app/connectors/{join,hq,admin}` notify nobody           |
+| **Admin**       | `system` (outbound only)              | **No inbound context.** Report queues and verification requests reach admins only by visiting `app/admin/reports` |
+
+### The two real gaps
+
+**Connectors** has routes for joining, an HQ, and an admin view, and no way to
+tell anyone anything. It needs a `connector` context covering at minimum: a
+join request landing on connector admins (`Join`), its approval or denial
+landing on the applicant (`Accept`/`Reject`), and HQ announcements (`Announce`).
+This is the same shape `group_membership` already solved, including the
+direction problem — `Join` travels applicant→org while `Accept` travels
+org→applicant, so the sentences are written from different sides.
+
+**Admin** currently only broadcasts. `system` carries announcements *to* users;
+nothing carries work *to* moderators. A `moderation` context would let a filed
+report (`Create`), a verification request (`Invite`), and a resolution
+(`Accept`/`Reject`) reach the people who act on them. The target for these is a
+role rather than a person, which the current schema cannot express —
+`notifications.target` is a single actor. Fanning out one row per admin is the
+cheap answer and is correct while the admin list is small; it stops being
+correct the moment it isn't.
+
+### Cross-cutting work, in priority order
+
+1. **Honor `notificationPreferences`.** The column exists on the profile table
+   (`lib/schema/index.ts:527`) and nothing reads it. Every domain added makes
+   the bell noisier with no way to turn anything down. Per-context on/off is the
+   smallest useful shape and maps 1:1 onto the enum.
+
+2. **Collapse before fanning out.** `Create` on a 500-member group writes 500
+   rows, and ten likes on one post are ten bell entries. Both want the same
+   fix — a grouping key so "3 people liked your post" is one row that updates,
+   rather than three that accumulate. Do this before adding connectors and
+   moderation, not after; retrofitting it across six domains is harder than
+   building it into two.
+
+3. **Channels beyond in-app.** Delivery today is the bell, the tab title, and a
+   desktop toast — all of which require the tab to be open. Email digest is the
+   obvious second channel, and it depends on preferences (1) and collapsing (2)
+   both existing first, or it sends 500 emails.
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Core Notification System
