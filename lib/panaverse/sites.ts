@@ -1,3 +1,5 @@
+import { SCOPE_TONE } from '@/lib/directory-scopes';
+import { SURFACE_TONE, type SurfaceTone } from '@/lib/panaverse/branding';
 import {
   frontDoorPath,
   originForFrom,
@@ -63,10 +65,40 @@ export interface PanaSite {
    * every member a door they cannot open.
    */
   adminOnly?: boolean;
+  /**
+   * The colour the tile's icon disc carries, or absent for a neutral one.
+   *
+   * Never written as a literal. Every value below is read out of `SCOPE_TONE`
+   * (lib/directory-scopes.ts) or `SURFACE_TONE` (lib/panaverse/branding.ts),
+   * so a noun that is recoloured in one of those maps recolours here in the
+   * same edit rather than in a second one somebody has to remember. This repo
+   * has twice shipped a private copy of a rule that happened to agree with
+   * the canonical one at the time it was written — #309 and #314 — and both
+   * times the agreement is what kept the drift invisible. A hand-written list
+   * of six tone strings here would be the third.
+   *
+   * Optional rather than required, because neutral is a real answer and not a
+   * gap. Pana Ink and PanaVizion have neither a scope nor a surface, so there
+   * is no canonical tone to read for them and inventing one would be exactly
+   * the brand language the marks do not have. The absence says "not one of
+   * the coloured destination kinds", which is true and useful.
+   *
+   * Lives on the registry rather than beside `SITE_ICONS` in the component so
+   * that a unit test can read it: `components/account/pana-sites.tsx` imports
+   * a CSS module, which `node --test` cannot load. Keeping it here is what
+   * makes the derivation assertable, and an unassertable derivation is how
+   * the two drifted copies above survived review.
+   */
+  tone?: SurfaceTone;
 }
 
 export const PANA_SITES: readonly PanaSite[] = [
-  { id: 'social', labelKey: 'panaSocial', href: '/s' },
+  {
+    id: 'social',
+    labelKey: 'panaSocial',
+    href: '/s',
+    tone: SURFACE_TONE.social,
+  },
   /* Directly under Pana Social because it is a room inside it: `/groups` is
    * one of that surface's paths, so this tile resolves to the social origin
    * from the main site without needing a special case here.
@@ -75,13 +107,23 @@ export const PANA_SITES: readonly PanaSite[] = [
    * used to carry an "All groups" row as well, pointing at the same page;
    * that row is gone, because /groups now opens with your own groups and so
    * answers both "the rest of mine" and "show me what exists" in one place. */
-  { id: 'groups', labelKey: 'groups', href: '/groups' },
+  { id: 'groups', labelKey: 'groups', href: '/groups', tone: SCOPE_TONE.group },
+  /* No tone for either of these two, on purpose. Neither is a search scope
+   * nor a surface, so neither has a canonical colour to read — and picking
+   * one for them would be inventing the brand language `branding.ts` says the
+   * panas do not have. They render on the neutral disc, which is what says
+   * "named offering, not one of the coloured destinations". */
   { id: 'ink', labelKey: 'panaInk', href: null },
   { id: 'vizion', labelKey: 'panaVizion', href: '/podcasts' },
   // `/d` is the canonical directory URL — `/directory` and `/directorio`
   // redirect here, so linking it directly saves a hop.
-  { id: 'directory', labelKey: 'directory', href: '/d' },
-  { id: 'events', labelKey: 'events', href: '/e' },
+  {
+    id: 'directory',
+    labelKey: 'directory',
+    href: '/d',
+    tone: SCOPE_TONE.directory,
+  },
+  { id: 'events', labelKey: 'events', href: '/e', tone: SCOPE_TONE.event },
   // Linked rather than null even though the HQ behind it is still fixtures:
   // `/connectors` is a real route that explains the programme to anyone who
   // is not in it yet, so the tile always lands somewhere true. The branch
@@ -94,11 +136,31 @@ export const PANA_SITES: readonly PanaSite[] = [
   // offering itself is untouched: `/get-involved` is still a live page and
   // still listed in PANA_OFFERINGS -- it just no longer needs a seat in this
   // grid to be found.
-  { id: 'connectors', labelKey: 'connectors', href: '/connectors' },
+  {
+    id: 'connectors',
+    labelKey: 'connectors',
+    href: '/connectors',
+    tone: SURFACE_TONE.connectors,
+  },
   /* Last, and only for staff. It is a different kind of thing from everything
    * above it — those are places a member goes, this is the back office — so it
-   * sits at the end rather than being sorted in among them. */
-  { id: 'admin', labelKey: 'admin', href: '/admin', adminOnly: true },
+   * sits at the end rather than being sorted in among them.
+   *
+   * Its blue comes from `SURFACE_TONE.admin`, where it is documented as the
+   * one tone that is a warning rather than wayfinding: every member surface
+   * is warm, so a staff tool that looked like one would invite somebody to
+   * forget which they were looking at while holding a button that publishes
+   * or refuses a business. Nothing else in this grid may be blue, and the
+   * Account tile stays neutral partly to keep it that way — `SCOPE_TONE.pana`
+   * is blue too, and a blue Account disc sitting four tiles from a blue Admin
+   * disc would spend exactly the signal this is protecting. */
+  {
+    id: 'admin',
+    labelKey: 'admin',
+    href: '/admin',
+    adminOnly: true,
+    tone: SURFACE_TONE.admin,
+  },
 ];
 
 /**

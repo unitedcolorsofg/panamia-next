@@ -3486,9 +3486,9 @@ button.bizprofile-update-action:hover {
    about what colour Pana Social is. Custom properties only take effect where
    something reads them, so widening the selector changes nothing else.
 
-   Three values, not two. `--surface-tone` is the fill — the colour the
+   Four values, not two. `--surface-tone` is the fill — the colour the
    surface *is* — and `--surface-tone-soft` its tint. `--surface-tone-ink` is
-   the only one of the three that may be set as type on a light surface:
+   the only one of the four that may be set as type on a light surface:
    six of the seven fills fail AA as text on the cream the masthead paints
    (orange 2.36, blue 2.21, flame 2.42, burnt 3.44, pink 3.54, red 3.86 — all
    need 4.5), so chrome that tinted its links with `--surface-tone` was
@@ -3504,47 +3504,68 @@ button.bizprofile-update-action:hover {
    the set as type at 2.36 despite being the brand colour — it carries the
    directory, the largest surface, so the temptation to set it as type is
    correspondingly the strongest. It is also the one that most needs its
-   twin. */
+   twin.
+
+   `--surface-tone-on` is the fourth, and the inverse question: not "which
+   colour of this tone is legible on a light background" but "which colour is
+   legible *on the fill itself*". It exists because anything that fills with
+   `--surface-tone` — the account menu's destination discs are the first —
+   otherwise has to carry its own list of which tones are dark, which is a
+   second copy of a fact this block already knows. It follows the CONTRAST
+   RULE at the top of this file exactly: only indigo and ink carry cream, so
+   indigo is the one entry here that is not ink. Measured against the fill,
+   lowest first: pink 5.13, burnt 5.29, flame 7.50, orange 7.72, blue 8.21,
+   and cream on indigo 9.01 (ink on indigo would be 2.02 and fails).
+
+   `lib/admin/theme.ts` names the same idea `ON_FILL` for the admin surface's
+   Tailwind classes; this is that concept as a token, for the tones. */
 [data-tone='indigo'] {
   --surface-tone: var(--color-pana-indigo);
   --surface-tone-soft: rgb(48 62 140 / 0.1);
   --surface-tone-ink: var(--color-pana-indigo);
+  --surface-tone-on: var(--color-pana-cream);
 }
 
 [data-tone='burnt'] {
   --surface-tone: var(--color-pana-burnt);
   --surface-tone-soft: rgb(217 98 54 / 0.12);
   --surface-tone-ink: var(--color-pana-burnt-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 [data-tone='flame'] {
   --surface-tone: var(--color-pana-flame);
   --surface-tone-soft: rgb(242 132 68 / 0.14);
   --surface-tone-ink: var(--color-pana-flame-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 [data-tone='blue'] {
   --surface-tone: var(--color-pana-blue);
   --surface-tone-soft: rgb(74 179 234 / 0.16);
   --surface-tone-ink: var(--color-pana-blue-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 [data-tone='red'] {
   --surface-tone: var(--color-pana-red);
   --surface-tone-soft: rgb(217 78 65 / 0.12);
   --surface-tone-ink: var(--color-pana-red-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 [data-tone='orange'] {
   --surface-tone: var(--color-pana-orange);
   --surface-tone-soft: rgb(255 129 0 / 0.12);
   --surface-tone-ink: var(--color-pana-orange-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 [data-tone='pink'] {
   --surface-tone: var(--color-pana-pink);
   --surface-tone-soft: rgb(252 32 112 / 0.12);
   --surface-tone-ink: var(--color-pana-pink-deep);
+  --surface-tone-on: var(--color-pana-ink);
 }
 
 /* A browser window drawn around the mock. The address bar is part of the

@@ -303,10 +303,31 @@
    was most of the sheet's height on a phone. Three across fits the 320px
    dropdown and shortens the whole menu by roughly half.
 
-   Monochrome on purpose. `lib/panaverse/branding.ts` records that the panas
-   do not use colour to tell their offerings apart — colour here is wayfinding
-   for "which room am I in", so six tinted tiles would be inventing a brand
-   language the marks themselves do not have. */
+   Six of the nine discs carry a tone. This reverses the note that used to sit
+   here, which read that the tiles were "monochrome on purpose" because the
+   panas do not use colour to tell their offerings apart. That note was not
+   wrong when it was written — it was written before the thing it now has to
+   account for. It landed 2026-09-24 in #196; SCOPE_TONE landed 2026-09-25 in
+   #239, the day after, and scope colours only became something a member
+   actually sees — as chips in the search bar — in #306. So at the time there
+   genuinely was no colour vocabulary for these nouns, and inventing one would
+   have been inventing a brand language. There is one now, and a member meets
+   it on every search.
+
+   The governing rule in `lib/panaverse/branding.ts` is untouched and still
+   binding: "the panas deliberately do not use colour to tell their offerings
+   apart" forbids recolouring the *logo*, and the same docblock calls the
+   accent "the only thing answering 'which room am I in'". That is wayfinding,
+   which is what this grid is — identity-menu.tsx marks the menu's lower half
+   as answering "where am I going". The precedent is already in that file: the
+   Events room in SHARED_ROOMS took pink so "the same noun reads one colour
+   whether it is reached through the scope bar or through here". This is that
+   argument for the remaining five nouns rather than a new one.
+
+   Every tone is read from SCOPE_TONE or SURFACE_TONE via `site.tone` — see
+   PanaSite in lib/panaverse/sites.ts. No tone name is written in this file,
+   which is the point: recolouring a scope upstream recolours the tile with no
+   second edit here. */
 
 .tileGrid {
   display: grid;
@@ -349,6 +370,41 @@
   border-radius: 50%;
   background-color: rgb(17 13 13 / 0.06);
   overflow: hidden;
+}
+
+/* A toned disc. Both declarations resolve through the `[data-tone]` block in
+   app/globals.css, so this rule names no colour and no tone: add a tone to a
+   tile and it is already styled, recolour one upstream and this follows.
+   `--surface-tone-on` is the glyph, and it has to be a token rather than ink
+   — five of the six fills carry ink but indigo carries cream (ink on indigo
+   measures 2.02), and hardcoding either would be a private copy of a contrast
+   fact globals.css already holds.
+
+   The fill is at full saturation, which was not the obvious choice: six
+   saturated circles in a 320px dropdown is a lot, and a tint over the neutral
+   grey would be quieter. It was measured instead of guessed, and the tint
+   loses. SCOPE_TONE records that two fills under ~23 units apart in RGB read
+   as one colour — that is the defect #306 existed to fix. The closest pair
+   here is flame (Pana Social) and burnt (Connectors) at 44.5, which clears
+   it; but compositing against the panel scales that separation linearly with
+   alpha, so a disc at 0.4 alpha puts the pair at 17.9 and reintroduces the
+   exact failure, with Social and Connectors as one orange. Anything below
+   roughly 0.52 alpha is under the threshold.
+
+   Carrying the tone in the glyph over a soft disc is the other way round, and
+   it fails whichever colour the glyph takes. `--surface-tone-ink` stays
+   legible but collapses the separation harder than the tint did: the deep
+   twins of flame and burnt sit 16.8 apart. Full saturation keeps the 44.5,
+   but the glyph is then a tone on a tint of itself — blue 1.95, orange 2.12,
+   flame 2.15, pink 2.98, burnt exactly 3.00 — so four of the six are under
+   the 3:1 even a non-text stroke owes and a fifth is sitting on it.
+
+   The glyph is a stroke rather than type, so it owes 3:1 under WCAG 1.4.11
+   rather than 4.5. The weakest pairing here is pink at 5.13, so all six clear
+   the type bar they do not actually have to meet. */
+.tileIcon[data-tone] {
+  background-color: var(--surface-tone);
+  color: var(--surface-tone-on);
 }
 
 .tileLabel {
