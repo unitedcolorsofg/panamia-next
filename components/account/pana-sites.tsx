@@ -24,6 +24,13 @@ import { cn } from '@/lib/utils';
  * Icons live here rather than in the registry: `lib/panaverse/sites.ts` is
  * free of React dependencies so the Worker and any server caller can read it,
  * and importing lucide there would drag a React package into that path.
+ *
+ * Tones went the other way — they are on the registry, as `site.tone` — for a
+ * reason worth not undoing. A tone is derived from `SCOPE_TONE` or
+ * `SURFACE_TONE` rather than chosen, so the valuable thing about it is that a
+ * test can assert the derivation held; and a test cannot import this file,
+ * because `node --test` cannot load the CSS module above. Icons have no such
+ * upstream to drift from, so they stay here where they cost nothing.
  */
 const SITE_ICONS: Record<string, LucideIcon> = {
   social: MessageCircle,
@@ -102,7 +109,11 @@ export function PanaSites({
                 className={cn(styles.tile, styles.tileComingSoon)}
                 aria-disabled="true"
               >
-                <span className={styles.tileIcon} aria-hidden="true">
+                <span
+                  className={styles.tileIcon}
+                  data-tone={site.tone}
+                  aria-hidden="true"
+                >
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
                 <span className={styles.tileLabel}>{label}</span>
@@ -122,7 +133,11 @@ export function PanaSites({
               onClick={onNavigate}
               className={styles.tile}
             >
-              <span className={styles.tileIcon} aria-hidden="true">
+              <span
+                className={styles.tileIcon}
+                data-tone={site.tone}
+                aria-hidden="true"
+              >
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <span className={styles.tileLabel}>{label}</span>
