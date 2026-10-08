@@ -67,4 +67,28 @@ export const ADMIN_CHROME = {
   RULE_LG: 'lg:border-pana-ink/20',
   /** Headline figures, eyebrows and section labels. Clears on fill and cream. */
   ACCENT: 'text-pana-navy',
+  /**
+   * Card and panel bodies. White, because the page ground is already cream.
+   *
+   * This furniture used to be `bg-pana-cream`, which is the *same value* as
+   * the ground `app/admin/layout.tsx` paints — 1.00:1, no separation at all.
+   * The 2px border was doing the entire job of saying "this is a card", and
+   * on the overview, where several panels stack, the result read as rules
+   * drawn on a flat page rather than as things sitting on it.
+   *
+   * White is the only lighter value available, and it is already what the
+   * `--card` variable resolves to, so this furniture and the shadcn `Card`
+   * used elsewhere on the surface now agree instead of being two different
+   * notions of "card".
+   *
+   *   white / cream     1.06  — surface separation. Subtle by design.
+   *   ink / white      19.32  — body copy. Was 18.18 on cream.
+   *
+   * 1.06 is deliberately low: this is two surfaces, not text on a surface, so
+   * it is the border and shadow that carry the edge and this only has to stop
+   * the fill from reading as a hole. Going darker to force the number up would
+   * mean a third near-cream in the palette, which the note by the cream tokens
+   * in app/globals.css already warns against.
+   */
+  SURFACE: 'bg-white',
 } as const;
