@@ -1,17 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
-import {
-  Calendar,
-  ChevronDown,
-  Globe2,
-  ImagePlus,
-  MapPin,
-  Mic,
-  Users,
-} from 'lucide-react';
+import { Calendar, ImagePlus, Lock, MapPin, Mic, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MOCK_VIEWER, type FeedState } from '../_data/mock-feed';
+import { MOCK_MY_GROUPS, MOCK_VIEWER } from '../_data/mock-feed';
+import {
+  DEFAULT_DESTINATION,
+  DestinationPicker,
+  findGroup,
+  reachLine,
+  type Destination,
+} from '@/components/social/destination-picker';
 
 /* The composer at the top of the feed.
  *
@@ -26,11 +26,26 @@ import { MOCK_VIEWER, type FeedState } from '../_data/mock-feed';
  * surface that mentions them.
  *
  * It renders in the empty state too. A new account is told to post — removing
- * the box it would post in is how an onboarding step becomes a dead end. Only
- * the reach line changes, because zero Panas is the truth at that point and
- * the county timeline is the honest answer to "who sees this". */
-export function FeedComposer({ state = 'populated' }: { state?: FeedState }) {
-  const isNew = state === 'empty';
+ * the box it would post in is how an onboarding step becomes a dead end.
+ *
+ * The picker is the real `components/social/destination-picker`, not a copy.
+ * This mock previously had its own, and two files rendering the same control
+ * is how the mock and the product quietly stop agreeing about what shipped.
+ *
+ * One thing was lost in the merge, deliberately: this mock used to show a
+ * new-account reach line naming the viewer's county. There is no county field
+ * on a social account, so the real picker cannot say it without inventing the
+ * data. Worth building -- "anyone nearby" is a better answer than "Miami-Dade
+ * and Broward" for someone who is neither -- but it needs the field first. */
+export function FeedComposer() {
+  const [destination, setDestination] =
+    useState<Destination>(DEFAULT_DESTINATION);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const group =
+    destination.kind === 'group'
+      ? findGroup(MOCK_MY_GROUPS, destination.id)
+      : undefined;
 
   return (
     <div className="feed-composer">
@@ -53,7 +68,11 @@ export function FeedComposer({ state = 'populated' }: { state?: FeedState }) {
             id="feed-composer-input"
             rows={2}
             className="feed-composer-prompt"
-            placeholder={`¿Qué tal, ${MOCK_VIEWER.name.split(' ')[0]}? Ask the Panas something, or show what you're working on.`}
+            placeholder={
+              group
+                ? `Share something with ${group.name}`
+                : `¿Qué tal, ${MOCK_VIEWER.name.split(' ')[0]}? Ask the Panas something, or show what you're working on.`
+            }
           />
         </div>
       </div>
@@ -77,14 +96,17 @@ export function FeedComposer({ state = 'populated' }: { state?: FeedState }) {
         </button>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Visibility is a first-class control rather than a setting buried
+          {/* Destination is a first-class control rather than a setting buried
               in a menu: on a local network people are posting to a county they
-              live in, and they should always be able to see who that is. */}
-          <button type="button" className="composer-chip">
-            <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Everyone
-            <ChevronDown className="h-3 w-3" aria-hidden="true" />
-          </button>
+              live in, or to one group out of six, and they should always be
+              able to see which without opening anything. */}
+          <DestinationPicker
+            destination={destination}
+            onChange={setDestination}
+            groups={MOCK_MY_GROUPS}
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+          />
           <Button
             size="sm"
             className="bg-pana-indigo text-pana-cream hover:bg-pana-indigo/90 rounded-full px-5 font-extrabold"
@@ -95,13 +117,18 @@ export function FeedComposer({ state = 'populated' }: { state?: FeedState }) {
       </div>
 
       <p className="text-pana-ink/50 mt-2.5 text-[12px] font-bold sm:pl-13">
-        <Users
-          className="mr-1 inline h-3 w-3 align-[-1px]"
-          aria-hidden="true"
-        />
-        {isNew
-          ? `Posting to the ${MOCK_VIEWER.county} timeline — anyone nearby can see this`
-          : `Posting to ${MOCK_VIEWER.panas.toLocaleString('en-US')} Panas and ${MOCK_VIEWER.groups} groups`}
+        {group?.visibility === 'private' ? (
+          <Lock
+            className="mr-1 inline h-3 w-3 align-[-1px]"
+            aria-hidden="true"
+          />
+        ) : (
+          <Users
+            className="mr-1 inline h-3 w-3 align-[-1px]"
+            aria-hidden="true"
+          />
+        )}
+        {reachLine(destination, MOCK_MY_GROUPS)}
       </p>
     </div>
   );

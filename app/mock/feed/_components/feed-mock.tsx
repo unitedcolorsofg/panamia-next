@@ -81,7 +81,7 @@ export function FeedMock({ surfaces }: { surfaces: MockSurface[] }) {
       <div className="container mx-auto max-w-6xl px-4 pt-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
           <div className="min-w-0">
-            <FeedComposer state={state} />
+            <FeedComposer />
 
             {state === 'populated' ? (
               <>
