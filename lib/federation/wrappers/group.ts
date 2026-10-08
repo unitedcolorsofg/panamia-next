@@ -29,6 +29,7 @@ import type {
   SocialGroupVisibility,
 } from '@/lib/schema';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { ACTIVITY_WINDOW_DAYS } from '@/lib/server/group-search';
 import { generateActorKeyPair } from '../crypto/keys';
 import { notifyJoinRequested } from './group-notify';
 import { validateScreennameFull } from '@/lib/screenname';
@@ -656,10 +657,29 @@ export async function listPublicGroupsForActor(
   }));
 }
 
+/**
+ * The next thing one of your groups has on its calendar.
+ *
+ * Two fields, not the four a browse card gets. The rail dates a group, it
+ * does not name the event -- a title in a 248px column truncates to noise,
+ * and the group page is one click away. `timezone` rides along because an
+ * event in Miami is on the day Miami says it is regardless of where it is
+ * being read from, which is the position the rest of this codebase already
+ * takes.
+ */
+export interface MyGroupNextEvent {
+  startsAt: string;
+  timezone: string;
+}
+
 export interface MyGroupMembership extends PublicGroupMembership {
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   role: SocialGroupRole;
+  /** Posts in the last ACTIVITY_WINDOW_DAYS days. */
+  postsThisWeek: number;
+  /** Next published public event, or null. */
+  nextEvent: MyGroupNextEvent | null;
 }
 
 /**
@@ -679,6 +699,13 @@ export interface MyGroupMembership extends PublicGroupMembership {
  * Still 'active' only. A pending request is not yet a membership, and listing
  * it under "your groups" would promise access that the admins have not
  * granted.
+ *
+ * Carries activity and the next event because the groups rail renders both,
+ * and neither is guarded on group visibility the way the browse cards are.
+ * That guard exists to stop a stranger reading a private group's pulse off a
+ * search result; every row here is a group the caller is standing in, so
+ * withholding it would be hiding somebody's own room from them -- the same
+ * mistake as hiding the group itself, one field down.
  */
 export async function listMyGroups(
   actorId: string
@@ -694,6 +721,33 @@ export async function listMyGroups(
       visibility: socialGroups.visibility,
       joinPolicy: socialGroups.joinPolicy,
       role: socialGroupMembers.role,
+      /* Correlated subqueries rather than joins: a LEFT JOIN on statuses
+         would multiply the membership rows before the count collapsed them,
+         and a lateral for the event would still need its own ORDER BY. Both
+         ride the same indexes the browse cards use for the identical
+         counts -- social_statuses on group_id, events_host_group_id_idx. */
+      postsThisWeek: sql<number>`(
+        SELECT count(*)::int
+        FROM social_statuses s
+        WHERE s.group_id = ${socialGroups.id}
+          AND s.published > now() - ${`${ACTIVITY_WINDOW_DAYS} days`}::interval
+      )`,
+      /* Published and public only, even for a member. An unlisted event is
+         one the organiser chose not to put on the calendar; surfacing it in a
+         rail is listing it. */
+      nextEvent: sql<MyGroupNextEvent | null>`(
+        SELECT row_to_json(e)
+        FROM (
+          SELECT ev.starts_at AS "startsAt", ev.timezone
+          FROM events ev
+          WHERE ev.host_group_id = ${socialGroups.id}
+            AND ev.status = 'published'
+            AND ev.visibility = 'public'
+            AND ev.starts_at > now()
+          ORDER BY ev.starts_at ASC
+          LIMIT 1
+        ) e
+      )`,
     })
     .from(socialGroupMembers)
     .innerJoin(socialGroups, eq(socialGroups.id, socialGroupMembers.groupId))
@@ -709,5 +763,9 @@ export async function listMyGroups(
   return rows.map((row) => ({
     ...row,
     name: row.name ?? row.handle,
+    /* count(*) cannot be null, but the driver types it loosely and a NaN
+       here would render as a dot on every group. */
+    postsThisWeek: Number(row.postsThisWeek) || 0,
+    nextEvent: row.nextEvent ?? null,
   }));
 }

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { GroupsContent } from './_components/groups-content';
+import { GroupsShell } from './_components/groups-shell';
 
 /**
  * /groups - the front door for groups.
@@ -52,11 +53,11 @@ function GroupsFallback() {
 export default function GroupsPage() {
   return (
     <main className="surface-cream min-h-screen pb-20">
-      <div className="container mx-auto max-w-5xl px-4 pt-8">
+      <GroupsShell>
         <Suspense fallback={<GroupsFallback />}>
           <GroupsContent />
         </Suspense>
-      </div>
+      </GroupsShell>
     </main>
   );
 }

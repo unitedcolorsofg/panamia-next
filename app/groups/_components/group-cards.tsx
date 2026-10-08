@@ -11,7 +11,6 @@ import {
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import type {
   GroupSearchSummary,
-  MyGroupSummary,
   UpcomingGroupEvent,
 } from '@/lib/query/social';
 
@@ -48,7 +47,7 @@ const TOPIC_PREVIEW_LIMIT = 4;
 const FACE_LIMIT = 4;
 
 /** Stands in for a missing cover, same as the directory uses. */
-const FALLBACK_LOGO = '/img/bg_coconut_blue.jpg';
+export const FALLBACK_LOGO = '/img/bg_coconut_blue.jpg';
 
 /** A group's topics, in the order they were stored, flags only. */
 export function groupTopics(group: {
@@ -64,8 +63,12 @@ export function groupTopics(group: {
  * An event in Miami is on the day Miami says it is regardless of where it is
  * being browsed from. Same position search-kinds.ts and suggest.ts take, and
  * the same fallback: one row with a bad tz must not take the page down.
+ *
+ * Exported for the groups rail, which dates a group the same way. A second
+ * copy of this would be a second chance to drop the timezone argument and
+ * quietly shift a Saturday event to Friday for half the country.
  */
-function formatWhen(startsAt: string, timezone: string): string | null {
+export function formatWhen(startsAt: string, timezone: string): string | null {
   const date = new Date(startsAt);
   if (Number.isNaN(date.getTime())) return null;
 
@@ -342,59 +345,12 @@ export function GroupCard({
   );
 }
 
-/**
- * The compact variant, for groups the viewer is already in.
- *
- * "Your groups" is navigation, not persuasion. A cover photograph, a topic
- * list and a row of member faces are all arguments for joining, and spending
- * them on somebody who joined months ago pushes the thing they came for --
- * the way back in -- below the fold. The rich card sells; this one just gets
- * out of the way.
- *
- * Takes MyGroupSummary rather than a search result, because this list can say
- * things search results cannot: the reader's role, and that a private group
- * is one they are inside rather than one they might ask to join.
- */
-export function GroupRow({ group }: { group: MyGroupSummary }) {
-  const runsIt = group.role === 'admin' || group.role === 'moderator';
-
-  return (
-    <SurfaceLink
-      href={`/g/${group.handle}`}
-      className="profile-card hover:border-pana-indigo/30 flex items-center gap-3.5 p-3.5 transition-colors"
-    >
-      <img
-        src={group.iconUrl || FALLBACK_LOGO}
-        alt=""
-        aria-hidden="true"
-        className="border-pana-ink/10 h-11 w-11 flex-none rounded-xl border-2 object-cover"
-      />
-
-      <div className="min-w-0 flex-1">
-        <h3 className="text-pana-ink truncate text-[14px] leading-tight font-extrabold">
-          {group.name || group.handle}
-        </h3>
-        <div className="text-pana-ink/55 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] font-bold">
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" aria-hidden="true" />
-            {group.memberCount.toLocaleString()}
-          </span>
-          {runsIt && (
-            <span className="bg-pana-indigo/10 text-pana-indigo rounded-full px-2 py-0.5 capitalize">
-              {group.role}
-            </span>
-          )}
-          {group.visibility === 'private' && (
-            <span className="card-flag">
-              <Lock className="h-3 w-3" aria-hidden="true" />
-              Private
-            </span>
-          )}
-        </div>
-      </div>
-    </SurfaceLink>
-  );
-}
+/* The compact "your groups" row used to live here, taking MyGroupSummary.
+   The rail in groups-shell.tsx replaced it: that list is navigation, and
+   navigation belongs in a column you can reach from any groups page rather
+   than in a grid at the top of one of them. Deleted rather than left
+   exported, since an orphaned card is just a thing to keep in sync with a
+   type nothing renders. */
 
 /**
  * A topic chip.

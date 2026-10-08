@@ -21,7 +21,6 @@ import {
 import {
   GroupCard,
   GroupEventRow,
-  GroupRow,
   TopicChip,
 } from '@/app/groups/_components/group-cards';
 
@@ -33,15 +32,16 @@ const ACTIVE_SHELF_LIMIT = 4;
  *
  * This page is ordered by who is asking rather than by what exists:
  *
- *   1. Your groups, if you have any. Somebody opening this page is far more
- *      often going back somewhere than looking for somewhere new, and their
- *      own list is the one thing no search box can produce.
- *   2. Browse by interest. "Any interest" was the premise of the feature, and
+ *   1. Browse by interest. "Any interest" was the premise of the feature, and
  *      a search box only serves people who already know the word to type.
- *   3. Active groups right now, as evidence rather than as a claim.
- *   4. Events, which is the argument for a group over a group chat.
- *   5. Start one, last, because it is the answer to "nothing here fits" and
+ *   2. Active groups right now, as evidence rather than as a claim.
+ *   3. Events, which is the argument for a group over a group chat.
+ *   4. Start one, last, because it is the answer to "nothing here fits" and
  *      reads as pushy before somebody has looked.
+ *
+ * Your own groups used to lead this list and no longer appear here at all --
+ * they live in the rail, which both this page and discover sit inside. See
+ * groups-shell.tsx for why that is a better home than the top of one page.
  *
  * Searching is deliberately NOT done here -- the field is a doorway to
  * /groups/discover. This page used to do both, and the result was that the
@@ -55,12 +55,6 @@ export function GroupsContent() {
   return (
     <div>
       <Hero signedIn={signedIn} />
-
-      {/* Split so the hook never runs for a signed-out visitor, who would get
-          a 401 and nothing to show for it. Signed out there is also no shelf
-          to show: an empty-state card would tell somebody who has never
-          joined a group that they have no groups. */}
-      {signedIn && <YourGroups />}
 
       <BrowseByInterest />
       <ActiveNow signedIn={signedIn} />
@@ -86,17 +80,22 @@ function Hero({ signedIn }: { signedIn: boolean }) {
   const router = useRouter();
 
   return (
-    <header className="text-center">
-      <span className="card-flag mx-auto">
+    /* Left-aligned, not centred. A centred hero reads as the top of a page
+       that owns its whole width; next to the rail it reads as a block that
+       has drifted off its own left edge. Everything below it -- section
+       heads, cards, the rail itself -- starts at the same line, so this
+       does too. */
+    <header>
+      <span className="card-flag">
         <Users className="h-3 w-3" aria-hidden="true" />
         Pana Social
       </span>
 
-      <h1 className="text-pana-ink mx-auto mt-3 max-w-2xl text-3xl leading-tight font-extrabold sm:text-4xl">
+      <h1 className="text-pana-ink mt-3 max-w-2xl text-3xl leading-tight font-extrabold sm:text-4xl">
         Groups are where a shared interest gets a room
       </h1>
 
-      <p className="text-pana-ink/70 mx-auto mt-3 max-w-xl text-[15px] leading-relaxed font-medium">
+      <p className="text-pana-ink/70 mt-3 max-w-xl text-[15px] leading-relaxed font-medium">
         Printmakers, tenant unions, run clubs, salsa nights. A group has its own
         feed, its own events, and its own door &mdash; and it all stays on Pana.
       </p>
@@ -105,7 +104,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
           survives the trip. It submits to discover rather than filtering in
           place. */}
       <form
-        className="mx-auto mt-6 flex max-w-xl flex-col gap-2.5 sm:flex-row"
+        className="mt-6 flex max-w-xl flex-col gap-2.5 sm:flex-row"
         onSubmit={(event) => {
           event.preventDefault();
           const value = new FormData(event.currentTarget).get('q');
@@ -149,41 +148,6 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         </p>
       )}
     </header>
-  );
-}
-
-/**
- * The member's own groups, private ones included.
- *
- * Renders nothing at all when they are in none -- the shelves below are
- * already the answer to an empty shelf, and an empty-state card here would
- * push them down the page to say the same thing twice.
- */
-function YourGroups() {
-  const { data, isLoading } = useMyGroups();
-  const groups = data?.groups ?? [];
-
-  if (isLoading) {
-    return (
-      <div className="mt-12 animate-pulse space-y-3" aria-hidden="true">
-        <div className="bg-pana-ink/10 h-6 w-32 rounded-lg" />
-        <div className="bg-pana-ink/10 h-20 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (groups.length === 0) return null;
-
-  return (
-    <section className="mt-12">
-      <SectionHead title="Your groups" hint={`${groups.length} you are in`} />
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {groups.map((group) => (
-          <GroupRow key={group.id} group={group} />
-        ))}
-      </div>
-    </section>
   );
 }
 
