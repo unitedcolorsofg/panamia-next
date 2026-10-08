@@ -6,6 +6,10 @@ import { Panel } from '@/components/connectors/dashboard-parts';
 import { MyCommitments } from '@/components/connectors/my-commitments';
 import { HqHero } from '@/components/connectors/hq-hero';
 import {
+  ActionLibrary,
+  TierLadder,
+} from '@/components/connectors/action-library';
+import {
   countConnectorsInPod,
   getMyConnector,
   type ProfileConnector,
@@ -44,6 +48,22 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * leaving that on a slide means it gets read once during onboarding and never
  * again — which is precisely when somebody starts wondering what Tier 2 would
  * actually involve.
+ *
+ * ## From a slide to a thing you can do
+ *
+ * Those per-house action lists were read-only for their first few rounds: the
+ * deck's thirty-six actions rendered as a ladder in the sidebar, with the only
+ * route from "that one sounds like me" to "it is on my board" being to
+ * remember the wording and retype it into the free-text form higher up the
+ * page. So the single hardest question in the programme — a new Tier 1
+ * connector asking what they are supposed to do on Monday — was answered by
+ * an empty input.
+ *
+ * `ActionLibrary` now carries those lists in the main column with a commit
+ * button on every line, and the sidebar keeps `TierLadder`, which is the part
+ * that was never really about actions: it explains that tiers measure load
+ * rather than seniority. Both read `lib/connectors/model.ts`, so the
+ * programme's own wording stays the only copy of itself.
  *
  * ## Three ways not to see HQ
  *
@@ -84,7 +104,6 @@ export default async function ConnectorHqPage() {
   }
 
   const { displayName, imageUrl, membership } = me;
-  const houses = membership.houses.map(getHouse);
   const podSize = await countConnectorsInPod(membership.pod);
 
   return (
@@ -111,40 +130,20 @@ export default async function ConnectorHqPage() {
               houses={membership.houses}
             />
           </Panel>
+
+          <Panel title="Pick something to do">
+            <ActionLibrary
+              houses={membership.houses}
+              tier={membership.tier}
+              committed={membership.commitments.map((c) => c.what)}
+            />
+          </Panel>
         </div>
 
         <aside className="flex flex-col gap-6">
-          {houses.map((house) => (
-            <Panel key={house.id} title={`Next in ${house.name}`}>
-              <p className="text-pana-ink/70 text-sm leading-relaxed">
-                What people at each tier are doing. Tiers are about how much you
-                are carrying — not how good you are at it.
-              </p>
-
-              <div className="mt-4 flex flex-col gap-4">
-                {([1, 2, 3] as const).map((t) => (
-                  <div
-                    key={t}
-                    className={
-                      t === membership.tier
-                        ? 'border-pana-ink rounded-lg border-2 p-3'
-                        : 'px-3 opacity-60'
-                    }
-                  >
-                    <p className="text-xs font-extrabold tracking-wide uppercase">
-                      Tier {t}
-                      {t === membership.tier ? ' · you' : ''}
-                    </p>
-                    <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-sm leading-snug">
-                      {house.actions[t].map((action) => (
-                        <li key={action}>{action}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          ))}
+          <Panel title="How tiers work">
+            <TierLadder tier={membership.tier} />
+          </Panel>
 
           {membership.bring && (
             <Panel title="What you said you can bring">
