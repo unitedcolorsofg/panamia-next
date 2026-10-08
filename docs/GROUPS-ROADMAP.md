@@ -625,7 +625,8 @@ handles were already claimable by anyone**, defeating the 410-Gone behaviour tha
 provide. Now a `leftJoin`, with unmatched rows blocking rather than vanishing.
 
 **Not notified:** attendees of an event deleted along with its group. The danger zone says so
-plainly rather than quietly doing it.
+plainly rather than quietly doing it, and this is now a settled decision rather than a gap — see
+the "Decided against" note under [Phase 10](#phase-10--membership-notifications).
 
 ---
 
@@ -911,8 +912,14 @@ Covered by `tests-db/group-notifications.test.ts`. Four of its cases assert a **
 self-role-change, an actor with no user behind it, and an action that was already true. Each is
 indistinguishable from a bug unless it is written down.
 
-**Still unbuilt:** invites, email delivery for these (they are in-app only), and notifying event
-attendees when an event is deleted along with its group.
+**Still unbuilt:** invites, and email delivery for these (they are in-app only).
+
+**Decided against:** notifying event attendees when an event is deleted along with its group. The
+confirmation screen already names how many upcoming events are being cancelled and says outright
+that "anyone going will not be notified", and it points at the escape hatch — transfer the event to
+a person or another group from its manage page to keep it. A notification would link to a group and
+an event that both stopped existing in the same transaction, and reaching the people who RSVP'd is
+a conversation the organiser owns. See the docblock in `lib/server/delete-group.ts`.
 
 ---
 

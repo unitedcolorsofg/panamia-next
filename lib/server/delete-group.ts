@@ -22,6 +22,21 @@
  * host, and there is no honest candidate. Handing them to the deleting admin
  * makes them personally responsible for gatherings they just dissolved.
  *
+ * **Attendees are not notified, and that is a decision rather than a gap.**
+ * `event_attendees` cascades from the event, so people holding an RSVP to a
+ * dissolved gathering are told nothing by this system. Four things make that
+ * acceptable. The confirmation screen names the number of upcoming events
+ * being cancelled and states outright that "anyone going will not be
+ * notified", so the admin is told what their click costs before it costs it.
+ * That same screen points at the escape hatch -- an event worth keeping can
+ * be transferred to a person or another group from its manage page first, so
+ * nothing forces a cancellation. A notification would link to a group page
+ * and an event page that both stopped existing in the same transaction, which
+ * is worse than silence. And the people who organise a gathering generally
+ * have a way to reach the people coming to it -- that conversation belongs to
+ * them, not to a system message. Revisit this only if group deletion stops
+ * being rare.
+ *
  * **The handle stays retired.** We write a `screenname_history` row keyed by
  * the group's actor id, for the same reason account deletion keeps one: remote
  * servers and old links cached that identity, and letting someone else pick it
