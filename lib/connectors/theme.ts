@@ -43,6 +43,24 @@
 export const CONNECTORS_CHROME = {
   /** Filled dark surfaces: hero, card headers, table headers, buttons. */
   FILL: 'bg-pana-indigo',
+  /**
+   * The paper a panel is printed on.
+   *
+   * White, not cream. The page itself is cream, and a cream panel on cream
+   * paper has nothing but its border to say it is a panel — the surface read
+   * as one flat sheet with rules drawn on it rather than as a set of cards.
+   * White lifts the content off the page without adding another colour, and
+   * it is the only lighter value available: cream *is* the palette's lightest
+   * tone, so anything warmer would have had to be invented.
+   *
+   * This is the one place on the surface where white is correct. Everything
+   * that sits *inside* a panel — inputs, pills, progress tracks — stays
+   * cream, and now reads as a tinted inset against the white rather than
+   * disappearing into it, which is what form fields are supposed to do.
+   *
+   * Carries ink at 18.9:1, so nothing about the text rules changes.
+   */
+  SURFACE: 'bg-white',
   /** Borders that match the fill, for buttons that carry both. */
   BORDER: 'border-pana-indigo',
   /** Labels sitting on FILL. Valid only while FILL carries cream (see above). */
