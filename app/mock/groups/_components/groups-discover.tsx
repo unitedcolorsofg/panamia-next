@@ -60,18 +60,22 @@ export function GroupsDiscover({
   const filtered = term.trim().length > 0 || topic !== null;
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 pt-8">
+    <div>
       <header>
+        {/* Hidden at `lg`, where the rail's Groups item does this job and two
+            ways back to the same page a thumb-width apart is just noise. The
+            mobile strip carries no nav, so below `lg` this is the only way
+            back and has to stay. */}
         <button
           type="button"
           onClick={onBack}
-          className="text-pana-ink/55 hover:text-pana-indigo inline-flex items-center gap-1.5 text-[13px] font-extrabold transition-colors"
+          className="text-pana-ink/55 hover:text-pana-indigo inline-flex items-center gap-1.5 text-[13px] font-extrabold transition-colors lg:hidden"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Groups
         </button>
 
-        <h1 className="text-pana-ink mt-2 text-2xl font-extrabold">
+        <h1 className="text-pana-ink mt-2 text-2xl font-extrabold lg:mt-0">
           Discover groups
         </h1>
         <p className="text-pana-ink/65 mt-0.5 text-[14px] font-medium">

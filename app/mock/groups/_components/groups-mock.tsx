@@ -9,6 +9,7 @@ import { SurfaceMasthead } from '../../_components/surface-masthead';
 import type { GroupsPage, ViewerAuth } from '../_data/mock-groups';
 import { GroupsLanding } from './groups-landing';
 import { GroupsDiscover } from './groups-discover';
+import { GroupsShell } from './groups-shell';
 
 /**
  * Two pages under one mock route.
@@ -69,19 +70,21 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
         contained
       />
 
-      {page === 'landing' ? (
-        <GroupsLanding viewer={viewer} onOpenDiscover={openDiscover} />
-      ) : (
-        <GroupsDiscover
-          /* Keyed on the incoming topic so arriving from a chip rebuilds the
-             page with that filter already applied, rather than keeping the
-             state from the last visit. */
-          key={topic ?? 'all'}
-          viewer={viewer}
-          initialTopic={topic}
-          onBack={() => selectPage('landing')}
-        />
-      )}
+      <GroupsShell viewer={viewer} page={page} onNavigate={selectPage}>
+        {page === 'landing' ? (
+          <GroupsLanding viewer={viewer} onOpenDiscover={openDiscover} />
+        ) : (
+          <GroupsDiscover
+            /* Keyed on the incoming topic so arriving from a chip rebuilds the
+               page with that filter already applied, rather than keeping the
+               state from the last visit. */
+            key={topic ?? 'all'}
+            viewer={viewer}
+            initialTopic={topic}
+            onBack={() => selectPage('landing')}
+          />
+        )}
+      </GroupsShell>
 
       {/* Rendered on both pages because both show group covers, and the cover
           pool is the directory's Pexels one. The Pexels API guidelines ask
