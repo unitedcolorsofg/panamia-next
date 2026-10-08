@@ -76,7 +76,7 @@ function Avatar({
 }
 
 /**
- * The groups this member runs, plus a way into the rest of them.
+ * The groups this member runs.
  *
  * These are links, not identities. The acting-as list above changes whose
  * voice the app speaks in; this does not. A group post is authored by the
@@ -88,8 +88,19 @@ function Avatar({
  * everything you belong to. Moderators are deliberately excluded — a
  * moderator approves join requests and removes posts, but cannot change
  * settings, manage roles or delete the group, so the group is not theirs to
- * be listed under. Moderated groups and plain memberships are both reached
- * through the "All groups" row.
+ * be listed under. Moderated groups and plain memberships are reached through
+ * the Groups tile in the grid below, which leads to /groups and lists every
+ * group you are in regardless of role.
+ *
+ * There is no "All groups" row here any more. It pointed at /groups, which is
+ * exactly where the Groups tile below already goes, so the menu offered the
+ * same destination twice. It was defensible while /groups was a search box
+ * over a flat list and this row was the only way to reach it; now that page
+ * opens with your own groups, the row and the tile make the same promise and
+ * keep it in the same place.
+ *
+ * Renders nothing at all for a member who runs no groups, rather than a bare
+ * separator with nothing under it.
  */
 function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useTranslation('common');
@@ -97,54 +108,31 @@ function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
 
   const run = (data?.groups ?? []).filter((group) => group.role === 'admin');
 
+  if (run.length === 0) return null;
+
   return (
     <>
       <div className={styles.separator} />
 
-      {run.length > 0 && (
-        <>
-          <div className={styles.menuHeading}>{t('identity.yourGroups')}</div>
-          {run.map((group) => (
-            <Link
-              key={group.id}
-              href={`/g/${group.handle}`}
-              role="menuitem"
-              data-menu-row
-              onClick={onNavigate}
-              className={styles.row}
-            >
-              <span className={styles.addIcon} aria-hidden="true">
-                <Users className="h-4 w-4" />
-              </span>
-              <span className={styles.rowMeta}>
-                <span className={styles.rowName}>{group.name}</span>
-                <span className={styles.rowHandle}>@{group.handle}</span>
-              </span>
-            </Link>
-          ))}
-        </>
-      )}
-
-      {/* Always present, including for a member in no groups at all — this is
-          the only route into /groups from the masthead, and someone with no
-          groups is exactly who needs it most. */}
-      <Link
-        href="/groups"
-        role="menuitem"
-        data-menu-row
-        onClick={onNavigate}
-        className={styles.row}
-      >
-        <span className={styles.addIcon} aria-hidden="true">
-          <Users className="h-4 w-4" />
-        </span>
-        <span className={styles.rowMeta}>
-          <span className={styles.rowName}>{t('identity.allGroups')}</span>
-          <span className={styles.rowHandle}>
-            {t('identity.allGroupsHint')}
+      <div className={styles.menuHeading}>{t('identity.yourGroups')}</div>
+      {run.map((group) => (
+        <Link
+          key={group.id}
+          href={`/g/${group.handle}`}
+          role="menuitem"
+          data-menu-row
+          onClick={onNavigate}
+          className={styles.row}
+        >
+          <span className={styles.addIcon} aria-hidden="true">
+            <Users className="h-4 w-4" />
           </span>
-        </span>
-      </Link>
+          <span className={styles.rowMeta}>
+            <span className={styles.rowName}>{group.name}</span>
+            <span className={styles.rowHandle}>@{group.handle}</span>
+          </span>
+        </Link>
+      ))}
     </>
   );
 }

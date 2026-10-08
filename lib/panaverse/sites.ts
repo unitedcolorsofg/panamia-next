@@ -71,11 +71,10 @@ export const PANA_SITES: readonly PanaSite[] = [
    * one of that surface's paths, so this tile resolves to the social origin
    * from the main site without needing a special case here.
    *
-   * The account menu already has an "All groups" row above this grid, and the
-   * two are not redundant. That row sits with the member's own groups and
-   * reads as "the rest of mine"; this tile sits among the places to go and is
-   * the way in for a member who belongs to none yet — which is exactly who
-   * never sees a group listed above it. */
+   * This is the only way into /groups from the masthead. The account menu
+   * used to carry an "All groups" row as well, pointing at the same page;
+   * that row is gone, because /groups now opens with your own groups and so
+   * answers both "the rest of mine" and "show me what exists" in one place. */
   { id: 'groups', labelKey: 'groups', href: '/groups' },
   { id: 'ink', labelKey: 'panaInk', href: null },
   { id: 'vizion', labelKey: 'panaVizion', href: '/podcasts' },
