@@ -90,11 +90,17 @@ Pana MIA brand animations and effects:
 
 ## Notification Components
 
-| Component                  | Description                 |
-| -------------------------- | --------------------------- |
-| `NotificationFlower.tsx`   | Animated notification icon  |
-| `NotificationDropdown.tsx` | Notification list dropdown  |
-| `NotificationItem.tsx`     | Single notification display |
+| Component                        | Description                                 |
+| -------------------------------- | ------------------------------------------- |
+| `account/notifications-menu.tsx` | Masthead bell, unread badge and recent list |
+| `NotificationAlerts.tsx`         | Tab-title count and desktop toasts          |
+| `NotificationItem.tsx`           | Single notification display (`/updates`)    |
+
+The masthead bell is built on `account/menu-surface.tsx`, the same frame the
+identity and signed-out menus use, so the two masthead popups behave alike —
+dropdown on desktop, bottom sheet on phones. It replaced a `NotificationFlower`
+/ `NotificationDropdown` pair that was written against the shadcn dropdown and
+never mounted anywhere.
 
 ## Mastodon Components
 

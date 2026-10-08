@@ -318,9 +318,9 @@ Build the foundation that articles, mentoring, and future features will use.
 | `app/api/notifications/[id]/read/route.ts`     | Mark as read               |
 | `app/api/notifications/mark-all-read/route.ts` | Mark all read              |
 | `app/updates/page.tsx`                         | Full history page          |
-| `components/NotificationFlower.tsx`            | Header button              |
-| `components/NotificationDropdown.tsx`          | Quick view dropdown        |
+| `components/account/notifications-menu.tsx`    | Masthead button + panel    |
 | `components/NotificationItem.tsx`              | Individual notification    |
+| `components/NotificationAlerts.tsx`            | Tab title + desktop toasts |
 
 #### Helper Functions
 
@@ -418,18 +418,26 @@ function getExpirationDate(
 
 #### Components
 
-| Component                  | Description                                    |
-| -------------------------- | ---------------------------------------------- |
-| `NotificationFlower.tsx`   | Pana flower button in header with unread badge |
-| `NotificationDropdown.tsx` | Dropdown showing recent notifications          |
-| `NotificationItem.tsx`     | Individual notification with icon, text, time  |
-| `NotificationList.tsx`     | Full paginated list for account page           |
+| Component                            | Description                                    |
+| ------------------------------------ | ---------------------------------------------- |
+| `account/notifications-menu.tsx`     | Masthead bell + unread badge + recent panel    |
+| `NotificationItem.tsx`               | Individual notification with icon, text, time  |
+| `NotificationList.tsx`               | Full paginated list for account page           |
+
+> **Shipped as:** the bell button and its panel are one component,
+> `components/account/notifications-menu.tsx`, built on `MenuSurface` — the same
+> frame the identity and signed-out menus use, so it gets the dropdown-on-desktop
+> /bottom-sheet-on-phones behavior, scroll lock, and roving focus for free.
+> Earlier drafts of this roadmap split it into `NotificationFlower.tsx` +
+> `NotificationDropdown.tsx` on a separate dropdown primitive; those were removed
+> rather than mounted, because a second popup implementation 12px from the first
+> would drift.
 
 #### UI/UX
 
-The notification flower button:
+The notification bell button:
 
-- Displays in header next to theme toggle
+- Displays in the masthead immediately left of the profile button
 - Shows unread count badge (red dot or number)
 - Clicking opens dropdown with recent notifications
 - "View all" links to `/updates`

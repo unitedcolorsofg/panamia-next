@@ -201,12 +201,11 @@ interface UserAdditions {
 
 #### Components
 
-| Component                  | Description                                          |
-| -------------------------- | ---------------------------------------------------- |
-| `NotificationFlower.tsx`   | Pana flower button in header (like dark mode toggle) |
-| `NotificationDropdown.tsx` | Dropdown showing recent notifications                |
-| `NotificationList.tsx`     | Full notification list for account page              |
-| `NotificationItem.tsx`     | Individual notification display                      |
+| Component                        | Description                                       |
+| -------------------------------- | ------------------------------------------------- |
+| `account/notifications-menu.tsx` | Masthead bell + unread badge + recent panel       |
+| `NotificationList.tsx`           | Full notification list for account page           |
+| `NotificationItem.tsx`           | Individual notification display                   |
 
 #### API Endpoints
 
@@ -802,8 +801,7 @@ app/
     └── type/[type]/route.ts
 
 components/
-├── NotificationFlower.tsx
-├── NotificationDropdown.tsx
+├── account/notifications-menu.tsx
 ├── NotificationItem.tsx
 ├── ArticleCard.tsx
 ├── ArticleByline.tsx

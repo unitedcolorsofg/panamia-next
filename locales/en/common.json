@@ -5,6 +5,15 @@
     "signInHint": "Welcome back, Pana",
     "signUpHint": "New here? Create your account"
   },
+  "notifications": {
+    "open": "Notifications",
+    "openUnread": "Notifications, {{count}} unread",
+    "heading": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "Nothing new yet",
+    "emptyHint": "Invites, replies and updates land here",
+    "viewAll": "View all updates"
+  },
   "identity": {
     "account": "Account",
     "actingAs": "Acting as",
