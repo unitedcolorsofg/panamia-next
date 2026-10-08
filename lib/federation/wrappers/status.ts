@@ -170,19 +170,7 @@ export async function createStatus(
    * that disagrees with the parent is wrong about something a server should not
    * be guessing at.
    */
-  let groupId: string | undefined;
-  if (parentStatus) {
-    const parentGroupId = parentStatus.groupId ?? undefined;
-    if (requestedGroupId && requestedGroupId !== parentGroupId) {
-      return {
-        success: false,
-        error: 'A reply belongs to the same group as the post it answers',
-      };
-    }
-    groupId = parentGroupId;
-  } else {
-    groupId = requestedGroupId;
-  }
+  const groupId: string | undefined = requestedGroupId;
 
   /**
    * Posting into a group is gated on active membership, checked here rather
