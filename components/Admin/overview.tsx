@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { StatusPill } from '@/components/Admin/status-pill';
+import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {
   ADMIN_GROUPS,
   PARKED_TOOLS,
@@ -99,7 +100,9 @@ function GroupCard({ group, index }: { group: AdminGroup; index: number }) {
   if (views.length === 0) return null;
 
   return (
-    <section className="overflow-hidden rounded-2xl border-2 border-pana-ink/55 bg-pana-cream shadow-[0_10px_28px_rgb(17_13_13_/_0.10)]">
+    <section
+      className={`overflow-hidden rounded-2xl border-2 border-pana-ink/55 ${ADMIN_CHROME.SURFACE} shadow-[0_10px_28px_rgb(17_13_13_/_0.10)]`}
+    >
       <header
         className={`flex items-baseline gap-3 px-5 py-3.5 ${group.fill} ${group.onFill}`}
       >

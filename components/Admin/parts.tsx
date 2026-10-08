@@ -32,7 +32,7 @@ export function Panel({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-xl border-2 border-pana-ink bg-pana-cream ${className}`}
+      className={`overflow-hidden rounded-xl border-2 border-pana-ink ${ADMIN_CHROME.SURFACE} ${className}`}
     >
       <header
         className={`flex items-center justify-between gap-4 ${ADMIN_CHROME.FILL} px-5 py-3`}
