@@ -3765,6 +3765,69 @@ body {
   flex: 1 1 auto;
 }
 
+/* Where the scope label drops out, the bar also stops paying full price for
+   the spaces between its parts. Four children on a track that is ~158px wide
+   on a 390px phone spend about a fifth of it on gaps and end padding, and the
+   term input is the child that has to keep working -- so the gaps tighten and
+   the input gets the difference. Same breakpoint as the label, because this is
+   the same problem one step further along. */
+@media (max-width: 39.99rem) {
+  .panaverse-search {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+}
+
+/* The last thing to give, and only on the narrowest phones still in use. The
+   magnifier was "the only thing saying what the bar is" back when the field
+   had nothing to its left; the scope chip now says it with an icon, a chevron
+   and an accessible name, so the glyph is the one part of the row that is
+   purely decorative by this width. Dropping it and the seam buys the input
+   about 25px, which is the difference between a field you can type a word
+   into and one that is 20px of nothing. */
+@media (max-width: 29.99rem) {
+  .panaverse-search .panaverse-search-icon,
+  .panaverse-search .dirsearch-chipdivide-compact {
+    display: none;
+  }
+}
+
+/* The scope panel, clamped to the viewport on phones.
+
+   `ScopeMenu` hangs the panel off its trigger with `left: 0` and a 23rem
+   width, which is right everywhere it shipped first: on the hero and the
+   results bands the trigger sits at the left edge of a full-width row, so
+   growing rightward grows into the page. A masthead is the first place the
+   trigger is in the middle of the screen, and there `left: 0` starts the panel
+   at the middle and runs it 125px past the right edge of a 390px phone. The
+   `max-width: calc(100vw - 2rem)` it already carries caps the width but cannot
+   move the anchor, so it does not help.
+
+   Fixed to the viewport rather than re-anchored to an ancestor, because every
+   absolute anchor available here is itself centred or padded and so just moves
+   the overflow around. Nothing between this and the root establishes a
+   containing block for fixed -- no transform, filter, will-change or contain
+   on the chain -- so this resolves against the viewport, and the masthead is
+   `position: sticky` at the top, so the two stay together while scrolling.
+
+   `!important` because the component sets these as inline styles on purpose,
+   so that its z-index beats a sticky filter strip regardless of utility layer
+   order. A media query has no other lever against that.
+
+   `top` tracks the masthead's own height, which is the 2.125rem pill plus its
+   block padding -- 59px today, so 3.75rem clears it by one. Worth revisiting
+   if the masthead ever changes height. */
+@media (max-width: 39.99rem) {
+  .panaverse-search .directory-suggest-scopemenu {
+    position: fixed !important;
+    top: 3.75rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
 .panaverse-search:focus-within {
   border-color: color-mix(in srgb, var(--color-pana-orange) 55%, transparent);
   box-shadow: 0 0 0 3px
@@ -3780,9 +3843,21 @@ body {
 
 /* `min-width: 0` on the input as well as the column: an <input> carries a
    default intrinsic size that survives a shrinking grid track and would push
-   the avatar off a 360px screen. */
+   the avatar off a 360px screen.
+
+   `width: 100%` is what actually enforces that now, and it is load-bearing.
+   `flex: 1` below was the original enforcement and is inert: the input stopped
+   being a flex child of `.panaverse-search` when `.directory-suggest-field`
+   was introduced between them, and that wrapper is a block. So the input went
+   back to its intrinsic ~163px inside a track that shrinks to ~109px on a
+   phone, overflowing it by the difference. Nothing clips the pill, so the
+   overflow was real the whole time -- it simply landed inside the viewport
+   while the field had nothing to its left, and only became a horizontal
+   scrollbar once the scope control started the input further along the bar.
+   Sizing to the wrapper restores the intent of the comment above. */
 .panaverse-search-input {
   min-width: 0;
+  width: 100%;
   flex: 1;
   border: 0;
   background: transparent;
@@ -4009,6 +4084,42 @@ body {
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+/* The trigger sized for a masthead search pill rather than for the masthead
+   itself. `.panaverse-search` is 2.125rem tall, and the default trigger's 2px
+   border and 0.3125rem padding spend most of that before the label is drawn.
+   Thinner border, tighter padding and a smaller face bring it to about 1.4rem,
+   which leaves the white pill reading as a field with a chip in it rather than
+   as two stacked controls.
+
+   Only the trigger shrinks. The panel it opens is the same panel at the same
+   size, because a dropdown has the whole viewport to open into no matter how
+   small the thing that opened it was. */
+.surface-pill-compact {
+  gap: 0.25rem;
+  padding: 0.1875rem 0.375rem 0.1875rem 0.3125rem;
+  border-width: 1px;
+}
+
+.surface-pill-compact .surface-pill-name {
+  font-size: 0.6875rem;
+  letter-spacing: 0.01em;
+}
+
+/* Below this the masthead grid has given the field everything the mark and the
+   avatar did not want, and that is no longer enough for a scope label, a
+   divider, a magnifier and somewhere to type. The term input is the part that
+   has to keep working, so the label goes and the trigger falls back to its
+   icon and chevron — still a visible control, still named by `aria-label`,
+   which is the same trade `.surface-pill-name` already makes on a phone.
+
+   Wider than that 479px rule on purpose: this pill is capped at 28rem inside a
+   three-column grid, so it runs out of room well before the masthead does. */
+@media (max-width: 39.99rem) {
+  .surface-pill-compact .surface-pill-name {
+    display: none;
+  }
 }
 
 /* The star that dots the `i` in both the Pana Mia Club and Pana Social
@@ -4609,6 +4720,22 @@ body {
   height: 1.25rem;
   margin-inline: 0.3rem;
   background-color: rgb(48 62 140 / 0.18);
+}
+
+/* The same divider inside a masthead pill, which is a third the height and
+   already spaces its children with a 0.5rem flex gap. The inline margin is
+   dropped rather than halved: doubling up on gap and margin was what pushed
+   the input off a narrow bar. Hairline rather than 2px so it reads as a seam
+   between scope and term, not as a third control. */
+.dirsearch-chipdivide-compact {
+  width: 1px;
+  height: 1rem;
+  margin-inline: 0;
+  background-color: color-mix(
+    in srgb,
+    var(--color-pana-ink) 14%,
+    transparent
+  );
 }
 
 /* The scope row is a duplicate of the pill's scope menu, which sits directly

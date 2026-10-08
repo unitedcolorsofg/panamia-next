@@ -73,8 +73,12 @@ interface DirectorySuggestBaseProps {
    * The scope pages put their scope selector here rather than beside the bar.
    * Scope is part of the question — "panas named Maria" is one query, not a
    * query plus a page setting — and two adjacent capsules say the opposite of
-   * that. `pill` layout only: `stacked` has no surface to sit in and the
-   * masthead has no room for one.
+   * that. `pill` and `masthead` only: `stacked` has no surface to sit in.
+   *
+   * The masthead took this late. It was excluded on the grounds that a 2.125rem
+   * bar had no room for a second control, which was true of the trigger as it
+   * stood rather than of the bar; `ScopeMenu`'s `compact` variant fits, so the
+   * field offers the choice its placeholder was already narrowing for.
    */
   leading?: ReactNode;
   /**
@@ -103,6 +107,11 @@ interface DirectorySuggestBaseProps {
  * Spelled as a union so the button's label is required exactly when there is a
  * button to put it on — a `masthead` caller has nothing to pass it for, and the
  * other two would otherwise be free to render an unlabelled control.
+ *
+ * `leading` is deliberately not part of this union. It lives on the base props
+ * because `pill` and `masthead` both take one, and the union exists to track
+ * the button rather than the leading slot: a masthead carries a scope control
+ * without ever gaining a `buttonLabel`.
  */
 type DirectorySuggestProps = DirectorySuggestBaseProps &
   (
@@ -629,11 +638,22 @@ export function DirectorySuggest({
       >
         {/* Inside the pill rather than beside it, so scope and term read as
             one question. The divider does the work the gap between two
-            separate capsules used to do. */}
-        {layout === 'pill' && leading && (
+            separate capsules used to do.
+
+            The masthead gets the same pair. Because that branch is `contents`,
+            these land as direct flex children of `.panaverse-search` — the
+            scope control, the divider, the magnifier and the input are one
+            row, which is the markup the masthead stylesheet is written for. */}
+        {(layout === 'pill' || layout === 'masthead') && leading && (
           <>
             {leading}
-            <span className="dirsearch-chipdivide" aria-hidden="true" />
+            <span
+              className={cn(
+                'dirsearch-chipdivide',
+                layout === 'masthead' && 'dirsearch-chipdivide-compact'
+              )}
+              aria-hidden="true"
+            />
           </>
         )}
 

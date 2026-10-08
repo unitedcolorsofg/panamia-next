@@ -1,4 +1,10 @@
+'use client';
+
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DirectorySuggest } from '@/components/directory-suggest';
+import { ScopeMenuLive } from '@/components/scope-menu-live';
+import { scopePlaceholderShortKey, type Scope } from '@/lib/directory-scopes';
 
 /**
  * The search field a surface carries in the middle of its masthead.
@@ -11,38 +17,90 @@ import { DirectorySuggest } from '@/components/directory-suggest';
  * stale-chrome problem `SurfaceLink` exists for — submitting reaches the
  * server, which picks the chrome again on the way in.
  *
- * `scope="group"` is a narrowing, and the reasoning is worth keeping. The
- * field used to point at Pana Social's own `/search`, which covered Panas and
- * groups; it then briefly pointed at the directory's Everything scope, which
- * covered all four kinds. Everything is gone — the search box now searches
- * exactly one kind, named by the control next to it — and this layout has no
- * room for that control, so the field has to commit to a scope rather than
- * offer a choice.
+ * THE FIELD USED TO COMMIT TO ONE SCOPE, and that reasoning is worth keeping
+ * because part of it still holds. The field once pointed at Pana Social's own
+ * `/search`, which covered Panas and groups; it then briefly pointed at the
+ * directory's Everything scope, which covered all four kinds. Everything is
+ * gone — the search box searches exactly one kind, named by the control next
+ * to it — and the argument was that a 2.125rem bar had no room for that
+ * control.
  *
- * Groups, of the two kinds this field has always been for, because groups are
- * the half that is now public. Panas still require sign-in, and a masthead
- * sits in chrome that does not know who is looking: defaulting it to a gated
- * scope would mean an anonymous visitor on a surface types a name, submits,
- * and is answered with a sign-in wall. Groups answer everyone.
+ * That turned out to be true of the trigger rather than of the bar. `ScopeMenu`
+ * now has a `compact` variant that fits, so the field offers the choice its
+ * placeholder was already narrowing for, and a member reaches all four kinds
+ * from the surface instead of being sent to the homepage for three of them.
  *
- * A member who wants the other three kinds has the scope menu on the homepage
- * and the explore pages themselves; this field is the shortcut, not the index.
+ * THE SIGN-IN-WALL HAZARD IS REAL, AND IS NOT ANSWERED BY WHO SEES THIS FIELD.
+ * The note here used to say that a masthead "sits in chrome that does not know
+ * who is looking", and concluded that a gated scope would answer an anonymous
+ * visitor with a wall. The first half is exactly right: `wearsSurfaceChrome`
+ * takes a surface and a pathname and never a session, so this renders for
+ * signed-out visitors too, on every public room the surface owns. `/groups` is
+ * the plain case — documented public either way — and a guest there gets this
+ * masthead. `SurfaceMemberHeader` is named for the surface's own rooms, not
+ * for who is reading them.
  *
- * Rendered from a server component; `DirectorySuggest` is the client boundary.
+ * What answers the hazard is the menu, not the audience. `ScopeMenuLive` reads
+ * the session itself and hands `signedIn` to `ScopeMenu`, which draws the
+ * members-only row locked and skips it with the arrow keys. Panas is the only
+ * gated scope; the directory, events and groups are public. So a signed-out
+ * visitor is never offered a door that will not open, and the homepage has
+ * shown this same menu to guests on the same terms since it shipped.
+ *
+ * GROUPS REMAINS THE DEFAULT, for the reasons that never depended on any of
+ * the above: it is the social surface's native kind, it is the half that is
+ * public, and it is what everyone's muscle memory already expects from this
+ * field. The menu changes what a member can ask for; it does not change where
+ * a bare submit lands. That also keeps the no-JS path honest — unhydrated, the
+ * form's action is still `scopePath('group', '')`, so submitting with
+ * scripting off degrades to groups rather than to a dead form.
+ *
+ * Client rather than server, which it was: the chosen scope is state, and it
+ * has to narrow the placeholder and retarget the form between renders.
  */
-export function SurfaceSearch({ surfaceName }: { surfaceName: string }) {
-  // One string for the input's accessible name and the listbox's, so a screen
-  // reader hears the same field named the same way twice rather than two.
-  const label = `Search ${surfaceName} groups`;
+export function SurfaceSearch() {
+  const { t: tCommon } = useTranslation('common');
+
+  /* Held here rather than in the URL, the same way the home hero holds it.
+     Nothing has been searched yet from a masthead — picking a scope is
+     choosing a question, and submitting is asking it. */
+  const [scope, setScope] = useState<Scope>('group');
+
+  /* The visible placeholder and the accessible name, one string from one key,
+     exactly as the hero does it. Reused rather than given its own strings
+     because the short placeholder is already the shortest true sentence about
+     what this box searches, which is what a label is; matching the two also
+     satisfies label-in-name, so someone saying "search events" hits the thing
+     the screen says "Search events".
+
+     The surface's name is deliberately no longer in it. It read well while the
+     field could only search the surface's own kind, and would be wrong now
+     that it can search the directory: "Search Pana Social the directory" names
+     the wrong owner for a scope the surface does not own. */
+  const label = tCommon(scopePlaceholderShortKey(scope));
 
   return (
     <DirectorySuggest
       layout="masthead"
-      scope="group"
+      scope={scope}
       className="panaverse-search"
       label={label}
       ariaLabel={label}
-      placeholder="Search groups"
+      placeholder={label}
+      leading={
+        /* `term=""`, and it must stay that way. `ScopeMenuLive` fetches
+           `/api/directory/scope-counts` from an effect that early-returns on a
+           falsy term, and this masthead renders on every page of the surface —
+           wiring a real term in here would buy a request per page view for
+           numbers nobody asked for. The counts are decoration on a control
+           that is navigation first, and the masthead does without them.
+
+           `onSelect` rather than links, like the hero and unlike the results
+           pages. A results page has a real route per scope; here there is
+           nothing to navigate to yet, so the rows set state and submit carries
+           the chosen scope. Links would turn choosing a scope into leaving. */
+        <ScopeMenuLive scope={scope} term="" onSelect={setScope} compact />
+      }
     />
   );
 }

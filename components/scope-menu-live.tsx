@@ -26,8 +26,23 @@ import type { Scope, ScopeCounts } from '@/lib/directory-scopes';
  * own `auth()` call when a gate depends on it, because a privacy decision must
  * not wait on client state; the `signedIn` here only decides whether the panas
  * row is drawn as reachable or locked, which is allowed to settle on hydration.
+ *
+ * `onSelect` and `compact` are forwarded rather than reimplemented. The surface
+ * masthead needs the control mode the hero uses and a trigger small enough for
+ * a 2.125rem pill, and both already exist on `ScopeMenu`; a second live wrapper
+ * to reach them would be the drift this component was written to avoid.
  */
-export function ScopeMenuLive({ scope, term }: { scope: Scope; term: string }) {
+export function ScopeMenuLive({
+  scope,
+  term,
+  onSelect,
+  compact,
+}: {
+  scope: Scope;
+  term: string;
+  onSelect?: (scope: Scope) => void;
+  compact?: boolean;
+}) {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.id);
   const [counts, setCounts] = useState<ScopeCounts | null>(null);
@@ -58,6 +73,13 @@ export function ScopeMenuLive({ scope, term }: { scope: Scope; term: string }) {
   }, [term, signedIn]);
 
   return (
-    <ScopeMenu scope={scope} term={term} counts={counts} signedIn={signedIn} />
+    <ScopeMenu
+      scope={scope}
+      term={term}
+      counts={counts}
+      signedIn={signedIn}
+      onSelect={onSelect}
+      compact={compact}
+    />
   );
 }

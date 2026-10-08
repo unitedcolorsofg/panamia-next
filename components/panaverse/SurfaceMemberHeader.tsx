@@ -76,7 +76,7 @@ export function SurfaceMemberHeader({
           />
         </Link>
 
-        <SurfaceSearch surfaceName={surface.name} />
+        <SurfaceSearch />
 
         <div className="panaverse-masthead-right">
           <SurfaceIdentity />
