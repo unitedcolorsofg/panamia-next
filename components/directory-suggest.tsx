@@ -16,7 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { KIND_ICON } from '@/components/kind-icon';
 import { cn } from '@/lib/utils';
-import { DEFAULT_SCOPE, scopePath, type Scope } from '@/lib/directory-scopes';
+import {
+  DEFAULT_SCOPE,
+  scopePath,
+  searchForScopeKey,
+  type Scope,
+} from '@/lib/directory-scopes';
 import {
   MIN_TERM_LENGTH,
   kindLabelKey,
@@ -43,19 +48,24 @@ interface DirectorySuggestBaseProps {
   className?: string;
   inputClassName?: string;
   /**
-   * Which scope pressing Enter lands in. Defaults to businesses, which is
-   * what a caller that predates scopes meant and is the safe assumption for
-   * a field that has not thought about it.
+   * Which kind this box searches — both what the suggestions are drawn from
+   * and where pressing Enter lands.
    *
-   * Both of the club's front doors pass `"all"` instead — the home hero and
-   * the Pana Social masthead. A member typing into the biggest box on the
-   * site is asking the club a question, not filtering a business list, and
-   * the copy in both fields has always named all four kinds. The default
-   * stays `business` so that a future caller has to decide rather than
-   * inherit one silently.
+   * It governs the list as well as the submit as of this change. It used to
+   * govern only the submit, which meant picking Events and typing "music"
+   * suggested businesses: the control named one kind and the dropdown
+   * federated all four. The scope goes to the suggest endpoint now, so the
+   * two agree.
+   *
+   * Defaults to the directory, which is what a caller that predates scopes
+   * meant and is the safe assumption for a field that has not thought about
+   * it. Every caller in the tree passes its own; the default exists so a new
+   * one has to decide rather than inherit a federated search silently.
    *
    * The scope pages pass their own, so a search run from inside Events stays
-   * in Events rather than silently changing the subject.
+   * in Events rather than silently changing the subject. The home hero and the
+   * Pana Social masthead hold it in state beside a `ScopeMenu`, so it follows
+   * whatever the visitor picked.
    */
   scope?: Scope;
   /**
@@ -167,27 +177,51 @@ const SUGGEST_CACHE_MAX = 50;
 
 const suggestCache = new Map<string, { at: number; rows: Suggestion[] }>();
 
+/**
+ * The cache key, which is the scope and the term rather than the term.
+ *
+ * The term alone was right while the endpoint answered the same thing for
+ * every scope. It stopped being right the moment the scope reached the query:
+ * switching Directory to Events and retyping a term asked in the first scope
+ * would hand back the first scope's rows under the second scope's chip --
+ * which is the bug the scope parameter exists to fix, reintroduced one layer
+ * closer to the user and harder to see, because no request goes out to
+ * disagree with.
+ *
+ * A NUL separator rather than a colon, so no scope and term can collide with
+ * a different scope and term: the scope is one of four known words and the
+ * term is arbitrary typed text, and `"directory:x"` is reachable two ways if
+ * the separator is a character someone can type.
+ */
+const suggestCacheKey = (scope: Scope, term: string) => `${scope}\u0000${term}`;
+
 /** Returns null for a miss or an expired entry, which read the same here. */
-function readSuggestCache(term: string): Suggestion[] | null {
-  const hit = suggestCache.get(term);
+function readSuggestCache(scope: Scope, term: string): Suggestion[] | null {
+  const key = suggestCacheKey(scope, term);
+  const hit = suggestCache.get(key);
   if (!hit) return null;
 
   if (Date.now() - hit.at > SUGGEST_CACHE_TTL_MS) {
-    suggestCache.delete(term);
+    suggestCache.delete(key);
     return null;
   }
 
   // Re-insert to move this key to the end: `Map` iterates in insertion order,
   // which is what makes the eviction below drop the least recently used term
   // rather than the one that happens to have been asked first.
-  suggestCache.delete(term);
-  suggestCache.set(term, hit);
+  suggestCache.delete(key);
+  suggestCache.set(key, hit);
   return hit.rows;
 }
 
-function writeSuggestCache(term: string, rows: Suggestion[]): void {
-  suggestCache.delete(term);
-  suggestCache.set(term, { at: Date.now(), rows });
+function writeSuggestCache(
+  scope: Scope,
+  term: string,
+  rows: Suggestion[]
+): void {
+  const key = suggestCacheKey(scope, term);
+  suggestCache.delete(key);
+  suggestCache.set(key, { at: Date.now(), rows });
 
   while (suggestCache.size > SUGGEST_CACHE_MAX) {
     const oldest = suggestCache.keys().next().value;
@@ -195,6 +229,9 @@ function writeSuggestCache(term: string, rows: Suggestion[]): void {
     suggestCache.delete(oldest);
   }
 }
+
+/** One frozen empty list, so a scope with no rows is a stable reference. */
+const NO_SUGGESTIONS: Suggestion[] = [];
 
 // Listings and panas are faces and storefronts, and read as circles
 // everywhere else in the product. Groups and events are things rather than
@@ -328,7 +365,25 @@ export function DirectorySuggest({
   );
 
   const [term, setTerm] = useState(initialTerm);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  /**
+   * The rows, tagged with the scope they were fetched for.
+   *
+   * Tagged rather than bare because the scope is a live control: someone can
+   * have "music" typed with directory rows on screen and then pick Events,
+   * and those rows are wrong the instant they do. Untagged they would sit
+   * under the new chip until the debounce and the round trip replaced them --
+   * briefly showing exactly the mismatch this change exists to remove, in the
+   * one moment someone is looking straight at the control.
+   *
+   * Derived rather than cleared in an effect so there is no frame where the
+   * two disagree: a scope that does not match reads as no rows immediately, on
+   * the same render that moved the chip.
+   */
+  const [fetched, setFetched] = useState<{ scope: Scope; rows: Suggestion[] }>({
+    scope,
+    rows: [],
+  });
+  const suggestions = fetched.scope === scope ? fetched.rows : NO_SUGGESTIONS;
   const [open, setOpen] = useState(false);
   // -1 means "nothing highlighted": Enter then submits the typed term rather
   // than picking a row the visitor never moved to.
@@ -384,7 +439,7 @@ export function DirectorySuggest({
   useEffect(() => {
     if (seeded || trimmed.length < MIN_TERM_LENGTH) {
       abortRef.current?.abort();
-      setSuggestions([]);
+      setFetched({ scope, rows: NO_SUGGESTIONS });
       return;
     }
 
@@ -392,10 +447,10 @@ export function DirectorySuggest({
     // The timer exists to skip requests a fast typist types past; there is no
     // request to skip here, and waiting 120ms to render rows already in memory
     // would be the delay this cache exists to remove.
-    const cached = readSuggestCache(trimmed);
+    const cached = readSuggestCache(scope, trimmed);
     if (cached) {
       abortRef.current?.abort();
-      setSuggestions(cached);
+      setFetched({ scope, rows: cached });
       setActiveIndex(-1);
       return;
     }
@@ -406,27 +461,30 @@ export function DirectorySuggest({
       abortRef.current = controller;
 
       try {
+        // The scope goes with the term, so the list under the control agrees
+        // with the control. Without it the server federates all four kinds and
+        // the chip is decoration.
         const response = await fetch(
-          `/api/directory/suggest?q=${encodeURIComponent(trimmed)}`,
+          `/api/directory/suggest?q=${encodeURIComponent(trimmed)}&scope=${encodeURIComponent(scope)}`,
           { signal: controller.signal }
         );
         const body = await response.json();
         const rows: Suggestion[] = body.success ? (body.data ?? []) : [];
         // Only a real answer is kept. Caching the empty list a failed lookup
         // falls back to would turn one bad response into a minute of them.
-        if (body.success) writeSuggestCache(trimmed, rows);
-        setSuggestions(rows);
+        if (body.success) writeSuggestCache(scope, trimmed, rows);
+        setFetched({ scope, rows });
         setActiveIndex(-1);
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
         // The box still submits without suggestions, so a failed lookup just
         // empties the list instead of surfacing an error.
-        setSuggestions([]);
+        setFetched({ scope, rows: NO_SUGGESTIONS });
       }
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [trimmed, seeded]);
+  }, [trimmed, seeded, scope]);
 
   // Close on an outside click. Blur alone isn't enough — clicking an option is
   // itself a blur, and the option's own handler needs to win.
@@ -812,7 +870,7 @@ export function DirectorySuggest({
               >
                 <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">
-                  {t('search.searchFor', { term: trimmed })}
+                  {t(searchForScopeKey(scope), { term: trimmed })}
                 </span>
               </li>
             </ul>

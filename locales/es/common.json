@@ -155,7 +155,12 @@
     "flowerPower": "Poder Floral"
   },
   "search": {
-    "searchFor": "Buscar “{{term}}” en el directorio",
+    "searchFor": {
+      "directory": "Buscar “{{term}}” en el directorio",
+      "event": "Buscar “{{term}}” en eventos",
+      "group": "Buscar “{{term}}” en grupos",
+      "pana": "Buscar “{{term}}” entre panas"
+    },
     "resultsAvailable_one": "{{count}} sugerencia disponible",
     "resultsAvailable_other": "{{count}} sugerencias disponibles",
     "kind": {

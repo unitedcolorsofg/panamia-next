@@ -13,6 +13,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
+import { scopesToSearch, type Scope } from '@/lib/directory-scopes';
 import {
   SUGGEST_LIMIT,
   SUGGESTION_KINDS,
@@ -402,28 +403,100 @@ export function mergeSuggestions(
 }
 
 /**
+ * Each kind's query, reachable by name.
+ *
+ * The four functions above are independently callable and always were; this
+ * only lets a caller that has a kind in hand -- rather than a hardcoded list
+ * of four -- ask for it. Typed as a total `Record`, so a fifth kind added to
+ * `SUGGESTION_KINDS` fails to compile here instead of quietly never being
+ * searched.
+ */
+const KIND_QUERY: Record<
+  SuggestionKind,
+  (term: string) => Promise<Suggestion[]>
+> = {
+  directory: suggestDirectory,
+  pana: suggestPanas,
+  group: suggestGroups,
+  event: suggestEvents,
+};
+
+/** Every kind present and empty, so the merge sees a total record either way. */
+function emptyByKind(): Record<SuggestionKind, Suggestion[]> {
+  return { directory: [], pana: [], group: [], event: [] };
+}
+
+/**
  * Every suggestion a given viewer is allowed to see, already merged and capped.
  *
- * `viewerIsSignedIn` is the only access input: panas and groups are members-
- * only, businesses and events are public. Passing false is what an anonymous
- * request gets, and is also the safe default for anything that cannot resolve
- * a session.
+ * Two access inputs, and they are not peers. `viewerIsSignedIn` is the
+ * server's own answer, read from the session; `scope` is whatever the query
+ * string asked for and is therefore the caller's to lie about. `scopesToSearch`
+ * is where they meet, and is the only thing here permitted to decide which
+ * kinds run -- so a signed-out `?scope=pana` comes back empty rather than
+ * coming back with panas.
+ *
+ * WHY A SCOPE NARROWS TO ONE KIND, since the opposite was deliberate.
+ *
+ * This started as a federated box: no scope control existed, so every search
+ * asked all four kinds and `mergeSuggestions` round-robined them into one
+ * list. That was the right design for a "jump to anything" field and the
+ * round-robin below is still written for it.
+ *
+ * The scope control was then built around this box without ever being wired
+ * into it, which left the two disagreeing in public: picking Events and typing
+ * "music" returned directory listings, under a chip reading Events, above a
+ * row offering to search the directory. The control named one kind and the
+ * list ignored it.
+ *
+ * So the scope now selects, and the cost is accepted rather than unnoticed:
+ * Events with no matches shows an empty list where it used to show businesses.
+ * The alternative on the table was falling back to the other kinds when a
+ * scope came up empty, and it was rejected -- a list that silently changes
+ * subject is the original bug wearing a better excuse. The box searches
+ * exactly what the control says, including when the answer is nothing.
+ *
+ * An absent scope keeps the federated behaviour, and that is not nostalgia:
+ * clients running the previous bundle send no scope, and they go on working
+ * for as long as they are out there.
+ *
+ * WHY GROUPS ARE NO LONGER GATED HERE, which is a visible change.
+ *
+ * This function used to substitute an empty list for groups as well as panas
+ * when the viewer was signed out. That was a second copy of an access rule,
+ * and it had drifted from the one `visibleScopes` keeps: `SCOPE_REQUIRES_PANA`
+ * marks only panas members-only, and `GET /api/social/groups` is deliberately
+ * unauthenticated, serving these same identity-only rows -- private groups
+ * included -- through this same `searchGroups`, so that a group with an open
+ * request policy can be found by the people meant to ask to join it.
+ *
+ * So the gate was not protecting the data; the same rows were already a public
+ * endpoint away. What it did do was leave a signed-out visitor who picked
+ * Groups -- a scope the menu offers them, because `visibleScopes` says it is
+ * public -- staring at a dropdown that could never fill. Deleting it is what
+ * removing the duplicate means, and it settles that disagreement the way the
+ * canonical rule already answered it. Panas stay gated, and are the only kind
+ * that is.
  */
 export async function getSuggestions(
   term: string,
-  { viewerIsSignedIn }: { viewerIsSignedIn: boolean }
+  {
+    viewerIsSignedIn,
+    scope = null,
+  }: { viewerIsSignedIn: boolean; scope?: Scope | null }
 ): Promise<Suggestion[]> {
-  const [listings, panas, groups, upcoming] = await Promise.all([
-    suggestDirectory(term),
-    viewerIsSignedIn ? suggestPanas(term) : Promise.resolve([]),
-    viewerIsSignedIn ? suggestGroups(term) : Promise.resolve([]),
-    suggestEvents(term),
-  ]);
+  const kinds = scopesToSearch(scope, viewerIsSignedIn);
 
-  return mergeSuggestions({
-    directory: listings,
-    pana: panas,
-    group: groups,
-    event: upcoming,
+  // Not short-circuited for the single-kind case, even though the merge of one
+  // list is that list. Going through the same path means a scoped answer and a
+  // federated one are capped and ordered by the same code, and leaves one
+  // place to change if the cap ever stops being per-kind.
+  const rows = await Promise.all(kinds.map((kind) => KIND_QUERY[kind](term)));
+
+  const byKind = emptyByKind();
+  kinds.forEach((kind, index) => {
+    byKind[kind] = rows[index];
   });
+
+  return mergeSuggestions(byKind);
 }
