@@ -2,14 +2,15 @@ import type { ReactNode } from 'react';
 
 import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
-import { Panel, TierLabel } from '@/components/connectors/dashboard-parts';
+import { Panel } from '@/components/connectors/dashboard-parts';
 import { MyCommitments } from '@/components/connectors/my-commitments';
+import { HqHero } from '@/components/connectors/hq-hero';
 import {
   countConnectorsInPod,
   getMyConnector,
   type ProfileConnector,
 } from '@/lib/connectors/membership';
-import { getHouse, getPod, getTier } from '@/lib/connectors/model';
+import { getHouse, getPod } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
@@ -82,71 +83,18 @@ export default async function ConnectorHqPage() {
     return <ApplicationDeclined />;
   }
 
-  const { displayName, membership } = me;
+  const { displayName, imageUrl, membership } = me;
   const houses = membership.houses.map(getHouse);
-  const tier = getTier(membership.tier);
-  const pod = getPod(membership.pod);
   const podSize = await countConnectorsInPod(membership.pod);
 
   return (
     <main className="bg-pana-cream text-pana-ink pb-20">
-      <header
-        className={`border-pana-ink border-b-2 ${CONNECTORS_CHROME.FILL}`}
-      >
-        <div className="container mx-auto px-4 py-10">
-          <p
-            className={`text-xs font-extrabold tracking-[0.2em] uppercase ${CONNECTORS_CHROME.ACCENT}`}
-          >
-            Connector HQ
-          </p>
-          <h1
-            className={`mt-2 text-4xl leading-tight font-extrabold ${CONNECTORS_CHROME.ON_FILL} sm:text-5xl`}
-          >
-            Hey, {displayName.split(' ')[0]}.
-          </h1>
-
-          <dl className="text-pana-cream mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-            <div>
-              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                {houses.length === 1 ? 'House' : 'Houses'}
-              </dt>
-              <dd className="mt-0.5 font-bold">
-                {houses.map((h) => h.name).join(' · ')}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                Tier
-              </dt>
-              <dd className="mt-0.5 font-bold">
-                <TierLabel tier={membership.tier} />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-pana-cream/60 text-xs font-bold tracking-wide uppercase">
-                Pod
-              </dt>
-              <dd className="mt-0.5 font-bold">
-                {pod.name} ·{' '}
-                {podSize === 1 ? 'just you so far' : `${podSize} connectors`}
-              </dd>
-            </div>
-          </dl>
-
-          <p className="text-pana-cream/70 mt-4 max-w-2xl text-sm leading-relaxed">
-            {tier.blurb}
-          </p>
-
-          <p className="mt-4 text-sm">
-            <SurfaceLink
-              href="/connectors/join"
-              className={`font-bold underline underline-offset-4 ${CONNECTORS_CHROME.ACCENT}`}
-            >
-              Change your houses or pod
-            </SurfaceLink>
-          </p>
-        </div>
-      </header>
+      <HqHero
+        displayName={displayName}
+        imageUrl={imageUrl}
+        membership={membership}
+        podSize={podSize}
+      />
 
       <div className="container mx-auto grid gap-6 px-4 py-10 lg:grid-cols-3">
         {/* `min-w-0` is load-bearing. A grid item defaults to

@@ -190,6 +190,14 @@ export interface ConnectorIdentity {
   profileId: string;
   /** What to greet them as. Falls back through the names a profile may have. */
   displayName: string;
+  /**
+   * Their Pana profile photo, or `null` if they have not set one.
+   *
+   * The same `primaryImageCdn` the account bubble in the masthead draws, so
+   * the face in the greeting and the face in the corner are one picture. A
+   * member who changes it in settings changes both.
+   */
+  imageUrl: string | null;
   membership: ProfileConnector;
 }
 
@@ -232,6 +240,7 @@ export async function getMyConnector(
       screenname: true,
       email: true,
       connector: true,
+      primaryImageCdn: true,
     },
   });
   if (!profile) return null;
@@ -242,6 +251,7 @@ export async function getMyConnector(
   return {
     profileId: profile.id,
     displayName: displayNameOf(profile),
+    imageUrl: profile.primaryImageCdn ?? null,
     membership,
   };
 }
