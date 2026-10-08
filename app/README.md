@@ -55,7 +55,7 @@ which redirects `/` to `/admin`. Every page shares the sidebar defined in
 | Route                      | Description                                  |
 | -------------------------- | -------------------------------------------- |
 | `/admin`                   | Overview — what each tool is for             |
-| `/admin/listings`          | Directory listing approvals (mock)           |
+| `/admin/listings`          | Directory listing approvals                  |
 | `/admin/connectors`        | Pana Connectors console (mock)               |
 | `/admin/users`             | Account management (mock)                    |
 | `/admin/users/live`        | The real account list the mock replaces       |
