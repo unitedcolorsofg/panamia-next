@@ -162,6 +162,43 @@ export const scopePlaceholderShortKey = (scope: Scope) =>
   `search.scopePlaceholderShort.${scope}`;
 
 /**
+ * i18n key for the typeahead's trailing "search for this term" row.
+ *
+ * Scoped for the same reason the placeholder is. That row read "Search the
+ * directory for X" under every chip, including Events -- the last piece of
+ * copy still describing the federated box this one replaced, sitting directly
+ * under a control that said otherwise.
+ *
+ * A key per scope rather than `SCOPE_LABEL` interpolated into one sentence.
+ * SCOPE_LABEL is hardcoded English feeding a menu that has never been
+ * translated, and putting it in here would push that gap into a string the
+ * Spanish bundle already owns. It also would not survive the grammar: Spanish
+ * puts the term before the noun and needs a different preposition for each
+ * kind ("en el directorio", "entre panas"), which no single template holds.
+ */
+export const searchForScopeKey = (scope: Scope) => `search.searchFor.${scope}`;
+
+/**
+ * The scope a request asked for, or null if it did not ask for a usable one.
+ *
+ * Absent and unrecognised deliberately collapse to the same answer. A missing
+ * scope is an old client -- `/api/directory/suggest` cannot be renamed for
+ * exactly this reason, and the parameter inherits the hazard -- and an
+ * unrecognised one is a typo or a probe. Both want the widest honest answer
+ * rather than an error or an empty list, so neither can leave someone with a
+ * dead search box mid-deploy.
+ *
+ * Returns a `Scope` or nothing, so the raw string never reaches a query, a
+ * path or a translation key. The membership test is against `SCOPES` itself,
+ * not a lookup on an object literal, so inherited keys like `__proto__` and
+ * `constructor` cannot pass for scopes.
+ */
+export function parseScope(raw: string | null | undefined): Scope | null {
+  if (!raw) return null;
+  return (SCOPES as readonly string[]).includes(raw) ? (raw as Scope) : null;
+}
+
+/**
  * Scopes only offered to signed-in visitors.
  *
  * Panas stay members-only: `lib/server/suggest.ts` treats an anonymous caller
@@ -243,6 +280,36 @@ export function visibleScopes(viewerIsSignedIn: boolean): Scope[] {
   return SCOPES.filter(
     (scope) => viewerIsSignedIn || !SCOPE_REQUIRES_PANA[scope]
   );
+}
+
+/**
+ * Which kinds a search for `requested` actually runs, for this viewer.
+ *
+ * The one place the scope control is turned into a set of queries, and the
+ * only place allowed to decide it. Three answers:
+ *
+ * - A reachable scope narrows to exactly itself. This is the product rule the
+ *   scope control has always described and the typeahead never honoured.
+ * - A scope this viewer may not reach returns nothing at all. The request is
+ *   well-formed and the answer is empty, which is the correct response to
+ *   `?scope=pana` from someone who is not signed in.
+ * - No scope falls back to every scope the viewer can see, which is the
+ *   federated behaviour this box shipped with.
+ *
+ * `visibleScopes` is the gate in all three branches rather than a second
+ * reading of `SCOPE_REQUIRES_PANA`. The requested scope arrives from a query
+ * string and is therefore an attacker's to choose; what a viewer may see is
+ * the server's to decide, and those two have to meet in the one function that
+ * already owns the rule. `ScopeMenu` grew its own copy of it once and had to
+ * be unpicked in #309.
+ */
+export function scopesToSearch(
+  requested: Scope | null,
+  viewerIsSignedIn: boolean
+): Scope[] {
+  const reachable = visibleScopes(viewerIsSignedIn);
+  if (!requested) return reachable;
+  return reachable.includes(requested) ? [requested] : [];
 }
 
 /**

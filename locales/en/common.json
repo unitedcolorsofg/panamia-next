@@ -155,7 +155,12 @@
     "flowerPower": "Flower Power"
   },
   "search": {
-    "searchFor": "Search the directory for “{{term}}”",
+    "searchFor": {
+      "directory": "Search the directory for “{{term}}”",
+      "event": "Search events for “{{term}}”",
+      "group": "Search groups for “{{term}}”",
+      "pana": "Search panas for “{{term}}”"
+    },
     "resultsAvailable_one": "{{count}} suggestion available",
     "resultsAvailable_other": "{{count}} suggestions available",
     "kind": {
