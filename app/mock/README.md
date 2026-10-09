@@ -23,6 +23,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/groups`            | Groups landing and discover, as two steps of one flow             |
 | `/mock/dms`               | Direct messages, as two competing models behind one switch        |
 | `/mock/events`            | Events discovery: lanes that say why, not facets to narrow with   |
+| `/mock/events/host`       | Host an event: the form, answering to the page it feeds           |
 
 ## Viewing the Pana Social surface
 

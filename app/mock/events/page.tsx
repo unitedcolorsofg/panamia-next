@@ -27,18 +27,20 @@ import { EventsDiscover } from './_components/events-discover';
  * going, like things you have turned up to, new hosts and small rooms. Every
  * card says why it is there and every card can be argued with.
  *
- * That rebuild also settled the hostname. A page whose spine is reasons about
+ * That rebuild also settled the surface. A page whose spine is reasons about
  * events is not a filtered view of the directory's fourth kind, so events
- * became the fifth surface rather than a room inside a promoted directory:
- * `events.pana.social`, registered in `lib/panaverse/surfaces.ts`. The browser
- * frame around this mock shows that host because the chrome is part of what
- * was under review.
+ * became the fifth surface rather than a room inside a promoted directory,
+ * registered in `lib/panaverse/surfaces.ts`. It was drawn as
+ * `events.pana.social` and shipped as `pana.social/e` with `subdomain: null`,
+ * which is the one thing the browser frame around this mock now shows
+ * differently from the shipped page — the chrome was part of what was under
+ * review, and the verdict was a path.
  *
  * The other half is the account menu, drawn open on the right. "The events
  * button in the profile menu will also guide the user there" turned out to be
  * a claim about no code at all: `lib/panaverse/sites.ts` already points the
- * Events tile at `/e`, and because `/e` is now the events surface's root path,
- * `resolvePanaSites` absolutises it to the subdomain on its own.
+ * Events tile at `/e`, and because `/e` is the events surface's root path,
+ * `resolvePanaSites` absolutises it to the root domain on its own.
  *
  * **This mock is now a record rather than a proposal.** The shipped page lives
  * at `/e`, built from `lib/events/discovery.ts` against real rows; this one

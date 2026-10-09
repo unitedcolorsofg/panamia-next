@@ -286,13 +286,16 @@ export interface PanaverseRoom {
  * that needs two lines to explain itself is arguing to be a surface.
  */
 export const SHARED_ROOMS: readonly PanaverseRoom[] = [
-  /* Events used to head this list. It is a surface now
-   * (events.pana.social), so it is listed above with the others — leaving it
-   * here as well would have put it in the switcher twice, once as a front door
-   * and once as a room that does not have one.
+  /* Events used to head this list. It is a surface now, so it is listed above
+   * with the others — leaving it here as well would have put it in the
+   * switcher twice, once as a front door and once as a room that does not have
+   * one.
    *
    * This is the promotion path the type promised, run once: a registry entry,
-   * a mark, a DNS record, and a line deleted from here. */
+   * a mark, and a line deleted from here. No DNS record, unlike the surfaces
+   * that came before it — Events is path-only, served from pana.social/e. A
+   * surface is a thing with its own name and tone, not a thing with its own
+   * hostname. */
   {
     name: 'Peer Mentoring',
     path: '/m',

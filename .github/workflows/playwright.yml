@@ -57,9 +57,24 @@ jobs:
     # unaccent to `public`, exactly as stock postgres:17 does, so the schema
     # placement assertions in migrations 0041 and 0045 take the same branch here
     # as they did there. The replay was also verified green on 15 and 16.
+    #
+    # Pulled from AWS's public mirror rather than `postgres:17` on Docker Hub.
+    # Same Docker Official Image, so everything above still holds -- the only
+    # thing that changes is who serves it. Docker Hub meters anonymous pulls per
+    # source IP, and Actions runners share those IPs with every other anonymous
+    # puller on the hosted fleet, so the quota is not ours to stay inside: on
+    # 2026-10-09 every run in this repo failed `Initialize containers` with
+    # `toomanyrequests` for about an hour, across fresh runners, with no Docker
+    # Hub credentials in the repo to authenticate our way out. public.ecr.aws
+    # does not meter anonymous pulls, which removes the shared failure mode
+    # rather than waiting it out.
+    #
+    # If this ever needs to go back to Docker Hub, add DOCKERHUB_USERNAME and
+    # DOCKERHUB_TOKEN as secrets and log in first -- authenticated pulls are
+    # metered per account, so they do not inherit the fleet's exhausted budget.
     services:
       postgres:
-        image: postgres:17
+        image: public.ecr.aws/docker/library/postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

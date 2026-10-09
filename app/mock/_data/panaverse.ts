@@ -86,10 +86,12 @@ export interface MockRoom {
 
 export const SHARED_ROOMS: MockRoom[] = [
   /* Events used to lead this list. It was promoted to a real surface —
-     `events.pana.social`, registered in lib/panaverse/surfaces.ts — so it was
-     removed from here rather than left in both places, which would have
-     printed it twice in the switcher. The live `SHARED_ROOMS` in
-     lib/panaverse/branding.ts dropped it for the same reason. */
+     registered in lib/panaverse/surfaces.ts, served at `pana.social/e` with
+     `subdomain: null` — so it was removed from here rather than left in both
+     places, which would have printed it twice in the switcher. The live
+     `SHARED_ROOMS` in lib/panaverse/branding.ts dropped it for the same
+     reason. Note that promotion did not need a hostname: a surface is a thing
+     with its own name, mark and tone, not a thing with its own DNS record. */
   {
     name: 'Peer Mentoring',
     path: '/m',

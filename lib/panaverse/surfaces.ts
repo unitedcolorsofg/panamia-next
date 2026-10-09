@@ -59,9 +59,11 @@ export interface PanaverseSurface {
    * hiding the launch state from the registry that claims to be the source of
    * truth for it. See docs/DOMAINS.md.
    *
-   * A surface may also simply stay this way. Events is served from a path by
-   * choice, so for it this is not a switch anyone is waiting to throw — see
-   * "Events is path-only" in docs/DOMAINS.md.
+   * A surface may also never want one. Nothing sets this today: Events, which
+   * did, turned out to be path-only rather than pending, and a path-only
+   * surface wants `subdomain: null` instead — that resolves its links to the
+   * root domain, where it actually lives, rather than freezing them on the
+   * host in hand. This stays for the next surface launched subdomain-first.
    */
   subdomainPending?: boolean;
 }
@@ -139,7 +141,14 @@ export const SURFACES: readonly PanaverseSurface[] = [
     id: 'events',
     name: 'Pana Events',
     tagline: 'What is on, and why you would want to be there.',
-    subdomain: 'events',
+    // No subdomain at all, and that is the whole of what makes this surface
+    // path-only. `originFor` and `originForFrom` both fall through to the root
+    // domain for a surface without one, so a link to Events resolves to
+    // pana.social/e from whatever host is in hand — including admin.pana.social
+    // and social.pana.social, which would otherwise have kept the reader on
+    // their own hostname wearing their own masthead. `www` has always worked
+    // this way; Events is the second surface to want it.
+    subdomain: null,
     rootPath: '/e',
     // `/e` rather than `/events`, and the pair is not a duplication. `/e` is
     // the calendar — the listings, the detail pages, the host tools — and was
@@ -153,14 +162,6 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // should light up on either: a reader who lands on /events has plainly
     // arrived at Events, whichever host told them about it.
     paths: ['/e', '/events'],
-    // Set deliberately and not as a placeholder: Events is served from
-    // `pana.social/e` and `events.pana.social` is not planned, so this is the
-    // settled arrangement rather than a launch still owed. The flag is what
-    // keeps this surface's links on the host in hand, which is what a
-    // path-only surface wants. `subdomain` above stays filled in because
-    // `*.localhost` is exempt from the flag, so dev still exercises the
-    // subdomain path. See "Events is path-only" in docs/DOMAINS.md.
-    subdomainPending: true,
   },
   {
     id: 'connectors',

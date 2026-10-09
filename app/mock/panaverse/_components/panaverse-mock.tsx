@@ -180,8 +180,10 @@ function ArchitectureNotes() {
         front door of their own. Promoting <code>{SHARED_ROOMS[0].path}</code>{' '}
         to <code>{SHARED_ROOMS[0].couldBecome}</code> is a registry entry plus a
         DNS record — not a second application to maintain. Events was listed
-        here until recently and is now <code>events.pana.social</code>, which is
-        what that promotion costs in practice.
+        here until recently and is now a surface in its own right, served at{' '}
+        <code>pana.social/e</code>, which is what that promotion costs in
+        practice: the registry entry did the work, and the DNS record turned out
+        to be optional.
       </NoteCard>
     </div>
   );
