@@ -15,20 +15,29 @@
  * spelled out on each field rather than assumed.
  */
 
-/** Which of the two proposed pages is on screen. */
-export type GroupsPage = 'landing' | 'discover';
+/**
+ * Which of the three proposed pages is on screen.
+ *
+ * `home` is the proposal under review: /groups stops being a pitch and
+ * becomes "what is going on with your groups", with the pitch surviving as
+ * the empty state and browsing moving to `discover`.
+ */
+export type GroupsPage = 'home' | 'landing' | 'discover';
 
 /**
- * Whether anyone is signed in.
+ * Who is looking.
  *
- * A switch rather than a fixture because it is the landing page's actual
- * design question. Signed out there is no shelf of your own groups, which
- * removes the most useful block on the page and leaves the rest to do the
- * work alone. A landing page that has only ever been reviewed signed in is a
- * landing page nobody has reviewed, since the people it exists to convince
- * are exactly the ones with nothing on the shelf.
+ * Three states rather than two, because `home` has three genuinely different
+ * renders and the middle one is the easy one to forget. A member with groups
+ * gets a digest; a member with none gets the pitch, since a digest of nothing
+ * is a worse page than the recruitment page it replaced; a signed-out visitor
+ * gets the pitch without a rail.
+ *
+ * The landing page's original reason for this switch still holds: the people
+ * a pitch exists to convince are exactly the ones with nothing on the shelf,
+ * so a page only ever reviewed as a member is a page nobody has reviewed.
  */
-export type ViewerAuth = 'member' | 'signedOut';
+export type ViewerAuth = 'member' | 'newcomer' | 'signedOut';
 
 export interface MockGroupCard {
   /** social_groups.id */
@@ -81,6 +90,47 @@ export interface MockGroupCard {
   joined?: boolean;
   /** A pending join request: status 'pending', joined_at still null. */
   requested?: boolean;
+
+  /* ----------------------------------------------------------------------
+     Digest fields. Only meaningful when `joined`.
+     ---------------------------------------------------------------------- */
+
+  /**
+   * social_group_members.role for the viewer's own row.
+   *
+   * Drives the "needs you" block, which is the one part of the digest that
+   * is work rather than news. Mirrors the account menu: admin is the set of
+   * groups you answer for.
+   */
+  role?: 'admin' | 'moderator' | 'member';
+  /**
+   * Posts since the viewer last opened this group.
+   *
+   * The one number on this page with no column behind it today. It needs a
+   * per-member, per-group last-seen marker -- social_group_members has
+   * joined_at but nothing that moves when you read. That is the only new
+   * schema the digest requires, and putting the number on screen first is
+   * the cheapest way to find out whether it is worth the column.
+   */
+  newPosts?: number;
+  /**
+   * The most recent post, for a one-line "what was it about".
+   *
+   * A count alone makes every group look identical. The excerpt is what
+   * turns "12 new" into a reason to click, and it is already in hand --
+   * the digest query reads the posts anyway.
+   */
+  lastActivity?: { who: string; avatar: string; excerpt: string; when: string };
+  /**
+   * Join requests waiting on the viewer, when they can answer them.
+   *
+   * Already notified per request by lib/relay/group-notify.ts. This is the
+   * standing count, which a notification cannot be: notifications are read
+   * once and gone, and a queue is a state.
+   */
+  pendingRequests?: number;
+  /** How long the group has been silent, when nothing is new. */
+  quietSince?: string;
 }
 
 export interface MockTopic {
@@ -154,6 +204,18 @@ export const MOCK_GROUPS: MockGroupCard[] = [
       '/img/about/gbarrios.jpg',
     ],
     joined: true,
+    role: 'admin',
+    newPosts: 12,
+    lastActivity: {
+      who: 'Claribel',
+      avatar: '/img/about/claribel_avila.jpg',
+      excerpt: 'Ink order closes Friday — add your colours to the thread',
+      when: '2h ago',
+    },
+    /* The group you run, with a queue. Two is deliberately small: the block
+       has to justify itself at the size it will usually be, not at the size
+       that makes it look urgent. */
+    pendingRequests: 2,
   },
   {
     id: 'group-2',
@@ -198,6 +260,14 @@ export const MOCK_GROUPS: MockGroupCard[] = [
       '/img/about/anette_mago.jpg',
     ],
     joined: true,
+    role: 'member',
+    newPosts: 3,
+    lastActivity: {
+      who: 'Jorge',
+      avatar: '/img/about/jdowns.jpg',
+      excerpt: 'Need a sound person for Saturday, paid',
+      when: 'yesterday',
+    },
   },
   {
     id: 'group-4',
@@ -300,6 +370,15 @@ export const MOCK_GROUPS: MockGroupCard[] = [
     memberCount: 94,
     postsThisWeek: 0,
     memberFaces: ['/img/about/jdowns.jpg', '/img/about/claribel_avila.jpg'],
+    /* Joined, and silent. The case the digest is most likely to get wrong:
+       a page built only against busy groups quietly implies that a group
+       with nothing new is a group that has failed. It has not -- a book swap
+       does not need to post weekly -- so the row has to read as calm rather
+       than as broken. */
+    joined: true,
+    role: 'member',
+    newPosts: 0,
+    quietSince: 'Oct 2',
   },
   {
     id: 'group-9',
@@ -338,6 +417,50 @@ export const MOCK_GROUPS: MockGroupCard[] = [
       '/img/about/gbarrios.jpg',
       '/img/about/anette_mago.jpg',
     ],
+  },
+  {
+    /**
+     * A private group the viewer is actually in, and the whole argument for
+     * this page.
+     *
+     * Its event cannot appear on the current /groups landing page: that
+     * shelf is fed by /api/social/groups/events, which takes no viewer and
+     * returns public groups only, by design -- an event row names a time and
+     * a place, so a stranger must not get one for a private group. The
+     * consequence nobody chose is that a private group's calendar appears
+     * nowhere outside the group itself, not even for its own members.
+     *
+     * A viewer-aware digest is the place that is allowed to show it, which
+     * is why this fixture exists. If the private row renders here and
+     * nowhere in discover, the page is doing the thing it was added for.
+     */
+    id: 'group-11',
+    name: 'Thursday Supper Club',
+    handle: 'thursdaysupper',
+    avatar: '/img/impact/pana-social-dinner.webp',
+    summary:
+      'Eighteen people, one long table, somebody different cooking each week.',
+    topics: ['food'],
+    visibility: 'private',
+    joinPolicy: 'invite',
+    memberCount: 18,
+    /* Readable here, unlike group-2's, because the viewer is inside. The
+       zero on a private group you are NOT in is a privacy answer; a real
+       number for a private group you ARE in is just the truth. */
+    postsThisWeek: 5,
+    /* Still empty. Membership lets you see the group, and the member list
+       is a page you can open -- but a face pile on a digest row is seen by
+       anyone glancing at your screen, which is not the same audience. */
+    memberFaces: [],
+    joined: true,
+    role: 'member',
+    newPosts: 5,
+    lastActivity: {
+      who: 'Bee',
+      avatar: '/img/about/bee_maria.jpg',
+      excerpt: 'I can host the 10th if someone brings a salad',
+      when: '6h ago',
+    },
   },
 ];
 
@@ -454,6 +577,20 @@ export const MOCK_GROUP_EVENTS: MockGroupEvent[] = [
     groupId: 'group-9',
     going: 27,
   },
+  /* The private group's dinner, and the row that only the digest is allowed
+     to render. It is the soonest event in the whole fixture on purpose: if
+     the digest sorts honestly it leads with this, and the contrast with the
+     public shelf -- where it must never appear -- is visible in one glance. */
+  {
+    id: 'event-7',
+    title: 'Supper at Bee’s',
+    startsAt: '2026-11-05T19:00',
+    day: 'Thu, Nov 5',
+    time: '7:00pm',
+    where: 'Buena Vista',
+    groupId: 'group-11',
+    going: 11,
+  },
 ];
 
 /* --------------------------------------------------------------------------
@@ -525,6 +662,64 @@ export function upcomingEvents(): MockGroupEvent[] {
 }
 
 /**
+ * Upcoming events a stranger is allowed to see: public groups only.
+ *
+ * This is what /api/social/groups/events already returns, and the landing
+ * page's shelf has to go through it rather than through `upcomingEvents`.
+ * The distinction is not cosmetic -- an event row names a date and an
+ * address, so a private group's calendar on a public browse page is a
+ * sharper leak than its member list would be.
+ *
+ * The split exists at all because the digest needs the unfiltered set.
+ */
+export function publicUpcomingEvents(): MockGroupEvent[] {
+  return upcomingEvents().filter((event) => {
+    const host = groupFor(event);
+    return host?.visibility === 'public';
+  });
+}
+
+/**
+ * What the viewer's own groups have coming up, soonest first.
+ *
+ * Private groups included, and that inclusion is the entire point: the
+ * viewer is a member, so there is no leak, and today this row has nowhere
+ * else in the product to appear. Membership is the authorization here, in
+ * the same way it is the authorization for the group arm of the home
+ * timeline -- see getHomeTimeline, which reaches the same conclusion from
+ * the other direction.
+ */
+export function yourUpcomingEvents(): MockGroupEvent[] {
+  const mine = new Set(yourGroups().map((group) => group.id));
+  return upcomingEvents().filter((event) => mine.has(event.groupId));
+}
+
+/**
+ * The viewer's groups, ordered by how much they want attention.
+ *
+ * Not alphabetical and not by size. A digest is read top-down and abandoned
+ * partway, so the order is the design: anything waiting on you first, then
+ * whatever has news, then the quiet ones, which are still worth listing
+ * because a group you forgot about is the one most likely to need you.
+ */
+export function yourGroupsByPulse(): MockGroupCard[] {
+  return [...yourGroups()].sort((a, b) => {
+    const queue = (g: MockGroupCard) => (g.pendingRequests ?? 0) > 0;
+    if (queue(a) !== queue(b)) return queue(a) ? -1 : 1;
+    return (b.newPosts ?? 0) - (a.newPosts ?? 0);
+  });
+}
+
+/** Groups the viewer can answer join requests for, and the total waiting. */
+export function groupsNeedingYou(): MockGroupCard[] {
+  return yourGroups().filter(
+    (group) =>
+      (group.pendingRequests ?? 0) > 0 &&
+      (group.role === 'admin' || group.role === 'moderator')
+  );
+}
+
+/**
  * A group's upcoming events, soonest first.
  *
  * The card label and the events list below it both come through here, so the
@@ -550,6 +745,14 @@ export function searchGroups(
   const needle = term.trim().toLowerCase();
 
   return MOCK_GROUPS.filter((group) => {
+    /* Private groups are listed on purpose -- that is how a request-to-join
+       group gets asked. The reason runs out when there is nothing to ask:
+       a private group that is also invite-only has no door a browser can
+       knock on, so listing it advertises a room nobody can enter and leaks
+       its existence for nothing in return. Private + request stays. */
+    if (group.visibility === 'private' && group.joinPolicy === 'invite') {
+      return false;
+    }
     if (topic && !group.topics.includes(topic)) return false;
     if (!needle) return true;
 

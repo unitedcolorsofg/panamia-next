@@ -7,28 +7,30 @@ import { ArrowRight, Lock, Sparkles } from 'lucide-react';
 import type { MockSurface } from '../../_data/panaverse';
 import { SurfaceMasthead } from '../../_components/surface-masthead';
 import type { GroupsPage, ViewerAuth } from '../_data/mock-groups';
+import { GroupsHome } from './groups-home';
 import { GroupsLanding } from './groups-landing';
 import { GroupsDiscover } from './groups-discover';
 import { GroupsShell } from './groups-shell';
 
 /**
- * Two pages under one mock route.
+ * Three pages under one mock route.
  *
- * They are separate URLs in the proposal -- /groups and /groups/discover --
- * but one mock, because the question being asked is whether the handoff
- * between them works. A landing page reviewed on its own always looks fine;
- * what goes wrong is arriving at discover having lost the topic you clicked.
- * Switching in place, with the topic carried across, is the only way to see
- * that.
+ * They are two URLs in the proposal -- /groups and /groups/discover -- but
+ * three renders, because /groups is stateful: a member with groups gets the
+ * digest, and everyone else gets the pitch that is there today. One mock,
+ * because the question being asked is whether the handoffs work. A landing
+ * page reviewed on its own always looks fine; what goes wrong is arriving at
+ * discover having lost the topic you clicked, or a member landing on a
+ * recruitment pitch for a feature they already use.
  *
  * Precedent is /mock/group, which puts its viewer switch in the toolbar for
  * the same reason: the thing being reviewed is a transition, not a snapshot.
  * It is not the /mock/dms two-design comparison -- these are not competing
- * answers to one question, they are two halves of one flow.
+ * answers to one question, they are the states of one flow.
  */
 export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
   const router = useRouter();
-  const [page, setPage] = useState<GroupsPage>('landing');
+  const [page, setPage] = useState<GroupsPage>('home');
   const [viewer, setViewer] = useState<ViewerAuth>('member');
 
   /* Carried across the handoff rather than reset. Clicking "Printmaking" on
@@ -46,7 +48,7 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
   };
 
   const selectPage = (next: GroupsPage) => {
-    if (next === 'landing') setTopic(null);
+    if (next !== 'discover') setTopic(null);
     setPage(next);
   };
 
@@ -71,9 +73,7 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
       />
 
       <GroupsShell viewer={viewer} page={page} onNavigate={selectPage}>
-        {page === 'landing' ? (
-          <GroupsLanding viewer={viewer} onOpenDiscover={openDiscover} />
-        ) : (
+        {page === 'discover' ? (
           <GroupsDiscover
             /* Keyed on the incoming topic so arriving from a chip rebuilds the
                page with that filter already applied, rather than keeping the
@@ -81,8 +81,16 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
             key={topic ?? 'all'}
             viewer={viewer}
             initialTopic={topic}
-            onBack={() => selectPage('landing')}
+            onBack={() => selectPage('home')}
           />
+        ) : page === 'home' && viewer === 'member' ? (
+          <GroupsHome onOpenDiscover={openDiscover} />
+        ) : (
+          /* The pitch, reached two ways: explicitly from the Landing tab, or
+             by being a signed-out visitor or a member of nothing arriving at
+             /groups. That second path is the proposal -- the recruitment page
+             does not disappear, it becomes the empty state it always was. */
+          <GroupsLanding viewer={viewer} onOpenDiscover={openDiscover} />
         )}
       </GroupsShell>
 
@@ -110,10 +118,11 @@ export function GroupsMock({ surfaces }: { surfaces: MockSurface[] }) {
 /* Same dark chrome as the feed and group mocks: above the masthead, scrolls
    away while the masthead sticks.
  *
- * Two switches rather than one. Page is the obvious one. Signed-in state is
- * there because it changes the landing page materially -- the shelf of your
- * own groups disappears -- and the people this page exists to convince are
- * precisely the ones who do not have one. */
+ * Two switches rather than one. Page is the obvious one. Viewer is there
+ * because it does not just restyle the page, it chooses which page /groups
+ * is: a member gets the digest, somebody with no groups gets the pitch. Three
+ * values rather than two, because "signed in with nothing" and "signed out"
+ * look alike and are not -- one of them can press the button. */
 function MockToolbar({
   page,
   onSelectPage,
@@ -142,6 +151,13 @@ function MockToolbar({
       <div className="mock-switch ml-auto">
         <button
           type="button"
+          data-active={page === 'home'}
+          onClick={() => onSelectPage('home')}
+        >
+          Home
+        </button>
+        <button
+          type="button"
           data-active={page === 'landing'}
           onClick={() => onSelectPage('landing')}
         >
@@ -162,7 +178,14 @@ function MockToolbar({
           data-active={viewer === 'member'}
           onClick={() => onSelectViewer('member')}
         >
-          Signed in
+          In groups
+        </button>
+        <button
+          type="button"
+          data-active={viewer === 'newcomer'}
+          onClick={() => onSelectViewer('newcomer')}
+        >
+          No groups
         </button>
         <button
           type="button"

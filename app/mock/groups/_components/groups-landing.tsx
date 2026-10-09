@@ -13,7 +13,7 @@ import {
   sortGroups,
   searchGroups,
   topicsWithCounts,
-  upcomingEvents,
+  publicUpcomingEvents,
   type ViewerAuth,
 } from '../_data/mock-groups';
 import { GroupCard, GroupEventRow, TopicChip } from './group-cards';
@@ -53,7 +53,7 @@ export function GroupsLanding({
   viewer: ViewerAuth;
   onOpenDiscover: (topic?: string) => void;
 }) {
-  const signedIn = viewer === 'member';
+  const signedIn = viewer !== 'signedOut';
   const topics = topicsWithCounts();
 
   /* Sorted by the same function the discover page uses, so "active right now"
@@ -132,7 +132,7 @@ export function GroupsLanding({
         />
 
         <div className="mt-4 grid gap-3">
-          {upcomingEvents().map((event) => (
+          {publicUpcomingEvents().map((event) => (
             <GroupEventRow key={event.id} event={event} />
           ))}
         </div>

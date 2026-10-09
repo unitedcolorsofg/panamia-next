@@ -78,8 +78,10 @@ function GroupsRail({
   page: GroupsPage;
   onNavigate: (page: GroupsPage) => void;
 }) {
-  const signedIn = viewer === 'member';
-  const mine = signedIn ? yourGroups() : [];
+  const signedIn = viewer !== 'signedOut';
+  /* A newcomer is signed in and has nothing, which is a different sentence
+     to "sign in first" -- see the prompt below. */
+  const mine = viewer === 'member' ? yourGroups() : [];
 
   return (
     <aside className="sticky top-24 hidden max-h-[calc(100vh-7rem)] flex-col overflow-y-auto pb-4 lg:flex">
@@ -87,8 +89,11 @@ function GroupsRail({
         <RailNav
           icon={<Users className="h-4 w-4" aria-hidden="true" />}
           label="Groups"
-          active={page === 'landing'}
-          onClick={() => onNavigate('landing')}
+          /* 'landing' is not a sibling of 'home' -- it is what 'home'
+             renders for somebody with no groups, so the same rail item is
+             current for both. */
+          active={page === 'home' || page === 'landing'}
+          onClick={() => onNavigate('home')}
         />
         <RailNav
           icon={<Compass className="h-4 w-4" aria-hidden="true" />}
@@ -210,11 +215,20 @@ function RailGroup({
       </span>
 
       {/* Unread-ish signal. Deliberately a dot and not a count: a number
-          invites you to clear it, and a group feed is not an inbox. */}
-      {group.postsThisWeek > 0 && (
+          invites you to clear it, and a group feed is not an inbox.
+
+          Reads newPosts, not postsThisWeek, and the difference is the whole
+          point. postsThisWeek is how busy the room is -- a public stat, right
+          on a discover card where a stranger is judging whether a group is
+          alive. newPosts is how much of it you have not seen, which is
+          personal and needs the last-seen marker behind it. Dotting on the
+          public one would light up a group you are fully caught up on, and
+          contradict the digest's own "Quiet since Oct 2" two inches to the
+          right. */}
+      {(group.newPosts ?? 0) > 0 && (
         <span
           className="bg-pana-indigo mt-0.5 h-1.5 w-1.5 flex-none self-start rounded-full"
-          aria-label={`${group.postsThisWeek} posts this week`}
+          aria-label={`${group.newPosts} new posts`}
         />
       )}
     </Link>
@@ -254,14 +268,15 @@ function GroupsStrip({ viewer }: { viewer: ViewerAuth }) {
                 alt=""
                 className="border-pana-ink/10 h-[52px] w-[52px] rounded-2xl border object-cover"
               />
-              {group.postsThisWeek > 0 && (
-                /* Sat on the corner rather than outside it. A 2xl radius
+              {(group.newPosts ?? 0) > 0 && (
+                /* Same personal-not-public rule as the desktop rail above.
+                   Sat on the corner rather than outside it: a 2xl radius
                    means the very corner of the box is empty space, so a
                    badge pinned there floats free of the avatar instead of
                    belonging to it. */
                 <span
                   className="bg-pana-indigo absolute top-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--surface-cream,#fff)]"
-                  aria-label={`${group.postsThisWeek} posts this week`}
+                  aria-label={`${group.newPosts} new posts`}
                 />
               )}
             </span>
