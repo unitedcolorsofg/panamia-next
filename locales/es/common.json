@@ -24,6 +24,8 @@
     "loadFailed": "No pudimos cargar tus cuentas",
     "tryAgain": "Reintentar",
     "yourGroups": "Grupos que administras",
+    "startGroup": "Crea un grupo",
+    "startGroupHint": "Reúne personas alrededor de un interés",
     "manager": "Gerente",
     "owner": "Dueño",
     "sites": {

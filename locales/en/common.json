@@ -24,6 +24,8 @@
     "loadFailed": "Couldn't load your accounts",
     "tryAgain": "Try again",
     "yourGroups": "Groups you run",
+    "startGroup": "Start a group",
+    "startGroupHint": "Gather people around an interest",
     "manager": "Manager",
     "owner": "Owner",
     "sites": {
