@@ -13,6 +13,11 @@
 --          deleted rather than left rendering invented ones. This is the real
 --          home, so the panel can come back meaning something.
 --
+-- Ticket: N/A
+-- Reversible: Yes
+--
+-- Purpose (continued):
+--
 --          ## Why not rows in the existing events table
 --
 --          There is an events table already (0047 and friends) and reusing it
@@ -67,10 +72,8 @@
 --          supervise, and an event that silently reschedules itself after
 --          everyone stopped coming is worse than one that visibly lapsed.
 --
--- Ticket: N/A
--- Reversible: Yes
---
 -- Dependencies: profiles, users. Pod ids come from lib/connectors/model.ts.
+--
 -- Data Migration: None. Every event in the fixtures was invented, and the
 --                 fixture roster they referenced is not real either. Importing
 --                 them would put fabricated gatherings on members' dashboards
