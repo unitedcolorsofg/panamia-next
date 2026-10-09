@@ -1,33 +1,25 @@
-import { notFound, redirect } from 'next/navigation';
-
-import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
-import {
-  CommitmentsTable,
-  TallyBars,
-} from '@/components/connectors/dashboard-parts';
-import {
-  EventBoard,
-  RosterEditor,
-  SetTaskForm,
-} from '@/components/connectors/admin-console';
+import { TallyBars } from '@/components/connectors/dashboard-parts';
+import { EventBoard, RosterEditor } from '@/components/connectors/admin-console';
 import { Panel, StatBand } from '@/components/Admin/parts';
-import { ApplicationQueue } from '@/components/connectors/application-queue';
-import { listConnectorApplications } from '@/lib/connectors/membership';
+import { AdminSubNav } from '@/components/Admin/subnav';
+import { connectorsTabs } from '@/lib/connectors/admin-tabs';
+import { requireConnectorsAdmin } from '@/lib/connectors/admin-gate';
+import { countConnectorApplications } from '@/lib/connectors/membership';
 import { listRoster, rosterTallies } from '@/lib/connectors/roster';
-import { commitmentTotals, listOpenCommitments } from '@/lib/connectors/commitments';
+import { commitmentTotals } from '@/lib/connectors/commitments';
 import { listEventsForAdmin } from '@/lib/connectors/events';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import { PODS } from '@/lib/connectors/model';
 
 /**
- * The programme admin view.
+ * The programme admin view — the state of the programme, at a glance.
  *
  * This is a redraw of the Connector Dashboard the panas keep in Google Sheets:
- * same stat band, same pod and house breakdowns, same commitments table.
- * Somebody who has been reading the sheet should recognise it immediately and
- * not have to be retrained.
+ * same stat band, same pod and house breakdowns, same roster. Somebody who has
+ * been reading the sheet should recognise it immediately and not have to be
+ * retrained.
  *
  * What it changes is where the numbers come from. In the sheet every figure is
  * typed by hand and drifts — the header says twenty-six connectors over a list
@@ -35,6 +27,20 @@ import { PODS } from '@/lib/connectors/model';
  * counted from the rows underneath it, so the band cannot disagree with the
  * table. `rosterTallies()` takes the roster as an argument for exactly that
  * reason: the band provably counts the same rows the editor renders.
+ *
+ * ## Why this page got smaller
+ *
+ * It used to carry everything: the application queue, the roster, the events,
+ * the commitments table and the assign form, in one column. That is three jobs
+ * stacked on one scroll — deciding who gets in, keeping the roster right, and
+ * handing out work — and they are done by different people at different times.
+ * Each now has its own page, and this one keeps only what answers "how is the
+ * programme doing", which is the question somebody opening it cold is asking.
+ *
+ * Events stayed here rather than moving to Scheduling. They are the
+ * programme's calendar, not one person's workload, and nothing about running
+ * an event is attributed to a connector — `lead` is free text. Scheduling is
+ * about who has room to take something on; an event has no owner to load.
  *
  * ## Why it lives here and not under /connectors
  *
@@ -77,39 +83,16 @@ export const metadata = {
 };
 
 export default async function AdminConnectorsPage() {
-  /* Nothing under /admin is guarded — there is no middleware matcher and the
-   * layout has no check. That was survivable while every page here rendered
-   * fixtures: a stranger who found the URL saw invented people. This one now
-   * shows real names, real email addresses and real work, so it cannot be one
-   * of the open ones.
-   *
-   * Two different failures get two different answers. Signed out is probably
-   * a staff member whose session expired, so send them to sign in. Signed in
-   * but not an admin is somebody who should not know this exists, so it does
-   * not. */
-  const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
-  if (!session.user.isAdmin) notFound();
+  await requireConnectorsAdmin();
 
-  /* Five independent reads. None of them depends on another, so running them
+  /* Four independent reads. None of them depends on another, so running them
    * in series would make the page as slow as their sum for no reason. */
-  const [pending, roster, totals, openWork, events] = await Promise.all([
-    listConnectorApplications(),
+  const [pendingCount, roster, totals, events] = await Promise.all([
+    countConnectorApplications(),
     listRoster(),
     commitmentTotals(),
-    listOpenCommitments(40),
     listEventsForAdmin(),
   ]);
-
-  const applications = pending.map((row) => ({
-    profileId: row.profileId,
-    displayName: row.displayName,
-    email: row.email,
-    pod: row.membership.pod,
-    houses: row.membership.houses,
-    bring: row.membership.bring,
-    appliedAt: row.membership.appliedAt,
-  }));
 
   const tallies = rosterTallies(roster);
 
@@ -125,7 +108,7 @@ export default async function AdminConnectorsPage() {
     {
       label: 'Connectors',
       value: String(tallies.total),
-      note: `${applications.length} waiting on a decision`,
+      note: `${pendingCount} waiting on a decision`,
     },
     {
       label: 'Open commitments',
@@ -175,11 +158,13 @@ export default async function AdminConnectorsPage() {
         </p>
       </header>
 
-      <div className="flex flex-col gap-6">
-        <Panel title="Applications">
-          <ApplicationQueue applications={applications} />
-        </Panel>
+      <AdminSubNav
+        tabs={connectorsTabs(pendingCount)}
+        active="overview"
+        label="Connectors pages"
+      />
 
+      <div className="flex flex-col gap-6">
         <StatBand stats={band} />
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -204,42 +189,17 @@ export default async function AdminConnectorsPage() {
           <RosterEditor rows={rosterRows} />
         </Panel>
 
-        <section>
-          <h2 className="text-pana-ink/60 pb-3 text-sm font-extrabold tracking-wide uppercase">
-            Coming up
-          </h2>
+        {/* Inside a Panel, not loose on the page. The cards are cream and so
+         * is the admin background — on bare page they were a cream rectangle
+         * on cream paper, readable only by their border. A Panel puts white
+         * underneath them, which is the same relationship they have on
+         * Connectors HQ, where cream-inside-white is the documented rule for
+         * anything sitting within a panel. */}
+        <Panel title="Coming up">
           <EventBoard
             upcoming={events.upcoming}
             staleRecurring={events.staleRecurring}
           />
-        </section>
-
-        <Panel title="Open commitments">
-          {openWork.length === 0 ? (
-            <p className="text-pana-ink/60 text-sm leading-relaxed">
-              Nothing outstanding. Either the programme is caught up or nobody
-              has written anything down.
-            </p>
-          ) : (
-            <CommitmentsTable rows={openWork} chrome={ADMIN_CHROME} />
-          )}
-
-          <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
-            <h3 className="text-sm font-extrabold tracking-wide uppercase">
-              Set a task
-            </h3>
-            <p className="text-pana-ink/70 mt-2 mb-3 text-sm leading-relaxed">
-              This goes on their board marked as assigned. They can mark it
-              done — you cannot, and they cannot delete it.
-            </p>
-            <SetTaskForm
-              connectors={roster.map((m) => ({
-                profileId: m.profileId,
-                displayName: m.displayName,
-                houses: m.membership.houses,
-              }))}
-            />
-          </div>
         </Panel>
       </div>
     </>

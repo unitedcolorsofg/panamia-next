@@ -2565,6 +2565,15 @@ export const connectorCommitments = pgTable(
     when: text('when_text'),
     house: text('house').notNull(),
     progress: text('progress').notNull().default('notSet'),
+    /**
+     * Rough size, in minutes. NULL means nobody has estimated it.
+     *
+     * Minutes rather than decimal hours so `SUM()` is exact and the pg driver
+     * hands back a number instead of a string; the UI talks in hours and
+     * converts at the edge. NULL is a reported state, never folded to zero —
+     * see drizzle/0059 for why nothing was backfilled.
+     */
+    estimatedMinutes: integer('estimated_minutes'),
     /** NULL for self-authored. Set when staff assigned it. */
     assignedBy: text('assigned_by').references(() => users.id, {
       onDelete: 'set null',

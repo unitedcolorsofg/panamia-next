@@ -428,6 +428,13 @@
       "when": 1791763200000,
       "tag": "0059_event_dismissals",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1791849600000,
+      "tag": "0060_commitment_hours",
+      "breakpoints": true
     }
   ]
 }

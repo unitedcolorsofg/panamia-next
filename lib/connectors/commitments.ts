@@ -4,6 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { db } from '@/lib/db';
 import { connectorCommitments, profiles } from '@/lib/schema';
 import { HOUSES } from '@/lib/connectors/model';
+import type { ConnectorLoad } from '@/lib/connectors/hours';
 import type { CommitmentProgress, HouseId } from '@/lib/connectors/model';
 
 /**
@@ -64,6 +65,8 @@ export interface ConnectorCommitment {
   house: HouseId;
   progress: CommitmentProgress;
   createdAt: string;
+  /** Rough size in minutes. `null` means nobody has estimated it. */
+  estimatedMinutes: number | null;
   /** The user who set this as a task. `null` means self-authored. */
   assignedBy: string | null;
   assignedAt: string | null;
@@ -99,6 +102,7 @@ type Row = {
   house: string;
   progress: string;
   createdAt: Date;
+  estimatedMinutes: number | null;
   assignedBy: string | null;
   assignedAt: Date | null;
 };
@@ -114,6 +118,7 @@ function toCommitment(row: Row): ConnectorCommitment | null {
     house: row.house,
     progress: row.progress,
     createdAt: row.createdAt.toISOString(),
+    estimatedMinutes: row.estimatedMinutes,
     assignedBy: row.assignedBy,
     assignedAt: row.assignedAt?.toISOString() ?? null,
   };
@@ -137,6 +142,7 @@ export async function listCommitments(
       house: connectorCommitments.house,
       progress: connectorCommitments.progress,
       createdAt: connectorCommitments.createdAt,
+      estimatedMinutes: connectorCommitments.estimatedMinutes,
       assignedBy: connectorCommitments.assignedBy,
       assignedAt: connectorCommitments.assignedAt,
     })
@@ -163,6 +169,8 @@ export interface NewCommitment {
   what: string;
   when: string | null;
   house: HouseId;
+  /** Rough size in minutes. Omit when nobody has estimated it. */
+  estimatedMinutes?: number | null;
   /** Omit for a self-authored commitment; pass a user id for a staff task. */
   assignedBy?: string | null;
 }
@@ -178,6 +186,7 @@ export async function createCommitment(
   input: NewCommitment
 ): Promise<ConnectorCommitment> {
   const assignedBy = input.assignedBy ?? null;
+  const estimatedMinutes = input.estimatedMinutes ?? null;
   const now = new Date();
 
   const row = {
@@ -187,6 +196,7 @@ export async function createCommitment(
     when: input.when,
     house: input.house,
     progress: 'notSet' as const,
+    estimatedMinutes,
     assignedBy,
     assignedAt: assignedBy ? now : null,
     createdAt: now,
@@ -202,6 +212,7 @@ export async function createCommitment(
     house: input.house,
     progress: 'notSet',
     createdAt: now.toISOString(),
+    estimatedMinutes,
     assignedBy,
     assignedAt: assignedBy ? now.toISOString() : null,
   };
@@ -324,6 +335,7 @@ export async function listOpenCommitments(
       house: connectorCommitments.house,
       progress: connectorCommitments.progress,
       createdAt: connectorCommitments.createdAt,
+      estimatedMinutes: connectorCommitments.estimatedMinutes,
       assignedBy: connectorCommitments.assignedBy,
       assignedAt: connectorCommitments.assignedAt,
       profileId: connectorCommitments.profileId,
@@ -376,4 +388,46 @@ export async function commitmentTotals(): Promise<{
   const done = row?.done ?? 0;
 
   return { total, open: total - done, done, assigned: row?.assigned ?? 0 };
+}
+
+/**
+ * How much each connector is carrying, keyed by profile.
+ *
+ * One grouped query over the open rows, for the same reason `commitmentTotals`
+ * is one query: three numbers derived separately can disagree, and this set
+ * gets rendered as a single sentence about a person.
+ *
+ * `SUM ... FILTER` and `COUNT ... FILTER` split the sized work from the
+ * unsized in the database rather than in a loop here, so a connector whose
+ * commitments were all written before drizzle/0059 comes back as
+ * `{ open: 4, estimatedMinutes: 0, unestimated: 4 }` — visibly incomplete,
+ * rather than as somebody with four things and no work.
+ *
+ * Returns a Map rather than an array because every caller has a roster in hand
+ * and wants to look people up by id. Connectors with nothing open are absent;
+ * `EMPTY_LOAD` is the caller's default, which keeps "carrying nothing" and
+ * "not in the result" the same thing at the point of use.
+ */
+export async function connectorLoads(): Promise<Map<string, ConnectorLoad>> {
+  const rows = await db
+    .select({
+      profileId: connectorCommitments.profileId,
+      open: sql<number>`count(*)::int`,
+      estimatedMinutes: sql<number>`coalesce(sum(${connectorCommitments.estimatedMinutes}), 0)::int`,
+      unestimated: sql<number>`(count(*) filter (where ${connectorCommitments.estimatedMinutes} is null))::int`,
+    })
+    .from(connectorCommitments)
+    .where(ne(connectorCommitments.progress, 'done'))
+    .groupBy(connectorCommitments.profileId);
+
+  return new Map(
+    rows.map((row) => [
+      row.profileId,
+      {
+        open: row.open,
+        estimatedMinutes: row.estimatedMinutes,
+        unestimated: row.unestimated,
+      },
+    ])
+  );
 }

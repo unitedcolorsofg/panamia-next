@@ -15,6 +15,7 @@ import {
 } from '@/lib/connectors/commitments';
 import { HOUSES } from '@/lib/connectors/model';
 import type { HouseId } from '@/lib/connectors/model';
+import { MAX_MINUTES } from '@/lib/connectors/hours';
 
 /**
  * Put a task on somebody's board, or take one off.
@@ -96,6 +97,31 @@ export async function POST(request: NextRequest) {
         ? payload.when.trim().slice(0, WHEN_MAX)
         : null;
 
+    /* Re-validated rather than trusted. The form sends minutes it has already
+     * parsed, but the form is not the only possible caller and the CHECK in
+     * drizzle/0059 would otherwise reject bad input as a 500 instead of as the
+     * 400 it is. Absent and null both mean "not estimated", which is a
+     * legitimate answer and not a failure. */
+    let estimatedMinutes: number | null = null;
+    if (payload.estimatedMinutes !== null && payload.estimatedMinutes !== undefined) {
+      const raw = payload.estimatedMinutes;
+      if (
+        typeof raw !== 'number' ||
+        !Number.isInteger(raw) ||
+        raw <= 0 ||
+        raw > MAX_MINUTES
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `How long has to be a whole number of minutes up to ${MAX_MINUTES}.`,
+          },
+          { status: 400 }
+        );
+      }
+      estimatedMinutes = raw;
+    }
+
     /* The target has to be an accepted member. Assigning work to a pending
      * applicant would put a task on a board they cannot open, and the queue
      * would then show an application with work already logged against it —
@@ -128,6 +154,7 @@ export async function POST(request: NextRequest) {
       when,
       house: house as HouseId,
       assignedBy: admin.id,
+      estimatedMinutes,
     });
 
     return NextResponse.json({ success: true, data: commitment });
