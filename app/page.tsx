@@ -47,9 +47,12 @@ export default async function RootPage() {
     case 'social':
       return <FeedPage />;
     case 'events':
-      // Rendered inline rather than redirected to /e: unlike admin, the events
-      // surface has no layout of its own to miss, so the root can serve the
-      // page directly and keep events.pana.social/ a real address.
+      // Unreachable by hostname since Events became path-only: with
+      // `subdomain: null` no host resolves to this surface, and its front door
+      // is reached at `pana.social/e` through app/e/page.tsx instead. The
+      // branch stays because the switch is exhaustive over surface.id — that
+      // exhaustiveness is the point of the switch — and because it remains the
+      // right answer if a host is ever aliased here.
       return <EventsFrontDoor />;
     case 'connectors':
       return <ConnectorsFrontDoor />;

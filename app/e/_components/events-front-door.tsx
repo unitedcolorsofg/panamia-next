@@ -8,10 +8,13 @@ import { EventsDiscover } from './events-discover';
 /**
  * The events surface's front door.
  *
- * A component rather than only a page because two routes render it: `/e`, the
- * canonical path every minted event link already points at, and `/` on
- * events.pana.social, which app/page.tsx dispatches to by hostname. Extracting
- * it is what stops those two drifting — the alternative is the root importing
+ * A component rather than only a page because the route and the surface are
+ * named separately: `/e` is the canonical path every minted event link already
+ * points at, and app/page.tsx keeps a (now unreachable) `case 'events'` branch
+ * that renders this same component, so the switch over surface ids stays
+ * exhaustive. Events is path-only — `subdomain: null` in
+ * lib/panaverse/surfaces.ts — so no hostname dispatches here today. Extracting
+ * it is what stops the two drifting — the alternative is the root importing
  * a route's default export, which works but reads like a mistake and invites
  * somebody to "fix" it by copying the body.
  *

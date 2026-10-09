@@ -53,19 +53,18 @@ export function SurfaceGuestHeader({
   /**
    * Whether the owner has a site of its own to open, as reached from here.
    *
-   * `originForFrom` answers for a surface with no hostname bound — one still
-   * carrying `subdomainPending`, or any surface at all while
-   * `PANAVERSE_SUBDOMAINS` is off — with the host in hand. That is the right
-   * answer for a link that must not point at a name DNS cannot resolve, and
-   * it is the wrong one for this link specifically: on `pana.social/e` the
-   * owner origin is `https://pana.social`, so "Open on Pana Events" offered
-   * the page already being read, wearing an external-link icon. Events is
-   * served from a path rather than a subdomain, so that was its settled state
-   * and not a gap waiting on a launch.
+   * `originForFrom` answers with the host in hand for a surface that has no
+   * origin of its own — one carrying `subdomainPending`, or any surface at all
+   * while `PANAVERSE_SUBDOMAINS` is off. That is the right answer for a link
+   * that must not point at a name DNS cannot resolve, and the wrong one for
+   * this link in particular, whose whole purpose is to leave: it would offer
+   * the page already being read, wearing an external-link icon.
    *
-   * Compared as origins rather than read off `subdomainPending`, because the
-   * flag is only one of the three ways a surface ends up with no origin of its
-   * own, and the other two would have gone on rendering the self-link.
+   * Compared as origins rather than read off any single flag, because a
+   * surface reaches that state three ways and only one of them is a flag. A
+   * path-only surface is not among them: Events has `subdomain: null`, so its
+   * origin is the root domain and this link correctly leaves for
+   * `pana.social/e` from admin, social, or anywhere else it is borrowed.
    */
   const ownerHasOwnSite = ownerOrigin !== originForFrom(surface, host);
 
