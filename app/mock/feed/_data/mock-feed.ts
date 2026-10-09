@@ -357,8 +357,10 @@ export const MOCK_SUGGESTIONS: MockSuggestion[] = [
 export interface MockEvent {
   id: string;
   title: string;
-  /** Pre-formatted; a real one comes off an events table that does not exist
-   *  yet, which is why Events is also listed as a reserved module below. */
+  /** Pre-formatted from events.starts_at. Distinct from MOCK_CALENDAR below:
+   *  this strip is discovery — what is on near you, whether or not you have
+   *  any connection to it — while the calendar is what you personally have
+   *  coming. Both read the same table; only the filter differs. */
   when: string;
   where: string;
   host: string;
@@ -521,13 +523,12 @@ export function postsForFilter(filter: FeedFilter): MockPost[] {
 
 /** Modules the feed is designed to hold but that have no backing feature yet,
  *  shown in the rail so the column width is agreed on now rather than after
- *  the fact. */
+ *  the fact.
+ *
+ *  "Events & RSVPs" used to lead this list. It has been promoted out of it:
+ *  the `events` and `event_attendees` tables both shipped, so the rail can
+ *  render a real calendar instead of a placeholder describing one. */
 export const RESERVED_MODULES: { title: string; description: string }[] = [
-  {
-    title: 'Events & RSVPs',
-    description:
-      'Markets, workshops, and dinners, with a real going and interested count.',
-  },
   {
     title: 'Saved posts',
     description: 'Bookmarks that survive a scroll, grouped into named lists.',
@@ -537,3 +538,292 @@ export const RESERVED_MODULES: { title: string; description: string }[] = [
     description: 'Live rooms a Pana can drop into straight from the timeline.',
   },
 ];
+
+/* ------------------------------------------------------------------------ *
+ * Your calendar
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Where an event came from.
+ *
+ * Not three tables. `events` has exactly one host, enforced by the
+ * `events_single_host` CHECK added in 0047: either `host_group_id` or
+ * `host_profile_id`, never both and never neither. A directory listing and a
+ * pana are both profiles, so the split below is a presentation distinction
+ * drawn from `profiles.accountType`, not a structural one.
+ *
+ * It is worth drawing anyway. "Clay & Kiln is running a class" and "Jules is
+ * hosting a repair café" are different invitations, and flattening both to
+ * "hosted by" loses which one you are reading.
+ */
+export type CalendarHostKind = 'group' | 'pana' | 'directory';
+
+/**
+ * Why this event is on your calendar.
+ *
+ * The load-bearing field. A calendar that mixes "I said I would be there"
+ * with "this might interest you" is useless for planning, because the whole
+ * reason to open it is to find out what you have already committed to. So
+ * `rsvp` events are a different section from the rest, never interleaved.
+ *
+ * 'going' and 'maybe' are `event_attendees.status`; the enum's third value is
+ * 'not_going', which by definition never reaches a calendar.
+ */
+export type CalendarReason = 'rsvp' | 'group' | 'following';
+
+export interface MockCalendarEvent {
+  /** events.id */
+  id: string;
+  /** events.slug — the row links to /e/[slug]. */
+  slug: string;
+  /** events.title */
+  title: string;
+  /** Pre-formatted from events.starts_at in events.timezone, same as the
+   *  groups mock. Fixture order is chronological; nothing here sorts. */
+  dayLabel: string;
+  /** Month and day, for the line beside dayLabel. Separate because "Saturday"
+   *  and "Sat the 11" side by side says the weekday twice. */
+  dateLabel: string;
+  /** Short weekday for the date block, e.g. THU. */
+  weekday: string;
+  /** Day of month for the date block. */
+  dateNum: string;
+  time: string;
+  /** venues.name · venues.neighborhood. Null when events.mode is 'online',
+   *  which is why the venue is nullable in the schema too. */
+  where: string | null;
+  /** events.mode — 'online' events have no venue to show. */
+  online?: boolean;
+  host: {
+    kind: CalendarHostKind;
+    name: string;
+    /** socialActors.icon_url for a group, profiles.primaryImageCdn
+     *  otherwise. */
+    avatar: string;
+  };
+  /** events.visibility. There is no 'private': NIP-52 calendar events have no
+   *  concept of one, so the enum is public | unlisted and an unlisted event is
+   *  reachable by link but absent from /e. A group's events inherit the
+   *  group's reach in practice, which is why the unlisted one below belongs to
+   *  the invite-only supper club. */
+  visibility: 'public' | 'unlisted';
+  /** events.attendee_count — verified 'going' RSVPs only. */
+  attendeeCount: number;
+  /** event_attendees.status for the viewer, null when they have not replied. */
+  rsvp: 'going' | 'maybe' | null;
+  reason: CalendarReason;
+  /** Rendered when reason is not 'rsvp': the calendar has to say why it is
+   *  showing you something you never asked for, or it reads as spam. */
+  because?: string;
+}
+
+/**
+ * The viewer's next two weeks.
+ *
+ * Written against the awkward cases on purpose, same as every other fixture
+ * here: a clash (two events on Oct 11), an unlisted one, an online one with no
+ * venue, a 'maybe', and a stretch of nothing between Oct 12 and Oct 16 so the
+ * day grouping has a gap to get wrong.
+ *
+ * The three host kinds are all present because the whole argument for this
+ * page is that they belong on one surface. A member of a printmaking group who
+ * follows a ceramicist and RSVP'd to a dinner currently has to visit three
+ * places to answer "what am I doing this weekend".
+ */
+export const MOCK_CALENDAR: MockCalendarEvent[] = [
+  {
+    id: 'cal-1',
+    slug: 'rough-cut-night-october',
+    title: 'Rough Cut Night',
+    dayLabel: 'Today',
+    dateLabel: 'Oct 9',
+    weekday: 'THU',
+    dateNum: '9',
+    time: '7:30 PM',
+    where: 'O Cinema · South Beach',
+    host: {
+      kind: 'group',
+      name: 'Subtropic Film Collective',
+      avatar: '/img/impact/filmmaker-participant.webp',
+    },
+    visibility: 'public',
+    attendeeCount: 61,
+    rsvp: 'going',
+    reason: 'rsvp',
+  },
+  {
+    id: 'cal-2',
+    slug: 'bilingual-print-workshop',
+    title: 'Bilingual print workshop',
+    dayLabel: 'Saturday',
+    dateLabel: 'Oct 11',
+    weekday: 'SAT',
+    dateNum: '11',
+    time: '11:00 AM',
+    where: 'Bakehouse Art Complex · Wynwood',
+    host: {
+      kind: 'group',
+      name: 'Little Haiti Makers',
+      avatar: '/img/impact/culture-zines-right.webp',
+    },
+    visibility: 'public',
+    attendeeCount: 38,
+    rsvp: 'going',
+    reason: 'rsvp',
+  },
+  {
+    /* Deliberately the same day as cal-2 and deliberately later. A calendar
+       whose fixtures never collide has not been tested as a calendar. */
+    id: 'cal-3',
+    slug: 'supper-at-bees',
+    title: "Supper at Bee's",
+    dayLabel: 'Saturday',
+    dateLabel: 'Oct 11',
+    weekday: 'SAT',
+    dateNum: '11',
+    time: '7:00 PM',
+    where: 'Buena Vista',
+    host: {
+      kind: 'group',
+      name: 'Thursday Supper Club',
+      avatar: '/img/impact/pana-social-dinner.webp',
+    },
+    visibility: 'unlisted',
+    attendeeCount: 11,
+    rsvp: 'going',
+    reason: 'rsvp',
+  },
+  {
+    id: 'cal-4',
+    slug: 'long-table-dinner-allapattah',
+    title: 'Long table dinner',
+    dayLabel: 'Sunday',
+    dateLabel: 'Oct 12',
+    weekday: 'SUN',
+    dateNum: '12',
+    time: '6:30 PM',
+    where: 'Allapattah',
+    host: {
+      kind: 'directory',
+      name: 'Pana Social Dinners',
+      avatar: '/img/impact/hero-mixer.webp',
+    },
+    visibility: 'public',
+    attendeeCount: 64,
+    rsvp: 'maybe',
+    reason: 'rsvp',
+  },
+  {
+    /* No venue, because events.mode is 'online' and venue_id is null. The row
+       has to not render an empty bullet where the neighbourhood goes. */
+    id: 'cal-5',
+    slug: 'portfolio-review-online',
+    title: 'Portfolio review, open call',
+    dayLabel: 'Thursday',
+    dateLabel: 'Oct 16',
+    weekday: 'THU',
+    dateNum: '16',
+    time: '8:00 PM',
+    where: null,
+    online: true,
+    host: {
+      kind: 'pana',
+      name: 'G. Barrios',
+      avatar: '/img/about/gbarrios.jpg',
+    },
+    visibility: 'public',
+    attendeeCount: 19,
+    rsvp: null,
+    reason: 'following',
+    because: 'You follow G. Barrios',
+  },
+  {
+    id: 'cal-6',
+    slug: 'zine-swap-coffee',
+    title: 'Zine swap + coffee',
+    dayLabel: 'Saturday',
+    dateLabel: 'Oct 18',
+    weekday: 'SAT',
+    dateNum: '18',
+    time: '10:00 AM',
+    where: 'Coconut Grove',
+    host: {
+      kind: 'group',
+      name: 'Zine Club MIA',
+      avatar: '/img/impact/culture-zines-left.webp',
+    },
+    visibility: 'public',
+    attendeeCount: 23,
+    rsvp: null,
+    reason: 'group',
+    because: "You're in Zine Club MIA",
+  },
+  {
+    id: 'cal-7',
+    slug: 'repair-cafe-october',
+    title: 'Repair café',
+    dayLabel: 'Saturday',
+    dateLabel: 'Oct 18',
+    weekday: 'SAT',
+    dateNum: '18',
+    time: '1:00 PM',
+    where: 'Little River',
+    host: {
+      kind: 'pana',
+      name: 'J. Downs',
+      avatar: '/img/about/jdowns.jpg',
+    },
+    visibility: 'public',
+    attendeeCount: 31,
+    rsvp: null,
+    reason: 'following',
+    because: 'You follow J. Downs',
+  },
+];
+
+/** What you have actually committed to. The calendar proper. */
+export function calendarCommitted(): MockCalendarEvent[] {
+  return MOCK_CALENDAR.filter((event) => event.reason === 'rsvp');
+}
+
+/** Relevant but unanswered. Kept apart from the above on purpose — see the
+ *  docblock on CalendarReason. */
+export function calendarSuggested(): MockCalendarEvent[] {
+  return MOCK_CALENDAR.filter((event) => event.reason !== 'rsvp');
+}
+
+/** Committed events grouped into days, preserving fixture order so a day with
+ *  two events keeps them in time order. */
+export function calendarByDay(): {
+  dayLabel: string;
+  dateLabel: string;
+  weekday: string;
+  dateNum: string;
+  events: MockCalendarEvent[];
+}[] {
+  const days: ReturnType<typeof calendarByDay> = [];
+
+  for (const event of calendarCommitted()) {
+    const last = days[days.length - 1];
+    if (last && last.dateNum === event.dateNum) {
+      last.events.push(event);
+      continue;
+    }
+    days.push({
+      dayLabel: event.dayLabel,
+      dateLabel: event.dateLabel,
+      weekday: event.weekday,
+      dateNum: event.dateNum,
+      events: [event],
+    });
+  }
+
+  return days;
+}
+
+/** The rail shows commitments only, and only the next few. Suggestions in a
+ *  280px column would push the thing you are actually doing tonight out of
+ *  sight. */
+export function calendarNext(limit = 3): MockCalendarEvent[] {
+  return calendarCommitted().slice(0, limit);
+}
