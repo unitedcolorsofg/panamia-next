@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,11 +19,8 @@ import {
   useMyGroups,
   useUpcomingGroupEvents,
 } from '@/lib/query/social';
-import {
-  GroupCard,
-  GroupEventRow,
-  TopicChip,
-} from '@/app/groups/_components/group-cards';
+import { GroupCard, GroupEventRow } from '@/app/groups/_components/group-cards';
+import { FilterMenu } from '@/components/ui/filter-menu';
 
 /** How many groups the "active right now" shelf shows before it gets long. */
 const ACTIVE_SHELF_LIMIT = 4;
@@ -152,12 +150,20 @@ function Hero({ signedIn }: { signedIn: boolean }) {
 }
 
 /**
- * Topic chips, from whatever groups actually carry.
+ * Topic chips, from whatever groups actually carry, folded into a menu.
  *
- * Chips rather than a dropdown. A dropdown hides the range of what exists
- * behind a click, and the range IS the pitch on this page -- seeing
- * printmaking next to housing next to salsa is what tells somebody this is
- * not a single-subject site.
+ * This used to be a spread-out chip row, on the argument that the range of
+ * interests IS the pitch on this page -- seeing printmaking next to housing
+ * next to salsa is what tells somebody this is not a single-subject site.
+ * That argument is still true, and it still lost. The range only sells if
+ * somebody reads it, and a block of chips that grows every time a group
+ * picks a new topic is the one element here with no ceiling: it pushed the
+ * groups themselves -- the actual proof the place is alive -- further down
+ * the page with every group added. A pitch that gets worse the better the
+ * site does is not a pitch.
+ *
+ * The hint keeps the honest part of the old claim, naming the breadth
+ * ("ceramics to mutual aid") without spending a screen on it.
  *
  * Renders nothing before any group has set a topic, rather than an empty row
  * under a heading promising interests.
@@ -167,11 +173,21 @@ function BrowseByInterest() {
   const { data, isLoading } = useGroupTopics();
   const topics = data?.topics ?? [];
 
+  const options = useMemo(
+    () =>
+      topics.map(({ topic, count }) => ({
+        value: topic,
+        label: topic,
+        hint: `${count} ${count === 1 ? 'group' : 'groups'}`,
+      })),
+    [topics]
+  );
+
   if (isLoading) {
     return (
       <div className="mt-12 animate-pulse space-y-3" aria-hidden="true">
         <div className="bg-pana-ink/10 h-6 w-40 rounded-lg" />
-        <div className="bg-pana-ink/10 h-9 rounded-full" />
+        <div className="bg-pana-ink/10 h-9 w-44 rounded-full" />
       </div>
     );
   }
@@ -182,21 +198,26 @@ function BrowseByInterest() {
     <section className="mt-12">
       <SectionHead
         title="Browse by interest"
-        hint="Every group carries its own topics"
+        hint={`${topics.length} ${topics.length === 1 ? 'topic' : 'topics'} groups are using right now`}
       />
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {topics.map(({ topic, count }) => (
-          <TopicChip
-            key={topic}
-            topic={topic}
-            count={count}
-            active={false}
-            onSelect={() =>
-              router.push(`/groups/discover?topic=${encodeURIComponent(topic)}`)
+      {/* Nothing is ever "selected" here: picking a topic leaves for discover,
+          where the filtering actually happens. `action` is what keeps the rows
+          honest about that -- they read as places to go, not boxes to tick. */}
+      <div className="mt-4 flex">
+        <FilterMenu
+          label="Pick an interest"
+          options={options}
+          selected={[]}
+          action
+          onChange={([topic]) => {
+            if (topic) {
+              router.push(
+                `/groups/discover?topic=${encodeURIComponent(topic)}`
+              );
             }
-          />
-        ))}
+          }}
+        />
       </div>
     </section>
   );

@@ -352,42 +352,11 @@ export function GroupCard({
    exported, since an orphaned card is just a thing to keep in sync with a
    type nothing renders. */
 
-/**
- * A topic chip.
- *
- * The count is passed in from the facet query rather than counted on the
- * client, so a chip can never advertise a number the filter behind it does
- * not produce. Both pages read the same endpoint for the same reason.
- */
-export function TopicChip({
-  topic,
-  count,
-  active,
-  onSelect,
-}: {
-  topic: string;
-  count: number;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={active}
-      className={
-        active
-          ? 'border-pana-ink bg-pana-ink inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-[13px] font-extrabold text-white'
-          : 'border-pana-ink/14 text-pana-ink hover:border-pana-indigo inline-flex items-center gap-1.5 rounded-full border-2 bg-white px-3.5 py-1.5 text-[13px] font-extrabold transition-colors'
-      }
-    >
-      {topic}
-      <span className={active ? 'text-white/60' : 'text-pana-ink/40'}>
-        {count}
-      </span>
-    </button>
-  );
-}
+/* A topic chip used to live here, rendering one topic and its facet count.
+   Both pages now fold their topics into a FilterMenu instead, so nothing
+   imports it. Deleted on the same grounds as the row above: the mock pages
+   under app/mock/groups keep their own copy, so the design is not lost, and
+   an exported component with no callers is only a thing to keep in sync. */
 
 /**
  * An upcoming event, with its group named on it.

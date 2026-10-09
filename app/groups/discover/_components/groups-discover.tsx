@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -12,7 +12,8 @@ import {
   useMyGroups,
   parseGroupSortId,
 } from '@/lib/query/social';
-import { GroupCard, TopicChip } from '@/app/groups/_components/group-cards';
+import { GroupCard } from '@/app/groups/_components/group-cards';
+import { FilterMenu } from '@/components/ui/filter-menu';
 
 /** How long a keystroke waits before it becomes a request. */
 const SEARCH_DEBOUNCE_MS = 250;
@@ -95,6 +96,19 @@ export function GroupsDiscoverContent() {
   const topics = topicData?.topics ?? [];
   const groups = data?.groups ?? [];
 
+  /* The count rides along as a hint rather than being folded into the label,
+     so the topic still reads as one word at a glance and the menu stays
+     scannable when a topic name is long. */
+  const topicOptions = useMemo(
+    () =>
+      topics.map(({ topic: entry, count }) => ({
+        value: entry,
+        label: entry,
+        hint: `${count} ${count === 1 ? 'group' : 'groups'}`,
+      })),
+    [topics]
+  );
+
   /* Derived once for the whole list rather than per card. */
   const joined = new Set((mine?.groups ?? []).map((group) => group.id));
 
@@ -173,35 +187,38 @@ export function GroupsDiscoverContent() {
               {option.label}
             </button>
           ))}
+
+          {/* Folded into a menu rather than a chip wall. The landing page
+              spreads the topics out because showing their range is the pitch
+              there; by the time you are here you have already bought it, and
+              ten chips is four rows on a phone standing between you and the
+              results you came to read. Sits in the sort row because it is the
+              same kind of control: something that narrows what is below. */}
+          {topics.length > 0 && (
+            <FilterMenu
+              label="Interest"
+              options={topicOptions}
+              selected={topic ? [topic] : []}
+              single
+              onChange={([next]) => updateParams({ topic: next ?? null })}
+            />
+          )}
         </div>
       </div>
 
-      {/* The same chips as the landing page, reading the same counts, but
-          here they narrow in place rather than navigate. */}
-      {topics.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {topic && (
-            <button
-              type="button"
-              onClick={() => updateParams({ topic: null })}
-              className="border-pana-ink/14 text-pana-ink/60 hover:border-pana-indigo inline-flex items-center gap-1.5 rounded-full border-2 bg-white px-3.5 py-1.5 text-[13px] font-extrabold transition-colors"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-              Clear
-            </button>
-          )}
-
-          {topics.map(({ topic: entry, count }) => (
-            <TopicChip
-              key={entry}
-              topic={entry}
-              count={count}
-              active={topic === entry}
-              onSelect={() =>
-                updateParams({ topic: topic === entry ? null : entry })
-              }
-            />
-          ))}
+      {/* The chosen topic stays out here rather than only inside the menu, so
+          dropping it never costs a click to go find it. */}
+      {topic && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => updateParams({ topic: null })}
+            className="dirsearch-activechip"
+          >
+            {topic}
+            <X className="h-3 w-3" aria-hidden="true" />
+            <span className="sr-only">Remove interest filter</span>
+          </button>
         </div>
       )}
 
