@@ -76,7 +76,7 @@ function Avatar({
 }
 
 /**
- * The groups this member runs.
+ * The groups this member runs, and the way to start another.
  *
  * These are links, not identities. The acting-as list above changes whose
  * voice the app speaks in; this does not. A group post is authored by the
@@ -99,8 +99,13 @@ function Avatar({
  * opens with your own groups, the row and the tile make the same promise and
  * keep it in the same place.
  *
- * Renders nothing at all for a member who runs no groups, rather than a bare
- * separator with nothing under it.
+ * "Start a group" is always here, including for a member who runs none. This
+ * block used to render nothing in that case, to avoid a separator with an
+ * empty section under it — but that left the menu permanently inviting you to
+ * list a business while never once offering to start a group, and sent anyone
+ * who wanted one through the Groups tile to find the button on /groups. The
+ * heading is what's conditional now: "Groups you run" over an empty list is a
+ * claim, where a lone CTA is just an offer.
  */
 function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useTranslation('common');
@@ -108,13 +113,13 @@ function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
 
   const run = (data?.groups ?? []).filter((group) => group.role === 'admin');
 
-  if (run.length === 0) return null;
-
   return (
     <>
       <div className={styles.separator} />
 
-      <div className={styles.menuHeading}>{t('identity.yourGroups')}</div>
+      {run.length > 0 && (
+        <div className={styles.menuHeading}>{t('identity.yourGroups')}</div>
+      )}
       {run.map((group) => (
         <Link
           key={group.id}
@@ -133,6 +138,27 @@ function MenuGroups({ onNavigate }: { onNavigate: () => void }) {
           </span>
         </Link>
       ))}
+
+      {/* Last rather than first: the groups you already run are what you came
+          to this block for, and starting another is the afterthought. Matches
+          "Get listed", which also sits under the identities it adds to. */}
+      <Link
+        href="/groups/new"
+        role="menuitem"
+        data-menu-row
+        onClick={onNavigate}
+        className={styles.row}
+      >
+        <span className={styles.addIcon} aria-hidden="true">
+          <Plus className="h-4 w-4" />
+        </span>
+        <span className={styles.rowMeta}>
+          <span className={styles.rowName}>{t('identity.startGroup')}</span>
+          <span className={styles.rowHandle}>
+            {t('identity.startGroupHint')}
+          </span>
+        </span>
+      </Link>
     </>
   );
 }
