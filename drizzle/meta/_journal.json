@@ -400,6 +400,20 @@
       "when": 1791417600000,
       "tag": "0055_profile_connector",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1791504000000,
+      "tag": "0056_connector_commitments",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791590400000,
+      "tag": "0057_connector_events",
+      "breakpoints": true
     }
   ]
 }

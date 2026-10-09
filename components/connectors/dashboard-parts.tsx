@@ -1,23 +1,42 @@
 import type { ReactNode } from 'react';
 
-import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import {
-  type Birthday,
-  type HeadlineStat,
-  type Tally,
-  connectorById,
-} from '@/lib/connectors/fixtures';
-import {
-  type Commitment,
   type CommitmentProgress,
-  type ConnectorEvent,
-  type EventCadence,
   type HouseId,
   getHouse,
   getTier,
 } from '@/lib/connectors/model';
+import {
+  type Cadence,
+  type ConnectorEvent,
+} from '@/lib/connectors/events';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 import type { ChromeTokens } from '@/lib/panaverse/chrome-tokens';
+
+/**
+ * A counted group — a pod, a house, a tier.
+ *
+ * Lives here rather than in a data module because it is a shape the bars
+ * render, not a shape the database has. `lib/connectors/roster.ts` produces
+ * these from real rows; it used to come from the fixture file, which is why
+ * it was defined there.
+ */
+export interface Tally {
+  id: string;
+  label: string;
+  count: number;
+  /** Colour token, where the thing being counted has one. */
+  color?: string;
+}
+
+/** One big number in the band across the top of a dashboard. */
+export interface HeadlineStat {
+  id: string;
+  label: string;
+  value: number;
+  /** The small line under the number — context, not a second metric. */
+  detail: string;
+}
 
 /**
  * The pieces both Connector dashboards are built from.
@@ -80,8 +99,8 @@ export function daysUntil(date: Date): number {
   return Math.round((target.getTime() - start.getTime()) / 86_400_000);
 }
 
-const CADENCE_LABEL: Record<EventCadence, string> = {
-  oneTime: 'One-time',
+const CADENCE_BADGE: Record<Cadence, string> = {
+  once: 'One-time',
   weekly: 'Recurring · Weekly',
   weekends: 'Recurring · Weekends',
   monthly: 'Recurring · Monthly',
@@ -264,85 +283,93 @@ export function EventCard({
    */
   action?: ReactNode;
 }) {
-  const countdown = daysUntil(event.startsAt);
-  const short = event.volunteersNeeded === null
-    ? null
-    : Math.max(0, event.volunteersNeeded - event.volunteersFilled);
+  const startsAt = new Date(event.startsAt);
+  const countdown = daysUntil(startsAt);
+  const cancelled = event.cancelledAt !== null;
 
   return (
-    <article className="flex flex-col gap-3 rounded-xl border-2 border-pana-ink bg-pana-cream p-5">
+    <article
+      className={`flex flex-col gap-3 rounded-xl border-2 border-pana-ink bg-pana-cream p-5 ${
+        cancelled ? 'opacity-70' : ''
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border-2 border-pana-ink px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-ink">
-          {CADENCE_LABEL[event.cadence]}
-        </span>
-        {countdown >= 0 && countdown <= 7 && (
-          <span className="rounded-full bg-pana-orange px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-ink">
-            {formatCountdown(countdown)}
+        {/* A cancelled event keeps its place in the list rather than
+            disappearing. Somebody who was planning to come needs to be told
+            it is off; removing the row just lets them turn up to an empty
+            park. So the badge replaces the countdown — "in 2 days" next to
+            "cancelled" is two answers to the same question. */}
+        {cancelled ? (
+          <span className="rounded-full bg-pana-red px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-cream">
+            Cancelled
           </span>
+        ) : (
+          <>
+            <span className="rounded-full border-2 border-pana-ink px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-ink">
+              {CADENCE_BADGE[event.cadence]}
+            </span>
+            {countdown >= 0 && countdown <= 7 && (
+              <span className="rounded-full bg-pana-orange px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-ink">
+                {formatCountdown(countdown)}
+              </span>
+            )}
+          </>
         )}
       </div>
 
       <h3 className="text-lg font-extrabold leading-tight text-pana-ink">
-        {event.href ? (
-          <SurfaceLink href={event.href} className="underline-offset-4 hover:underline">
-            {event.title}
-          </SurfaceLink>
-        ) : (
-          event.title
-        )}
+        {event.title}
       </h3>
 
       <dl className="grid gap-x-4 gap-y-1.5 text-sm text-pana-ink sm:grid-cols-[auto_1fr]">
         <dt className="font-bold">When</dt>
         <dd>
-          {formatDay(event.startsAt)} · {event.when}
+          {formatDay(startsAt)}
+          {event.when ? ` · ${event.when}` : ''}
         </dd>
 
-        {event.where && (
+        {event.location && (
           <>
             <dt className="font-bold">Where</dt>
-            <dd>{event.where}</dd>
+            <dd>{event.location}</dd>
           </>
         )}
 
-        <dt className="font-bold">Lead</dt>
-        <dd>{event.lead}</dd>
+        {event.lead && (
+          <>
+            <dt className="font-bold">Lead</dt>
+            <dd>{event.lead}</dd>
+          </>
+        )}
 
         <dt className="font-bold">Needs</dt>
         <dd>
-          {/* These two used to share `text-pana-burnt`, which is 3.44 on cream
-              and fails AA — and conflated two opposite meanings besides. Every
-              warm accent in the palette fails as text on this background
+          {/* Every warm accent in the palette fails AA as text on cream
               (burnt 3.44, red 3.86, pink 3.54, flame 2.42, orange 2.36); only
-              ink, navy and indigo clear it. So a warm colour is only available
-              on a filled chip, which is what the countdown above already does.
+              ink, navy and indigo clear it. So a warm colour is only
+              available on a filled chip, which is what the countdown above
+              already does.
 
-              A shortfall is the one thing in this card somebody has to act on,
-              so it takes the chip: ink on burnt is 5.29. "No cap" is the
-              opposite of a problem and goes back to plain text. */}
+              There is no sign-up table, so this says how many are wanted and
+              does not claim to know how many have come forward. The mock read
+              "3 more of 8", which is a different and more useful sentence —
+              and an invented one, because nothing records the 5. */}
           {event.volunteersNeeded === null ? (
             <span className="font-bold">No cap — bring whoever</span>
-          ) : short === 0 ? (
-            <span>Covered ({event.volunteersFilled} signed up)</span>
           ) : (
             <span className="inline-block rounded-full bg-pana-burnt px-2.5 py-0.5 text-xs font-extrabold text-pana-ink">
-              {short} more of {event.volunteersNeeded}
+              {event.volunteersNeeded} volunteer
+              {event.volunteersNeeded === 1 ? '' : 's'} wanted
             </span>
           )}
         </dd>
 
-        {event.tasks.length > 0 && (
+        {event.details && (
           <>
-            <dt className="font-bold">Tasks</dt>
-            <dd>{event.tasks.join(' · ')}</dd>
+            <dt className="font-bold">Notes</dt>
+            <dd>{event.details}</dd>
           </>
         )}
-
-        <dt className="font-bold">Contact</dt>
-        <dd>
-          {event.contactName}
-          {event.contactPhone ? ` · ${event.contactPhone}` : ''}
-        </dd>
       </dl>
 
       {action && (
@@ -365,12 +392,24 @@ export function EventCard({
  * because "Relationship Building, Narrative Shifting" is two facts and
  * filtering by house has to be able to find it under both.
  */
+export interface CommitmentRow {
+  id: string;
+  what: string;
+  when: string | null;
+  house: HouseId;
+  progress: CommitmentProgress;
+  /** Present on the admin console's cross-programme view. */
+  ownerName?: string;
+  /** Set when staff put this on somebody's board. */
+  assignedBy?: string | null;
+}
+
 export function CommitmentsTable({
   rows,
   showWho = true,
   chrome = CONNECTORS_CHROME,
 }: {
-  rows: readonly Commitment[];
+  rows: readonly CommitmentRow[];
   showWho?: boolean;
   /** Which surface's header fill to wear.
    *
@@ -390,11 +429,11 @@ export function CommitmentsTable({
 
   return (
     <div className="overflow-x-auto">
-      {/* The min-width follows the column count. It was a flat 40rem, which is
-          right for the admin console's six columns and too wide for HQ's five
-          — HQ renders this in a two-thirds column, so the extra 8rem bought
-          nothing and pushed Progress, the column a connector opens the page
-          for, behind a horizontal scrollbar. */}
+      {/* The min-width follows the column count. It was a flat 40rem, which
+          is right for the admin console's five columns and too wide for HQ's
+          four — HQ renders this in a two-thirds column, so the extra 8rem
+          bought nothing and pushed Progress, the column a connector opens the
+          page for, behind a horizontal scrollbar. */}
       <table
         className={`w-full ${
           showWho ? 'min-w-[40rem]' : 'min-w-[32rem]'
@@ -406,45 +445,43 @@ export function CommitmentsTable({
             <Th>What</Th>
             <Th>When</Th>
             <Th>House</Th>
-            <Th>Tier</Th>
             <Th>Progress</Th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const who = connectorById(row.connectorId);
-            return (
-              <tr
-                key={row.id}
-                className="border-b-2 border-pana-ink/15 align-top last:border-b-0"
-              >
-                {showWho && (
-                  <Td className="font-bold whitespace-nowrap">
-                    {who?.name ?? 'Unknown'}
-                  </Td>
-                )}
-                <Td>{row.what}</Td>
-                <Td className="whitespace-nowrap text-pana-ink/70">
-                  {row.when ?? '—'}
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              className="border-b-2 border-pana-ink/15 align-top last:border-b-0"
+            >
+              {showWho && (
+                <Td className="font-bold whitespace-nowrap">
+                  {row.ownerName ?? 'Unknown'}
                 </Td>
-                <Td>
-                  <span className="flex flex-wrap gap-1">
-                    {row.houseIds.length === 0
-                      ? '—'
-                      : row.houseIds.map((id) => (
-                          <HousePill key={id} houseId={id} />
-                        ))}
+              )}
+              <Td>
+                {row.what}
+                {/* Marked rather than separated. An assigned task and one you
+                    took on yourself sit in the same board because they are
+                    the same work — but which it is changes what you can do
+                    with it, so the row has to say. */}
+                {row.assignedBy && (
+                  <span className="ml-2 inline-block whitespace-nowrap rounded-full border-2 border-pana-indigo px-2 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-indigo">
+                    Assigned
                   </span>
-                </Td>
-                <Td className="whitespace-nowrap">
-                  {row.tier ? `Tier ${row.tier}` : '—'}
-                </Td>
-                <Td>
-                  <ProgressPill progress={row.progress} />
-                </Td>
-              </tr>
-            );
-          })}
+                )}
+              </Td>
+              <Td className="whitespace-nowrap text-pana-ink/70">
+                {row.when ?? '—'}
+              </Td>
+              <Td>
+                <HousePill houseId={row.house} />
+              </Td>
+              <Td>
+                <ProgressPill progress={row.progress} />
+              </Td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -469,27 +506,11 @@ function Td({
   return <td className={`px-3 py-3 text-pana-ink ${className}`}>{children}</td>;
 }
 
-export function BirthdayList({ rows }: { rows: readonly Birthday[] }) {
-  if (rows.length === 0) {
-    return <p className="text-sm text-pana-ink/70">No birthdays on file.</p>;
-  }
-
-  return (
-    <ul className="flex flex-col gap-2.5 text-sm">
-      {rows.map((row) => (
-        <li
-          key={row.connector.id}
-          className="flex items-baseline justify-between gap-3"
-        >
-          <span className="font-bold text-pana-ink">{row.connector.name}</span>
-          <span className="whitespace-nowrap text-pana-ink/70">
-            {formatMonthDay(row.date)} · {formatCountdown(row.daysAway)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+/* `BirthdayList` was here. It is gone rather than empty: there is no date of
+ * birth anywhere on a profile — not in the schema, not on the join form — so
+ * the panel could only ever have rendered the fixture roster's invented
+ * birthdays. Collecting a real one is a product decision with a privacy
+ * answer attached, not a gap to fill in quietly. */
 
 /** Tier line used on the member dashboard: "Tier 1 — Assists the Builders". */
 export function TierLabel({ tier }: { tier: 1 | 2 | 3 }) {

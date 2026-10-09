@@ -1,57 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createId } from '@paralleldrive/cuid2';
 import { eq } from 'drizzle-orm';
 
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { HOUSES } from '@/lib/connectors/model';
+import type { HouseId } from '@/lib/connectors/model';
+import { parseConnector } from '@/lib/connectors/membership';
 import {
-  parseConnector,
-  type ConnectorCommitment,
-  type ProfileConnector,
-} from '@/lib/connectors/membership';
+  countCommitments,
+  createCommitment,
+  findCommitment,
+  isProgress,
+  removeOwnCommitment,
+  setCommitmentProgress,
+  MAX_COMMITMENTS,
+  WHAT_MAX,
+  WHEN_MAX,
+} from '@/lib/connectors/commitments';
 
 /**
  * Say you will do something, or mark it done.
  *
- * Commitments live inside the membership blob rather than in their own table
- * because they are only ever read as part of "my membership" and are only
- * ever written by their owner. See drizzle/0055_profile_connector.sql.
+ * This route used to read the membership blob, change it, and write the whole
+ * thing back. That was safe only while a connector was the single writer of
+ * their own record, and it said as much: "if a second writer ever appears,
+ * this needs to move to its own table rather than grow a lock." The admin
+ * console setting a task is that second writer, so drizzle/0056 moved the
+ * data and this now writes rows.
  *
- * ## The read-modify-write, and why it is safe here
+ * The practical difference is that two people editing the same board no
+ * longer overwrite each other. Under the blob, an admin assigning a task
+ * while the connector ticked something off would have one of those writes
+ * silently lose — no error, nothing in a log, just a change that did not
+ * happen. Row-level writes cannot do that to each other.
  *
- * POST appends and PATCH updates progress, both by reading the blob and
- * writing it back. That is a race in general — two concurrent writes and the
- * later one wins, losing the earlier. It is acceptable here and nowhere near
- * the hazard that kept `pending_owner_email` out of a JSONB column (0053),
- * for one specific reason: every writer of this blob is the same single
- * human acting on their own record, from one page, seconds apart. There is no
- * second actor — no admin path rewrites it, no background job touches it.
+ * ## This endpoint is only ever the connector themselves
  *
- * If a second writer ever appears, this needs to move to its own table rather
- * than grow a lock.
+ * Everything here is scoped to the signed-in member's own profile. Staff
+ * writes live under /api/admin/connectors, are gated separately, and are not
+ * reachable from here by sending a different id — ownership is in the WHERE
+ * clause of each write rather than checked beforehand, so a guessed id
+ * belonging to somebody else updates nothing rather than being caught.
  */
 
 const HOUSE_IDS = new Set<string>(HOUSES.map((h) => h.id));
-const WHAT_MAX = 500;
-const WHEN_MAX = 120;
-/** A guard against the blob growing without bound, not a product rule. */
-const MAX_COMMITMENTS = 200;
 
 /**
- * The signed-in member's record, but only if they are actually in.
+ * The signed-in member's profile, but only if they are actually in.
  *
  * Returns `null` for a pending or declined application as well as for no
  * application at all. Recording commitments is a thing connectors do, so
  * somebody still waiting on a decision must not be able to write them — and
  * the admin queue would then be showing an application with work already
  * logged against it, which reads as though the decision had been made.
- *
- * Both callers turn `null` into the same 403, which is the right answer for
- * all three cases.
  */
-async function loadMembership(userId: string) {
+async function loadConnectorProfileId(userId: string): Promise<string | null> {
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
     columns: { id: true, connector: true },
@@ -61,29 +65,37 @@ async function loadMembership(userId: string) {
   const membership = parseConnector(profile.connector);
   if (!membership || membership.status !== 'active') return null;
 
-  return { profileId: profile.id, membership };
+  return profile.id;
 }
 
-async function save(profileId: string, membership: ProfileConnector) {
-  await db
-    .update(profiles)
-    .set({ connector: membership })
-    .where(eq(profiles.id, profileId));
+function unauthorized() {
+  return NextResponse.json(
+    { success: false, error: 'You need to be signed in.' },
+    { status: 401 }
+  );
+}
+
+function notAConnector() {
+  return NextResponse.json(
+    { success: false, error: 'You are not a connector yet.' },
+    { status: 403 }
+  );
+}
+
+async function readJson(request: NextRequest): Promise<unknown | undefined> {
+  try {
+    return await request.json();
+  } catch {
+    return undefined;
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: 'You need to be signed in.' },
-      { status: 401 }
-    );
-  }
+  if (!session?.user?.id) return unauthorized();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson(request);
+  if (body === undefined) {
     return NextResponse.json(
       { success: false, error: 'Could not read that request.' },
       { status: 400 }
@@ -116,15 +128,10 @@ export async function POST(request: NextRequest) {
       ? payload.when.trim().slice(0, WHEN_MAX)
       : null;
 
-  const found = await loadMembership(session.user.id);
-  if (!found) {
-    return NextResponse.json(
-      { success: false, error: 'You are not a connector yet.' },
-      { status: 403 }
-    );
-  }
+  const profileId = await loadConnectorProfileId(session.user.id);
+  if (!profileId) return notAConnector();
 
-  if (found.membership.commitments.length >= MAX_COMMITMENTS) {
+  if ((await countCommitments(profileId)) >= MAX_COMMITMENTS) {
     return NextResponse.json(
       {
         success: false,
@@ -134,22 +141,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const commitment: ConnectorCommitment = {
-    id: createId(),
-    what,
-    when,
-    house: house as ConnectorCommitment['house'],
-    progress: 'notSet',
-    createdAt: new Date().toISOString(),
-  };
-
-  const next: ProfileConnector = {
-    ...found.membership,
-    commitments: [...found.membership.commitments, commitment],
-  };
-
   try {
-    await save(found.profileId, next);
+    const commitment = await createCommitment({
+      profileId,
+      what,
+      when,
+      house: house as HouseId,
+      assignedBy: null,
+    });
+
     return NextResponse.json(
       { success: true, data: commitment },
       { status: 200 }
@@ -167,17 +167,10 @@ export async function POST(request: NextRequest) {
 /** Move a commitment along, or drop it. */
 export async function PATCH(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: 'You need to be signed in.' },
-      { status: 401 }
-    );
-  }
+  if (!session?.user?.id) return unauthorized();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const body = await readJson(request);
+  if (body === undefined) {
     return NextResponse.json(
       { success: false, error: 'Could not read that request.' },
       { status: 400 }
@@ -195,47 +188,58 @@ export async function PATCH(request: NextRequest) {
 
   const remove = payload.remove === true;
   const progress = payload.progress;
-  if (
-    !remove &&
-    progress !== 'notSet' &&
-    progress !== 'inProgress' &&
-    progress !== 'done'
-  ) {
+  if (!remove && !isProgress(progress)) {
     return NextResponse.json(
       { success: false, error: 'That is not a progress value.' },
       { status: 400 }
     );
   }
 
-  const found = await loadMembership(session.user.id);
-  if (!found) {
-    return NextResponse.json(
-      { success: false, error: 'You are not a connector yet.' },
-      { status: 403 }
-    );
-  }
-
-  const exists = found.membership.commitments.some((c) => c.id === id);
-  if (!exists) {
-    return NextResponse.json(
-      { success: false, error: 'Could not find that commitment.' },
-      { status: 404 }
-    );
-  }
-
-  const next: ProfileConnector = {
-    ...found.membership,
-    commitments: remove
-      ? found.membership.commitments.filter((c) => c.id !== id)
-      : found.membership.commitments.map((c) =>
-          c.id === id
-            ? { ...c, progress: progress as ConnectorCommitment['progress'] }
-            : c
-        ),
-  };
+  const profileId = await loadConnectorProfileId(session.user.id);
+  if (!profileId) return notAConnector();
 
   try {
-    await save(found.profileId, next);
+    /* Two separate writes rather than one with a flag, so that a malformed
+     * progress value can never fall through into the delete branch. The
+     * validation above already rejects that case; this makes it structurally
+     * impossible rather than true-by-reading. */
+    let changed: boolean;
+    if (remove) {
+      changed = await removeOwnCommitment(profileId, id);
+    } else if (isProgress(progress)) {
+      changed = await setCommitmentProgress(profileId, id, progress);
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'That is not a progress value.' },
+        { status: 400 }
+      );
+    }
+
+    if (!changed) {
+      /* The write declined. Work out which of the two reasons it was, purely
+       * so the message is useful — the decision has already been made and is
+       * not revisited here. */
+      const existing = await findCommitment(profileId, id);
+
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: 'Could not find that commitment.' },
+          { status: 404 }
+        );
+      }
+
+      /* Only reachable on remove: progress updates do not care who assigned
+       * it, so they cannot fail on an existing row. */
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'That task was assigned to you, so it is not yours to remove. Talk to an organizer if it should come off your board.',
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';

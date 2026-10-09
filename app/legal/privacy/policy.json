@@ -245,20 +245,21 @@
           "data": [
             "contact_messages",
             "newsletter_signup",
-            "engagement_activity"
+            "engagement_activity",
+            "volunteer_commitments"
           ],
           "source": "user_provided",
           "purpose": "contact_newsletter_and_engagement",
           "retention": "active_account_lifetime",
-          "note": "A catch-all for smaller member-provided datasets: newsletter signups (local list, distinct from the GoHighLevel CRM record) and the engagement/points activity ledger. All removed when the member deletes their account through the account-deletion flow. Contact Us messages are no longer covered here — they are their own category, retained indefinitely.",
+          "note": "A catch-all for smaller member-provided datasets: newsletter signups (local list, distinct from the GoHighLevel CRM record), the engagement/points activity ledger, and the commitments a Community Connector records against the volunteer programme (including any a programme organiser adds to their board). All removed when the member deletes their account through the account-deletion flow. Contact Us messages are no longer covered here — they are their own category, retained indefinitely.",
           "display": {
             "icon": "database",
             "source": "You provide",
             "purpose": "Newsletter and engagement",
             "retention": "Account lifetime",
             "sharedWith": "None",
-            "prose": "Other member data — newsletter signups and engagement/points activity",
-            "blurb": "Smaller bits you've given us: newsletter signups and your activity points."
+            "prose": "Other member data — newsletter signups, engagement/points activity, and volunteer programme commitments",
+            "blurb": "Smaller bits you've given us: newsletter signups, your activity points, and anything you've signed up to do as a Community Connector."
           }
         },
         {

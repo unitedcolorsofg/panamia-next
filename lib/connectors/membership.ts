@@ -5,7 +5,6 @@ import { profiles } from '@/lib/schema';
 import {
   HOUSES,
   PODS,
-  type CommitmentProgress,
   type HouseId,
   type PodId,
   type TierId,
@@ -53,16 +52,6 @@ import {
  * value has no shape for the database to disagree with.
  */
 
-export interface ConnectorCommitment {
-  id: string;
-  what: string;
-  /** Free text on purpose: "this month", "before the 14th", "Saturdays". */
-  when: string | null;
-  house: HouseId;
-  progress: CommitmentProgress;
-  createdAt: string;
-}
-
 /**
  * Where an application has got to.
  *
@@ -77,8 +66,8 @@ export interface ProfileConnector {
   pod: PodId;
   houses: HouseId[];
   /**
-   * Always 1 today. Stored rather than derived because tiers move over time
-   * and the programme should be able to record that without a migration.
+   * Always 1 on join. Stored rather than derived because tiers move over time
+   * and staff can change one from the console — see `setHousesAndTier`.
    */
   tier: TierId;
   /** What this person said they can bring. Free text, may be empty. */
@@ -88,7 +77,6 @@ export interface ProfileConnector {
   /** When staff accepted or declined them, and who did it. */
   decidedAt: string | null;
   decidedBy: string | null;
-  commitments: ConnectorCommitment[];
 }
 
 const POD_IDS = new Set<string>(PODS.map((p) => p.id));
@@ -98,32 +86,9 @@ const STATUSES: ReadonlySet<string> = new Set([
   'active',
   'declined',
 ]);
-const PROGRESS: ReadonlySet<string> = new Set(['notSet', 'inProgress', 'done']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parseCommitment(value: unknown): ConnectorCommitment | null {
-  if (!isRecord(value)) return null;
-
-  const { id, what, when, house, progress, createdAt } = value;
-  if (typeof id !== 'string' || !id) return null;
-  if (typeof what !== 'string' || !what.trim()) return null;
-  if (typeof house !== 'string' || !HOUSE_IDS.has(house)) return null;
-
-  return {
-    id,
-    what: what.trim(),
-    when: typeof when === 'string' && when.trim() ? when.trim() : null,
-    house: house as HouseId,
-    progress:
-      typeof progress === 'string' && PROGRESS.has(progress)
-        ? (progress as CommitmentProgress)
-        : 'notSet',
-    createdAt:
-      typeof createdAt === 'string' ? createdAt : new Date(0).toISOString(),
-  };
 }
 
 /**
@@ -155,11 +120,6 @@ export function parseConnector(value: unknown): ProfileConnector | null {
   if (houses.length === 0) return null;
 
   const tier = value.tier;
-  const commitments = Array.isArray(value.commitments)
-    ? value.commitments
-        .map(parseCommitment)
-        .filter((c): c is ConnectorCommitment => c !== null)
-    : [];
 
   /* `joinedAt` is the name this field had before applying and being accepted
    * were separate events. Records written then are applications. */
@@ -182,7 +142,6 @@ export function parseConnector(value: unknown): ProfileConnector | null {
     appliedAt,
     decidedAt: typeof value.decidedAt === 'string' ? value.decidedAt : null,
     decidedBy: typeof value.decidedBy === 'string' ? value.decidedBy : null,
-    commitments,
   };
 }
 

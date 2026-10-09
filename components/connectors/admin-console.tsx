@@ -1,0 +1,723 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { ADMIN_CHROME } from '@/lib/admin/theme';
+import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
+import type { HouseId, PodId, TierId } from '@/lib/connectors/model';
+import { CADENCES, CADENCE_LABEL } from '@/lib/connectors/events';
+import type { Cadence, ConnectorEvent } from '@/lib/connectors/events';
+import { EventCard } from '@/components/connectors/dashboard-parts';
+
+/**
+ * The three things the admin console can actually change: who is in which
+ * house, what somebody has been asked to do, and what is on the calendar.
+ *
+ * They live in one file because they share the same small vocabulary — the
+ * post helper, the busy/error pair, the field styling — and splitting them
+ * across three files would mean three copies of it.
+ *
+ * ## Why every panel refreshes the page after a write
+ *
+ * Every number on this console is counted from rows somewhere else on it.
+ * Moving somebody between houses changes the house tallies; assigning a task
+ * changes the headline count of open work. Updating local state alone would
+ * leave the band disagreeing with the table underneath it, which is the exact
+ * failure this page replaced the spreadsheet to avoid.
+ */
+
+const FIELD =
+  'w-full rounded-lg border-2 border-pana-ink/25 bg-white px-3 py-2 text-sm text-pana-ink outline-none focus:border-pana-indigo';
+const LABEL =
+  'block text-xs font-extrabold uppercase tracking-wide text-pana-ink/60';
+
+function Err({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p
+      role="alert"
+      className="mt-3 rounded-lg border-2 border-pana-red bg-pana-red/10 px-3 py-2 text-sm font-bold text-pana-ink"
+    >
+      {message}
+    </p>
+  );
+}
+
+async function post(
+  url: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body?: unknown
+): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      method,
+      ...(body === undefined
+        ? {}
+        : {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }),
+    });
+    const data = (await res.json()) as { success: boolean; error?: string };
+    if (!res.ok || !data.success) return data.error ?? 'That did not save.';
+    return null;
+  } catch {
+    return 'Could not reach the server. Try again.';
+  }
+}
+
+/* ------------------------------------------------------------------ roster */
+
+export interface RosterRow {
+  profileId: string;
+  displayName: string;
+  pod: PodId;
+  houses: HouseId[];
+  tier: TierId;
+}
+
+/**
+ * The roster, editable in place.
+ *
+ * The mock had an "Assign a house" queue listing connectors who had joined
+ * without one. That queue can never have anybody in it — a membership with no
+ * recognised house does not parse as a membership at all, so there is no such
+ * thing as a connector without a house. The real need is to change an answer
+ * somebody already gave, which means the whole roster is the editor.
+ */
+export function RosterEditor({ rows }: { rows: RosterRow[] }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState<Record<string, RosterRow>>(() =>
+    Object.fromEntries(rows.map((r) => [r.profileId, r]))
+  );
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-pana-ink/60 text-sm leading-relaxed">
+        Nobody has been accepted into the programme yet. Accepted applications
+        show up here.
+      </p>
+    );
+  }
+
+  function toggleHouse(profileId: string, house: HouseId) {
+    setDraft((current) => {
+      const row = current[profileId];
+      const has = row.houses.includes(house);
+      return {
+        ...current,
+        [profileId]: {
+          ...row,
+          houses: has
+            ? row.houses.filter((h) => h !== house)
+            : [...row.houses, house],
+        },
+      };
+    });
+    setSaved(null);
+  }
+
+  async function save(profileId: string) {
+    const row = draft[profileId];
+    setBusy(profileId);
+    setError(null);
+    setSaved(null);
+
+    const failure = await post('/api/admin/connectors/roster', 'PATCH', {
+      profileId,
+      houses: row.houses,
+      tier: row.tier,
+    });
+
+    setBusy(null);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    setSaved(profileId);
+    router.refresh();
+  }
+
+  return (
+    <>
+      <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
+        A house is not an assignment to hand down — have the conversation
+        first, then record what they picked. Somebody can be in more than one.
+      </p>
+
+      <div className="flex flex-col gap-3">
+        {rows.map((original) => {
+          const row = draft[original.profileId];
+          const dirty =
+            row.tier !== original.tier ||
+            row.houses.length !== original.houses.length ||
+            row.houses.some((h) => !original.houses.includes(h));
+
+          return (
+            <div
+              key={row.profileId}
+              className="border-pana-ink/15 flex flex-wrap items-center gap-x-4 gap-y-3 border-b-2 pb-3 last:border-b-0"
+            >
+              <div className="min-w-[10rem] flex-1">
+                <p className="font-bold">{row.displayName}</p>
+                <p className="text-pana-ink/60 text-xs">
+                  {getPod(row.pod).name}
+                </p>
+              </div>
+
+              <fieldset className="flex flex-wrap gap-1.5">
+                <legend className="sr-only">
+                  Houses for {row.displayName}
+                </legend>
+                {HOUSES.map((house) => {
+                  const on = row.houses.includes(house.id);
+                  return (
+                    <label
+                      key={house.id}
+                      className={`cursor-pointer rounded-full border-2 px-2.5 py-1 text-xs font-extrabold transition ${
+                        on
+                          ? 'border-pana-ink bg-pana-ink text-pana-cream'
+                          : 'border-pana-ink/30 text-pana-ink/60'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={on}
+                        onChange={() => toggleHouse(row.profileId, house.id)}
+                      />
+                      {house.name}
+                    </label>
+                  );
+                })}
+              </fieldset>
+
+              <label className="flex items-center gap-2 text-xs">
+                <span className="sr-only">Tier for {row.displayName}</span>
+                <select
+                  className={`${FIELD} w-auto py-1.5`}
+                  value={row.tier}
+                  onChange={(e) => {
+                    const tier = Number(e.target.value) as TierId;
+                    setDraft((c) => ({
+                      ...c,
+                      [row.profileId]: { ...c[row.profileId], tier },
+                    }));
+                    setSaved(null);
+                  }}
+                >
+                  {TIERS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      Tier {t.id} — {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => save(row.profileId)}
+                disabled={!dirty || busy === row.profileId}
+                className={`rounded-full px-4 py-1.5 text-xs font-extrabold transition disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+              >
+                {busy === row.profileId
+                  ? 'Saving…'
+                  : saved === row.profileId && !dirty
+                    ? 'Saved'
+                    : 'Save'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <Err message={error} />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------- tasks */
+
+export interface TaskTarget {
+  profileId: string;
+  displayName: string;
+  houses: HouseId[];
+}
+
+/**
+ * Put a task on somebody's board.
+ *
+ * The house dropdown narrows to the houses the chosen connector is actually
+ * in. A task filed under a house somebody does not belong to would show up on
+ * their board under a heading that does not apply to them, and would be
+ * counted in that house's workload by anybody reading the tallies.
+ */
+export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
+  const router = useRouter();
+  const [profileId, setProfileId] = useState('');
+  const [what, setWhat] = useState('');
+  const [when, setWhen] = useState('');
+  const [house, setHouse] = useState<string>('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const target = connectors.find((c) => c.profileId === profileId);
+  const houseChoices = target
+    ? HOUSES.filter((h) => target.houses.includes(h.id))
+    : [];
+
+  if (connectors.length === 0) {
+    return (
+      <p className="text-pana-ink/60 text-sm leading-relaxed">
+        There is nobody to assign work to yet.
+      </p>
+    );
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const failure = await post('/api/admin/connectors/tasks', 'POST', {
+      profileId,
+      what,
+      when: when || null,
+      house,
+    });
+
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+
+    setWhat('');
+    setWhen('');
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label>
+          <span className={LABEL}>Who</span>
+          <select
+            required
+            className={`${FIELD} mt-1`}
+            value={profileId}
+            onChange={(e) => {
+              setProfileId(e.target.value);
+              setHouse('');
+            }}
+          >
+            <option value="">Pick a connector</option>
+            {connectors.map((c) => (
+              <option key={c.profileId} value={c.profileId}>
+                {c.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span className={LABEL}>What</span>
+          <input
+            required
+            maxLength={500}
+            className={`${FIELD} mt-1`}
+            placeholder="Distribute zines in Allapattah"
+            value={what}
+            onChange={(e) => setWhat(e.target.value)}
+          />
+        </label>
+
+        <label>
+          <span className={LABEL}>When</span>
+          <input
+            maxLength={120}
+            className={`${FIELD} mt-1`}
+            placeholder="Before the end of the month"
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+        </label>
+
+        <label>
+          <span className={LABEL}>House</span>
+          <select
+            required
+            disabled={!target}
+            className={`${FIELD} mt-1`}
+            value={house}
+            onChange={(e) => setHouse(e.target.value)}
+          >
+            <option value="">
+              {target ? 'Pick a house' : 'Pick a connector first'}
+            </option>
+            {houseChoices.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <button
+        type="submit"
+        disabled={busy || !profileId || !what || !house}
+        className={`mt-4 rounded-full px-5 py-2 text-sm font-extrabold transition disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+      >
+        {busy ? 'Adding…' : 'Add commitment'}
+      </button>
+
+      <Err message={error} />
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------ events */
+
+/** Cancel / reschedule / delete, rendered under an existing event. */
+function EventControls({ event }: { event: ConnectorEvent }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [next, setNext] = useState('');
+
+  async function run(
+    method: 'PATCH' | 'DELETE',
+    body?: unknown,
+    query?: string
+  ) {
+    setBusy(true);
+    setError(null);
+    const failure = await post(
+      `/api/admin/connectors/events${query ?? ''}`,
+      method,
+      body
+    );
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    setMoving(false);
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {moving ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex-1">
+            <span className={LABEL}>Next date</span>
+            <input
+              type="datetime-local"
+              className={`${FIELD} mt-1`}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !next}
+            onClick={() => run('PATCH', { id: event.id, startsAt: next })}
+            className={`rounded-full px-4 py-2 text-xs font-extrabold disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+          >
+            Move
+          </button>
+          <button
+            type="button"
+            onClick={() => setMoving(false)}
+            className="text-pana-ink/60 px-2 py-2 text-xs font-bold underline"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 text-xs font-extrabold">
+          <button
+            type="button"
+            onClick={() => setMoving(true)}
+            className="border-pana-ink/30 rounded-full border-2 px-3 py-1.5"
+          >
+            Reschedule
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              run('PATCH', {
+                id: event.id,
+                cancelled: event.cancelledAt === null,
+              })
+            }
+            className="border-pana-ink/30 rounded-full border-2 px-3 py-1.5 disabled:opacity-40"
+          >
+            {event.cancelledAt === null ? 'Call it off' : 'Back on'}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              /* Delete is for the event that should never have been posted.
+                 Cancelling tells people it is off; deleting tells them
+                 nothing, so it asks first. */
+              if (
+                window.confirm(
+                  'Delete this event? Nobody is told. If it was real and is now off, call it off instead.'
+                )
+              ) {
+                run('DELETE', undefined, `?id=${encodeURIComponent(event.id)}`);
+              }
+            }}
+            className="text-pana-red px-2 py-1.5 underline disabled:opacity-40"
+          >
+            Delete
+          </button>
+        </div>
+      )}
+      <Err message={error} />
+    </div>
+  );
+}
+
+export function EventBoard({
+  upcoming,
+  staleRecurring,
+}: {
+  upcoming: ConnectorEvent[];
+  staleRecurring: ConnectorEvent[];
+}) {
+  return (
+    <>
+      {staleRecurring.length > 0 && (
+        <div className="border-pana-burnt bg-pana-butter-2 mb-6 rounded-xl border-2 p-5">
+          <h3 className="text-sm font-extrabold tracking-wide uppercase">
+            Needs a new date
+          </h3>
+          <p className="text-pana-ink/70 mt-2 text-sm leading-relaxed">
+            These repeat, but their next date has already passed, so members
+            are looking at a gathering that has been and gone. Move them
+            forward or call them off.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {staleRecurring.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                action={<EventControls event={event} />}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {upcoming.map((event) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            action={<EventControls event={event} />}
+          />
+        ))}
+        <NewEventForm />
+      </div>
+    </>
+  );
+}
+
+function NewEventForm() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [startsAt, setStartsAt] = useState('');
+  const [when, setWhen] = useState('');
+  const [location, setLocation] = useState('');
+  const [lead, setLead] = useState('');
+  const [cadence, setCadence] = useState<Cadence>('once');
+  const [pod, setPod] = useState('');
+  const [volunteersNeeded, setVolunteersNeeded] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const failure = await post('/api/admin/connectors/events', 'POST', {
+      title,
+      startsAt,
+      when: when || null,
+      location: location || null,
+      lead: lead || null,
+      cadence,
+      pod: pod || null,
+      volunteersNeeded: volunteersNeeded === '' ? null : volunteersNeeded,
+    });
+
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+
+    setTitle('');
+    setStartsAt('');
+    setWhen('');
+    setLocation('');
+    setLead('');
+    setVolunteersNeeded('');
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="border-pana-ink/40 text-pana-ink/70 hover:border-pana-ink hover:text-pana-ink flex min-h-[12rem] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 text-lg font-extrabold transition"
+      >
+        <span aria-hidden>+</span>
+        Set an event
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="border-pana-ink flex flex-col gap-2.5 rounded-xl border-2 p-5"
+    >
+      <h3 className="text-lg leading-tight font-extrabold">Set an event</h3>
+
+      <label>
+        <span className={LABEL}>Title</span>
+        <input
+          required
+          maxLength={160}
+          className={`${FIELD} mt-1`}
+          placeholder="Allapattah pod gathering"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </label>
+
+      <label>
+        <span className={LABEL}>Next date &amp; time</span>
+        <input
+          required
+          type="datetime-local"
+          className={`${FIELD} mt-1`}
+          value={startsAt}
+          onChange={(e) => setStartsAt(e.target.value)}
+        />
+      </label>
+
+      <label>
+        <span className={LABEL}>How you say it</span>
+        <input
+          maxLength={120}
+          className={`${FIELD} mt-1`}
+          placeholder="Thursdays @ 5p"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
+      </label>
+
+      <label>
+        <span className={LABEL}>Where</span>
+        <input
+          maxLength={200}
+          className={`${FIELD} mt-1`}
+          placeholder="Bryant Park, north side"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+      </label>
+
+      <label>
+        <span className={LABEL}>Lead</span>
+        <input
+          maxLength={120}
+          className={`${FIELD} mt-1`}
+          placeholder="Who to find when you get there"
+          value={lead}
+          onChange={(e) => setLead(e.target.value)}
+        />
+      </label>
+
+      <label>
+        <span className={LABEL}>Cadence</span>
+        <select
+          className={`${FIELD} mt-1`}
+          value={cadence}
+          onChange={(e) => setCadence(e.target.value as Cadence)}
+        >
+          {CADENCES.map((c) => (
+            <option key={c} value={c}>
+              {CADENCE_LABEL[c]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        <span className={LABEL}>Pod</span>
+        <select
+          className={`${FIELD} mt-1`}
+          value={pod}
+          onChange={(e) => setPod(e.target.value)}
+        >
+          <option value="">Everyone</option>
+          {PODS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        <span className={LABEL}>Volunteers needed</span>
+        <input
+          type="number"
+          min={1}
+          className={`${FIELD} mt-1`}
+          placeholder="Leave blank for no cap"
+          value={volunteersNeeded}
+          onChange={(e) => setVolunteersNeeded(e.target.value)}
+        />
+      </label>
+
+      <div className="mt-1 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy || !title || !startsAt}
+          className={`rounded-full px-5 py-2 text-sm font-extrabold disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+        >
+          {busy ? 'Adding…' : 'Add event'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-pana-ink/60 text-sm font-bold underline"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <Err message={error} />
+    </form>
+  );
+}

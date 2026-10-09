@@ -2422,8 +2422,126 @@ export const deletionLogs = pgTable('deletion_logs', {
 });
 
 // =============================================================================
+// Community Connectors
+// =============================================================================
+
+/**
+ * What a connector is doing, one row per commitment.
+ *
+ * These lived inside `profiles.connector` until 0056. They moved because the
+ * admin console can now set a task for somebody, and the blob's safety rested
+ * entirely on there being exactly one writer per row — the connector
+ * themselves. See drizzle/0056_connector_commitments.sql for the whole
+ * argument; the short version is that an admin and a member saving seconds
+ * apart used to lose one of the two writes silently.
+ *
+ * A staff-set task and a self-made commitment are the same row. `assignedBy`
+ * NULL means the connector wrote it; a value means somebody put it on their
+ * board. Progress is the connector's to set either way.
+ */
+export const connectorCommitments = pgTable(
+  'connector_commitments',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    what: text('what').notNull(),
+    /** Column is `when_text` because WHEN is reserved. Free text by design. */
+    when: text('when_text'),
+    house: text('house').notNull(),
+    progress: text('progress').notNull().default('notSet'),
+    /** NULL for self-authored. Set when staff assigned it. */
+    assignedBy: text('assigned_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    assignedAt: timestamp('assigned_at', { withTimezone: true }),
+  },
+  (table) => ({
+    profileIdIdx: index('connector_commitments_profile_id_idx').on(
+      table.profileId,
+      table.createdAt
+    ),
+  })
+);
+
+/**
+ * Gatherings run by the programme.
+ *
+ * Deliberately not rows in the public `events` table: that one requires a
+ * unique slug, a unique iCal uid and exactly one host profile or group, has
+ * no recurrence model, and hangs places off the `venues` table. A weekly pod
+ * huddle at "Bryant Park, north side" would have to fabricate four of those
+ * five. drizzle/0057_connector_events.sql has the full reasoning.
+ *
+ * `startsAt` is the next occurrence as a real instant so "upcoming" can be a
+ * sort; `cadence` describes the repeat in words rather than expanding it into
+ * rows. Rolling it forward is a human action from the console on purpose.
+ */
+export const connectorEvents = pgTable(
+  'connector_events',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date())
+      .$onUpdateFn(() => new Date()),
+    title: text('title').notNull(),
+    details: text('details'),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    /**
+     * The human phrasing — "Thursdays @ 5p", "4:40–8:30p". Kept alongside
+     * `startsAt` rather than instead of it: that sorts, this is what you tell
+     * somebody. NULL renders as just the date.
+     */
+    when: text('when_text'),
+    /** Free text. No venue FK — see the table docblock. */
+    location: text('location'),
+    cadence: text('cadence').notNull().default('once'),
+    /** NULL means no cap. */
+    volunteersNeeded: integer('volunteers_needed'),
+    /** NULL means programme-wide. Scoped by pod because pods are geographic. */
+    pod: text('pod'),
+    /** Who is running it. A name only — no phone, no email, no FK. */
+    lead: text('lead'),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Soft cancel: people who were coming still need to find out it is off. */
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+  },
+  (table) => ({
+    startsAtIdx: index('connector_events_starts_at_idx').on(table.startsAt),
+  })
+);
+
+// =============================================================================
 // Relations
 // =============================================================================
+
+export const connectorCommitmentsRelations = relations(
+  connectorCommitments,
+  ({ one }) => ({
+    profile: one(profiles, {
+      fields: [connectorCommitments.profileId],
+      references: [profiles.id],
+    }),
+  })
+);
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
