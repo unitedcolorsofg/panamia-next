@@ -8,17 +8,17 @@ Read this before repointing any domain constant. Two separate sessions independe
 
 Measured 2026-10-07 unless noted. Verify before acting on it; deployments move.
 
-| Host                     | Status                            | What it serves                                                       |
-| ------------------------ | --------------------------------- | -------------------------------------------------------------------- |
-| `pana.social`            | **200** (Cloudflare)              | **This app.** The live production deployment.                        |
-| `social.pana.social`     | **200**                           | Pana Social. Bound as a Worker Custom Domain 2026-09-24.             |
-| `connectors.pana.social` | **200**                           | Pana Connectors. Bound as a Worker Custom Domain 2026-10-07.         |
-| `admin.pana.social`      | **200** at `/admin`               | The admin console. Bound as a Worker Custom Domain 2026-10-07.       |
-| `events.pana.social`     | Not created yet                   | The Pana Events surface. Needs a Worker Custom Domain.               |
-| `relay.pana.social`      | Resolves                          | The **separate** `panamia-nosflare` Worker, not this one.            |
-| `www.panamia.club`       | **200**                           | A **different, older site** — "All Things Local In SoFlo"            |
-| `panamia.club` (apex)    | **Fails** — timed out             | Nothing reachable. TLS cert expired when measured 2026-09-22; a bare timeout now. Both are consistent with the split A record — see [Known issues](#known-issues). |
-| `social.panamia.club`    | **Fails** — timeout (2026-09-22)  | Parked domain. Not part of the plan; see below.                      |
+| Host                     | Status                           | What it serves                                                                                                                                                     |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pana.social`            | **200** (Cloudflare)             | **This app.** The live production deployment.                                                                                                                      |
+| `social.pana.social`     | **200**                          | Pana Social. Bound as a Worker Custom Domain 2026-09-24.                                                                                                           |
+| `connectors.pana.social` | **200**                          | Pana Connectors. Bound as a Worker Custom Domain 2026-10-07.                                                                                                       |
+| `admin.pana.social`      | **200** at `/admin`              | The admin console. Bound as a Worker Custom Domain 2026-10-07.                                                                                                     |
+| `events.pana.social`     | Not created yet                  | The Pana Events surface. Needs a Worker Custom Domain.                                                                                                             |
+| `relay.pana.social`      | Resolves                         | The **separate** `panamia-nosflare` Worker, not this one.                                                                                                          |
+| `www.panamia.club`       | **200**                          | A **different, older site** — "All Things Local In SoFlo"                                                                                                          |
+| `panamia.club` (apex)    | **Fails** — timed out            | Nothing reachable. TLS cert expired when measured 2026-09-22; a bare timeout now. Both are consistent with the split A record — see [Known issues](#known-issues). |
+| `social.panamia.club`    | **Fails** — timeout (2026-09-22) | Parked domain. Not part of the plan; see below.                                                                                                                    |
 
 Four of the five app surfaces are bound; `events.pana.social` still needs its Custom Domain. The bound ones still answer on the apex as well, at `pana.social/connectors` and `pana.social/admin` — binding a subdomain adds a front door, it does not move a route. Events already answers at `pana.social/e` for the same reason.
 

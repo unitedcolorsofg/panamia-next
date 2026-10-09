@@ -3,7 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CalendarPlus, RotateCcw, UserPlus } from 'lucide-react';
-import { FilterMenu } from '@/app/directory/search/_components/filter-menu';
+import { FilterMenu } from '@/components/ui/filter-menu';
 import {
   buildLanes,
   type DiscoveryEvent,

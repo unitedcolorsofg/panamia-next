@@ -11,7 +11,7 @@ import {
   Sparkles,
   UserPlus,
 } from 'lucide-react';
-import { FilterMenu } from '@/app/directory/search/_components/filter-menu';
+import { FilterMenu } from '@/components/ui/filter-menu';
 import { BrowserFrame } from '../../_components/browser-frame';
 import { SURFACE_LOGO } from '../../_data/panaverse';
 import { AccountMenu } from './account-menu';

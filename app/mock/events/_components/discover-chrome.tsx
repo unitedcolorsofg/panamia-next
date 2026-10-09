@@ -1,10 +1,7 @@
 'use client';
 
 import { LayoutList, Map as MapIcon, X } from 'lucide-react';
-import {
-  FilterMenu,
-  type FilterMenuOption,
-} from '@/app/directory/search/_components/filter-menu';
+import { FilterMenu, type FilterMenuOption } from '@/components/ui/filter-menu';
 import {
   SORT_OPTIONS,
   TYPE_CHIPS,
