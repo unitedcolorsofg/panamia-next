@@ -6,10 +6,7 @@ import {
   getHouse,
   getTier,
 } from '@/lib/connectors/model';
-import {
-  type Cadence,
-  type ConnectorEvent,
-} from '@/lib/connectors/events';
+import type { Cadence, ConnectorEvent } from '@/lib/connectors/events-model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 import type { ChromeTokens } from '@/lib/panaverse/chrome-tokens';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import { getHouse, getPod } from '@/lib/connectors/model';
@@ -134,7 +134,7 @@ export function ApplicationQueue({
                 </p>
               )}
               <p className="text-pana-ink/50 mt-2 text-xs">
-                Applied {formatApplied(row.appliedAt)}
+                Applied <AppliedAt iso={row.appliedAt} />
               </p>
             </div>
 
@@ -163,20 +163,47 @@ export function ApplicationQueue({
   );
 }
 
+/** Where the programme is, for the one render that cannot ask the reader. */
+const PROGRAMME_TZ = 'America/New_York';
+
 /**
  * A date a human can act on.
  *
- * Rendered client-side on purpose. The server and the staff member working the
- * queue are rarely in the same timezone, and "applied 3 October" is only
- * useful if it means October the 3rd where the reader is.
+ * The staff member working the queue and the Worker rendering the page are
+ * rarely in the same timezone, and "applied 3 October" is only useful if it
+ * means October the 3rd where the reader is.
+ *
+ * The catch is that a `'use client'` component still renders once on the
+ * server, where the reader's timezone is not knowable. Asking for it anyway
+ * gets the Worker's — UTC — so a late-evening application renders as one date
+ * on the server and the next date in Miami, the two passes disagree, and
+ * hydration tears on exactly the rows staff are meant to be reading. It only
+ * shows up once somebody has actually applied, which is the worst time to
+ * find out.
+ *
+ * So the first pass is pinned: the programme's own timezone and a fixed
+ * locale, identical on both sides. Once the component is really in the
+ * reader's browser it re-renders in the reader's own settings, which is what
+ * was wanted in the first place.
  */
-function formatApplied(iso: string): string {
+function AppliedAt({ iso }: { iso: string }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  return <>{formatApplied(iso, mounted)}</>;
+}
+
+function formatApplied(iso: string, local: boolean): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'at an unknown time';
 
-  return date.toLocaleDateString(undefined, {
+  const options: Intl.DateTimeFormatOptions = {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  });
+  };
+
+  return local
+    ? date.toLocaleDateString(undefined, options)
+    : date.toLocaleDateString('en-US', { ...options, timeZone: PROGRAMME_TZ });
 }
