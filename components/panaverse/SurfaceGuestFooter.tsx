@@ -25,7 +25,9 @@ import { SURFACE_TONE } from '@/lib/panaverse/branding';
  * the main site to read the terms would undo the decision this whole feature
  * implements — that a member can browse Pana Mia content without being
  * ejected from Pana Social. The header's "Open on ..." link is there for
- * anyone who does want the page on its own surface.
+ * anyone who does want the page on its own surface — when the owner has one.
+ * A path-only surface has no second place to send them, and the header drops
+ * the link rather than offer the page you are already on.
  *
  * It carries no way home and no switcher: the guest header, which is always
  * rendered with this, already has both.

@@ -58,6 +58,10 @@ export interface PanaverseSurface {
    * and applies on deploy, so an env flag would buy no extra agility while
    * hiding the launch state from the registry that claims to be the source of
    * truth for it. See docs/DOMAINS.md.
+   *
+   * A surface may also simply stay this way. Events is served from a path by
+   * choice, so for it this is not a switch anyone is waiting to throw — see
+   * "Events is path-only" in docs/DOMAINS.md.
    */
   subdomainPending?: boolean;
 }
@@ -149,8 +153,13 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // should light up on either: a reader who lands on /events has plainly
     // arrived at Events, whichever host told them about it.
     paths: ['/e', '/events'],
-    // No DNS record yet. See subdomainPending on the interface above, and the
-    // launch checklist in docs/DOMAINS.md.
+    // Set deliberately and not as a placeholder: Events is served from
+    // `pana.social/e` and `events.pana.social` is not planned, so this is the
+    // settled arrangement rather than a launch still owed. The flag is what
+    // keeps this surface's links on the host in hand, which is what a
+    // path-only surface wants. `subdomain` above stays filled in because
+    // `*.localhost` is exempt from the flag, so dev still exercises the
+    // subdomain path. See "Events is path-only" in docs/DOMAINS.md.
     subdomainPending: true,
   },
   {
