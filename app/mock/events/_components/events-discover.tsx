@@ -50,8 +50,12 @@ const DIRECTORY_NAV = ['Browse', 'Events', 'Panas', 'Groups'];
  * lie about what ships — this draws the same `.panaverse-masthead` classes
  * directly. Same cream bar, same hairline, same indigo tone as the band below
  * it, with the account menu standing where the avatar does.
+ *
+ * Exported because `/mock/events/host` flies the same masthead. Two copies of
+ * a surface's chrome inside one mock is how the host page and the page it
+ * feeds start looking like different products.
  */
-function DirectoryMasthead({
+export function DirectoryMasthead({
   menuOpen,
   onToggleMenu,
   signedIn,
@@ -184,9 +188,9 @@ function learned(reason: Reason): string {
  * Drawn inside a `BrowserFrame` rather than full bleed, which the README warns
  * makes a surface read as a picture of a website. That warning is about
  * `/mock/feed`, where the question was "does this feel like its own site".
- * Here the hostname *is* half the proposal — `events.pana.social` does not
- * resolve yet, pending a Cloudflare Custom Domain — so the address bar is part
- * of what is under review.
+ * Here the address bar *is* half the proposal — the mock was drawn when Events
+ * was going to be `events.pana.social`, and shipped as `pana.social/e` instead,
+ * so the bar is the part of the picture that changed.
  */
 export function EventsDiscover() {
   const [tab, setTab] = useState<'foryou' | 'calendar'>('foryou');
@@ -777,14 +781,15 @@ export function EventsDiscover() {
                 {MOCK_HOST}
                 {MOCK_PATH}
               </code>
-              . That host is not a surface in{' '}
-              <code>lib/panaverse/surfaces.ts</code> today and nothing here
-              reads the database. Cards, band, filter menus and account menu are
-              the shipping classes; the reason lanes, the &ldquo;not for
-              me&rdquo; loop and the Events tile&rsquo;s destination are the
-              proposal. Reasons are computed in <code>_reasons.ts</code>, never
-              written into the fixtures. <code>events</code> has no price
-              column, so no card shows a door price.
+              . Events is a surface in <code>lib/panaverse/surfaces.ts</code>{' '}
+              with <code>subdomain: null</code>, so it lives on the root domain
+              at a path, and nothing here reads the database. Cards, band,
+              filter menus and account menu are the shipping classes; the reason
+              lanes, the &ldquo;not for me&rdquo; loop and the Events
+              tile&rsquo;s destination are the proposal. Reasons are computed in{' '}
+              <code>_reasons.ts</code>, never written into the fixtures.{' '}
+              <code>events</code> has no price column, so no card shows a door
+              price.
             </p>
           </div>
         </main>

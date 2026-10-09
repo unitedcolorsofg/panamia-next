@@ -562,6 +562,11 @@ export const SORT_OPTIONS: {
  * — it is a page that states a reason for every row, and reasons about events
  * are not reasons about makers. `events` is registered in
  * `lib/panaverse/surfaces.ts` and the shipped page is `/e`.
+ *
+ * It then said `events.pana.social` for a while, which is now also wrong. The
+ * surface carries `subdomain: null`: it is a surface with its own mark and
+ * masthead that lives on the root domain at `/e` rather than a hostname of its
+ * own. The address bar here draws what the shipped page actually answers to.
  */
-export const MOCK_HOST = 'events.pana.social';
+export const MOCK_HOST = 'pana.social';
 export const MOCK_PATH = '/e';

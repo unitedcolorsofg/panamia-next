@@ -128,7 +128,11 @@ export function seatsLeft(event: MockEvent): number | null {
   return Math.max(0, event.cap - event.going);
 }
 
-const LANE_COPY: Record<
+/* Exported so the host mock at /mock/events/host can name the lanes in the
+   same words the reader will see them in. A host page that invented its own
+   labels for these ("Followers feed", "Recommended") would be describing a
+   page that does not exist. */
+export const LANE_COPY: Record<
   Reason['kind'],
   { id: string; title: (r: Reason) => string; note: string }
 > = {
