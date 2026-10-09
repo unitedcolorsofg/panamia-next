@@ -157,6 +157,19 @@ export const inventory: Record<TableExport, Classification> = {
   events: ['events'],
   eventAttendees: ['rsvps', 'event_attendance_info'],
 
+  // --- Community Connectors (the volunteer programme) ---
+  // What a connector said they would do, plus anything staff put on their
+  // board. Member-provided free text tied to a profile, removed with the
+  // account — the same shape as the other small member datasets, so it sits
+  // under that category rather than inventing one for a single table.
+  connectorCommitments: ['other_member_data'],
+  // Programme logistics: a title, a time, a place, and a pod. No member is
+  // named as an attendee — attendance is not recorded — but `lead` holds the
+  // name of whoever is running the gathering, which is organiser data in the
+  // same sense the public events table holds it. Deliberately a name and
+  // nothing else: no phone, no email, no FK.
+  connectorEvents: ['events'],
+
   // --- Relay / Nostr ---
   relayGroups: NOT_PERSONAL_DATA, // group metadata only; no member PII
   relayGroupMembers: ['relay_group_membership'],

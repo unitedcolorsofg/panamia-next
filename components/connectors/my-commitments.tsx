@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { HOUSES, getHouse } from '@/lib/connectors/model';
 import type { CommitmentProgress, HouseId } from '@/lib/connectors/model';
-import type { ConnectorCommitment } from '@/lib/connectors/membership';
+import type { ConnectorCommitment } from '@/lib/connectors/commitments';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
 /**
@@ -132,7 +132,18 @@ export function MyCommitments({
                     key={row.id}
                     className="border-pana-ink/15 border-b-2 align-top last:border-b-0"
                   >
-                    <Td>{row.what}</Td>
+                    <Td>
+                      {row.what}
+                      {/* Marked rather than listed separately. An assigned
+                        * task and one you took on yourself are the same work
+                        * and belong on the same board — but which it is
+                        * changes what you can do with it, so the row says. */}
+                      {row.assignedBy && (
+                        <span className="border-pana-indigo text-pana-indigo ml-2 inline-block rounded-full border-2 px-2 py-0.5 text-[0.65rem] font-extrabold tracking-wider uppercase whitespace-nowrap">
+                          Assigned
+                        </span>
+                      )}
+                    </Td>
                     <Td className="text-pana-ink/70 whitespace-nowrap">
                       {row.when ?? '—'}
                     </Td>
@@ -172,14 +183,28 @@ export function MyCommitments({
                       </label>
                     </Td>
                     <Td>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => send('PATCH', { id: row.id, remove: true })}
-                        className="text-pana-ink/60 hover:text-pana-ink text-xs font-bold underline underline-offset-4"
-                      >
-                        Remove
-                      </button>
+                      {/* You can drop what you took on. You cannot drop what
+                        * the programme asked of you — a task you can delete
+                        * is a task you were never given, and nobody could
+                        * tell "done" from "gone". The API enforces this; the
+                        * button is hidden so you do not find out by being
+                        * refused. Ask whoever set it to take it back. */}
+                      {row.assignedBy ? (
+                        <span className="text-pana-ink/40 text-xs font-bold">
+                          Set for you
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            send('PATCH', { id: row.id, remove: true })
+                          }
+                          className="text-pana-ink/60 hover:text-pana-ink text-xs font-bold underline underline-offset-4"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </Td>
                   </tr>
                 );

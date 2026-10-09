@@ -117,7 +117,6 @@ export async function POST(request: NextRequest) {
     appliedAt: current?.appliedAt ?? new Date().toISOString(),
     decidedAt: current?.decidedAt ?? null,
     decidedBy: current?.decidedBy ?? null,
-    commitments: current?.commitments ?? [],
   };
 
   try {

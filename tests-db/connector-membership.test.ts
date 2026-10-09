@@ -148,7 +148,10 @@ test('a joined member reads back their own membership', async () => {
   assert.equal(me.membership.bring, 'A van most weekends');
 });
 
-test('commitments survive the round trip through JSONB', async () => {
+test('a membership still carrying the legacy commitments key parses', async () => {
+  /* drizzle/0056 copied commitments into their own table and left the jsonb
+     key behind on purpose, so a rollback does not lose real work. Rows in
+     production carry it. The parser has to walk past it. */
   const { userId } = await makeMember(
     'commitments',
     membership({
@@ -167,9 +170,11 @@ test('commitments survive the round trip through JSONB', async () => {
 
   const me = await getMyConnector(userId);
 
-  assert.equal(me?.membership.commitments.length, 1);
-  assert.equal(me?.membership.commitments[0].what, 'Table at the free market');
-  assert.equal(me?.membership.commitments[0].progress, 'inProgress');
+  assert.equal(me?.membership.status, 'active');
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(me?.membership ?? {}, 'commitments'),
+    false
+  );
 });
 
 test('a profile with no membership is not a connector', async () => {

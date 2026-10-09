@@ -90,67 +90,44 @@ describe('parseConnector — keeping what can be rendered', () => {
   });
 });
 
-describe('parseConnector — commitments', () => {
-  const commitment = {
-    id: 'c1',
-    what: 'Table at the free market',
-    when: 'Early November',
-    house: 'education',
-    progress: 'inProgress',
-    createdAt: '2025-02-01T00:00:00.000Z',
-  };
+describe('parseConnector — the legacy commitments key', () => {
+  /* drizzle/0056 moved commitments into their own table and deliberately left
+   * the old jsonb key in place: the copy is additive so a code rollback does
+   * not lose anybody's real work. That means live rows still carry this key
+   * for a while, and the parser has to walk past it rather than trip over it.
+   * These tests are what stops a later tidy-up from reintroducing a read. */
 
-  test('keeps a well-formed commitment', () => {
-    const parsed = parseConnector({ ...VALID, commitments: [commitment] });
-    assert.deepEqual(parsed?.commitments, [commitment]);
+  const legacy = [
+    {
+      id: 'c1',
+      what: 'Table at the free market',
+      when: 'Early November',
+      house: 'education',
+      progress: 'inProgress',
+      createdAt: '2025-02-01T00:00:00.000Z',
+    },
+  ];
+
+  test('a membership carrying the old key still parses', () => {
+    const parsed = parseConnector({ ...VALID, commitments: legacy });
+
+    assert.equal(parsed?.status, VALID.status);
+    assert.deepEqual(parsed?.houses, VALID.houses);
   });
 
-  test('drops a malformed commitment without losing the good ones', () => {
-    const parsed = parseConnector({
-      ...VALID,
-      commitments: [
-        commitment,
-        { ...commitment, id: 'c2', what: '   ' },
-        { ...commitment, id: 'c3', house: 'retiredHouse' },
-        { ...commitment, id: '', what: 'No id' },
-        'not an object',
-        null,
-      ],
-    });
+  test('the old key is not carried onto the parsed membership', () => {
+    const parsed = parseConnector({ ...VALID, commitments: legacy });
 
-    assert.deepEqual(
-      parsed?.commitments.map((c) => c.id),
-      ['c1']
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(parsed ?? {}, 'commitments'),
+      false
     );
   });
 
-  test('falls back to notSet for an unrecognised progress value', () => {
-    const parsed = parseConnector({
-      ...VALID,
-      commitments: [{ ...commitment, progress: 'almost' }],
-    });
-
-    assert.equal(parsed?.commitments[0].progress, 'notSet');
-  });
-
-  test('normalises a blank when to null', () => {
-    const parsed = parseConnector({
-      ...VALID,
-      commitments: [{ ...commitment, when: '   ' }],
-    });
-
-    assert.equal(parsed?.commitments[0].when, null);
-  });
-
-  test('tolerates commitments being absent or not a list', () => {
-    assert.deepEqual(
-      parseConnector({ ...VALID, commitments: undefined })?.commitments,
-      []
-    );
-    assert.deepEqual(
-      parseConnector({ ...VALID, commitments: 'none' })?.commitments,
-      []
-    );
+  test('a malformed old key cannot break a good membership', () => {
+    for (const commitments of [undefined, 'none', 42, [null, 'nope']]) {
+      assert.ok(parseConnector({ ...VALID, commitments }));
+    }
   });
 });
 

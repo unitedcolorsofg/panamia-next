@@ -3,49 +3,38 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import {
-  BirthdayList,
   CommitmentsTable,
-  EventCard,
-  HousePill,
   TallyBars,
 } from '@/components/connectors/dashboard-parts';
+import {
+  EventBoard,
+  RosterEditor,
+  SetTaskForm,
+} from '@/components/connectors/admin-console';
 import { Panel, StatBand } from '@/components/Admin/parts';
 import { ApplicationQueue } from '@/components/connectors/application-queue';
 import { listConnectorApplications } from '@/lib/connectors/membership';
-import {
-  MockButton,
-  MockInput,
-  MockSelect,
-  MockTag,
-} from '@/components/mock-controls';
-import { AdminMockBar } from '@/components/Admin/mock-bar';
+import { listRoster, rosterTallies } from '@/lib/connectors/roster';
+import { commitmentTotals, listOpenCommitments } from '@/lib/connectors/commitments';
+import { listEventsForAdmin } from '@/lib/connectors/events';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
-import {
-  ASKS,
-  COMMITMENTS,
-  CONNECTORS,
-  headlineStats,
-  houseTallies,
-  podTallies,
-  upcomingBirthdays,
-  upcomingEvents,
-} from '@/lib/connectors/fixtures';
-import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
+import { PODS } from '@/lib/connectors/model';
 
 /**
  * The programme admin view.
  *
  * This is a redraw of the Connector Dashboard the panas keep in Google Sheets:
- * same stat band, same pod and house breakdowns, same birthday list, same
- * commitments table with the same six columns. Somebody who has been reading
- * the sheet should recognise it immediately and not have to be retrained.
+ * same stat band, same pod and house breakdowns, same commitments table.
+ * Somebody who has been reading the sheet should recognise it immediately and
+ * not have to be retrained.
  *
  * What it changes is where the numbers come from. In the sheet every figure is
  * typed by hand and drifts — the header says twenty-six connectors over a list
  * of nineteen, and nobody can tell which is wrong. Here every number is
  * counted from the rows underneath it, so the band cannot disagree with the
- * table.
+ * table. `rosterTallies()` takes the roster as an argument for exactly that
+ * reason: the band provably counts the same rows the editor renders.
  *
  * ## Why it lives here and not under /connectors
  *
@@ -61,24 +50,25 @@ import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
  * holding tools that change what other people see. House colours stay as they
  * are: those identify data, not the tool showing it.
  *
- * ## The one real thing on it
+ * ## What the mock had that this does not
  *
- * The applications panel is live. It lists people who have applied to the
- * programme and the Accept and Decline buttons write the decision that opens
- * or closes their HQ. Everything below the mock bar is still fixtures.
+ * Three panels are gone rather than ported, and the reason is the same in each
+ * case: nothing could have filled them.
  *
- * That split is why the mock bar moved down the page instead of staying at the
- * top: its banner says every number below it is invented, and that sentence
- * cannot be allowed to sit above a working Accept button.
+ *   - **Birthdays.** There is no date of birth on a profile — not in the
+ *     schema, not on the join form. Collecting one is a product decision with
+ *     a privacy answer attached, not a gap to quietly fill.
+ *   - **Open asks.** No table, and the fixture's "asked by" names were people
+ *     who do not exist.
+ *   - **Volunteer sign-up counts.** The mock read "3 more of 8". There is no
+ *     sign-up table, so the 5 was invented. Events say how many are wanted
+ *     and do not claim to know how many have come forward.
  *
- * ## What is deliberately not carried over
- *
- * The sheet has a "Sync with Google Sheets" banner, an "Add to the sheet"
- * picker and a read-only action log. The first two are scaffolding for the
- * spreadsheet itself — if this page exists, the sheet is no longer the system
- * of record and syncing back to it would just recreate the drift. The action
- * log is worth having and is not here yet; it wants real writes behind it
- * before it means anything.
+ * The sheet's "Sync with Google Sheets" banner and "Add to the sheet" picker
+ * are not here either: if this page exists, the sheet is no longer the system
+ * of record and syncing back would just recreate the drift. The sheet's
+ * read-only action log is worth having and is still missing — it wants an
+ * audit trail behind it before it means anything.
  */
 
 export const metadata = {
@@ -89,9 +79,9 @@ export const metadata = {
 export default async function AdminConnectorsPage() {
   /* Nothing under /admin is guarded — there is no middleware matcher and the
    * layout has no check. That was survivable while every page here rendered
-   * fixtures: a stranger who found the URL saw invented people. The
-   * applications panel below shows real names and real email addresses, so
-   * this page can no longer be one of the open ones.
+   * fixtures: a stranger who found the URL saw invented people. This one now
+   * shows real names, real email addresses and real work, so it cannot be one
+   * of the open ones.
    *
    * Two different failures get two different answers. Signed out is probably
    * a staff member whose session expired, so send them to sign in. Signed in
@@ -101,7 +91,17 @@ export default async function AdminConnectorsPage() {
   if (!session?.user?.id) redirect('/signin');
   if (!session.user.isAdmin) notFound();
 
-  const applications = (await listConnectorApplications()).map((row) => ({
+  /* Five independent reads. None of them depends on another, so running them
+   * in series would make the page as slow as their sum for no reason. */
+  const [pending, roster, totals, openWork, events] = await Promise.all([
+    listConnectorApplications(),
+    listRoster(),
+    commitmentTotals(),
+    listOpenCommitments(40),
+    listEventsForAdmin(),
+  ]);
+
+  const applications = pending.map((row) => ({
     profileId: row.profileId,
     displayName: row.displayName,
     email: row.email,
@@ -111,17 +111,41 @@ export default async function AdminConnectorsPage() {
     appliedAt: row.membership.appliedAt,
   }));
 
-  const unassigned = CONNECTORS.filter((c) => c.houseId === null);
-  const openAsks = ASKS.filter((a) => !a.completed);
+  const tallies = rosterTallies(roster);
 
-  /* `headlineStats()` is shaped for the Connectors stat band, which calls the
-   * third line `detail`. Mapped rather than renamed at the source: HQ reads
-   * the same function and does not need to know the admin surface exists. */
-  const band = headlineStats().map((stat) => ({
-    label: stat.label,
-    value: String(stat.value),
-    note: stat.detail,
+  const rosterRows = roster.map((member) => ({
+    profileId: member.profileId,
+    displayName: member.displayName,
+    pod: member.membership.pod,
+    houses: member.membership.houses,
+    tier: member.membership.tier,
   }));
+
+  const band = [
+    {
+      label: 'Connectors',
+      value: String(tallies.total),
+      note: `${applications.length} waiting on a decision`,
+    },
+    {
+      label: 'Open commitments',
+      value: String(totals.open),
+      note: `${totals.done} closed out`,
+    },
+    {
+      label: 'Assigned by staff',
+      value: String(totals.assigned),
+      note: 'The rest people took on themselves',
+    },
+    {
+      label: 'Upcoming events',
+      value: String(events.upcoming.length),
+      note:
+        events.staleRecurring.length > 0
+          ? `${events.staleRecurring.length} need a new date`
+          : 'Calendar is current',
+    },
+  ];
 
   return (
     <>
@@ -151,213 +175,73 @@ export default async function AdminConnectorsPage() {
         </p>
       </header>
 
-      {/* Real data and real writes, which is the whole reason it is above the
-       * mock bar instead of in the grid below with everything else. */}
-      <div className="pb-6">
+      <div className="flex flex-col gap-6">
         <Panel title="Applications">
           <ApplicationQueue applications={applications} />
         </Panel>
-      </div>
 
-      <AdminMockBar />
+        <StatBand stats={band} />
 
-      <>
-        <div className="flex flex-col gap-6">
-          <StatBand stats={band} />
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="Connectors by pod">
-              <TallyBars rows={podTallies()} />
-              <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
-                Pods are geographic. {PODS.map((p) => p.region).join(', ')}.
-              </p>
-            </Panel>
-
-            <Panel title="Connectors by house">
-              <TallyBars rows={houseTallies()} />
-              <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
-                {unassigned.length} of {CONNECTORS.length} have not picked a
-                house. That is the number worth moving.
-              </p>
-            </Panel>
-
-            <Panel title="Birthdays coming up">
-              <BirthdayList rows={upcomingBirthdays(6)} />
-            </Panel>
-          </div>
-
-          <Panel title="Assign a house" action={<MockTag />}>
-            <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
-              Everybody below joined without choosing a house. A house is not an
-              assignment to hand down — have the conversation first, then record
-              what they picked.
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Connectors by pod">
+            <TallyBars rows={tallies.pods} />
+            <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
+              Pods are geographic. {PODS.map((p) => p.region).join(', ')}.
             </p>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
-                <thead>
-                  <tr
-                    className={`${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
-                  >
-                    <th
-                      scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
-                    >
-                      Connector
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
-                    >
-                      Pod
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
-                    >
-                      House
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-2.5 text-xs font-extrabold tracking-wide uppercase"
-                    >
-                      Tier
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unassigned.map((connector) => (
-                    <tr
-                      key={connector.id}
-                      className="border-pana-ink/15 border-b-2 last:border-b-0"
-                    >
-                      <td className="px-3 py-2 font-bold">{connector.name}</td>
-                      <td className="text-pana-ink/70 px-3 py-2">
-                        {getPod(connector.podId).name}
-                      </td>
-                      <td className="px-3 py-2">
-                        <MockSelect
-                          label={`House for ${connector.name}`}
-                          placeholder="Not chosen yet"
-                          options={HOUSES.map((h) => h.name)}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <MockSelect
-                          label={`Tier for ${connector.name}`}
-                          placeholder={`Tier ${connector.tier}`}
-                          options={TIERS.map((t) => `Tier ${t.id} — ${t.name}`)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </Panel>
 
-          <section>
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="text-pana-ink/60 text-sm font-extrabold tracking-wide uppercase">
-                Coming up
-              </h2>
-            </div>
-            <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {upcomingEvents().map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-              <NewEventCard />
-            </div>
-          </section>
-
-          <Panel title="Commitments" action={<MockTag />}>
-            <CommitmentsTable rows={COMMITMENTS} chrome={ADMIN_CHROME} />
-
-            <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
-              <h3 className="text-sm font-extrabold tracking-wide uppercase">
-                Set a task
-              </h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <MockSelect
-                  label="Who"
-                  placeholder="Pick a connector"
-                  options={CONNECTORS.map((c) => c.name)}
-                />
-                <MockInput
-                  label="What"
-                  placeholder="Distribute zines in Allapattah"
-                />
-                <MockInput
-                  label="When"
-                  placeholder="Before the end of the month"
-                />
-                <MockSelect
-                  label="House"
-                  placeholder="Pick a house"
-                  options={HOUSES.map((h) => h.name)}
-                />
-              </div>
-              <MockButton>Add commitment</MockButton>
-            </div>
-          </Panel>
-
-          <Panel title="Open asks">
-            <ul className="flex flex-col gap-4">
-              {openAsks.map((ask) => (
-                <li
-                  key={ask.id}
-                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm"
-                >
-                  <div>
-                    <p className="leading-snug font-bold">{ask.what}</p>
-                    <p className="text-pana-ink/60 mt-1">
-                      Asked by {ask.askedBy}
-                    </p>
-                  </div>
-                  <span className="flex flex-wrap gap-1">
-                    {ask.houseIds.map((id) => (
-                      <HousePill key={id} houseId={id} />
-                    ))}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <Panel title="Connectors by house">
+            <TallyBars rows={tallies.houses} />
+            <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
+              Houses describe the kind of work, not where somebody lives.
+              Counts add up to more than {tallies.total} because a connector
+              can be in more than one.
+            </p>
           </Panel>
         </div>
-      </>
-    </>
-  );
-}
 
-/** The "add one" tile, sitting in the grid where the next event would go. */
-function NewEventCard() {
-  return (
-    <article className="border-pana-ink/40 flex flex-col gap-3 rounded-xl border-2 border-dashed p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-pana-ink/70 text-lg leading-tight font-extrabold">
-          Set an event
-        </h3>
-        <MockTag />
+        <Panel title="Roster">
+          <RosterEditor rows={rosterRows} />
+        </Panel>
+
+        <section>
+          <h2 className="text-pana-ink/60 pb-3 text-sm font-extrabold tracking-wide uppercase">
+            Coming up
+          </h2>
+          <EventBoard
+            upcoming={events.upcoming}
+            staleRecurring={events.staleRecurring}
+          />
+        </section>
+
+        <Panel title="Open commitments">
+          {openWork.length === 0 ? (
+            <p className="text-pana-ink/60 text-sm leading-relaxed">
+              Nothing outstanding. Either the programme is caught up or nobody
+              has written anything down.
+            </p>
+          ) : (
+            <CommitmentsTable rows={openWork} chrome={ADMIN_CHROME} />
+          )}
+
+          <div className="border-pana-ink/25 mt-6 border-t-2 border-dashed pt-5">
+            <h3 className="text-sm font-extrabold tracking-wide uppercase">
+              Set a task
+            </h3>
+            <p className="text-pana-ink/70 mt-2 mb-3 text-sm leading-relaxed">
+              This goes on their board marked as assigned. They can mark it
+              done — you cannot, and they cannot delete it.
+            </p>
+            <SetTaskForm
+              connectors={roster.map((m) => ({
+                profileId: m.profileId,
+                displayName: m.displayName,
+                houses: m.membership.houses,
+              }))}
+            />
+          </div>
+        </Panel>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <MockInput label="Event title" placeholder="Title" />
-        <MockInput label="When" placeholder="Thursdays @ 5p" />
-        <MockInput label="Where" placeholder="Bryant Park, north side" />
-        <MockSelect
-          label="Cadence"
-          placeholder="One-time"
-          options={[
-            'Recurring · Weekly',
-            'Recurring · Weekends',
-            'Recurring · Monthly',
-          ]}
-        />
-        <MockInput
-          label="Volunteers needed"
-          placeholder="8, or leave blank for no cap"
-        />
-      </div>
-      <MockButton>Add event</MockButton>
-    </article>
+    </>
   );
 }

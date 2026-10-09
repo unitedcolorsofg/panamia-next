@@ -1,0 +1,177 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
+
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { checkAdminAuth } from '@/lib/server/admin-auth';
+import { parseConnector } from '@/lib/connectors/membership';
+import {
+  countCommitments,
+  createCommitment,
+  removeCommitmentAsStaff,
+  MAX_COMMITMENTS,
+  WHAT_MAX,
+  WHEN_MAX,
+} from '@/lib/connectors/commitments';
+import { HOUSES } from '@/lib/connectors/model';
+import type { HouseId } from '@/lib/connectors/model';
+
+/**
+ * Put a task on somebody's board, or take one off.
+ *
+ * This is the second writer that drizzle/0056 existed to make safe. While
+ * commitments lived in the membership blob, an admin adding a task and the
+ * connector ticking something off at the same moment would have one of those
+ * writes silently overwrite the other — no error, nothing logged, just a
+ * change that did not happen. They are rows now, so they cannot.
+ *
+ * ## What staff can and cannot do
+ *
+ * Staff can create a task and delete any task. Staff cannot set progress:
+ * that stays with the connector, because the only person who knows whether
+ * the zines were dropped off is the person who did or did not drop them off,
+ * and a programme where organisers mark their own asks complete is measuring
+ * nothing.
+ *
+ * Deletion is the mirror image. A connector may delete what they wrote but
+ * not what was assigned — otherwise an assignment is just a suggestion and
+ * "done" cannot be told apart from "gone". Staff may delete either, because
+ * an assignment made in error has to be retractable by whoever made it.
+ */
+
+const HOUSE_IDS = new Set<string>(HOUSES.map((h) => h.id));
+
+export async function POST(request: NextRequest) {
+  try {
+    const admin = await checkAdminAuth();
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Could not read that request.' },
+        { status: 400 }
+      );
+    }
+
+    const payload = (body ?? {}) as Record<string, unknown>;
+
+    const profileId =
+      typeof payload.profileId === 'string' ? payload.profileId : '';
+    if (!profileId) {
+      return NextResponse.json(
+        { success: false, error: 'Who is this for?' },
+        { status: 400 }
+      );
+    }
+
+    const what =
+      typeof payload.what === 'string'
+        ? payload.what.trim().slice(0, WHAT_MAX)
+        : '';
+    if (!what) {
+      return NextResponse.json(
+        { success: false, error: 'Say what the task is.' },
+        { status: 400 }
+      );
+    }
+
+    const house = payload.house;
+    if (typeof house !== 'string' || !HOUSE_IDS.has(house)) {
+      return NextResponse.json(
+        { success: false, error: 'Pick which house this is for.' },
+        { status: 400 }
+      );
+    }
+
+    const when =
+      typeof payload.when === 'string' && payload.when.trim()
+        ? payload.when.trim().slice(0, WHEN_MAX)
+        : null;
+
+    /* The target has to be an accepted member. Assigning work to a pending
+     * applicant would put a task on a board they cannot open, and the queue
+     * would then show an application with work already logged against it —
+     * which reads as though somebody had decided on them. */
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.id, profileId),
+      columns: { id: true, connector: true },
+    });
+    const membership = profile ? parseConnector(profile.connector) : null;
+    if (!membership || membership.status !== 'active') {
+      return NextResponse.json(
+        { success: false, error: 'That person is not an active connector.' },
+        { status: 404 }
+      );
+    }
+
+    if ((await countCommitments(profileId)) >= MAX_COMMITMENTS) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'That board is full. Close some things out first.',
+        },
+        { status: 409 }
+      );
+    }
+
+    const commitment = await createCommitment({
+      profileId,
+      what,
+      when,
+      house: house as HouseId,
+      assignedBy: admin.id,
+    });
+
+    return NextResponse.json({ success: true, data: commitment });
+  } catch (error) {
+    console.error('Error assigning connector task:', error);
+    return NextResponse.json(
+      { success: false, error: 'Could not save that. Try again.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const admin = await checkAdminAuth();
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    const id = new URL(request.url).searchParams.get('id') ?? '';
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Which task?' },
+        { status: 400 }
+      );
+    }
+
+    const removed = await removeCommitmentAsStaff(id);
+    if (!removed) {
+      return NextResponse.json(
+        { success: false, error: 'Could not find that task.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error removing connector task:', error);
+    return NextResponse.json(
+      { success: false, error: 'Could not remove that. Try again.' },
+      { status: 500 }
+    );
+  }
+}

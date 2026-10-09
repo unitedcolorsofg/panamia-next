@@ -9,11 +9,14 @@ import {
   ActionLibrary,
   TierLadder,
 } from '@/components/connectors/action-library';
+import { EventCard } from '@/components/connectors/dashboard-parts';
 import {
   countConnectorsInPod,
   getMyConnector,
   type ProfileConnector,
 } from '@/lib/connectors/membership';
+import { listCommitments } from '@/lib/connectors/commitments';
+import { listUpcomingForPod } from '@/lib/connectors/events';
 import { getHouse, getPod } from '@/lib/connectors/model';
 import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
 
@@ -28,16 +31,23 @@ import { CONNECTORS_CHROME } from '@/lib/connectors/theme';
  * bug that was reported against production. It now reads the signed-in
  * member's own membership from `profiles.connector`.
  *
- * ## What was removed
+ * ## What was removed, and what came back
  *
- * The events, open asks and birthdays panels are gone rather than kept. All
- * three rendered invented people — asks "asked by" names that do not exist,
- * birthdays for nobody — and there is no table behind any of them and no way
- * to create one: events and asks are programme-wide content owned by an
- * organiser, and the admin console lives on admin.pana.social, out of scope
- * here. Leaving them in place would mean this page still shows fiction, which
- * is the thing being fixed. They come back when they have real data behind
- * them.
+ * The events, open asks and birthdays panels were all deleted when this page
+ * stopped being a fixture: all three rendered invented people — asks "asked
+ * by" names that do not exist, birthdays for nobody — with no table behind
+ * any of them. The note left here said they come back when they have real
+ * data behind them.
+ *
+ * Events have. drizzle/0057 gave programme gatherings a table and the admin
+ * console creates them, so "Coming up" is back in the sidebar showing this
+ * member's pod plus anything programme-wide — real rows or an empty state,
+ * never a placeholder.
+ *
+ * Open asks and birthdays are still gone, and for different reasons. Asks
+ * have no table yet. Birthdays have no field: there is no date of birth
+ * anywhere on a profile, so collecting one is a product decision with a
+ * privacy answer attached rather than a gap to quietly fill.
  *
  * What stays is what is true: your own commitments, which you write; your
  * pod's real size, counted; and the tier ladder for your houses, which is
@@ -104,7 +114,15 @@ export default async function ConnectorHqPage() {
   }
 
   const { displayName, imageUrl, membership } = me;
-  const podSize = await countConnectorsInPod(membership.pod);
+
+  /* Three independent reads, so they go together. The page cannot render
+     without all three and running them in series would make HQ as slow as
+     their sum for no reason. */
+  const [podSize, commitments, upcoming] = await Promise.all([
+    countConnectorsInPod(membership.pod),
+    listCommitments(me.profileId),
+    listUpcomingForPod(membership.pod),
+  ]);
 
   return (
     <main className="bg-pana-cream text-pana-ink pb-20">
@@ -126,7 +144,7 @@ export default async function ConnectorHqPage() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
           <Panel title="My commitments">
             <MyCommitments
-              commitments={membership.commitments}
+              commitments={commitments}
               houses={membership.houses}
             />
           </Panel>
@@ -135,12 +153,27 @@ export default async function ConnectorHqPage() {
             <ActionLibrary
               houses={membership.houses}
               tier={membership.tier}
-              committed={membership.commitments.map((c) => c.what)}
+              committed={commitments.map((c) => c.what)}
             />
           </Panel>
         </div>
 
         <aside className="flex flex-col gap-6">
+          <Panel title="Coming up">
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-pana-ink/70">
+                Nothing on the calendar for {getPod(membership.pod).name} yet.
+                Organizers post gatherings here.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {upcoming.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            )}
+          </Panel>
+
           <Panel title="How tiers work">
             <TierLadder tier={membership.tier} />
           </Panel>

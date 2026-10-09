@@ -250,62 +250,17 @@ export function getPod(id: PodId): Pod {
   return pod;
 }
 
-export interface Connector {
-  id: string;
-  name: string;
-  podId: PodId;
-  /**
-   * Null when the connector has not picked a house yet, which is the common
-   * case rather than the edge one — most of the roster is unassigned, and
-   * making that visible and fixable is most of what the admin view is for.
-   */
-  houseId: HouseId | null;
-  tier: TierId;
-  /** `MM-DD`. The year is deliberately absent: this shows birthdays, not ages. */
-  birthday: string | null;
-}
-
-export type EventCadence = 'oneTime' | 'weekly' | 'weekends' | 'monthly';
-
-export interface ConnectorEvent {
-  id: string;
-  title: string;
-  cadence: EventCadence;
-  /** Human phrasing, as the sheet writes it: "Thursdays @ 5", "4:40–8:30p". */
-  when: string;
-  /** Sort key and source of the "in N days" countdown. */
-  startsAt: Date;
-  where: string | null;
-  lead: string;
-  /**
-   * How many volunteers are wanted. `null` means the sheet said "no cap!",
-   * which is a real and different answer from "none needed" — it is an open
-   * door, so it renders as one rather than as a zero.
-   */
-  volunteersNeeded: number | null;
-  volunteersFilled: number;
-  tasks: readonly string[];
-  contactName: string;
-  contactPhone: string | null;
-  href: string | null;
-}
-
-export interface Commitment {
-  id: string;
-  connectorId: string;
-  what: string;
-  /** Free text, because the sheet's real answers are things like "early November". */
-  when: string | null;
-  houseIds: readonly HouseId[];
-  tier: TierId | null;
-  progress: CommitmentProgress;
-}
-
-/** An open request from the wider network that any connector can pick up. */
-export interface Ask {
-  id: string;
-  what: string;
-  askedBy: string;
-  houseIds: readonly HouseId[];
-  completed: boolean;
-}
+/* `Connector`, `EventCadence`, `ConnectorEvent`, `Commitment` and `Ask` were
+ * here. They described the fixture roster this surface was mocked against and
+ * every one of them has been replaced by something with a table behind it:
+ * membership by `profiles.connector` (drizzle/0055), commitments by
+ * `connector_commitments` (0056), events by `connector_events` (0057).
+ *
+ * `Ask` has no successor. Nothing records open requests from the wider
+ * network, so the panel that rendered them is gone rather than empty.
+ *
+ * The fields that did not survive are worth naming, because they are the ones
+ * somebody will be tempted to add back: `Connector.birthday` (no date of birth
+ * exists anywhere on a profile), and `ConnectorEvent.volunteersFilled`,
+ * `tasks`, `contactName`, `contactPhone` and `href` (no sign-up table, and no
+ * reason to keep third parties' phone numbers in a programme calendar). */

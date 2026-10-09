@@ -148,11 +148,11 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     group: 'community',
     blurb: 'The volunteer programme: roster, houses, commitments and events.',
     does: [
-      'Assign a connector to a house',
-      'Set commitments and events',
+      'Move a connector between houses',
+      'Set tasks and run the events calendar',
       'Read the programme numbers',
     ],
-    status: 'mock',
+    status: 'live',
     icon: HeartHandshake,
   },
   {
