@@ -22,6 +22,8 @@
  */
 
 import {
+  CalendarClock,
+  ClipboardCheck,
   Download,
   Flag,
   HeartHandshake,
@@ -146,14 +148,45 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     name: 'Pana Connectors',
     href: '/admin/connectors',
     group: 'community',
-    blurb: 'The volunteer programme: roster, houses, commitments and events.',
+    blurb: 'The volunteer programme: roster, houses and the events calendar.',
     does: [
       'Move a connector between houses',
-      'Set tasks and run the events calendar',
+      'Run the events calendar',
       'Read the programme numbers',
     ],
     status: 'live',
     icon: HeartHandshake,
+  },
+  /* The two below are subpages of Connectors and carry their own rows here,
+     following the precedent set by Roles & permissions under Users. The nav
+     matches the active row on an exact pathname, so a subpage without an
+     entry would leave the whole sidebar looking unselected while you were
+     standing on it. */
+  {
+    id: 'connector-applications',
+    name: 'Connector applications',
+    href: '/admin/connectors/applications',
+    group: 'community',
+    blurb: 'People waiting to be let into the volunteer programme.',
+    does: [
+      'Read what somebody said they can bring',
+      'Accept or decline, oldest application first',
+    ],
+    status: 'live',
+    icon: ClipboardCheck,
+  },
+  {
+    id: 'connector-scheduling',
+    name: 'Connector scheduling',
+    href: '/admin/connectors/scheduling',
+    group: 'community',
+    blurb: 'Who is carrying what, and handing out the next piece of work.',
+    does: [
+      'See each connector’s open load in hours',
+      'Assign a task to somebody who has room',
+    ],
+    status: 'live',
+    icon: CalendarClock,
   },
   {
     id: 'users',

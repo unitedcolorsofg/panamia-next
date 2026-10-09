@@ -6,6 +6,7 @@ import { profiles } from '@/lib/schema';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 import { parseConnector } from '@/lib/connectors/membership';
 import {
+  assignableEventExists,
   countCommitments,
   createCommitment,
   removeCommitmentAsStaff,
@@ -13,8 +14,11 @@ import {
   WHAT_MAX,
   WHEN_MAX,
 } from '@/lib/connectors/commitments';
+import { eventColumns, parseEventValue } from '@/lib/connectors/event-link';
+import type { EventKind } from '@/lib/connectors/event-link';
 import { HOUSES } from '@/lib/connectors/model';
 import type { HouseId } from '@/lib/connectors/model';
+import { MAX_MINUTES } from '@/lib/connectors/hours';
 
 /**
  * Put a task on somebody's board, or take one off.
@@ -96,6 +100,52 @@ export async function POST(request: NextRequest) {
         ? payload.when.trim().slice(0, WHEN_MAX)
         : null;
 
+    /* Re-validated rather than trusted. The form sends minutes it has already
+     * parsed, but the form is not the only possible caller and the CHECK in
+     * drizzle/0059 would otherwise reject bad input as a 500 instead of as the
+     * 400 it is. Absent and null both mean "not estimated", which is a
+     * legitimate answer and not a failure. */
+    let estimatedMinutes: number | null = null;
+    if (payload.estimatedMinutes !== null && payload.estimatedMinutes !== undefined) {
+      const raw = payload.estimatedMinutes;
+      if (
+        typeof raw !== 'number' ||
+        !Number.isInteger(raw) ||
+        raw <= 0 ||
+        raw > MAX_MINUTES
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `How long has to be a whole number of minutes up to ${MAX_MINUTES}.`,
+          },
+          { status: 400 }
+        );
+      }
+      estimatedMinutes = raw;
+    }
+
+    /* Parsed before the membership lookup so a malformed value costs nothing,
+     * but existence is checked after it — see below. Absent, null and the
+     * empty string all mean "no event", which is the common case and not an
+     * error; only a non-empty value that does not decode is rejected. */
+    const rawEvent = payload.event;
+    let eventChoice: { kind: EventKind; id: string } | null = null;
+    if (typeof rawEvent === 'string' && rawEvent !== '') {
+      eventChoice = parseEventValue(rawEvent);
+      if (!eventChoice) {
+        return NextResponse.json(
+          { success: false, error: 'That event is not one we recognise.' },
+          { status: 400 }
+        );
+      }
+    } else if (rawEvent !== null && rawEvent !== undefined && rawEvent !== '') {
+      return NextResponse.json(
+        { success: false, error: 'That event is not one we recognise.' },
+        { status: 400 }
+      );
+    }
+
     /* The target has to be an accepted member. Assigning work to a pending
      * applicant would put a task on a board they cannot open, and the queue
      * would then show an application with work already logged against it —
@@ -122,12 +172,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /* Checked here so a dropdown rendered before somebody cancelled the event
+     * fails with a sentence instead of a foreign key violation. The FK is
+     * still what guarantees the reference; this only decides the message. */
+    if (eventChoice && !(await assignableEventExists(eventChoice.kind, eventChoice.id))) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'That event is no longer open for assignments.',
+        },
+        { status: 409 }
+      );
+    }
+
     const commitment = await createCommitment({
       profileId,
       what,
       when,
       house: house as HouseId,
       assignedBy: admin.id,
+      estimatedMinutes,
+      ...eventColumns(eventChoice),
     });
 
     return NextResponse.json({ success: true, data: commitment });

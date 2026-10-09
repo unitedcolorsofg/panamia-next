@@ -2565,6 +2565,31 @@ export const connectorCommitments = pgTable(
     when: text('when_text'),
     house: text('house').notNull(),
     progress: text('progress').notNull().default('notSet'),
+    /**
+     * Rough size, in minutes. NULL means nobody has estimated it.
+     *
+     * Minutes rather than decimal hours so `SUM()` is exact and the pg driver
+     * hands back a number instead of a string; the UI talks in hours and
+     * converts at the edge. NULL is a reported state, never folded to zero —
+     * see drizzle/0059 for why nothing was backfilled.
+     */
+    estimatedMinutes: integer('estimated_minutes'),
+    /**
+     * The public event this commitment staffs, if any.
+     *
+     * Nullable and `set null` rather than cascading: deleting an event must
+     * not delete the record that somebody was asked to work it. See
+     * drizzle/0061 for why this is two typed columns instead of one
+     * polymorphic pair, and for the CHECK that stops both being set.
+     */
+    eventId: text('event_id').references(() => events.id, {
+      onDelete: 'set null',
+    }),
+    /** The programme gathering this commitment staffs, if any. */
+    connectorEventId: text('connector_event_id').references(
+      () => connectorEvents.id,
+      { onDelete: 'set null' }
+    ),
     /** NULL for self-authored. Set when staff assigned it. */
     assignedBy: text('assigned_by').references(() => users.id, {
       onDelete: 'set null',

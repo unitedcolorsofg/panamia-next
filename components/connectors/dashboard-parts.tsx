@@ -399,6 +399,14 @@ export interface CommitmentRow {
   ownerName?: string;
   /** Set when staff put this on somebody's board. */
   assignedBy?: string | null;
+  /**
+   * The event this is work for, if it is work for one.
+   *
+   * A title rather than an id, resolved by whoever built the row. Most
+   * commitments have none — "drop off zines at four shops" is real work with
+   * nothing on the calendar — so the column is absent, not empty.
+   */
+  eventTitle?: string | null;
 }
 
 export function CommitmentsTable({
@@ -466,6 +474,15 @@ export function CommitmentsTable({
                   <span className="ml-2 inline-block whitespace-nowrap rounded-full border-2 border-pana-indigo px-2 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-wider text-pana-indigo">
                     Assigned
                   </span>
+                )}
+                {/* A second line rather than a sixth column. Most rows have no
+                    event, so a column would be mostly empty and would cost
+                    every table another 8rem of min-width — which is what
+                    pushed Progress off-screen on HQ once already. */}
+                {row.eventTitle && (
+                  <p className="mt-0.5 text-xs font-bold text-pana-ink/55">
+                    for {row.eventTitle}
+                  </p>
                 )}
               </Td>
               <Td className="whitespace-nowrap text-pana-ink/70">

@@ -8,7 +8,29 @@ import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
 import type { HouseId, PodId, TierId } from '@/lib/connectors/model';
 import { CADENCES, CADENCE_LABEL } from '@/lib/connectors/events-model';
 import type { Cadence, ConnectorEvent } from '@/lib/connectors/events-model';
-import { EventCard } from '@/components/connectors/dashboard-parts';
+import { localInputToIso } from '@/lib/datetime-local';
+import { eventValue } from '@/lib/connectors/event-link';
+import type { AssignableEvent, EventKind } from '@/lib/connectors/event-link';
+import {
+  HOUR_PRESETS,
+  MAX_HOURS,
+  formatMinutes,
+  minutesToHoursInput,
+  parseHours,
+} from '@/lib/connectors/hours';
+import { EventCard, formatDay } from '@/components/connectors/dashboard-parts';
+
+/**
+ * Programme gatherings above public events in the picker.
+ *
+ * Not alphabetical and not by date across the two: a connector is far more
+ * often assigned to the programme's own huddles and trainings than to a
+ * public party, so the common choice sits where the cursor already is.
+ */
+const PROGRAMME_FIRST: ReadonlyArray<{ kind: EventKind; label: string }> = [
+  { kind: 'programme', label: 'Connector events' },
+  { kind: 'public', label: 'Pana events' },
+];
 
 /**
  * The three things the admin console can actually change: who is in which
@@ -256,12 +278,20 @@ export interface TaskTarget {
  * their board under a heading that does not apply to them, and would be
  * counted in that house's workload by anybody reading the tallies.
  */
-export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
+export function SetTaskForm({
+  connectors,
+  events = [],
+}: {
+  connectors: TaskTarget[];
+  events?: AssignableEvent[];
+}) {
   const router = useRouter();
   const [profileId, setProfileId] = useState('');
   const [what, setWhat] = useState('');
   const [when, setWhen] = useState('');
   const [house, setHouse] = useState<string>('');
+  const [hours, setHours] = useState('');
+  const [event, setEvent] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -280,6 +310,16 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    /* Checked here as well as on the route so a typo is caught without a
+     * round trip. Blank is allowed and means "not estimated" — the scheduling
+     * table reports that as a gap rather than as zero. */
+    const estimatedMinutes = parseHours(hours);
+    if (estimatedMinutes === 'invalid') {
+      setError(`Hours must be a number between 0 and ${MAX_HOURS}.`);
+      return;
+    }
+
     setBusy(true);
     setError(null);
 
@@ -288,6 +328,8 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
       what,
       when: when || null,
       house,
+      estimatedMinutes,
+      event: event || null,
     });
 
     setBusy(false);
@@ -298,6 +340,8 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
 
     setWhat('');
     setWhen('');
+    setHours('');
+    setEvent('');
     router.refresh();
   }
 
@@ -368,6 +412,105 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
         </label>
       </div>
 
+      {/* Optional, and placed after the required fields so it never looks like
+          a step. Most work is not an event — "drop off zines at four shops"
+          has no date on anyone's calendar — so the empty option is the
+          default and is phrased as a real choice rather than as a blank. */}
+      {events.length > 0 && (
+        <label className="mt-3 block">
+          <span className={LABEL}>For an event</span>
+          <select
+            className={`${FIELD} mt-1`}
+            value={event}
+            onChange={(e) => setEvent(e.target.value)}
+          >
+            <option value="">Not tied to an event</option>
+            {PROGRAMME_FIRST.map(({ kind, label }) => {
+              const group = events.filter((option) => option.kind === kind);
+              if (group.length === 0) return null;
+              return (
+                <optgroup key={kind} label={label}>
+                  {group.map((option) => (
+                    <option
+                      key={eventValue(option)}
+                      value={eventValue(option)}
+                    >
+                      {formatDay(new Date(option.startsAt))} — {option.title}
+                      {option.where ? ` · ${option.where}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
+          </select>
+          <p className="text-pana-ink/55 mt-2 text-xs leading-relaxed">
+            Attaching it counts this person toward that event&rsquo;s crew, so
+            the board can tell a staffed event from one nobody has picked up.
+          </p>
+        </label>
+      )}
+
+      {/* Presets first, free entry behind them. The estimate is the field most
+          likely to be skipped, and skipping it costs the scheduling table its
+          figure — a row of one-tap answers is the difference between people
+          filling it in and people leaving it blank. Typing an exact number
+          stays available for work that needs it. */}
+      <fieldset className="mt-3">
+        <legend className={LABEL}>How long, roughly</legend>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {HOUR_PRESETS.map((minutes) => {
+            const value = minutesToHoursInput(minutes);
+            const chosen = hours === value;
+            return (
+              <button
+                key={minutes}
+                type="button"
+                aria-pressed={chosen}
+                onClick={() => setHours(chosen ? '' : value)}
+                className={[
+                  'rounded-full border-2 px-3 py-1 text-xs font-extrabold transition',
+                  chosen
+                    ? `${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL} border-transparent`
+                    : 'border-pana-ink/30 text-pana-ink/70 hover:border-pana-ink hover:text-pana-ink',
+                ].join(' ')}
+              >
+                {formatMinutes(minutes)}
+              </button>
+            );
+          })}
+
+          <label className="flex items-center gap-2">
+            <span className="sr-only">Hours</span>
+            <input
+              type="number"
+              min="0"
+              max={MAX_HOURS}
+              step="0.25"
+              inputMode="decimal"
+              className={`${FIELD} w-28`}
+              placeholder="or hours"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+            />
+          </label>
+
+          {hours !== '' && (
+            <button
+              type="button"
+              onClick={() => setHours('')}
+              className="text-pana-ink/60 hover:text-pana-ink text-xs font-bold underline underline-offset-4"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <p className="text-pana-ink/55 mt-2 text-xs leading-relaxed">
+          Optional. Leaving it blank is fine — the task still appears on their
+          board, but it will show as unsized on the scheduling page instead of
+          counting toward anyone&rsquo;s load.
+        </p>
+      </fieldset>
+
       <button
         type="submit"
         disabled={busy || !profileId || !what || !house}
@@ -428,7 +571,17 @@ function EventControls({ event }: { event: ConnectorEvent }) {
           <button
             type="button"
             disabled={busy || !next}
-            onClick={() => run('PATCH', { id: event.id, startsAt: next })}
+            onClick={() => {
+              /* Resolved here, in the browser, where the typist's zone is the
+               * one that settles it. Posting the raw field put 5pm Miami into
+               * the database as 5pm UTC — see lib/datetime-local.ts. */
+              const startsAt = localInputToIso(next);
+              if (!startsAt) {
+                setError('That is not a date and time.');
+                return;
+              }
+              void run('PATCH', { id: event.id, startsAt });
+            }}
             className={`rounded-full px-4 py-2 text-xs font-extrabold disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
           >
             Move
@@ -551,12 +704,22 @@ function NewEventForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    /* Converted before anything else, and in the browser: the field is wall
+     * clock with no zone, and the server runs in UTC. See
+     * lib/datetime-local.ts for the four hours this used to lose. */
+    const startsAtIso = localInputToIso(startsAt);
+    if (!startsAtIso) {
+      setError('That is not a date and time.');
+      return;
+    }
+
     setBusy(true);
     setError(null);
 
     const failure = await post('/api/admin/connectors/events', 'POST', {
       title,
-      startsAt,
+      startsAt: startsAtIso,
       when: when || null,
       location: location || null,
       lead: lead || null,

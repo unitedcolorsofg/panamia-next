@@ -290,6 +290,32 @@ export async function listConnectorApplications(): Promise<
 }
 
 /**
+ * How many applications are waiting, without reading them.
+ *
+ * The tab strip badges this number on every Connectors admin page, but only
+ * the applications page actually renders the rows. Calling
+ * `listConnectorApplications().length` for a badge would pull every pending
+ * profile — name, email, the whole JSON column — across two pages that then
+ * throw all of it away.
+ *
+ * Counts in SQL on the same predicate the list uses, so the badge and the
+ * queue cannot disagree.
+ */
+export async function countConnectorApplications(): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(profiles)
+    .where(
+      and(
+        isNotNull(profiles.connector),
+        sql`${profiles.connector} ->> 'status' = 'pending'`
+      )
+    );
+
+  return row?.count ?? 0;
+}
+
+/**
  * Accept or decline an application.
  *
  * Reads the record first and writes the parsed shape back, so a decision also
