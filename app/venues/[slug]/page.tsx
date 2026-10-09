@@ -30,8 +30,17 @@ export default async function VenuePage({ params }: PageProps) {
   if (!venue) notFound();
   if (venue.status !== 'active' && !isAdmin) notFound();
 
+  // Public "what's on here" list, so it asks what a stranger may see. Unlisted
+  // events are reachable by direct link but must never be listed — including to
+  // an admin, who has the admin surface for the full picture. A third
+  // visibility value inherits this correctly because the filter is an
+  // allow-list; see docs/EVENTS-ROADMAP.md.
   const upcomingEvents = await db.query.events.findMany({
-    where: and(eq(events.venueId, venue.id), eq(events.status, 'published')),
+    where: and(
+      eq(events.venueId, venue.id),
+      eq(events.status, 'published'),
+      eq(events.visibility, 'public')
+    ),
     orderBy: (t, { asc }) => [asc(t.startsAt)],
     limit: 10,
     columns: {
