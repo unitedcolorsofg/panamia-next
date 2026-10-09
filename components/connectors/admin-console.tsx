@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import { HOUSES, PODS, TIERS, getPod } from '@/lib/connectors/model';
 import type { HouseId, PodId, TierId } from '@/lib/connectors/model';
-import { CADENCES, CADENCE_LABEL } from '@/lib/connectors/events';
-import type { Cadence, ConnectorEvent } from '@/lib/connectors/events';
+import { CADENCES, CADENCE_LABEL } from '@/lib/connectors/events-model';
+import type { Cadence, ConnectorEvent } from '@/lib/connectors/events-model';
 import { EventCard } from '@/components/connectors/dashboard-parts';
 
 /**
