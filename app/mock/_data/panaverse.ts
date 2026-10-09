@@ -85,33 +85,27 @@ export interface MockRoom {
 }
 
 export const SHARED_ROOMS: MockRoom[] = [
-  {
-    name: 'Events',
-    path: '/e',
-    /* Room blurbs are one truncating line in the panel, so they are written to
-       fit — a room that needs two lines to explain itself is arguing to be a
-       surface. */
-    blurb: 'Markets, mixers, shows',
-    /* Matches SHARED_ROOMS in lib/panaverse/branding.ts, which moved off flame
-       because the switcher opens over social chrome — which is flame — and an
-       accent the same colour as the thing behind it is no accent. See there
-       for the full reasoning. */
-    tone: 'pink',
-    couldBecome: 'events.panamia.club',
-  },
+  /* Events used to lead this list. It was promoted to a real surface —
+     `events.pana.social`, registered in lib/panaverse/surfaces.ts — so it was
+     removed from here rather than left in both places, which would have
+     printed it twice in the switcher. The live `SHARED_ROOMS` in
+     lib/panaverse/branding.ts dropped it for the same reason. */
   {
     name: 'Peer Mentoring',
     path: '/m',
+    /* Room blurbs are one truncating line in the panel, so they are written to
+       fit — a room that needs two lines to explain itself is arguing to be a
+       surface. */
     blurb: 'Book time with a Pana',
     tone: 'blue',
-    couldBecome: 'mentoring.panamia.club',
+    couldBecome: 'mentoring.pana.social',
   },
   {
     name: 'Resilience Network',
     path: '/r',
     blurb: 'Mutual aid groups',
     tone: 'red',
-    couldBecome: 'resilience.panamia.club',
+    couldBecome: 'resilience.pana.social',
   },
 ];
 

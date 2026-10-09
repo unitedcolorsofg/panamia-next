@@ -2413,6 +2413,70 @@ export const eventAttendees = pgTable(
   })
 );
 
+/**
+ * "Not for me", kept.
+ *
+ * The discovery page at `/e` does not just rank events, it states the reason
+ * each one is in front of you, and a stated reason has to be arguable or it is
+ * decoration. This is the argument back: one row per event a pana has told us
+ * not to show them.
+ *
+ * It exists because the alternative is a lie. Dismissal held in component
+ * state hides the card until the next navigation, while the banner underneath
+ * it says "fewer from this host" — a claim about the future made by something
+ * that forgets on reload. Either the control persists or the copy has to stop
+ * promising, and the correction loop is the part of that page worth keeping.
+ *
+ * `reasonKind` is what the page claimed when the pana disagreed, not a
+ * category of dislike. "Shown because your panas are going, and told no" is a
+ * different signal from "shown because it matched your tags, and told no", and
+ * only the first is evidence about the people rather than the subject. Storing
+ * the claim keeps that distinction available to whatever learns from it later;
+ * without it every dismissal collapses into an undifferentiated downvote.
+ *
+ * Profile-scoped rather than user-scoped, matching event_attendees: RSVPs and
+ * corrections are both the acting pana's, and joining them later should not
+ * need a hop through users.
+ */
+export const eventDismissals = pgTable(
+  'event_dismissals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    /**
+     * The lane the card was sitting in when it was dismissed, or null if it
+     * was in the unreasoned tail. Free text rather than an enum because the
+     * set of reasons is a product decision that will change faster than a
+     * migration can follow, and an unrecognised historical value here is
+     * perfectly readable — unlike an enum, which would reject the insert and
+     * lose the correction entirely.
+     */
+    reasonKind: text('reason_kind'),
+  },
+  (table) => ({
+    /* One row per pana per event: dismissing twice is the same statement said
+       twice, and an undo that had to delete an unknown number of rows would be
+       a race waiting to happen. */
+    profileEventUnique: uniqueIndex('event_dismissals_profile_event_unique').on(
+      table.profileId,
+      table.eventId
+    ),
+    /* The read path is always "everything this pana has hidden", once per page
+       render, so the index that matters is on the profile. */
+    profileIdIdx: index('event_dismissals_profile_id_idx').on(table.profileId),
+  })
+);
+
 // =============================================================================
 // Screenname History
 // =============================================================================
@@ -2945,6 +3009,20 @@ export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
     references: [profiles.id],
   }),
 }));
+
+export const eventDismissalsRelations = relations(
+  eventDismissals,
+  ({ one }) => ({
+    event: one(events, {
+      fields: [eventDismissals.eventId],
+      references: [events.id],
+    }),
+    profile: one(profiles, {
+      fields: [eventDismissals.profileId],
+      references: [profiles.id],
+    }),
+  })
+);
 
 export const screennameHistoryRelations = relations(
   screennameHistory,

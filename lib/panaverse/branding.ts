@@ -42,6 +42,37 @@ export const SURFACE_MARK: Record<SurfaceId, SurfaceMark> = {
     height: 120,
     alt: 'Pana Social',
   },
+  /* Set by scripts/generate-surface-wordmark.py, like the two below it, and
+   * the first mark generated since that script was written down — Connectors
+   * and Admin were produced by a script nobody committed, so the recipe had to
+   * be read back off their PNGs. Regenerate with:
+   *
+   *   python scripts/generate-surface-wordmark.py --font Nunito[wght].ttf \
+   *     --word EVENTS --star-index 6 --out public/logos/pana_events_long_orange.png
+   *
+   * The star is appended rather than set inside the word, which is new. The
+   * drawn marks put it on an `i` — Pana Mia Club dots the `i` of MIA, and
+   * Admin does the same. Connectors has no `i`, so the star took the place of
+   * the first `O`. EVENTS has neither: no `i` to dot and no round letter to
+   * stand in, and the one candidate — a star in the `V` slot — was tried and
+   * reads as a redaction rather than a letter, because the word stops being
+   * guessable the moment its second character is a shape.
+   *
+   * So it trails the word at small-cap height. That is a departure, and worth
+   * it here for a reason the other marks did not have: starring a thing is
+   * what a person does to an event. The accent that could not go inside the
+   * word turns out to mean something sitting after it.
+   *
+   * 800x115 keeps it in family — `.panaverse-logo` sizes marks by height with
+   * `width: auto`, so a flatter lockup flies wider at the same height and
+   * pushes the avatar towards the frame edge. Replacing this with drawn
+   * lettering at the same path and roughly this ratio changes nothing else. */
+  events: {
+    src: '/logos/pana_events_long_orange.png',
+    width: 800,
+    height: 115,
+    alt: 'Pana Events',
+  },
   /* Not from that hand. Nobody has drawn "Connectors" yet, and no typeface
    * traces hand lettering convincingly, so this is set in Nunito Black — the
    * family the site already loads — borrowing the four things that actually
@@ -107,6 +138,14 @@ export const SURFACE_MARK: Record<SurfaceId, SurfaceMark> = {
 export const SURFACE_ICON: Record<SurfaceId, string> = {
   www: 'pana_mia_icon',
   social: 'pana_social_icon',
+  /* Borrows the Pana Mia tile, and unlike admin below that is a gap rather
+   * than a decision. The sibling tiles are drawn illustrations, not set type —
+   * the Pana Social tile is the flower glyph — so there is nothing to generate
+   * a matching one from, and events is exactly the kind of surface a member
+   * would pin to a home screen. It should get its own tile when somebody draws
+   * one; until then the Pana Mia tile is at least honest about what they
+   * installed. */
+  events: 'pana_mia_icon',
   connectors: 'pana_connectors_icon',
   /* Borrows the Pana Mia tile rather than getting one of its own. An icon is
    * for a thing you install to a home screen, and this surface is the back
@@ -122,6 +161,7 @@ export const SURFACE_ICON: Record<SurfaceId, string> = {
 export const SURFACE_BLURB: Record<SurfaceId, string> = {
   www: 'Find Panas, browse the directory, and see what the org is up to.',
   social: 'Post, reply, and read what your Panas are making this week.',
+  events: 'What is on, who is going, and why you would want to be there.',
   connectors:
     'Your house, your pod, and what you said you would do this month.',
   /* Second person like the rest, but this one is never read by a member
@@ -144,6 +184,8 @@ export const SURFACE_DESCRIPTION: Record<SurfaceId, string> = {
   www: 'Community platform for Pana Mia',
   social:
     'The Pana Mia community timeline — post, reply, and follow Panas across the fediverse.',
+  events:
+    'Markets, mixers and shows across the Pana Mia network — surfaced by who is hosting and who is going, not by who paid to be seen.',
   connectors:
     'Headquarters for the Pana Mia Community Connectors — houses, pods, commitments and events across Miami-Dade, Broward and Palm Beach.',
   /* Written to be unhelpful to a search engine on purpose. Every admin route
@@ -195,6 +237,11 @@ export interface SurfaceNavItem {
 export const SURFACE_NAV: Record<SurfaceId, SurfaceNavItem[]> = {
   www: [],
   social: [{ label: 'Home', href: '/s' }],
+  /* Just the front door, like social. `/e/new` is deliberately not here: it is
+   * the one own-surface route a signed-out visitor gets bounced off, and the
+   * discovery page already carries a Host link in its own header where it can
+   * be shown conditionally. */
+  events: [{ label: 'Calendar', href: '/e' }],
   /* HQ only. The programme's admin console is not listed: it is the one
    * destination on this surface a signed-in connector can be refused, and a
    * masthead link that bounces most of the people who see it is worse than no
@@ -239,20 +286,13 @@ export interface PanaverseRoom {
  * that needs two lines to explain itself is arguing to be a surface.
  */
 export const SHARED_ROOMS: readonly PanaverseRoom[] = [
-  {
-    name: 'Events',
-    path: '/e',
-    blurb: 'Markets, mixers, shows',
-    /* Pink rather than flame, for the same reason `group` moved off flame in
-     * SCOPE_TONE. Room paths are relative, so the switcher panel opens over
-     * whatever surface the member is standing on — including Pana Social,
-     * whose chrome is flame. A flame chip inside flame chrome is not a weak
-     * accent, it is no accent. Pink also matches the `event` scope, so the
-     * same noun reads one colour whether it is reached through the scope bar
-     * or through here. Flame is still live: it is the social surface itself.
-     */
-    tone: 'pink',
-  },
+  /* Events used to head this list. It is a surface now
+   * (events.pana.social), so it is listed above with the others — leaving it
+   * here as well would have put it in the switcher twice, once as a front door
+   * and once as a room that does not have one.
+   *
+   * This is the promotion path the type promised, run once: a registry entry,
+   * a mark, a DNS record, and a line deleted from here. */
   {
     name: 'Peer Mentoring',
     path: '/m',
@@ -282,6 +322,18 @@ export const SHARED_ROOMS: readonly PanaverseRoom[] = [
 export const SURFACE_TONE: Record<SurfaceId, SurfaceTone> = {
   www: 'indigo',
   social: 'flame',
+  /* Red, which is the last unclaimed accent and happens to be the right one:
+   * it is the colour a date gets ringed in. The two warm oranges were already
+   * spoken for, and events sitting a shade off Pana Social would have told a
+   * member nothing about which room they had moved to.
+   *
+   * It collides with the Resilience Network room, which is also red — the same
+   * kind of collision connectors documents against the Education house, and
+   * tolerable for the same reason: rooms are listed below surfaces in the
+   * switcher and styled more quietly, so the two are never set side by side at
+   * equal weight. If Resilience is ever promoted to a surface, one of the two
+   * has to give. */
+  events: 'red',
   /* Burnt rather than flame: the mark is the same orange as everyone else's,
    * so the accent is the only thing telling a member they have moved from the
    * timeline to HQ, and two oranges a shade apart tell them nothing. Burnt is

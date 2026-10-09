@@ -26,7 +26,7 @@
     "env:vars": "npx tsx scripts/env-check.ts vars",
     "check:privacy-schema": "npx tsx scripts/check-data-inventory.ts",
     "db:reset": "npx tsx scripts/reset-test-db.ts",
-    "db:seed": "npx tsx scripts/seed-dev-data.ts && npx tsx scripts/seed-test-account.ts",
+    "db:seed": "npx tsx scripts/seed-dev-data.ts && npx tsx scripts/seed-test-account.ts && npx tsx scripts/seed-events.ts",
     "db:photos": "npx tsx scripts/seed-business-photos.ts",
     "photos:fetch": "npx tsx scripts/fetch-directory-photos.ts",
     "db:studio": "drizzle-kit studio",

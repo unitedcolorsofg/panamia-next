@@ -14,7 +14,7 @@
 
 import { getConfiguredFederationDomain } from '@/lib/federation/domain';
 
-export type SurfaceId = 'www' | 'social' | 'connectors' | 'admin';
+export type SurfaceId = 'www' | 'social' | 'events' | 'connectors' | 'admin';
 
 export interface PanaverseSurface {
   id: SurfaceId;
@@ -38,6 +38,28 @@ export interface PanaverseSurface {
    * every hostname.
    */
   paths: string[];
+  /**
+   * Registered here, but the hostname is not bound yet.
+   *
+   * PANAVERSE_SUBDOMAINS is a single global flag, and it is already on. So the
+   * moment a surface is added to this list its cross-surface links go absolute
+   * — which for a host with no DNS record turns a working relative link into a
+   * dead end. That is the exact state the flag exists to prevent, and the flag
+   * cannot prevent it for one surface at a time.
+   *
+   * Opt-in, so adding it changes nothing for the surfaces already shipping:
+   * only a surface that sets this is held back, and it is held back to exactly
+   * the flag-off behaviour (stay on the host in hand). `*.localhost` is exempt
+   * for the same reason it is exempt from the flag — it resolves without DNS,
+   * so dev goes on exercising the production-shaped path either way.
+   *
+   * Clearing this is the go-live switch, and it is deliberately a code change
+   * rather than an env var: PANAVERSE_SUBDOMAINS is pinned in wrangler.jsonc
+   * and applies on deploy, so an env flag would buy no extra agility while
+   * hiding the launch state from the registry that claims to be the source of
+   * truth for it. See docs/DOMAINS.md.
+   */
+  subdomainPending?: boolean;
 }
 
 /**
@@ -108,6 +130,28 @@ export const SURFACES: readonly PanaverseSurface[] = [
     // lands on /groups?q=<term> -- see components/panaverse/SurfaceSearch.tsx
     // for why that field commits to groups rather than offering a scope menu.
     paths: ['/s', '/p', '/g', '/groups', '/timeline', '/inbox'],
+  },
+  {
+    id: 'events',
+    name: 'Pana Events',
+    tagline: 'What is on, and why you would want to be there.',
+    subdomain: 'events',
+    rootPath: '/e',
+    // `/e` rather than `/events`, and the pair is not a duplication. `/e` is
+    // the calendar — the listings, the detail pages, the host tools — and was
+    // claimed long before this surface existed, so it is what every minted
+    // link and every share already points at. `/events` is the offering front
+    // page: the marketing answer to "what is the calendar for", which belongs
+    // on the main site next to the other offerings rather than behind the
+    // calendar's own hostname. Same split as social's `/s` versus the apex.
+    //
+    // Claiming both prefixes anyway, because the switcher's active state
+    // should light up on either: a reader who lands on /events has plainly
+    // arrived at Events, whichever host told them about it.
+    paths: ['/e', '/events'],
+    // No DNS record yet. See subdomainPending on the interface above, and the
+    // launch checklist in docs/DOMAINS.md.
+    subdomainPending: true,
   },
   {
     id: 'connectors',
@@ -228,8 +272,10 @@ export function originForFrom(
 
   // *.localhost always resolves without DNS, so dev keeps its surface
   // subdomains and goes on exercising the production-shaped path. Every other
-  // host needs a real record, which is the thing that does not exist yet.
-  if (!isLocal && !panaverseSubdomainsEnabled()) {
+  // host needs a real record, which is the thing that does not exist yet —
+  // globally while the flag is off, and per-surface for one that is registered
+  // but not bound.
+  if (!isLocal && (!panaverseSubdomainsEnabled() || target.subdomainPending)) {
     return `https://${hostname}${port ? `:${port}` : ''}`;
   }
 

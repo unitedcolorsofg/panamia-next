@@ -7,19 +7,36 @@ test.describe('Events — Public Pages', () => {
   test('events discovery page route exists', async ({ page }) => {
     const res = await page.goto('/e', { waitUntil: 'domcontentloaded' });
     expect(res?.status()).toBe(200);
-    await expect(page.locator('h1').first()).toContainText('What’s happening');
+    // Was 'Community Events', the heading of the flat grid this replaced, and
+    // briefly 'What’s happening' when /e was a browse. With no term the page
+    // is the discovery feed and leads with the question it answers.
+    // Matched with a regex because the apostrophe is a typographic one.
+    await expect(page.locator('h1').first()).toContainText(/What.s on/);
   });
 
   test('events page searches by term', async ({ page }) => {
     // The scope menu on the home page sends "Events" searches here, so the
     // query parameter is the contract between the two and worth asserting.
+    // A term switches the page out of discovery and into the result grid.
     const res = await page.goto('/e?q=market', {
       waitUntil: 'domcontentloaded',
     });
     expect(res?.status()).toBe(200);
     await expect(page.locator('h1').first()).toContainText('market');
+
+    // Named down to the Events scope rather than matching /Search scope/ alone,
+    // which now resolves to two controls here and fails Playwright's strict
+    // mode. Both are meant to be on the page: Events became a Panaverse surface
+    // in this change, so /e wears the Events masthead, and `SurfaceSearch`
+    // deliberately renders on every page of a surface and deliberately defaults
+    // to Groups. That masthead control is navigation — a question not yet
+    // asked. The one named here is the results page's own, which reports the
+    // scope these results were drawn from, so it is the control this test
+    // actually cares about. /e is the first surface route to carry both.
+    // tests/e2e/public-navigation.spec.ts scopes the same selector to the
+    // banner for the mirror-image reason.
     await expect(
-      page.getByRole('button', { name: /Search scope/ })
+      page.getByRole('button', { name: /Search scope, currently Events/ })
     ).toBeVisible();
   });
 
