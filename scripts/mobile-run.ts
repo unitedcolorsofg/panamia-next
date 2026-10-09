@@ -31,9 +31,9 @@
  */
 
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, openSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { homedir, platform } from 'node:os';
+import { homedir, platform, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { MOBILE_APP_ID } from '../lib/mobile/app-identity';
@@ -247,6 +247,22 @@ function sleep(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+/* Last few lines of a log, for quoting into an error. Tolerates the file not
+ * existing because the failure path must not fail. */
+function tail(path: string, lines: number): string {
+  try {
+    return (
+      readFileSync(path, 'utf8')
+        .split('\n')
+        .filter((line) => line.trim())
+        .slice(-lines)
+        .join('\n') || '(no output)'
+    );
+  } catch {
+    return '(no output)';
+  }
+}
+
 /** Serial numbers of everything `adb` currently considers usable. */
 function attachedDevices(): string[] {
   return capture(adb, ['devices'])
@@ -299,11 +315,25 @@ function startEmulator(preferred?: string): void {
 
   console.log(`Starting emulator ${avd}...`);
 
+  /* The emulator writes its own diagnostics to stdout/stderr and then exits.
+   * Discarding them turns every startup failure into the generic boot timeout
+   * below, which says nothing about the cause, so they go to a log file that
+   * the timeout can quote back. A file descriptor rather than a pipe because
+   * the process is detached and outlives this one. */
+  const logPath = join(tmpdir(), `emulator-${avd}.log`);
+  const log = openSync(logPath, 'w');
+
   /* Detached and unref'd because the emulator outlives this script on purpose:
-   * the next run should find it already up rather than pay the boot cost again. */
-  spawn(emulatorBin, ['-avd', avd], {
+   * the next run should find it already up rather than pay the boot cost again.
+   *
+   * `-no-snapshot-load` because quickboot snapshots are the single most common
+   * reason a previously working emulator stops starting: the snapshot is
+   * invalidated by an emulator or system image upgrade, or left corrupt by a
+   * host crash, and the emulator then exits during load instead of falling back
+   * to a cold boot. Paying the slower boot is worth never debugging that again. */
+  spawn(emulatorBin, ['-avd', avd, '-no-snapshot-load'], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', log, log],
     env,
   }).unref();
 
@@ -322,7 +352,14 @@ function startEmulator(preferred?: string): void {
   }
 
   fail(
-    `Emulator ${avd} did not finish booting within ${EMULATOR_BOOT_TIMEOUT_MS / 1000}s.`
+    [
+      `Emulator ${avd} did not finish booting within ${EMULATOR_BOOT_TIMEOUT_MS / 1000}s.`,
+      '',
+      'Last output from the emulator:',
+      tail(logPath, 20),
+      '',
+      `Full log: ${logPath}`,
+    ].join('\n')
   );
 }
 
