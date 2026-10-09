@@ -91,21 +91,116 @@ home relay's storage; copies already fanned out to external mirrors
 emitted yet), and clients may keep cached copies. Flipping back to public does
 not auto-recrosspost (publish is one-shot for published events).
 
-## True private (invitation-only) events — future phase
+## Invite-only events — scoped, not yet built
 
-Deferred. Unlisted is "hidden but link-shareable"; a real private event must be
-**access-controlled** to a defined audience. Planned model:
+Unlisted is "hidden but link-shareable". An invite-only event is
+**access-controlled**: a defined audience, an attributable guest list, and no
+public surface anywhere.
 
-- **Invite scope**: either **invite all followers** (every account that follows
-  the host) or **individual users** (a hand-picked list).
-- **Enforcement**: gate the detail page (`app/e/[slug]/page.tsx`) and the RSVP
-  endpoints so a private event requires host-or-invitee; exclude it from all
-  public surfaces.
-- **Invitation model**: an invites table (or pre-seeded `event_attendees` with an
-  `invited` status) + a guest-list visibility policy (host-only vs.
-  invitees-can-see-each-other).
-- **Nostr**: stays off-relay like unlisted, unless we later adopt NIP-59 gift
-  wrap to deliver the listing/RSVPs to specific invitee pubkeys.
+### Decided model
+
+`event_visibility` gains a third value, `invite`. Invites are **pre-seeded
+`event_attendees` rows** carrying a new `invited` value on `rsvp_status` — not a
+separate invites table. The row already holds everything an invite needs
+(`email`, `profile_id`, `name`, `email_verified_at`), and the existing
+`event_attendees_event_email_unique` index makes double-invites impossible for
+free.
+
+Non-members are invited **by email**, redeemed through the magic-link flow that
+already backs anonymous RSVPs: a single-use `verification` row namespaced
+`event-invite:<attendeeId>`, delivered by `sendTemplateEmail`, redeemed the way
+`rsvp/confirm` redeems `event-rsvp:`. Members match on `profile_id` and never
+receive a token at all.
+
+One token per invitee, not one per event. A forwarded invite admits the
+forwardee **as the named invitee** — visible on the guest list, revocable on its
+own. A single shared event token would be unlisted with extra steps.
+
+`attendee_count` is delta-maintained and gated on verified `going`
+(`rsvp/route.ts:153`, `rsvp/confirm/route.ts:61`), so `invited` rows do not
+disturb capacity. The Nostr ingest path recomputes from a filtered count and is
+likewise unaffected.
+
+### Read paths need no changes
+
+Every public surface filters `eq(events.visibility, 'public')` — an allow-list.
+A third enum value is excluded automatically from `/e`, search
+(`lib/server/search-kinds.ts`, three sites), typeahead (`lib/server/suggest.ts`),
+discovery (`lib/events/discovery.ts`), directory enrichment
+(`lib/server/directory-enrich.ts`), the list queries in `lib/event.ts`, and the
+AS2 endpoint (`app/api/federation/events/[slug]`).
+
+The attending query in `lib/event.ts` (~line 316) deliberately omits the
+visibility clause because it is scoped to the viewer's own RSVPs. That must
+stay: an invitee has to keep seeing their own invitation.
+
+### Two deny-lists must flip, in the same commit as the enum
+
+These are the whole risk. Both test for `unlisted` **by name**, so a third value
+falls through to the public branch:
+
+- `app/api/events/[slug]/publish/route.ts:116` —
+  `const isUnlisted = event.visibility === 'unlisted'` gates crossposting. Left
+  alone, an invite-only event is **published to Nostr relays as a world-readable
+  kind-31923**, and NIP-09 deletion is not emitted yet, so mirror copies cannot
+  be chased down. Must become `!== 'public'`.
+- `app/api/events/route.ts:139` —
+  `visibility: visibility === 'unlisted' ? 'unlisted' : 'public'` coerces on
+  create. Left alone, an invite-only event **silently saves as public**.
+
+### Four gates to write
+
+`canViewEvent(event, viewerProfileId)` belongs beside `canManageEvent` in
+`lib/server/event-host.ts`, which already resolves profile-vs-group hosting.
+
+| Surface                              | Today                   | Needed                            |
+| ------------------------------------ | ----------------------- | --------------------------------- |
+| `app/e/[slug]/page.tsx:67`           | gates `status` only     | host, or invitee                  |
+| `app/api/events/[slug]/calendar.ics` | **no auth at all**      | auth + gate                       |
+| `app/api/events/[slug]/rsvp` POST    | gates `status` only     | gate before accepting             |
+| `app/api/events/[slug]/rsvp/list`    | authed, no invite check | host, or invitee if policy allows |
+
+`calendar.ics` additionally sets `Cache-Control: public, max-age=300`.
+Cloudflare caches that at the edge, so gating the handler without changing the
+header to `private, no-store` leaves the leak in place.
+
+### Email enumeration
+
+The RSVP form must not reveal list membership. Accept every submission, send
+mail only on a match, return the same response either way — the password-reset
+pattern. Without it the guest list is probeable by anyone holding the link.
+
+### Guest-list visibility
+
+Default to **host-only**. `event_attendees` has no per-row visibility column;
+`lib/event.ts` (~248) already notes that making attendance public needs "a
+visibility column and a setting, not a query change". Invitees-see-each-other is
+a per-event setting and a later phase, not a v1 default.
+
+### Phase split
+
+**v1 — hand-picked.** Everything above.
+
+**v2 — invite all followers.** Costs more than the symmetry suggests.
+`social_follows` keys on `social_actors`; events key on `profiles`, and a host
+may instead be a group (`host_group_id`) with its own membership table — so
+"followers" means two different joins depending on host type. A follower-scoped
+event also has no stable guest list (tomorrow's follower is retroactively
+invited), which changes what the attendees page is showing.
+
+### Nostr
+
+Stays off-relay, same as unlisted. NIP-52 calendar events are public by spec:
+there is no private calendar event, private RSVP, or private guest list. NIP-59
+gift wrap could later deliver a listing to specific invitee pubkeys, but NIP-52
+does not profile onto it today.
+
+### Found while scoping — a live bug, unrelated to this feature
+
+`app/venues/[slug]/page.tsx:34` lists a venue's events filtering
+`eq(events.status, 'published')` with **no visibility clause**. Unlisted events
+are being listed on public venue pages today. It would leak invite-only events
+too, but it is already wrong and should be fixed on its own.
 
 ## Phase 2 — inbound RSVP sync (implemented)
 
@@ -142,7 +237,7 @@ kind-31923 listings, its Durable Object fires a detached, fail-open
   ingesting externally-authored event listings is future work.
 - **NIP-09 deletion on event delete/cancel** for crossposted events (also for
   chasing down mirror copies when a public event is made unlisted).
-- **True private (invitation-only) events** — see the dedicated section above.
+- **Invite-only events** — scoped; see the dedicated section above.
 - **Co-organizers** (`event_organizers`), **photos** (`event_photos`,
   `/e/[slug]/photos`), **organizer notes** (`event_notes`).
 - **Cloudflare streaming** (`stream_status`, `cf_stream_*`) for live events.
