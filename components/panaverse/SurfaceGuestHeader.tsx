@@ -50,6 +50,25 @@ export function SurfaceGuestHeader({
   const mark = SURFACE_MARK[surface.id];
   const ownerOrigin = originForFrom(owner, host);
 
+  /**
+   * Whether the owner has a site of its own to open, as reached from here.
+   *
+   * `originForFrom` answers for a surface with no hostname bound — one still
+   * carrying `subdomainPending`, or any surface at all while
+   * `PANAVERSE_SUBDOMAINS` is off — with the host in hand. That is the right
+   * answer for a link that must not point at a name DNS cannot resolve, and
+   * it is the wrong one for this link specifically: on `pana.social/e` the
+   * owner origin is `https://pana.social`, so "Open on Pana Events" offered
+   * the page already being read, wearing an external-link icon. Events is
+   * served from a path rather than a subdomain, so that was its settled state
+   * and not a gap waiting on a launch.
+   *
+   * Compared as origins rather than read off `subdomainPending`, because the
+   * flag is only one of the three ways a surface ends up with no origin of its
+   * own, and the other two would have gone on rendering the self-link.
+   */
+  const ownerHasOwnSite = ownerOrigin !== originForFrom(surface, host);
+
   return (
     <header
       className="panaverse-masthead panaverse-guest"
@@ -82,10 +101,22 @@ export function SurfaceGuestHeader({
           <span aria-hidden="true">·</span> A {owner.name} page
         </span>
 
-        <a href={`${ownerOrigin}${pathname}`} className="panaverse-guest-link">
-          Open on {owner.name}
-          <ExternalLink className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
-        </a>
+        {/* Dropped entirely rather than rendered inert when the owner has no
+            site of its own. The note beside it already says whose page this
+            is, which is the honest half; a control that goes nowhere is not a
+            weaker version of this link, it is a different and worse thing. */}
+        {ownerHasOwnSite && (
+          <a
+            href={`${ownerOrigin}${pathname}`}
+            className="panaverse-guest-link"
+          >
+            Open on {owner.name}
+            <ExternalLink
+              className="h-3.5 w-3.5 flex-none"
+              aria-hidden="true"
+            />
+          </a>
+        )}
       </div>
     </header>
   );
