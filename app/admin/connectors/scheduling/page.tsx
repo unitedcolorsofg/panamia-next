@@ -1,6 +1,7 @@
 import { CommitmentsTable } from '@/components/connectors/dashboard-parts';
 import { SetTaskForm } from '@/components/connectors/admin-console';
 import { LoadTable } from '@/components/connectors/load-table';
+import { StaffingTable } from '@/components/connectors/staffing-table';
 import { Panel, StatBand } from '@/components/Admin/parts';
 import { AdminSubNav } from '@/components/Admin/subnav';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
@@ -8,7 +9,13 @@ import { connectorsTabs } from '@/lib/connectors/admin-tabs';
 import { requireConnectorsAdmin } from '@/lib/connectors/admin-gate';
 import { countConnectorApplications } from '@/lib/connectors/membership';
 import { listRoster } from '@/lib/connectors/roster';
-import { connectorLoads, listOpenCommitments } from '@/lib/connectors/commitments';
+import {
+  connectorLoads,
+  eventStaffing,
+  listAssignableEvents,
+  listOpenCommitments,
+} from '@/lib/connectors/commitments';
+import { EMPTY_STAFFING, isUnderstaffed } from '@/lib/connectors/event-link';
 import { EMPTY_LOAD, formatMinutes } from '@/lib/connectors/hours';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 
@@ -37,13 +44,18 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
  * date to bucket by and any per-week number would be invented. Outstanding is
  * what can be counted honestly from what exists.
  *
- * ## Why events are not here
+ * ## Events are here too, as the other half of the question
  *
- * An event has `volunteersNeeded` but no sign-up table, and its `lead` is a
- * free-text name rather than a connector reference. So an event cannot be
- * attributed to anybody's load without guessing, and staffing one is a
- * different job from assigning a task to a named person. Events stay on the
- * overview with the rest of the programme's calendar.
+ * Load answers "who has room". Staffing answers "what still needs people".
+ * Assigning well needs both: a free connector is only useful next to the
+ * thing nobody has picked up.
+ *
+ * This became possible with drizzle/0061. Before it, a commitment could not
+ * name an event, so `connector_events.volunteersNeeded` counted up from
+ * nothing and an event asking for five people had no way to say whether it
+ * had four or none. Staffing is still not folded into load — an event is a
+ * target to fill, not work owned by a person, and a connector's hours are
+ * counted from their commitments whether or not those name an event.
  */
 
 export const metadata = {
@@ -54,12 +66,40 @@ export const metadata = {
 export default async function AdminConnectorSchedulingPage() {
   await requireConnectorsAdmin();
 
-  const [pendingCount, roster, loads, openWork] = await Promise.all([
-    countConnectorApplications(),
-    listRoster(),
-    connectorLoads(),
-    listOpenCommitments(40),
+  const [pendingCount, roster, loads, openWork, assignable] =
+    await Promise.all([
+      countConnectorApplications(),
+      listRoster(),
+      connectorLoads(),
+      listOpenCommitments(40),
+      listAssignableEvents(),
+    ]);
+
+  /* Two queries rather than one because the id spaces are separate — a public
+   * event and a programme event can hold the same cuid2 without colliding in
+   * their own tables, so one map keyed by bare id could cross them. */
+  const [programmeStaffing, publicStaffing] = await Promise.all([
+    eventStaffing(
+      'programme',
+      assignable.filter((e) => e.kind === 'programme').map((e) => e.id)
+    ),
+    eventStaffing(
+      'public',
+      assignable.filter((e) => e.kind === 'public').map((e) => e.id)
+    ),
   ]);
+
+  const staffingRows = assignable.map((event) => ({
+    event,
+    staffing:
+      (event.kind === 'programme' ? programmeStaffing : publicStaffing).get(
+        event.id
+      ) ?? EMPTY_STAFFING,
+  }));
+
+  const shortHanded = staffingRows.filter((row) =>
+    isUnderstaffed(row.staffing, row.event.volunteersNeeded)
+  ).length;
 
   /* Driven by the roster, not by the load map: a connector with nothing open
    * has no row in that map at all, and they are precisely the people this page
@@ -100,6 +140,14 @@ export default async function AdminConnectorSchedulingPage() {
       value: String(openWork.length >= 40 ? '40+' : openWork.length),
       note: 'Across the whole programme',
     },
+    {
+      label: 'Short-handed',
+      value: String(shortHanded),
+      note:
+        staffingRows.length === 0
+          ? 'Nothing on the calendar'
+          : `of ${staffingRows.length} upcoming`,
+    },
   ];
 
   return (
@@ -129,6 +177,15 @@ export default async function AdminConnectorSchedulingPage() {
           <LoadTable rows={loadRows} />
         </Panel>
 
+        <Panel title="Crew by event">
+          <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
+            Counted from commitments that name the event. Short-handed ones
+            come first — an event that never asked for a crew is not short, it
+            is simply unquantified, so it sits lower whatever its numbers.
+          </p>
+          <StaffingTable rows={staffingRows} />
+        </Panel>
+
         <Panel title="Set a task">
           <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
             This goes on their board marked as assigned. They can mark it done
@@ -141,6 +198,7 @@ export default async function AdminConnectorSchedulingPage() {
               displayName: m.displayName,
               houses: m.membership.houses,
             }))}
+            events={assignable}
           />
         </Panel>
 

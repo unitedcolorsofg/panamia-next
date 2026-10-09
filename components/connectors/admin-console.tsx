@@ -9,6 +9,8 @@ import type { HouseId, PodId, TierId } from '@/lib/connectors/model';
 import { CADENCES, CADENCE_LABEL } from '@/lib/connectors/events-model';
 import type { Cadence, ConnectorEvent } from '@/lib/connectors/events-model';
 import { localInputToIso } from '@/lib/datetime-local';
+import { eventValue } from '@/lib/connectors/event-link';
+import type { AssignableEvent, EventKind } from '@/lib/connectors/event-link';
 import {
   HOUR_PRESETS,
   MAX_HOURS,
@@ -16,7 +18,19 @@ import {
   minutesToHoursInput,
   parseHours,
 } from '@/lib/connectors/hours';
-import { EventCard } from '@/components/connectors/dashboard-parts';
+import { EventCard, formatDay } from '@/components/connectors/dashboard-parts';
+
+/**
+ * Programme gatherings above public events in the picker.
+ *
+ * Not alphabetical and not by date across the two: a connector is far more
+ * often assigned to the programme's own huddles and trainings than to a
+ * public party, so the common choice sits where the cursor already is.
+ */
+const PROGRAMME_FIRST: ReadonlyArray<{ kind: EventKind; label: string }> = [
+  { kind: 'programme', label: 'Connector events' },
+  { kind: 'public', label: 'Pana events' },
+];
 
 /**
  * The three things the admin console can actually change: who is in which
@@ -264,13 +278,20 @@ export interface TaskTarget {
  * their board under a heading that does not apply to them, and would be
  * counted in that house's workload by anybody reading the tallies.
  */
-export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
+export function SetTaskForm({
+  connectors,
+  events = [],
+}: {
+  connectors: TaskTarget[];
+  events?: AssignableEvent[];
+}) {
   const router = useRouter();
   const [profileId, setProfileId] = useState('');
   const [what, setWhat] = useState('');
   const [when, setWhen] = useState('');
   const [house, setHouse] = useState<string>('');
   const [hours, setHours] = useState('');
+  const [event, setEvent] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -308,6 +329,7 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
       when: when || null,
       house,
       estimatedMinutes,
+      event: event || null,
     });
 
     setBusy(false);
@@ -319,6 +341,7 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
     setWhat('');
     setWhen('');
     setHours('');
+    setEvent('');
     router.refresh();
   }
 
@@ -388,6 +411,44 @@ export function SetTaskForm({ connectors }: { connectors: TaskTarget[] }) {
           </select>
         </label>
       </div>
+
+      {/* Optional, and placed after the required fields so it never looks like
+          a step. Most work is not an event — "drop off zines at four shops"
+          has no date on anyone's calendar — so the empty option is the
+          default and is phrased as a real choice rather than as a blank. */}
+      {events.length > 0 && (
+        <label className="mt-3 block">
+          <span className={LABEL}>For an event</span>
+          <select
+            className={`${FIELD} mt-1`}
+            value={event}
+            onChange={(e) => setEvent(e.target.value)}
+          >
+            <option value="">Not tied to an event</option>
+            {PROGRAMME_FIRST.map(({ kind, label }) => {
+              const group = events.filter((option) => option.kind === kind);
+              if (group.length === 0) return null;
+              return (
+                <optgroup key={kind} label={label}>
+                  {group.map((option) => (
+                    <option
+                      key={eventValue(option)}
+                      value={eventValue(option)}
+                    >
+                      {formatDay(new Date(option.startsAt))} — {option.title}
+                      {option.where ? ` · ${option.where}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
+          </select>
+          <p className="text-pana-ink/55 mt-2 text-xs leading-relaxed">
+            Attaching it counts this person toward that event&rsquo;s crew, so
+            the board can tell a staffed event from one nobody has picked up.
+          </p>
+        </label>
+      )}
 
       {/* Presets first, free entry behind them. The estimate is the field most
           likely to be skipped, and skipping it costs the scheduling table its

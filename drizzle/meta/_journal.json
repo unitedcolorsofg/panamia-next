@@ -435,6 +435,13 @@
       "when": 1791849600000,
       "tag": "0060_commitment_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791936000000,
+      "tag": "0061_commitment_event",
+      "breakpoints": true
     }
   ]
 }

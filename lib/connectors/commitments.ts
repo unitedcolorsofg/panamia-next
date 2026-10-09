@@ -1,10 +1,21 @@
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, ne, desc, sql } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
 import { db } from '@/lib/db';
-import { connectorCommitments, profiles } from '@/lib/schema';
+import {
+  connectorCommitments,
+  connectorEvents,
+  events,
+  profiles,
+  venues,
+} from '@/lib/schema';
 import { HOUSES } from '@/lib/connectors/model';
 import type { ConnectorLoad } from '@/lib/connectors/hours';
+import type {
+  AssignableEvent,
+  EventKind,
+  EventStaffing,
+} from '@/lib/connectors/event-link';
 import type { CommitmentProgress, HouseId } from '@/lib/connectors/model';
 
 /**
@@ -67,6 +78,17 @@ export interface ConnectorCommitment {
   createdAt: string;
   /** Rough size in minutes. `null` means nobody has estimated it. */
   estimatedMinutes: number | null;
+  /**
+   * The event this staffs, if any. At most one of the two is set — see
+   * `lib/connectors/event-link.ts` for why there are two columns.
+   */
+  eventId: string | null;
+  connectorEventId: string | null;
+  /**
+   * The event's name, when the row came from a query that joined for it.
+   * Absent — not null — when it was never looked up. See `toCommitment`.
+   */
+  eventTitle?: string | null;
   /** The user who set this as a task. `null` means self-authored. */
   assignedBy: string | null;
   assignedAt: string | null;
@@ -77,6 +99,17 @@ export interface ConnectorCommitmentWithOwner extends ConnectorCommitment {
   profileId: string;
   ownerName: string;
 }
+
+/**
+ * The attached event's title, whichever table it lives in.
+ *
+ * One expression shared by both list queries so they cannot drift. The CHECK
+ * in 0061 guarantees at most one side is non-null, so `coalesce` is a choice
+ * between a value and a null rather than between two values.
+ */
+const EVENT_TITLE = sql<
+  string | null
+>`coalesce(${events.title}, ${connectorEvents.title})`;
 
 function isHouse(value: string): value is HouseId {
   return HOUSE_IDS.has(value);
@@ -103,8 +136,12 @@ type Row = {
   progress: string;
   createdAt: Date;
   estimatedMinutes: number | null;
+  eventId: string | null;
+  connectorEventId: string | null;
   assignedBy: string | null;
   assignedAt: Date | null;
+  /** Joined in by the list queries only; absent on the insert's own return. */
+  eventTitle?: string | null;
 };
 
 function toCommitment(row: Row): ConnectorCommitment | null {
@@ -119,6 +156,12 @@ function toCommitment(row: Row): ConnectorCommitment | null {
     progress: row.progress,
     createdAt: row.createdAt.toISOString(),
     estimatedMinutes: row.estimatedMinutes,
+    eventId: row.eventId,
+    connectorEventId: row.connectorEventId,
+    /* Spread rather than set to null when missing. `createCommitment` does not
+     * join, and reporting "no event" on a row that was just given one would be
+     * wrong in a way the caller cannot detect. Absent says "not looked up". */
+    ...(row.eventTitle !== undefined ? { eventTitle: row.eventTitle } : {}),
     assignedBy: row.assignedBy,
     assignedAt: row.assignedAt?.toISOString() ?? null,
   };
@@ -143,10 +186,18 @@ export async function listCommitments(
       progress: connectorCommitments.progress,
       createdAt: connectorCommitments.createdAt,
       estimatedMinutes: connectorCommitments.estimatedMinutes,
+      eventId: connectorCommitments.eventId,
+      connectorEventId: connectorCommitments.connectorEventId,
+      eventTitle: EVENT_TITLE,
       assignedBy: connectorCommitments.assignedBy,
       assignedAt: connectorCommitments.assignedAt,
     })
     .from(connectorCommitments)
+    .leftJoin(events, eq(events.id, connectorCommitments.eventId))
+    .leftJoin(
+      connectorEvents,
+      eq(connectorEvents.id, connectorCommitments.connectorEventId)
+    )
     .where(eq(connectorCommitments.profileId, profileId))
     .orderBy(asc(connectorCommitments.createdAt));
 
@@ -171,6 +222,12 @@ export interface NewCommitment {
   house: HouseId;
   /** Rough size in minutes. Omit when nobody has estimated it. */
   estimatedMinutes?: number | null;
+  /**
+   * The event this staffs. Built by `eventColumns` so the pair cannot come
+   * apart; passing both set violates the CHECK in drizzle/0061.
+   */
+  eventId?: string | null;
+  connectorEventId?: string | null;
   /** Omit for a self-authored commitment; pass a user id for a staff task. */
   assignedBy?: string | null;
 }
@@ -187,6 +244,8 @@ export async function createCommitment(
 ): Promise<ConnectorCommitment> {
   const assignedBy = input.assignedBy ?? null;
   const estimatedMinutes = input.estimatedMinutes ?? null;
+  const eventId = input.eventId ?? null;
+  const connectorEventId = input.connectorEventId ?? null;
   const now = new Date();
 
   const row = {
@@ -197,6 +256,8 @@ export async function createCommitment(
     house: input.house,
     progress: 'notSet' as const,
     estimatedMinutes,
+    eventId,
+    connectorEventId,
     assignedBy,
     assignedAt: assignedBy ? now : null,
     createdAt: now,
@@ -213,6 +274,8 @@ export async function createCommitment(
     progress: 'notSet',
     createdAt: now.toISOString(),
     estimatedMinutes,
+    eventId,
+    connectorEventId,
     assignedBy,
     assignedAt: assignedBy ? now.toISOString() : null,
   };
@@ -336,6 +399,9 @@ export async function listOpenCommitments(
       progress: connectorCommitments.progress,
       createdAt: connectorCommitments.createdAt,
       estimatedMinutes: connectorCommitments.estimatedMinutes,
+      eventId: connectorCommitments.eventId,
+      connectorEventId: connectorCommitments.connectorEventId,
+      eventTitle: EVENT_TITLE,
       assignedBy: connectorCommitments.assignedBy,
       assignedAt: connectorCommitments.assignedAt,
       profileId: connectorCommitments.profileId,
@@ -345,6 +411,11 @@ export async function listOpenCommitments(
     })
     .from(connectorCommitments)
     .innerJoin(profiles, eq(profiles.id, connectorCommitments.profileId))
+    .leftJoin(events, eq(events.id, connectorCommitments.eventId))
+    .leftJoin(
+      connectorEvents,
+      eq(connectorEvents.id, connectorCommitments.connectorEventId)
+    )
     .where(ne(connectorCommitments.progress, 'done'))
     .orderBy(desc(connectorCommitments.createdAt))
     .limit(limit);
@@ -388,6 +459,190 @@ export async function commitmentTotals(): Promise<{
   const done = row?.done ?? 0;
 
   return { total, open: total - done, done, assigned: row?.assigned ?? 0 };
+}
+
+/**
+ * Who is working which event, keyed by event id.
+ *
+ * The mirror image of `connectorLoads`: that one groups open work by the
+ * person carrying it, this one groups it by the thing it is for. Same rows,
+ * same filter, opposite axis — which is what makes "this event is short two
+ * people" and "this connector has room" answerable on the same page.
+ *
+ * Takes the kind rather than querying both columns at once because the two
+ * id spaces are separate and a single map keyed by bare id could collide.
+ * Callers hold one kind of event at a time and ask for that.
+ *
+ * Scoped to an explicit id list so this stays a lookup for events already on
+ * screen rather than a scan of every commitment ever made. An empty list is
+ * answered without touching the database — a page with no events should cost
+ * no query.
+ *
+ * Open rows only, matching `connectorLoads`. Somebody who finished their shift
+ * is no longer staffing the event in any sense a scheduler cares about; the
+ * question this answers is "is anyone going to do this", not "did anyone".
+ */
+export async function eventStaffing(
+  kind: EventKind,
+  eventIds: string[]
+): Promise<Map<string, EventStaffing>> {
+  if (eventIds.length === 0) return new Map();
+
+  const column =
+    kind === 'public'
+      ? connectorCommitments.eventId
+      : connectorCommitments.connectorEventId;
+
+  const rows = await db
+    .select({
+      eventId: column,
+      connectors: sql<number>`count(*)::int`,
+      estimatedMinutes: sql<number>`coalesce(sum(${connectorCommitments.estimatedMinutes}), 0)::int`,
+      unestimated: sql<number>`(count(*) filter (where ${connectorCommitments.estimatedMinutes} is null))::int`,
+    })
+    .from(connectorCommitments)
+    .where(
+      and(
+        inArray(column, eventIds),
+        ne(connectorCommitments.progress, 'done')
+      )
+    )
+    .groupBy(column);
+
+  return new Map(
+    rows.flatMap((row) =>
+      row.eventId
+        ? [
+            [
+              row.eventId,
+              {
+                connectors: row.connectors,
+                estimatedMinutes: row.estimatedMinutes,
+                unestimated: row.unestimated,
+              },
+            ] as const,
+          ]
+        : []
+    )
+  );
+}
+
+/**
+ * The events a commitment may be attached to: everything still ahead.
+ *
+ * Both lists in one call because the assign form shows one dropdown, and
+ * fetching them separately would let the two halves be from different moments.
+ *
+ * Past events are excluded. You cannot staff something that has happened, and
+ * an admin scrolling a year of history to find next Saturday is the failure
+ * this list exists to avoid. Cancelled programme events go too — they are not
+ * work any more.
+ *
+ * Public events are limited to published ones: a draft has no date anybody has
+ * agreed to, and assigning crew to it would commit people to a plan that may
+ * never be announced.
+ */
+export async function listAssignableEvents(): Promise<AssignableEvent[]> {
+  const now = new Date();
+
+  const [programme, publicRows] = await Promise.all([
+    db
+      .select({
+        id: connectorEvents.id,
+        title: connectorEvents.title,
+        startsAt: connectorEvents.startsAt,
+        location: connectorEvents.location,
+        volunteersNeeded: connectorEvents.volunteersNeeded,
+      })
+      .from(connectorEvents)
+      .where(
+        and(
+          gte(connectorEvents.startsAt, now),
+          isNull(connectorEvents.cancelledAt)
+        )
+      )
+      .orderBy(asc(connectorEvents.startsAt))
+      .limit(50),
+    db
+      .select({
+        id: events.id,
+        title: events.title,
+        startsAt: events.startsAt,
+        venueName: venues.name,
+      })
+      .from(events)
+      .leftJoin(venues, eq(venues.id, events.venueId))
+      .where(and(gte(events.startsAt, now), eq(events.status, 'published')))
+      .orderBy(asc(events.startsAt))
+      .limit(50),
+  ]);
+
+  return [
+    ...programme.map(
+      (row): AssignableEvent => ({
+        kind: 'programme',
+        id: row.id,
+        title: row.title,
+        startsAt: row.startsAt.toISOString(),
+        where: row.location,
+        volunteersNeeded: row.volunteersNeeded,
+      })
+    ),
+    ...publicRows.map(
+      (row): AssignableEvent => ({
+        kind: 'public',
+        id: row.id,
+        title: row.title,
+        startsAt: row.startsAt.toISOString(),
+        where: row.venueName,
+        // Public events have no crew target. See AssignableEvent.
+        volunteersNeeded: null,
+      })
+    ),
+  ].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+}
+
+/**
+ * Does this event exist and is it still assignable?
+ *
+ * Called by the write path before inserting, so that a stale dropdown — one
+ * rendered before somebody cancelled the event — is a 400 naming the problem
+ * rather than a foreign key violation surfacing as a 500. The FK is still
+ * what guarantees correctness; this only improves the message.
+ */
+export async function assignableEventExists(
+  kind: EventKind,
+  id: string
+): Promise<boolean> {
+  const now = new Date();
+
+  if (kind === 'programme') {
+    const [row] = await db
+      .select({ id: connectorEvents.id })
+      .from(connectorEvents)
+      .where(
+        and(
+          eq(connectorEvents.id, id),
+          gte(connectorEvents.startsAt, now),
+          isNull(connectorEvents.cancelledAt)
+        )
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  const [row] = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(
+      and(
+        eq(events.id, id),
+        gte(events.startsAt, now),
+        eq(events.status, 'published')
+      )
+    )
+    .limit(1);
+  return Boolean(row);
 }
 
 /**

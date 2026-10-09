@@ -6,6 +6,7 @@ import { profiles } from '@/lib/schema';
 import { checkAdminAuth } from '@/lib/server/admin-auth';
 import { parseConnector } from '@/lib/connectors/membership';
 import {
+  assignableEventExists,
   countCommitments,
   createCommitment,
   removeCommitmentAsStaff,
@@ -13,6 +14,8 @@ import {
   WHAT_MAX,
   WHEN_MAX,
 } from '@/lib/connectors/commitments';
+import { eventColumns, parseEventValue } from '@/lib/connectors/event-link';
+import type { EventKind } from '@/lib/connectors/event-link';
 import { HOUSES } from '@/lib/connectors/model';
 import type { HouseId } from '@/lib/connectors/model';
 import { MAX_MINUTES } from '@/lib/connectors/hours';
@@ -122,6 +125,27 @@ export async function POST(request: NextRequest) {
       estimatedMinutes = raw;
     }
 
+    /* Parsed before the membership lookup so a malformed value costs nothing,
+     * but existence is checked after it — see below. Absent, null and the
+     * empty string all mean "no event", which is the common case and not an
+     * error; only a non-empty value that does not decode is rejected. */
+    const rawEvent = payload.event;
+    let eventChoice: { kind: EventKind; id: string } | null = null;
+    if (typeof rawEvent === 'string' && rawEvent !== '') {
+      eventChoice = parseEventValue(rawEvent);
+      if (!eventChoice) {
+        return NextResponse.json(
+          { success: false, error: 'That event is not one we recognise.' },
+          { status: 400 }
+        );
+      }
+    } else if (rawEvent !== null && rawEvent !== undefined && rawEvent !== '') {
+      return NextResponse.json(
+        { success: false, error: 'That event is not one we recognise.' },
+        { status: 400 }
+      );
+    }
+
     /* The target has to be an accepted member. Assigning work to a pending
      * applicant would put a task on a board they cannot open, and the queue
      * would then show an application with work already logged against it —
@@ -148,6 +172,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /* Checked here so a dropdown rendered before somebody cancelled the event
+     * fails with a sentence instead of a foreign key violation. The FK is
+     * still what guarantees the reference; this only decides the message. */
+    if (eventChoice && !(await assignableEventExists(eventChoice.kind, eventChoice.id))) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'That event is no longer open for assignments.',
+        },
+        { status: 409 }
+      );
+    }
+
     const commitment = await createCommitment({
       profileId,
       what,
@@ -155,6 +192,7 @@ export async function POST(request: NextRequest) {
       house: house as HouseId,
       assignedBy: admin.id,
       estimatedMinutes,
+      ...eventColumns(eventChoice),
     });
 
     return NextResponse.json({ success: true, data: commitment });
