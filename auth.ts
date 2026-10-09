@@ -1204,6 +1204,49 @@ function getBetterAuth(): BetterAuthInstance {
       },
       session: {
         create: {
+          /**
+           * Refuse a session for a locked account.
+           *
+           * This is the half of account locking that makes the column mean
+           * something. `users.locked_at` had been in the schema since the
+           * first migration, was read back by two endpoints as `locked`, and
+           * was consulted by nothing — so an admin console that wrote it would
+           * have produced a button reporting "Locked" over a member who was
+           * still browsing.
+           *
+           * It hangs off session creation rather than the account hook for the
+           * reason the `after` hook below already documents: this is the only
+           * path every sign-in goes through. Hooking the providers instead
+           * would leave magic links as an unlocked side door, which is the
+           * door somebody looking for one would find.
+           *
+           * The other half is session revocation at lock time, in
+           * lib/admin/users.ts — this stops the next sign-in, that ends the
+           * one already open. Either alone leaves a usable account.
+           *
+           * Failing open on a database error is deliberate. The alternative is
+           * that a blip in this query locks every member out of the site at
+           * once, which is a far larger outage than the one locked account
+           * getting an extra few minutes.
+           */
+          before: async (session) => {
+            if (!session.userId) return;
+            try {
+              const [row] = await db
+                .select({ lockedAt: users.lockedAt })
+                .from(users)
+                .where(eq(users.id, session.userId))
+                .limit(1);
+              if (row?.lockedAt) {
+                console.warn('Sign-in blocked: account is locked', {
+                  userId: session.userId,
+                });
+                return false;
+              }
+            } catch (error) {
+              console.error('Lock check failed; allowing sign-in', error);
+            }
+          },
           after: async (session) => {
             // Every sign-in creates a session, so this is the path that covers
             // magic links — the account hook above never fires for them.

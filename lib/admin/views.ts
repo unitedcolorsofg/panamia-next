@@ -163,10 +163,10 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     blurb: 'Every account on the site, and what staff can do about one.',
     does: [
       'Find an account by name, handle or email',
-      'Lock an account the abuse queue has escalated',
+      'Lock an account: ends their sessions and refuses the next sign-in',
       'See who holds admin, and why it cannot be granted here',
     ],
-    status: 'mock',
+    status: 'live',
     icon: UsersRound,
   },
   {
