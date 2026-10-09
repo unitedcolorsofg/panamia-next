@@ -55,6 +55,18 @@ export const inventory: Record<TableExport, Classification> = {
   users: ['account'],
   accounts: ['account', 'oauth_identity', 'oauth_tokens'],
   sessions: ['account'],
+  // A staff record *about* an account: who locked or unlocked it, when, and
+  // the written reason. Classified under 'account' because it is wholly about
+  // one member's access to their own account — but note it holds two people,
+  // the subject and the acting admin, and the admin's email is kept
+  // deliberately so the entry survives them deleting their own account.
+  //
+  // It is not exported to the subject on request without redaction: the reason
+  // text may quote a third party's report, and handing over the moderator's
+  // identity verbatim is how a lock becomes a reprisal. There is no
+  // subject-access export in the product yet; this note is here so that
+  // whoever writes one does not discover the problem by shipping it.
+  userLocks: ['account'],
   verification: ['verification_tokens'],
   oAuthVerifications: ['verification_tokens'],
 

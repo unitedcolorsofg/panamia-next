@@ -414,6 +414,13 @@
       "when": 1791590400000,
       "tag": "0057_connector_events",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791676800000,
+      "tag": "0058_user_locks",
+      "breakpoints": true
     }
   ]
 }

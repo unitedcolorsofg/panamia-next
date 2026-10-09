@@ -115,6 +115,32 @@ function SignInPageContent({
      Pana Social used to drop the member on the directory, which reads as the
      sign-in having failed and sent them somewhere else. */
   const callbackUrl = searchParams?.get('callbackUrl') || rootPath;
+  /* better-auth redirects failed magic links back here with ?error=. Without
+     this the most important case is silent: a locked account clicking a valid
+     link gets bounced with `failed_to_create_session` in the query string and
+     no UI reads it, so the page simply renders as though nothing happened.
+     They try again, it fails again, and the only person who can explain it is
+     an admin looking at a table they cannot see.
+
+     The lock message deliberately does not say why the account was locked.
+     The reason is recorded and belongs in a reply from a human, not on a
+     public page that anybody who knows the address could trigger. */
+  const signInError = searchParams?.get('error');
+  const errorMessage = (() => {
+    switch (signInError) {
+      case 'failed_to_create_session':
+        return 'This account has been locked. Reply to any Pana email and we will take a look.';
+      case 'INVALID_TOKEN':
+        return 'That sign-in link has expired or has already been used. Request a new one below.';
+      case 'new_user_signup_disabled':
+        return 'That email does not have an account yet.';
+      case null:
+      case undefined:
+        return null;
+      default:
+        return 'Something went wrong signing you in. Try requesting a new link.';
+    }
+  })();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -307,6 +333,15 @@ function SignInPageContent({
                   {ts('welcomeDesc')}
                 </p>
               </div>
+
+              {errorMessage ? (
+                <div
+                  role="alert"
+                  className="border-destructive/40 bg-destructive/10 text-foreground rounded-lg border-2 px-4 py-3 text-sm font-semibold"
+                >
+                  {errorMessage}
+                </div>
+              ) : null}
 
               {/* OAuth sign-in — configured providers only */}
               {hasOAuth && (

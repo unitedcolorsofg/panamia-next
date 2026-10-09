@@ -602,6 +602,47 @@ export const sessions = pgTable('sessions', {
     .$onUpdateFn(() => new Date()),
 });
 
+/**
+ * Every lock and unlock ever applied to an account.
+ *
+ * `users.lockedAt` is the current state; this is the history behind it. An
+ * unlock clears that column, so without this table a member who has been
+ * locked three times looks exactly like one who never has — which is the
+ * context the next person needs to judge the fourth report.
+ *
+ * `actorEmail` sits next to `actorUserId` because the log has to outlive the
+ * people in it: an ADMIN_EMAILS founder may have no account at all, and an
+ * actor who does may later delete theirs (the FK is SET NULL so this log can
+ * never be the reason somebody cannot leave).
+ */
+export const userLocks = pgTable(
+  'user_locks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 'lock' | 'unlock'. Constrained in SQL; see 0058. */
+    action: text('action').notNull(),
+    reason: text('reason').notNull(),
+    actorUserId: text('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    actorEmail: text('actor_email').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index('user_locks_user_id_created_at_idx').on(
+      table.userId,
+      table.createdAt.desc()
+    ),
+  ]
+);
+
 export const verification = pgTable('verification_tokens', {
   id: text('id')
     .primaryKey()
