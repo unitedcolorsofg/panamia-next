@@ -3,14 +3,34 @@ import { db } from '@/lib/db';
 import { profiles, users } from '@/lib/schema';
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { DIRECTORY_ACCOUNT_TYPES } from '@/lib/accounts';
-import { sendTemplateEmail } from '@/lib/email';
+import {
+  decideListing,
+  type ListingStatus,
+} from '@/lib/server/listing-decision';
 
-interface ProfileStatus {
-  access?: string;
-  approved?: string;
-  declined?: string;
-  [key: string]: string | undefined;
-}
+/**
+ * Approve or decline a listing from the link in a staff email.
+ *
+ * ## Why this has no session check
+ *
+ * Because it is clicked from an inbox, usually on a phone, usually by someone
+ * who is not signed in. The access key in the URL is the credential. That is a
+ * deliberate trade and it is the reason `app/admin/layout.tsx` carries no
+ * server-side gate — see `components/Admin/gate.tsx`.
+ *
+ * ## Why the write is not here
+ *
+ * `/admin/listings` is the second door onto the same decision and it
+ * authenticates completely differently. Keeping the write in
+ * `lib/server/listing-decision` means the two cannot drift into disagreeing
+ * about what approving a business does. This route keeps only what is actually
+ * specific to it: the capability check, the membership count, and the response
+ * shape the confirmation page expects.
+ *
+ * `expect` is left at its default here. The link in a decline email still works
+ * after an approve, because reversing a decision is a real thing staff do and
+ * that email is sometimes the only artefact they still have.
+ */
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -54,33 +74,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Profile Not Found' });
     }
 
-    const profileStatus = existingProfile.status as ProfileStatus | null;
+    const profileStatus = existingProfile.status as ListingStatus | null;
 
     if (profileStatus?.access !== access) {
       return NextResponse.json({ success: false, error: 'Invalid Access Key' });
     }
 
-    if (action === 'approve') {
-      const original_approved_date = profileStatus?.approved;
-      const newStatus = {
-        ...profileStatus,
-        approved: new Date().toISOString(),
-      };
+    if (action === 'approve' || action === 'decline') {
+      const result = await decideListing({
+        profileId: existingProfile.id,
+        decision: action,
+      });
 
-      await db
-        .update(profiles)
-        .set({
-          active: true,
-          status: newStatus,
-        })
-        .where(eq(profiles.email, emailCheck));
-
-      if (!original_approved_date) {
-        await sendTemplateEmail(
-          'profile.published',
-          { name: existingProfile.name },
-          existingProfile.email
-        );
+      if (!result.ok) {
+        return NextResponse.json({ success: false, error: 'Profile Not Found' });
       }
 
       return NextResponse.json(
@@ -88,47 +95,11 @@ export async function POST(request: NextRequest) {
           success: true,
           data: [
             {
-              message: 'Profile has been set active',
-              name: existingProfile.name,
-              handle: null,
-              total: totalProfiles,
-            },
-          ],
-        },
-        { status: 200 }
-      );
-    }
-
-    if (action === 'decline') {
-      const original_declined_date = profileStatus?.declined;
-      const newStatus = {
-        ...profileStatus,
-        declined: new Date().toISOString(),
-      };
-
-      await db
-        .update(profiles)
-        .set({
-          active: false,
-          status: newStatus,
-        })
-        .where(eq(profiles.email, emailCheck));
-
-      if (!original_declined_date) {
-        await sendTemplateEmail(
-          'profile.not_published',
-          { name: existingProfile.name },
-          existingProfile.email
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: [
-            {
-              message: 'Profile has been declined',
-              name: existingProfile.name,
+              message:
+                action === 'approve'
+                  ? 'Profile has been set active'
+                  : 'Profile has been declined',
+              name: result.name,
               handle: null,
               total: totalProfiles,
             },

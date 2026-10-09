@@ -128,7 +128,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
       'Read the application without leaving the queue',
       'Approve or decline',
     ],
-    status: 'mock',
+    status: 'live',
     icon: Store,
   },
   {
