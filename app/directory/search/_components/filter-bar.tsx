@@ -3,7 +3,7 @@
 import { LayoutList, Map as MapIcon, X } from 'lucide-react';
 import { countyList, profileCategoryList } from '@/lib/lists';
 import type { DirectorySort } from '@/lib/query/directory';
-import { FilterMenu, type FilterMenuOption } from './filter-menu';
+import { FilterMenu, type FilterMenuOption } from '@/components/ui/filter-menu';
 
 export type ResultView = 'list' | 'map';
 

@@ -743,6 +743,18 @@ export const useLeaveGroup = () => {
  * does not — that list renders on pages strangers read, so admitting a group
  * is private would disclose both the group and the membership.
  */
+/**
+ * The next thing one of your groups has on its calendar.
+ *
+ * Mirrors MyGroupNextEvent on the server. Two fields because the rail dates
+ * a group rather than naming the event, and `timezone` because an event is
+ * on the day its own city says it is.
+ */
+export interface MyGroupNextEvent {
+  startsAt: string;
+  timezone: string;
+}
+
 export interface MyGroupSummary {
   id: string;
   handle: string;
@@ -753,6 +765,16 @@ export interface MyGroupSummary {
   visibility: SocialGroupVisibility;
   joinPolicy: SocialGroupJoinPolicy;
   role: SocialGroupRole;
+  /**
+   * Posts in the last seven days.
+   *
+   * Unlike the browse cards, this is NOT zeroed for private groups -- you
+   * are a member of everything in this list, so your own group's pulse is
+   * yours to see.
+   */
+  postsThisWeek: number;
+  /** Next published public event, or null. */
+  nextEvent: MyGroupNextEvent | null;
 }
 
 interface MyGroupsResponse {

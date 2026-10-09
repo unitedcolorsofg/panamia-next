@@ -158,8 +158,12 @@ const MAX_FACES = 5;
  * 30-day one cannot tell a group that stopped last week from one that
  * stopped last month -- which is the single distinction this number exists
  * to draw.
+ *
+ * Exported because the groups rail counts the same thing for a member's own
+ * groups (see listMyGroups). Two copies of this number would let a card read
+ * "quiet this week" next to a rail dot saying otherwise.
  */
-const ACTIVITY_WINDOW_DAYS = 7;
+export const ACTIVITY_WINDOW_DAYS = 7;
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;

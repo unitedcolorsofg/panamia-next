@@ -29,6 +29,14 @@ interface FilterMenuProps {
   /** Radio behaviour, for menus like Sort where exactly one answer is true. */
   single?: boolean;
   /**
+   * Rows that perform an action instead of holding a filter state — picking
+   * one navigates somewhere. Drops the tick column, since a checkbox that can
+   * never be checked promises a toggle the row does not do, and uses plain
+   * `menuitem`, which is what ARIA means by "activating this does something".
+   * Implies `single`: there is nothing to accumulate.
+   */
+  action?: boolean;
+  /**
    * The value a single-select menu holds when nobody has touched it. Sort
    * always has an answer, so without this it would render permanently filled
    * and "active" would stop meaning anything across the row.
@@ -41,7 +49,14 @@ interface FilterMenuProps {
 /**
  * One filter, folded up until asked for.
  *
- * The bar this belongs to used to lay every choice out as chips, and the
+ * Shared by the directory search bar and the groups surface. It lives here
+ * rather than in either feature because the keyboard contract below is the
+ * expensive part, and a second copy of it is a second chance to drop a
+ * keystroke. The `dirsearch-` class names are a leftover from the directory,
+ * where it started; the styles are global and the rename is tracked
+ * separately, so renaming them is not this component's job to do piecemeal.
+ *
+ * The bar this started in used to lay every choice out as chips, and the
  * comment on FilterBar still argues for that: a "Filters" button costs two
  * clicks before you learn the directory has categories at all, and hides
  * which ones are on once it closes.
@@ -55,15 +70,15 @@ interface FilterMenuProps {
  *
  * So this keeps the two things the chips were good at and drops the third.
  * The trigger names its own state — "Category · 2", "Where · Broward" — so a
- * closed menu still says what it is doing, and any active choice also appears
- * as a removable chip in the row beneath, so clearing one never requires
+ * closed menu still says what it is doing, and callers pair it with a
+ * removable chip for any active choice, so clearing one never requires
  * opening anything. What is folded away is only the list of options you are
  * not currently using.
  *
  * Deliberately not <select>: these are multi-select on mobile, where a native
  * multiple select renders as a scrolling list box that is worse than either
  * option. The keyboard contract below is the same one ScopeMenu implements,
- * for the same reason — it is the other menu on this page.
+ * for the same reason — it is the other menu on the directory page.
  */
 export function FilterMenu({
   label,
@@ -71,9 +86,11 @@ export function FilterMenu({
   selected,
   onChange,
   single = false,
+  action = false,
   defaultValue,
   caption,
 }: FilterMenuProps) {
+  const closesOnPick = single || action;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -107,9 +124,10 @@ export function FilterMenu({
   };
 
   const toggle = (value: string) => {
-    if (single) {
+    if (closesOnPick) {
       onChange([value]);
-      // A single-answer menu has nothing left to ask once answered.
+      // A single-answer menu has nothing left to ask once answered, and an
+      // action menu is already on its way somewhere else.
       close(true);
       return;
     }
@@ -229,8 +247,14 @@ export function FilterMenu({
                     if (index >= 0) itemRefs.current[index] = node;
                   }}
                   type="button"
-                  role={single ? 'menuitemradio' : 'menuitemcheckbox'}
-                  aria-checked={on}
+                  role={
+                    action
+                      ? 'menuitem'
+                      : single
+                        ? 'menuitemradio'
+                        : 'menuitemcheckbox'
+                  }
+                  aria-checked={action ? undefined : on}
                   disabled={Boolean(option.disabledReason)}
                   title={option.disabledReason}
                   className="dirsearch-menuitem"
@@ -238,9 +262,11 @@ export function FilterMenu({
                   onClick={() => toggle(option.value)}
                   onKeyDown={(event) => onItemKeyDown(event, index)}
                 >
-                  <span className="dirsearch-menutick" aria-hidden="true">
-                    {on && <Check className="h-3 w-3" />}
-                  </span>
+                  {!action && (
+                    <span className="dirsearch-menutick" aria-hidden="true">
+                      {on && <Check className="h-3 w-3" />}
+                    </span>
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="dirsearch-menulabel">{option.label}</span>
                     {option.hint && (
@@ -253,8 +279,9 @@ export function FilterMenu({
           </div>
 
           {/* Only offered when there is something to clear, and only on the
-              multi-select menus — "no sort" is not a state this page has. */}
-          {!single && chosen.length > 0 && (
+              multi-select menus — "no sort" is not a state this page has, and
+              an action menu holds no state to clear. */}
+          {!single && !action && chosen.length > 0 && (
             <button
               type="button"
               className="dirsearch-menuclear"

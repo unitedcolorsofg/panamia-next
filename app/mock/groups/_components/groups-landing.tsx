@@ -14,10 +14,9 @@ import {
   searchGroups,
   topicsWithCounts,
   upcomingEvents,
-  yourGroups,
   type ViewerAuth,
 } from '../_data/mock-groups';
-import { GroupCard, GroupEventRow, GroupRow, TopicChip } from './group-cards';
+import { GroupCard, GroupEventRow, TopicChip } from './group-cards';
 
 /**
  * The proposed /groups landing page.
@@ -54,7 +53,6 @@ export function GroupsLanding({
   viewer: ViewerAuth;
   onOpenDiscover: (topic?: string) => void;
 }) {
-  const mine = yourGroups();
   const signedIn = viewer === 'member';
   const topics = topicsWithCounts();
 
@@ -65,36 +63,15 @@ export function GroupsLanding({
     .slice(0, 4);
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 pt-8">
+    <div>
       <Hero signedIn={signedIn} onOpenDiscover={onOpenDiscover} />
 
-      {/* Signed out there is no shelf, because there are no groups of yours
-          to put on it -- the same rule the live page already follows. An
-          empty-state card here would be worse than nothing: it would tell
-          somebody who has never joined a group that they have no groups. */}
-      {signedIn && mine.length > 0 && (
-        <section className="mt-12">
-          <SectionHead
-            title="Your groups"
-            hint={`${mine.length} you are in`}
-            action={
-              <Link
-                href="/mock/group"
-                className="link-arrow text-pana-indigo text-[13px] font-extrabold"
-              >
-                See all
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-            }
-          />
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {mine.map((group) => (
-              <GroupRow key={group.id} group={group} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* No "Your groups" shelf here any more -- it moved to the rail in
+          groups-shell.tsx. It was the first block on this page, which meant a
+          member had to scroll past their own list to reach the browse blocks
+          that are the reason somebody who is NOT in a group opens this page,
+          and it disappeared the moment they went to discover. A rail keeps it
+          reachable from both pages without spending the top of either. */}
 
       <section className="mt-12">
         <SectionHead
@@ -195,22 +172,26 @@ function Hero({
   onOpenDiscover: (topic?: string) => void;
 }) {
   return (
-    <header className="text-center">
-      <span className="card-flag mx-auto">
+    /* Left-aligned, not centred. A centred hero reads as the top of a page
+       that owns its whole width; next to a rail it reads as a block that has
+       drifted off its own left edge. Everything below it -- section heads,
+       cards, the rail itself -- starts at the same line, so this does too. */
+    <header>
+      <span className="card-flag">
         <Users className="h-3 w-3" aria-hidden="true" />
         Pana Social
       </span>
 
-      <h1 className="text-pana-ink mx-auto mt-3 max-w-2xl text-3xl leading-tight font-extrabold sm:text-4xl">
+      <h1 className="text-pana-ink mt-3 max-w-2xl text-3xl leading-tight font-extrabold sm:text-4xl">
         Groups are where a shared interest gets a room
       </h1>
 
-      <p className="text-pana-ink/70 mx-auto mt-3 max-w-xl text-[15px] leading-relaxed font-medium">
+      <p className="text-pana-ink/70 mt-3 max-w-xl text-[15px] leading-relaxed font-medium">
         Printmakers, tenant unions, run clubs, salsa nights. A group has its own
         feed, its own events, and its own door -- and it all stays on Pana.
       </p>
 
-      <div className="mx-auto mt-6 flex max-w-xl flex-col gap-2.5 sm:flex-row">
+      <div className="mt-6 flex max-w-xl flex-col gap-2.5 sm:flex-row">
         <button
           type="button"
           onClick={() => onOpenDiscover()}

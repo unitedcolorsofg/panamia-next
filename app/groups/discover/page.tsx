@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { GroupsDiscoverContent } from './_components/groups-discover';
+import { GroupsShell } from '@/app/groups/_components/groups-shell';
 
 /**
  * /groups/discover - searching, filtering and sorting groups.
@@ -44,11 +45,11 @@ function DiscoverFallback() {
 export default function GroupsDiscoverPage() {
   return (
     <main className="surface-cream min-h-screen pb-20">
-      <div className="container mx-auto max-w-5xl px-4 pt-8">
+      <GroupsShell>
         <Suspense fallback={<DiscoverFallback />}>
           <GroupsDiscoverContent />
         </Suspense>
-      </div>
+      </GroupsShell>
     </main>
   );
 }
