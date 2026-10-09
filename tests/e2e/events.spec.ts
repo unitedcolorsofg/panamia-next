@@ -23,8 +23,20 @@ test.describe('Events — Public Pages', () => {
     });
     expect(res?.status()).toBe(200);
     await expect(page.locator('h1').first()).toContainText('market');
+
+    // Named down to the Events scope rather than matching /Search scope/ alone,
+    // which now resolves to two controls here and fails Playwright's strict
+    // mode. Both are meant to be on the page: Events became a Panaverse surface
+    // in this change, so /e wears the Events masthead, and `SurfaceSearch`
+    // deliberately renders on every page of a surface and deliberately defaults
+    // to Groups. That masthead control is navigation — a question not yet
+    // asked. The one named here is the results page's own, which reports the
+    // scope these results were drawn from, so it is the control this test
+    // actually cares about. /e is the first surface route to carry both.
+    // tests/e2e/public-navigation.spec.ts scopes the same selector to the
+    // banner for the mirror-image reason.
     await expect(
-      page.getByRole('button', { name: /Search scope/ })
+      page.getByRole('button', { name: /Search scope, currently Events/ })
     ).toBeVisible();
   });
 
