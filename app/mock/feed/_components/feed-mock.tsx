@@ -18,6 +18,7 @@ import { FeedComposer } from './feed-composer';
 import { FeedPostCard } from './feed-post-card';
 import { FeedRail } from './feed-rail';
 import { FeedEmpty } from './feed-empty';
+import { FeedCalendar } from './feed-calendar';
 import {
   DirectoryModule,
   EventsModule,
@@ -45,10 +46,17 @@ import {
  *
  * Two columns on desktop: the timeline, and a rail of context that stacks
  * beneath it on mobile. */
+/** Which page the mock renders. The calendar is a route of its own in
+ *  production (/s/calendar), not a tab of the feed — but it is reached from
+ *  the feed rail, so both live in this one mock to make the handoff between
+ *  them reviewable without a navigation. */
+type FeedPage = 'feed' | 'calendar';
+
 export function FeedMock({ surfaces }: { surfaces: MockSurface[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<FeedFilter>('panas');
   const [state, setState] = useState<FeedState>('populated');
+  const [page, setPage] = useState<FeedPage>('feed');
 
   const posts = postsForFilter(filter);
   const activeFilter = FEED_FILTERS.find((entry) => entry.id === filter);
@@ -65,6 +73,8 @@ export function FeedMock({ surfaces }: { surfaces: MockSurface[] }) {
       <MockToolbar
         state={state}
         onSelectState={setState}
+        page={page}
+        onSelectPage={setPage}
         hostname={current.hostname}
       />
 
@@ -81,82 +91,92 @@ export function FeedMock({ surfaces }: { surfaces: MockSurface[] }) {
       <div className="container mx-auto max-w-6xl px-4 pt-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
           <div className="min-w-0">
-            <FeedComposer state={state} />
+            {page === 'calendar' ? <FeedCalendar /> : null}
 
-            {state === 'populated' ? (
+            {page === 'feed' ? (
               <>
-                <div className="mt-6" role="tablist" aria-label="Feed filters">
-                  <div className="profile-tabs">
-                    {FEED_FILTERS.map((entry) => {
-                      const isActive = entry.id === filter;
-                      return (
-                        <button
-                          key={entry.id}
-                          type="button"
-                          role="tab"
-                          id={`feed-tab-${entry.id}`}
-                          aria-selected={isActive}
-                          aria-controls="feed-panel"
-                          className="profile-tab"
-                          data-active={isActive}
-                          onClick={() => setFilter(entry.id)}
-                        >
-                          {entry.label}
-                          <span className="profile-tab-count">
-                            {postsForFilter(entry.id).length}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <FeedComposer state={state} />
 
-                {/* The filter says what it is showing in a full sentence. Four
+                {state === 'populated' ? (
+                  <>
+                    <div
+                      className="mt-6"
+                      role="tablist"
+                      aria-label="Feed filters"
+                    >
+                      <div className="profile-tabs">
+                        {FEED_FILTERS.map((entry) => {
+                          const isActive = entry.id === filter;
+                          return (
+                            <button
+                              key={entry.id}
+                              type="button"
+                              role="tab"
+                              id={`feed-tab-${entry.id}`}
+                              aria-selected={isActive}
+                              aria-controls="feed-panel"
+                              className="profile-tab"
+                              data-active={isActive}
+                              onClick={() => setFilter(entry.id)}
+                            >
+                              {entry.label}
+                              <span className="profile-tab-count">
+                                {postsForFilter(entry.id).length}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* The filter says what it is showing in a full sentence. Four
                     tabs that each need a mental model — Panas is a mutual
                     follow, Everyone is the local timeline — cannot carry that
                     in a one-word label. */}
-                {activeFilter && (
-                  <p className="text-pana-ink/60 mt-3 text-[13px] font-bold">
-                    {activeFilter.hint}
-                  </p>
-                )}
+                    {activeFilter && (
+                      <p className="text-pana-ink/60 mt-3 text-[13px] font-bold">
+                        {activeFilter.hint}
+                      </p>
+                    )}
 
-                <div className="feed-new-row mt-4">
-                  <button type="button" className="feed-new-pill">
-                    <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
-                    {MOCK_VIEWER.unread} new posts
-                  </button>
-                </div>
+                    <div className="feed-new-row mt-4">
+                      <button type="button" className="feed-new-pill">
+                        <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+                        {MOCK_VIEWER.unread} new posts
+                      </button>
+                    </div>
 
-                <div
-                  id="feed-panel"
-                  role="tabpanel"
-                  aria-labelledby={`feed-tab-${filter}`}
-                  className="mt-4 space-y-4"
-                >
-                  {posts.length > 0 ? (
-                    withModules(
-                      posts.map((post) => (
-                        <FeedPostCard key={post.id} post={post} />
-                      ))
-                    )
-                  ) : (
-                    <FilterEmpty label={activeFilter?.label ?? ''} />
-                  )}
-                </div>
+                    <div
+                      id="feed-panel"
+                      role="tabpanel"
+                      aria-labelledby={`feed-tab-${filter}`}
+                      className="mt-4 space-y-4"
+                    >
+                      {posts.length > 0 ? (
+                        withModules(
+                          posts.map((post) => (
+                            <FeedPostCard key={post.id} post={post} />
+                          ))
+                        )
+                      ) : (
+                        <FilterEmpty label={activeFilter?.label ?? ''} />
+                      )}
+                    </div>
 
-                {posts.length > 0 && (
-                  <div className="feed-end mt-8">
-                    <span>You&apos;re all caught up</span>
-                  </div>
+                    {posts.length > 0 && (
+                      <div className="feed-end mt-8">
+                        <span>You&apos;re all caught up</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <FeedEmpty />
                 )}
               </>
-            ) : (
-              <FeedEmpty />
-            )}
+            ) : null}
           </div>
 
-          <FeedRail />
+          <FeedRail onOpenCalendar={() => setPage('calendar')} />
         </div>
 
         <p className="border-pana-ink/10 text-pana-ink/55 mt-14 border-t pt-6 text-[13px] font-bold">
@@ -222,10 +242,14 @@ function withModules(cards: ReactNode[]): ReactNode[] {
 function MockToolbar({
   state,
   onSelectState,
+  page,
+  onSelectPage,
   hostname,
 }: {
   state: FeedState;
   onSelectState: (state: FeedState) => void;
+  page: FeedPage;
+  onSelectPage: (page: FeedPage) => void;
   hostname: string;
 }) {
   return (
@@ -241,6 +265,25 @@ function MockToolbar({
       </span>
 
       <div className="mock-switch ml-auto">
+        <button
+          type="button"
+          data-active={page === 'feed'}
+          onClick={() => onSelectPage('feed')}
+        >
+          Feed
+        </button>
+        <button
+          type="button"
+          data-active={page === 'calendar'}
+          onClick={() => onSelectPage('calendar')}
+        >
+          Calendar
+        </button>
+      </div>
+
+      {/* The empty state only means anything on the feed; the calendar has its
+          own and is not wired to this switch. */}
+      <div className="mock-switch">
         <button
           type="button"
           data-active={state === 'populated'}
