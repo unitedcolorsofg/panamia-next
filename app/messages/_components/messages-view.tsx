@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import {
   useAcceptDmRequest,
@@ -197,11 +196,7 @@ function EmptyState({ isLoading }: { isLoading: boolean }) {
       {!isLoading && (
         <p className="text-pana-ink/45 max-w-sm text-sm font-medium">
           Messages here disappear 30 days after they are sent. To start a new
-          one, open someone’s{' '}
-          <Link href="/directory" className="text-pana-indigo underline">
-            profile
-          </Link>{' '}
-          and send them a message.
+          one, search for a pana in the box on the left.
         </p>
       )}
     </div>
