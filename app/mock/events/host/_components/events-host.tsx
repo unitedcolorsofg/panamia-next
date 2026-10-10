@@ -233,7 +233,7 @@ export function EventsHost() {
             `body:has(.dirsearch), body:has(.dirscope)`. Without it the page
             renders on a transparent background and nothing says why. */}
         <main className="dirscope">
-          <div className="surface-indigo dirsearch-band">
+          <div className="dirsearch-band">
             <div className="container mx-auto px-4">
               <div className="mx-auto max-w-[72rem]">
                 <span className="section-eyebrow">Events</span>
