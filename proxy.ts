@@ -83,9 +83,15 @@ export function proxy(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Permissions policy - restrict access to sensitive APIs
+  //
+  // `self` rather than `()` for geolocation: an empty allowlist blocks the API
+  // for every origin *including this one*, so getCurrentPosition() rejects with
+  // PERMISSION_DENIED before the browser ever shows its prompt. The directory's
+  // "Use my location" distance sort needs first-party access; `self` still
+  // denies it to any embedded third-party frame.
   response.headers.set(
     'Permissions-Policy',
-    'camera=(self), microphone=(self), geolocation=(), payment=()'
+    'camera=(self), microphone=(self), geolocation=(self), payment=()'
   );
 
   // Strict-Transport-Security (HSTS) - only in production
