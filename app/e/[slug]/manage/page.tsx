@@ -1,10 +1,11 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { canManageEvent, canTransferEvent } from '@/lib/server/event-host';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 import { TransferHost } from '@/components/events/TransferHost';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ export default async function ManageEventPage({ params }: PageProps) {
   const { slug } = await params;
   const session = await auth();
   if (!session?.user?.id) {
-    redirect(`/signin?callbackUrl=/e/${slug}/manage`);
+    redirectToSignIn(`/e/${slug}/manage`);
   }
 
   const [event, profile] = await Promise.all([

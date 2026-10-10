@@ -83,7 +83,7 @@ export const metadata = {
 };
 
 export default async function AdminConnectorsPage() {
-  await requireConnectorsAdmin();
+  await requireConnectorsAdmin('/admin/connectors');
 
   /* Four independent reads. None of them depends on another, so running them
    * in series would make the page as slow as their sum for no reason. */

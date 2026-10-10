@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
@@ -7,6 +7,7 @@ import { UsersTable } from '@/components/Admin/users-table';
 import { ADMIN_CHROME } from '@/lib/admin/theme';
 import { ACCOUNT_TYPES, USER_STATES, isUserState } from '@/lib/admin/user-filters';
 import { listUsers, latestLocksFor, userStats } from '@/lib/admin/users';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 
 /**
  * Accounts.
@@ -84,7 +85,7 @@ export default async function AdminUsersPage({
    * by middleware. Signed out is probably an expired staff session, so send
    * them to sign in; signed in but not admin should not learn this exists. */
   const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+  if (!session?.user?.id) redirectToSignIn('/admin/users');
   if (!session.user.isAdmin) notFound();
 
   const params = await searchParams;

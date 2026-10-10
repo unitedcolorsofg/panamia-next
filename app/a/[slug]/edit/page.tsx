@@ -9,6 +9,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useRouter, useParams } from 'next/navigation';
+import { signInPath } from '@/lib/signin-redirect';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,7 @@ export default function EditArticlePage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      router.push(`/signin?callbackUrl=/a/${slug}/edit`);
+      router.push(signInPath(`/a/${slug}/edit`));
     }
   }, [sessionStatus, router, slug]);
 
@@ -135,7 +136,7 @@ export default function EditArticlePage() {
               You must be signed in to edit articles.
             </p>
             <Button asChild>
-              <Link href={`/signin?callbackUrl=/a/${slug}/edit`}>Sign In</Link>
+              <Link href={signInPath(`/a/${slug}/edit`)}>Sign In</Link>
             </Button>
           </CardContent>
         </Card>
