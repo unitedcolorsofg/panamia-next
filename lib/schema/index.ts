@@ -3272,6 +3272,45 @@ export const relayGroupMembersRelations = relations(
 );
 
 // =============================================================================
+// Operations
+// =============================================================================
+
+/**
+ * One row per scheduled-job invocation. Written by lib/jobs/ledger.ts, read by
+ * /admin/livesite. See drizzle/0063_job_runs.sql for the reasoning.
+ *
+ * The row is written when a run *starts* and updated when it ends, so a Worker
+ * killed mid-flight leaves `finishedAt` null rather than leaving no trace at
+ * all. `ok` is deliberately nullable for the same reason: an unfinished run
+ * must never read as a successful one.
+ */
+export const jobRuns = pgTable(
+  'job_runs',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    /** Free text, not an enum, so a new job needs no migration. See 0063. */
+    job: text('job').notNull(),
+    /** The cron expression that fired it, or 'manual'. */
+    trigger: text('trigger').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    /** Null means the run never came back. */
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    /** Null while in flight. */
+    ok: boolean('ok'),
+    /** The job's own report, verbatim. Shape belongs to the writer. */
+    report: jsonb('report'),
+    errorCount: integer('error_count').notNull().default(0),
+  },
+  (table) => [
+    index('job_runs_job_started_at_idx').on(table.job, table.startedAt.desc()),
+  ]
+);
+
+// =============================================================================
 // Inferred Types
 // =============================================================================
 
@@ -3342,3 +3381,4 @@ export type RelayGroupMember = typeof relayGroupMembers.$inferSelect;
 export type RelayGroupLeavePending = typeof relayGroupLeavePending.$inferSelect;
 export type RelayGroupJoinPending = typeof relayGroupJoinPending.$inferSelect;
 export type RelayReport = typeof relayReports.$inferSelect;
+export type JobRun = typeof jobRuns.$inferSelect;
