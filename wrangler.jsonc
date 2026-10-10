@@ -123,6 +123,22 @@
   },
   // DO migration: free plan requires new_sqlite_classes (not new_classes).
   // A new tag per added class; tags are append-only and never edited in place.
+  //
+  // Expect the Workers Builds check to go RED on the pull request that adds a
+  // tag here, and to stay red until it merges. That is not a defect in the
+  // branch. Workers Builds runs `wrangler deploy` only for the production
+  // branch; every other branch gets `wrangler versions upload`, which refuses
+  // outright:
+  //
+  //   This Worker has a pending Durable Object migration, which cannot be
+  //   applied by `wrangler versions upload`. Durable Object migrations must
+  //   be applied with `wrangler deploy`.
+  //
+  // So a new class can only land by merging to main, where the production
+  // build applies the migration. Before merging, confirm the branch is sound
+  // the way the preview build cannot: `wrangler deploy --dry-run` bundles the
+  // Worker and resolves every binding, and the class must be re-exported from
+  // worker/index.ts or the deploy fails on the far side of the merge.
   "migrations": [
     {
       "tag": "v1",
