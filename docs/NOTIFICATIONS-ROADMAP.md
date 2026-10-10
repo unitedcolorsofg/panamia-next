@@ -309,14 +309,36 @@ a `case`, not a new table or a new surface.
 
 ### Where each domain stands
 
-| Domain          | Contexts in use                       | State                                                                    |
+A context counts as in use below only when something calls `createNotification`
+with it. A `case` in `getNotificationMessage` is not evidence of that — several
+sentences are written for events that nothing fires, and reading the switch
+alone will overstate what ships. The list of those is in the next section.
+
+| Domain          | Contexts that fire                    | State                                                                    |
 | --------------- | ------------------------------------- | ------------------------------------------------------------------------ |
-| **Pana Social** | `follow`, `mention`, `article`        | Partial — `mention` has no `case` in `getNotificationMessage`; reply and boost-of-your-post are unwritten |
-| **Events**      | `event`                               | Organizer lifecycle done (Invite/Accept/Reject/Create/Update/Delete); RSVP and reminders missing; `venue` is an objectType with no context |
+| **Writing**     | `coauthor`, `review`, `article`       | Complete — co-author invite and response, review request and verdict, and publishing notifying accepted co-authors plus an approving reviewer |
+| **Mentoring**   | `mentoring`                           | Complete — request, accept, decline, cancel                              |
+| **Pana Social** | —                                     | Thin — the social graph itself notifies nobody. `follow` and `mention` have no caller, and `mention` has no `case` either, so it would fall through to the generic fallback; reply and boost-of-your-post are unwritten. The `article` and `message` rows that do fire belong to Writing and Messages above |
+| **Events**      | `event` (Delete only)                 | **Effectively none.** The one path that fires is an admin suspending a venue, which cancels its future events and tells going/maybe attendees. The organizer lifecycle is written but unwired — there is no co-organizer endpoint. RSVP and reminders missing; `venue` is an objectType with no context |
 | **Groups**      | `group`, `group_membership`           | Complete — invitations, join requests, role changes, removal, bans       |
-| **Messages**    | `message`                             | Context and retention exist; needs per-conversation collapsing           |
+| **Messages**    | `message`                             | Voice memos only, suppressed when the sender is held in the recipient's Requests folder; needs per-conversation collapsing |
 | **Connectors**  | —                                     | **No context.** `app/connectors/{join,hq,admin}` notify nobody           |
-| **Admin**       | `system` (outbound only)              | **No inbound context.** Report queues and verification requests reach admins only by visiting `app/admin/reports` |
+| **Admin**       | `article`, `event` (outbound)         | **No inbound context.** Admins can remove or restore an article and suspend a venue, and each tells the people affected. Nothing travels the other way: report queues and verification requests reach admins only by visiting `app/admin/reports`, and `system` has a sentence with no caller |
+
+### Sentences written for events that never fire
+
+`getNotificationMessage` handles these, and no route calls them. They are a
+promise the switch makes and the API does not keep, so a reader checking
+coverage there will count domains that are not wired:
+
+| Context  | Types                                 | Missing piece                                  |
+| -------- | ------------------------------------- | ---------------------------------------------- |
+| `event`  | Invite, Accept, Reject, Create, Update | No co-organizer endpoint, and nothing announces a newly published event |
+| `follow` | Follow                                | The follow action does not notify              |
+| `system` | (passthrough `message`)               | Nothing creates a system notification          |
+
+Either wire them or delete the cases; leaving both is what made the table above
+wrong the first time it was written.
 
 ### The two real gaps
 
@@ -328,11 +350,13 @@ This is the same shape `group_membership` already solved, including the
 direction problem — `Join` travels applicant→org while `Accept` travels
 org→applicant, so the sentences are written from different sides.
 
-**Admin** currently only broadcasts. `system` carries announcements *to* users;
-nothing carries work *to* moderators. A `moderation` context would let a filed
-report (`Create`), a verification request (`Invite`), and a resolution
-(`Accept`/`Reject`) reach the people who act on them. The target for these is a
-role rather than a person, which the current schema cannot express —
+**Admin** currently only reaches users by side effect. Removing an article and
+suspending a venue both notify the people affected, but nothing carries work
+*to* moderators, and `system` — the context meant for announcements — has a
+sentence and no caller, so there is no broadcast either. A `moderation` context
+would let a filed report (`Create`), a verification request (`Invite`), and a
+resolution (`Accept`/`Reject`) reach the people who act on them. The target for
+these is a role rather than a person, which the current schema cannot express —
 `notifications.target` is a single actor. Fanning out one row per admin is the
 cheap answer and is correct while the admin list is small; it stops being
 correct the moment it isn't.
