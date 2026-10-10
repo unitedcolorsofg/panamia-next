@@ -8,6 +8,11 @@
 > **events**. That answers the question this document previously called _"blocks everything else"_.
 > See [The three scopes](#the-three-scopes).
 >
+> **Also decided: only signed-up members can access chat.** Anonymous email RSVPs and inbound Nostr
+> RSVPs stay in events but are not in event rooms — see
+> [Event rooms admit signed-in attendees only](#event-rooms-admit-signed-in-attendees-only). With
+> that, nothing in this document is blocked on a product decision.
+>
 > **What "replace the mail" does and does not mean.** It retires the mail _interface_ — the
 > `/updates` inbox/sent tabs and the refresh-to-see-a-reply model panas are complaining about. It
 > does **not** retire the direct-status _substrate_ underneath DMs, because four shipped things ride
@@ -25,7 +30,7 @@
 - [What replacing mail costs](#what-replacing-mail-costs)
 - [Storage — one transport, two stores](#storage--one-transport-two-stores)
 - [The authorization gate](#the-authorization-gate)
-- [Event rooms have an identity problem](#event-rooms-have-an-identity-problem)
+- [Event rooms admit signed-in attendees only](#event-rooms-admit-signed-in-attendees-only)
 - [Realtime delivery is not realtime affordances](#realtime-delivery-is-not-realtime-affordances)
 - [Path A — live delivery on the mail substrate](#path-a--live-delivery-on-the-mail-substrate)
 - [Why Nostr Cannot Back In-App Chat](#why-nostr-cannot-back-in-app-chat)
@@ -76,11 +81,11 @@ out.
 
 Chat is one feature with one transport and one UI, parameterised by what the room hangs off.
 
-| Scope     | Room is                 | Membership source                                | Exists today                                          |
-| --------- | ----------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| **DM**    | A pair of actors        | `social_dm_requests` + `dm_policy` + blocks      | ✅ `lib/federation/wrappers/dm-gate.ts`               |
-| **Group** | One `social_groups` row | `social_group_members` where `status = 'active'` | ✅ `lib/schema/index.ts:2044`                         |
-| **Event** | One `events` row        | `event_attendees` — **with a caveat**            | ⚠️ see [below](#event-rooms-have-an-identity-problem) |
+| Scope     | Room is                 | Membership source                                | Exists today                            |
+| --------- | ----------------------- | ------------------------------------------------ | --------------------------------------- |
+| **DM**    | A pair of actors        | `social_dm_requests` + `dm_policy` + blocks      | ✅ `lib/federation/wrappers/dm-gate.ts` |
+| **Group** | One `social_groups` row | `social_group_members` where `status = 'active'` | ✅ `lib/schema/index.ts:2044`           |
+| **Event** | One `events` row        | `event_attendees` where `profileId IS NOT NULL`  | ✅ `lib/schema/index.ts:2355`           |
 
 The good news is that **none of these needs a new membership model.** Every scope already has a
 table that answers "may this person be in this room", and group and event membership are already
@@ -183,7 +188,9 @@ switch (scope) {
   }
 
   case 'event': {
-    // profileId, not actorId — see the identity problem below.
+    // Keyed on profileId, so attendees with a null profileId — anonymous
+    // email and Nostr RSVPs — can never match. That exclusion is the
+    // decision, not an accident: see "signed-in attendees only" below.
     const a = await getAttendee(id, profile.id);
     if (!a || a.status === 'not_going' || !a.emailVerifiedAt)
       return forbidden();
@@ -200,14 +207,16 @@ Three things that are easy to get wrong and are deliberate above:
   re-enter; treating a missing row and a banned row the same way re-admits them on rejoin.
 - **The group branch keys on `actorId`, the event branch on `profileId`.** That is not an
   inconsistency to tidy up — it is what the two shipped tables actually store, and bridging them in
-  the gate is cheaper than migrating either.
+  the gate is cheaper than migrating either. It is also what enforces
+  [signed-in attendees only](#event-rooms-admit-signed-in-attendees-only) for free.
 
 ---
 
-## Event rooms have an identity problem
+## Event rooms admit signed-in attendees only
 
-**This needs a product decision before event chat can be built.** It is the one genuinely new
-blocker the three-scope decision introduces.
+**Decided (2026-10), by the product owner: only signed-up members can access chat.** This section
+records the constraint that forced the question and what the answer costs, because the cost is real
+and someone will rediscover it the first time an event room looks empty.
 
 `event_attendees` does not require an account. From `lib/schema/index.ts:2355`:
 
@@ -222,32 +231,43 @@ nostrPubkey: text('nostr_pubkey'),
 
 So an event has three classes of attendee, and only one of them can hold an authenticated WebSocket:
 
-| Attendee             | Has `profileId` | Can join chat                                    |
+| Attendee             | Has `profileId` | In chat                                          |
 | -------------------- | --------------- | ------------------------------------------------ |
 | Logged-in RSVP       | yes             | **Yes**                                          |
 | Anonymous email RSVP | no              | **No** — no account, so no session, so no socket |
 | Nostr RSVP (31925)   | no              | **No** — no local account at all                 |
 
-This is not a bug to code around. There is no way to authenticate a person who has never had an
-account, and issuing a room token over email would create a credential with no revocation story
-attached to an unverified address.
+This was never a bug to code around. There is no way to authenticate a person who has never had an
+account, and issuing a room token over email would create a credential with no revocation story,
+attached to an address that may not even be verified.
 
-The options, with the trade each one makes:
+### What the decision means for the gate
 
-1. **Event chat is for signed-in attendees only.** Email RSVPs keep working and simply do not see
-   chat. Cheapest, and honest — but on a local network where email RSVP may be the common path, the
-   room could be a fraction of the guest list and read as empty. That is exactly the
-   [liveness problem](#realtime-delivery-is-not-realtime-affordances) this document warns about.
-2. **Chat prompts email RSVPs to claim an account.** The RSVP already sends a magic link; claiming
-   could attach a profile to the existing row. Best outcome, most work, and it changes the RSVP
-   funnel — which is a product call, not an engineering one.
-3. **Events opt into chat.** The host decides per event, so a ticketed event with signed-in guests
-   gets a room and a flyer-and-email event does not. Smallest blast radius, and it lets the first
-   version ship without answering 1-vs-2.
+`profileId IS NOT NULL` becomes a membership predicate, not an edge case — which is what makes the
+event branch of [the gate](#the-authorization-gate) as simple as the group branch. Rooms are
+provisioned for every event; the gate, not the room, is what excludes people.
 
-**Recommended: 3 now, 2 later.** Option 3 is reversible and does not strand anyone; option 2 is the
-right end state but should not block the group rooms, which have no equivalent problem because
-`social_group_members.actorId` is `NOT NULL`.
+Email and Nostr RSVPs are unaffected in every other respect. They still RSVP, still count toward
+capacity, still get event mail. They do not see a chat tab.
+
+### The cost this accepts
+
+On a local network where email RSVP may be the common path, an event room can be a fraction of the
+guest list. A room with two people in it is the
+[liveness problem](#realtime-delivery-is-not-realtime-affordances) this document warns about, aimed
+at events instead of DMs.
+
+Two cheap things keep that from reading as broken, and both should land with the first event room:
+
+- **Don't advertise an empty room.** No chat tab until the room has a floor of signed-in attendees.
+  An absent tab reads as "not a feature here"; an empty one reads as "nobody came".
+- **Say who the room is for.** "Chat is open to attendees with a pana account" is a true sentence
+  that explains the gap, where silence makes it look like a bug.
+
+The residual gap also has an obvious close: an email RSVP who claims an account joins the room. The
+RSVP flow already sends a magic link, so claiming could attach a profile to the existing row. That
+is now a **growth path rather than a blocker** — worth building when event chat earns it, and not
+before.
 
 ---
 
@@ -605,8 +625,10 @@ write the three-branch gate **first** — before any transport — because it is
 step depends on being right, and it is testable without a socket.
 
 - Group rooms: auto-provision on group creation, or lazily on first open
-- Event rooms: **opt-in per event** per
-  [the identity problem](#event-rooms-have-an-identity-problem)
+- Event rooms: provisioned for every event; the gate excludes attendees without accounts per
+  [signed-in attendees only](#event-rooms-admit-signed-in-attendees-only)
+- No chat tab until a room has a floor of signed-in attendees — an absent tab reads better than an
+  empty room
 - Gate tests mirroring `tests-db/social-dm-requests.test.ts`: pending is not a member, banned is not
   absent, unverified RSVP is not an attendee
 
@@ -650,11 +672,12 @@ split in Path A: DMs get live delivery and no presence; group and event rooms ma
 later, once there is evidence the rooms are populated enough for it to read as alive rather than
 empty.
 
-### Can event chat include attendees without accounts? — blocks event rooms only
+### ~~Can event chat include attendees without accounts?~~ — answered (2026-10)
 
-The open question that replaces the old one. Email-only and Nostr-only RSVPs cannot authenticate, so
-they cannot join. See [Event rooms have an identity problem](#event-rooms-have-an-identity-problem)
-for the three options and the recommendation. Group rooms and DMs are unaffected.
+**Answered: no. Only signed-up members can access chat.** Email-only and Nostr-only RSVPs cannot
+authenticate, so they are not in the room. See
+[Event rooms admit signed-in attendees only](#event-rooms-admit-signed-in-attendees-only) for what
+that costs and the two mitigations that ship with it. Group rooms and DMs were never affected.
 
 ### Member cap per room
 
