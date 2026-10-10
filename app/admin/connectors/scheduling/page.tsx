@@ -1,5 +1,4 @@
 import { CommitmentsTable } from '@/components/connectors/dashboard-parts';
-import { SetTaskForm } from '@/components/connectors/admin-console';
 import { LoadTable } from '@/components/connectors/load-table';
 import { StaffingTable } from '@/components/connectors/staffing-table';
 import { Panel, StatBand } from '@/components/Admin/parts';
@@ -26,9 +25,26 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
  * reading the whole table and counting in your head, so in practice people
  * picked whoever they had just been talking to.
  *
- * This page puts the roster's load above the form. The question it answers is
- * the one actually being asked at the moment of assigning — who has room —
- * and it is answered before the dropdown is opened rather than after.
+ * This page answers the question actually being asked at the moment of
+ * assigning — who has room — and then lets you act on the answer in place.
+ *
+ * ## The form lives in the row, not in a panel of its own
+ *
+ * It was briefly a second panel beside the load table, which was an
+ * improvement on stacking but still asked the same question twice: you found
+ * somebody with room by reading the list, then found them again in a
+ * dropdown. The dropdown was a worse copy of the thing next to it — the same
+ * names with none of the information you had just used to choose between
+ * them.
+ *
+ * So assigning starts from the row. The person is already decided by the time
+ * the form appears, which removes the picker, narrows the house list to the
+ * houses they are actually in before the first render, and keeps their load
+ * on screen while you describe the work.
+ *
+ * That gives the roster the full width back. Crew by event and the open
+ * commitments stay beneath it: both are read after a name has been chosen
+ * rather than while choosing one.
  *
  * ## Load is observed, not declared
  *
@@ -163,7 +179,12 @@ export default async function AdminConnectorSchedulingPage() {
         <StatBand stats={band} />
 
         <Panel title="Load by connector">
-          <LoadTable rows={loadRows} />
+          <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
+            Give a task from the row of whoever should take it — the form opens
+            against that person, so the house list is already narrowed to the
+            houses they are in.
+          </p>
+          <LoadTable rows={loadRows} events={assignable} />
         </Panel>
 
         <Panel title="Crew by event">
@@ -173,22 +194,6 @@ export default async function AdminConnectorSchedulingPage() {
             simply unquantified, so it sits lower whatever its numbers.
           </p>
           <StaffingTable rows={staffingRows} />
-        </Panel>
-
-        <Panel title="Set a task">
-          <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
-            This goes on their board marked as assigned. They can mark it done —
-            you cannot, and they cannot delete it. Sizing it is optional, but an
-            unsized task is invisible to the table above.
-          </p>
-          <SetTaskForm
-            connectors={roster.map((m) => ({
-              profileId: m.profileId,
-              displayName: m.displayName,
-              houses: m.membership.houses,
-            }))}
-            events={assignable}
-          />
         </Panel>
 
         <Panel title="Open commitments">
