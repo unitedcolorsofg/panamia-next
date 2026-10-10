@@ -42,7 +42,7 @@ export const metadata = {
 };
 
 export default async function AdminConnectorApplicationsPage() {
-  await requireConnectorsAdmin();
+  await requireConnectorsAdmin('/admin/connectors/applications');
 
   const pending = await listConnectorApplications();
 

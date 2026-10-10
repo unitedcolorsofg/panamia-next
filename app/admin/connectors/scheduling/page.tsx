@@ -64,7 +64,7 @@ export const metadata = {
 };
 
 export default async function AdminConnectorSchedulingPage() {
-  await requireConnectorsAdmin();
+  await requireConnectorsAdmin('/admin/connectors/scheduling');
 
   const [pendingCount, roster, loads, openWork, assignable] =
     await Promise.all([

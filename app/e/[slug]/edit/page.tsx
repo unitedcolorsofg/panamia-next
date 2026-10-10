@@ -2,6 +2,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useRouter, useParams } from 'next/navigation';
+import { signInPath } from '@/lib/signin-redirect';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,7 @@ export default function EditEventPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      router.push(`/signin?callbackUrl=/e/${slug}/edit`);
+      router.push(signInPath(`/e/${slug}/edit`));
     }
   }, [sessionStatus, router, slug]);
 

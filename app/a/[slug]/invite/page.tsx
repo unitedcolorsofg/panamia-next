@@ -9,6 +9,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useRouter, useParams } from 'next/navigation';
+import { signInPath } from '@/lib/signin-redirect';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,7 +62,7 @@ export default function InvitePage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      router.push(`/signin?callbackUrl=/a/${slug}/invite`);
+      router.push(signInPath(`/a/${slug}/invite`));
     }
   }, [sessionStatus, router, slug]);
 
@@ -175,7 +176,7 @@ export default function InvitePage() {
               You must be signed in to view this invitation.
             </p>
             <Button asChild>
-              <Link href={`/signin?callbackUrl=/a/${slug}/invite`}>
+              <Link href={signInPath(`/a/${slug}/invite`)}>
                 Sign In
               </Link>
             </Button>
