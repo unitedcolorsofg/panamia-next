@@ -3,25 +3,29 @@
 > **STATUS**: **Proposal. Nothing here is implemented.** No migration, table, route, Durable Object,
 > or component described below exists yet.
 >
-> **Direct messages are no longer a candidate surface.** DMs ship as _mail_ on the existing
-> `visibility: 'direct'` status substrate, decided against the side-by-side mock at `/mock/dms`.
-> See `docs/SOCIAL-GRAPH.md` §C1. What is still undecided is whether chat hangs off groups or
-> standalone rooms. See [Open Questions](#risks--open-questions).
+> **Decided (2026-10), by the product owner:** chat replaces the mail experience, and it is scoped
+> to **three** room types — direct messages between panas, rooms inside **groups**, and rooms inside
+> **events**. That answers the question this document previously called _"blocks everything else"_.
+> See [The three scopes](#the-three-scopes).
 >
-> **New input (2026-10): panas have asked for realtime.** That is a direct hit on the one cost the
-> `/mock/dms` comparison recorded against the mail model — _"no realtime; a reply appears on refresh
-> or poll."_ It does **not** reopen the mail-vs-chat decision, because the thing being asked for is
-> separable from the thing that was decided. See
-> [Realtime delivery is not realtime affordances](#realtime-delivery-is-not-realtime-affordances)
-> and [Path A](#path-a--live-delivery-on-the-mail-substrate).
+> **What "replace the mail" does and does not mean.** It retires the mail _interface_ — the
+> `/updates` inbox/sent tabs and the refresh-to-see-a-reply model panas are complaining about. It
+> does **not** retire the direct-status _substrate_ underneath DMs, because four shipped things ride
+> it and one of them is the safety gate from `docs/SOCIAL-GRAPH.md` §C1. See
+> [What replacing mail costs](#what-replacing-mail-costs), which is the section to read before
+> arguing for a cleaner teardown.
 >
 > This material was extracted from `docs/GROUPS-ROADMAP.md`, where it was originally phase 5. Groups
-> ship without it. The two features share a membership model if and only if chat ends up scoped to
-> groups, which is itself an open question.
+> ship without it.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [The three scopes](#the-three-scopes)
+- [What replacing mail costs](#what-replacing-mail-costs)
+- [Storage — one transport, two stores](#storage--one-transport-two-stores)
+- [The authorization gate](#the-authorization-gate)
+- [Event rooms have an identity problem](#event-rooms-have-an-identity-problem)
 - [Realtime delivery is not realtime affordances](#realtime-delivery-is-not-realtime-affordances)
 - [Path A — live delivery on the mail substrate](#path-a--live-delivery-on-the-mail-substrate)
 - [Why Nostr Cannot Back In-App Chat](#why-nostr-cannot-back-in-app-chat)
@@ -59,10 +63,191 @@ out.
 ### Non-Goals
 
 - Threads, reactions, read receipts, or typing indicators in the first release
-- Federation. Chat is explicitly the "stay on the site" surface, and ActivityPub has no good
-  real-time chat story
+- Federation **for group and event rooms**. Those are explicitly the "stay on the site" surface, and
+  ActivityPub has no good real-time chat story. DM rooms are the exception and keep federating,
+  because they ride the existing direct-status substrate — see
+  [Storage](#storage--one-transport-two-stores)
 - Replacing `/r/groups`. Relay groups stay as a separate bring-your-own-client feature for panas who
   want censorship-resistant Nostr rooms
+
+---
+
+## The three scopes
+
+Chat is one feature with one transport and one UI, parameterised by what the room hangs off.
+
+| Scope     | Room is                 | Membership source                                | Exists today                                          |
+| --------- | ----------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| **DM**    | A pair of actors        | `social_dm_requests` + `dm_policy` + blocks      | ✅ `lib/federation/wrappers/dm-gate.ts`               |
+| **Group** | One `social_groups` row | `social_group_members` where `status = 'active'` | ✅ `lib/schema/index.ts:2044`                         |
+| **Event** | One `events` row        | `event_attendees` — **with a caveat**            | ⚠️ see [below](#event-rooms-have-an-identity-problem) |
+
+The good news is that **none of these needs a new membership model.** Every scope already has a
+table that answers "may this person be in this room", and group and event membership are already
+enforced by shipped API routes. Chat adds a room and a socket; it does not add a concept of who
+belongs.
+
+The one thing to resist is inventing a `chat_room_members` table. It would immediately be a second,
+divergent answer to a question three existing tables already answer, and the first bug would be
+someone removed from a group who is still in its chat.
+
+---
+
+## What replacing mail costs
+
+"Replace the mail system" is the right instinct about the _experience_ — filing paperwork, refreshing
+to see a reply — and the wrong instinct about the _substrate_, because the substrate is load-bearing
+for things that have nothing to do with the inbox UI.
+
+A DM today is a `socialStatuses` row with `visibility: 'direct'`. Retiring that row type breaks:
+
+| What breaks                | Where                                         | Why it matters                                                         |
+| -------------------------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| **Federation**             | ActivityPub direct addressing                 | A DM to a Mastodon account works today. Chat does not federate at all. |
+| **Voice memos**            | `components/social/VoiceMemoComposer.tsx:331` | Shipped feature; sends `visibility: 'direct'`                          |
+| **The DM consent gate**    | `lib/federation/wrappers/dm-gate.ts`          | `allow`/`hold`/`refuse`, the Requests folder, the no-notify property   |
+| **Block / mute semantics** | `isBlockedEitherWay`, `filterHiddenActorIds`  | Already audited against the status read path                           |
+| **Moderation**             | A DM is a status, so status tooling applies   | A chat transcript is not a status; nothing we built would apply        |
+| **Test coverage**          | `tests-db/social-dm-requests.test.ts`         | 12 assertions on hold/accept/delete/block/policy behaviour             |
+
+The consent gate is the one to be most careful with. `docs/SOCIAL-GRAPH.md` §C1 calls ungated DMs
+_"the largest open safety gap"_, and `dm-gate.ts` is the thing that closed it. It is not a filter
+that can be ported in an afternoon: it encodes that a held message **must not notify**, and that
+every refusal returns one identical string so that a blocked sender cannot tell a block apart from a
+closed inbox by contrast. Re-deriving that against a new store is how a safety property quietly
+stops holding.
+
+**So: replace the interface, keep the substrate.** The `/updates` inbox and sent tabs retire when DM
+chat reaches parity. `socialStatuses` stays exactly where it is.
+
+---
+
+## Storage — one transport, two stores
+
+This is the central design call, and it follows directly from the table above.
+
+**DM rooms read and write `socialStatuses` (direct).** They keep federation, the consent gate, voice
+memos, block filtering, moderation, and the existing tests — none of which have to be touched.
+
+**Group and event rooms read and write a new `chat_messages` table.** Neither has anything to
+inherit: there is no federated group-chat story, no event-chat substrate, and no existing consent
+model for either. They are local-only by design, which the [Non-Goals](#non-goals) already assume.
+
+### Why not one store for all three
+
+The tempting symmetry is a single `chat_messages` table, with DM messages _also_ mirrored to direct
+statuses so federation survives. That is a dual write to two stores with different schemas,
+different delete semantics, and different expiry — `DM_EXPIRY_DAYS` applies to statuses and would
+not apply to the mirror. Dual writes drift, and the drift here is silent: the federated copy and the
+copy a pana sees would disagree, and nothing would report it.
+
+One store per scope has no drift because there is nothing to keep in sync.
+
+### Why this is invisible in the UI
+
+A message is `{ id, author, body, createdAt }` whichever table it came from. The difference is one
+adapter at the query layer selected on room scope, not a difference the chat component can see. To a
+pana there is one Messages surface, which is the entire point of the product change.
+
+---
+
+## The authorization gate
+
+One function, three branches, each delegating to the table that already owns the answer. Follows the
+rule in [Do Not Copy The Signaling Auth Model](#do-not-copy-the-signaling-auth-model): identity is
+resolved in the Worker and set on the inner `stub.fetch`, and the DO ignores any identity in the
+payload.
+
+```ts
+// /ws/chat/:scope/:id
+const session = await auth();
+if (!session?.user?.id) return new Response('Unauthorized', { status: 401 });
+
+// session → active profile → actor. A user may act as a business, so the
+// actor is whoever they are currently acting as, not their own profile.
+// See lib/server/active-profile.ts:68-79.
+const profile = await getActiveProfileWithActor(session.user.id);
+if (!profile?.socialActor) return new Response('Forbidden', { status: 403 });
+
+switch (scope) {
+  case 'dm':
+    // Reuses the shipped gate. Does NOT re-implement consent.
+    if (!(await mayWriteDirectThread(profile.socialActor.id, id)))
+      return forbidden();
+    break;
+
+  case 'group': {
+    const m = await getMembership(id, profile.socialActor.id); // group.ts:588
+    if (m?.status !== 'active') return forbidden(); // 'pending' and 'banned' are not members
+    break;
+  }
+
+  case 'event': {
+    // profileId, not actorId — see the identity problem below.
+    const a = await getAttendee(id, profile.id);
+    if (!a || a.status === 'not_going' || !a.emailVerifiedAt)
+      return forbidden();
+    break;
+  }
+}
+```
+
+Three things that are easy to get wrong and are deliberate above:
+
+- **`pending` is not a member.** A pending join request must not read the room, or the request queue
+  becomes a way to read any private group.
+- **`banned` is not merely absent.** It is a tombstone that exists precisely so the person cannot
+  re-enter; treating a missing row and a banned row the same way re-admits them on rejoin.
+- **The group branch keys on `actorId`, the event branch on `profileId`.** That is not an
+  inconsistency to tidy up — it is what the two shipped tables actually store, and bridging them in
+  the gate is cheaper than migrating either.
+
+---
+
+## Event rooms have an identity problem
+
+**This needs a product decision before event chat can be built.** It is the one genuinely new
+blocker the three-scope decision introduces.
+
+`event_attendees` does not require an account. From `lib/schema/index.ts:2355`:
+
+```ts
+// Set for logged-in attendees; null for anonymous email RSVPs.
+profileId: text('profile_id').references(() => profiles.id, ...),
+// Nullable: RSVPs that arrive from Nostr (kind 31925) have no email — they
+// are keyed by nostrPubkey instead. Web RSVPs always set email.
+email: text('email'),
+nostrPubkey: text('nostr_pubkey'),
+```
+
+So an event has three classes of attendee, and only one of them can hold an authenticated WebSocket:
+
+| Attendee             | Has `profileId` | Can join chat                                    |
+| -------------------- | --------------- | ------------------------------------------------ |
+| Logged-in RSVP       | yes             | **Yes**                                          |
+| Anonymous email RSVP | no              | **No** — no account, so no session, so no socket |
+| Nostr RSVP (31925)   | no              | **No** — no local account at all                 |
+
+This is not a bug to code around. There is no way to authenticate a person who has never had an
+account, and issuing a room token over email would create a credential with no revocation story
+attached to an unverified address.
+
+The options, with the trade each one makes:
+
+1. **Event chat is for signed-in attendees only.** Email RSVPs keep working and simply do not see
+   chat. Cheapest, and honest — but on a local network where email RSVP may be the common path, the
+   room could be a fraction of the guest list and read as empty. That is exactly the
+   [liveness problem](#realtime-delivery-is-not-realtime-affordances) this document warns about.
+2. **Chat prompts email RSVPs to claim an account.** The RSVP already sends a magic link; claiming
+   could attach a profile to the existing row. Best outcome, most work, and it changes the RSVP
+   funnel — which is a product call, not an engineering one.
+3. **Events opt into chat.** The host decides per event, so a ticketed event with signed-in guests
+   gets a room and a flyer-and-email event does not. Smallest blast radius, and it lets the first
+   version ship without answering 1-vs-2.
+
+**Recommended: 3 now, 2 later.** Option 3 is reversible and does not strand anyone; option 2 is the
+right end state but should not block the group rooms, which have no equivalent problem because
+`social_group_members.actorId` is `NOT NULL`.
 
 ---
 
@@ -106,17 +291,23 @@ still a status, block filtering still applies because it is the same read path, 
 applies because it is the same row, and voice memos keep working because nothing moved.
 
 **Conclusion: buy column one, decline column two.** That deletes the only cost recorded against the
-model we chose, costs nothing the mock warned about, and leaves the mail-vs-chat decision standing.
+mail substrate while costing nothing the mock warned about — which is why the substrate survives the
+decision to replace the mail _interface_.
 
 ---
 
 ## Path A — live delivery on the mail substrate
 
+**This is now the DM scope's delivery layer**, not an alternative to chat. The architecture below
+was designed before the three-scope decision and survives it unchanged, because an actor-scoped
+mailbox does not care what the UI on top of it looks like. What changed is its framing: it is no
+longer "instead of chat", it is "how DM chat gets its messages".
+
 Scope: a DM that has been sent appears in an open thread without a refresh. Nothing else.
 
 **Explicitly out of scope:** presence, typing indicators, and read receipts — the affordances the
-liveness argument above rules out. They stay out until a surface exists where liveness is real,
-which is the group-room case this document was originally written for.
+liveness argument above rules out for two-person threads. Group and event rooms may earn them
+later; a cold DM thread does not.
 
 ### Shape
 
@@ -161,29 +352,36 @@ connecting to — if it could, it could read anyone's.
    backoff; on reconnect, refetch rather than replay — Postgres is the truth and the DO holds no
    history to replay from.
 
-### Prerequisite — the thread view has to exist first
+### Prerequisite — the DM chat view has to exist first
 
 **There is no DM conversation UI in this repo today.** What ships is the substrate (direct statuses,
 `recipientTo`, `inReplyToId`), the gating from `0051_social_dm_requests`, the held-request review in
 `/updates`, and two list routes under `app/api/social/messages/`. Voice memos send as direct
 statuses. None of that is a thread you can sit in and watch.
 
-So Path A is ordered **after** the mail thread view, not before it: a socket whose only job is to
-make an open thread update live has nothing to update until there is an open thread. Building the
-transport first would mean shipping a DO whose sole consumer is `/mock/dms`, which is the same
-mistake as building rooms before deciding their scope.
+So Path A is ordered **after** the DM chat view, not before it: a socket whose only job is to make
+an open thread update live has nothing to update until there is an open thread. Building the
+transport first would mean shipping a DO whose sole consumer is `/mock/dms`.
 
-The sequencing is therefore: mail thread view → Path A → (group rooms, once scoped).
+This is also what makes "replace the mail" concrete. The DM chat view _is_ the replacement for the
+inbox/sent tabs — the tabs retire when it reaches parity, not before, so there is never a window
+where a pana cannot reach a conversation.
 
-### Why the surface decision does not block this
+### How this relates to group and event rooms
 
-[Step 1](#step-1--decide-the-surface) blocks the chat design because membership is what the auth
-gate reads, and rooms have no membership until they have a scope. Path A has no rooms: the mailbox
-is the actor, and the actor exists. The prerequisite above is a different and much smaller
-constraint — it orders this after one UI, not after an unmade product decision.
+Path A is the DM half. Group and event rooms use the same transport pattern but a different DO
+scope — a **room** DO rather than an actor mailbox — because their membership is a set that the
+server already knows, and a room broadcast is O(members) once rather than N mailbox hops.
 
-It is also additive. If group chat later lands on its own DO, nothing here is thrown away or
-migrated, because this one never owned any data.
+|           | DM                        | Group / event         |
+| --------- | ------------------------- | --------------------- |
+| DO scope  | per recipient actor       | per room              |
+| DO stores | nothing                   | recent history buffer |
+| Store     | `socialStatuses` (direct) | `chat_messages`       |
+| Federates | yes                       | no                    |
+
+Neither blocks the other, and nothing in the DM path is thrown away or migrated when rooms land,
+because the DM DO never owns any data.
 
 ---
 
@@ -265,31 +463,90 @@ a chat room. Chat history survives an empty room.
 
 ## Schema
 
-Shape only. The `room` reference below is a placeholder for whatever chat ends up scoped to — a
-group, a direct-message pair, or a standalone room. That decision is upstream of this table.
+**Group and event rooms only.** DM rooms do not appear here — they read and write `socialStatuses`
+with `visibility: 'direct'`, per [Storage](#storage--one-transport-two-stores).
 
 ```ts
-export const chatMessages = pgTable('chat_messages', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  roomId: text('room_id').notNull(),
-  actorId: text('actor_id')
-    .notNull()
-    .references(() => socialActors.id),
-  body: text('body').notNull(),
-  replyToId: text('reply_to_id').references((): AnyPgColumn => chatMessages.id),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-});
+export const chatRoomScope = pgEnum('chat_room_scope', ['group', 'event']);
+
+// One room per group or event. The scope column says which of the two FKs is
+// set; exactly one is, enforced by the check constraint below.
+export const chatRooms = pgTable(
+  'chat_rooms',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    scope: chatRoomScope('scope').notNull(),
+    groupId: text('group_id').references(() => socialGroups.id, {
+      onDelete: 'cascade',
+    }),
+    eventId: text('event_id').references(() => events.id, {
+      onDelete: 'cascade',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // A room belongs to exactly one thing. Without this, a row with both FKs
+    // null is a room with no membership source — which means no auth gate.
+    scopeTargetCk: check(
+      'chat_rooms_scope_target_ck',
+      sql`(${table.scope} = 'group' AND ${table.groupId} IS NOT NULL AND ${table.eventId} IS NULL)
+       OR (${table.scope} = 'event' AND ${table.eventId} IS NOT NULL AND ${table.groupId} IS NULL)`
+    ),
+    groupIdx: uniqueIndex('chat_rooms_group_idx').on(table.groupId),
+    eventIdx: uniqueIndex('chat_rooms_event_idx').on(table.eventId),
+  })
+);
+
+export const chatMessages = pgTable(
+  'chat_messages',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    roomId: text('room_id')
+      .notNull()
+      .references(() => chatRooms.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => socialActors.id),
+    body: text('body').notNull(),
+    replyToId: text('reply_to_id').references(
+      (): AnyPgColumn => chatMessages.id
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // The only read pattern that matters: newest N in a room, and paging back.
+    roomCreatedIdx: index('chat_messages_room_created_idx').on(
+      table.roomId,
+      table.createdAt
+    ),
+  })
+);
 ```
+
+Three things worth calling out:
+
+`actorId` is the author even for event rooms, whose _membership_ is keyed on `profileId`. The gate
+bridges profile → actor on the way in (see [the gate](#the-authorization-gate)); storing the actor
+keeps one author type across both stores, so the UI renders a DM author and a room author with the
+same code.
 
 `deletedAt` is a soft delete. Moderation needs to remove a message from the room without destroying
 the evidence of what was removed — and unlike Nostr, where
 `components/relay/groups/GroupDetail.tsx:290` has to warn that messages cannot be retracted, a
 native store can actually honor a takedown.
+
+`onDelete: 'cascade'` on `roomId` means deleting a group or event takes its chat with it. That is
+deliberate: a room whose parent is gone has no membership source, so it could never be read again
+anyway, and leaving the rows behind would just be an unreachable transcript.
 
 ---
 
@@ -333,60 +590,71 @@ this way in the first commit; retrofitting identity into a live chat protocol me
 
 ## Roadmap
 
-Sequencing depends on the surface decision, so these are ordered rather than numbered against the
-groups roadmap.
+Two independent tracks. The DM track replaces the mail experience; the rooms track adds the two new
+surfaces. Neither blocks the other.
 
-> [Path A](#path-a--live-delivery-on-the-mail-substrate) is not in this sequence. It is independent
-> of the surface decision and carries its own steps and its own prerequisite — the mail thread view.
-> The steps below are the **group/standalone room** build, which is what remains blocked.
+> **DM track:** DM chat view → [Path A](#path-a--live-delivery-on-the-mail-substrate) delivery →
+> retire the `/updates` mail tabs. Steps are in the Path A section.
 
-### Step 1 — Decide the surface
+The steps below are the **group and event rooms** track.
 
-Answer [the scope question](#risks--open-questions) first. Direct messages, group rooms, and
-standalone rooms imply different membership sources, and membership is what the auth gate reads.
+### Step 1 — Room provisioning and the gate
+
+The scope question is answered, so this replaces it. Create `chat_rooms` / `chat_messages`, and
+write the three-branch gate **first** — before any transport — because it is the thing every other
+step depends on being right, and it is testable without a socket.
+
+- Group rooms: auto-provision on group creation, or lazily on first open
+- Event rooms: **opt-in per event** per
+  [the identity problem](#event-rooms-have-an-identity-problem)
+- Gate tests mirroring `tests-db/social-dm-requests.test.ts`: pending is not a member, banned is not
+  absent, unverified RSVP is not an attendee
 
 ### Step 2 — Transport
 
 - Chat DO class; binding with `new_sqlite_classes`
-- Authenticated `/ws/chat/:roomId` upgrade per the snippet above, **in the first commit**
-- Presence, broadcast, and reconnect, modelled on `SignalingRoom` minus the teardown
+- Authenticated `/ws/chat/:scope/:id` upgrade per the snippet above, **in the first commit**
+- Broadcast and reconnect, modelled on `SignalingRoom` minus the teardown
 
 ### Step 3 — Persistence
 
-- `chat_messages` table and the `app/api/internal/*` write path
+- The `app/api/internal/*` write path
 - Backfill-on-join so a member who was offline gets history from Postgres, not just the DO buffer
 - Account-deletion sweep includes chat
 
 ### Step 4 — Surface
 
-- The UI, wherever step 1 landed
+- One chat UI across all three scopes, differing only in the room list it hangs off
 - Moderation affordances: soft delete, and whatever the room's role model allows
 
 ---
 
 ## Risks & Open Questions
 
-### What is chat scoped to? — blocks everything else
+### ~~What is chat scoped to?~~ — answered (2026-10)
 
-**Half answered: not direct messages.** DMs ship as mail on the existing direct-status substrate,
-so chat does not inherit them. What remains is rooms attached to groups, standalone rooms, or both
-— which still determines the membership source, the auth gate, the room ID scheme, and the UI
-surface. Nothing else in this document can be built until that half is answered —
-**except [Path A](#path-a--live-delivery-on-the-mail-substrate), which has no rooms and is
-therefore not blocked by it.**
+**Answered: DMs, groups, and events.** See [The three scopes](#the-three-scopes). This section is
+kept because the reasoning that produced it still constrains what gets built.
 
-The reasoning that settled the DM half is worth keeping, because it applies to group rooms too.
-Real-time affordances **advertise liveness**: on a network of a few hundred locals, a presence dot
-that always reads "offline" and a typing indicator that never fires make a room look abandoned,
-where an async thread with three messages in it reads as perfectly healthy. Chat earns its
-infrastructure where people are already talking — a group with a shared purpose — not in a cold
-two-person thread, which is the case this document originally assumed.
+The argument that settled it: real-time affordances **advertise liveness**. On a network of a few
+hundred locals, a presence dot that always reads "offline" and a typing indicator that never fires
+make a room look abandoned, where an async thread with three messages in it reads as perfectly
+healthy. Chat earns its infrastructure where people are already talking — a group with a shared
+purpose, an event with a guest list — not in a cold two-person thread.
 
-**Note the scope of that argument, which an earlier draft of this section overstated.** It rules out
-*affordances* in a cold thread. It does not rule out *delivery*, and the mock's cost list against
-the mail model was delivery — see
+**That rules out _affordances_ in a cold thread. It does not rule out _delivery_,** and delivery is
+what the panas actually asked for — see
 [Realtime delivery is not realtime affordances](#realtime-delivery-is-not-realtime-affordances).
-Reading this paragraph as "no sockets near DMs" is the misreading to avoid.
+Reading it as "no sockets near DMs" is the misreading to avoid. The practical consequence is the
+split in Path A: DMs get live delivery and no presence; group and event rooms may earn presence
+later, once there is evidence the rooms are populated enough for it to read as alive rather than
+empty.
+
+### Can event chat include attendees without accounts? — blocks event rooms only
+
+The open question that replaces the old one. Email-only and Nostr-only RSVPs cannot authenticate, so
+they cannot join. See [Event rooms have an identity problem](#event-rooms-have-an-identity-problem)
+for the three options and the recommendation. Group rooms and DMs are unaffected.
 
 ### Member cap per room
 
