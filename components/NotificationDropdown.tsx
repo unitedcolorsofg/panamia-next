@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CheckCheck, Bell } from 'lucide-react';
+import { CheckCheck, Bell, MessageCircle } from 'lucide-react';
 import NotificationItem from './NotificationItem';
 import type { NotificationInterface } from '@/lib/interfaces';
 import {
@@ -86,8 +86,21 @@ export default function NotificationDropdown() {
       )}
 
       <DropdownMenuSeparator />
-      <div className="p-1">
-        <Button variant="ghost" size="sm" className="w-full" asChild>
+      {/*
+       * Two destinations because they answer different questions. "Updates" is
+       * the triage surface — four tabs of statuses to scan and clear. Messages
+       * is the conversation surface, and is otherwise unreachable: nothing in
+       * the app links to /messages, so without this entry the chat view would
+       * ship behind a URL only its authors know.
+       */}
+      <div className="flex gap-1 p-1">
+        <Button variant="ghost" size="sm" className="flex-1" asChild>
+          <Link href="/messages">
+            <MessageCircle className="mr-1 h-3 w-3" />
+            Messages
+          </Link>
+        </Button>
+        <Button variant="ghost" size="sm" className="flex-1" asChild>
           <Link href="/updates">View all updates</Link>
         </Button>
       </div>

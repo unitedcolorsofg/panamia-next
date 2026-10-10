@@ -1316,6 +1316,127 @@ export const useDeleteDmRequest = () => {
 };
 
 // ============================================================================
+// DM conversations
+//
+// The chat view's data layer. These sit under the 'messages' key prefix on
+// purpose: request triage already invalidates that whole subtree, so accepting
+// a request refreshes the conversation list without the triage helper needing
+// to learn about a third folder.
+// ============================================================================
+
+/** One person the viewer has a thread with. */
+export interface ConversationSummary {
+  counterparty: SocialActorDisplay;
+  lastMessage: SocialStatusDisplay;
+}
+
+export interface ConversationListResult {
+  conversations: ConversationSummary[];
+  /** Null before the viewer has a social actor, when the list is empty anyway. */
+  viewerActorId: string | null;
+  /** Which domain counts as local, for marking federated counterparties. */
+  localDomain: string | null;
+}
+
+/**
+ * One open thread.
+ *
+ * `canSend` is the gate's answer for writing to this person, resolved
+ * server-side so the composer never has to guess. It has two values, not the
+ * gate's three: 'hold' is reported as 'allow' because telling the sender their
+ * message was filed as a request discloses the recipient's settings, which is
+ * the exact thing dm-gate.ts exists to prevent. 'refuse' replaces the composer
+ * with the single deliberately-ambiguous refusal line.
+ */
+export interface ConversationThread {
+  counterparty: SocialActorDisplay;
+  messages: SocialStatusDisplay[];
+  viewerActorId: string;
+  localDomain: string | null;
+  canSend: 'allow' | 'refuse';
+}
+
+export const useConversations = (enabled: boolean = true) =>
+  useQuery({
+    queryKey: [socialQueryKey, 'messages', 'conversations'],
+    queryFn: async (): Promise<ConversationListResult> => {
+      const { data } = await axios.get('/api/social/messages/conversations');
+      return {
+        conversations: data?.data?.conversations ?? [],
+        viewerActorId: data?.data?.viewerActorId ?? null,
+        localDomain: data?.data?.localDomain ?? null,
+      };
+    },
+    enabled,
+  });
+
+/**
+ * One thread, polled while it is open.
+ *
+ * Polling is the placeholder, not the destination: docs/CHAT-ROADMAP.md step 4
+ * replaces this interval with a socket push, and this view is the prerequisite
+ * that had to exist first. Fifteen seconds is slow for a chat and honest about
+ * it -- it never claims a message arrived that has not, which is the one thing
+ * this UI must not do.
+ */
+export const useConversation = (actorId: string | null) =>
+  useQuery({
+    queryKey: [socialQueryKey, 'messages', 'conversation', actorId],
+    queryFn: async (): Promise<ConversationThread | null> => {
+      const { data } = await axios.get(
+        `/api/social/messages/conversations/${actorId}`
+      );
+      return data?.data ?? null;
+    },
+    enabled: !!actorId,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+  });
+
+/**
+ * Send one direct message.
+ *
+ * Goes through the same POST /api/social/statuses every other composer uses,
+ * because the DM gate lives inside createStatus. A dedicated send endpoint
+ * would be a second door into the same room, and only one of them would have
+ * the lock on it.
+ *
+ * No optimistic insert. A tick beside a message that does not exist on the
+ * server yet is the single lie this interface refuses to tell, so the message
+ * appears when the refetch confirms it -- see the mock's "Queued" treatment.
+ */
+export const useSendDirectMessage = (counterpartyActorId: string | null) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (content: string) => {
+      // Defensive: the composer only renders with a thread open, but a null id
+      // would POST `recipientActorIds: [null]`, which the statuses route would
+      // reject with a validation error that reads like a bug rather than one.
+      if (!counterpartyActorId) throw new Error('No conversation selected');
+      const { data } = await axios.post('/api/social/statuses', {
+        content,
+        visibility: 'direct',
+        recipientActorIds: [counterpartyActorId],
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          socialQueryKey,
+          'messages',
+          'conversation',
+          counterpartyActorId,
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [socialQueryKey, 'messages', 'conversations'],
+      });
+    },
+  });
+};
+
+// ============================================================================
 // Mutation Hooks
 // ============================================================================
 
