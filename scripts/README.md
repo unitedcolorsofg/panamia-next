@@ -222,6 +222,46 @@ This is why the verification block asserts specific `seed_`-prefixed ids
 rather than row counts. A count is not stable in a database someone else is
 writing to; an id is.
 
+### `unseed.ts`
+
+Removes every row the seed scripts wrote, and nothing else.
+
+```bash
+yarn db:unseed            # dry run — counts only, writes nothing
+yarn db:unseed --yes      # actually delete
+```
+
+This is the other half of `db:seed`. The seeders will write to a remote
+database when given `SEED_ALLOW_REMOTE=1`, and before this script that was a
+one-way door: the only teardown was `db:reset`, which truncates **everything**
+and whose guard (see above) a Supabase URL passes. So the safe-looking option
+was the one that destroyed the most.
+
+It matches on the `seed_` prefix every seeder mints, using Postgres
+`starts_with()` rather than `LIKE 'seed_%'` — in `LIKE`, `_` is a
+single-character wildcard, so the pattern would also match a real id beginning
+`seedX`. Nothing looks like that today, which is what would make it a quiet
+bug rather than a loud one.
+
+Two things are worth knowing before trusting it:
+
+- **Actors are matched by profile, not by id.** `seed-dev-data.ts` builds them
+  through `createActorForProfile` — the real production writer, deliberately —
+  and that writer mints its own unprefixed id. A prefix-only sweep misses
+  them, and because `social_actors.profile_id` is `SET NULL` rather than
+  `CASCADE`, deleting profiles first would orphan them with no way left to
+  tell they were seeded. They are deleted first, while they can still be
+  found.
+- **It stops rather than cascading into real data.** The `RESTRICT` foreign
+  keys on `events` and `venues` exist so a seeded row cannot be pulled out
+  from under something real — a member who RSVP'd to a demo event, or hosted
+  at a seeded venue. When that happens the whole thing rolls back in one
+  transaction and names the blocking row. Repoint or remove it and run again.
+
+Dry run is the default, so it is safe to point at an unfamiliar database just
+to see what it would touch. Counts shown exclude rows removed by cascade, so
+the real total is higher than the number printed.
+
 ### `fetch-directory-photos.ts`
 
 Builds the stock photo pool in `public/img/directory/` from the Pexels API.
