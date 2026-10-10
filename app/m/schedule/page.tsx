@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { redirect } from 'next/navigation';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 import { db } from '@/lib/db';
 import { mentorSessions } from '@/lib/schema';
 import { and, eq, gte, lt, or, inArray } from 'drizzle-orm';
@@ -8,7 +8,7 @@ import { SessionsList } from './_components/sessions-list';
 export default async function SchedulePage() {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/signin');
+    redirectToSignIn('/m/schedule');
   }
 
   const userEmailFilter = or(

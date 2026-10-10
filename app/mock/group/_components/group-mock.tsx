@@ -3,15 +3,18 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Lock, Shield, Sparkles } from 'lucide-react';
+import { ArrowRight, Clock, Lock, Shield, Sparkles } from 'lucide-react';
 import type { MockSurface } from '../../_data/panaverse';
 import { SurfaceMasthead } from '../../_components/surface-masthead';
 import { FeedPostCard } from '../../feed/_components/feed-post-card';
 import {
+  canManage,
+  isInsider,
   MOCK_EVENTS,
   MOCK_GROUP,
   MOCK_GROUP_POSTS,
   MOCK_MEMBERS,
+  MOCK_PENDING,
   MOCK_PRIVATE_GROUP,
   MOCK_RELATED,
   type GroupTab,
@@ -19,6 +22,7 @@ import {
 } from '../_data/mock-group';
 import { GroupHero } from './group-hero';
 import { GroupRail } from './group-rail';
+import { GroupManage } from './group-manage';
 import { EventCard, MemberRow } from './group-panels';
 
 /* Design mock for a Pana Social group home page.
@@ -44,7 +48,7 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
   const [joined, setJoined] = useState(true);
 
   const group = viewer === 'locked' ? MOCK_PRIVATE_GROUP : MOCK_GROUP;
-  const isMember = viewer === 'member' || joined;
+  const isMember = isInsider(viewer) || joined;
 
   const current =
     surfaces.find((surface) => surface.id === 'social') ?? surfaces[0];
@@ -52,16 +56,36 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
   /* Three tabs, the same three for everyone who can see the group at all.
      Real-time chat is deliberately not one of them — it is being designed as
      its own feature on its own surface, so this page stays a slow surface:
-     posts, events, roster. */
+     posts, events, roster.
+
+     Manage is the exception, and it is an exception on purpose: it appears
+     only for admins and moderators, and it carries a count. Every other tab
+     counts what it contains; this one counts what is waiting on you, which is
+     the only number on this page with a person attached to the other end of
+     it. That is the whole argument for the tab — the approval queue already
+     works, it is just unreachable from a group small enough not to paginate
+     its roster. */
   const tabs: { id: GroupTab; label: string; count: number }[] = [
     { id: 'posts', label: 'Posts', count: MOCK_GROUP_POSTS.length },
     { id: 'events', label: 'Events', count: MOCK_EVENTS.length },
     { id: 'members', label: 'Members', count: MOCK_MEMBERS.length },
+    ...(canManage(viewer)
+      ? [
+          {
+            id: 'manage' as const,
+            label: 'Manage',
+            count: MOCK_PENDING.length,
+          },
+        ]
+      : []),
   ];
 
   const selectViewer = (next: ViewerState) => {
     setViewer(next);
-    setJoined(next === 'member');
+    setJoined(isInsider(next));
+    /* Landing an admin on Manage would flatter the design by hiding the thing
+       it is fixing: that nothing on the group page tells you the queue is
+       there. Everyone starts on Posts and has to notice the badge. */
     setActiveTab('posts');
   };
 
@@ -99,6 +123,45 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
               <LockedPanel />
             ) : (
               <>
+                {/* The tab badge is a label; this is the alert.
+                    On a 430px phone four uppercase letter-spaced tabs measure
+                    504px in a 383px strip, so "Manage 3" sits off the right
+                    edge with nothing to suggest it is there — the strip
+                    scrolls but hides its scrollbar. An organiser on a phone
+                    would therefore never learn anyone is waiting, which is the
+                    same failure this tab was built to fix.
+
+                    So the count also gets a row that cannot be scrolled out of
+                    view. It is not a second copy of the queue: it appears only
+                    when someone is actually waiting, and only while you are
+                    somewhere else. Open Manage and it goes away. */}
+                {canManage(viewer) &&
+                  MOCK_PENDING.length > 0 &&
+                  activeTab !== 'manage' && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('manage')}
+                      className="border-pana-burnt/30 bg-pana-burnt/8 mb-3 flex w-full items-center gap-2.5 rounded-xl border-2 px-3.5 py-2.5 text-left"
+                    >
+                      <Clock
+                        className="text-pana-burnt h-4 w-4 flex-none"
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 flex-1 text-[13px] leading-snug font-bold">
+                        <span className="font-black">
+                          {MOCK_PENDING.length} waiting to join
+                        </span>
+                        <span className="text-pana-ink/60">
+                          {' '}
+                          · longest {MOCK_PENDING[0].waiting}
+                        </span>
+                      </span>
+                      <span className="text-pana-burnt flex-none text-[12.5px] font-black">
+                        Review
+                      </span>
+                    </button>
+                  )}
+
                 <div role="tablist" aria-label="Group sections">
                   <div className="profile-tabs">
                     {tabs.map((tab) => {
@@ -116,7 +179,15 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
                           onClick={() => setActiveTab(tab.id)}
                         >
                           {tab.label}
-                          <span className="profile-tab-count">{tab.count}</span>
+                          <span
+                            className={
+                              tab.id === 'manage'
+                                ? 'profile-tab-count bg-pana-burnt/15 text-pana-burnt'
+                                : 'profile-tab-count'
+                            }
+                          >
+                            {tab.count}
+                          </span>
                         </button>
                       );
                     })}
@@ -163,6 +234,13 @@ export function GroupMock({ surfaces }: { surfaces: MockSurface[] }) {
                         <MemberRow key={member.id} member={member} />
                       ))}
                     </div>
+                  )}
+
+                  {/* Guarded a second time rather than trusting that the tab
+                      is absent. A tab you cannot see is not an access
+                      control. */}
+                  {activeTab === 'manage' && canManage(viewer) && (
+                    <GroupManage viewer={viewer} />
                   )}
                 </div>
               </>
@@ -280,6 +358,20 @@ function MockToolbar({
       </span>
 
       <div className="mock-switch ml-auto">
+        <button
+          type="button"
+          data-active={viewer === 'admin'}
+          onClick={() => onSelectViewer('admin')}
+        >
+          Admin
+        </button>
+        <button
+          type="button"
+          data-active={viewer === 'moderator'}
+          onClick={() => onSelectViewer('moderator')}
+        >
+          Moderator
+        </button>
         <button
           type="button"
           data-active={viewer === 'member'}

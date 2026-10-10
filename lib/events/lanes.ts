@@ -12,7 +12,11 @@
  * So the rule this file exists to enforce: types and pure functions here,
  * queries in `discovery.ts`. `discovery.ts` re-exports everything below, which
  * keeps server callers importing from one place.
+ *
+ * The one import is `./format`, which is pure Intl for the same reason — it is
+ * safe to bundle, and the alternative was a second copy of the date rules.
  */
+import { dateKey, weekday } from './format';
 
 /**
  * A pana, as the "your panas are going" line needs them.
@@ -138,6 +142,76 @@ export function seatsLeft(event: DiscoveryEvent): number | null {
   return Math.max(0, event.cap - event.going);
 }
 
+/** The viewer-dependent half of a reason. Separated so `reasonsFor` stays a
+ *  pure function of resolved facts, testable without a database. */
+export interface ViewerFacts {
+  pastEvents: number;
+  followsHost: boolean;
+  panas: DiscoveryPana[];
+  attended: { title: string; tags: string[] }[];
+}
+
+/**
+ * Every reason that holds for an event, strongest first.
+ *
+ * Order is the editorial judgement of the page and worth stating plainly:
+ * a host you chose to follow beats people you know going, which beats a
+ * subject you have turned up for before, which beats the page arguing on an
+ * unknown host's behalf. Each event is then placed in exactly one lane, by its
+ * strongest reason -- the same event appearing under three headings is the
+ * fastest way to make a page of four lanes feel like a page of one.
+ *
+ * Here rather than next to `getDiscoveryFeed` because it is the one piece both
+ * sides of the product need. `/e` runs it over real rows to rank a reader's
+ * page; `/e/new` runs it in the browser over a draft, so a host can see which
+ * lanes the thing they are typing would reach. Two copies of these thresholds
+ * would drift within a release, and the host page would start promising lanes
+ * the discovery page does not actually grant.
+ */
+export function reasonsFor(
+  event: DiscoveryEvent,
+  facts: ViewerFacts
+): Reason[] {
+  const out: Reason[] = [];
+
+  if (facts.followsHost)
+    out.push({ kind: 'follow-host', host: event.host.name });
+
+  /* Three rather than one: two panas going is a coincidence, and a lane that
+     fires on a single RSVP turns every event one friend attends into a
+     personalised recommendation. */
+  if (facts.panas.length >= 3) {
+    out.push({ kind: 'panas-going', panas: facts.panas });
+  }
+
+  const match = tagMatch(event, facts.attended);
+  if (match) out.push({ kind: 'tag-match', ...match });
+
+  if (facts.pastEvents <= 1 && event.going < 50) {
+    out.push({
+      kind: 'new-host',
+      host: event.host.name,
+      pastEvents: facts.pastEvents,
+    });
+  }
+
+  return out;
+}
+
+/** Tags this event shares with something the viewer actually turned up to,
+ *  plus which past event earned the match. Returns null when there is no
+ *  overlap, so the caller cannot accidentally render an empty claim. */
+function tagMatch(
+  event: DiscoveryEvent,
+  attended: { title: string; tags: string[] }[]
+): { tags: string[]; from: string } | null {
+  for (const past of attended) {
+    const shared = event.tags.filter((tag) => past.tags.includes(tag));
+    if (shared.length > 0) return { tags: shared, from: past.title };
+  }
+  return null;
+}
+
 /**
  * Bucket a set of events into lanes.
  *
@@ -231,3 +305,67 @@ function laneRank({
       return -event.going;
   }
 }
+
+/* ----------------------------------------------------------------------
+   Time. Pure, Intl-only, and down here rather than beside the queries so the
+   host form at /e/new can render a draft exactly the way /e renders a row.
+   A second copy of formatWhen would drift, and the first thing a host would
+   notice is that the card they were promised is not the card they got.
+   ---------------------------------------------------------------------- */
+
+/**
+ * The timezone the windows are reckoned in.
+ *
+ * "Tonight" is a claim about the viewer, not about the event, so it needs one
+ * answer rather than one per row. South Florida is what this directory is, and
+ * it is already the default on `events.timezone`; a viewer reading from
+ * elsewhere is looking at what is on *here*, which is the only reading of
+ * "tonight" that makes sense on a page about places you can physically go.
+ */
+export const SITE_TIMEZONE = 'America/New_York';
+
+/**
+ * Date and time formatting lives in ./format.ts.
+ *
+ * The personal calendar needed the same four helpers. `timezone` is a free
+ * text column, and the copies in ./format.ts treat a bad value as missing
+ * rather than throwing — which is what discovery wants too, since one wrong
+ * clock face beats a RangeError taking the page down. Re-exported so existing
+ * callers that import them from here keep working.
+ */
+export { dateKey, weekday, formatWhen, formatDay } from './format';
+
+/**
+ * Which window an event falls in.
+ *
+ * The buckets are the viewer's situation, not even divisions of the calendar,
+ * so they overlap in the way the words do and are resolved in order: an event
+ * tonight is "tonight" even though it is also this week. `weekend` runs Friday
+ * through Sunday and only means *this coming* one -- on a Monday the weekend
+ * is five days away and still the weekend, but on the following Tuesday it is
+ * gone rather than eleven days off.
+ */
+export function bucketFor(startsAt: Date, now: Date): WhenBucket {
+  const today = dateKey(now, SITE_TIMEZONE);
+  const day = dateKey(startsAt, SITE_TIMEZONE);
+  if (day === today) return 'today';
+
+  const daysOut = Math.round(
+    (Date.parse(`${day}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) /
+      86400000
+  );
+
+  /* Days until the coming Sunday. Sunday itself counts as 0, so an event on a
+     Sunday is still this weekend rather than next. */
+  const todayDow = weekday(now, SITE_TIMEZONE);
+  const untilSunday = (7 - todayDow) % 7;
+  const eventDow = weekday(startsAt, SITE_TIMEZONE);
+  if (daysOut <= untilSunday && eventDow >= 5) return 'weekend';
+
+  if (daysOut <= 31) return 'month';
+  return 'later';
+}
+
+/** "Fri 20 Feb, 7:00 PM", in the event's own timezone -- a show at 8pm in
+ *  Miami is at 8pm on the page wherever it is read from. Defined in
+ *  ./format.ts and re-exported above. */

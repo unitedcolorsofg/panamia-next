@@ -41,11 +41,22 @@ export function MenuSurface({
   triggerClassName,
   children,
   footer,
+  onOpenChange,
 }: {
   /** Accessible name for both the trigger and the mobile sheet. */
   label: string;
   trigger: ReactNode;
   triggerClassName?: string;
+  /**
+   * Told whenever the panel opens or closes.
+   *
+   * Both panels stay mounted (see above), so anything inside `children` is
+   * rendered — and any query it runs is fired — on page load rather than on
+   * open. A menu whose contents are cheap does not care; the notifications
+   * menu fetches a list, and without this it would fetch that list for every
+   * signed-in visitor on every page whether or not they ever opened it.
+   */
+  onOpenChange?: (open: boolean) => void;
   /** Receives `close` so a row can dismiss the menu as it navigates. */
   children: (close: (returnFocus?: boolean) => void) => ReactNode;
   /**
@@ -77,6 +88,17 @@ export function MenuSurface({
     setOpen(false);
     if (returnFocus) triggerRef.current?.focus();
   }, []);
+
+  /* Held in a ref so an inline arrow from the caller does not re-fire this on
+     every render — the effect depends on `open` alone, and so reports only
+     actual transitions. */
+  const onOpenChangeRef = useRef(onOpenChange);
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
+  useEffect(() => {
+    onOpenChangeRef.current?.(open);
+  }, [open]);
 
   // Escape closes from anywhere; click-outside only applies to the desktop
   // dropdown, since the sheet has its own scrim.

@@ -3,11 +3,8 @@ import { SetTaskForm } from '@/components/connectors/admin-console';
 import { LoadTable } from '@/components/connectors/load-table';
 import { StaffingTable } from '@/components/connectors/staffing-table';
 import { Panel, StatBand } from '@/components/Admin/parts';
-import { AdminSubNav } from '@/components/Admin/subnav';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
-import { connectorsTabs } from '@/lib/connectors/admin-tabs';
 import { requireConnectorsAdmin } from '@/lib/connectors/admin-gate';
-import { countConnectorApplications } from '@/lib/connectors/membership';
 import { listRoster } from '@/lib/connectors/roster';
 import {
   connectorLoads,
@@ -64,16 +61,14 @@ export const metadata = {
 };
 
 export default async function AdminConnectorSchedulingPage() {
-  await requireConnectorsAdmin();
+  await requireConnectorsAdmin('/admin/connectors/scheduling');
 
-  const [pendingCount, roster, loads, openWork, assignable] =
-    await Promise.all([
-      countConnectorApplications(),
-      listRoster(),
-      connectorLoads(),
-      listOpenCommitments(40),
-      listAssignableEvents(),
-    ]);
+  const [roster, loads, openWork, assignable] = await Promise.all([
+    listRoster(),
+    connectorLoads(),
+    listOpenCommitments(40),
+    listAssignableEvents(),
+  ]);
 
   /* Two queries rather than one because the id spaces are separate — a public
    * event and a programme event can hold the same cuid2 without colliding in
@@ -164,12 +159,6 @@ export default async function AdminConnectorSchedulingPage() {
         </p>
       </header>
 
-      <AdminSubNav
-        tabs={connectorsTabs(pendingCount)}
-        active="scheduling"
-        label="Connectors pages"
-      />
-
       <div className="flex flex-col gap-6">
         <StatBand stats={band} />
 
@@ -179,18 +168,18 @@ export default async function AdminConnectorSchedulingPage() {
 
         <Panel title="Crew by event">
           <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
-            Counted from commitments that name the event. Short-handed ones
-            come first — an event that never asked for a crew is not short, it
-            is simply unquantified, so it sits lower whatever its numbers.
+            Counted from commitments that name the event. Short-handed ones come
+            first — an event that never asked for a crew is not short, it is
+            simply unquantified, so it sits lower whatever its numbers.
           </p>
           <StaffingTable rows={staffingRows} />
         </Panel>
 
         <Panel title="Set a task">
           <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
-            This goes on their board marked as assigned. They can mark it done
-            — you cannot, and they cannot delete it. Sizing it is optional, but
-            an unsized task is invisible to the table above.
+            This goes on their board marked as assigned. They can mark it done —
+            you cannot, and they cannot delete it. Sizing it is optional, but an
+            unsized task is invisible to the table above.
           </p>
           <SetTaskForm
             connectors={roster.map((m) => ({

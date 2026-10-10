@@ -5,18 +5,20 @@ import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePanas, useMyGroups } from '@/lib/query/social';
+import { FeedCalendarRail } from './feed-calendar-rail';
 import type { SocialActor } from '@/lib/schema';
 
 /* Held-open space, same treatment as the mock: designed in now so the rail
    does not have to be re-laid-out when these land. Copy rather than data, so
    it lives here instead of being imported from the mock's fixtures — a
-   production route should not depend on /mock. */
+   production route should not depend on /mock.
+
+   "Events & RSVPs" has left this list because it shipped — see
+   FeedCalendarRail above it. Worth noting what it promised: "a real going and
+   interested count". Half of that was wrong before it was built, because the
+   RSVP enum is going | maybe | not_going and there is no interested. The
+   module that replaced it counts only 'going', and says 'going'. */
 const RESERVED_MODULES: { title: string; description: string }[] = [
-  {
-    title: 'Events & RSVPs',
-    description:
-      'Markets, workshops, and dinners, with a real going and interested count.',
-  },
   {
     title: 'Saved posts',
     description: 'Bookmarks that survive a scroll, grouped into named lists.',
@@ -110,6 +112,8 @@ export function FeedRail({ actor }: { actor: SocialActor }) {
           </div>
         </div>
       </section>
+
+      <FeedCalendarRail />
 
       <section aria-labelledby="rail-reserved">
         <h2 id="rail-reserved" className="rail-heading">

@@ -1,6 +1,7 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 
 /**
  * The gate every Connectors admin page sits behind.
@@ -24,12 +25,17 @@ import { auth } from '@/auth';
  * "forbidden" page, because telling a stranger they have found a real admin
  * route they lack rights for is itself a disclosure.
  *
+ * "Can come back" is the part that needs `callbackUrl`, and it is required
+ * rather than optional because this gate previously sent expired staff to a
+ * bare `/signin`, which dropped them on the directory afterwards with no
+ * route back to the console they were using.
+ *
  * Throws through Next's control-flow helpers and so never returns on failure;
  * callers can treat a return as proof of an admin session.
  */
-export async function requireConnectorsAdmin() {
+export async function requireConnectorsAdmin(callbackUrl: string) {
   const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+  if (!session?.user?.id) redirectToSignIn(callbackUrl);
   if (!session.user.isAdmin) notFound();
   return session;
 }

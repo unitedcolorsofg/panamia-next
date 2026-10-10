@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { ConnectorJoinForm } from '@/components/connectors/join-form';
 import { getMyConnector } from '@/lib/connectors/membership';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 
 /**
  * Where "Apply to be a Connector" goes.
@@ -39,7 +40,7 @@ export const metadata = {
 export default async function ConnectorJoinPage() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect('/signin');
+    redirectToSignIn('/connectors/join');
   }
 
   const me = await getMyConnector(session.user.id);

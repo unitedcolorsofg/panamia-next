@@ -19,6 +19,7 @@ import {
   parseHours,
 } from '@/lib/connectors/hours';
 import { EventCard, formatDay } from '@/components/connectors/dashboard-parts';
+import SurfaceLink from '@/components/panaverse/SurfaceLink';
 
 /**
  * Programme gatherings above public events in the picker.
@@ -29,7 +30,7 @@ import { EventCard, formatDay } from '@/components/connectors/dashboard-parts';
  */
 const PROGRAMME_FIRST: ReadonlyArray<{ kind: EventKind; label: string }> = [
   { kind: 'programme', label: 'Connector events' },
-  { kind: 'public', label: 'Pana events' },
+  { kind: 'public', label: 'Panamia events' },
 ];
 
 /**
@@ -59,7 +60,7 @@ function Err({ message }: { message: string | null }) {
   return (
     <p
       role="alert"
-      className="mt-3 rounded-lg border-2 border-pana-red bg-pana-red/10 px-3 py-2 text-sm font-bold text-pana-ink"
+      className="border-pana-red bg-pana-red/10 text-pana-ink mt-3 rounded-lg border-2 px-3 py-2 text-sm font-bold"
     >
       {message}
     </p>
@@ -167,8 +168,8 @@ export function RosterEditor({ rows }: { rows: RosterRow[] }) {
   return (
     <>
       <p className="text-pana-ink/70 mb-4 text-sm leading-relaxed">
-        A house is not an assignment to hand down — have the conversation
-        first, then record what they picked. Somebody can be in more than one.
+        A house is not an assignment to hand down — have the conversation first,
+        then record what they picked. Somebody can be in more than one.
       </p>
 
       <div className="flex flex-col gap-3">
@@ -415,10 +416,25 @@ export function SetTaskForm({
       {/* Optional, and placed after the required fields so it never looks like
           a step. Most work is not an event — "drop off zines at four shops"
           has no date on anyone's calendar — so the empty option is the
-          default and is phrased as a real choice rather than as a blank. */}
-      {events.length > 0 && (
-        <label className="mt-3 block">
-          <span className={LABEL}>For an event</span>
+          default and is phrased as a real choice rather than as a blank.
+
+          Drawn even with nothing to pick, disabled. Hiding it entirely was
+          tidier but made the capability undiscoverable: the form jumped
+          straight from House to the estimate, and the only way to learn that
+          a commitment can name an event was to put one on the calendar and
+          notice a new field. A disabled control answers the question in
+          place, and says where to go. */}
+      <label className="mt-3 block">
+        <span className={LABEL}>For an event</span>
+        {events.length === 0 ? (
+          <select
+            className={`${FIELD} mt-1 cursor-not-allowed opacity-60`}
+            disabled
+            value=""
+          >
+            <option value="">Nothing on the calendar yet</option>
+          </select>
+        ) : (
           <select
             className={`${FIELD} mt-1`}
             value={event}
@@ -431,10 +447,7 @@ export function SetTaskForm({
               return (
                 <optgroup key={kind} label={label}>
                   {group.map((option) => (
-                    <option
-                      key={eventValue(option)}
-                      value={eventValue(option)}
-                    >
+                    <option key={eventValue(option)} value={eventValue(option)}>
                       {formatDay(new Date(option.startsAt))} — {option.title}
                       {option.where ? ` · ${option.where}` : ''}
                     </option>
@@ -443,12 +456,32 @@ export function SetTaskForm({
               );
             })}
           </select>
-          <p className="text-pana-ink/55 mt-2 text-xs leading-relaxed">
+        )}
+      </label>
+      {/* Outside the label rather than inside it: the empty-state copy carries
+          a link, and a link inside a label is activated twice over — once as
+          itself and once as the label's control. */}
+      <p className="text-pana-ink/55 mt-2 text-xs leading-relaxed">
+        {events.length === 0 ? (
+          <>
+            Add one under{' '}
+            <SurfaceLink
+              href="/admin/connectors"
+              className="text-pana-indigo font-bold underline underline-offset-2"
+            >
+              Coming up
+            </SurfaceLink>{' '}
+            on the Connectors overview, or publish an event with Panamia as the
+            host. Only events still ahead of today can be staffed, and only
+            Panamia&rsquo;s own — a pana&rsquo;s event is not connector work.
+          </>
+        ) : (
+          <>
             Attaching it counts this person toward that event&rsquo;s crew, so
             the board can tell a staffed event from one nobody has picked up.
-          </p>
-        </label>
-      )}
+          </>
+        )}
+      </p>
 
       {/* Presets first, free entry behind them. The estimate is the field most
           likely to be skipped, and skipping it costs the scheduling table its
@@ -657,9 +690,9 @@ export function EventBoard({
             Needs a new date
           </h3>
           <p className="text-pana-ink/70 mt-2 text-sm leading-relaxed">
-            These repeat, but their next date has already passed, so members
-            are looking at a gathering that has been and gone. Move them
-            forward or call them off.
+            These repeat, but their next date has already passed, so members are
+            looking at a gathering that has been and gone. Move them forward or
+            call them off.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {staleRecurring.map((event) => (

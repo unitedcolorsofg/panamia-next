@@ -8,6 +8,12 @@ import type { MockSurface } from '../_data/panaverse';
    stat rail, different surface. The profile is one author and many readers;
    the feed is many authors and one reader.
 
+   It renders a second page too: the personal calendar, which in production is
+   its own route at /s/calendar rather than a tab of the feed. It lives here
+   because it is reached from the feed rail, and the handoff from "your next
+   three" to the full list is the part worth reviewing — a calendar mocked on
+   its own would not show what it is a continuation of.
+
    The surfaces come from the same registry the Worker routes hostnames on, so
    the masthead cannot fly a mark for a surface that does not exist, and the
    hostname shown in the mock toolbar is the one that will actually serve this
@@ -22,7 +28,7 @@ import type { MockSurface } from '../_data/panaverse';
    Noindex because it is a fixture route, not a real timeline — it must not
    compete with the live social routes in search or show up in the sitemap. */
 export const metadata: Metadata = {
-  title: 'My feed (mock) | Pana Social',
+  title: 'My feed and calendar (mock) | Pana Social',
   robots: { index: false, follow: false },
 };
 

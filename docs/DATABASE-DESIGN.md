@@ -27,6 +27,29 @@ export const db = drizzle(postgres(connectionString), { schema });
 
 `POSTGRES_DIRECT_URL` (unpooled) is used only by `drizzle-kit migrate` — never at runtime.
 
+### Pool size differs on purpose: `max: 5` deployed, `max: 1` locally
+
+Do not "fix" the local pool to match production. They are unlike on purpose,
+because what sits between the Worker and Postgres is not the same thing.
+
+Deployed, Hyperdrive is the multiplexer, so `max: 5` describes connections it
+already knows how to share. Locally there is no multiplexer — the dev server
+talks straight to Postgres over the **cf** build of postgres.js, whose socket
+polyfill does not keep concurrent queries apart on a shared connection. With
+more than one query in flight a Bind lands against another query's Parse and
+the server raises:
+
+```
+PostgresError 08P01: bind message supplies 4 parameters,
+                     but prepared statement "" requires 3
+```
+
+Which makes every `Promise.all` a coin toss, and leaves sequential code looking
+perfectly healthy. `prepare: false` does **not** avoid it; only `max: 1` does,
+by serialising onto one connection. This shipped once already — `/e` 500ed for
+every signed-in reader in local dev, from a `Promise.all` in
+`lib/events/discovery.ts`.
+
 ## Schema Overview
 
 24 models across five functional groups. See `lib/schema/index.ts` for the full definition.

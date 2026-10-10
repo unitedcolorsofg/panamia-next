@@ -31,7 +31,7 @@ import type { MockPost } from '../../feed/_data/mock-feed';
 export type { MockPost };
 
 /** Which tab the group page is showing. */
-export type GroupTab = 'posts' | 'events' | 'members';
+export type GroupTab = 'posts' | 'events' | 'members' | 'manage';
 
 /**
  * Who is looking. This is the most important control on the page.
@@ -43,7 +43,19 @@ export type GroupTab = 'posts' | 'events' | 'members';
  * design has to answer "what does a stranger see" on screen, in review, rather
  * than in a code comment nobody reads.
  */
-export type ViewerState = 'member' | 'visitor' | 'locked';
+export type ViewerState =
+  'member' | 'visitor' | 'locked' | 'moderator' | 'admin';
+
+/** Everyone who is inside the group, whatever they can do once there. */
+export function isInsider(viewer: ViewerState): boolean {
+  return viewer === 'member' || viewer === 'moderator' || viewer === 'admin';
+}
+
+/** Who gets the Manage tab. Moderators do — approving requests is the job
+ *  they exist for — which is why the tab is not called "Settings". */
+export function canManage(viewer: ViewerState): boolean {
+  return viewer === 'moderator' || viewer === 'admin';
+}
 
 export interface MockGroupMember {
   id: string;
@@ -71,7 +83,7 @@ export interface MockGroupEvent {
   image: string;
   /** Derived from event_attendees where status is 'going'. */
   going: number;
-  /** Derived from event_attendees where status is 'interested'. */
+  /** Derived from event_attendees where status is 'maybe'. */
   interested: number;
   /** True when the viewer is already on the list. */
   rsvped?: boolean;
@@ -376,6 +388,132 @@ export const MOCK_RELATED: MockRelatedGroup[] = [
     reason: 'Also in Miami-Dade',
   },
 ];
+
+/* --------------------------------------------------------------------------
+   Managing the group
+   -------------------------------------------------------------------------- */
+
+/**
+ * Somebody who asked to join and is waiting.
+ *
+ * A `social_group_members` row whose status is pending rather than a table of
+ * its own — which is why approving is an update, not an insert, and why the
+ * roster endpoint can return these alongside members on the first page.
+ *
+ * The approval UI for these already shipped. What has not is anywhere that
+ * tells an admin they exist: the queue lives on /g/<handle>/members, and the
+ * only link to that page is a "See all N" that renders when the roster is
+ * longer than one page. A group of nine with three people waiting has no path
+ * to its own queue. That is the gap this tab closes, and the reason the count
+ * belongs on the tab rather than inside it.
+ */
+export interface MockJoinRequest {
+  id: string;
+  /** social_actors.name */
+  name: string;
+  /** users.screenname */
+  handle: string;
+  /** social_actors.icon_url */
+  avatar: string;
+  /** How long they have been waiting, from social_group_members.created_at. */
+  waiting: string;
+  /** Set when the wait has gone on long enough to be worth apologising for.
+   *  Someone deciding whether to let you in has no idea how long you have been
+   *  staring at "Requested". */
+  overdue?: boolean;
+  /** Mutual Panas. The only number on the row that helps you decide — a stated
+   *  reason can be written by anyone, nine people you both know cannot. */
+  mutuals: number;
+  /** profiles.descriptions.fiveWords, for context. */
+  blurb: string;
+}
+
+export const MOCK_PENDING: MockJoinRequest[] = [
+  {
+    id: 'request-1',
+    name: 'Yanela Cruz',
+    handle: 'yanela',
+    avatar: '/img/about/bee_maria.jpg',
+    waiting: '11 days',
+    overdue: true,
+    mutuals: 9,
+    blurb: 'Screenprints for tenant unions and school fundraisers.',
+  },
+  {
+    id: 'request-2',
+    name: 'Tomás Iglesias',
+    handle: 'tomasi',
+    avatar: '/img/about/gbarrios.jpg',
+    waiting: '2 days',
+    mutuals: 3,
+    blurb: 'Bookbinder. Teaches a Saturday class in Allapattah.',
+  },
+  {
+    id: 'request-3',
+    /* No mutuals and no blurb filled in. The row still has to be decidable, so
+       the design cannot lean on either of them being there. */
+    name: 'R. Okonkwo',
+    handle: 'rokonkwo',
+    avatar: '/img/about/jdowns.jpg',
+    waiting: '4 hours',
+    mutuals: 0,
+    blurb: '',
+  },
+];
+
+/** social_group_members with status banned. Kept visible rather than hidden:
+ *  a ban nobody can see is a ban nobody can lift. */
+export const MOCK_BANNED: {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  since: string;
+}[] = [
+  {
+    id: 'banned-1',
+    name: 'D. Prieto',
+    handle: 'dprieto',
+    avatar: '/img/about/claribel_avila.jpg',
+    since: 'August',
+  },
+];
+
+/**
+ * How the group is actually doing.
+ *
+ * Every one of these numbers is already computed in production — and thrown
+ * away. `GroupSettingsView` works out activeMembers, memberPostAuthors and
+ * upcomingEvents for one purpose only: to frighten an admin out of deleting
+ * the group. They appear in a red warning box and nowhere else.
+ *
+ * Which is backwards. The moment those numbers are most useful is every other
+ * day, when an admin is wondering whether the group is working. Surfacing them
+ * here is not new data, it is the same query asked at a less terminal moment.
+ *
+ * Derived from the fixtures wherever a fixture exists, so the tab cannot claim
+ * three upcoming events while the Events tab shows two.
+ */
+export function groupHealth(): {
+  totalMembers: number;
+  joinedThisMonth: number;
+  activeMembers: number;
+  postAuthors: number;
+  upcomingEvents: number;
+  waiting: number;
+} {
+  return {
+    totalMembers: MOCK_GROUP.memberCount,
+    joinedThisMonth: 9,
+    /* Posted, replied or RSVP'd in the last 30 days. Deliberately a minority
+       of the roster — a group where every member is active is not a fixture
+       anyone learns anything from. */
+    activeMembers: 61,
+    postAuthors: 12,
+    upcomingEvents: MOCK_EVENTS.length,
+    waiting: MOCK_PENDING.length,
+  };
+}
 
 /* --------------------------------------------------------------------------
    Reserved

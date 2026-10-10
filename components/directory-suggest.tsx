@@ -756,10 +756,10 @@ export function DirectorySuggest({
             ) : (
               // `text-pana-ink` because the field paints a white background but
               // would otherwise inherit its colour: dropped into `.surface-indigo`
-              // — the hero, and now every scope page band — it inherits cream and
-              // types invisibly on white. Only shows once the field holds a
-              // value, which is why it survived until the scope pages started
-              // seeding one.
+              // — the hero — it inherits cream and types invisibly on white.
+              // Only shows once the field holds a value, which is why it
+              // survived until the scope pages started seeding one, back when
+              // those bands still carried `.surface-indigo` too.
               <Input
                 {...inputProps}
                 className={cn('text-pana-ink', inputClassName)}

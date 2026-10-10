@@ -1,10 +1,11 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { events, profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { canManageEvent } from '@/lib/server/event-host';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 import { ArrowLeft } from 'lucide-react';
 import AttendeeList from '@/components/events/AttendeeList';
 
@@ -16,7 +17,7 @@ export default async function ManageAttendeesPage({ params }: PageProps) {
   const { slug } = await params;
   const session = await auth();
   if (!session?.user?.id) {
-    redirect(`/signin?callbackUrl=/e/${slug}/manage/attendees`);
+    redirectToSignIn(`/e/${slug}/manage/attendees`);
   }
 
   const [event, profile] = await Promise.all([

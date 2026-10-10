@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { redirectToSignIn } from '@/lib/signin-redirect';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
@@ -9,7 +10,7 @@ import { ProfileForm } from './_components/profile-form';
 export default async function EditProfilePage() {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/signin');
+    redirectToSignIn('/m/profile/edit');
   }
 
   const profile = await db.query.profiles.findFirst({

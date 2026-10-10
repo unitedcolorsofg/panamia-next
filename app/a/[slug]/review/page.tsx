@@ -9,6 +9,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useRouter, useParams } from 'next/navigation';
+import { signInPath } from '@/lib/signin-redirect';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -79,7 +80,7 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      router.push(`/signin?callbackUrl=/a/${slug}/review`);
+      router.push(signInPath(`/a/${slug}/review`));
     }
   }, [sessionStatus, router, slug]);
 
@@ -237,7 +238,7 @@ export default function ReviewPage() {
               You must be signed in to review articles.
             </p>
             <Button asChild>
-              <Link href={`/signin?callbackUrl=/a/${slug}/review`}>
+              <Link href={signInPath(`/a/${slug}/review`)}>
                 Sign In
               </Link>
             </Button>

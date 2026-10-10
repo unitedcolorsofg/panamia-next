@@ -1847,3 +1847,72 @@ export const useUnblockActor = () => {
     },
   });
 };
+
+// ============================================================================
+// Calendar
+// ============================================================================
+
+/** Why an event is on your calendar. Mirrors CalendarReason in lib/calendar.ts. */
+export type CalendarReason = 'hosting' | 'rsvp' | 'group' | 'following';
+
+/* Only two kinds, because an event has host_profile_id XOR host_group_id and
+   nothing else. A directory listing hosts through its profile, so its events
+   are pana-hosted -- there is no third badge the data could support. */
+export type CalendarHostKind = 'pana' | 'group';
+
+/**
+ * One row of the personal calendar.
+ *
+ * `startsAt` arrives as an ISO string rather than a Date because it crossed
+ * JSON to get here. Callers format it with the event's own `timezone`, not the
+ * reader's -- an event is on the day its own city says it is, which is the
+ * same rule the group rail already follows.
+ */
+export interface CalendarEntry {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  timezone: string;
+  coverImage: string | null;
+  mode: 'online' | 'offline' | 'hybrid';
+  attendeeCount: number;
+  visibility: 'public' | 'unlisted';
+  reason: CalendarReason;
+  rsvp: 'going' | 'maybe' | null;
+  hostKind: CalendarHostKind;
+  hostName: string;
+  hostHandle: string | null;
+  venueName: string | null;
+  venueCity: string | null;
+  /** Why an unsolicited row is here. Always set on suggested, never on
+   *  committed -- you do not need telling why your own RSVP is listed. */
+  because: string | null;
+}
+
+export interface PersonalCalendar {
+  /** Things you said you would do: hosting, going, or still deciding. */
+  committed: CalendarEntry[];
+  /** Public events from groups you are in and panas you follow. */
+  suggested: CalendarEntry[];
+}
+
+async function fetchMyCalendar(): Promise<PersonalCalendar | null> {
+  return getSocialData('/api/social/actors/me/calendar');
+}
+
+/**
+ * What the signed-in pana has coming up, across groups, panas and listings.
+ *
+ * There is no username-taking counterpart and there should not be. The
+ * committed half includes unlisted events and undecided RSVPs, which are rows
+ * a pana shared with an organiser rather than with the public.
+ */
+export const useMyCalendar = (options?: { enabled?: boolean }) => {
+  return useQuery<PersonalCalendar | null, Error>({
+    queryKey: [socialQueryKey, 'me', 'calendar'],
+    queryFn: fetchMyCalendar,
+    enabled: options?.enabled ?? true,
+  });
+};

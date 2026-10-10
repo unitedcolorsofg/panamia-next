@@ -21,6 +21,8 @@ import {
   ADMIN_VIEWS,
   ADMIN_GROUPS,
   canSeeView,
+  childViewsFor,
+  topLevelViewsInGroupFor,
   viewsInGroupFor,
 } from '@/lib/admin/views';
 
@@ -111,5 +113,84 @@ describe('viewsInGroupFor', () => {
   test('a non-staff viewer gets an empty sidebar', () => {
     const rows = ADMIN_GROUPS.flatMap((g) => viewsInGroupFor(g.id, NEITHER));
     assert.deepEqual(rows, []);
+  });
+});
+
+/**
+ * The sidebar draws a group as top-level rows plus the children nesting under
+ * each one. The failure that matters is arithmetic rather than visual: a row
+ * counted in neither list disappears from the nav entirely while still
+ * existing and still being reachable by URL, and a row counted in both draws
+ * twice. Both are invisible in the data and obvious only on screen.
+ */
+describe('sidebar nesting', () => {
+  test('every parent id names a real view in the same group', () => {
+    for (const view of ADMIN_VIEWS) {
+      if (!view.parent) continue;
+      const parent = ADMIN_VIEWS.find((v) => v.id === view.parent);
+      assert.ok(parent, `${view.id} names a parent that does not exist`);
+      assert.equal(
+        parent.group,
+        view.group,
+        `${view.id} nests under a parent in another group`
+      );
+    }
+  });
+
+  test('nesting is one deep', () => {
+    for (const view of ADMIN_VIEWS) {
+      if (!view.parent) continue;
+      const parent = ADMIN_VIEWS.find((v) => v.id === view.parent);
+      assert.equal(
+        parent?.parent,
+        undefined,
+        `${view.id} nests under ${view.parent}, which is itself nested`
+      );
+    }
+  });
+
+  test('top level plus children draws each visible row exactly once', () => {
+    for (const group of ADMIN_GROUPS) {
+      for (const viewer of [ADMIN, MODERATOR, BOTH, NEITHER]) {
+        const drawn = topLevelViewsInGroupFor(group.id, viewer).flatMap(
+          (view) => [view, ...childViewsFor(view.id, viewer)]
+        );
+        assert.deepEqual(
+          drawn.map((v) => v.id).sort(),
+          viewsInGroupFor(group.id, viewer)
+            .map((v) => v.id)
+            .sort(),
+          `${group.id} draws the wrong set for ${JSON.stringify(viewer)}`
+        );
+      }
+    }
+  });
+
+  test('childViewsFor never returns a view the viewer could not see', () => {
+    for (const view of ADMIN_VIEWS) {
+      for (const viewer of [ADMIN, MODERATOR, BOTH, NEITHER]) {
+        for (const child of childViewsFor(view.id, viewer)) {
+          assert.equal(canSeeView(child, viewer), true);
+          assert.equal(child.parent, view.id);
+        }
+      }
+    }
+  });
+
+  test('a child whose parent is hidden is promoted, not dropped', () => {
+    // Cannot be built from ADMIN_VIEWS today — every nested view and its
+    // parent are admin-only — so the rule is checked against the shape the
+    // helper guarantees rather than against live data. Were a parent ever
+    // marked moderator-visible while its child was not, or the reverse, this
+    // is the case that would otherwise silently lose a row.
+    const rows = topLevelViewsInGroupFor('community', MODERATOR);
+    for (const row of rows) {
+      if (!row.parent) continue;
+      assert.equal(
+        rows.some((r) => r.id === row.parent),
+        false,
+        `${row.id} was promoted while its parent was also drawn`
+      );
+    }
   });
 });

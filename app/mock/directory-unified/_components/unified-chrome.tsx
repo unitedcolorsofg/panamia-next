@@ -91,10 +91,10 @@ const TERM = 'art';
  * The band, kept exactly as it ships today.
  *
  * This is a static reproduction of `scope-page.tsx`'s `SearchBand` and the
- * `ScopeChips` bar, down to the class names — `.surface-indigo
- * .dirsearch-band`, the eyebrow, `.dirsearch-title`, `.dirsearch-count`, and
- * the `.directory-suggest-pill` carrying `ScopeMenu` as its leading element
- * with `.dirsearch-chipdivide` after it.
+ * `ScopeChips` bar, down to the class names — `.dirsearch-band`, the eyebrow,
+ * `.dirsearch-title`, `.dirsearch-count`, and the `.directory-suggest-pill`
+ * carrying `ScopeMenu` as its leading element with `.dirsearch-chipdivide`
+ * after it.
  *
  * Reproduced rather than imported because the real `DirectorySuggest`,
  * `ScopeMenu` and `ScopeChips` all navigate: submitting routes to
@@ -120,7 +120,7 @@ export function UnifiedChrome({
 
   return (
     <>
-      <section className="surface-indigo dirsearch-band">
+      <section className="dirsearch-band">
         <div className="container mx-auto px-4">
           <span className="section-eyebrow">Directory</span>
 
