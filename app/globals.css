@@ -5103,13 +5103,19 @@ body {
   margin-inline: auto;
 }
 
-/* Event subject rails on /e.
+/* Event rails on /e — used by the reason lanes and the subject rails both.
    ==========================================================================
-   The reason lanes above these stay a vertical list, because a reason is an
-   argument and you read an argument in order. A subject is a shelf, and the
-   point of a shelf is that you sweep it. Sideways also buys the thing the
-   page actually needed: eight subjects as vertical grids would be a scroll
-   the length of the catalogue, where eight rails is one screen of choices.
+   Sideways buys the thing the page actually needed. Eight subjects as
+   vertical grids would be a scroll the length of the catalogue, where eight
+   rails is one screen of choices; and a reason lane as full-width blocks
+   showed two events a screen while claiming to be a shortlist.
+
+   The lanes were a vertical list first, on the argument that a reason is
+   something you read in order. That was wrong about its own cards: each one
+   carries its own reason and stands alone, so there is no order to read, and
+   the only thing the column bought was height. Reading the lane sideways
+   costs the blurb (see `compact` on EventCard) and nothing else — the reason
+   line and "Not for me" both survive, which is what keeps a lane arguable.
 
    Built here rather than reusing .stories-rail because that rail sizes itself
    around a 3.5rem avatar circle, and inheriting those numbers for a card with

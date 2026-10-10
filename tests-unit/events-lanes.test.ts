@@ -9,7 +9,7 @@
  * The cases below are the ones that fail *silently* — the page still renders,
  * still looks personalised, and simply stops showing you things:
  *
- *   - An event gathered by a lane and then cut by that lane's three-card cap
+ *   - An event gathered by a lane and then cut by that lane's card cap
  *     used to be marked as claimed anyway, so it vanished from the page
  *     entirely instead of falling through to its next-best reason. A page
  *     whose whole promise is "we will surface this" silently dropping rows is
@@ -94,16 +94,19 @@ describe('buildLanes', () => {
         ev('b', 10, [{ kind: 'follow-host', host: 'H' }]),
         ev('c', 9, [{ kind: 'follow-host', host: 'H' }]),
         ev('d', 8, [{ kind: 'follow-host', host: 'H' }]),
-        ev('e', 7, [{ kind: 'tag-match', tags: ['x'], from: 'F' }]),
+        ev('f', 7, [{ kind: 'follow-host', host: 'H' }]),
+        ev('g', 6, [{ kind: 'follow-host', host: 'H' }]),
+        ev('h', 5, [{ kind: 'follow-host', host: 'H' }]),
+        ev('e', 4, [{ kind: 'tag-match', tags: ['x'], from: 'F' }]),
       ],
       { signedIn: true }
     );
 
     assert.equal(result.lanes[0].id, 'following');
-    assert.equal(result.lanes[0].events.length, 3, 'lane is capped at three');
+    assert.equal(result.lanes[0].events.length, 6, 'lane is capped at six');
     assert.equal(
       result.lanes[0].events[0].event.id,
-      'd',
+      'h',
       'the smallest room leads'
     );
 
@@ -113,7 +116,7 @@ describe('buildLanes', () => {
       tags.events.some((e) => e.event.id === 'a'),
       'the cut event cascaded into its next-best reason'
     );
-    assert.equal(placed(result).length, 5, 'no event was dropped');
+    assert.equal(placed(result).length, 8, 'no event was dropped');
   });
 
   test('a lane with one event is dropped but keeps the event', () => {

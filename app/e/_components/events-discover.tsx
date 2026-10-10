@@ -384,7 +384,7 @@ export function EventsDiscover({
               <>
                 {lanes.map((lane) => (
                   <section key={lane.id} className="pt-10">
-                    <div className="mx-auto mb-4 max-w-[58rem]">
+                    <div className="mx-auto max-w-[58rem]">
                       <h2 className="text-pana-ink text-[1.375rem] font-black tracking-[-0.015em]">
                         {lane.title}
                       </h2>
@@ -393,12 +393,20 @@ export function EventsDiscover({
                       </p>
                     </div>
 
-                    <ul className="dirsearch-grid">
+                    {/* Rails, like the subjects below. A lane card still
+                        carries its reason and its "Not for me" — those are
+                        what make the lane arguable, and `compact` drops only
+                        the blurb — so the argument survives the format. What
+                        it buys is that a lane is no longer a column of
+                        full-width blocks you scroll past two at a time: three
+                        lanes now fit the screen a single one used to. */}
+                    <ul className="events-rail-track">
                       {lane.events.map(({ event, reason }) => (
-                        <li key={event.id}>
+                        <li key={event.id} className="events-rail-item">
                           <EventCard
                             event={event}
                             reason={reason}
+                            compact
                             onDismiss={signedIn ? onDismiss : undefined}
                           />
                         </li>
