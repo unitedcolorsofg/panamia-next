@@ -7,7 +7,7 @@
 //
 //   - expiry. social_statuses.expiresAt has existed since the first migration
 //     and every read path already honours it (see notExpired() in
-//     ./timeline.ts). Direct messages have relied on it for their 7-day life
+//     ./timeline.ts). Direct messages have relied on it for their whole life
 //     since day one. A parallel stories table would have had to re-derive
 //     that, and re-derive it correctly in six query sites.
 //

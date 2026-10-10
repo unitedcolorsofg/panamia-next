@@ -1,0 +1,107 @@
+-- Migration: 0062_dm_expiry_30_days
+-- Purpose: Move direct messages from a seven-day visibility window to thirty.
+--
+--          Expiry here is a read filter, not a delete: notExpired() in
+--          lib/federation/wrappers/timeline.ts hides rows whose expires_at has
+--          passed, and purge-expired.ts deliberately skips DMs, so every row
+--          this migration touches is still sitting in Postgres intact.
+--
+--          Seven days was survivable while DMs were an inbox. A list of recent
+--          items has no beginning anyone expects to find, so items falling off
+--          the bottom read as ordinary. The DM surface is becoming a
+--          transcript, and a transcript does have a beginning -- usually the
+--          half holding what was agreed. Worse, the stamp is applied per row
+--          at write time, so a thread never expires as a unit: it erodes from
+--          its oldest message forward while the newest stays good for a week.
+--          A transcript that silently loses its own first page is
+--          indistinguishable from data loss to the pana reading it.
+--
+--          Changing DM_EXPIRY_DAYS in status.ts only governs rows written
+--          after the deploy. This migration is what makes the new window apply
+--          to messages panas have already sent.
+-- Ticket: N/A
+-- Reversible: Yes -- see Rollback, with one caveat noted there.
+--
+-- Dependencies: social_statuses (0000_initial_schema), expires_at column.
+--
+-- Data Migration: Inline. UPDATE only; no DDL, no schema change. Drizzle's
+--   generated schema is unaffected, so `drizzle-kit generate` will not want to
+--   produce anything for this.
+--
+-- Deploy ordering: Safe in either order, and safe to run on its own.
+--   Running before the application revision gives already-sent messages a
+--   longer life while new ones are still stamped at seven days -- harmless,
+--   and self-correcting on deploy. Running after means a window where new
+--   messages get thirty days and older ones are still on seven. Neither state
+--   is visible to a pana as an error; both converge.
+--
+-- =============================================================================
+-- WHY THIS SHIFTS RATHER THAN RECOMPUTES
+--
+-- `expires_at + INTERVAL '23 days'` rather than `created_at + INTERVAL '30
+-- days'`. The two are equivalent for every row the current code wrote, because
+-- status.ts stamps the expiry within milliseconds of inserting the row. The
+-- shift is preferred because it does not assume that: it grants every live
+-- message the same 23 extra days regardless of how its original window was
+-- computed, so a row stamped by some earlier or future code path is extended
+-- rather than silently re-dated.
+--
+-- WHY EXPIRED MESSAGES ARE NOT REVIVED
+--
+-- The `expires_at > NOW()` predicate is the deliberate part. Without it this
+-- migration would un-hide every DM sent in the last thirty days, because the
+-- rows were never deleted.
+--
+-- That is not done, for two reasons. The weaker one is surprise: conversations
+-- panas watched disappear would reappear with no explanation. The stronger one
+-- is that disappearing was documented -- docs/FEATURES.md told people voice
+-- memos auto-expire -- and somebody may have sent something they would not
+-- have sent without that. Honouring the weaker promise costs us old history
+-- nobody currently sees; breaking it costs somebody their reasonable
+-- expectation of privacy, and it cannot be undone once they have seen it.
+--
+-- So this migration only ever makes visible messages last longer. It never
+-- makes a hidden message visible. Within seven days of deploy every live DM is
+-- on the new schedule anyway, and history accumulates from there.
+--
+-- If reviving old messages is wanted later it is this same statement with the
+-- `expires_at > NOW()` line removed -- but it is a product decision about
+-- other people's messages, and it belongs to whoever is willing to announce it.
+--
+-- WHY THE STORY EXCLUSION IS LOAD-BEARING
+--
+-- social_statuses has exactly two writers of expires_at: direct messages here,
+-- and stories in lib/federation/wrappers/stories.ts, which are deliberately
+-- short-lived (STORY_LIFETIME_HOURS = 24) and whose authors were told they
+-- last a day.
+--
+-- There is no `visibility` column to filter on -- direct addressing is derived
+-- from recipient_to/recipient_cc -- so "every expiring row that is not a
+-- story" is the precise description of the DM set, and `type <> 'Story'` is
+-- what keeps a 24-hour story from being handed 23 extra days. Dropping that
+-- predicate would turn every live story into a month-long post, which is both
+-- a broken promise and the kind of thing nobody would notice for weeks.
+--
+-- Rollback:
+--   -- Returns the extended messages to their original windows. Exact for any
+--   -- row untouched since, which is all of them: expires_at is only ever
+--   -- written at insert.
+--   UPDATE "social_statuses"
+--   SET "expires_at" = "expires_at" - INTERVAL '23 days'
+--   WHERE "expires_at" IS NOT NULL
+--     AND "type" <> 'Story';
+--
+--   -- Caveat: rolling back re-hides messages that became visible-for-longer
+--   -- under this migration, and messages written by the new code (30-day
+--   -- stamp) land back at 7 days rather than their original value. Both are
+--   -- the correct outcome for a revert -- the old policy, applied to
+--   -- everything -- but the second is a re-date rather than a true undo.
+--   -- DM_EXPIRY_DAYS in status.ts must be reverted to 7 in the same change.
+--
+-- =============================================================================
+
+UPDATE "social_statuses"
+SET "expires_at" = "expires_at" + INTERVAL '23 days'
+WHERE "expires_at" IS NOT NULL
+  AND "expires_at" > NOW()
+  AND "type" <> 'Story';

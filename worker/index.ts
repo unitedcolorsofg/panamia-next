@@ -20,10 +20,14 @@ import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 import { assertPanaverseConfigured } from '../lib/panaverse/boot';
 import { runExpiryPurge } from '../lib/jobs/purge-expired';
+import { getDmStream } from '../lib/dm-stream';
+import { resolveUserIdFromHeaders } from '../auth';
+import { getActiveProfileWithActor } from '../lib/server/active-profile';
 import { PATHNAME_HEADER, SEARCH_HEADER } from '../lib/panaverse/chrome';
 
 // Re-export Durable Object classes so wrangler can discover them
 export { SignalingRoom } from './signaling-room';
+export { DmStream } from './dm-stream';
 
 interface Env {
   ASSETS: Fetcher;
@@ -53,6 +57,7 @@ interface Env {
   };
   EMAIL?: SendEmail;
   SIGNALING_ROOM: DurableObjectNamespace;
+  DM_STREAM: DurableObjectNamespace;
   // Service binding to the panamia-nosflare relay Worker (Nostr crosspost +
   // NIP-29 relay ops). Optional: crosspost is best-effort and no-ops if unbound.
   RELAY?: Fetcher;
@@ -79,6 +84,7 @@ export default {
     getEmail(env);
     getStorage(env);
     getRelay(env);
+    getDmStream(env);
     // Shared secret for app/api/internal/* — the bearer fallback for a caller
     // that reaches those routes over HTTP rather than the Service Binding.
     setInternalAuthToken(env);
@@ -88,6 +94,47 @@ export default {
     // Everything downstream must run inside this callback for `db` to resolve.
     return runWithDb(env, async () => {
       const url = new URL(request.url);
+
+      // Live DM delivery — route /ws/dm to the signed-in member's own mailbox.
+      //
+      // Deliberately unlike the /ws/signaling/ branch below it. That one takes
+      // a room id from the URL and routes straight through, leaving the DO to
+      // trust whatever identity the client claims in its join message. For a
+      // mentoring proof-of-concept behind unguessable room ids that is
+      // survivable; for messaging it would mean anyone could open a socket and
+      // read anyone's mail.
+      //
+      // So the mailbox is never named by the client. The session is resolved
+      // here, the actor is derived from it server-side, and *that* is what
+      // idFromName() receives. There is no request parameter to tamper with:
+      // the only mailbox reachable from this endpoint is the caller's own.
+      //
+      // This must stay inside runWithDb — resolving the session and the actor
+      // are both database reads.
+      if (url.pathname === '/ws/dm') {
+        if (request.headers.get('Upgrade') !== 'websocket') {
+          return new Response('Expected WebSocket upgrade', { status: 426 });
+        }
+
+        // Cookies are sent automatically on a same-origin upgrade, and a native
+        // client sets the same header by hand. See resolveUserIdFromHeaders.
+        const userId = await resolveUserIdFromHeaders(request.headers);
+        if (!userId) {
+          return new Response('Unauthorized', { status: 401 });
+        }
+
+        const profile = await getActiveProfileWithActor(userId);
+        if (!profile?.socialActor) {
+          // Signed in but onboarding is incomplete, so there is no mailbox to
+          // open. 403 rather than 401: retrying with credentials will not help.
+          return new Response('No social actor for this account', {
+            status: 403,
+          });
+        }
+
+        const id = env.DM_STREAM.idFromName(profile.socialActor.id);
+        return env.DM_STREAM.get(id).fetch(request);
+      }
 
       // WebSocket signaling for WebRTC — route /ws/signaling/:roomId to Durable Object
       if (url.pathname.startsWith('/ws/signaling/')) {

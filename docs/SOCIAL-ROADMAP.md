@@ -385,12 +385,12 @@ Encoder flags that are load-bearing (`lib/media/transcode.ts`):
 
 **Codec stack**:
 
-| Format | Codec        | Container            | Use                                     |
-| ------ | ------------ | -------------------- | --------------------------------------- |
-| Audio  | Opus         | `.ogg` / `.webm`     | Voice memos, audio posts                |
-| Video  | H.264 + AAC  | `.mp4`               | Short video clips                       |
-| Video  | VP8 + Opus   | `.webm`              | Legacy: posts predating the H.264 switch |
-| Images | —            | jpeg, png, webp, gif | Unchanged                               |
+| Format | Codec       | Container            | Use                                      |
+| ------ | ----------- | -------------------- | ---------------------------------------- |
+| Audio  | Opus        | `.ogg` / `.webm`     | Voice memos, audio posts                 |
+| Video  | H.264 + AAC | `.mp4`               | Short video clips                        |
+| Video  | VP8 + Opus  | `.webm`              | Legacy: posts predating the H.264 switch |
+| Images | —           | jpeg, png, webp, gif | Unchanged                                |
 
 **Playback compatibility**:
 
@@ -463,7 +463,8 @@ Voice memos are ActivityPub `direct` visibility messages sent to specific recipi
 - [x] Voice recording (WebM audio, max 60 seconds)
 - [x] Optional text content alongside or instead of voice recording
 - [x] Direct visibility (recipients receive via ActivityPub `recipientTo`)
-- [x] Auto-expiration: 7-day soft delete via `expiresAt` timestamp
+- [x] Auto-expiration: 30-day soft delete via `expiresAt` timestamp (was 7; see
+      `drizzle/0062_dm_expiry_30_days.sql`)
 - [x] Profile page "Send Voice Memo" button
 - [x] Relocated notifications to `/updates/` with VoiceMemoComposer integration
 

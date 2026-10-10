@@ -12,7 +12,7 @@
  * media problem, so sweeping them here would be a one-line change. It is left
  * out on purpose. A story is disposable by design and its author was told it
  * lasts a day; a DM is a conversation someone had, and status.ts calls the
- * 7-day expiry a "soft delete" deliberately. Turning that into a hard delete
+ * 30-day expiry a "soft delete" deliberately. Turning that into a hard delete
  * is a product decision about someone else's messages, not a cleanup detail,
  * so it does not get made by a job whose name is "purge expired". If it is
  * wanted later it belongs behind its own explicit switch.

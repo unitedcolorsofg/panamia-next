@@ -46,8 +46,13 @@ export interface DirectThreadGateResult {
  * from Panas" and the sender can see on the profile that they are a Pana, they
  * have learned they are blocked. Same reasoning as createFollow's deliberately
  * symmetric "Cannot follow this account".
+ *
+ * Defined in lib/dm-refusal.ts and re-exported here so this module stays the
+ * name callers reach for, while the chat composer — a client component that
+ * must not import `lib/db` — can read the same constant rather than a second
+ * copy of the wording that someone will eventually make friendlier.
  */
-export const DIRECT_THREAD_REFUSED = 'Cannot send a message to this account';
+export { DIRECT_THREAD_REFUSED } from '@/lib/dm-refusal';
 
 /**
  * Decide, for one sender and up to eight recipients, who may be written to.

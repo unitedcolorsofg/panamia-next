@@ -146,9 +146,9 @@ not belong in a timeline, cannot be liked or replied to three days later, and do
 Building chat first would satisfy the "don't leave the site" constraint while leaving every original
 requirement unmet.
 
-If chat later turns out to be scoped to groups, it reads `social_group_members` like everything else
-here does. That is the only coupling this document assumes, and `docs/CHAT-ROADMAP.md` is free to
-reject it.
+**Chat is now scoped to groups — decided 2026-10.** It reads `social_group_members` like everything
+else here does, which was the only coupling this document ever assumed. Nothing here changes: chat
+rooms hang off the membership table rather than altering it. See `docs/CHAT-ROADMAP.md`.
 
 ---
 
@@ -968,5 +968,5 @@ me") that was accurate before groups existed.
 - **Do groups need a `rules` column?** Resolved in phase 1: yes, as a JSONB array. The mock renders
   numbered house rules in the rail, and a group with no stated rules is a moderation problem waiting
   to happen.
-- **Is chat eventually scoped to groups?** If it is, it reads `social_group_members` and nothing in
-  this document changes. Tracked in `docs/CHAT-ROADMAP.md`, which is not obliged to land there.
+- **Is chat eventually scoped to groups?** **Answered (2026-10): yes** — alongside DMs and events. It
+  reads `social_group_members` and nothing in this document changes. See `docs/CHAT-ROADMAP.md`.

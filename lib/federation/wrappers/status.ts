@@ -37,6 +37,7 @@ import {
   visibleGroupStatuses,
   canViewStatusGroup,
 } from './group-visibility';
+import { notifyDirectMessage } from '@/lib/dm-stream';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import type { JsonValue } from '@/lib/types';
 
@@ -72,8 +73,27 @@ export function generateStatusUri(username: string, statusId: string): string {
   return `https://${socialConfig.domain}/p/${username}/statuses/${statusId}`;
 }
 
-// Direct messages expire after 7 days (soft delete via query filter)
-const DM_EXPIRY_DAYS = 7;
+/**
+ * How long a direct message stays visible.
+ *
+ * This is a soft delete via query filter, not a row delete -- the row stays in
+ * Postgres, which is why `lib/jobs/purge-expired.ts` deliberately leaves DMs
+ * alone and why changing this number is a backfill rather than a recovery.
+ *
+ * Thirty rather than seven because the DM surface is becoming a transcript.
+ * The stamp is applied per row at write time, so a conversation never expires
+ * as a unit -- it erodes from its oldest message forward, and the oldest
+ * message is usually the one holding what was agreed: the price, the date,
+ * which weekend was being held. A mail inbox survives that, because a list of
+ * recent items has no beginning anyone expects to find. A transcript does, and
+ * one that silently loses its own first page is indistinguishable from data
+ * loss to the pana reading it.
+ *
+ * Changing this value only affects rows written after it changes. Rows already
+ * stamped keep the window they were given -- see
+ * drizzle/0062_dm_expiry_30_days.sql for the backfill of existing messages.
+ */
+const DM_EXPIRY_DAYS = 30;
 
 /**
  * Returns a Drizzle WHERE condition to exclude expired statuses.
@@ -443,6 +463,46 @@ export async function createStatus(
   // write cannot leave a pending request pointing at nothing.
   if (heldRecipientActorIds.length > 0) {
     await recordDirectThreadRequests(actorId, heldRecipientActorIds);
+  }
+
+  // Live delivery. Last, deliberately: everything above is what makes the
+  // message real, and this only makes it arrive sooner. It is awaited for
+  // completion but never for success — notifyDirectMessage swallows its own
+  // errors and bounds itself with a timeout, so neither a failing nor a hanging
+  // mailbox can turn a committed row into a failed send.
+  //
+  // The author is in the fan-out set alongside the recipients. Without that, a
+  // pana who sends from their phone would not see the message appear on their
+  // laptop: their own actor is not a recipient, so nothing would tell the other
+  // session anything happened. The sending client refetches redundantly as a
+  // result, which costs one query and keeps every device consistent.
+  //
+  // Held recipients are included. Holding suppresses a *notification* — the
+  // message still lands in their Requests folder, and a live Requests tab
+  // should fill in like any other. Nothing here discloses the hold to the
+  // sender: this fan-out is per mailbox and the sender only learns about their
+  // own.
+  if (visibility === 'direct' && recipientActorIds) {
+    const soleRecipient =
+      recipientActorIds.length === 1 ? recipientActorIds[0] : null;
+
+    await notifyDirectMessage(
+      [
+        ...recipientActorIds.map((recipientActorId) => ({
+          actorId: recipientActorId,
+          // For a recipient, the thread is with the author.
+          conversationActorId: actorId,
+        })),
+        {
+          actorId,
+          // For the author, the thread is with the one recipient — or no single
+          // thread at all when the DM has several, which the chat view does not
+          // list as a conversation anyway.
+          conversationActorId: soleRecipient,
+        },
+      ],
+      statusId
+    );
   }
 
   return { success: true, status: updatedStatus, heldRecipientActorIds };

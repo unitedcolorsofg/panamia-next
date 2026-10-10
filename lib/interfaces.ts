@@ -366,6 +366,16 @@ export interface SocialStatusDisplay {
   content: string;
   contentWarning?: string | null;
   published: string | Date | null;
+  /**
+   * When this drops out of every feed, for the DM countdown chip.
+   *
+   * Only direct messages and stories carry one; everything else is null. The
+   * server has always sent this column -- it is part of the status row -- and
+   * the chat view is the first client that needs to read it, because a DM
+   * conversation erodes from the oldest message forward rather than expiring
+   * as a unit. See DM_EXPIRY_DAYS in lib/federation/wrappers/status.ts.
+   */
+  expiresAt?: string | Date | null;
   repliesCount: number;
   likesCount: number;
   liked: boolean;

@@ -1310,6 +1310,50 @@ export async function auth(): Promise<AppSession | null> {
 export const handler = (request: Request) => getBetterAuth().handler(request);
 
 /**
+ * Resolve a session from headers supplied explicitly, rather than from the
+ * ambient Next request context.
+ *
+ * `auth()` above reads `next/headers`, which only resolves inside a Next
+ * server context. The Worker entry point runs *before* that context exists —
+ * it is the raw `fetch(request, env)` handler — so a WebSocket upgrade there
+ * cannot use it. This is the same `api.getSession` call with the headers
+ * passed in by hand.
+ *
+ * Returns the user id alone, because the only caller needs an identity to look
+ * an actor up with and nothing else. Narrow on purpose: exporting the
+ * better-auth instance to reach one method would hand every future caller the
+ * whole surface, including its mutating endpoints.
+ *
+ * ## Mobile
+ *
+ * Nothing here needs changing for the mobile app, because the mobile app is a
+ * WebView on this same origin (see capacitor.config.ts) — it carries the same
+ * cookie jar and the upgrade arrives exactly as a browser's does. The reason
+ * this function exists is the Worker, not the client: the raw `fetch` entry
+ * has no Next context to read from, whatever connected to it.
+ *
+ * A true native client would inherit it for free. Those are the mirror image
+ * of a browser — no implicit cookie jar, but full control of the upgrade
+ * request's headers — so one would set the session cookie itself and arrive
+ * indistinguishable. Reading from a passed `Headers` rather than from ambient
+ * context is what makes every case work; nothing here is browser-specific.
+ */
+export async function resolveUserIdFromHeaders(
+  headers: Headers
+): Promise<string | null> {
+  try {
+    const session = await getBetterAuth().api.getSession({ headers });
+    return session?.user?.id ?? null;
+  } catch (error) {
+    console.error(
+      '[auth] header session resolution failed',
+      describeDbError(error)
+    );
+    return null;
+  }
+}
+
+/**
  * The one magic-link endpoint we call from server code, narrowed to the shape
  * we use.
  *

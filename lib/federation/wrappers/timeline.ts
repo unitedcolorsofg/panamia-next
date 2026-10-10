@@ -23,7 +23,7 @@ import type {
   PublicSocialActor,
   SocialGroupVisibility,
 } from '@/lib/schema';
-import { and, eq, sql, or, type SQL } from 'drizzle-orm';
+import { and, eq, sql, or, asc, inArray, type SQL } from 'drizzle-orm';
 import { countyShortLabel } from '@/lib/county';
 import { socialConfig } from '../index';
 import {
@@ -790,4 +790,258 @@ export async function getStatusWithLikeStatus(
   if (!(await canViewStatusGroup(row.groupId, viewerActorId))) return null;
 
   return toStatus(row);
+}
+
+/* ---------------------------------------------------------------------------
+ * DM conversations
+ *
+ * The inbox and sent queries above answer "what was addressed to me" and "what
+ * did I send". Neither is a conversation: both are flat, both are ordered
+ * newest-first, and neither puts the two halves of an exchange together. These
+ * two functions are the read side of the DM chat view, which docs/CHAT-ROADMAP
+ * records as the prerequisite for live delivery.
+ *
+ * WHY ONE-TO-ONE ONLY
+ *
+ * A direct status carries up to eight recipient URIs, so "the conversation
+ * with Bee" is not well defined for a message also addressed to six other
+ * people. Grouping such a message under each recipient separately is the
+ * tempting read, and it is a safety bug: the reply box under it would address
+ * one person while the message above it went to seven, so a reply silently
+ * narrows an audience the sender believed they were still talking to.
+ *
+ * So a conversation here is exactly two participants, enforced in SQL by
+ * `oneToOneDirect()` rather than assumed. Multi-recipient DMs stay readable in
+ * the /updates lists, which make no claim to be a thread. Nothing creates a
+ * multi-recipient DM in the product today; this guard is what keeps that from
+ * silently becoming a bug if something ever does.
+ *
+ * Note that the one-to-one test is on `recipientTo` length rather than on a
+ * count of participants, which is correct because createStatus writes `cc: []`
+ * for direct visibility -- see the 'direct' branch of ./status.ts.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A direct status addressed to exactly one actor.
+ *
+ * Also excludes the zero-recipient case, which is reachable: declining a
+ * request strips the decliner's URI out of `recipient_to` (see
+ * deleteDirectThreadRequest), and a single-recipient message declined that way
+ * is left addressed to nobody. It must not surface as a conversation with
+ * whoever is left, because nobody is left.
+ */
+function oneToOneDirect() {
+  return sql`jsonb_array_length(${socialStatuses.recipientTo}) = 1`;
+}
+
+export type DirectConversation = {
+  /** The other participant. Never the viewer. */
+  counterparty: PublicActorWithCounty;
+  /** The most recent message either way, for the list's snippet and time. */
+  lastMessage: StatusWithActorAndLike;
+};
+
+/**
+ * One actor in the shape a timeline hands to a client.
+ *
+ * Exists because the conversation detail route needs the counterparty for its
+ * header and the actor getters in ./actor.ts all return the whole row --
+ * including `privateKey`, which must never reach a response body. Reusing
+ * ACTOR_WITH and publicActor() here means the thread header is built from the
+ * same column list as every other actor the client sees, so it cannot quietly
+ * carry a field the others withhold.
+ */
+export async function getPublicActorById(
+  actorId: string
+): Promise<PublicActorWithCounty | null> {
+  const row = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, actorId),
+    ...ACTOR_WITH,
+  });
+
+  return row ? publicActor(row) : null;
+}
+
+/**
+ * The conversation list: one row per person the viewer has a thread with.
+ *
+ * Held requests are excluded, the same way the inbox excludes them, because a
+ * pending request is not yet a conversation -- it is a question about whether
+ * to have one, and the Requests folder is where that is answered. Accepting it
+ * flips the row to 'accepted' and the thread appears here with its history
+ * intact, because nothing was deleted to hold it.
+ *
+ * Raw SQL for the grouping only. DISTINCT ON is the cheap way to take the
+ * newest message per counterparty in one pass, and Drizzle's query builder
+ * cannot express it -- but every visibility guard is interpolated from the
+ * same helpers the other queries in this file use, rather than hand-rewritten
+ * here, because those are the parts that are dangerous when they drift.
+ */
+export async function getDirectConversations(
+  actorId: string,
+  limit: number = 40
+): Promise<DirectConversation[]> {
+  const actor = await db.query.socialActors.findFirst({
+    where: eq(socialActors.id, actorId),
+    columns: { uri: true },
+  });
+
+  if (!actor) return [];
+
+  const hiddenActorIds = await getHiddenActorIds(actorId);
+
+  const rows = (await db.execute(sql`
+    WITH conversation AS (
+      SELECT
+        ${socialStatuses.id} AS status_id,
+        ${socialStatuses.published} AS published,
+        CASE
+          WHEN ${socialStatuses.actorId} = ${actorId} THEN recipient.id
+          ELSE ${socialStatuses.actorId}
+        END AS counterparty_id
+      FROM ${socialStatuses}
+      LEFT JOIN ${socialActors} AS recipient
+        ON recipient.uri = ${socialStatuses.recipientTo}->>0
+      WHERE ${and(
+        sql`${socialStatuses.published} IS NOT NULL`,
+        oneToOneDirect(),
+        notExpired(),
+        excludeStories(),
+        personalStatusesOnly(),
+        notHeldRequest(actorId, actor.uri),
+        notHidden(hiddenActorIds),
+        or(
+          eq(socialStatuses.actorId, actorId),
+          jsonbArrayContains(socialStatuses.recipientTo, actor.uri)
+        )
+      )}
+    )
+    SELECT latest.counterparty_id, latest.status_id
+    FROM (
+      SELECT DISTINCT ON (counterparty_id)
+        counterparty_id, status_id, published
+      FROM conversation
+      WHERE counterparty_id IS NOT NULL
+        AND counterparty_id <> ${actorId}
+      ORDER BY counterparty_id, published DESC, status_id DESC
+    ) latest
+    ORDER BY latest.published DESC
+    LIMIT ${limit}
+  `)) as unknown as { counterparty_id: string; status_id: string }[];
+
+  if (rows.length === 0) return [];
+
+  // Re-read through the ORM rather than selecting columns in the raw query, so
+  // a conversation's last message is shaped by exactly the same toStatus() as
+  // every other status the client receives. The alternative is a second,
+  // hand-maintained projection of the same row.
+  const statusRows = await db.query.socialStatuses.findMany({
+    where: inArray(
+      socialStatuses.id,
+      rows.map((r) => r.status_id)
+    ),
+    with: {
+      actor: ACTOR_WITH,
+      attachments: true,
+      likes: {
+        where: eq(socialLikes.actorId, actorId),
+        columns: { id: true },
+      },
+    },
+  });
+
+  const counterparties = await db.query.socialActors.findMany({
+    where: inArray(
+      socialActors.id,
+      rows.map((r) => r.counterparty_id)
+    ),
+    ...ACTOR_WITH,
+  });
+
+  const statusById = new Map(statusRows.map((s) => [s.id, s]));
+  const actorById = new Map(counterparties.map((a) => [a.id, a]));
+
+  // Order is carried by `rows`, not by either lookup: both were fetched by id
+  // and neither preserves the recency ordering the raw query established.
+  return rows.flatMap((row) => {
+    const status = statusById.get(row.status_id);
+    const counterparty = actorById.get(row.counterparty_id);
+    if (!status || !counterparty) return [];
+    return [
+      {
+        counterparty: publicActor(counterparty),
+        lastMessage: toStatus(status),
+      },
+    ];
+  });
+}
+
+/**
+ * One thread, oldest first.
+ *
+ * Ascending because this is a transcript rather than a feed: it is read from
+ * the top down, and the newest message belongs at the bottom next to the
+ * composer. Every other query in this file is newest-first for the opposite
+ * reason.
+ *
+ * Unlike the list, this does NOT exclude held requests. The two are deliberate
+ * complements: holding a request suppresses a notification and keeps a stranger
+ * out of the inbox, and it is answered by reading what they wrote. A reviewer
+ * who has navigated to a specific person's thread is doing the reading, so
+ * hiding the message there would leave the Requests folder with nothing to
+ * decide about. Blocks and mutes are a different thing and are still enforced,
+ * by the caller refusing the thread outright.
+ *
+ * Not paginated. A thread is bounded by the expiry window rather than by time,
+ * so it cannot grow without limit; `limit` is a safety rail against a pair who
+ * write a great deal in thirty days, not a cursor.
+ */
+export async function getDirectConversation(
+  actorId: string,
+  counterpartyActorId: string,
+  limit: number = 200
+): Promise<StatusWithActorAndLike[]> {
+  const participants = await db.query.socialActors.findMany({
+    where: inArray(socialActors.id, [actorId, counterpartyActorId]),
+    columns: { id: true, uri: true },
+  });
+
+  const viewerUri = participants.find((p) => p.id === actorId)?.uri;
+  const counterpartyUri = participants.find(
+    (p) => p.id === counterpartyActorId
+  )?.uri;
+
+  if (!viewerUri || !counterpartyUri) return [];
+
+  const rows = await db.query.socialStatuses.findMany({
+    where: and(
+      sql`${socialStatuses.published} IS NOT NULL`,
+      oneToOneDirect(),
+      notExpired(),
+      excludeStories(),
+      personalStatusesOnly(),
+      or(
+        and(
+          eq(socialStatuses.actorId, actorId),
+          jsonbArrayContains(socialStatuses.recipientTo, counterpartyUri)
+        ),
+        and(
+          eq(socialStatuses.actorId, counterpartyActorId),
+          jsonbArrayContains(socialStatuses.recipientTo, viewerUri)
+        )
+      )
+    ),
+    with: {
+      actor: ACTOR_WITH,
+      attachments: true,
+      likes: {
+        where: eq(socialLikes.actorId, actorId),
+        columns: { id: true },
+      },
+    },
+    orderBy: [asc(socialStatuses.published), asc(socialStatuses.id)],
+    limit,
+  });
+
+  return rows.map(toStatus);
 }
