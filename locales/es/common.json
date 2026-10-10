@@ -12,7 +12,8 @@
     "markAllRead": "Marcar todo como leído",
     "empty": "Nada nuevo todavía",
     "emptyHint": "Invitaciones, respuestas y novedades llegan aquí",
-    "viewAll": "Ver todas las novedades"
+    "viewAll": "Ver todas las novedades",
+    "messages": "Mensajes"
   },
   "identity": {
     "account": "Cuenta",

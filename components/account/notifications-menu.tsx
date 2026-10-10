@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, CheckCheck, Inbox } from 'lucide-react';
+import { Bell, CheckCheck, Inbox, MessageCircle } from 'lucide-react';
 
 import {
   useMarkAllAsRead,
@@ -153,11 +153,33 @@ export function NotificationsMenu() {
         </>
       }
       /* Pinned: on a phone the sheet caps at 84vh and eight notifications
-         fill it, which would push the one row that leads to the full history
-         off the bottom of the panel that exists to summarise it. */
+         fill it, which would push the rows that lead out of this panel off
+         the bottom of the panel that exists to summarise it. */
       footer={(close) => (
         <>
           <div className={styles.separator} />
+          {/* Two destinations because they answer different questions.
+              Updates is the triage surface -- tabs of statuses to scan and
+              clear. Messages is the conversation surface, and is otherwise
+              unreachable: nothing else in the app links to /messages, so
+              without this row the chat view ships behind a URL only its
+              authors know. */}
+          <Link
+            href="/messages"
+            role="menuitem"
+            data-menu-row
+            onClick={() => close(false)}
+            className={cn(styles.row, styles.rowQuiet)}
+          >
+            <span className={styles.siteIcon} aria-hidden="true">
+              <MessageCircle className="h-4 w-4" />
+            </span>
+            <span className={styles.rowMeta}>
+              <span className={styles.rowName}>
+                {t('notifications.messages')}
+              </span>
+            </span>
+          </Link>
           <Link
             href="/updates"
             role="menuitem"
