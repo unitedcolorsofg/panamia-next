@@ -26,7 +26,14 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildLanes, type DiscoveryEvent } from '@/lib/events/lanes';
+import {
+  buildCategoryRails,
+  buildLanes,
+  categoriesFor,
+  EVENT_CATEGORIES,
+  RAIL_FLOOR,
+  type DiscoveryEvent,
+} from '@/lib/events/lanes';
 
 function ev(
   id: string,
@@ -200,5 +207,119 @@ describe('buildLanes', () => {
       ['huge', 'small'],
       'popular is never a lane; it falls through, biggest first'
     );
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   Subject rails. The second axis, and the one that has to work for somebody
+   the page knows nothing about.
+
+   Every expectation below is derived from EVENT_CATEGORIES and RAIL_FLOOR
+   rather than written out, so these tests keep testing the rule after the
+   vocabulary changes instead of pinning today's copy of it.
+   --------------------------------------------------------------------------- */
+
+const [catA, catB, catC] = EVENT_CATEGORIES;
+
+/** An event carrying tags, which `ev` has no reason to take. */
+function tagged(id: string, tags: string[]): DiscoveryEvent {
+  return { ...ev(id, 0, []), tags };
+}
+
+describe('buildCategoryRails', () => {
+  test('a subject under the floor does not become a rail', () => {
+    const short = Array.from({ length: RAIL_FLOOR - 1 }, (_, i) =>
+      tagged(`s${i}`, [catA.match[0]])
+    );
+    assert.equal(buildCategoryRails(short).length, 0, 'below the floor');
+
+    const enough = Array.from({ length: RAIL_FLOOR }, (_, i) =>
+      tagged(`e${i}`, [catA.match[0]])
+    );
+    const rails = buildCategoryRails(enough);
+    assert.equal(rails.length, 1, 'at the floor');
+    assert.equal(rails[0].title, catA.title);
+  });
+
+  test('a tag nobody recognises puts an event in no subject', () => {
+    assert.deepEqual(categoriesFor({ tags: ['notasubjectanybodyuses'] }), []);
+    assert.deepEqual(categoriesFor({ tags: [] }), []);
+  });
+
+  test('case and punctuation do not change the subject', () => {
+    const term = catA.match[0];
+    for (const variant of [term.toUpperCase(), `${term}-`, ` ${term} `]) {
+      assert.deepEqual(
+        categoriesFor({ tags: [variant] }).map((c) => c.id),
+        [catA.id],
+        `${JSON.stringify(variant)} is the same tag as ${term}`
+      );
+    }
+  });
+
+  test('an event lands in at most two subjects', () => {
+    const everything = categoriesFor({
+      tags: [catA.match[0], catB.match[0], catC.match[0]],
+    });
+    assert.equal(
+      everything.length,
+      2,
+      'a broadly tagged event must not appear on every shelf'
+    );
+  });
+
+  test('a rail keeps an event a reason lane already claimed', () => {
+    /* The one place this deliberately differs from buildLanes. A Music rail
+       that hid the music event already shown under "from hosts you follow"
+       would be wrong rather than merely shorter. */
+    const pool = [
+      {
+        ...tagged('a', [catA.match[0]]),
+        reasons: [{ kind: 'follow-host' as const, host: 'Bee' }],
+      },
+      {
+        ...tagged('b', [catA.match[0]]),
+        reasons: [{ kind: 'follow-host' as const, host: 'Bee' }],
+      },
+    ];
+
+    const claimed = buildLanes(pool, { signedIn: true });
+    assert.ok(claimed.lanes.length > 0, 'precondition: the reason lane built');
+
+    const rails = buildCategoryRails(pool);
+    assert.deepEqual(
+      rails[0].events.map((e) => e.id),
+      ['a', 'b'],
+      'the rail is a complete answer, not the leftovers'
+    );
+  });
+
+  test('the busiest subject leads', () => {
+    const rails = buildCategoryRails([
+      tagged('a1', [catA.match[0]]),
+      tagged('a2', [catA.match[0]]),
+      tagged('b1', [catB.match[0]]),
+      tagged('b2', [catB.match[0]]),
+      tagged('b3', [catB.match[0]]),
+    ]);
+
+    assert.deepEqual(
+      rails.map((r) => r.title),
+      [catB.title, catA.title],
+      'the page leads with what the week is actually about'
+    );
+  });
+
+  test('a rail carries no reason, because it is not claiming one', () => {
+    const rails = buildCategoryRails([
+      tagged('a1', [catA.match[0]]),
+      tagged('a2', [catA.match[0]]),
+    ]);
+    for (const event of rails[0].events) {
+      assert.ok(
+        !('reason' in event),
+        'a subject makes no claim about a viewer'
+      );
+    }
   });
 });

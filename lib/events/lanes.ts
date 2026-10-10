@@ -3,11 +3,15 @@
  *
  * This module is deliberately free of imports: no database, no schema, no
  * drizzle. `events-discover.tsx` is a client component and it needs
- * `buildLanes` and `LANE_COPY` to rebuild the page when the viewer changes the
- * window, so anything it reaches for is bundled into the browser. When these
- * lived next to `getDiscoveryFeed` the bundler followed that file's `@/lib/db`
- * import and shipped a Postgres driver to the browser, where it died on the
- * first reference to `Buffer`.
+ * `buildLanes`, `buildCategoryRails` and `LANE_COPY` to rebuild the page when
+ * the viewer changes the window, so anything it reaches for is bundled into
+ * the browser. When these lived next to `getDiscoveryFeed` the bundler
+ * followed that file's `@/lib/db` import and shipped a Postgres driver to the
+ * browser, where it died on the first reference to `Buffer`.
+ *
+ * That rule is also why `EVENT_CATEGORIES` is spelled out here rather than
+ * imported from `lib/lists` -- see the note on it for why the vocabularies
+ * differ in the first place.
  *
  * So the rule this file exists to enforce: types and pure functions here,
  * queries in `discovery.ts`. `discovery.ts` re-exports everything below, which
@@ -93,7 +97,9 @@ export interface DiscoveryEvent {
   reasons: Reason[];
 }
 
-/** A lane is a reason with its evidence, not a category. */
+/** A lane is a reason with its evidence, not a category. Subjects live in
+ *  `CategoryRail` further down and are a separate type on purpose: a rail has
+ *  no `Reason` on it because it is not claiming one. */
 export interface Lane {
   id: string;
   /** The heading. Written as the reason itself, in the viewer's terms. */
@@ -304,6 +310,351 @@ function laneRank({
     default:
       return -event.going;
   }
+}
+
+/* ----------------------------------------------------------------------
+   Categories. The second axis, and the one that works for a stranger.
+
+   Every reason above is a join against the viewer, which means the page has
+   no answer at all for somebody it does not know yet, or for a catalogue too
+   young to have a follow graph in it. `buildLanes` degrades honestly in that
+   case -- it returns nothing and the page says so -- but "here is all of it,
+   ungrouped" is a worse read than it needs to be once there are more than a
+   dozen events on.
+
+   So subjects. A rail headed "Music" makes no claim about the reader, which
+   is exactly why it is allowed to exist next to lanes that do: the rule this
+   file holds is that a heading must not promise a relationship the rows
+   cannot evidence, and "these are the music events" is evidenced by the tags
+   on them. The failure mode being avoided is the opposite one -- a rail
+   headed "Because you like music" over the same cards, which would be a
+   ranking wearing a reason's clothes.
+
+   Kept separate from `buildLanes` rather than folded into it, because the two
+   answer different questions and the host preview at /e/new consumes the
+   reason half on its own.
+   ---------------------------------------------------------------------- */
+
+/**
+ * A browsable subject, and the tags that put an event in it.
+ *
+ * Deliberately *not* `profileCategoryList` from lib/lists. That vocabulary
+ * describes what a listing **is** -- Products, Services, Apparel -- and those
+ * are not things anybody browses events by. An event is what is **happening**,
+ * so the set below keeps the directory's words where they genuinely overlap
+ * (Music, Food, Art, Wellness, Tech) and adds the ones only events need
+ * (Workshops, Market, Community). Seeding maps a host's listing category onto
+ * these, which is what keeps the two vocabularies speaking to each other.
+ *
+ * `match` is matched against normalised tags, so an event tagged `Live Music`
+ * or `live-music` lands in the same place as `livemusic`.
+ */
+export interface EventCategory {
+  id: string;
+  title: string;
+  note: string;
+  match: string[];
+}
+
+export const EVENT_CATEGORIES: EventCategory[] = [
+  {
+    id: 'music',
+    title: 'Music',
+    note: 'Shows, sets and sessions.',
+    match: [
+      'music',
+      'livemusic',
+      'dj',
+      'concert',
+      'gig',
+      'band',
+      'bands',
+      'live',
+      'vinyl',
+      'salsa',
+      'jazz',
+      'hiphop',
+      'rap',
+      'punk',
+      'rock',
+      'openmic',
+      'karaoke',
+      'soundsystem',
+      'rumba',
+      'bachata',
+      'reggaeton',
+      'dance',
+      'party',
+    ],
+  },
+  {
+    id: 'art',
+    title: 'Art',
+    note: 'Making, showing and looking at things.',
+    match: [
+      'art',
+      'arts',
+      'gallery',
+      'exhibition',
+      'mural',
+      'zine',
+      'zines',
+      'print',
+      'printmaking',
+      'riso',
+      'risograph',
+      'ceramics',
+      'clay',
+      'drawing',
+      'painting',
+      'photography',
+      'photo',
+      'craft',
+      'crafts',
+      'diy',
+      'sculpture',
+      'collage',
+      'film',
+      'poetry',
+    ],
+  },
+  {
+    id: 'food',
+    title: 'Food',
+    note: 'Cooking, eating and feeding people.',
+    match: [
+      'food',
+      'dinner',
+      'supper',
+      'brunch',
+      'tasting',
+      'cafecito',
+      'coffee',
+      'bake',
+      'baking',
+      'cooking',
+      'potluck',
+      'vegan',
+      'bbq',
+      'cocktails',
+      'pastry',
+      'kitchen',
+      'recipe',
+    ],
+  },
+  {
+    id: 'workshops',
+    title: 'Workshops',
+    note: 'Somebody teaching something they know.',
+    match: [
+      'workshop',
+      'workshops',
+      'class',
+      'classes',
+      'taller',
+      'talk',
+      'talks',
+      'panel',
+      'skillshare',
+      '101',
+      'learn',
+      'lesson',
+      'seminar',
+      'demo',
+      'clinic',
+      'training',
+      'reading',
+    ],
+  },
+  {
+    id: 'market',
+    title: 'Markets & pop-ups',
+    note: 'Things for sale, made by the people selling them.',
+    match: [
+      'market',
+      'markets',
+      'popup',
+      'popups',
+      'vendor',
+      'vendors',
+      'flea',
+      'bazaar',
+      'fair',
+      'craftfair',
+      'swap',
+      'thrift',
+      'makers',
+      'shop',
+    ],
+  },
+  {
+    id: 'wellness',
+    title: 'Wellness',
+    note: 'Moving, resting and looking after yourself.',
+    match: [
+      'wellness',
+      'yoga',
+      'meditation',
+      'meditate',
+      'breathwork',
+      'soundbath',
+      'movement',
+      'run',
+      'running',
+      'walk',
+      'hike',
+      'pilates',
+      'healing',
+      'health',
+      'care',
+    ],
+  },
+  {
+    id: 'community',
+    title: 'Community',
+    note: 'Organising, helping and turning up for each other.',
+    match: [
+      'community',
+      'mutualaid',
+      'volunteer',
+      'cleanup',
+      'organizing',
+      'organising',
+      'meetup',
+      'social',
+      'dominoes',
+      'garden',
+      'gardening',
+      'neighbors',
+      'neighbours',
+      'fundraiser',
+      'benefit',
+      'family',
+      'kids',
+    ],
+  },
+  {
+    id: 'tech',
+    title: 'Tech',
+    note: 'Building, fixing and taking things apart.',
+    match: [
+      'tech',
+      'code',
+      'coding',
+      'hack',
+      'hackathon',
+      'repair',
+      'electronics',
+      'ai',
+      'software',
+      'maker',
+      'robotics',
+      'game',
+      'games',
+    ],
+  },
+];
+
+/** Lowercased and stripped of everything that is not a letter or digit, so
+ *  `Live Music`, `live-music` and `livemusic` are one tag rather than three.
+ *  Hosts type tags by hand and will never agree on punctuation. */
+function normaliseTag(tag: string): string {
+  return tag.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Which subjects an event belongs to, strongest first.
+ *
+ * Capped at two. An event tagged broadly enough to land in five rails would
+ * appear five times and make every rail read as the same shelf -- the same
+ * failure the one-lane-per-event rule above exists to prevent, arriving by a
+ * different route. Two lets a printmaking workshop be both Art and Workshops,
+ * which is true and useful, without letting anything be everywhere.
+ *
+ * Takes `{ tags }` rather than a whole `DiscoveryEvent` because tags are all
+ * it reads, and asking for more would imply a subject depends on something
+ * about an event other than what it is tagged.
+ */
+export function categoriesFor(event: { tags: string[] }): EventCategory[] {
+  const tags = event.tags.map(normaliseTag).filter(Boolean);
+  if (tags.length === 0) return [];
+
+  return EVENT_CATEGORIES.map((category) => ({
+    category,
+    hits: tags.filter((tag) => category.match.includes(tag)).length,
+  }))
+    .filter((entry) => entry.hits > 0)
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, 2)
+    .map((entry) => entry.category);
+}
+
+/** A subject with the events in it. Shaped like `Lane` so the page can render
+ *  both through one component, but carrying no `Reason` -- that absence is the
+ *  type-level statement that a rail is not making a claim about the viewer. */
+export interface CategoryRail {
+  id: string;
+  title: string;
+  note: string;
+  events: DiscoveryEvent[];
+}
+
+/** Rails below this hold too little to be worth a heading, same floor and
+ *  same argument as the lanes above. Exported so seeding can check its work
+ *  against the real number rather than a copy of it that can drift. */
+export const RAIL_FLOOR = 2;
+
+/** How many subjects the page offers at once. Past this it stops being a
+ *  shortlist and becomes the whole tag vocabulary with headings on it. */
+const MAX_RAILS = 6;
+
+/** How far a single rail scrolls. Generous because scrolling sideways is
+ *  cheap, unlike the vertical space another rail costs. */
+const MAX_PER_RAIL = 12;
+
+/**
+ * Group events by subject, busiest subject first.
+ *
+ * Draws from the **whole** pool rather than from what the reason lanes left
+ * over, which is the one place this deliberately differs from `buildLanes`.
+ * The reason there is that a rail is a complete answer to "what music is on",
+ * and a Music rail that quietly omitted the one music event already shown
+ * under "From hosts you follow" would be wrong rather than merely shorter.
+ *
+ * Repetition across the two sections is therefore expected and is why the page
+ * separates them under their own heading: the same catalogue, read two ways.
+ * Repetition *within* the reason lanes would still be a bug.
+ *
+ * Ordered by how much is actually on, so the page leads with the subject the
+ * week is really about, and ties break on the table's own order so the result
+ * is stable when two subjects are level.
+ */
+export function buildCategoryRails(
+  candidates: DiscoveryEvent[]
+): CategoryRail[] {
+  const buckets = new Map<string, DiscoveryEvent[]>();
+
+  for (const event of candidates) {
+    for (const category of categoriesFor(event)) {
+      const bucket = buckets.get(category.id);
+      if (bucket) bucket.push(event);
+      else buckets.set(category.id, [event]);
+    }
+  }
+
+  return EVENT_CATEGORIES.map((category) => ({
+    category,
+    events: buckets.get(category.id) ?? [],
+  }))
+    .filter((entry) => entry.events.length >= RAIL_FLOOR)
+    .sort((a, b) => b.events.length - a.events.length)
+    .slice(0, MAX_RAILS)
+    .map(({ category, events }) => ({
+      id: category.id,
+      title: category.title,
+      note: category.note,
+      events: events.slice(0, MAX_PER_RAIL),
+    }));
 }
 
 /* ----------------------------------------------------------------------

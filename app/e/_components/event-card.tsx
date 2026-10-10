@@ -61,12 +61,23 @@ export function EventCard({
   event,
   reason,
   onDismiss,
+  compact = false,
 }: {
   event: DiscoveryEvent;
   /** Why the page chose this. Absent on the calendar tab, where the viewer
    *  chose it themselves and a reason would be noise. */
   reason?: Reason;
   onDismiss?: (event: DiscoveryEvent, reason: Reason) => void;
+  /** Rail mode. Drops the blurb and trims the tag row so the card fits a
+   *  21rem column without becoming a tower.
+   *
+   *  A variant rather than a second component, deliberately: the whole
+   *  argument for this file is that an events page which draws its own card
+   *  drifts from the directory the first time either is touched, and that
+   *  applies just as much to a card drawn for a rail. What is dropped is only
+   *  ever prose — when, where, who and the signals all survive, because those
+   *  are the parts somebody decides on. */
+  compact?: boolean;
 }) {
   const seatsLeft = seatsLeftOf(event);
   const nearlyFull = seatsLeft !== null && seatsLeft <= 4;
@@ -76,7 +87,11 @@ export function EventCard({
   );
 
   return (
-    <article className="dirsearch-card">
+    <article
+      className={
+        compact ? 'dirsearch-card dirsearch-card--compact' : 'dirsearch-card'
+      }
+    >
       <Link
         href={`/e/${event.slug}`}
         className="dirsearch-card-media"
@@ -138,11 +153,13 @@ export function EventCard({
           )}
         </p>
 
-        {event.blurb && <p className="dirsearch-card-blurb">{event.blurb}</p>}
+        {!compact && event.blurb && (
+          <p className="dirsearch-card-blurb">{event.blurb}</p>
+        )}
 
         {event.tags.length > 0 && (
           <ul className="dirsearch-card-cats">
-            {event.tags.map((tag) => (
+            {(compact ? event.tags.slice(0, 2) : event.tags).map((tag) => (
               <li key={tag}>{tag}</li>
             ))}
           </ul>
