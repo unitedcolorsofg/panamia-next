@@ -72,8 +72,27 @@ export function generateStatusUri(username: string, statusId: string): string {
   return `https://${socialConfig.domain}/p/${username}/statuses/${statusId}`;
 }
 
-// Direct messages expire after 7 days (soft delete via query filter)
-const DM_EXPIRY_DAYS = 7;
+/**
+ * How long a direct message stays visible.
+ *
+ * This is a soft delete via query filter, not a row delete -- the row stays in
+ * Postgres, which is why `lib/jobs/purge-expired.ts` deliberately leaves DMs
+ * alone and why changing this number is a backfill rather than a recovery.
+ *
+ * Thirty rather than seven because the DM surface is becoming a transcript.
+ * The stamp is applied per row at write time, so a conversation never expires
+ * as a unit -- it erodes from its oldest message forward, and the oldest
+ * message is usually the one holding what was agreed: the price, the date,
+ * which weekend was being held. A mail inbox survives that, because a list of
+ * recent items has no beginning anyone expects to find. A transcript does, and
+ * one that silently loses its own first page is indistinguishable from data
+ * loss to the pana reading it.
+ *
+ * Changing this value only affects rows written after it changes. Rows already
+ * stamped keep the window they were given -- see
+ * drizzle/0062_dm_expiry_30_days.sql for the backfill of existing messages.
+ */
+const DM_EXPIRY_DAYS = 30;
 
 /**
  * Returns a Drizzle WHERE condition to exclude expired statuses.

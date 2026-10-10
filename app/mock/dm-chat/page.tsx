@@ -17,9 +17,11 @@ import type { MockSurface } from '../_data/panaverse';
  * received.
  *
  * The fixtures are picked to put the substrate's awkward parts on screen -
- * the seven-day expiry, the gate's three answers, a federated thread, and a
+ * the expiry countdown, the gate's three answers, a federated thread, and a
  * dropped socket - because those are the parts a generic chat UI leaves out
- * and then meets in production.
+ * and then meets in production. Drawing the first of those is what surfaced
+ * the window itself: DMs were expiring after seven days, which mail could
+ * absorb and a transcript could not. It is thirty now.
  *
  * Surfaces come from the same registry the Worker routes hostnames on, so the
  * masthead cannot fly a mark for a surface that does not exist, and reading

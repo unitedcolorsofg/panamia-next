@@ -12,19 +12,25 @@
  *
  * THE CONSTRAINTS THIS SET EXISTS TO MAKE VISIBLE
  *
- * 1. DMs expire after seven days. `status.ts` stamps every `visibility:
- *    'direct'` row with `expiresAt = now + 7 days`, unconditionally, and
- *    `notExpired()` in timeline.ts hides it afterwards. The row survives in
- *    Postgres - purge-expired.ts deliberately leaves DMs alone - but it is
+ * 1. DMs expire after thirty days. `status.ts` stamps every `visibility:
+ *    'direct'` row with `expiresAt = now + DM_EXPIRY_DAYS`, unconditionally,
+ *    and `notExpired()` in timeline.ts hides it afterwards. The row survives
+ *    in Postgres - purge-expired.ts deliberately leaves DMs alone - but it is
  *    invisible to everyone. Mail made that survivable: a letter you cannot
- *    find after a week is annoying. Chat makes it a bug report, because the
+ *    find after a month is annoying. Chat makes it a bug report, because the
  *    promise of a transcript is that it is a transcript.
+ *
+ *    The window was seven days until this view was drawn against it, which is
+ *    the whole argument for drawing mocks against real constraints: nothing
+ *    was wrong with the code, and nothing in the mail UI could have shown it.
  *
  *    And because `expiresAt` is stamped per row at write time, a conversation
  *    does not expire as a unit. It erodes from the oldest message forward, so
- *    an active thread is a sliding seven-day window and the beginning of the
- *    exchange is always the first thing to go. THREAD_BEE carries this: its
- *    opening message has hours left while the reply under it has two days.
+ *    an active thread is a sliding thirty-day window and the beginning of the
+ *    exchange is always the first thing to go. THREAD_BEE carries this: it is
+ *    a live conversation - last message yesterday - whose opening proposal is
+ *    hours from being hidden. Thirty days moved that cliff; it did not remove
+ *    it, and a view that stops rendering the countdown would hide it again.
  *
  * 2. The gate has three answers, not two. dm-gate.ts returns allow / hold /
  *    refuse, and every refusal returns one identical string so a blocked
@@ -235,21 +241,27 @@ const THREAD_JDOWNS: MockChatThread = {
   ],
 };
 
-/* The expiry thread. Six days old, so the opening message - the one with the
-   actual proposal in it - is hours from being hidden, while the reply under
-   it has another two days. Nothing in the product has told Claribel this is
-   about to happen, which is the point of rendering it. */
+/* The expiry thread, and the reason the window moved from seven days to
+   thirty. A conversation that has run for a month: the opening message - the
+   one with the actual proposal in it - is hours from being hidden, while the
+   nudge from yesterday has nearly a month left. The thread is live, which is
+   the whole problem. Nothing in the product has told Claribel the top of it is
+   about to go, which is the point of rendering it.
+
+   Thirty days did not fix this, it moved it. Erosion is a property of stamping
+   expiry per row, not of the number, so the countdown has to stay on screen at
+   any window. */
 const THREAD_BEE: MockChatThread = {
   id: 'bee',
   person: BEE,
-  lastActive: '6 days ago',
+  lastActive: 'Yesterday',
   unreadCount: 0,
   gate: 'allow',
   messages: [
     {
       id: 'bee-1',
       from: 'them',
-      day: 'Last Tuesday',
+      day: 'January 12',
       time: '9:14 AM',
       expiresIn: '4 hours',
       body: "I kept thinking about the canal recordings after you posted them. I've been collecting the same thing on the Broward side for about two years — mostly pump stations and the drainage under 595, which sound nothing like yours.\n\nWould you want to put them next to each other? One night somewhere with decent speakers, where people can hear the county line as a sound.",
@@ -257,7 +269,7 @@ const THREAD_BEE: MockChatThread = {
     {
       id: 'bee-2',
       from: 'me',
-      day: 'Last Tuesday',
+      day: 'January 12',
       time: '6:40 PM',
       expiresIn: '11 hours',
       delivery: 'sent',
@@ -266,9 +278,9 @@ const THREAD_BEE: MockChatThread = {
     {
       id: 'bee-3',
       from: 'them',
-      day: 'Thursday',
+      day: 'Yesterday',
       time: '11:02 AM',
-      expiresIn: '2 days',
+      expiresIn: '29 days',
       body: 'Any word from them? Just want to know whether to keep the first weekend of March open.',
     },
   ],
@@ -407,7 +419,7 @@ const THREAD_REFUSED: MockChatThread = {
       day: 'Sunday',
       time: '11:40 AM',
       delivery: 'sent',
-      expiresIn: '1 day',
+      expiresIn: '25 days',
       body: 'Hey — following up on the flyers. Let me know either way and I will stop bugging you about it.',
     },
   ],

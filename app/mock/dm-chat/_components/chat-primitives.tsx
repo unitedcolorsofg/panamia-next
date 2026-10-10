@@ -167,16 +167,20 @@ export function DeliveryMark({ state }: { state: MockDeliveryState }) {
   );
 }
 
-/* The seven-day expiry, made visible.
+/* The expiry, made visible.
  *
-   `status.ts` stamps every direct status with `expiresAt = now + 7 days` and
-   timeline.ts hides it after that, so this is not a hypothetical: it is what
-   the product does right now, to every DM, today. Mail could get away with
-   not mentioning it. A transcript cannot, because a transcript that silently
-   loses its own first page is indistinguishable from data loss.
+   `status.ts` stamps every direct status with `expiresAt = now +
+   DM_EXPIRY_DAYS` and timeline.ts hides it after that, so this is not a
+   hypothetical: it is what the product does right now, to every DM, today.
+   Mail could get away with not mentioning it. A transcript cannot, because a
+   transcript that silently loses its own first page is indistinguishable from
+   data loss.
 
-   Rendered per message rather than per thread because the stamp is per row:
-   the conversation erodes from the oldest message forward. */
+   The window is thirty days, raised from seven after this view was drawn
+   against it. The chip is not a seven-day artefact and does not retire at
+   thirty: the stamp is per row, so the conversation erodes from its oldest
+   message forward at any window, which is why this renders per message rather
+   than per thread. */
 export function ExpiryChip({ expiresIn }: { expiresIn: string }) {
   const urgent = expiresIn.includes('hour');
   return (
@@ -186,7 +190,7 @@ export function ExpiryChip({ expiresIn }: { expiresIn: string }) {
           ? 'bg-pana-red/12 text-pana-red-deep'
           : 'bg-pana-ink/6 text-pana-ink/50'
       }`}
-      title="Direct messages are hidden 7 days after they are sent (status.ts)"
+      title="Direct messages are hidden 30 days after they are sent (status.ts)"
     >
       <Clock3 className="h-2.5 w-2.5" aria-hidden="true" />
       Disappears in {expiresIn}

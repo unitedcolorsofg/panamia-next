@@ -28,7 +28,7 @@
 - [Overview](#overview)
 - [The three scopes](#the-three-scopes)
 - [What replacing mail costs](#what-replacing-mail-costs)
-- [Seven-day expiry becomes visible in a transcript](#seven-day-expiry-becomes-visible-in-a-transcript)
+- [DMs expire after thirty days](#dms-expire-after-thirty-days)
 - [Storage — one transport, two stores](#storage--one-transport-two-stores)
 - [The authorization gate](#the-authorization-gate)
 - [Event rooms admit signed-in attendees only](#event-rooms-admit-signed-in-attendees-only)
@@ -128,54 +128,64 @@ chat reaches parity. `socialStatuses` stays exactly where it is.
 
 ---
 
-## Seven-day expiry becomes visible in a transcript
+## DMs expire after thirty days
 
-Keeping the substrate means inheriting a property of it that the mail interface was hiding, and that
-a transcript cannot hide. **Direct messages already disappear after seven days in production.**
+Keeping the substrate means inheriting a property of it that the mail interface was hiding and a
+transcript cannot. Direct messages expire — and until this was raised, they expired after **seven
+days**, in production, undocumented.
 
-`lib/federation/wrappers/status.ts:76` sets `DM_EXPIRY_DAYS = 7`, and `:334` stamps
-`expiresAt = now + 7 days` on **every** `visibility: 'direct'` row at write time — not only on held
-requests, not only on unaccepted threads. `notExpired()` in
-`lib/federation/wrappers/timeline.ts:43` then filters those rows out on read.
+`lib/federation/wrappers/status.ts` stamps `expiresAt` on **every** direct row at write time — not
+only on held requests, not only on unaccepted threads — and `notExpired()` in
+`lib/federation/wrappers/timeline.ts:43` filters those rows out on read.
 
-The row itself survives: `lib/jobs/purge-expired.ts:9-18` deliberately excludes DMs from the hourly
+The row itself survives. `lib/jobs/purge-expired.ts:9-18` deliberately excludes DMs from the hourly
 sweep, on the stated reasoning that hard-deleting somebody's conversation is a product decision and
-not a cleanup detail. So this is a soft delete, and it is reversible. That matters for every option
-below.
+not a cleanup detail. So expiry here is a read filter, and that is what made this decision cheap to
+act on.
 
 ### It erodes, it does not expire
 
-Because the stamp is applied per row at write time, a conversation does not expire as a unit. It
-erodes from its oldest message forward. An actively used thread is a sliding seven-day window: the
-reply sent this morning is good for a week, the message that started the thread is already gone.
+Because the stamp is applied per row at write time, a conversation never expires as a unit. It
+erodes from its oldest message forward. An actively used thread is a sliding window: the reply sent
+this morning is good for the full term, while the message that started the thread may already be
+gone.
 
-### Why the interface change is what makes this a problem
+That is the part that does not survive the interface change. An inbox is a list of recent items and
+has no beginning anyone expects to find, so items falling off the bottom read as ordinary. A
+transcript has one, and it is usually the half holding the context — what was agreed, what the price
+was, which weekend was being held. A transcript that silently loses its own first page is
+indistinguishable from data loss, and the panas who lose it will report it as a bug, because from
+the inside that is exactly what it is.
 
-Mail tolerates it. An inbox is a list of recent items, and old items falling off the bottom of a
-list reads as normal — nobody experiences an inbox as having a beginning.
+### Decision — thirty days (2026-10)
 
-A transcript does have a beginning, and it is usually the half that holds the context: what was
-agreed, what the price was, which weekend was being held. A transcript that silently loses its own
-first page is indistinguishable from data loss, and the panas who lose it will report it as a bug,
-because from the inside that is exactly what it looks like.
+**`DM_EXPIRY_DAYS = 30`.** Thirty covers the span a real conversation runs: an event being planned,
+a booking being arranged, a trade being negotiated. Seven did not — it expired mid-conversation,
+which is the worst available moment.
 
-This is not a new risk introduced by chat. It is a cost already being paid, which chat makes
-legible. `/mock/dm-chat` renders the remaining time per message for exactly this reason.
+Expiry is kept rather than dropped because it is now a stated property rather than an accident. The
+alternative, making DMs durable, is defensible — the consent gate, not disappearance, is what makes
+DMs safe — but it is a larger promise, and it is the one that cannot be walked back later. Thirty
+days can be extended again; "your messages are kept forever" cannot be retracted.
 
-### The decision
+`drizzle/0062_dm_expiry_30_days.sql` applies the new window to messages already sent. Two properties
+of that backfill are deliberate and worth keeping if it is ever revisited:
 
-| Option                  | What it takes                                     | What it costs                                                                                 |
-| ----------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Drop expiry for DMs** | Stop stamping `expiresAt`; backfill existing rows | DMs become durable. The gate, not disappearance, is what makes them safe — that already holds |
-| **Extend it**           | Raise `DM_EXPIRY_DAYS`                            | Delays the same conversation rather than resolving it                                         |
-| **Keep it, and say so** | Per-message countdown, as the mock draws          | Ephemeral-by-default becomes a stated feature people can rely on, not a surprise              |
+- **It extends, it does not revive.** The predicate is `expires_at > NOW()`. Dropping it would
+  un-hide every DM sent in the last thirty days, because the rows were never deleted. Disappearing
+  was documented — `docs/FEATURES.md` told panas voice memos auto-expire — and somebody may have
+  sent something they would not have sent otherwise. Honouring that costs old history nobody
+  currently sees; breaking it costs somebody a reasonable expectation of privacy, and cannot be
+  undone once they have seen it.
+- **It excludes stories.** `social_statuses` has two writers of `expires_at`: DMs, and stories at
+  `STORY_LIFETIME_HOURS = 24`. There is no `visibility` column to filter on, so `type <> 'Story'` is
+  what keeps a one-day story from becoming a month-long post.
 
-Rows survive in Postgres, so dropping or extending expiry is a backfill, not a recovery — messages
-hidden up to now can be brought back. That stops being true if `purge-expired.ts` is ever changed to
-include DMs, which is an argument for answering this **before** DM chat ships rather than after.
+### What the UI still owes
 
-Whichever is chosen, the UI has to state it. A transcript that drops messages without telling anyone
-is the one option that is not available.
+The number changed; the obligation did not. A transcript that drops messages without saying so is
+still the one option not available. `/mock/dm-chat` renders the remaining time per message, and
+whatever ships has to do the same or better.
 
 ---
 
@@ -195,9 +205,9 @@ model for either. They are local-only by design, which the [Non-Goals](#non-goal
 The tempting symmetry is a single `chat_messages` table, with DM messages _also_ mirrored to direct
 statuses so federation survives. That is a dual write to two stores with different schemas,
 different delete semantics, and different expiry — `DM_EXPIRY_DAYS`
-([seven days](#seven-day-expiry-becomes-visible-in-a-transcript)) applies to statuses and would not
-apply to the mirror. Dual writes drift, and the drift here is silent: the federated copy and the
-copy a pana sees would disagree, and nothing would report it.
+([thirty days](#dms-expire-after-thirty-days)) applies to statuses and would not apply to the
+mirror. Dual writes drift, and the drift here is silent: the federated copy and the copy a pana sees
+would disagree, and nothing would report it.
 
 One store per scope has no drift because there is nothing to keep in sync.
 
@@ -439,8 +449,8 @@ transport first would mean shipping a DO whose sole consumer is a mock.
 The view is drawn, not built. [`/mock/dm-chat`](../app/mock/dm-chat) is the design fixture for it:
 conversation list, transcript, composer, and the delivery states this path produces — sending, sent,
 and queued-while-disconnected. It also renders the three gate answers, a federated thread, and the
-[seven-day expiry](#seven-day-expiry-becomes-visible-in-a-transcript), which is where that question
-came from. Treat it as the spec for step 4's client hook rather than a sketch to be redrawn.
+[expiry countdown](#dms-expire-after-thirty-days), which is where that question came from. Treat it
+as the spec for step 4's client hook rather than a sketch to be redrawn.
 
 This is also what makes "replace the mail" concrete. The DM chat view _is_ the replacement for the
 inbox/sent tabs — the tabs retire when it reaches parity, not before, so there is never a window
@@ -738,12 +748,14 @@ authenticate, so they are not in the room. See
 [Event rooms admit signed-in attendees only](#event-rooms-admit-signed-in-attendees-only) for what
 that costs and the two mitigations that ship with it. Group rooms and DMs were never affected.
 
-### How long should a DM last?
+### ~~How long should a DM last?~~ — answered (2026-10)
 
-**Open, and it affects production today.** Every direct status is stamped with a seven-day
-`expiresAt` at write time, so DM history already erodes oldest-first. The mail interface hid it; a
-transcript cannot. Options, costs, and why it wants answering before DM chat ships are in
-[Seven-day expiry becomes visible in a transcript](#seven-day-expiry-becomes-visible-in-a-transcript).
+**Answered: thirty days.** `DM_EXPIRY_DAYS = 30`, with `drizzle/0062_dm_expiry_30_days.sql`
+extending messages already sent. The previous value was seven days, which expired mid-conversation —
+the worst available moment, and invisible until the surface became a transcript. See
+[DMs expire after thirty days](#dms-expire-after-thirty-days) for why expiry was kept rather than
+dropped, and for the two deliberate properties of the backfill: it extends without reviving, and it
+excludes stories.
 
 ### Member cap per room
 

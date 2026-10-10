@@ -259,7 +259,7 @@ function DesignNotes() {
         title="What it still owes"
         tone="owe"
         items={[
-          'The 7-day expiry. Every DM is hidden after a week today. A transcript that loses its own first page reads as data loss, so this needs a product answer before launch, not after.',
+          'Expiry still erodes a thread. Thirty days replaced seven, which was the urgent part, but the stamp is per row — a conversation running longer than a month still loses its opening while it is live.',
           'No presence, no typing, no read receipts. Deliberate — they are the expensive half of realtime — but it is a gap people will name.',
           'Reconnect behaviour has to be real. Queued-offline is drawn here; it still has to be built.',
           'Remote threads cannot be live inbound. A federated reply arrives when their server sends it.',
