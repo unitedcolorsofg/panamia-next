@@ -67,6 +67,18 @@ export interface CreateGroupInput {
   createdByProfileId: string;
   /** The actor starting the group. Becomes its first admin. */
   founderActorId: string;
+  /**
+   * Let the handle come from RESERVED_SCREENNAMES.
+   *
+   * For `panamia` and nothing else today: the name is reserved precisely so
+   * that Panamia-the-organisation can hold it, and without this the seed
+   * script is refused by the validator that is protecting the name for it.
+   *
+   * Not reachable over HTTP. POST /api/social/groups builds this input field
+   * by field rather than spreading the request body, so a client cannot set
+   * it by adding a key -- keep it that way.
+   */
+  allowReservedHandle?: boolean;
 }
 
 export type CreateGroupResult =
@@ -222,7 +234,14 @@ export async function createGroup(
 
   // The handle goes through the same validator people and listings use, so a
   // group cannot take a name a pana already answers to. See lib/screenname.ts.
-  const handleCheck = await validateScreennameFull(handle);
+  // `allowReservedHandle` relaxes only the reserved-word list; the format and
+  // uniqueness gates still apply.
+  const handleCheck = await validateScreennameFull(
+    handle,
+    undefined,
+    undefined,
+    { allowReserved: input.allowReservedHandle === true }
+  );
   if (!handleCheck.valid) {
     return { success: false, error: handleCheck.error ?? 'Invalid handle' };
   }

@@ -47,15 +47,34 @@ export interface ScreennameValidationResult {
   error?: string;
 }
 
+export interface ScreennameValidationOptions {
+  /**
+   * Accept a name from RESERVED_SCREENNAMES.
+   *
+   * For the handles this codebase holds for itself, which is the whole reason
+   * they are reserved -- nothing else may take `panamia`, and Panamia has to
+   * be able to. Never set this from request data: the list exists to stop a
+   * pana registering as `admin` or `support`, and a caller that forwards a
+   * user-supplied flag here turns the list off.
+   *
+   * Only the format gate is relaxed. Uniqueness is still enforced, so this
+   * cannot be used to take a name somebody already holds.
+   */
+  allowReserved?: boolean;
+}
+
 /**
  * Validates a screenname format without checking database uniqueness.
  * Rules:
  * - 3-24 characters
  * - Alphanumeric, underscore, and hyphen only
  * - Cannot start or end with underscore or hyphen
- * - Not a reserved word
+ * - Not a reserved word, unless `options.allowReserved` says otherwise
  */
-export function validateScreenname(name: string): ScreennameValidationResult {
+export function validateScreenname(
+  name: string,
+  options?: ScreennameValidationOptions
+): ScreennameValidationResult {
   if (!name || typeof name !== 'string') {
     return { valid: false, error: 'Screenname is required' };
   }
@@ -111,7 +130,10 @@ export function validateScreenname(name: string): ScreennameValidationResult {
   }
 
   // Check reserved words (case-insensitive)
-  if (RESERVED_SCREENNAMES.includes(trimmed.toLowerCase())) {
+  if (
+    !options?.allowReserved &&
+    RESERVED_SCREENNAMES.includes(trimmed.toLowerCase())
+  ) {
     return { valid: false, error: 'This screenname is reserved' };
   }
 
@@ -233,9 +255,10 @@ export async function isScreennameAvailable(
 export async function validateScreennameFull(
   name: string,
   excludeEmail?: string,
-  excludeProfileId?: string
+  excludeProfileId?: string,
+  options?: ScreennameValidationOptions
 ): Promise<ScreennameValidationResult> {
-  const formatResult = validateScreenname(name);
+  const formatResult = validateScreenname(name, options);
   if (!formatResult.valid) {
     return formatResult;
   }
