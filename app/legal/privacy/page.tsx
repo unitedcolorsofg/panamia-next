@@ -590,11 +590,12 @@ export default function PrivacyPolicyPage() {
           <h2>10. International Users</h2>
           <p>
             Pana MIA Club is operated from the United States by Pana MIA Club,
-            Corp. Our infrastructure is global — Cloudflare serves the site from
-            edge locations worldwide, so pages load from somewhere near you —
-            while our database and stored files are hosted primarily in the
-            United States. If you use the service from outside the US, your data
-            is transferred to and processed in the US.
+            Corp., a Florida corporation. Our infrastructure is global —
+            Cloudflare serves the site from edge locations worldwide, so pages
+            load from somewhere near you — while our database and stored files
+            are hosted primarily in the United States. If you use the service
+            from outside the US, your data is transferred to and processed in
+            the US.
           </p>
           <p>
             We do not offer different privacy rights to different regions. The
