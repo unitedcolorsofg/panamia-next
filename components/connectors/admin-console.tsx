@@ -268,26 +268,42 @@ export function RosterEditor({ rows }: { rows: RosterRow[] }) {
 export interface TaskTarget {
   profileId: string;
   displayName: string;
-  houses: HouseId[];
+  /* Loose on purpose: houses comes off a JSON column, so a value nobody
+   * recognises has to survive the trip rather than fail a narrowing. The
+   * dropdown below filters against the known houses anyway, so an unknown
+   * one simply offers nothing — which is the right outcome. */
+  houses: readonly string[];
 }
 
 /**
- * Put a task on somebody's board.
+ * Put a task on one connector's board.
  *
- * The house dropdown narrows to the houses the chosen connector is actually
- * in. A task filed under a house somebody does not belong to would show up on
- * their board under a heading that does not apply to them, and would be
- * counted in that house's workload by anybody reading the tallies.
+ * Bound to a single person rather than offering a picker. It is rendered from
+ * a row of the load table, so the connector has already been chosen — by the
+ * more useful route of seeing what they are carrying first. Asking again in a
+ * dropdown would be asking a question that has just been answered.
+ *
+ * The house dropdown narrows to the houses this connector is actually in. A
+ * task filed under a house somebody does not belong to would show up on their
+ * board under a heading that does not apply to them, and would be counted in
+ * that house's workload by anybody reading the tallies. Because the person is
+ * fixed, that list is known on first render — there is no disabled state
+ * waiting on a selection.
+ *
+ * `onDone` fires only after a save succeeds, so the caller can close the row.
+ * A failed submit leaves everything where it is, with the typing intact.
  */
 export function SetTaskForm({
-  connectors,
+  connector,
   events = [],
+  onDone,
 }: {
-  connectors: TaskTarget[];
+  connector: TaskTarget;
   events?: AssignableEvent[];
+  onDone?: () => void;
 }) {
   const router = useRouter();
-  const [profileId, setProfileId] = useState('');
+  const profileId = connector.profileId;
   const [what, setWhat] = useState('');
   const [when, setWhen] = useState('');
   const [house, setHouse] = useState<string>('');
@@ -296,18 +312,7 @@ export function SetTaskForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const target = connectors.find((c) => c.profileId === profileId);
-  const houseChoices = target
-    ? HOUSES.filter((h) => target.houses.includes(h.id))
-    : [];
-
-  if (connectors.length === 0) {
-    return (
-      <p className="text-pana-ink/60 text-sm leading-relaxed">
-        There is nobody to assign work to yet.
-      </p>
-    );
-  }
+  const houseChoices = HOUSES.filter((h) => connector.houses.includes(h.id));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -344,31 +349,17 @@ export function SetTaskForm({
     setHours('');
     setEvent('');
     router.refresh();
+    onDone?.();
   }
 
   return (
     <form onSubmit={submit}>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label>
-          <span className={LABEL}>Who</span>
-          <select
-            required
-            className={`${FIELD} mt-1`}
-            value={profileId}
-            onChange={(e) => {
-              setProfileId(e.target.value);
-              setHouse('');
-            }}
-          >
-            <option value="">Pick a connector</option>
-            {connectors.map((c) => (
-              <option key={c.profileId} value={c.profileId}>
-                {c.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-
+      {/* Three across once there is room. With the connector already decided
+       * these are all the required fields, so on a wide screen they form a
+       * single line — the whole ask readable without the eye travelling. The
+       * form opens inside a list row, so every line it saves is a line of
+       * roster that stays visible underneath it. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label>
           <span className={LABEL}>What</span>
           <input
@@ -396,14 +387,11 @@ export function SetTaskForm({
           <span className={LABEL}>House</span>
           <select
             required
-            disabled={!target}
             className={`${FIELD} mt-1`}
             value={house}
             onChange={(e) => setHouse(e.target.value)}
           >
-            <option value="">
-              {target ? 'Pick a house' : 'Pick a connector first'}
-            </option>
+            <option value="">Pick a house</option>
             {houseChoices.map((h) => (
               <option key={h.id} value={h.id}>
                 {h.name}
@@ -544,13 +532,26 @@ export function SetTaskForm({
         </p>
       </fieldset>
 
-      <button
-        type="submit"
-        disabled={busy || !profileId || !what || !house}
-        className={`mt-4 rounded-full px-5 py-2 text-sm font-extrabold transition disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
-      >
-        {busy ? 'Adding…' : 'Add commitment'}
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy || !what || !house}
+          className={`rounded-full px-5 py-2 text-sm font-extrabold transition disabled:opacity-40 ${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL}`}
+        >
+          {busy ? 'Adding…' : 'Add commitment'}
+        </button>
+
+        {onDone && (
+          <button
+            type="button"
+            onClick={onDone}
+            disabled={busy}
+            className="text-pana-ink/60 hover:text-pana-ink text-sm font-bold underline underline-offset-4 disabled:opacity-40"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
 
       <Err message={error} />
     </form>
