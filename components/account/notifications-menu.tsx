@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, CheckCheck, Inbox, MessageCircle } from 'lucide-react';
 
+import { useSession } from '@/lib/auth-client';
 import {
   useMarkAllAsRead,
   useMarkAsRead,
@@ -103,26 +104,40 @@ function NotificationRow({
  * other does not. `components/NotificationFlower.tsx` was exactly that
  * lookalike; it was never mounted, and this replaces it.
  *
- * Rendered only for signed-in visitors (MainHeader decides), because every
- * one of its queries 401s without a session.
+ * Gates itself on the session rather than trusting the masthead to do it,
+ * because there are two mastheads and only one of them could. MainHeader is a
+ * client component and gated this on `useSession`; SurfaceMemberHeader — the
+ * masthead a surface wears over its own rooms, and the one a member on
+ * social.pana.social actually lives under — renders on the server and has no
+ * session to check. The bell was therefore absent from the feed entirely, and
+ * with it the only link to /messages. Owning the gate here is what lets a
+ * server component mount this safely; every query below stays disabled
+ * without a session, which matters because each one 401s.
  */
 export function NotificationsMenu() {
   const { t } = useTranslation('common');
+  const { data: session, status } = useSession();
+  const signedIn = status !== 'loading' && !!session;
 
   /* Drives the list query below. The panel is mounted even while closed, so
      without this the list would be fetched on every page load. */
   const [open, setOpen] = useState(false);
 
-  const { data: unreadCount = 0 } = useUnreadCount();
+  const { data: unreadCount = 0 } = useUnreadCount({ enabled: signedIn });
   const { data, isLoading } = useNotifications({
     limit: RECENT_LIMIT,
-    enabled: open,
+    enabled: open && signedIn,
   });
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
 
   const notifications = (data?.notifications ?? []) as RecentNotification[];
   const hasUnread = unreadCount > 0;
+
+  /* After the hooks, never before: the gate decides what to render, not which
+     hooks run. Nothing is shown while the session resolves either, so the bell
+     does not appear and then vanish on a signed-out visitor. */
+  if (!signedIn) return null;
 
   const handleOpen = (notification: RecentNotification) => {
     if (!notification.read) markAsRead.mutate(notification._id);
