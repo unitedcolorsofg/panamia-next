@@ -192,7 +192,7 @@ export function EventsDiscover({
        a page carrying neither renders on a transparent background with nothing
        in the console to say why. */
     <main className="dirscope">
-      <div className="surface-indigo dirsearch-band">
+      <div className="dirsearch-band">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-[58rem]">
             <span className="section-eyebrow">Events</span>

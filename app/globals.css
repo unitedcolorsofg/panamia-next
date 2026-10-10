@@ -671,7 +671,17 @@
    invisible — identical foreground and background. Callers try to correct this
    with text-pana-butter, but that utility sits in @layer utilities and an
    unlayered rule always wins the cascade, so the override has to live here
-   next to the surface that causes it. ::before inherits via currentColor. */
+   next to the surface that causes it. ::before inherits via currentColor.
+
+   Which makes `.surface-indigo` a claim about the background, not a palette to
+   borrow: this rule fires on the class, not on the colour actually painted. A
+   band that carries the class but repaints itself light gets a butter eyebrow
+   on a pale ground — #f6f099 on cream is 1.07:1, which is not dim, it is
+   gone. That is exactly what `.surface-indigo .dirsearch-band` did on the
+   Events pages, because `.dirsearch-band` sets `background-color: transparent`
+   and wins on source order while this selector keeps matching. The fix is to
+   drop the class, which is what the directory and /panas bands already do —
+   never to add a third colour on top. */
 .surface-indigo .section-eyebrow {
   color: var(--color-pana-butter);
 }
@@ -4752,11 +4762,7 @@ body {
   width: 1px;
   height: 1rem;
   margin-inline: 0;
-  background-color: color-mix(
-    in srgb,
-    var(--color-pana-ink) 14%,
-    transparent
-  );
+  background-color: color-mix(in srgb, var(--color-pana-ink) 14%, transparent);
 }
 
 /* The scope row is a duplicate of the pill's scope menu, which sits directly

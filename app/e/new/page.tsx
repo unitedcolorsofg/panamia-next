@@ -46,7 +46,7 @@ export default async function NewEventPage() {
   if (!context) {
     return (
       <main className="dirscope">
-        <div className="surface-indigo dirsearch-band">
+        <div className="dirsearch-band">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-[58rem]">
               <span className="section-eyebrow">Events</span>
