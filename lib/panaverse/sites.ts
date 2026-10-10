@@ -207,17 +207,26 @@ export function resolvePanaSites(
      * social host itself, a plain "/". Both serve the feed; only one of them is
      * the URL a member would repeat out loud.
      *
-     * The two cases differ in which host decides. A cross-origin link lands on
-     * the owner's hostname by construction, so its front door is always "/". A
-     * same-origin link stays on the host in hand, which is the owner's only
-     * sometimes — from pana.social the social tile is still /s, because that is
-     * genuinely where the feed is on this host. Only paths that *are* the
-     * surface's root are touched; /d and /e are rooms, not front doors. */
+     * Which host decides is the host the reader will *arrive* on, not the one
+     * they are leaving. That distinction is invisible while every surface owns
+     * a subdomain — crossing origins lands on the owner's own hostname, where
+     * the front door is "/" by construction — and load-bearing the moment one
+     * does not. Events is path-only (`subdomain: null`), so crossing to it
+     * lands on the shared root domain, whose "/" is the main site's homepage.
+     * Assuming "/" there sent every reader on admin.pana.social and
+     * social.pana.social to pana.social instead of to the calendar.
+     *
+     * Asking `frontDoorPath` about the destination host answers both cases
+     * with one rule: social.pana.social resolves to social, so "/"; pana.social
+     * resolves to the main site, so Events keeps its "/e". Only paths that
+     * *are* the surface's root are touched; /d is a room, not a front door. */
     const path =
       site.href === owner.rootPath
-        ? sameOrigin
-          ? frontDoorPath(owner, host, rootDomain)
-          : '/'
+        ? frontDoorPath(
+            owner,
+            sameOrigin ? host : new URL(origin).host,
+            rootDomain
+          )
         : site.href;
 
     if (sameOrigin) {
