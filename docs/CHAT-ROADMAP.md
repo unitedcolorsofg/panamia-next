@@ -465,29 +465,68 @@ about their own.
 **`handleNotify` returns a `delivered` count.** It is the one honest signal about the gap between
 "sent" and "seen": `delivered === 0` for an actor means they hold no live socket. That is exactly
 the condition for sending a push instead, and the DO is the only thing in the system that knows it.
-See [Native mobile clients](#native-mobile-clients).
+See [Background delivery needs push](#background-delivery-needs-push-and-that-is-true-everywhere).
 
-### Native mobile clients
+### Mobile — it already works, because the app is this app
 
-The transport survives a native client unchanged, and one piece of it was built specifically so it
-would.
+This was asked as "will the Durable Object work if we build a native client?", and the honest answer
+turned out to be narrower and better than the one first given: **there is already a mobile app in
+this repo, and the socket already runs inside it unmodified.**
 
-**Transport** — a WebSocket is a WebSocket; `URLSessionWebSocketTask`, OkHttp, and React Native's
-`WebSocket` all speak it, and the DO cannot tell what connected. Native is in fact the better
-citizen here: it emits protocol-level **ping frames**, which the runtime answers without ever
-waking the DO. The web client's application-level `'ping'` heartbeat exists only because browser JS
-cannot send a ping frame, and `setWebSocketAutoResponse` is what keeps even that from waking it.
+[`capacitor.config.ts`](../capacitor.config.ts) points a WKWebView / Android WebView at
+`https://pana.social` — the same Worker this document describes. Its own words: _"cookies, auth and
+routing all behave exactly as they do in a browser on that origin."_ So `use-dm-socket.ts` builds
+`wss://pana.social/ws/dm` from `location`, the WebView sends the session cookie on a same-origin
+upgrade, and `worker/index.ts` resolves it exactly as it does for a desktop tab. There is no second
+client, no second auth path, and no native socket to write. One implementation, three platforms —
+which is the whole premise of [MOBILE-ROADMAP.md](./MOBILE-ROADMAP.md).
 
-**Auth** — browsers send cookies automatically on a same-origin upgrade and _cannot_ set headers on
-one. Native clients are the mirror image: no implicit cookie jar, but full control of the upgrade
-request's headers, so a native client sets the session cookie itself and arrives indistinguishable
-from a browser. This is precisely why `resolveUserIdFromHeaders(headers)` takes an explicit
-`Headers` rather than reading the ambient `next/headers` — nothing on the path is browser-specific.
-A better-auth `bearer` plugin would be tidier and is not required.
+`resolveUserIdFromHeaders(headers)` is still the right seam, but for a reason unrelated to mobile:
+the raw Worker `fetch` entry has no Next request context, so `next/headers` does not resolve there
+and the session has to be read from an explicit `Headers`. If a true native client is ever built it
+inherits that for free — no cookie jar, but full control of the upgrade request's headers, so it
+sets the cookie itself and arrives indistinguishable from a browser.
 
-**Background delivery does not work, and no socket design makes it.** iOS and Android suspend
-sockets when the app backgrounds. A native client gets foreground liveness from this DO and nothing
-while backgrounded; that needs APNs/FCM. The `delivered` count above is where that hooks in.
+#### Surviving a suspend — the bug this question found
+
+Asking the mobile question turned up a real defect, and not a mobile-only one.
+
+Reconnect was driven entirely by `socket.onclose`. But a connection torn down by a suspending OS,
+a closed laptop lid, or a changed network **never sends a close frame**: `readyState` keeps reading
+`OPEN` on a socket that is gone, and `send()` on it buffers rather than throwing. `onclose` never
+fires, so the hook never reconnects. The thread survived that on its fifteen-second interval; the
+conversation list, which had neither an interval nor a focus refetch, would have gone stale
+indefinitely. On mobile that is **every** backgrounding — the app would feel live once and never
+again.
+
+Liveness is now asserted instead of assumed:
+
+- **A heartbeat that demands an answer.** The `'pong'` that `setWebSocketAutoResponse` already
+  returns is now checked for. No reply inside `PONG_TIMEOUT_MS` and the client closes the socket
+  itself — `close()` fires `onclose` _locally_ even when the peer is unreachable, so the existing
+  reconnect path takes it from there and there is no second recovery mechanism to keep in step.
+- **Wake-driven reconnect.** `visibilitychange` and `online` re-probe immediately and reset the
+  backoff rather than waiting out a timer that was scheduled before the device went to sleep.
+- **A floor under the list.** `useConversations` gained `refetchOnWindowFocus` so it is never wholly
+  dependent on socket health.
+
+Plain DOM events were chosen over Capacitor's `App.appStateChange` deliberately: MOBILE-ROADMAP's
+rule is that _the shell is additive, never a fork_, and importing a Capacitor plugin into a web hook
+would fork it. `visibilitychange` fires in browsers and WebViews alike.
+
+#### Background delivery needs push, and that is true everywhere
+
+**No socket design delivers to an app that is not running.** iOS and Android suspend sockets with
+the process; a closed laptop does the same. Signal, WhatsApp, Slack and Discord all answer this the
+same way — a **second transport**, not a different first one. So "make it work on all platforms"
+means adding push, not rearchitecting this.
+
+The hook point already exists: `handleNotify` returns `{ delivered: N }`, and `delivered === 0`
+means nobody was listening and a push should be sent instead. That is
+[MOBILE-ROADMAP.md](./MOBILE-ROADMAP.md) Next Steps step 4, which needs
+`@capacitor/push-notifications`, APNs and FCM credentials, and a device-token table tied to the
+account — none of which can be created or tested from here, which is why this is recorded rather
+than half-built.
 
 ### Prerequisite — the DM chat view had to exist first
 

@@ -1368,16 +1368,22 @@ export const useConversations = (enabled: boolean = true) =>
       };
     },
     enabled,
+    // Defence in depth. The socket invalidates this key on delivery and on
+    // wake (app/messages/_lib/use-dm-socket.ts), which is the fast path -- but
+    // unlike the thread below, this list has no interval of its own, so a
+    // socket that never connected would leave it frozen with no second
+    // mechanism. Focus is the cheapest one that cannot itself go stale.
+    refetchOnWindowFocus: true,
   });
 
 /**
- * One thread, polled while it is open.
+ * One thread, with the interval kept as a floor under the socket.
  *
- * Polling is the placeholder, not the destination: docs/CHAT-ROADMAP.md step 4
- * replaces this interval with a socket push, and this view is the prerequisite
- * that had to exist first. Fifteen seconds is slow for a chat and honest about
- * it -- it never claims a message arrived that has not, which is the one thing
- * this UI must not do.
+ * Live delivery arrives over the DM socket now, so fifteen seconds is no
+ * longer the visible latency -- it is what the thread falls back to when the
+ * socket is down, blocked, or still reconnecting. Removing it would make a
+ * failed socket silently fatal, which is the one thing this UI must not do:
+ * it must never claim a message arrived that has not.
  */
 export const useConversation = (actorId: string | null) =>
   useQuery({

@@ -496,4 +496,8 @@ Push is the highest-value next step for the product regardless of review.
 4. **Push notifications** — the strongest answer to guideline 4.2 and the
    clearest native win over the website. Needs `@capacitor/push-notifications`,
    APNs and FCM credentials, and device-token storage tied to the account.
+   DMs now have a caller waiting for it: `handleNotify` in `worker/dm-stream.ts`
+   returns a `delivered` count, and `delivered === 0` means the recipient holds
+   no live socket — which is exactly the moment to push instead. See
+   [CHAT-ROADMAP.md](./CHAT-ROADMAP.md#background-delivery-needs-push-and-that-is-true-everywhere).
 5. **Replace `mobile/assets/icon.png`** with a true ≥1024×1024 master.
