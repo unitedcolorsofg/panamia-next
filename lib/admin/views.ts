@@ -22,6 +22,7 @@
  */
 
 import {
+  Activity,
   CalendarClock,
   ClipboardCheck,
   Download,
@@ -36,7 +37,7 @@ import {
 
 export type ViewStatus = 'mock' | 'live' | 'stub';
 
-export type AdminGroupId = 'directory' | 'community' | 'inbox';
+export type AdminGroupId = 'directory' | 'community' | 'inbox' | 'site';
 
 export interface AdminGroup {
   id: AdminGroupId;
@@ -87,6 +88,18 @@ export const ADMIN_GROUPS: readonly AdminGroup[] = [
     name: 'Inbox',
     blurb: 'Things panas sent us that are waiting on an answer.',
     fill: 'bg-pana-butter',
+    onFill: 'text-pana-ink',
+  },
+  /* The first group that is not about panas. The three above sort staff work
+     by who it concerns; this one is about the machine they all run on, which
+     is why it sits last — it is the group you open when something is wrong
+     rather than one you work through. Flame on ink measures 7.50, the same
+     footing as the others; see the CONTRAST RULE note on `fill` above. */
+  {
+    id: 'site',
+    name: 'Site',
+    blurb: 'How the website itself is holding up.',
+    fill: 'bg-pana-flame',
     onFill: 'text-pana-ink',
   },
 ];
@@ -255,6 +268,20 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     status: 'live',
     access: 'moderator',
     icon: Flag,
+  },
+  {
+    id: 'livesite',
+    name: 'Live site',
+    href: '/admin/livesite',
+    group: 'site',
+    blurb: 'Whether the site is healthy, and what is waiting on a human.',
+    does: [
+      'See everything queued across the surface in one place',
+      'Watch signups and new profiles week over week',
+      'Check the hourly cleanup job actually ran',
+    ],
+    status: 'live',
+    icon: Activity,
   },
 ];
 
