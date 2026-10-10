@@ -1,7 +1,10 @@
 /**
- * GET /api/social/actors/search - Search for actors by username
+ * GET /api/social/actors/search - Search for actors by name or username
  *
- * Used for @-mention autocomplete in the voice memo composer.
+ * Two callers: @-mention autocomplete in the voice memo composer, and the
+ * Messages search box, which uses it to start a conversation with someone the
+ * viewer has never messaged (those people appear in no list that page loads).
+ *
  * Returns local actors matching the query string.
  *
  * Query params:
@@ -13,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { socialActors } from '@/lib/schema';
-import { and, isNotNull, ilike, asc } from 'drizzle-orm';
+import { and, isNotNull, ilike, or, asc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -36,9 +39,15 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Search local actors by username (case-insensitive)
+  // Search local actors by name or username (case-insensitive)
   // Only return actors that have a linked profile (local users with social enabled)
-  // Includes current user (allows sending voice memos to yourself)
+  // Includes current user (allows sending voice memos to yourself) -- callers
+  // that cannot act on that row, like the Messages search box, exclude it
+  // themselves rather than this endpoint guessing which kind of caller it has.
+  //
+  // Display name is matched as well as handle because members look for each
+  // other by name, and a handle often contains no part of one: searching
+  // "Maria" for @mgonzalez found nothing at all before this.
   const actors = await db
     .select({
       id: socialActors.id,
@@ -51,7 +60,10 @@ export async function GET(request: NextRequest) {
     .where(
       and(
         isNotNull(socialActors.profileId),
-        ilike(socialActors.username, `%${query}%`)
+        or(
+          ilike(socialActors.username, `%${query}%`),
+          ilike(socialActors.name, `%${query}%`)
+        )
       )
     )
     .orderBy(asc(socialActors.username))

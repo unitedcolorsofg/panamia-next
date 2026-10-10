@@ -1442,6 +1442,46 @@ export const useSendDirectMessage = (counterpartyActorId: string | null) => {
   });
 };
 
+/** One pana the viewer could open a conversation with. */
+export interface MessageableActor {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  uri: string;
+}
+
+/**
+ * Panas matching a term, for starting a thread that does not exist yet.
+ *
+ * The conversation list can only ever show people the viewer has already
+ * messaged, so without this the Messages page is a room with no door: the
+ * empty state had to send members to someone's profile to begin, which is a
+ * different page, reachable from a different search.
+ *
+ * Reuses the actor-search endpoint the voice-memo composer already calls
+ * rather than adding a messages-specific one. It answers exactly the question
+ * being asked -- local actors with a profile, signed-in only -- and a second
+ * endpoint would be a second place for the membership-enumeration gate to be
+ * got wrong.
+ *
+ * Results are cached briefly. A typeahead re-asks for the same prefix
+ * constantly as people type and backspace, and the set of panas does not
+ * change between two keystrokes.
+ */
+export const usePanaSearch = (term: string) =>
+  useQuery({
+    queryKey: [socialQueryKey, 'messages', 'pana-search', term],
+    queryFn: async (): Promise<MessageableActor[]> => {
+      const { data } = await axios.get('/api/social/actors/search', {
+        params: { q: term, limit: 8 },
+      });
+      return data?.data ?? [];
+    },
+    enabled: term.length > 0,
+    staleTime: 30_000,
+  });
+
 // ============================================================================
 // Mutation Hooks
 // ============================================================================

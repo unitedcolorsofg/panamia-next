@@ -31,30 +31,42 @@ export default function MessagesPage() {
 
   if (!session) {
     return (
-      <main className="container mx-auto max-w-5xl px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Unauthorized</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 dark:text-gray-400">
-              You must be logged in to view this page.
-            </p>
-          </CardContent>
-        </Card>
-      </main>
+      <div className="bg-pana-cream min-h-screen">
+        <main className="container mx-auto max-w-5xl px-4 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Unauthorized</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 dark:text-gray-400">
+                You must be logged in to view this page.
+              </p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-4">
-        <h1 className="text-pana-ink text-2xl font-extrabold">Messages</h1>
-        <p className="text-pana-ink/55 text-sm font-medium">
-          Direct messages disappear 30 days after they are sent.
-        </p>
-      </div>
-      <MessagesView />
-    </main>
+    /* Cream rather than the default white, so the page continues the masthead
+       instead of stopping under it. The warm band above a white sheet read as
+       an unfinished header rather than a deliberate edge.
+
+       min-h-screen is doing real work here and not just filling space: without
+       it a short page (an empty inbox is the shortest) ends above the fold and
+       the white body shows through below the footer, which is the same seam
+       one element further down. The admin layout solves it the same way. */
+    <div className="bg-pana-cream min-h-screen">
+      <main className="container mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-4">
+          <h1 className="text-pana-ink text-2xl font-extrabold">Messages</h1>
+          <p className="text-pana-ink/55 text-sm font-medium">
+            Direct messages disappear 30 days after they are sent.
+          </p>
+        </div>
+        <MessagesView />
+      </main>
+    </div>
   );
 }
