@@ -12,7 +12,13 @@
  *     override it, so the verification row holds the RAW token. If that option
  *     ever changes to "hashed", this script must hash with
  *     base64url(SHA-256(token)) to match defaultKeyHasher.
- *   - The row is { identifier: token, value: JSON {email}, expiresAt }.
+ *   - The row is { identifier: `magic-link:${token}`, value, expiresAt }.
+ *     Both halves have to match the plugin exactly or verification answers
+ *     INVALID_TOKEN without saying which half was wrong:
+ *       - the identifier carries a `magic-link:` prefix (magicLinkIdentifier)
+ *       - the value is parsed by a STRICT zod schema, so it must be exactly
+ *         { type: 'magic-link', email } — a bare { email } is rejected, and so
+ *         is an extra key.
  *   - The link is {baseUrl}/api/auth/magic-link/verify?token=...&callbackURL=/
  *   - Tokens are consumed atomically on first verification: one use only.
  *
@@ -26,7 +32,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '../lib/schema';
-import { eq } from 'drizzle-orm';
+import { like } from 'drizzle-orm';
 import { config } from 'dotenv';
 import crypto from 'crypto';
 import { createId } from '@paralleldrive/cuid2';
@@ -76,15 +82,18 @@ async function createSignInLink(): Promise<void> {
     console.log('Base URL:', BASE_URL);
 
     // Clear stale tokens for this address so an old link cannot be replayed.
-    await db.delete(verification).where(eq(verification.identifier, EMAIL));
+    // Identifiers are prefixed tokens, not emails, so match on the payload.
+    await db
+      .delete(verification)
+      .where(like(verification.value, `%"${EMAIL}"%`));
 
     const token = generateToken();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await db.insert(verification).values({
       id: createId(),
-      identifier: token,
-      value: JSON.stringify({ email: EMAIL }),
+      identifier: `magic-link:${token}`,
+      value: JSON.stringify({ type: 'magic-link', email: EMAIL }),
       expiresAt,
     });
 

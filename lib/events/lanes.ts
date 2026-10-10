@@ -138,6 +138,76 @@ export function seatsLeft(event: DiscoveryEvent): number | null {
   return Math.max(0, event.cap - event.going);
 }
 
+/** The viewer-dependent half of a reason. Separated so `reasonsFor` stays a
+ *  pure function of resolved facts, testable without a database. */
+export interface ViewerFacts {
+  pastEvents: number;
+  followsHost: boolean;
+  panas: DiscoveryPana[];
+  attended: { title: string; tags: string[] }[];
+}
+
+/**
+ * Every reason that holds for an event, strongest first.
+ *
+ * Order is the editorial judgement of the page and worth stating plainly:
+ * a host you chose to follow beats people you know going, which beats a
+ * subject you have turned up for before, which beats the page arguing on an
+ * unknown host's behalf. Each event is then placed in exactly one lane, by its
+ * strongest reason -- the same event appearing under three headings is the
+ * fastest way to make a page of four lanes feel like a page of one.
+ *
+ * Here rather than next to `getDiscoveryFeed` because it is the one piece both
+ * sides of the product need. `/e` runs it over real rows to rank a reader's
+ * page; `/e/new` runs it in the browser over a draft, so a host can see which
+ * lanes the thing they are typing would reach. Two copies of these thresholds
+ * would drift within a release, and the host page would start promising lanes
+ * the discovery page does not actually grant.
+ */
+export function reasonsFor(
+  event: DiscoveryEvent,
+  facts: ViewerFacts
+): Reason[] {
+  const out: Reason[] = [];
+
+  if (facts.followsHost)
+    out.push({ kind: 'follow-host', host: event.host.name });
+
+  /* Three rather than one: two panas going is a coincidence, and a lane that
+     fires on a single RSVP turns every event one friend attends into a
+     personalised recommendation. */
+  if (facts.panas.length >= 3) {
+    out.push({ kind: 'panas-going', panas: facts.panas });
+  }
+
+  const match = tagMatch(event, facts.attended);
+  if (match) out.push({ kind: 'tag-match', ...match });
+
+  if (facts.pastEvents <= 1 && event.going < 50) {
+    out.push({
+      kind: 'new-host',
+      host: event.host.name,
+      pastEvents: facts.pastEvents,
+    });
+  }
+
+  return out;
+}
+
+/** Tags this event shares with something the viewer actually turned up to,
+ *  plus which past event earned the match. Returns null when there is no
+ *  overlap, so the caller cannot accidentally render an empty claim. */
+function tagMatch(
+  event: DiscoveryEvent,
+  attended: { title: string; tags: string[] }[]
+): { tags: string[]; from: string } | null {
+  for (const past of attended) {
+    const shared = event.tags.filter((tag) => past.tags.includes(tag));
+    if (shared.length > 0) return { tags: shared, from: past.title };
+  }
+  return null;
+}
+
 /**
  * Bucket a set of events into lanes.
  *
@@ -230,4 +300,104 @@ function laneRank({
     default:
       return -event.going;
   }
+}
+
+/* ----------------------------------------------------------------------
+   Time. Pure, Intl-only, and down here rather than beside the queries so the
+   host form at /e/new can render a draft exactly the way /e renders a row.
+   A second copy of formatWhen would drift, and the first thing a host would
+   notice is that the card they were promised is not the card they got.
+   ---------------------------------------------------------------------- */
+
+/**
+ * The timezone the windows are reckoned in.
+ *
+ * "Tonight" is a claim about the viewer, not about the event, so it needs one
+ * answer rather than one per row. South Florida is what this directory is, and
+ * it is already the default on `events.timezone`; a viewer reading from
+ * elsewhere is looking at what is on *here*, which is the only reading of
+ * "tonight" that makes sense on a page about places you can physically go.
+ */
+export const SITE_TIMEZONE = 'America/New_York';
+
+/**
+ * The calendar date in a given timezone, as YYYY-MM-DD.
+ *
+ * `en-CA` rather than arithmetic on a Date: it is the one common locale whose
+ * short date format is already ISO order, so this is a formatter call rather
+ * than three getters and a pad, and it gets DST right because Intl does.
+ */
+export function dateKey(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(at);
+}
+
+/** 0 = Sunday, in the given timezone. */
+export function weekday(at: Date, timeZone: string): number {
+  const name = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+  }).format(at);
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(name);
+}
+
+/**
+ * Which window an event falls in.
+ *
+ * The buckets are the viewer's situation, not even divisions of the calendar,
+ * so they overlap in the way the words do and are resolved in order: an event
+ * tonight is "tonight" even though it is also this week. `weekend` runs Friday
+ * through Sunday and only means *this coming* one -- on a Monday the weekend
+ * is five days away and still the weekend, but on the following Tuesday it is
+ * gone rather than eleven days off.
+ */
+export function bucketFor(startsAt: Date, now: Date): WhenBucket {
+  const today = dateKey(now, SITE_TIMEZONE);
+  const day = dateKey(startsAt, SITE_TIMEZONE);
+  if (day === today) return 'today';
+
+  const daysOut = Math.round(
+    (Date.parse(`${day}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) /
+      86400000
+  );
+
+  /* Days until the coming Sunday. Sunday itself counts as 0, so an event on a
+     Sunday is still this weekend rather than next. */
+  const todayDow = weekday(now, SITE_TIMEZONE);
+  const untilSunday = (7 - todayDow) % 7;
+  const eventDow = weekday(startsAt, SITE_TIMEZONE);
+  if (daysOut <= untilSunday && eventDow >= 5) return 'weekend';
+
+  if (daysOut <= 31) return 'month';
+  return 'later';
+}
+
+/** "Fri 20 Feb, 7:00 PM", in the event's own timezone -- a show at 8pm in
+ *  Miami is at 8pm on the page wherever it is read from. */
+export function formatWhen(at: Date, timeZone: string): string {
+  const date = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(at);
+  const time = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(at);
+  return `${date}, ${time}`;
+}
+
+/** "Fri 20" — the calendar tab's day heading. */
+export function formatDay(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    day: 'numeric',
+  }).format(at);
 }

@@ -65,22 +65,11 @@ import type { EventStatus } from '@/lib/schema';
 /** How many upcoming events the page reasons over. */
 const CANDIDATE_LIMIT = 60;
 
-/**
- * The timezone the windows are reckoned in.
- *
- * "Tonight" is a claim about the viewer, not about the event, so it needs one
- * answer rather than one per row. South Florida is what this directory is, and
- * it is already the default on `events.timezone`; a viewer reading from
- * elsewhere is looking at what is on *here*, which is the only reading of
- * "tonight" that makes sense on a page about places you can physically go.
- */
-const SITE_TIMEZONE = 'America/New_York';
-
 /*
  * The pure half lives in `./lanes`, which imports nothing, because the
- * client component needs `buildLanes` and must not drag this file's
- * database import into the browser bundle with it. Re-exported here so
- * server callers still have one place to import from.
+ * client components need `buildLanes` and `reasonsFor` and must not drag this
+ * file's database import into the browser bundle with them. Re-exported here
+ * so server callers still have one place to import from.
  */
 export type {
   DiscoveryEvent,
@@ -88,16 +77,13 @@ export type {
   Lane,
   Reason,
   ReasonKind,
+  ViewerFacts,
   WhenBucket,
 } from './lanes';
-export { LANE_COPY, buildLanes, seatsLeft } from './lanes';
+export { LANE_COPY, buildLanes, reasonsFor, seatsLeft } from './lanes';
 
-import type {
-  DiscoveryEvent,
-  DiscoveryPana,
-  Reason,
-  WhenBucket,
-} from './lanes';
+import { bucketFor, formatDay, formatWhen, reasonsFor } from './lanes';
+import type { DiscoveryEvent, DiscoveryPana } from './lanes';
 
 /**
  * Everything the page needs, in one call.
@@ -199,69 +185,6 @@ export async function getDiscoveryFeed(
   };
 }
 
-/** The viewer-dependent half of a reason. Separated so `reasonsFor` stays a
- *  pure function of resolved facts, testable without a database. */
-interface ViewerFacts {
-  pastEvents: number;
-  followsHost: boolean;
-  panas: DiscoveryPana[];
-  attended: { title: string; tags: string[] }[];
-}
-
-/**
- * Every reason that holds for an event, strongest first.
- *
- * Order is the editorial judgement of the page and worth stating plainly:
- * a host you chose to follow beats people you know going, which beats a
- * subject you have turned up for before, which beats the page arguing on an
- * unknown host's behalf. Each event is then placed in exactly one lane, by its
- * strongest reason -- the same event appearing under three headings is the
- * fastest way to make a page of four lanes feel like a page of one.
- */
-export function reasonsFor(
-  event: DiscoveryEvent,
-  facts: ViewerFacts
-): Reason[] {
-  const out: Reason[] = [];
-
-  if (facts.followsHost)
-    out.push({ kind: 'follow-host', host: event.host.name });
-
-  /* Three rather than one: two panas going is a coincidence, and a lane that
-     fires on a single RSVP turns every event one friend attends into a
-     personalised recommendation. */
-  if (facts.panas.length >= 3) {
-    out.push({ kind: 'panas-going', panas: facts.panas });
-  }
-
-  const match = tagMatch(event, facts.attended);
-  if (match) out.push({ kind: 'tag-match', ...match });
-
-  if (facts.pastEvents <= 1 && event.going < 50) {
-    out.push({
-      kind: 'new-host',
-      host: event.host.name,
-      pastEvents: facts.pastEvents,
-    });
-  }
-
-  return out;
-}
-
-/** Tags this event shares with something the viewer actually turned up to,
- *  plus which past event earned the match. Returns null when there is no
- *  overlap, so the caller cannot accidentally render an empty claim. */
-function tagMatch(
-  event: DiscoveryEvent,
-  attended: { title: string; tags: string[] }[]
-): { tags: string[]; from: string } | null {
-  for (const past of attended) {
-    const shared = event.tags.filter((tag) => past.tags.includes(tag));
-    if (shared.length > 0) return { tags: shared, from: past.title };
-  }
-  return null;
-}
-
 /**
  * How many published events each host has already run.
  *
@@ -272,8 +195,13 @@ function tagMatch(
  *
  * Counted over *past* events, so an organiser announcing six things at once
  * does not stop being new the moment they do it.
+ *
+ * Exported because `./host-context` asks the same question from the other
+ * side — the host page has to tell a host whether they still read as new —
+ * and two definitions of "has hosted before" would let the two pages disagree
+ * about the same person.
  */
-async function countPastEventsByHost(
+export async function countPastEventsByHost(
   hostProfileIds: string[],
   hostGroupIds: string[],
   now: Date
@@ -446,86 +374,4 @@ function unique<T>(values: T[]): T[] {
 
 function isString(value: string | null): value is string {
   return value !== null;
-}
-
-/**
- * The calendar date in a given timezone, as YYYY-MM-DD.
- *
- * `en-CA` rather than arithmetic on a Date: it is the one common locale whose
- * short date format is already ISO order, so this is a formatter call rather
- * than three getters and a pad, and it gets DST right because Intl does.
- */
-function dateKey(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(at);
-}
-
-/** 0 = Sunday, in the given timezone. */
-function weekday(at: Date, timeZone: string): number {
-  const name = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-  }).format(at);
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(name);
-}
-
-/**
- * Which window an event falls in.
- *
- * The buckets are the viewer's situation, not even divisions of the calendar,
- * so they overlap in the way the words do and are resolved in order: an event
- * tonight is "tonight" even though it is also this week. `weekend` runs Friday
- * through Sunday and only means *this coming* one -- on a Monday the weekend
- * is five days away and still the weekend, but on the following Tuesday it is
- * gone rather than eleven days off.
- */
-function bucketFor(startsAt: Date, now: Date): WhenBucket {
-  const today = dateKey(now, SITE_TIMEZONE);
-  const day = dateKey(startsAt, SITE_TIMEZONE);
-  if (day === today) return 'today';
-
-  const daysOut = Math.round(
-    (Date.parse(`${day}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) /
-      86400000
-  );
-
-  /* Days until the coming Sunday. Sunday itself counts as 0, so an event on a
-     Sunday is still this weekend rather than next. */
-  const todayDow = weekday(now, SITE_TIMEZONE);
-  const untilSunday = (7 - todayDow) % 7;
-  const eventDow = weekday(startsAt, SITE_TIMEZONE);
-  if (daysOut <= untilSunday && eventDow >= 5) return 'weekend';
-
-  if (daysOut <= 31) return 'month';
-  return 'later';
-}
-
-/** "Fri 20 Feb, 7:00 PM", in the event's own timezone -- a show at 8pm in
- *  Miami is at 8pm on the page wherever it is read from. */
-function formatWhen(at: Date, timeZone: string): string {
-  const date = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(at);
-  const time = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(at);
-  return `${date}, ${time}`;
-}
-
-/** "Fri 20" — the calendar tab's day heading. */
-function formatDay(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-    day: 'numeric',
-  }).format(at);
 }

@@ -77,10 +77,23 @@ export function getDb(env?: CloudflareEnv): DbInstance {
   // Always create a fresh client per request — workerd prevents cross-request socket reuse.
   // (Sharing a postgres.js pool across requests causes "Cannot perform I/O on behalf of a
   // different request" because the pool's TCP sockets are bound to the creating request.)
-  // max: 5 — matches the production path below, so a Promise.all behaves the
-  // same in dev as it does deployed. See the note there for why not 1.
+  // max: 1 — deliberately NOT the 5 the production path uses, and the
+  //   difference is not a pooling preference. Dev talks to a local Postgres
+  //   through postgres.js's Cloudflare build, whose socket polyfill
+  //   mis-pipelines the extended query protocol once more than one query is in
+  //   flight: a Bind lands against another query's Parse and the server
+  //   rejects it with "bind message supplies N parameters, but prepared
+  //   statement \"\" requires N-1" (SQLSTATE 08P01). `prepare: false` does not
+  //   avoid it; serialising onto one connection does.
+  //
+  //   This was raised to 5 to make `Promise.all` behave in dev the way it does
+  //   deployed. It does the opposite. Deployed, the concurrency is absorbed by
+  //   Hyperdrive, which multiplexes properly; here it just crashes, and only
+  //   on pages that fan out — so the events discovery feed and the host page
+  //   both 500'd for signed-in readers while their signed-out versions, which
+  //   skip the viewer-shaped queries, rendered fine.
   if (env?.POSTGRES_URL) {
-    const client = postgres(env.POSTGRES_URL, { max: 5 });
+    const client = postgres(env.POSTGRES_URL, { max: 1 });
     const instance = drizzle(client, { schema });
     cachedInstance = instance;
     return instance;

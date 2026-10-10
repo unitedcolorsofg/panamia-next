@@ -54,10 +54,33 @@ do not — see `panamia-next/docs/MENTORING-ROADMAP.md`.)
 
 ### UI (`app/e`, `components/events`)
 
-`/e` (list), `/e/new`, `/e/[slug]` (detail + RSVP), `/e/[slug]/edit`,
-`/e/[slug]/manage`, `/e/[slug]/manage/attendees`. Reachable from the header
-navigation (Events). UX mirrors nostrlab's `EventForm` / `RsvpButtons` minus the
-Nostr-signer.
+`/e` (discovery), `/e/new` (host), `/e/[slug]` (detail + RSVP),
+`/e/[slug]/edit`, `/e/[slug]/manage`, `/e/[slug]/manage/attendees`. Reachable
+from the header navigation (Events). `/e/[slug]` and `/e/[slug]/edit` still
+mirror nostrlab's `RsvpButtons` / `EventForm` minus the Nostr-signer; the first
+two no longer do.
+
+**`/e` ranks by reason, not recency.** Four lanes — `follow-host`, `tag-match`,
+`panas-going`, `new-host` — and every card states the one that put it there.
+`lib/events/lanes.ts` holds the pure half and must stay import-free;
+`lib/events/discovery.ts` holds the queries and re-exports it.
+
+**`/e/new` shows a host what earns a card a lane, while they can still change
+it.** It renders the real `EventCard` in a sticky preview and recomputes the
+real lanes in the browser on every keystroke, through the same `reasonsFor` that
+`/e` ranks with — no debounce and no round trip. The lanes are split by who
+decides them: a checklist for the three this form settles, and `panas-going`
+greyed out and uncheckable, because the form cannot produce attendance.
+`lib/events/host-context.ts` resolves the viewer-shaped facts once on the
+server and is the only half that touches the database;
+`lib/events/host-draft.ts` is pure, owns the shared types, and owns the single
+draft-to-event mapping that the preview and the readout share so the two cannot
+disagree. Note the direction of that dependency — the types live in the pure
+module and are re-exported by the querying one, so nothing drags a Postgres
+driver into the browser.
+
+The button reads **Save as draft**, because `POST /api/events` creates a draft;
+publishing is a separate step on `/e/[slug]/manage`.
 
 ## Unlisted events (Postgres-only)
 

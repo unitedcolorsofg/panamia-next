@@ -1,62 +1,75 @@
-'use client';
+/**
+ * Host an event.
+ *
+ * A server component now, where it used to be a client page that fetched its
+ * own session and then rendered a spinner while it waited. Two things changed
+ * and both of them wanted the server:
+ *
+ * - The signed-out case is a `redirect`, so it happens before any markup is
+ *   sent rather than as a `useEffect` that fires after a flash of a card
+ *   saying "Please sign in to host an event."
+ * - The form's whole argument is the reach readout beside it, and that is
+ *   built out of follower counts, past events and attendance history. Those
+ *   are a handful of indexed queries on the server and would be four round
+ *   trips and a loading state in the browser.
+ *
+ * See `app/e/new/_components/events-host.tsx` for why the page is shaped the
+ * way it is.
+ */
 
-import { useSession } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import EventForm from '@/components/events/EventForm';
+import { auth } from '@/auth';
+import { getHostContext } from '@/lib/events/host-context';
+import { EventsHost } from './_components/events-host';
 
-export default function NewEventPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+/* Typed structurally rather than as `Metadata`: the vinext `next` shim does
+   not export that type. */
+export const metadata = {
+  title: 'Put something on | Pana MIA',
+  description:
+    'Post an event to the Pana MIA network and see which lanes it reaches before you do.',
+  alternates: { canonical: '/e/new' },
+};
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/signin?callbackUrl=/e/new');
-    }
-  }, [status, router]);
+export default async function NewEventPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/signin?callbackUrl=/e/new');
+  }
 
-  if (status === 'loading') {
+  const context = await getHostContext(session.user.id);
+
+  /* No profile row means `POST /api/events` would answer 403 to anything this
+     page submitted. Saying so up front is the difference between one sentence
+     and twelve fields filled in for nothing. */
+  if (!context) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-          </CardContent>
-        </Card>
+      <main className="dirscope">
+        <div className="surface-indigo dirsearch-band">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-[58rem]">
+              <span className="section-eyebrow">Events</span>
+              <h1 className="text-pana-ink mt-2 text-[1.75rem] leading-tight font-black tracking-[-0.02em]">
+                You need a profile first
+              </h1>
+              <p className="text-pana-ink/60 mt-2 max-w-[42rem] text-[0.9375rem] font-semibold">
+                An event is hosted by somebody — a pana or a group they run —
+                and that name is what readers follow, so there is nothing to
+                post under until you have one.
+              </p>
+              <Link
+                href="/account/profile/edit"
+                className="dirsearch-tail-primary mt-4 inline-flex"
+              >
+                Set up your profile
+              </Link>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
 
-  if (!session) {
-    return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="mb-4 text-gray-600 dark:text-gray-400">
-              Please sign in to host an event.
-            </p>
-            <Button asChild>
-              <Link href="/signin?callbackUrl=/e/new">Sign in</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
-  return (
-    <main className="container mx-auto max-w-4xl px-4 py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Host an Event</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EventForm />
-        </CardContent>
-      </Card>
-    </main>
-  );
+  return <EventsHost context={context} />;
 }
