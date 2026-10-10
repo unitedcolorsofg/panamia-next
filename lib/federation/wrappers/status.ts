@@ -466,10 +466,10 @@ export async function createStatus(
   }
 
   // Live delivery. Last, deliberately: everything above is what makes the
-  // message real, and this only makes it arrive sooner. It is also the reason
-  // this is not awaited for its result and cannot throw — notifyDirectMessage
-  // swallows its own errors — because the row is already committed and a
-  // transport failure must never turn a sent message into a failed send.
+  // message real, and this only makes it arrive sooner. It is awaited for
+  // completion but never for success — notifyDirectMessage swallows its own
+  // errors and bounds itself with a timeout, so neither a failing nor a hanging
+  // mailbox can turn a committed row into a failed send.
   //
   // The author is in the fan-out set alongside the recipients. Without that, a
   // pana who sends from their phone would not see the message appear on their

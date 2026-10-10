@@ -28,6 +28,19 @@ export interface DmStreamEnv {
 
 let cachedNamespace: DurableObjectNamespaceLike | null = null;
 
+/**
+ * How long the whole fan-out gets before the send stops waiting for it.
+ *
+ * The errors below are all *answers* — a thrown exception, a non-2xx, a missing
+ * binding. A hang is none of those, and it is the one failure that would break
+ * the promise this module makes: `createStatus` awaits this, so a mailbox that
+ * accepts the subrequest and never replies would hold a send open on a row that
+ * is already committed, and the pana would be told their message failed when it
+ * did not. Two seconds is far above a healthy DO hop and far below anything a
+ * person would wait through.
+ */
+const FANOUT_TIMEOUT_MS = 2_000;
+
 export function getDmStream(
   env?: DmStreamEnv
 ): DurableObjectNamespaceLike | null {
@@ -79,7 +92,18 @@ export async function notifyDirectMessage(
 
   const at = Date.now();
 
-  const results = await Promise.all(
+  // Cancels the in-flight subrequests where the runtime honours it, so a hung
+  // mailbox is not left occupying a connection after we have stopped caring.
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(null);
+    }, FANOUT_TIMEOUT_MS);
+  });
+
+  const fanout = Promise.all(
     targets.map(async (target) => {
       try {
         const stub = namespace.get(namespace.idFromName(target.actorId));
@@ -90,6 +114,7 @@ export async function notifyDirectMessage(
         const response = await stub.fetch('https://dm-stream/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             conversationActorId: target.conversationActorId,
             statusId,
@@ -113,5 +138,18 @@ export async function notifyDirectMessage(
     })
   );
 
-  return results.reduce((sum, n) => sum + n, 0);
+  try {
+    const results = await Promise.race([fanout, expired]);
+
+    if (results === null) {
+      console.error('[dm-stream] notify timed out', targets.length, statusId);
+      return 0;
+    }
+
+    return results.reduce((sum, n) => sum + n, 0);
+  } finally {
+    // The loser of the race is abandoned, not cancelled, so clear the timer to
+    // avoid an abort firing against a batch that already finished.
+    if (timer) clearTimeout(timer);
+  }
 }
