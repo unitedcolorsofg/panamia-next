@@ -122,3 +122,102 @@ export function Placeholder({
     </section>
   );
 }
+
+/** One fact about the last run. `value` is already formatted. */
+export interface RunFact {
+  label: string;
+  value: string;
+}
+
+/**
+ * The machinery band: did the scheduled work actually happen.
+ *
+ * ## Why the fill carries the verdict
+ *
+ * Flame when something is wrong, butter when something is worth a look,
+ * nothing at all when it is fine. This is the same grammar the attention
+ * strip uses one section above — flame means a human is needed — so the two
+ * loud states on this page read as one alarm rather than two vocabularies.
+ *
+ * The quiet state is not blank, though, and that is the difference from the
+ * strip. "Nothing is waiting" is the whole of what an empty queue has to
+ * say; "the sweep ran" invites the follow-up "and did it do anything?", so
+ * the facts stay visible even when the verdict is fine. They are what makes
+ * the page worth opening on a good day, which is what keeps it trusted on a
+ * bad one.
+ *
+ * Colour is never the only carrier: every state leads with a sentence that
+ * says what is happening. The fill is how you notice from across the room,
+ * not how you find out.
+ */
+export function MachineryPanel({
+  tone,
+  headline,
+  detail,
+  facts,
+}: {
+  tone: 'ok' | 'warn' | 'alarm';
+  headline: string;
+  detail: string;
+  facts: readonly RunFact[];
+}) {
+  // Ink on flame measures 7.50 and ink on butter is higher still, so body
+  // copy stays at full ink on both fills rather than being faded to signal
+  // hierarchy — the /70 that would normally do that is exactly what fails on
+  // flame. See the note in AttentionStrip.
+  const shell =
+    tone === 'alarm'
+      ? 'border-pana-ink bg-pana-flame'
+      : tone === 'warn'
+        ? 'border-pana-ink bg-pana-butter'
+        : 'border-pana-ink/30 bg-white';
+
+  const quiet = tone === 'ok';
+
+  return (
+    <section className={`overflow-hidden rounded-xl border-2 ${shell}`}>
+      <div className="px-5 py-4">
+        <h2
+          className={`text-sm font-extrabold uppercase tracking-wide ${
+            quiet ? 'text-pana-ink/60' : 'text-pana-ink'
+          }`}
+        >
+          Machinery
+        </h2>
+        <p className="mt-2 text-base font-extrabold text-pana-ink">
+          {headline}
+        </p>
+        <p
+          className={`mt-1 max-w-2xl text-sm ${
+            quiet ? 'text-pana-ink/70' : 'font-medium text-pana-ink'
+          }`}
+        >
+          {detail}
+        </p>
+      </div>
+
+      {facts.length > 0 && (
+        <dl
+          className={`flex flex-wrap gap-x-8 gap-y-3 border-t-2 px-5 py-3 ${
+            quiet ? 'border-pana-ink/15' : 'border-pana-ink/20'
+          }`}
+        >
+          {facts.map((f) => (
+            <div key={f.label}>
+              <dt
+                className={`text-xs font-bold uppercase tracking-wide ${
+                  quiet ? 'text-pana-ink/60' : 'text-pana-ink'
+                }`}
+              >
+                {f.label}
+              </dt>
+              <dd className="mt-0.5 text-sm font-extrabold text-pana-ink">
+                {f.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}

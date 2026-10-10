@@ -1,11 +1,19 @@
 ﻿import {
   AttentionStrip,
+  MachineryPanel,
   Placeholder,
+  type RunFact,
   type WaitingItem,
 } from '@/components/Admin/livesite-parts';
 import { Panel, StatBand } from '@/components/Admin/parts';
 import { requireAdmin } from '@/lib/admin/gate';
-import { communitySnapshot, trendNote } from '@/lib/admin/livesite';
+import {
+  communitySnapshot,
+  describeGap,
+  machinerySnapshot,
+  machineryVerdict,
+  trendNote,
+} from '@/lib/admin/livesite';
 
 /**
  * /admin/livesite -- is the site healthy, and is anything waiting on us?
@@ -35,13 +43,13 @@ import { communitySnapshot, trendNote } from '@/lib/admin/livesite';
  *
  * ## Bands two and three
  *
- * Machinery (did the hourly job run?) and infrastructure (Cloudflare, the
- * database) are drawn as dashed placeholders rather than omitted. Band two
- * needs a `job_runs` table before it can say anything true -- nothing in the
- * app currently writes down what it did, so "we cannot tell" is the honest
- * answer today and showing it is the point. Same house pattern as
- * `UNBUILT_TOOLS` in lib/admin/views.ts: write the gap down so it does not
- * quietly become folklore.
+ * Machinery (did the hourly job run?) now reads the `job_runs` ledger that
+ * lib/jobs/ledger.ts writes from the scheduled handler. Infrastructure
+ * (Cloudflare, the database) is still a dashed placeholder: it needs an API
+ * token this app does not hold, so "we cannot tell" remains the honest
+ * answer and showing it is the point. Same house pattern as `UNBUILT_TOOLS`
+ * in lib/admin/views.ts -- write the gap down so it does not quietly become
+ * folklore.
  */
 
 export const metadata = { title: 'Live site - Pana Admin' };
@@ -52,7 +60,53 @@ export const dynamic = 'force-dynamic';
 export default async function LiveSitePage() {
   await requireAdmin('/admin/livesite');
 
-  const snap = await communitySnapshot();
+  // Two statements rather than one, which is a deliberate exception to the
+  // rule stated in lib/admin/livesite.ts. Folding the machinery subqueries
+  // into the community statement would save a round trip and would also mean
+  // a missing `job_runs` table takes the community band down with it -- the
+  // precise failure the reader goes out of its way to survive. Isolation is
+  // worth the trip.
+  //
+  // Issued together so they parallelise if the Hyperdrive pool is ever
+  // restored; at the current `max: 1` they simply queue, which is what two
+  // sequential awaits would have done anyway.
+  const [snap, machinery] = await Promise.all([
+    communitySnapshot(),
+    machinerySnapshot(),
+  ]);
+
+  const verdict = machineryVerdict(machinery);
+  const last = machinery.lastRun;
+
+  const facts: RunFact[] = [];
+  if (last) {
+    facts.push({
+      label: 'Last run',
+      value: `${describeGap(last.secondsSinceStart)} ago`,
+    });
+    if (last.durationSeconds !== null) {
+      facts.push({ label: 'Took', value: describeGap(last.durationSeconds) });
+    }
+    facts.push({
+      label: 'Cleared',
+      value:
+        last.storiesDeleted === 0 && last.notificationsDeleted === 0
+          ? 'nothing to do'
+          : `${last.storiesDeleted} ${
+              last.storiesDeleted === 1 ? 'story' : 'stories'
+            }, ${last.mediaDeleted} media, ${last.notificationsDeleted} notifications`,
+    });
+    facts.push({
+      label: 'In the past day',
+      value: `${machinery.runs24h} ${machinery.runs24h === 1 ? 'run' : 'runs'}`,
+    });
+    // Only worth saying when it is not the schedule. A row that says "10 * * * *"
+    // on every run is noise; one that says somebody ran it by hand is the
+    // thing that explains why a stopped cron looked healthy.
+    if (last.trigger === 'manual') {
+      facts.push({ label: 'Fired', value: 'by hand' });
+    }
+  }
 
   const waiting: WaitingItem[] = [
     {
@@ -128,19 +182,19 @@ export default async function LiveSitePage() {
         ]}
       />
 
+      <MachineryPanel
+        tone={verdict.tone}
+        headline={verdict.headline}
+        detail={verdict.detail}
+        facts={facts}
+      />
+
       <Panel title="What this page cannot tell you yet">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Placeholder
-            title="Machinery"
-            lead="Whether the hourly cleanup job is running, and whether it is quietly failing."
-            needs="Needs a job_runs table. Today the purge writes its report to a console log nobody reads, so a run that deferred every media delete looks identical to one that had nothing to do."
-          />
-          <Placeholder
-            title="Infrastructure"
-            lead="Request volume, error rate, and how close the database is to its connection ceiling."
-            needs="Needs a Cloudflare API token with Analytics read. Deep-links out rather than rebuilding a dashboard Cloudflare already draws better."
-          />
-        </div>
+        <Placeholder
+          title="Infrastructure"
+          lead="Request volume, error rate, and how close the database is to its connection ceiling."
+          needs="Needs a Cloudflare API token with Analytics read. Deep-links out rather than rebuilding a dashboard Cloudflare already draws better."
+        />
       </Panel>
     </div>
   );

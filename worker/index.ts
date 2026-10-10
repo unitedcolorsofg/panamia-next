@@ -20,6 +20,7 @@ import { setInternalAuthToken } from '../lib/server/internal-auth';
 import { hostnameFor, resolveSurface } from '../lib/panaverse/surfaces';
 import { assertPanaverseConfigured } from '../lib/panaverse/boot';
 import { runExpiryPurge } from '../lib/jobs/purge-expired';
+import { beginJobRun, completeJobRun, PURGE_JOB } from '../lib/jobs/ledger';
 import { getDmStream } from '../lib/dm-stream';
 import { resolveUserIdFromHeaders } from '../auth';
 import { getActiveProfileWithActor } from '../lib/server/active-profile';
@@ -244,15 +245,41 @@ export default {
     // milliseconds regardless of outcome. Awaiting makes the dashboard's
     // duration and failure columns mean something.
     await runWithDb(env, async () => {
-      const report = await runExpiryPurge();
-      console.log('[purge]', event.cron, JSON.stringify(report));
+      // Recorded in job_runs as well as logged. The console line is kept
+      // because it is the only thing visible during a live tail; the ledger
+      // row is the only thing visible an hour later. See lib/jobs/ledger.ts
+      // for why nothing in this block can be broken by the ledger failing.
+      const run = await beginJobRun(PURGE_JOB, event.cron);
 
-      // Logged individually rather than left inside the report blob. A
-      // deferred story means an R2 object outlived the row that pointed at
-      // it; it retries tomorrow, but a run of them is a bucket problem and
-      // should be greppable.
-      for (const error of report.errors) {
-        console.error('[purge]', error);
+      try {
+        const report = await runExpiryPurge();
+        console.log('[purge]', event.cron, JSON.stringify(report));
+
+        // Logged individually rather than left inside the report blob. A
+        // deferred story means an R2 object outlived the row that pointed at
+        // it; it retries tomorrow, but a run of them is a bucket problem and
+        // should be greppable.
+        for (const error of report.errors) {
+          console.error('[purge]', error);
+        }
+
+        await completeJobRun(run, {
+          ok: true,
+          report,
+          errorCount: report.errors.length,
+        });
+      } catch (error) {
+        // Record the failure, then rethrow unchanged. The ledger is additive:
+        // Cloudflare's own failure column is still the thing that pages
+        // somebody, and swallowing here to keep the row tidy would trade a
+        // real alert for a dashboard entry.
+        const message = error instanceof Error ? error.message : String(error);
+        await completeJobRun(run, {
+          ok: false,
+          report: { error: message },
+          errorCount: 1,
+        });
+        throw error;
       }
     });
   },

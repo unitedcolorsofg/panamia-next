@@ -208,6 +208,35 @@ export const inventory: Record<TableExport, Classification> = {
   contactSubmissions: ['contact_inquiries'],
   newsletterSignups: ['other_member_data'],
   interactions: ['other_member_data'],
+
+  // --- Operations ---
+  // Scheduled-job telemetry: which job, when it started and finished, whether
+  // it worked, and how many things it moved. No member is named, no row here
+  // is about a person, and nothing is written from a request -- only from the
+  // cron handler in worker/index.ts.
+  //
+  // The assertion is about the `report` column rather than the table shape,
+  // because `report` is free-form jsonb and is therefore the only way a member
+  // could ever get in here. Today its sole writer is PurgeReport, which is
+  // four counts and a list of error strings. Two of those strings can carry
+  // something that is not a plain count, and both are worth naming rather than
+  // waving through:
+  //
+  //   - "R2 delete failed for story <id>" embeds a status id. It names nobody,
+  //     and it points at an *expired* story that the job is in the middle of
+  //     deleting, so the pointer usually outlives its target by one run. It is
+  //     still a reference to one member's content while it lasts.
+  //   - "notification cleanup failed: <message>" passes a driver error through
+  //     verbatim, and a Postgres constraint violation will happily quote the
+  //     offending value back at you.
+  //
+  // Neither is personal data in any ordinary reading, and 30-day retention is
+  // enforced by the ledger itself (lib/jobs/ledger.ts). But the classification
+  // holds only as long as writers treat `report` as telemetry, so: do not put
+  // member content, emails, or free-text written by a human into it. A job that
+  // needs to record who something happened to wants its own table and its own
+  // entry above, not a corner of this one.
+  jobRuns: NOT_PERSONAL_DATA,
 };
 
 // Categories with no backing row in `inventory`, by design. Kept explicit so
