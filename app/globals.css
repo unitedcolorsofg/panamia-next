@@ -5103,6 +5103,109 @@ body {
   margin-inline: auto;
 }
 
+/* Event subject rails on /e.
+   ==========================================================================
+   The reason lanes above these stay a vertical list, because a reason is an
+   argument and you read an argument in order. A subject is a shelf, and the
+   point of a shelf is that you sweep it. Sideways also buys the thing the
+   page actually needed: eight subjects as vertical grids would be a scroll
+   the length of the catalogue, where eight rails is one screen of choices.
+
+   Built here rather than reusing .stories-rail because that rail sizes itself
+   around a 3.5rem avatar circle, and inheriting those numbers for a card with
+   media, a blurb and a tag row would mean fighting every one of them. */
+.events-rail {
+  margin-top: 1.75rem;
+}
+
+.events-rail-track {
+  display: flex;
+  gap: 1.1rem;
+  overflow-x: auto;
+  list-style: none;
+  margin: 0.875rem 0 0;
+  /* Inset matches the headings' max-width so the first card starts on the
+     same line as the title it belongs to, then the padding lets the last one
+     clear the right edge instead of butting against it.
+
+     Clamped at 0 rather than at a gutter: the track is already inside the
+     page's padded container, so a minimum here is added to that gutter rather
+     than replacing it, and the first card ends up indented past its own
+     heading on narrow screens. Below 58rem the container's padding is the
+     whole inset, which is what makes a rail run to the edge on a phone. */
+  padding: 0.125rem max(0px, calc((100% - 58rem) / 2)) 0.5rem;
+  scrollbar-width: none;
+  /* Snap so a flick lands on a card rather than halfway through one. Proximity
+     rather than mandatory: mandatory fights a deliberate small nudge and makes
+     the rail feel like it is arguing with you. */
+  scroll-snap-type: x proximity;
+  /* Has to repeat the padding above, and cannot be dropped. `scroll-snap-align:
+     start` aligns a card to the *scrollport* edge, which ignores padding, so on
+     load the browser scrolls each rail by exactly the inset to satisfy the snap
+     — landing the first card hard against the left edge while its heading stays
+     in the content column. scroll-padding moves the snapport itself inward, so
+     "start" means the same place the heading starts. */
+  scroll-padding-inline: max(0px, calc((100% - 58rem) / 2));
+  overscroll-behavior-x: contain;
+}
+
+.events-rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.events-rail-item {
+  flex: 0 0 auto;
+  /* Narrower than the viewport on purpose, so the next card is always part
+     visible. That sliver is the only thing telling somebody the row moves —
+     without it a rail reads as a short grid that happens to be cut off. */
+  width: min(21rem, 82vw);
+  scroll-snap-align: start;
+}
+
+/* Rail cards are the same card with the prose dropped (see the `compact` prop
+   on EventCard). What is left still has to survive a 21rem column.
+
+   Doubled class, deliberately. Further down, `@media (min-width: 40rem)` turns
+   .dirsearch-card horizontal and gives the cover 15rem. That query asks how
+   wide the *viewport* is as a proxy for how wide the *card* is, which holds
+   everywhere it was written — the directory grid's columns do grow with the
+   window — and breaks here, where the viewport is wide and the column is
+   21rem. The result is a 15rem cover beside a 6rem strip of text. Matching
+   (0,2,0) against its (0,1,0) means this wins on specificity rather than on
+   being further down the file, so moving either block cannot quietly
+   reintroduce it. */
+.dirsearch-card.dirsearch-card--compact {
+  height: 100%;
+  flex-direction: column;
+}
+
+.dirsearch-card.dirsearch-card--compact .dirsearch-card-media {
+  width: auto;
+  height: 7.5rem;
+  min-height: 0;
+}
+
+.dirsearch-card.dirsearch-card--compact .dirsearch-card-body {
+  flex: 1;
+  gap: 0.5rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+}
+
+/* Two lines, then ellipsis. Titles are host-written and unbounded, and one
+   long one in a rail of short ones drags the whole row's height with it. */
+.dirsearch-card.dirsearch-card--compact .dirsearch-card-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Pushes the footer to the bottom so "going" and View sit on one line across
+   the row, which is what lets the eye sweep a rail instead of reading it. */
+.dirsearch-card.dirsearch-card--compact .dirsearch-card-foot {
+  margin-top: auto;
+}
+
 /* position: relative anchors the stretched link on the business name, which
    is what makes the whole card a click target without nesting the Save button
    inside an anchor. Save and Claim lift themselves back above it. */

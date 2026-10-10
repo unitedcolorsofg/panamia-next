@@ -28,6 +28,8 @@
     "db:reset": "npx tsx scripts/reset-test-db.ts",
     "db:seed": "npx tsx scripts/seed-dev-data.ts && npx tsx scripts/seed-test-account.ts && npx tsx scripts/seed-events.ts",
     "db:unseed": "npx tsx scripts/unseed.ts",
+    "db:demo:events": "npx tsx scripts/seed-real-events.ts",
+    "db:demo:events:undo": "npx tsx scripts/seed-real-events.ts --undo",
     "db:photos": "npx tsx scripts/seed-business-photos.ts",
     "photos:fetch": "npx tsx scripts/fetch-directory-photos.ts",
     "db:studio": "drizzle-kit studio",

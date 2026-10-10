@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CalendarPlus, RotateCcw, UserPlus } from 'lucide-react';
 import { FilterMenu } from '@/components/ui/filter-menu';
 import {
+  buildCategoryRails,
   buildLanes,
   type DiscoveryEvent,
   type Reason,
@@ -139,6 +140,14 @@ export function EventsDiscover({
     () => buildLanes(pool, { signedIn }),
     [pool, signedIn]
   );
+
+  /* Built from the same pool rather than from `leftovers`, so a rail is a
+     complete answer to "what music is on" instead of "what music is on that
+     nothing above already mentioned". See buildCategoryRails for the full
+     argument; the short version is that the two sections are the same
+     catalogue read two ways, which is why the page gives them separate
+     headings instead of pretending they are one list. */
+  const rails = useMemo(() => buildCategoryRails(pool), [pool]);
 
   /* Counted off the real rows rather than typed, so the menu hints and the
      summary line cannot disagree. Counted against the undismissed set but
@@ -397,6 +406,46 @@ export function EventsDiscover({
                     </ul>
                   </section>
                 ))}
+
+                {rails.length > 0 && (
+                  <section className="pt-10">
+                    <div className="border-pana-ink/10 mx-auto mb-1 max-w-[58rem] border-t pt-8">
+                      <h2 className="text-pana-ink text-[1.375rem] font-black tracking-[-0.015em]">
+                        Browse by subject
+                      </h2>
+                      <p className="text-pana-ink/55 mt-1 text-[0.875rem] font-semibold">
+                        {lanes.length > 0
+                          ? 'The same events again, sorted by what they are rather than why you were shown them.'
+                          : 'Nothing here is guessing at your taste. These are just the subjects with something on.'}
+                      </p>
+                    </div>
+
+                    {rails.map((rail) => (
+                      <div key={rail.id} className="events-rail">
+                        <div className="mx-auto max-w-[58rem]">
+                          <h3 className="text-pana-ink text-[1.0625rem] font-black tracking-[-0.01em]">
+                            {rail.title}
+                          </h3>
+                          <p className="text-pana-ink/55 mt-0.5 text-[0.8125rem] font-semibold">
+                            {rail.note}
+                          </p>
+                        </div>
+
+                        {/* No reason and no dismiss, same as the calendar tab:
+                            the viewer picked the subject, so a card that
+                            explained itself would be answering a question
+                            nobody asked. */}
+                        <ul className="events-rail-track">
+                          {rail.events.map((event) => (
+                            <li key={event.id} className="events-rail-item">
+                              <EventCard event={event} compact />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </section>
+                )}
 
                 {leftovers.length > 0 && (
                   <section className="pt-10">
