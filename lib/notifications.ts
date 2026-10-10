@@ -280,12 +280,15 @@ function getExpirationDate(
     return new Date(Date.now() + RETENTION.DAYS_30!);
   }
 
-  // Article lifecycle expires after 90 days
+  // Article lifecycle expires after 90 days. Only 'article' can still reach
+  // this: coauthor and review are retired, so those two arms are unreachable
+  // for new rows and stay purely to document what the old ones were given.
   if (context === 'article' || context === 'coauthor' || context === 'review') {
     return new Date(Date.now() + RETENTION.DAYS_90!);
   }
 
-  // Mentoring notifications expire after 90 days
+  // Mentoring notifications expire after 90 days. Also unreachable now --
+  // mentoring is retired. Kept for the same reason as the arms above.
   if (context === 'mentoring') {
     return new Date(Date.now() + RETENTION.DAYS_90!);
   }
@@ -314,6 +317,11 @@ export function getNotificationMessage(notif: {
   const object = notif.objectTitle || 'content';
 
   switch (notif.context) {
+    // coauthor, review and mentoring are retired -- nothing creates rows with
+    // those contexts any more. The cases stay because rows already in the
+    // table still have to render, and Invite, Accept and Reject never expire,
+    // so these outlive every retention window. Dropping the cases would
+    // quietly rewrite someone's history into "Someone performed an action".
     case 'coauthor':
       if (notif.type === 'Invite') {
         return `${actor} invited you to co-author "${object}"`;
@@ -326,6 +334,7 @@ export function getNotificationMessage(notif: {
       }
       break;
 
+    // Retired alongside coauthor -- see the note at the top of the switch.
     case 'review':
       if (notif.type === 'Invite') {
         return `${actor} requested your review of "${object}"`;
@@ -338,6 +347,9 @@ export function getNotificationMessage(notif: {
       }
       break;
 
+    // Admin moderation only now that publishing no longer notifies: Delete is
+    // app/api/admin/articles/[slug]/remove, Create is .../restore. Both tell
+    // an author what was done to their piece.
     case 'article':
       if (notif.type === 'Create') {
         return `${actor} published "${object}"`;
@@ -347,6 +359,7 @@ export function getNotificationMessage(notif: {
       }
       break;
 
+    // Retired alongside coauthor -- see the note at the top of the switch.
     case 'mentoring':
       if (notif.type === 'Invite') {
         return `${actor} requested a mentoring session: "${object}"`;

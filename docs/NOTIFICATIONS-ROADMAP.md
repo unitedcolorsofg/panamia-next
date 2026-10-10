@@ -311,31 +311,59 @@ a `case`, not a new table or a new surface.
 
 A context counts as in use below only when something calls `createNotification`
 with it. A `case` in `getNotificationMessage` is not evidence of that — several
-sentences are written for events that nothing fires, and reading the switch
-alone will overstate what ships. The list of those is in the next section.
+sentences are written for events that nothing fires, and three more are left
+over from domains that have been switched off. Reading the switch alone will
+overstate what ships. Both lists are in the next section.
 
-| Domain          | Contexts that fire                    | State                                                                    |
-| --------------- | ------------------------------------- | ------------------------------------------------------------------------ |
-| **Writing**     | `coauthor`, `review`, `article`       | Complete — co-author invite and response, review request and verdict, and publishing notifying accepted co-authors plus an approving reviewer |
-| **Mentoring**   | `mentoring`                           | Complete — request, accept, decline, cancel                              |
-| **Pana Social** | —                                     | Thin — the social graph itself notifies nobody. `follow` and `mention` have no caller, and `mention` has no `case` either, so it would fall through to the generic fallback; reply and boost-of-your-post are unwritten. The `article` and `message` rows that do fire belong to Writing and Messages above |
-| **Events**      | `event` (Delete only)                 | **Effectively none.** The one path that fires is an admin suspending a venue, which cancels its future events and tells going/maybe attendees. The organizer lifecycle is written but unwired — there is no co-organizer endpoint. RSVP and reminders missing; `venue` is an objectType with no context |
-| **Groups**      | `group`, `group_membership`           | Complete — invitations, join requests, role changes, removal, bans       |
-| **Messages**    | `message`                             | Voice memos only, suppressed when the sender is held in the recipient's Requests folder; needs per-conversation collapsing |
-| **Connectors**  | —                                     | **No context.** `app/connectors/{join,hq,admin}` notify nobody           |
-| **Admin**       | `article`, `event` (outbound)         | **No inbound context.** Admins can remove or restore an article and suspend a venue, and each tells the people affected. Nothing travels the other way: report queues and verification requests reach admins only by visiting `app/admin/reports`, and `system` has a sentence with no caller |
+| Domain          | Contexts that fire          | State                                                                                                                                                                                                                                                                                      |
+| --------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Writing**     | —                           | **Retired.** Co-author invite and response, review request and verdict, and publishing-notifies-contributors all used to fire; every one of those calls has been removed. `coauthor` and `review` survive as enum values and `case` blocks only so rows already in the table stay readable      |
+| **Mentoring**   | —                           | **Retired.** Request, accept, decline and cancel all used to fire; those calls have been removed. `mentoring` survives for the same reason                                                                                                                                                      |
+| **Pana Social** | —                           | Thin — the social graph itself notifies nobody. `follow` and `mention` have no caller, and `mention` has no `case` either, so it would fall through to the generic fallback; reply and boost-of-your-post are unwritten. The `message` rows that do fire belong to Messages below               |
+| **Events**      | `event` (Delete only)       | **Effectively none.** The one path that fires is an admin suspending a venue, which cancels its future events and tells going/maybe attendees. The organizer lifecycle is written but unwired — there is no co-organizer endpoint. RSVP and reminders missing; `venue` is an objectType with no context |
+| **Groups**      | `group`, `group_membership` | Complete — invitations, join requests, role changes, removal, bans                                                                                                                                                                                                                             |
+| **Messages**    | `message`                   | Voice memos only, suppressed when the sender is held in the recipient's Requests folder; needs per-conversation collapsing                                                                                                                                                                      |
+| **Connectors**  | —                           | **No context.** `app/connectors/{join,hq,admin}` notify nobody                                                                                                                                                                                                                                 |
+| **Admin**       | `article`, `event`          | **Outbound only.** Admins can remove or restore an article and suspend a venue, and each tells the people affected. Since publishing stopped notifying, admin moderation is the _only_ producer of `article`. Nothing travels the other way: report queues and verification requests reach admins only by visiting `app/admin/reports`, and `system` has a sentence with no caller |
+
+### Contexts that were switched off
+
+`coauthor`, `review` and `mentoring` are retired. The routes that created them
+no longer call `createNotification`, but none of the supporting machinery was
+deleted, and that is deliberate:
+
+| What stays                       | Why                                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| The three `notification_context` enum values | Postgres has no `DROP VALUE`, the declared order is the type's sort order, and live rows still reference them |
+| Their `case` blocks in `getNotificationMessage` | Rows already written have to keep rendering. Invite, Accept and Reject never expire, so some of these outlive every retention window. Deleting the cases would rewrite somebody's history into "Someone performed an action" |
+| Their arms in `getExpirationDate` | Unreachable for new rows, kept to document what the existing ones were given                                                 |
+
+Retiring a context is therefore not the same as removing it. The sentences stay
+until the rows do, which for the non-expiring types is indefinitely.
+
+**What this cost.** Two pages lost their only entry point. `/a/<slug>/invite`
+and `/a/<slug>/review` still work, but they were reachable only by clicking the
+notification, and there is no index of invitations you have _received_ — the
+editor's Pending Invitations panel is the author's view of who they invited, not
+the invitee's. `ArticleEditor` still sends invitations, so an author can create
+one that the other person has no in-app way to find; the link has to be passed
+along out-of-band. Mentoring has the opposite problem and so lost nothing:
+there is no member-facing surface at all (`app/mentoring` does not exist), only
+the admin views. If writing collaboration is ever picked back up, the fix is an
+invitations index rather than re-wiring the bell.
 
 ### Sentences written for events that never fire
 
-`getNotificationMessage` handles these, and no route calls them. They are a
-promise the switch makes and the API does not keep, so a reader checking
-coverage there will count domains that are not wired:
+Distinct from the above: `getNotificationMessage` handles these and no route
+has _ever_ called them. They are a promise the switch makes and the API does
+not keep, so a reader checking coverage there will count domains that are not
+wired:
 
-| Context  | Types                                 | Missing piece                                  |
-| -------- | ------------------------------------- | ---------------------------------------------- |
+| Context  | Types                                  | Missing piece                                                           |
+| -------- | -------------------------------------- | ----------------------------------------------------------------------- |
 | `event`  | Invite, Accept, Reject, Create, Update | No co-organizer endpoint, and nothing announces a newly published event |
-| `follow` | Follow                                | The follow action does not notify              |
-| `system` | (passthrough `message`)               | Nothing creates a system notification          |
+| `follow` | Follow                                 | The follow action does not notify                                       |
+| `system` | (passthrough `message`)                | Nothing creates a system notification                                   |
 
 Either wire them or delete the cases; leaving both is what made the table above
 wrong the first time it was written.
