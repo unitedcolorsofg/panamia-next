@@ -379,6 +379,20 @@
       "when": 1788652800000,
       "tag": "0052_device_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1788739200000,
+      "tag": "0053_social_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1788825600000,
+      "tag": "0054_clear_status_locations",
+      "breakpoints": true
     }
   ]
 }
