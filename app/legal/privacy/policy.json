@@ -7,6 +7,10 @@
   "effectiveDate": "2026-10-10",
   "url": "https://pana.social/legal/privacy",
   "gpcSupported": true,
+  "securityPosture": {
+    "passwordless": true,
+    "_comment": "passwordless=true is a published claim, not a note: section 7 of /legal/privacy renders from it, and scripts/check-passwordless.ts fails the commit if auth.ts ever configures emailAndPassword while it is true. accounts.password exists only because better-auth's account model requires the column; nothing writes it. Flipping this to false means the policy text changes with it."
+  },
   "_comment": "SOURCE OF TRUTH for the privacy framework. The Privacy at a Glance grid (components/legal/PrivacyAtAGlance.tsx) and the prose tier list (app/legal/privacy/page.tsx) are both derived from this file via lib/legal/privacy-policy.ts -- do not hand-maintain category lists there. Machine-readable fields (name, data, source, purpose, retention) are snake_case and stable; the `display` object carries presentation copy only. `module` links a category to its legal terms module id in ../terms/namespaces.json.",
   "dataTiers": ["persistent", "temporary", "peer_networking"],
   "retentionClasses": [

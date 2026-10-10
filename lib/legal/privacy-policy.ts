@@ -160,6 +160,14 @@ export const policyVersion: string = policy.version;
 export const policyStatus: string = policy.status;
 export const policyEffectiveDate: string | null = policy.effectiveDate;
 
+/**
+ * Whether we hold no password for any account. Section 7 of the policy page
+ * renders its claim from this, and scripts/check-passwordless.ts refuses a
+ * commit that enables emailAndPassword in auth.ts while it is true, so the
+ * published text cannot drift away from the auth configuration.
+ */
+export const passwordless: boolean = policy.securityPosture.passwordless;
+
 /** Rights we grant and the class-level limits on them, as authored in the JSON. */
 export const userRights = policy.userRights as {
   access: boolean;

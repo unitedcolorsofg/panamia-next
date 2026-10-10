@@ -25,6 +25,7 @@
     "env:secrets": "npx tsx scripts/env-check.ts secrets",
     "env:vars": "npx tsx scripts/env-check.ts vars",
     "check:privacy-schema": "npx tsx scripts/check-data-inventory.ts",
+    "check:passwordless": "npx tsx scripts/check-passwordless.ts",
     "db:reset": "npx tsx scripts/reset-test-db.ts",
     "db:seed": "npx tsx scripts/seed-dev-data.ts && npx tsx scripts/seed-test-account.ts",
     "db:photos": "npx tsx scripts/seed-business-photos.ts",

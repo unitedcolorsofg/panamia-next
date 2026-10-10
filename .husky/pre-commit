@@ -526,6 +526,24 @@ if [ -n "$INVENTORY_TRIGGER" ]; then
   tsx scripts/check-data-inventory.ts || exit 1
 fi
 
+# =============================================================================
+# Passwordless Check (auth config <-> published privacy claim)
+# =============================================================================
+# Section 7 of /legal/privacy tells members we never store a password, and
+# renders that bullet from securityPosture.passwordless in policy.json.
+# Enabling emailAndPassword in auth.ts would make better-auth start writing
+# accounts.password with no migration and no other signal, silently turning a
+# published statement into a false one. Runs when either side moves.
+
+PASSWORDLESS_TRIGGER=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^(auth\.ts$|app/legal/privacy/policy\.json$|scripts/check-passwordless\.ts$)' || true)
+
+if [ -n "$PASSWORDLESS_TRIGGER" ]; then
+  echo ""
+  echo "Checking auth config against the passwordless privacy claim..."
+  tsx scripts/check-passwordless.ts || exit 1
+fi
+
 # Run linting
 # Invoke directly rather than via npx: husky puts node_modules/.bin first on
 # PATH, and the bundled Git for Windows ships no bash.exe, so npx's

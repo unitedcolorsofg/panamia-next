@@ -422,6 +422,31 @@ Validates Prisma migration files for naming conventions and standards:
 
 Called automatically by pre-commit hook.
 
+### `check-passwordless.ts`
+
+Guards a published privacy claim. Section 7 of `/legal/privacy` tells members
+"We never create or store a password for your account," and renders that
+bullet from `securityPosture.passwordless` in
+`app/legal/privacy/policy.json`. This script fails if `auth.ts` configures
+`emailAndPassword` while that flag is still true.
+
+```bash
+yarn check:passwordless
+```
+
+The schema can't enforce this by itself: `accounts.password` has to exist
+because better-auth's account model declares it, so an empty column is not
+proof. Enabling `emailAndPassword` needs no migration — better-auth simply
+starts writing to that column, which is why the check reads the auth config
+rather than the database.
+
+If password auth is ever intended, set `securityPosture.passwordless` to
+`false` and review section 7; the check then stands down on its own rather
+than needing to be removed.
+
+Called automatically by pre-commit hook when `auth.ts` or `policy.json` is
+staged.
+
 ## Running Scripts
 
 TypeScript scripts can be run with `npx tsx`:

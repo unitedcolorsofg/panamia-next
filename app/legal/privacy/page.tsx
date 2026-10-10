@@ -9,6 +9,7 @@ import {
   policyEffectiveDate,
   providers,
   userRights,
+  passwordless,
 } from '@/lib/legal/privacy-policy';
 
 // Live web origin for this app — not a stale federation value to "correct".
@@ -519,14 +520,16 @@ export default function PrivacyPolicyPage() {
             practice.
           </p>
           <ul>
-            <li>
-              <strong>There is no password to steal.</strong> Signing in uses a
-              one-time link sent to your email, or your existing Google or Apple
-              account. We never create or store a password for your account,
-              which removes the single most common cause of account takeover and
-              means a breach of our database would expose no credentials to
-              reuse elsewhere.
-            </li>
+            {passwordless && (
+              <li>
+                <strong>There is no password to steal.</strong> Signing in uses
+                a one-time link sent to your email, or your existing Google or
+                Apple account. We never create or store a password for your
+                account, which removes the single most common cause of account
+                takeover and means a breach of our database would expose no
+                credentials to reuse elsewhere.
+              </li>
+            )}
             <li>
               <strong>Encrypted in transit.</strong> The entire site is served
               over HTTPS, including the API the mobile apps talk to.
