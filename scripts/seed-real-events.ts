@@ -299,9 +299,34 @@ function slugify(value: string | null | undefined): string {
   );
 }
 
+const USAGE = `
+Seed sample events attributed to real directory listings and groups.
+
+  --undo    remove every row a previous run added, and nothing else
+  --yes     skip the pre-flight pause
+  --help    print this
+
+Writing to anything but localhost also needs SEED_ALLOW_REMOTE=1.
+`.trim();
+
 async function main(): Promise<void> {
-  const undo = process.argv.includes('--undo');
-  const skipPause = process.argv.includes('--yes');
+  // An unrecognised flag is rejected rather than ignored. The reversal here is
+  // a flag, so silence would mean a mistyped --undo quietly writes instead of
+  // removing -- the one outcome this script is built to never have.
+  const flags = process.argv.slice(2);
+  const known = new Set(['--undo', '--yes', '--help']);
+  const unknown = flags.filter((flag) => !known.has(flag));
+  if (unknown.length > 0) {
+    console.error(`Unrecognised: ${unknown.join(', ')}\n\n${USAGE}`);
+    process.exit(1);
+  }
+  if (flags.includes('--help')) {
+    console.log(USAGE);
+    return;
+  }
+
+  const undo = flags.includes('--undo');
+  const skipPause = flags.includes('--yes');
 
   const connectionString =
     process.env.POSTGRES_URL ?? process.env.POSTGRES_DIRECT_URL;
