@@ -12,7 +12,11 @@
  * So the rule this file exists to enforce: types and pure functions here,
  * queries in `discovery.ts`. `discovery.ts` re-exports everything below, which
  * keeps server callers importing from one place.
+ *
+ * The one import is `./format`, which is pure Intl for the same reason — it is
+ * safe to bundle, and the alternative was a second copy of the date rules.
  */
+import { dateKey, weekday } from './format';
 
 /**
  * A pana, as the "your panas are going" line needs them.
@@ -321,29 +325,15 @@ function laneRank({
 export const SITE_TIMEZONE = 'America/New_York';
 
 /**
- * The calendar date in a given timezone, as YYYY-MM-DD.
+ * Date and time formatting lives in ./format.ts.
  *
- * `en-CA` rather than arithmetic on a Date: it is the one common locale whose
- * short date format is already ISO order, so this is a formatter call rather
- * than three getters and a pad, and it gets DST right because Intl does.
+ * The personal calendar needed the same four helpers. `timezone` is a free
+ * text column, and the copies in ./format.ts treat a bad value as missing
+ * rather than throwing — which is what discovery wants too, since one wrong
+ * clock face beats a RangeError taking the page down. Re-exported so existing
+ * callers that import them from here keep working.
  */
-export function dateKey(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(at);
-}
-
-/** 0 = Sunday, in the given timezone. */
-export function weekday(at: Date, timeZone: string): number {
-  const name = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-  }).format(at);
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(name);
-}
+export { dateKey, weekday, formatWhen, formatDay } from './format';
 
 /**
  * Which window an event falls in.
@@ -377,27 +367,5 @@ export function bucketFor(startsAt: Date, now: Date): WhenBucket {
 }
 
 /** "Fri 20 Feb, 7:00 PM", in the event's own timezone -- a show at 8pm in
- *  Miami is at 8pm on the page wherever it is read from. */
-export function formatWhen(at: Date, timeZone: string): string {
-  const date = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(at);
-  const time = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(at);
-  return `${date}, ${time}`;
-}
-
-/** "Fri 20" — the calendar tab's day heading. */
-export function formatDay(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-    day: 'numeric',
-  }).format(at);
-}
+ *  Miami is at 8pm on the page wherever it is read from. Defined in
+ *  ./format.ts and re-exported above. */
