@@ -10,11 +10,14 @@ import { isUnoptimizableImageSrc } from '@/lib/image-src';
 import { mapTiles, MapAttribution } from '@/lib/map-tiles';
 import { distanceInMiles, type Coords } from '@/app/p/[user]/_lib/profile-view';
 import { formatDistance, resultCoords, resultHref } from '../_lib/format';
+import {
+  FALLBACK_MAP_PX,
+  frameForPoints,
+  onResultsArrived,
+  viewerFrame,
+} from '../_lib/map-frame';
 
 const FALLBACK_LOGO = '/img/bg_coconut_blue.jpg';
-
-/** Centre of the three counties the directory covers, for an empty map. */
-const DEFAULT_CENTER: [number, number] = [26.1, -80.2];
 
 interface MapPanelProps {
   results: SearchResultsInterface[];
@@ -34,35 +37,8 @@ interface Pin {
   distance: number | null;
 }
 
-/**
- * Pick a centre and zoom that hold every pin.
- *
- * pigeon-maps has no fit-to-bounds, so the span is turned into a zoom level
- * directly: each zoom step halves the visible degrees, and the constants are
- * chosen so a single pin lands at neighbourhood zoom rather than street level,
- * where a lone marker on an empty tile tells you nothing about where it is.
- */
-function frameFor(pins: Pin[]): { center: [number, number]; zoom: number } {
-  if (pins.length === 0) return { center: DEFAULT_CENTER, zoom: 9 };
-
-  const lats = pins.map((pin) => pin.coords.lat);
-  const lngs = pins.map((pin) => pin.coords.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-
-  const center: [number, number] = [
-    (minLat + maxLat) / 2,
-    (minLng + maxLng) / 2,
-  ];
-
-  const span = Math.max(maxLat - minLat, (maxLng - minLng) * 0.85);
-  if (span < 0.005) return { center, zoom: 13 };
-
-  const zoom = Math.log2(360 / span) - 1.2;
-  return { center, zoom: Math.max(8, Math.min(15, zoom)) };
-}
+/** The pins' coordinates, which are all the framing maths needs. */
+const pointsOf = (pins: Pin[]) => pins.map((pin) => pin.coords);
 
 /**
  * Results on a map.
@@ -107,12 +83,30 @@ export function MapPanel({
   const offMapCount = results.length - pins.length;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState(() => frameFor(pins));
+  const [view, setView] = useState(() => frameForPoints(pointsOf(pins)));
 
-  // Read without subscribing: the frame should follow the result set, not the
-  // viewer's coordinates, and `pins` changes identity whenever either moves.
+  // Read without subscribing: a re-frame should be triggered by the result set
+  // or by a new location, not by every render in between — and `pins` changes
+  // identity whenever either of those moves.
   const pinsRef = useRef(pins);
   pinsRef.current = pins;
+
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  /** The map's short side, so the radius holds vertically as well as across. */
+  const mapSizePx = () => {
+    const box = mapRef.current?.getBoundingClientRect();
+    const side = box ? Math.min(box.width, box.height) : 0;
+    return side > 0 ? side : FALLBACK_MAP_PX;
+  };
+
+  /**
+   * Whether the viewer's frame still outranks the next result set.
+   *
+   * Held in a ref rather than state because it decides what an effect does
+   * without itself being worth a render. See onResultsArrived.
+   */
+  const viewerFramePending = useRef(false);
 
   // Re-frame when the result set changes, not on every render: panning the map
   // must survive a re-render, but a new search should not leave the viewer
@@ -122,9 +116,31 @@ export function MapPanel({
     .sort()
     .join(',');
   useEffect(() => {
-    setView(frameFor(pinsRef.current));
+    const decision = onResultsArrived(
+      viewerFramePending.current,
+      pinsRef.current.length
+    );
+    viewerFramePending.current = decision.viewerFramePending;
+    if (!decision.reframe) return;
+
+    setView(frameForPoints(pointsOf(pinsRef.current)));
     setSelectedId(null);
   }, [pinKey]);
+
+  // Drop to the viewer's own neighbourhood the moment their location is known.
+  // Fitting every pin is the right default while the map is about the results,
+  // but once it can be about *them* a three-county frame is too far out to act
+  // on: at that span the nearest coffee and one forty minutes away sit a few
+  // pixels apart. Keyed on the numbers rather than the object so this runs
+  // when the location actually changes, not whenever the parent re-renders.
+  const viewerLat = viewerCoords?.lat ?? null;
+  const viewerLng = viewerCoords?.lng ?? null;
+  useEffect(() => {
+    if (viewerLat === null || viewerLng === null) return;
+    viewerFramePending.current = true;
+    setView(viewerFrame({ lat: viewerLat, lng: viewerLng }, mapSizePx()));
+    setSelectedId(null);
+  }, [viewerLat, viewerLng]);
 
   const selected = pins.find((pin) => pin.result._id === selectedId) ?? null;
 
@@ -143,7 +159,7 @@ export function MapPanel({
   };
 
   return (
-    <div className="dirsearch-map">
+    <div className="dirsearch-map" ref={mapRef}>
       <Map
         center={view.center}
         zoom={view.zoom}
