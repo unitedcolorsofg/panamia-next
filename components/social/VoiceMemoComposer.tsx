@@ -17,11 +17,9 @@ import {
   Loader2,
   X,
   UserCircle,
-  MapPin,
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { extractPeaks, WaveformPlayer } from './WaveformPlayer';
-import { LocationPickerModal, LocationData } from './LocationPickerModal';
 import { transcodeToOpus } from '@/lib/media/transcode';
 
 const isSafari = () =>
@@ -72,10 +70,6 @@ export function VoiceMemoComposer({
   const [uploading, setUploading] = useState(false);
   const [extractingPeaks, setExtractingPeaks] = useState(false);
   const [transcoding, setTranscoding] = useState(false);
-
-  // Location
-  const [location, setLocation] = useState<LocationData | null>(null);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -248,10 +242,6 @@ export function VoiceMemoComposer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const removeLocation = () => {
-    setLocation(null);
-  };
-
   const handleSubmit = async () => {
     if (recipients.length === 0) {
       toast({
@@ -331,13 +321,11 @@ export function VoiceMemoComposer({
         visibility: 'direct',
         recipientActorIds: recipients.map((r) => r.id),
         attachments: attachment ? [attachment] : undefined,
-        location: location || undefined,
       });
 
       // Reset state
       setContent('');
       discardRecording();
-      setLocation(null);
       if (!initialRecipient) {
         setRecipients([]);
       }
@@ -471,7 +459,7 @@ export function VoiceMemoComposer({
         className="resize-y font-mono"
       />
 
-      {/* Recording controls and location */}
+      {/* Recording controls */}
       <div className="space-y-3">
         {!audioBlob ? (
           <div className="flex items-center gap-3">
@@ -503,34 +491,6 @@ export function VoiceMemoComposer({
                   <Mic className="mr-1 h-4 w-4" />
                   Record Voice Memo
                 </Button>
-                {!location ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowLocationPicker(true)}
-                  >
-                    <MapPin className="mr-1 h-4 w-4" />
-                    Add Location
-                  </Button>
-                ) : (
-                  <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
-                    <MapPin className="h-4 w-4 text-green-600" />
-                    <span className="text-muted-foreground">
-                      {location.name
-                        ? location.name
-                        : `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`}
-                      {location.precision === 'general' && ' (approx)'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={removeLocation}
-                      className="text-muted-foreground hover:text-foreground ml-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -573,39 +533,6 @@ export function VoiceMemoComposer({
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            {/* Location controls when audio is recorded */}
-            <div className="flex items-center gap-2">
-              {!location ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowLocationPicker(true)}
-                  disabled={isSubmitting}
-                >
-                  <MapPin className="mr-1 h-4 w-4" />
-                  Add Location
-                </Button>
-              ) : (
-                <div className="bg-secondary flex items-center gap-1.5 rounded-full py-1 pr-2 pl-2 text-sm">
-                  <MapPin className="h-4 w-4 text-green-600" />
-                  <span className="text-muted-foreground">
-                    {location.name
-                      ? location.name
-                      : `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`}
-                    {location.precision === 'general' && ' (approx)'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={removeLocation}
-                    className="text-muted-foreground hover:text-foreground ml-1"
-                    disabled={isSubmitting}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -631,13 +558,6 @@ export function VoiceMemoComposer({
           {isSubmitting ? 'Sending...' : 'Send'}
         </Button>
       </div>
-
-      {/* Location Picker Modal */}
-      <LocationPickerModal
-        open={showLocationPicker}
-        onOpenChange={setShowLocationPicker}
-        onLocationSelected={setLocation}
-      />
     </div>
   );
 }

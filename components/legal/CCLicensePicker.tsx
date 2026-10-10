@@ -98,8 +98,8 @@ export function CCLicenseBadge({
 }
 
 /**
- * Modal for selecting a CC license. Follows the same Dialog pattern
- * as LocationPickerModal.
+ * Modal for selecting a CC license. Follows the same Dialog pattern as the
+ * other social composer modals.
  */
 export function CCLicensePickerModal({
   open,

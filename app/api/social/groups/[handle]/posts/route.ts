@@ -141,7 +141,6 @@ export async function POST(
     resolvedVisibility,
     Array.isArray(attachments) ? attachments : undefined,
     undefined,
-    undefined,
     'cc-by-4',
     { groupId: found.group.id }
   );

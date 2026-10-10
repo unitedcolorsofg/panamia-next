@@ -82,15 +82,6 @@ function _notExpiredCondition() {
   return sql`(${socialStatuses.expiresAt} IS NULL OR ${socialStatuses.expiresAt} > NOW())`;
 }
 
-/** Location object for ActivityPub Place */
-export interface StatusLocation {
-  type: 'Place';
-  latitude?: number;
-  longitude?: number;
-  name?: string;
-  precision?: 'precise' | 'general';
-}
-
 /**
  * Create a new status (post)
  */
@@ -108,7 +99,6 @@ export async function createStatus(
     peaks?: number[];
   }>,
   recipientActorIds?: string[],
-  location?: StatusLocation,
   ccLicense: 'cc-by-4' | 'cc-by-sa-4' | 'cc-0' = 'cc-by-4',
   /**
    * Trailing options rather than a tenth positional argument. Nine positions
@@ -364,7 +354,7 @@ export async function createStatus(
       recipientTo,
       recipientCc,
       expiresAt,
-      location: location ? (location as unknown as JsonValue) : null,
+      location: null,
     })
     .where(eq(socialStatuses.id, status.id))
     .returning();

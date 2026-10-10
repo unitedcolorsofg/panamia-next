@@ -184,7 +184,6 @@ before(async () => {
     'public',
     undefined,
     undefined,
-    undefined,
     'cc-by-4',
     { groupId: publicGroupId }
   );
@@ -200,7 +199,6 @@ before(async () => {
     'public',
     undefined,
     undefined,
-    undefined,
     'cc-by-4',
     { groupId: privateGroupId }
   );
@@ -214,7 +212,6 @@ before(async () => {
     undefined,
     privateGroupStatusId,
     'public',
-    undefined,
     undefined,
     undefined,
     'cc-by-4',
@@ -433,7 +430,6 @@ test('posting: a non-member cannot write into a group', async () => {
     'public',
     undefined,
     undefined,
-    undefined,
     'cc-by-4',
     { groupId: privateGroupId }
   );
@@ -448,7 +444,6 @@ test('posting: a non-member cannot write into a public group either', async () =
     undefined,
     undefined,
     'public',
-    undefined,
     undefined,
     undefined,
     'cc-by-4',
@@ -494,7 +489,6 @@ test('deleting a group removes its posts rather than releasing them', async () =
     undefined,
     undefined,
     'public',
-    undefined,
     undefined,
     undefined,
     'cc-by-4',

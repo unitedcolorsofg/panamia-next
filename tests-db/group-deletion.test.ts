@@ -194,7 +194,6 @@ before(async () => {
       'public',
       undefined,
       undefined,
-      undefined,
       'cc-by-4',
       { groupId }
     );
@@ -206,7 +205,6 @@ before(async () => {
     undefined,
     undefined,
     'public',
-    undefined,
     undefined,
     undefined,
     'cc-by-4',

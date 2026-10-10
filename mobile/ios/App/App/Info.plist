@@ -35,8 +35,8 @@
 
 	     The shell loads the deployed site, so every page is reachable in the
 	     app and each of these is genuinely used:
-	       - location   lib/geolocation.ts, components/social/LocationPickerModal,
-	                    app/p/[user]/_lib/use-viewer-location
+	       - location   app/p/[user]/_lib/use-viewer-location (directory search
+	                    and profile distance)
 	       - microphone components/social/VoiceMemoComposer, app/m session rooms
 	       - camera     app/m/session/[sessionId] video rooms
 	       - photos     app/account/profile/images file pickers
@@ -48,7 +48,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Pana Mia uses the camera for video during scheduled sessions and to take a photo for your profile.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Pana Mia uses your location to show local businesses, makers and events near you, and to attach a place to a post when you choose to.</string>
+	<string>Pana Mia uses your location to show local businesses, makers and events near you.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Pana Mia uses the microphone to record voice memos and to carry your audio during scheduled sessions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

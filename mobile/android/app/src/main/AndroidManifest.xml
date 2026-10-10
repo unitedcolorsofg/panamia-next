@@ -94,8 +94,8 @@
 
       The shell loads the deployed site, so these are reachable from the app
       exactly as they are in a browser:
-        - location    lib/geolocation.ts, components/social/LocationPickerModal,
-                      app/p/[user]/_lib/use-viewer-location
+        - location    app/p/[user]/_lib/use-viewer-location (directory search
+                      and profile distance)
         - microphone  components/social/VoiceMemoComposer, app/m session rooms
         - camera      app/m/session/[sessionId] video rooms
 

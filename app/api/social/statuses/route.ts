@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
     visibility,
     attachments,
     recipientActorIds,
-    location,
     ccLicense,
   } = body;
 
@@ -111,35 +110,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Validate location if provided
-  let validatedLocation = undefined;
-  if (location && typeof location === 'object') {
-    const hasCoordinates =
-      typeof location.latitude === 'number' &&
-      typeof location.longitude === 'number' &&
-      location.latitude >= -90 &&
-      location.latitude <= 90 &&
-      location.longitude >= -180 &&
-      location.longitude <= 180;
-    const hasName =
-      typeof location.name === 'string' && location.name.trim().length > 0;
-
-    // Accept locations with coordinates OR name (or both)
-    if (hasCoordinates || hasName) {
-      validatedLocation = {
-        type: 'Place' as const,
-        ...(hasCoordinates && {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        }),
-        ...(hasName && { name: location.name.trim() }),
-        ...(location.precision === 'precise' || location.precision === 'general'
-          ? { precision: location.precision }
-          : {}),
-      };
-    }
-  }
-
+  // Location is deliberately not accepted. Geotagging was removed from the
+  // composer; a `location` key in the body is ignored rather than stored, so
+  // an old client cannot keep attaching coordinates to a post.
   const result = await createStatus(
     profile.socialActor.id,
     content,
@@ -148,7 +121,6 @@ export async function POST(request: NextRequest) {
     resolvedVisibility,
     Array.isArray(attachments) ? attachments : undefined,
     resolvedVisibility === 'direct' ? recipientActorIds : undefined,
-    validatedLocation,
     resolvedLicense
   );
 
