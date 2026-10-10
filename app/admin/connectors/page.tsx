@@ -1,9 +1,10 @@
 import SurfaceLink from '@/components/panaverse/SurfaceLink';
 import { TallyBars } from '@/components/connectors/dashboard-parts';
-import { EventBoard, RosterEditor } from '@/components/connectors/admin-console';
+import {
+  EventBoard,
+  RosterEditor,
+} from '@/components/connectors/admin-console';
 import { Panel, StatBand } from '@/components/Admin/parts';
-import { AdminSubNav } from '@/components/Admin/subnav';
-import { connectorsTabs } from '@/lib/connectors/admin-tabs';
 import { requireConnectorsAdmin } from '@/lib/connectors/admin-gate';
 import { countConnectorApplications } from '@/lib/connectors/membership';
 import { listRoster, rosterTallies } from '@/lib/connectors/roster';
@@ -36,6 +37,14 @@ import { PODS } from '@/lib/connectors/model';
  * handing out work — and they are done by different people at different times.
  * Each now has its own page, and this one keeps only what answers "how is the
  * programme doing", which is the question somebody opening it cold is asking.
+ *
+ * The three pages used to carry a tab strip across the top of each. The admin
+ * sidebar now nests Applications and Scheduling under Pana Connectors, which
+ * says the same thing in the place a reader already looks for navigation, so
+ * the strip was two controls for one job sitting a few hundred pixels apart.
+ * It went, and with it the pending-application count that Scheduling was
+ * querying purely to badge a tab it no longer draws. The count still appears
+ * on this page, in the stat band, where it is read rather than decorative.
  *
  * Events stayed here rather than moving to Scheduling. They are the
  * programme's calendar, not one person's workload, and nothing about running
@@ -158,12 +167,6 @@ export default async function AdminConnectorsPage() {
         </p>
       </header>
 
-      <AdminSubNav
-        tabs={connectorsTabs(pendingCount)}
-        active="overview"
-        label="Connectors pages"
-      />
-
       <div className="flex flex-col gap-6">
         <StatBand stats={band} />
 
@@ -178,9 +181,9 @@ export default async function AdminConnectorsPage() {
           <Panel title="Connectors by house">
             <TallyBars rows={tallies.houses} />
             <p className="text-pana-ink/60 mt-4 text-xs leading-relaxed">
-              Houses describe the kind of work, not where somebody lives.
-              Counts add up to more than {tallies.total} because a connector
-              can be in more than one.
+              Houses describe the kind of work, not where somebody lives. Counts
+              add up to more than {tallies.total} because a connector can be in
+              more than one.
             </p>
           </Panel>
         </div>

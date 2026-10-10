@@ -292,13 +292,12 @@ export async function listConnectorApplications(): Promise<
 /**
  * How many applications are waiting, without reading them.
  *
- * The tab strip badges this number on every Connectors admin page, but only
- * the applications page actually renders the rows. Calling
- * `listConnectorApplications().length` for a badge would pull every pending
- * profile — name, email, the whole JSON column — across two pages that then
- * throw all of it away.
+ * The overview's stat band carries this number, but only the applications
+ * page renders the rows. Calling `listConnectorApplications().length` for a
+ * single figure would pull every pending profile — name, email, the whole
+ * JSON column — and then throw all of it away.
  *
- * Counts in SQL on the same predicate the list uses, so the badge and the
+ * Counts in SQL on the same predicate the list uses, so the band and the
  * queue cannot disagree.
  */
 export async function countConnectorApplications(): Promise<number> {

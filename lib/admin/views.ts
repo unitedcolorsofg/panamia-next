@@ -114,6 +114,18 @@ export interface AdminView {
    * that is not for them cannot be drawn into it.
    */
   access?: 'admin' | 'moderator';
+  /**
+   * The view this one sits beneath in the sidebar, by id.
+   *
+   * Navigational only. A child is reached and permitted on its own terms and
+   * `canSeeView` never consults the parent — nesting says where a row is
+   * drawn, not who may use it.
+   *
+   * A child must sit in its parent's group. Nothing checks across groups, and
+   * a cross-group parent would draw the child in the wrong shelf or not at
+   * all, depending on which list ran first.
+   */
+  parent?: string;
   /** Decorative. Every call site pairs it with aria-hidden. */
   icon: LucideIcon;
 }
@@ -157,16 +169,21 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     status: 'live',
     icon: HeartHandshake,
   },
-  /* The two below are subpages of Connectors and carry their own rows here,
-     following the precedent set by Roles & permissions under Users. The nav
-     matches the active row on an exact pathname, so a subpage without an
+  /* The two below are subpages of Connectors and nest under it. They carry
+     their own rows rather than living only in the page's tab strip because
+     the nav matches the active row on an exact pathname: a subpage with no
      entry would leave the whole sidebar looking unselected while you were
-     standing on it. */
+     standing on it.
+
+     Named for what they are rather than repeating the programme. "Connector
+     applications" under "Pana Connectors" stutters once the indent already
+     says whose applications these are. */
   {
     id: 'connector-applications',
-    name: 'Connector applications',
+    name: 'Applications',
     href: '/admin/connectors/applications',
     group: 'community',
+    parent: 'connectors',
     blurb: 'People waiting to be let into the volunteer programme.',
     does: [
       'Read what somebody said they can bring',
@@ -177,9 +194,10 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
   },
   {
     id: 'connector-scheduling',
-    name: 'Connector scheduling',
+    name: 'Scheduling',
     href: '/admin/connectors/scheduling',
     group: 'community',
+    parent: 'connectors',
     blurb: 'Who is carrying what, and handing out the next piece of work.',
     does: [
       'See each connector’s open load in hours',
@@ -207,6 +225,7 @@ export const ADMIN_VIEWS: readonly AdminView[] = [
     name: 'Roles & permissions',
     href: '/admin/users/roles',
     group: 'community',
+    parent: 'users',
     blurb: 'Who holds a staff role, and how to give someone one.',
     does: [
       'See every admin and everyone on the moderation rota',
@@ -279,6 +298,35 @@ export function viewsInGroupFor(
   viewer: AdminViewer
 ): readonly AdminView[] {
   return viewsInGroup(group).filter((view) => canSeeView(view, viewer));
+}
+
+/**
+ * The rows in a group that draw at the top level, for this viewer.
+ *
+ * A view whose parent this viewer cannot see is promoted rather than hidden:
+ * it is permitted on its own terms, and indenting a row beneath one that is
+ * not drawn reads as a rendering fault. That cannot happen under today's
+ * access rules — every nested view and its parent are admin-only — which is
+ * the reason to settle it here instead of finding it later.
+ */
+export function topLevelViewsInGroupFor(
+  group: AdminGroupId,
+  viewer: AdminViewer
+): readonly AdminView[] {
+  const visible = viewsInGroupFor(group, viewer);
+  return visible.filter(
+    (view) => !view.parent || !visible.some((v) => v.id === view.parent)
+  );
+}
+
+/** The rows nesting under `parentId`, in ADMIN_VIEWS order. */
+export function childViewsFor(
+  parentId: string,
+  viewer: AdminViewer
+): readonly AdminView[] {
+  return ADMIN_VIEWS.filter(
+    (view) => view.parent === parentId && canSeeView(view, viewer)
+  );
 }
 
 /**
