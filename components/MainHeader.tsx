@@ -14,6 +14,7 @@ import NotificationAlerts from './NotificationAlerts';
 import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
 import { IdentityMenu } from './account/identity-menu';
+import { NotificationsMenu } from './account/notifications-menu';
 import { IdentityProvider } from './account/identity-provider';
 import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
@@ -174,7 +175,12 @@ export default function MainHeader({
                 <AuthMenu triggerClassName={styles.cta} />
               )}
 
-              {status !== 'loading' && session && <IdentityMenu />}
+              {status !== 'loading' && session && (
+                <>
+                  <NotificationsMenu />
+                  <IdentityMenu />
+                </>
+              )}
             </div>
           </div>
 

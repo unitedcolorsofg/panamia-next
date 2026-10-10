@@ -66,10 +66,19 @@ export const useNotifications = (options?: {
   limit?: number;
   offset?: number;
   unreadOnly?: boolean;
+  /**
+   * Defaults to true. The masthead menu passes `false` until it is opened, so
+   * a signed-in visitor who never touches the bell never fetches the list.
+   * Kept out of the query key below — it governs *when* we ask, not *what* we
+   * ask for, and including it would split the cache into two identical halves.
+   */
+  enabled?: boolean;
 }) => {
+  const { enabled = true, ...params } = options ?? {};
   return useQuery<NotificationsResponse | undefined, Error>({
-    queryKey: [notificationQueryKey, 'list', options],
-    queryFn: () => fetchNotifications(options),
+    queryKey: [notificationQueryKey, 'list', params],
+    queryFn: () => fetchNotifications(params),
+    enabled,
   });
 };
 

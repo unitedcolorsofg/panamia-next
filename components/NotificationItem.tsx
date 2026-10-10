@@ -49,7 +49,15 @@ interface NotificationItemProps {
   compact?: boolean;
 }
 
-function getNotificationIcon(
+/**
+ * Icon for a notification, by context first and activity type second.
+ *
+ * Exported because the masthead notifications menu draws the same list in a
+ * much smaller frame and must label each row with the same glyph. Two copies
+ * of this switch would drift the moment a new activity type is added to one
+ * of them.
+ */
+export function getNotificationIcon(
   type: NotificationActivityType,
   context: NotificationContext
 ) {
