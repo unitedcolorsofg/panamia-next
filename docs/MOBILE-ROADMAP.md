@@ -74,7 +74,7 @@ material on top, because Capacitor's template leaves keystores **un**ignored.
 ### `allowNavigation` is load-bearing
 
 The list in `capacitor.config.ts` is not a convenience. Anything not on it opens
-in the system browser, outside the app's cookie store, and three things break:
+in the system browser, outside the app's cookie store, and two things break:
 
 1. **`*.pana.social`** — the surface switcher links between Pana Mia and Pana
    social by absolute cross-origin URL. Without this entry, tapping "Pana
@@ -82,7 +82,47 @@ in the system browser, outside the app's cookie store, and three things break:
    is not true.
 2. **OAuth providers** — a sign-in that completes in an external browser sets
    the session cookie in that browser. The app comes back signed out.
-3. **Stripe Checkout** — redirects back to this origin at the end.
+
+Stripe was a third entry. It was removed deliberately — see below.
+
+### Donations have to leave the app
+
+`checkout.stripe.com` and `js.stripe.com` were on `allowNavigation` so Stripe
+Checkout's `success_url` could redirect back into the WebView. They are off the
+list now, and that is a store-review requirement rather than a regression.
+
+App Store guideline **3.2.2(iv)**: an app raising money for a cause "may only
+collect funds outside of the app, such as via Safari" unless the developer is an
+Apple-approved nonprofit. Omitting the host is what delivers that — the WebView
+refuses the navigation and hands the URL to the system browser, so the donation
+is paid in Safari or Chrome rather than inside Pana Mia.
+
+The trade is that the success redirect lands in that browser and the app never
+learns the donation happened. Nothing depends on it today: this app has no
+Stripe webhook, `profiles.stripe_customer_id` is only ever read by account
+deletion, and `/donation/confirmation` only renders its query string. If paying
+is ever made to actually grant something, it has to arrive through a webhook —
+restoring the allowlist entry to recover the redirect would put the iOS build
+back in front of 3.2.2(iv).
+
+`js.stripe.com` never did anything: there is no client-side Stripe.js in this
+app (`lib/env.config.ts`), and `allowNavigation` governs navigations rather than
+script loads.
+
+Two related guidelines constrain what `/donate` may advertise:
+
+- **3.1.1** — unlocking digital content or features in exchange for payment
+  requires in-app purchase, not Stripe. The tier table used to advertise
+  "exclusive video + newsletter content (PanaVizión & LeoLero)" and "PanaPro
+  features on Pana MIA's website". Neither was implemented anywhere in the
+  codebase — PanaVizión is a public YouTube channel and PanaPro did not exist —
+  so both were reworded to describe the work being funded. Keep every row in
+  that table describing a real-world perk or where the money goes.
+- **3.2.1(vi)** — approved nonprofits _may_ fundraise directly in-app, but must
+  also offer Apple Pay, disclose how funds will be used, and make tax receipts
+  available. Worth starting at `developer.apple.com/apple-pay/nonprofits/`: it
+  is a separate approval from Developer Program enrollment and has its own lead
+  time. Until it lands, the system-browser handoff above is the compliant path.
 
 ---
 

@@ -24,6 +24,35 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Purpose strings for every OS permission the web app can reach.
+
+	     These are not optional metadata. iOS terminates the process the moment
+	     an API is called whose usage description is missing, so a member who
+	     taps "record a voice memo" on a build without NSMicrophoneUsageDescription
+	     does not see a denied prompt — the app disappears. App Review tests
+	     these paths directly (guideline 5.1.1), and a crash during review is a
+	     rejection rather than a bug report.
+
+	     The shell loads the deployed site, so every page is reachable in the
+	     app and each of these is genuinely used:
+	       - location   lib/geolocation.ts, components/social/LocationPickerModal,
+	                    app/p/[user]/_lib/use-viewer-location
+	       - microphone components/social/VoiceMemoComposer, app/m session rooms
+	       - camera     app/m/session/[sessionId] video rooms
+	       - photos     app/account/profile/images file pickers
+
+	     Apple rejects vague strings, so each one names the specific feature.
+	     If a permission stops being used, remove its key rather than leaving it
+	     — an unused declaration invites a reviewer question about why it is
+	     there. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Pana Mia uses the camera for video during scheduled sessions and to take a photo for your profile.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pana Mia uses your location to show local businesses, makers and events near you, and to attach a place to a post when you choose to.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Pana Mia uses the microphone to record voice memos and to carry your audio during scheduled sessions.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pana Mia needs access to your photos so you can choose your profile and banner images.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

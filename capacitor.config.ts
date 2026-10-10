@@ -117,9 +117,27 @@ const config: CapacitorConfig = {
      *    this; that constraint is unsolved here and written up in
      *    docs/MOBILE-ROADMAP.md.)
      *
-     * 3. Stripe Checkout redirects back to a success URL on this origin, so it
-     *    has the same round-trip problem as OAuth: sent to the system browser,
-     *    the member pays and the app never learns that they did.
+     * 3. Stripe is deliberately NOT here, and that absence is load-bearing.
+     *    App Store guideline 3.2.2(iv) says an app raising money for a cause
+     *    "may only collect funds outside of the app, such as via Safari"
+     *    unless the developer is an Apple-approved nonprofit. Omitting
+     *    checkout.stripe.com is what makes that true: the WebView refuses the
+     *    navigation and hands the URL to the system browser, so the donation
+     *    is paid in Safari or Chrome rather than inside Pana Mia.
+     *
+     *    The cost is that Stripe's success_url lands in that browser and the
+     *    app never learns the donation happened. Nothing depends on that
+     *    today: this app has no Stripe webhook, profiles.stripe_customer_id is
+     *    only ever read by account deletion, and /donation/confirmation just
+     *    renders its query string. If paying is ever made to actually grant
+     *    something, it has to arrive through a webhook — re-adding Stripe here
+     *    to recover the redirect would put the iOS build back in front of
+     *    3.2.2(iv). Once Pana Mia is an approved nonprofit (3.2.1(vi)) this
+     *    can be revisited, but that route additionally requires Apple Pay.
+     *
+     *    js.stripe.com was listed too and never did anything: there is no
+     *    client-side Stripe.js in this app (lib/env.config.ts), and this list
+     *    governs navigations rather than script loads.
      */
     allowNavigation: [
       'pana.social',
@@ -127,8 +145,6 @@ const config: CapacitorConfig = {
       'accounts.google.com',
       'appleid.apple.com',
       'meta.wikimedia.org',
-      'checkout.stripe.com',
-      'js.stripe.com',
     ],
   },
 

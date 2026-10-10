@@ -119,16 +119,23 @@ export default function DonatePage() {
     }
   };
 
+  /* Describes where the money goes rather than what it unlocks. That is a
+   * store-review constraint as much as an honesty one: App Review reads this
+   * screen, and a recurring charge advertised as granting access to digital
+   * content or website features is a purchase under App Store guideline 3.1.1,
+   * which would require in-app purchase rather than Stripe. Phrased as funding
+   * the work, these tiers stay donations — which is also what the Stripe line
+   * item has always called them (app/api/create-checkout-session/route.ts).
+   *
+   * It also happens to be what guideline 3.2.1(vi) asks of nonprofits
+   * fundraising in-app: disclose how the funds will be used.
+   *
+   * So keep every row here describing either a real-world perk or the work
+   * being funded. Re-adding something like "access to member-only content"
+   * puts the iOS build back in front of 3.1.1. */
   const benefits = [
     {
-      feature:
-        'Access to exclusive video + newsletter content (PanaVizión & LeoLero)',
-      depana: true,
-      confiado: true,
-      real: true,
-    },
-    {
-      feature: "Access to PanaPro features on Pana MIA's website",
+      feature: 'Supports our PanaVizión & LeoLero community media projects',
       depana: true,
       confiado: true,
       real: true,
@@ -218,11 +225,8 @@ export default function DonatePage() {
                         <h3 className="mb-4 text-xl font-bold">dePana</h3>
                         <ul className="space-y-2 text-left">
                           <li>
-                            Access to exclusive video + newsletter content
-                            (PanaVizión & LeoLero)
-                          </li>
-                          <li>
-                            Access to PanaPro features on Pana MIA's website
+                            Supports our PanaVizión & LeoLero community media
+                            projects
                           </li>
                           <li>5% discount on Pana MIA and affiliated events</li>
                           <li>10% discount on Pana MIA merch</li>
@@ -238,11 +242,8 @@ export default function DonatePage() {
                         </h3>
                         <ul className="space-y-2 text-left">
                           <li>
-                            Access to exclusive video + newsletter content
-                            (PanaVizión & LeoLero)
-                          </li>
-                          <li>
-                            Access to PanaPro features on Pana MIA's website
+                            Supports our PanaVizión & LeoLero community media
+                            projects
                           </li>
                           <li>
                             Gente dePana Card (discounts/special access to local
@@ -262,11 +263,8 @@ export default function DonatePage() {
                         <h3 className="mb-4 text-xl font-bold">Pana Real</h3>
                         <ul className="space-y-2 text-left">
                           <li>
-                            Access to exclusive video + newsletter content
-                            (PanaVizión & LeoLero)
-                          </li>
-                          <li>
-                            Access to PanaPro features on Pana MIA's website
+                            Supports our PanaVizión & LeoLero community media
+                            projects
                           </li>
                           <li>
                             Gente dePana Card (discounts/special access to local

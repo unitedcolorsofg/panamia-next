@@ -80,4 +80,46 @@
       which is why minSdkVersion 24 is unaffected.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Permissions for the web APIs the WebView can reach.
+
+      Same failure mode as POST_NOTIFICATIONS above, and the same reason for
+      being here: Capacitor's WebChromeClient does handle onPermissionRequest
+      and onGeolocationPermissionsShowPrompt, but it can only request a
+      permission the app has declared. Undeclared, the runtime request is
+      refused immediately — no dialog, no error in the page, just a
+      getUserMedia promise that rejects and a geolocation callback that reports
+      permission denied. The member has no way to tell they were never asked.
+
+      The shell loads the deployed site, so these are reachable from the app
+      exactly as they are in a browser:
+        - location    lib/geolocation.ts, components/social/LocationPickerModal,
+                      app/p/[user]/_lib/use-viewer-location
+        - microphone  components/social/VoiceMemoComposer, app/m session rooms
+        - camera      app/m/session/[sessionId] video rooms
+
+      Coarse is listed beside fine because Android 12 and up lets the member
+      grant only approximate location, and an app that declares fine alone does
+      not offer them that choice.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      Declared not-required so the Play Store does not filter the app off
+      devices lacking the hardware. A <uses-permission> for CAMERA implies
+      <uses-feature android:name="android.hardware.camera" android:required="true">
+      unless it is overridden here, which would quietly make the app
+      uninstallable on hardware that is otherwise perfectly able to run it —
+      video rooms are one feature among many, not the product.
+    -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>
