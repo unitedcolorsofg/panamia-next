@@ -22,6 +22,7 @@ layout only works with invented spacing or colours that are not in
 | `/mock/explore`           | Scope moved into the search bar; directory narrowed to businesses |
 | `/mock/groups`            | Groups landing and discover, as two steps of one flow             |
 | `/mock/dms`               | Direct messages, as two competing models behind one switch        |
+| `/mock/dm-chat`           | The DM conversation view, drawn after that comparison was decided |
 | `/mock/events`            | Events discovery: lanes that say why, not facets to narrow with   |
 | `/mock/events/host`       | Host an event: the form, answering to the page it feeds           |
 
@@ -83,6 +84,13 @@ built.
 - **Both models' costs stay on screen.** The gains and costs of the inactive
   model are rendered alongside the active one, so whichever is on screen cannot
   appear free.
+
+That comparison has since been decided in favour of chat, on the direct-status
+substrate, with live delivery — see `docs/CHAT-ROADMAP.md`. `/mock/dms` is kept
+rather than deleted because it is the argument the decision rests on, and
+`/mock/dm-chat` draws what the decision implies. A comparison mock becomes a
+record once it is answered, so the two are read together: one asks, one
+commits.
 
 ## Legal terms
 
