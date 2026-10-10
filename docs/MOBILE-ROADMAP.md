@@ -615,6 +615,48 @@ push notifications first, then camera-backed uploads and share-sheet targets.
 Push is implemented; see "Push notifications" below for the credentials it
 still needs before it does anything.
 
+### Signing in as a reviewer
+
+Both stores review a signed-in app, and this one has no password to give them.
+The app hides every OAuth provider (above), so the only way in is a magic link
+sent to an address — behind Turnstile — and neither store's form is shaped for
+that. Apple's **Sign-In Information** is a username and password field; Google
+Play's **App access** is the same. Leaving them blank, or filling them with an
+address whose mail nobody can read, is a rejection under Apple guideline 2.1
+and a blocked review on Play. It is worth planning before the first upload
+rather than discovering it in a rejection.
+
+Three ways out, cheapest first:
+
+| Option                                 | Cost     | Trade                                                                                                                                                                                       |
+| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. A mailbox the reviewer can open** | None     | Give the demo address _and_ webmail credentials in the review notes. Standard practice for magic-link apps. The reviewer juggles two tabs, so the notes have to be exact.                   |
+| **B. Sign in with Apple, app only**    | Moderate | The reviewer uses their own Apple ID and never waits for mail. Apple's OAuth does complete in a WKWebView, unlike Google's. Offering only Apple keeps 4.8 satisfied. Does nothing for Play. |
+| **C. A fixed code for one account**    | Small    | A server-side allowlist pinning the magic-link code for exactly one review address. Fastest for the reviewer, but it is a real credential in a public binary's backend — scope it tightly.  |
+
+**A is the recommendation** for the first submission: no code, no new surface,
+and reversible. It only fails when the notes are vague, so write them as steps
+rather than as credentials:
+
+```
+This app signs in with a one-time email link. There is no password.
+
+1. Open the app and tap "Sign in".
+2. Enter: appreview@pana.social
+3. Tap "Send link", then complete the checkbox challenge if shown.
+4. Open https://<webmail-host> in Safari and sign in:
+     user: appreview@pana.social
+     pass: <password>
+5. Open the newest "Sign in to Pana Mia" message and tap the link.
+   It returns to the app signed in.
+
+The link expires; request a fresh one from step 2 if needed.
+```
+
+Keep that account populated. A reviewer who lands in an empty feed is judging
+guideline 4.2 on a blank screen, which is the one place this app cannot afford
+to look thin.
+
 ### Both stores
 
 - Bundle ID / application ID is `social.pana.app`, defined once in
