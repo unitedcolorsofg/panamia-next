@@ -15,6 +15,7 @@ import CallToActionBar from './CallToActionBar';
 import NavDrawer, { type NavDrawerItem } from './NavDrawer';
 import { IdentityMenu } from './account/identity-menu';
 import { NotificationsMenu } from './account/notifications-menu';
+import { MessagesLink } from './account/messages-link';
 import { IdentityProvider } from './account/identity-provider';
 import { AuthMenu } from './account/auth-menu';
 import { ActingAsBar } from './account/acting-as-bar';
@@ -177,6 +178,7 @@ export default function MainHeader({
 
               {status !== 'loading' && session && (
                 <>
+                  <MessagesLink />
                   <NotificationsMenu />
                   <IdentityMenu />
                 </>

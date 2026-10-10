@@ -4,6 +4,8 @@ import { frontDoorPath, type PanaverseSurface } from '@/lib/panaverse/surfaces';
 import { SURFACE_MARK, SURFACE_TONE } from '@/lib/panaverse/branding';
 import { SurfaceIdentity } from '@/components/panaverse/SurfaceIdentity';
 import { SurfaceSearch } from '@/components/panaverse/SurfaceSearch';
+import { NotificationsMenu } from '@/components/account/notifications-menu';
+import { MessagesLink } from '@/components/account/messages-link';
 
 /**
  * The masthead a surface wears over its own rooms.
@@ -79,6 +81,10 @@ export function SurfaceMemberHeader({
         <SurfaceSearch />
 
         <div className="panaverse-masthead-right">
+          {/* Both gate themselves on the session — this header renders on the
+              server and cannot. Messages, then notifications, then you. */}
+          <MessagesLink />
+          <NotificationsMenu />
           <SurfaceIdentity />
         </div>
       </div>

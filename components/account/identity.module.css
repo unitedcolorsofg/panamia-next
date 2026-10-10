@@ -725,12 +725,17 @@
    pill is 44px, which is 88px plus the 4px phone gap — 92px exactly, with the
    menu button alone on the left at 44px. It fits, and nothing here may grow
    without re-doing that arithmetic. */
-.bellTrigger {
+/* The two icon buttons in the masthead — bell and messages — are the same
+   shape by definition: round, 34px, side by side at the same optical weight.
+   Sharing the rule is what keeps them that way. */
+.bellTrigger,
+.messagesTrigger {
   position: relative;
   padding: 3px;
 }
 
-.bellIcon {
+.bellIcon,
+.messagesIcon {
   flex: none;
   display: grid;
   place-items: center;
