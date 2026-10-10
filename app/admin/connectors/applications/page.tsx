@@ -1,8 +1,6 @@
 import { Panel } from '@/components/Admin/parts';
-import { AdminSubNav } from '@/components/Admin/subnav';
 import { ApplicationQueue } from '@/components/connectors/application-queue';
 import { AdminEyebrow } from '@/components/Admin/eyebrow';
-import { connectorsTabs } from '@/lib/connectors/admin-tabs';
 import { requireConnectorsAdmin } from '@/lib/connectors/admin-gate';
 import { listConnectorApplications } from '@/lib/connectors/membership';
 
@@ -71,14 +69,6 @@ export default async function AdminConnectorApplicationsPage() {
               } waiting on an answer, longest wait first.`}
         </p>
       </header>
-
-      {/* The badge is this page's own count, so the strip never shows a number
-          that disagrees with the list directly beneath it. */}
-      <AdminSubNav
-        tabs={connectorsTabs(applications.length)}
-        active="applications"
-        label="Connectors pages"
-      />
 
       <Panel title="Waiting on a decision">
         <ApplicationQueue applications={applications} />

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Fragment } from 'react';
 import { LayoutGrid, type LucideIcon } from 'lucide-react';
 
 import { StatusPill } from '@/components/Admin/status-pill';
@@ -10,7 +11,8 @@ import { ADMIN_CHROME } from '@/lib/admin/theme';
 import {
   ADMIN_GROUPS,
   adminGroup,
-  viewsInGroupFor,
+  childViewsFor,
+  topLevelViewsInGroupFor,
   type AdminView,
   type AdminViewer,
 } from '@/lib/admin/views';
@@ -44,11 +46,14 @@ import {
 function NavLink({
   view,
   active,
+  sectionActive = false,
   fill,
   onFill,
 }: {
   view: AdminView;
   active: boolean;
+  /** A row beneath this one is the active page. Parents only. */
+  sectionActive?: boolean;
   fill: string;
   onFill: string;
 }) {
@@ -62,7 +67,12 @@ function NavLink({
         'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm whitespace-nowrap transition-colors',
         active
           ? `${ADMIN_CHROME.FILL} ${ADMIN_CHROME.ON_FILL} font-bold`
-          : 'text-pana-ink/75 hover:bg-pana-ink/5 hover:text-pana-ink font-medium',
+          : sectionActive
+            ? // Weight and full-strength ink, no fill. A second filled row
+              // would compete with the child that actually is the page; this
+              // only has to say "you are somewhere under here".
+              'text-pana-ink hover:bg-pana-ink/5 font-bold'
+            : 'text-pana-ink/75 hover:bg-pana-ink/5 hover:text-pana-ink font-medium',
       ].join(' ')}
     >
       {/* On the active row the chip drops its own colour. The row is already
@@ -149,22 +159,51 @@ export default function AdminNav() {
         )}
 
         {ADMIN_GROUPS.map((group) => {
-          const views = viewsInGroupFor(group.id, viewer);
+          const views = topLevelViewsInGroupFor(group.id, viewer);
           if (views.length === 0) return null;
           return (
             <div key={group.id} className="lg:mb-5">
               <GroupLabel>{group.name}</GroupLabel>
+              {/* Children sit in the same flat list as their parent rather
+                  than in a nested <ul>. Below lg this column collapses to a
+                  horizontal strip where indentation means nothing, and a real
+                  nested list would have to be undone there with
+                  display:contents — which has a history of dropping list
+                  semantics in screen readers. A flat list of links degrades
+                  to the strip for free and still reads correctly aloud; the
+                  rail and indent are the visual half only. */}
               <ul className="flex gap-1.5 lg:flex-col lg:gap-0.5">
-                {views.map((view) => (
-                  <li key={view.id}>
-                    <NavLink
-                      view={view}
-                      active={pathname === view.href}
-                      fill={group.fill}
-                      onFill={group.onFill}
-                    />
-                  </li>
-                ))}
+                {views.map((view) => {
+                  const children = childViewsFor(view.id, viewer);
+                  return (
+                    <Fragment key={view.id}>
+                      <li>
+                        <NavLink
+                          view={view}
+                          active={pathname === view.href}
+                          sectionActive={children.some(
+                            (child) => pathname === child.href
+                          )}
+                          fill={group.fill}
+                          onFill={group.onFill}
+                        />
+                      </li>
+                      {children.map((child) => (
+                        <li
+                          key={child.id}
+                          className="lg:border-pana-ink/10 lg:ml-3.5 lg:border-l-2 lg:pl-2"
+                        >
+                          <NavLink
+                            view={child}
+                            active={pathname === child.href}
+                            fill={group.fill}
+                            onFill={group.onFill}
+                          />
+                        </li>
+                      ))}
+                    </Fragment>
+                  );
+                })}
               </ul>
             </div>
           );
