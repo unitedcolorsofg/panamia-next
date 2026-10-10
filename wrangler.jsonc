@@ -113,13 +113,24 @@
         "name": "SIGNALING_ROOM",
         "class_name": "SignalingRoom",
       },
+      // One instance per recipient actor — a mailbox, not a room. See
+      // worker/dm-stream.ts for why actor scope rather than thread scope.
+      {
+        "name": "DM_STREAM",
+        "class_name": "DmStream",
+      },
     ],
   },
-  // DO migration: free plan requires new_sqlite_classes (not new_classes)
+  // DO migration: free plan requires new_sqlite_classes (not new_classes).
+  // A new tag per added class; tags are append-only and never edited in place.
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["SignalingRoom"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["DmStream"],
     },
   ],
 

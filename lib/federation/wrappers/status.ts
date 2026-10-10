@@ -37,6 +37,7 @@ import {
   visibleGroupStatuses,
   canViewStatusGroup,
 } from './group-visibility';
+import { notifyDirectMessage } from '@/lib/dm-stream';
 import type { PostVisibility } from '@/lib/utils/getVisibility';
 import type { JsonValue } from '@/lib/types';
 
@@ -462,6 +463,46 @@ export async function createStatus(
   // write cannot leave a pending request pointing at nothing.
   if (heldRecipientActorIds.length > 0) {
     await recordDirectThreadRequests(actorId, heldRecipientActorIds);
+  }
+
+  // Live delivery. Last, deliberately: everything above is what makes the
+  // message real, and this only makes it arrive sooner. It is also the reason
+  // this is not awaited for its result and cannot throw — notifyDirectMessage
+  // swallows its own errors — because the row is already committed and a
+  // transport failure must never turn a sent message into a failed send.
+  //
+  // The author is in the fan-out set alongside the recipients. Without that, a
+  // pana who sends from their phone would not see the message appear on their
+  // laptop: their own actor is not a recipient, so nothing would tell the other
+  // session anything happened. The sending client refetches redundantly as a
+  // result, which costs one query and keeps every device consistent.
+  //
+  // Held recipients are included. Holding suppresses a *notification* — the
+  // message still lands in their Requests folder, and a live Requests tab
+  // should fill in like any other. Nothing here discloses the hold to the
+  // sender: this fan-out is per mailbox and the sender only learns about their
+  // own.
+  if (visibility === 'direct' && recipientActorIds) {
+    const soleRecipient =
+      recipientActorIds.length === 1 ? recipientActorIds[0] : null;
+
+    await notifyDirectMessage(
+      [
+        ...recipientActorIds.map((recipientActorId) => ({
+          actorId: recipientActorId,
+          // For a recipient, the thread is with the author.
+          conversationActorId: actorId,
+        })),
+        {
+          actorId,
+          // For the author, the thread is with the one recipient — or no single
+          // thread at all when the DM has several, which the chat view does not
+          // list as a conversation anyway.
+          conversationActorId: soleRecipient,
+        },
+      ],
+      statusId
+    );
   }
 
   return { success: true, status: updatedStatus, heldRecipientActorIds };

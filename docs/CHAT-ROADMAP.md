@@ -381,6 +381,11 @@ decision to replace the mail _interface_.
 
 ## Path A — live delivery on the mail substrate
 
+> **Status: built.** Steps 1–4 below have shipped. `worker/dm-stream.ts` holds the DO,
+> `lib/dm-stream.ts` the fan-out, `app/messages/_lib/use-dm-socket.ts` the client half.
+> Two decisions the design below did not anticipate are recorded in
+> [What the build changed](#what-the-build-changed).
+
 **This is now the DM scope's delivery layer**, not an alternative to chat. The architecture below
 was designed before the three-scope decision and survives it unchanged, because an actor-scoped
 mailbox does not care what the UI on top of it looks like. What changed is its framing: it is no
@@ -403,7 +408,7 @@ live, for free.
 ```
 POST /api/social/statuses (visibility: 'direct')
   └─ createStatus() writes the row            ← Postgres stays authoritative
-       └─ for each recipient actor:
+       └─ for each actor in {recipients} ∪ {author}:
             env.DM_STREAM.idFromName(actorId) → stub.fetch('/notify')
                  └─ broadcast to that actor's open sockets (if any)
 ```
@@ -424,33 +429,82 @@ connecting to — if it could, it could read anyone's.
 
 ### Steps
 
-1. `DmStream` DO class; binding with `new_sqlite_classes` (free-plan requirement, same as
-   `SignalingRoom`'s `v1` tag), plus a `migrations` entry.
-2. Authenticated `/ws/dm` upgrade in `worker/index.ts`, alongside the existing
-   `/ws/signaling/` branch. Session → actor ID → `idFromName(actorId)`. **In the first commit.**
-3. Notify-on-send from the direct branch of `createStatus` in `lib/federation/wrappers/status.ts`.
-   Best-effort and non-blocking: a failed notify must never fail the send, because the message is
-   already durably in Postgres and the read path will find it.
-4. Client hook that opens the socket and invalidates the thread query on message. Reconnect with
-   backoff; on reconnect, refetch rather than replay — Postgres is the truth and the DO holds no
-   history to replay from.
+All four have shipped.
 
-### Prerequisite — the DM chat view has to exist first
+1. ~~`DmStream` DO class; binding with `new_sqlite_classes` (free-plan requirement, same as
+   `SignalingRoom`'s `v1` tag), plus a `migrations` entry.~~ — `worker/dm-stream.ts`, `v2` tag.
+2. ~~Authenticated `/ws/dm` upgrade in `worker/index.ts`, alongside the existing
+   `/ws/signaling/` branch. Session → actor ID → `idFromName(actorId)`.~~ — in the first commit,
+   as required.
+3. ~~Notify-on-send from the direct branch of `createStatus` in
+   `lib/federation/wrappers/status.ts`.~~ — `notifyDirectMessage` never rejects; the row is already
+   committed when it runs.
+4. ~~Client hook that opens the socket and invalidates the thread query on message. Reconnect with
+   backoff; on reconnect, refetch rather than replay.~~ — `useDmSocket`, 1s→30s backoff.
 
-**There is no DM conversation UI in this repo today.** What ships is the substrate (direct statuses,
-`recipientTo`, `inReplyToId`), the gating from `0051_social_dm_requests`, the held-request review in
-`/updates`, and two list routes under `app/api/social/messages/`. Voice memos send as direct
-statuses. None of that is a thread you can sit in and watch.
+### What the build changed
 
-So Path A is ordered **after** the DM chat view, not before it: a socket whose only job is to make
-an open thread update live has nothing to update until there is an open thread. Building the
-transport first would mean shipping a DO whose sole consumer is a mock.
+Two things the design above did not anticipate.
 
-The view is drawn, not built. [`/mock/dm-chat`](../app/mock/dm-chat) is the design fixture for it:
-conversation list, transcript, composer, and the delivery states this path produces — sending, sent,
-and queued-while-disconnected. It also renders the three gate answers, a federated thread, and the
-[expiry countdown](#dms-expire-after-thirty-days), which is where that question came from. Treat it
-as the spec for step 4's client hook rather than a sketch to be redrawn.
+**The author is in the fan-out set, not just the recipients.** The sketch says "for each recipient
+actor", which is wrong for multi-device: sending a DM from a phone would never tell the same
+member's laptop anything happened, because the author's own actor is not a recipient. The set is
+**recipients ∪ {author}**. The sending client refetches once, redundantly, and every other device
+the member holds stays consistent.
+
+This also means `conversationActorId` is computed **per mailbox** rather than once per message — a
+message from A to B belongs to _B's thread with A_ and to _A's thread with B_. It is `null` for a
+multi-recipient DM, which has no 1:1 thread to name, and the client falls back to refreshing the
+list.
+
+**Held recipients are notified too.** The request gate suppresses a _notification_, not delivery:
+the message still lands in their Requests folder, so a live Requests tab should fill in. This
+discloses nothing to the sender, because fan-out is per mailbox and the sender only ever learns
+about their own.
+
+**`handleNotify` returns a `delivered` count.** It is the one honest signal about the gap between
+"sent" and "seen": `delivered === 0` for an actor means they hold no live socket. That is exactly
+the condition for sending a push instead, and the DO is the only thing in the system that knows it.
+See [Native mobile clients](#native-mobile-clients).
+
+### Native mobile clients
+
+The transport survives a native client unchanged, and one piece of it was built specifically so it
+would.
+
+**Transport** — a WebSocket is a WebSocket; `URLSessionWebSocketTask`, OkHttp, and React Native's
+`WebSocket` all speak it, and the DO cannot tell what connected. Native is in fact the better
+citizen here: it emits protocol-level **ping frames**, which the runtime answers without ever
+waking the DO. The web client's application-level `'ping'` heartbeat exists only because browser JS
+cannot send a ping frame, and `setWebSocketAutoResponse` is what keeps even that from waking it.
+
+**Auth** — browsers send cookies automatically on a same-origin upgrade and _cannot_ set headers on
+one. Native clients are the mirror image: no implicit cookie jar, but full control of the upgrade
+request's headers, so a native client sets the session cookie itself and arrives indistinguishable
+from a browser. This is precisely why `resolveUserIdFromHeaders(headers)` takes an explicit
+`Headers` rather than reading the ambient `next/headers` — nothing on the path is browser-specific.
+A better-auth `bearer` plugin would be tidier and is not required.
+
+**Background delivery does not work, and no socket design makes it.** iOS and Android suspend
+sockets when the app backgrounds. A native client gets foreground liveness from this DO and nothing
+while backgrounded; that needs APNs/FCM. The `delivered` count above is where that hooks in.
+
+### Prerequisite — the DM chat view had to exist first
+
+**Both have now shipped**, the view first and the socket on top of it. The ordering mattered: a
+socket whose only job is to make an open thread update live has nothing to update until there is an
+open thread, so building the transport first would have meant shipping a DO whose sole consumer was
+a mock.
+
+What the view was built on was already here — direct statuses, `recipientTo`, `inReplyToId`, the
+gating from `0051_social_dm_requests`, the held-request review in `/updates`, and the list routes
+under `app/api/social/messages/`. What was missing was a thread you could sit in and watch; that is
+`app/messages/`.
+
+[`/mock/dm-chat`](../app/mock/dm-chat) remains the design fixture: conversation list, transcript,
+composer, and the delivery states this path produces — sending, sent, and queued-while-disconnected.
+It also renders the three gate answers, a federated thread, and the
+[expiry countdown](#dms-expire-after-thirty-days), which is where that question came from.
 
 This is also what makes "replace the mail" concrete. The DM chat view _is_ the replacement for the
 inbox/sent tabs — the tabs retire when it reaches parity, not before, so there is never a window
@@ -654,10 +708,16 @@ headers on the inner `stub.fetch`:
 ```ts
 if (url.pathname.startsWith('/ws/chat/')) {
   const roomId = url.pathname.split('/')[3];
-  const session = await auth(); // cookies ARE sent on same-origin WS upgrade
-  if (!session?.user?.id) return new Response('Unauthorized', { status: 401 });
 
-  const member = await getRoomMembership(roomId, session.user.id);
+  // NOT `await auth()`. That reads `next/headers`, which only resolves inside a
+  // Next server context — and worker/index.ts is the raw fetch handler that runs
+  // *before* that context exists. Pass the request's headers explicitly instead.
+  // This is also what lets a native mobile client authenticate: see the
+  // resolveUserIdFromHeaders docblock in auth.ts.
+  const userId = await resolveUserIdFromHeaders(request.headers);
+  if (!userId) return new Response('Unauthorized', { status: 401 });
+
+  const member = await getRoomMembership(roomId, userId);
   if (!member || member.status !== 'active') {
     return new Response('Forbidden', { status: 403 });
   }
@@ -672,6 +732,8 @@ if (url.pathname.startsWith('/ws/chat/')) {
 }
 ```
 
+Both reads are database queries, so this branch must sit **inside `runWithDb`** — as `/ws/dm` does.
+
 The DO reads identity from the header and **ignores any identity in the message payload**. Build it
 this way in the first commit; retrofitting identity into a live chat protocol means a flag day.
 
@@ -682,8 +744,9 @@ this way in the first commit; retrofitting identity into a live chat protocol me
 Two independent tracks. The DM track replaces the mail experience; the rooms track adds the two new
 surfaces. Neither blocks the other.
 
-> **DM track:** DM chat view → [Path A](#path-a--live-delivery-on-the-mail-substrate) delivery →
-> retire the `/updates` mail tabs. Steps are in the Path A section.
+> **DM track:** ~~DM chat view~~ → ~~[Path A](#path-a--live-delivery-on-the-mail-substrate)
+> delivery~~ → **retire the `/updates` mail tabs** ← next. The first two have shipped; the tabs
+> retire only once the view reaches parity with them.
 
 The steps below are the **group and event rooms** track.
 

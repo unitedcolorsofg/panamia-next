@@ -1310,6 +1310,46 @@ export async function auth(): Promise<AppSession | null> {
 export const handler = (request: Request) => getBetterAuth().handler(request);
 
 /**
+ * Resolve a session from headers supplied explicitly, rather than from the
+ * ambient Next request context.
+ *
+ * `auth()` above reads `next/headers`, which only resolves inside a Next
+ * server context. The Worker entry point runs *before* that context exists —
+ * it is the raw `fetch(request, env)` handler — so a WebSocket upgrade there
+ * cannot use it. This is the same `api.getSession` call with the headers
+ * passed in by hand.
+ *
+ * Returns the user id alone, because the only caller needs an identity to look
+ * an actor up with and nothing else. Narrow on purpose: exporting the
+ * better-auth instance to reach one method would hand every future caller the
+ * whole surface, including its mutating endpoints.
+ *
+ * ## Why this works for a native mobile client too
+ *
+ * Browsers send cookies automatically on a same-origin WebSocket upgrade and
+ * cannot set headers on one. Native clients are the mirror image: no implicit
+ * cookie jar, but full control of the upgrade request's headers — so a mobile
+ * client sends the session token as a `Cookie` header it sets itself, and
+ * arrives here indistinguishable from a browser. Reading from the passed
+ * `Headers` rather than from ambient context is what makes both work; nothing
+ * here is browser-specific.
+ */
+export async function resolveUserIdFromHeaders(
+  headers: Headers
+): Promise<string | null> {
+  try {
+    const session = await getBetterAuth().api.getSession({ headers });
+    return session?.user?.id ?? null;
+  } catch (error) {
+    console.error(
+      '[auth] header session resolution failed',
+      describeDbError(error)
+    );
+    return null;
+  }
+}
+
+/**
  * The one magic-link endpoint we call from server code, narrowed to the shape
  * we use.
  *

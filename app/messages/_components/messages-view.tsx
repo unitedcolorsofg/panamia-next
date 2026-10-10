@@ -14,6 +14,7 @@ import {
 import { ConversationList, type ListEntry } from './conversation-list';
 import { Transcript } from './transcript';
 import { Composer } from './composer';
+import { useDmSocket } from '../_lib/use-dm-socket';
 
 /* The container: which thread is open, and what is in flight.
  *
@@ -40,6 +41,11 @@ export function MessagesView() {
   const acceptRequest = useAcceptDmRequest();
   const deleteRequest = useDeleteDmRequest();
   const send = useSendDirectMessage(activeActorId);
+
+  // One socket for the whole view, not one per thread. The mailbox is scoped to
+  // the actor, so a single connection covers every conversation plus Requests —
+  // which is also why switching threads does not reconnect anything.
+  useDmSocket(true);
 
   const requestList = requests.data ?? [];
 
