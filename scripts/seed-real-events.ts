@@ -366,6 +366,30 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  /* Supabase exposes two ports on the pooler host, and 6543 is the
+     transaction pooler, which rewrites session state between statements and
+     so rejects the extended protocol's prepared statements. The Node path in
+     lib/db.ts calls postgres() without `prepare: false`, so a 6543 URL fails
+     on the first read with a protocol error that reads like a driver bug
+     rather than a wrong port. scripts/check-pending-migrations.ts guards the
+     same mistake for the same reason; this is that guard, here. */
+  const port = (() => {
+    try {
+      return new URL(connectionString).port;
+    } catch {
+      return '';
+    }
+  })();
+  if (port === '6543') {
+    console.error('That is Supabase\u2019s transaction pooler (port 6543).');
+    console.error('Database:', target);
+    console.error(
+      '\nIt rejects prepared statements, which this script uses. Use the\n' +
+        'session pooler on port 5432 instead — same host, different port.'
+    );
+    process.exit(1);
+  }
+
   // Deferred for the same reason scripts/seed-demo.ts defers: modules under
   // lib/federation read NEXT_PUBLIC_HOST_URL at import time.
   const [{ db }, schema, { categoryKeys }] = await Promise.all([
