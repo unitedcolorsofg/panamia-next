@@ -11,6 +11,11 @@ import {
   type Reason,
   type WhenBucket,
 } from '@/lib/events/lanes';
+import {
+  dateKey,
+  formatDayHeading,
+  formatWeekdayLong,
+} from '@/lib/events/format';
 import { dismissEvent, undismissEvent } from '../_actions';
 import { EventCard, nameList } from './event-card';
 
@@ -76,8 +81,9 @@ function learned(reason: Reason): string {
  *
  * The calendar is kept, demoted to a second tab, because a discover page with
  * no "just show me everything" escape hatch is infuriating and people do
- * genuinely ask what is on Saturday. It is a plain chronological list grouped
- * by day and nothing more. The /mock/events draft carried type and county
+ * genuinely ask what is on Saturday. It is chronological and complete, one
+ * rail per day: the day is the unit you scan, so a busy Saturday costs a
+ * sweep rather than a screen. The /mock/events draft carried type and county
  * facets there; neither is shipped, because `events` has no category column
  * and county lives a venue join away, and a facet whose values have to be
  * invented is a filter that will disagree with the data the first time
@@ -183,14 +189,42 @@ export function EventsDiscover({
   const laneCount = lanes.reduce((n, lane) => n + lane.events.length, 0);
 
   /* Grouped by day. Only holds while the list is chronological, which it is:
-     the server orders by starts_at and nothing here re-sorts it. */
+     the server orders by starts_at and nothing here re-sorts it.
+
+     Keyed on `dateKey` rather than the formatted `day`, which reads "Sat 10"
+     and so is not unique: a window wide enough to span months puts two
+     different Saturday the 10ths in the list, and as a React key that is a
+     duplicate. The grouping itself was never wrong — the two are far apart in
+     a chronological list and never adjacent — but the keys were. */
   const groups = useMemo(() => {
-    const out: { day: string; bucket: WhenBucket; events: DiscoveryEvent[] }[] =
-      [];
+    const out: {
+      key: string;
+      weekday: string;
+      date: string;
+      bucket: WhenBucket;
+      events: DiscoveryEvent[];
+    }[] = [];
     for (const event of pool) {
+      const at = new Date(event.startsAt);
+      const key = dateKey(at, event.timezone);
       const last = out[out.length - 1];
-      if (last && last.day === event.day) last.events.push(event);
-      else out.push({ day: event.day, bucket: event.bucket, events: [event] });
+      if (last && last.key === key) {
+        last.events.push(event);
+        continue;
+      }
+      /* Weekday and date come off the event's own timestamp and timezone, and
+         deliberately not off `relativeDayLabel`: that one takes a `now`, and a
+         `now` read during render is a different instant on the server than in
+         the browser, so "Today" would render one thing and hydrate to another.
+         `bucket` is the server's answer to that same question and is already
+         on the event, so "Tonight" stays server-decided. */
+      out.push({
+        key,
+        weekday: formatWeekdayLong(at, event.timezone),
+        date: formatDayHeading(at, event.timezone),
+        bucket: event.bucket,
+        events: [event],
+      });
     }
     return out;
   }, [pool]);
@@ -496,30 +530,43 @@ export function EventsDiscover({
           />
         ) : (
           groups.map((group) => (
-            <section key={group.day} className="pt-8">
-              {/* Capped to `.dirsearch-grid`'s own 58rem and centred with it.
-                  A heading that spans the container while the cards below sit
-                  in a narrower centred column reads as two layouts rather than
-                  one list with days in it. */}
-              <div className="mx-auto mb-4 flex max-w-[58rem] flex-wrap items-baseline gap-x-3 gap-y-1">
+            <section key={group.key} className="pt-8">
+              {/* Capped to the track's own 58rem inset and centred with it, so
+                  the heading starts on the same line as the first card under
+                  it. A heading that spans the container while the cards below
+                  sit in a narrower centred column reads as two layouts rather
+                  than one calendar with days in it. */}
+              <div className="mx-auto flex max-w-[58rem] flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h2 className="text-pana-ink text-[1.0625rem] font-black tracking-[-0.01em]">
-                  {group.bucket === 'today' ? 'Tonight' : group.day}
+                  {group.bucket === 'today' ? 'Tonight' : group.weekday}
                 </h2>
-                {group.bucket === 'today' && (
-                  <span className="text-pana-ink/45 text-[0.8125rem] font-bold">
-                    {group.day}
-                  </span>
-                )}
+                {/* The weekday is named on every row, today's included. A row
+                    headed only "Tonight" says nothing about where in the week
+                    you are, and once you have scrolled a few days down the
+                    date alone makes you count. */}
+                <span className="text-pana-ink/45 text-[0.8125rem] font-bold">
+                  {group.bucket === 'today'
+                    ? `${group.weekday}, ${group.date}`
+                    : group.date}
+                </span>
                 <span className="text-pana-ink/45 ml-auto text-[0.8125rem] font-bold">
                   {group.events.length}{' '}
                   {group.events.length === 1 ? 'event' : 'events'}
                 </span>
               </div>
 
-              <ul className="dirsearch-grid">
+              {/* One rail per day, so the calendar is read down by day and
+                  across by event rather than as a single column you scroll
+                  past a day at a time.
+
+                  Uncapped, unlike the lanes and the subject rails. Those two
+                  are selections and are allowed to stop early; a calendar that
+                  silently omits an event is just wrong. The count above is
+                  what tells you how far the row runs. */}
+              <ul className="events-rail-track">
                 {group.events.map((event) => (
-                  <li key={event.id}>
-                    <EventCard event={event} />
+                  <li key={event.id} className="events-rail-item">
+                    <EventCard event={event} compact />
                   </li>
                 ))}
               </ul>
