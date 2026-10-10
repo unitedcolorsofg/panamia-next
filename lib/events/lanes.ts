@@ -109,6 +109,22 @@ export interface Lane {
   events: { event: DiscoveryEvent; reason: Reason }[];
 }
 
+/** How many events one lane holds.
+ *
+ *  Was three, which was the right number while a lane was a column of
+ *  full-width cards and a fourth would have pushed the next heading off the
+ *  screen. Lanes render as rails now, so the constraint moved: the cost of one
+ *  more card is a little sideways scroll rather than a screen of height, and a
+ *  rail holding three barely reaches past the fold of its own track — it reads
+ *  as a short grid that got cut off rather than as a row you can sweep.
+ *
+ *  Short of `MAX_PER_RAIL`'s twelve on purpose. A subject rail is a complete
+ *  answer to "what music is on" and draws from the whole pool, so length costs
+ *  it nothing. A lane *claims* its events, and a first lane that took twelve
+ *  would starve the three behind it of the evidence they need to clear the
+ *  two-event floor — turning a varied page into one long lane. */
+const MAX_PER_LANE = 6;
+
 export const LANE_COPY: Record<
   ReasonKind,
   { id: string; title: string; note: string }
@@ -249,8 +265,8 @@ export function buildLanes(
     /* Only events no earlier lane took, so the same card never appears twice.
        Re-offering the remainder at each step also means an event cut from a
        full lane cascades to its next-best reason rather than disappearing:
-       the screenprint workshop that lost the three-slot "panas going" cut is
-       still a tag match, and lands there. */
+       the screenprint workshop that lost the "panas going" cut is still a tag
+       match, and lands there. */
     const pool = candidates
       .filter((event) => !claimed.has(event.id))
       .map((event) => ({
@@ -262,7 +278,9 @@ export function buildLanes(
           entry.reason !== undefined
       );
 
-    const picked = pool.sort((a, b) => laneRank(b) - laneRank(a)).slice(0, 3);
+    const picked = pool
+      .sort((a, b) => laneRank(b) - laneRank(a))
+      .slice(0, MAX_PER_LANE);
 
     /* Claimed only once the lane is certain to render, and only the cards that
        survived the cut. Claiming earlier silently drops every event a lane
