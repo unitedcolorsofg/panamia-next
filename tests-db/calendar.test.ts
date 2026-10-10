@@ -159,6 +159,14 @@ after(async () => {
   for (const id of createdProfileIds) {
     await db.delete(profiles).where(eq(profiles.id, id));
   }
+
+  // Close the pool, as every other file here does. postgres.js is created
+  // without an idle_timeout, so an idle connection stays open and node --test
+  // waits on the live socket after the last assertion: the suite passes and
+  // then hangs forever rather than failing.
+  const client = (db as unknown as { $client?: { end?: () => Promise<void> } })
+    .$client;
+  await client?.end?.();
 });
 
 test('an unlisted event you RSVP\u2019d to is on your own calendar', async () => {
