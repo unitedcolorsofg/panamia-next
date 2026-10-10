@@ -17,6 +17,7 @@ import type {
   EventStaffing,
 } from '@/lib/connectors/event-link';
 import type { CommitmentProgress, HouseId } from '@/lib/connectors/model';
+import { officialHostGroupId } from '@/lib/server/official-host';
 
 /**
  * Commitments: what a connector is actually doing.
@@ -541,9 +542,26 @@ export async function eventStaffing(
  * Public events are limited to published ones: a draft has no date anybody has
  * agreed to, and assigning crew to it would commit people to a plan that may
  * never be announced.
+ *
+ * They are also limited to events PANAMIA HOSTS. Without that clause this
+ * returned every published future event in the directory -- any pana's gig,
+ * any club's meetup -- which is wrong twice over. Connectors are not staffed
+ * to a stranger's event, and the `limit` below is soonest-first, so a busy
+ * directory would push the Panamia event an admin is actually looking for off
+ * the end of the list with nothing on screen saying it had been cut. A
+ * dropdown that silently omits the answer is worse than a short one.
+ *
+ * Before Panamia has been set up as a host there is no id to scope to, and
+ * the public half is skipped rather than left unfiltered. Returning nothing is
+ * honest; returning everyone's events is the bug this clause exists to fix.
  */
 export async function listAssignableEvents(): Promise<AssignableEvent[]> {
   const now = new Date();
+
+  // Resolved before the pair rather than inside it: the public query cannot be
+  // built without the id. Memoised after the first hit, so this is one extra
+  // round trip on a cold isolate and none afterwards.
+  const hostGroupId = await officialHostGroupId();
 
   const [programme, publicRows] = await Promise.all([
     db
@@ -563,18 +581,26 @@ export async function listAssignableEvents(): Promise<AssignableEvent[]> {
       )
       .orderBy(asc(connectorEvents.startsAt))
       .limit(50),
-    db
-      .select({
-        id: events.id,
-        title: events.title,
-        startsAt: events.startsAt,
-        venueName: venues.name,
-      })
-      .from(events)
-      .leftJoin(venues, eq(venues.id, events.venueId))
-      .where(and(gte(events.startsAt, now), eq(events.status, 'published')))
-      .orderBy(asc(events.startsAt))
-      .limit(50),
+    hostGroupId
+      ? db
+          .select({
+            id: events.id,
+            title: events.title,
+            startsAt: events.startsAt,
+            venueName: venues.name,
+          })
+          .from(events)
+          .leftJoin(venues, eq(venues.id, events.venueId))
+          .where(
+            and(
+              gte(events.startsAt, now),
+              eq(events.status, 'published'),
+              eq(events.hostGroupId, hostGroupId)
+            )
+          )
+          .orderBy(asc(events.startsAt))
+          .limit(50)
+      : [],
   ]);
 
   return [
@@ -609,6 +635,12 @@ export async function listAssignableEvents(): Promise<AssignableEvent[]> {
  * rendered before somebody cancelled the event — is a 400 naming the problem
  * rather than a foreign key violation surfacing as a 500. The FK is still
  * what guarantees correctness; this only improves the message.
+ *
+ * It mirrors `listAssignableEvents` clause for clause, including the Panamia
+ * host scope, and has to. The dropdown choosing not to offer somebody else's
+ * event is a convenience; this is the gate. A request naming an event id
+ * directly never passed through that select, so if the two ever disagree the
+ * narrower list is decoration and this is the real rule.
  */
 export async function assignableEventExists(
   kind: EventKind,
@@ -631,6 +663,12 @@ export async function assignableEventExists(
     return Boolean(row);
   }
 
+  const hostGroupId = await officialHostGroupId();
+  // No Panamia, no Panamia-hosted event. Returning false here keeps the write
+  // path shut rather than falling back to "any published event", which is the
+  // state this scoping removed.
+  if (!hostGroupId) return false;
+
   const [row] = await db
     .select({ id: events.id })
     .from(events)
@@ -638,7 +676,8 @@ export async function assignableEventExists(
       and(
         eq(events.id, id),
         gte(events.startsAt, now),
-        eq(events.status, 'published')
+        eq(events.status, 'published'),
+        eq(events.hostGroupId, hostGroupId)
       )
     )
     .limit(1);

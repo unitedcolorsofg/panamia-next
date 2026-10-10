@@ -30,7 +30,7 @@ import SurfaceLink from '@/components/panaverse/SurfaceLink';
  */
 const PROGRAMME_FIRST: ReadonlyArray<{ kind: EventKind; label: string }> = [
   { kind: 'programme', label: 'Connector events' },
-  { kind: 'public', label: 'Pana events' },
+  { kind: 'public', label: 'Panamia events' },
 ];
 
 /**
@@ -471,8 +471,9 @@ export function SetTaskForm({
             >
               Coming up
             </SurfaceLink>{' '}
-            on the Connectors overview, or publish a Pana event with a future
-            date. Only events still ahead of today can be staffed.
+            on the Connectors overview, or publish an event with Panamia as the
+            host. Only events still ahead of today can be staffed, and only
+            Panamia&rsquo;s own — a pana&rsquo;s event is not connector work.
           </>
         ) : (
           <>
