@@ -302,9 +302,10 @@ function slugify(value: string | null | undefined): string {
 const USAGE = `
 Seed sample events attributed to real directory listings and groups.
 
-  --undo    remove every row a previous run added, and nothing else
-  --yes     skip the pre-flight pause
-  --help    print this
+  --undo      remove every row a previous run added, and nothing else
+  --dry-run   print the hosts and counts, write nothing
+  --yes       skip the pre-flight pause
+  --help      print this
 
 Writing to anything but localhost also needs SEED_ALLOW_REMOTE=1.
 `.trim();
@@ -314,7 +315,7 @@ async function main(): Promise<void> {
   // a flag, so silence would mean a mistyped --undo quietly writes instead of
   // removing -- the one outcome this script is built to never have.
   const flags = process.argv.slice(2);
-  const known = new Set(['--undo', '--yes', '--help']);
+  const known = new Set(['--undo', '--yes', '--dry-run', '--help']);
   const unknown = flags.filter((flag) => !known.has(flag));
   if (unknown.length > 0) {
     console.error(`Unrecognised: ${unknown.join(', ')}\n\n${USAGE}`);
@@ -327,6 +328,17 @@ async function main(): Promise<void> {
 
   const undo = flags.includes('--undo');
   const skipPause = flags.includes('--yes');
+  const dryRun = flags.includes('--dry-run');
+
+  /* --undo deletes, and it runs long before the dry-run stop below, so the
+     pair would read as "preview an undo" while actually performing one --
+     and --dry-run relaxes the remote gate, so it would perform it against
+     production unarmed. Rejected rather than resolved: there is no reading
+     of these two together that a caller would be right to expect. */
+  if (undo && dryRun) {
+    console.error('--undo and --dry-run do opposite things. Pick one.');
+    process.exit(1);
+  }
 
   const connectionString =
     process.env.POSTGRES_URL ?? process.env.POSTGRES_DIRECT_URL;
@@ -338,13 +350,18 @@ async function main(): Promise<void> {
 
   const target = connectionString.replace(/\/\/[^@]*@/, '//***@').split('?')[0];
   const isLocal = /localhost|127\.0\.0\.1/.test(connectionString);
-  if (!isLocal && process.env.SEED_ALLOW_REMOTE !== '1') {
+  /* A dry run reads and reports; it never writes, so the gate would only add
+     friction to the one mode you want people using *before* they arm the
+     write. Requiring the flag to preview teaches you to set it early and
+     leave it set, which is the opposite of what it is for. */
+  if (!isLocal && !dryRun && process.env.SEED_ALLOW_REMOTE !== '1') {
     console.error('Refusing to run against a remote database by default.');
     console.error('Database:', target);
     console.error(
       '\nThis script writes events attributed to REAL listings and groups.\n' +
-        'Set SEED_ALLOW_REMOTE=1 if this is the database you mean, and run\n' +
-        'with --undo afterwards to remove every row it added.'
+        'Preview it first with --dry-run, which needs no flag and writes\n' +
+        'nothing. Then set SEED_ALLOW_REMOTE=1 if this is the database you\n' +
+        'mean, and run with --undo afterwards to remove every row it added.'
     );
     process.exit(1);
   }
@@ -562,6 +579,20 @@ async function main(): Promise<void> {
   console.log('  Every description says it is a sample. Every id starts with');
   console.log('  demo_ev_, so `--undo` removes all of it exactly.');
   console.log('-'.repeat(68));
+
+  if (dryRun) {
+    /* The roster is the thing worth reviewing, and it is the one thing the
+       counts above do not tell you: two businesses is fine, *which* two is
+       the question. Printed here rather than on every run because this is
+       the mode whose whole purpose is reading before writing. */
+    console.log('\n  Hosts that would be used');
+    for (const host of chosen) {
+      const kind = host.profileId ? 'listing' : 'group';
+      line(`    ${host.name}`, `${kind} · ${host.category}`);
+    }
+    console.log('\nDry run. Nothing was written, nothing was removed.');
+    process.exit(0);
+  }
 
   if (!skipPause) {
     console.log('\n  Starting in 5 seconds. Ctrl-C to stop.');
