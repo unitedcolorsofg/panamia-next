@@ -158,6 +158,23 @@ export const allCategories: PrivacyCategory[] = tiers.flatMap((t) =>
 
 export const policyVersion: string = policy.version;
 export const policyStatus: string = policy.status;
+export const policyEffectiveDate: string | null = policy.effectiveDate;
+
+/** Rights we grant and the class-level limits on them, as authored in the JSON. */
+export const userRights = policy.userRights as {
+  access: boolean;
+  deletion: string;
+  correction: boolean;
+  portability: boolean;
+  anonymization: string;
+  optOutOfSale: boolean;
+  gpcHonored: boolean;
+  limits: { class: RetentionClass; limit: string }[];
+};
+
+/** When community-record content crosses into the permanent archive. */
+export const archiveThresholds = policy.persistentRetentionClasses
+  .community_record.archiveThresholds as Record<string, string>;
 
 /** Third-party vendor registry, keyed by the names categories reference. */
 export const providers = policy.persistentRetentionClasses.third_party_synced

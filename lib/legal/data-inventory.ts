@@ -207,6 +207,8 @@ export const STORAGE_FREE_CATEGORIES: CategoryName[] = [
   'whiteboard',
   'session_chat',
   'session_streams',
+  // Request-scoped — read from the request and discarded, never written
+  'viewer_location', // coarsened in the browser, used to sort, never persisted
   // Peer — seen by participants, not retained by us
   'webrtc_streams',
   'whiteboard_content',

@@ -2,9 +2,9 @@
   "@context": "https://schema.org",
   "@type": "PrivacyPolicy",
   "name": "Pana MIA Club Privacy Policy",
-  "version": "0.2",
-  "status": "draft",
-  "effectiveDate": null,
+  "version": "1.0",
+  "status": "published",
+  "effectiveDate": "2026-10-10",
   "url": "https://pana.social/legal/privacy",
   "gpcSupported": true,
   "_comment": "SOURCE OF TRUTH for the privacy framework. The Privacy at a Glance grid (components/legal/PrivacyAtAGlance.tsx) and the prose tier list (app/legal/privacy/page.tsx) are both derived from this file via lib/legal/privacy-policy.ts -- do not hand-maintain category lists there. Machine-readable fields (name, data, source, purpose, retention) are snake_case and stable; the `display` object carries presentation copy only. `module` links a category to its legal terms module id in ../terms/namespaces.json.",
@@ -47,6 +47,7 @@
           "data": [
             "contact",
             "address",
+            "geo_coordinates",
             "descriptions",
             "images",
             "social_links"
@@ -54,14 +55,15 @@
           "source": "user_provided",
           "purpose": "directory_listing_and_community",
           "retention": "active_account_lifetime",
+          "note": "The listing address you enter is geocoded to map coordinates so your listing can appear on the map and in distance-sorted search. If you run your business from home, that address and its coordinates are your home address — list only what you are willing to make public.",
           "display": {
             "icon": "user",
             "source": "You provide",
             "purpose": "Directory listing and community",
             "retention": "Account lifetime",
             "sharedWith": "Public / ActivityPub",
-            "prose": "Profile information (contact, address, descriptions, images, social links)",
-            "blurb": "Your public directory listing: contact info, address, description, photos, and social links."
+            "prose": "Profile information (contact, listing address and its map coordinates, descriptions, images, social links)",
+            "blurb": "Your public directory listing: contact info, address, description, photos, and social links. The address you list is converted to map coordinates so people can find you by distance."
           }
         },
         {
@@ -122,31 +124,6 @@
             "sharedWith": "ActivityPub peers",
             "prose": "Social graph (follows, followers, likes, group memberships, story views)",
             "blurb": "Who you follow, the posts you've liked, the groups you've joined or started, and whose stories you've watched."
-          }
-        },
-        {
-          "name": "social_abuse_reports",
-          "label": "Content Reports",
-          "module": "social",
-          "data": [
-            "reporter_handle",
-            "reported_handle",
-            "reported_post",
-            "reason",
-            "reporter_description",
-            "reported_content_snapshot"
-          ],
-          "source": "user_action",
-          "purpose": "safety_and_moderation",
-          "retention": "retained_after_account_deletion",
-          "display": {
-            "icon": "flag",
-            "source": "A member reports",
-            "purpose": "Safety and moderation",
-            "retention": "Outlives account deletion",
-            "sharedWith": "Moderators",
-            "prose": "In-app content reports — who reported whom, the reason chosen, anything the reporter wrote, and a snapshot of the reported post taken at the time it was reported. Retained even after the accounts involved are deleted.",
-            "blurb": "Reports members file about posts or accounts in the app. The snapshot is kept so moderators can still see what was reported if the post is later deleted, and reports outlive the accounts they concern."
           }
         },
         {
@@ -327,18 +304,19 @@
           "name": "uploads",
           "label": "Uploads",
           "module": "uploads",
-          "data": ["uploaded_media"],
+          "data": ["uploaded_media", "voice_memo_audio"],
           "source": "user_provided",
           "purpose": "media_hosting",
           "retention": "follows_content",
+          "note": "Includes voice memos. When you record one, the audio is captured by your browser's microphone, compressed, and stored as a file on Cloudflare R2 like any other upload. Recording only happens while you are actively using the recorder; we do not listen in the background.",
           "display": {
             "icon": "upload",
             "source": "You provide",
             "purpose": "Media hosting",
             "retention": "Follows content",
             "sharedWith": "Cloudflare R2 / Public",
-            "prose": "Cloudflare R2 — uploaded media files",
-            "blurb": "Photos and files you've uploaded, stored on Cloudflare."
+            "prose": "Cloudflare R2 — uploaded media files, including recorded voice memos",
+            "blurb": "Photos, files, and voice memos you've recorded or uploaded, stored on Cloudflare."
           }
         }
       ]
@@ -557,6 +535,31 @@
             "sharedWith": "Moderators",
             "prose": "Relay abuse reports (NIP-56) — the reporter's and target's public keys, plus a snapshot of the reported content. Retained even after the accounts involved are deleted.",
             "blurb": "Reports members file about abusive messages on the relay. Kept even after an account leaves, so moderation records survive."
+          }
+        },
+        {
+          "name": "social_abuse_reports",
+          "label": "Content Reports",
+          "module": "social",
+          "data": [
+            "reporter_handle",
+            "reported_handle",
+            "reported_post",
+            "reason",
+            "reporter_description",
+            "reported_content_snapshot"
+          ],
+          "source": "user_action",
+          "purpose": "safety_and_moderation",
+          "retention": "retained_after_account_deletion",
+          "display": {
+            "icon": "flag",
+            "source": "A member reports",
+            "purpose": "Safety and moderation",
+            "retention": "Outlives account deletion",
+            "sharedWith": "Moderators",
+            "prose": "In-app content reports — who reported whom, the reason chosen, anything the reporter wrote, and a snapshot of the reported post taken at the time it was reported. Retained even after the accounts involved are deleted.",
+            "blurb": "Reports members file about posts or accounts in the app. The snapshot is kept so moderators can still see what was reported if the post is later deleted, and reports outlive the accounts they concern."
           }
         }
       ]
@@ -788,6 +791,25 @@
           "sharedWith": "None",
           "prose": "Email verification, magic-link, and email-change tokens (expire per config)",
           "blurb": "Short-lived codes for signing in, verifying your email, or changing it. They expire quickly."
+        }
+      },
+      {
+        "name": "viewer_location",
+        "label": "Approximate Location (Distance Sorting)",
+        "module": "profiles",
+        "data": ["approximate_coordinates"],
+        "source": "user_permission",
+        "purpose": "distance_sorted_directory_search",
+        "retention": "not_stored_discarded_after_request",
+        "note": "Only if you grant your browser's location permission. Your device's coordinates are rounded to roughly a one-kilometer grid before they ever leave your device, rounded again when they reach us, used to sort directory results by distance, and never written to the database. Declining the permission simply turns off distance sorting.",
+        "display": {
+          "icon": "map-pin",
+          "source": "You allow",
+          "purpose": "Sorting search results by distance",
+          "retention": "Never stored",
+          "sharedWith": "None",
+          "prose": "Approximate viewer location — rounded to about a kilometer on your device, used only to sort directory results by distance, and never stored",
+          "blurb": "If you allow location access, we use a deliberately blurred version of where you are to sort nearby makers first. It is never saved."
         }
       },
       {
