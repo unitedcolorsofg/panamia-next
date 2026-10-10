@@ -198,20 +198,49 @@ export function DirectorySearchContent({
   // rather than in either pane because it is the one piece of state the list
   // and the map both need, and the whole point of showing them together.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  // Which result a pin click chose, kept apart from `hoveredId` because the
+  // two answer different questions and have different lifetimes. Hover is "the
+  // cursor is here, for as long as it is here"; a choice is "this is the one I
+  // asked about", and it has to survive the very next thing the visitor does —
+  // which is move the mouse onto the column to read the card. Sharing one piece
+  // of state meant the highlight was stolen by whatever card the cursor crossed
+  // and then dropped entirely when it left the list, so the answer to "which
+  // card is this pin?" was gone before it could be read.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // A new result set means the old scroll position is about a different list.
+  // A new result set means the old scroll position is about a different list,
+  // and the old selection is about a business that may not even be in it.
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
+    setSelectedId(null);
   }, [searchResult]);
+
+  // The map drops its own selection the moment the viewer's location arrives,
+  // because it re-frames to their neighbourhood and the chosen pin may not be
+  // in the new frame at all. Clearing here too keeps the two panes telling the
+  // same story: without it the column would go on showing a chosen card whose
+  // pin is no longer marked, or on screen. Keyed on the numbers rather than the
+  // object so this follows an actual move, not every parent render.
+  const viewerLat = coords?.lat ?? null;
+  const viewerLng = coords?.lng ?? null;
+  useEffect(() => {
+    setSelectedId(null);
+  }, [viewerLat, viewerLng]);
 
   // Clicking a pin has to move the list, or the map is a lookup table you
   // cannot act on: you learn a logo is three blocks away and then have to find
   // it again by hand among twenty cards.
+  //
+  // `nearest` scrolls the least it can get away with, which keeps a card that
+  // is already on screen from jumping — but on its own it parks the card hard
+  // against whichever edge it came from. The breathing room is CSS's job:
+  // `.dirsearch-grid > li` carries a `scroll-margin-block` that this honours.
   const handlePinSelect = useCallback((id: string) => {
+    setSelectedId(id);
     const card = document.getElementById(`dirsearch-result-${id}`);
     card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    setHoveredId(id);
   }, []);
 
   return (
@@ -281,6 +310,7 @@ export function DirectorySearchContent({
                           key={result._id}
                           id={`dirsearch-result-${result._id}`}
                           data-on={result._id === hoveredId}
+                          data-selected={result._id === selectedId}
                           onMouseEnter={() => setHoveredId(result._id)}
                           onMouseLeave={() => setHoveredId(null)}
                           onFocus={() => setHoveredId(result._id)}

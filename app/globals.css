@@ -8892,6 +8892,47 @@ body:has(.dirsearch) {
   border-color: rgb(242 136 47 / 0.6);
 }
 
+/* --- Chosen from the map ------------------------------------------------- */
+
+/* Clicking a pin asks a question — "which of these twenty cards is that one?"
+   — and the answer has to survive the very next thing the visitor does, which
+   is move the cursor onto the column to read it. Hover cannot carry that: it
+   belongs to whatever the mouse is touching right now.
+
+   So a choice gets its own treatment, and a much louder one. Hover already
+   tints the border half-flame, so a chosen card that only deepened that tint
+   would be telling the two apart by alpha value — which nobody can do at a
+   glance, across a column, while looking at a map. The fill is what makes it
+   unmistakable; the border and ring are what make it look deliberate.
+
+   Ring rather than a thicker border because box-shadow takes up no space: a
+   3px border would reflow the card body the moment it was chosen. The drop
+   shadow is restated because this rule replaces the hover shadow it would
+   otherwise sit on top of, and a chosen card that goes flat when the cursor
+   finally reaches it looks broken. Sits below the hover rule and matches its
+   specificity, so a card that is both reads as chosen. */
+.dirsearch-grid > li[data-selected='true'] .dirsearch-card {
+  border-color: var(--color-pana-flame);
+  background-color: color-mix(in srgb, var(--color-pana-flame) 9%, #fff);
+  box-shadow:
+    0 0 0 3px rgb(242 136 47 / 0.45),
+    0 16px 34px rgb(2 8 17 / 0.09);
+}
+
+/* `scrollIntoView({ block: 'nearest' })` moves the column by the smallest
+   amount that counts as "in view", which is what keeps an already-visible card
+   from jumping — but on its own it parks the card hard against whichever edge
+   it approached from, with the rounded corners and the drop shadow sliced off
+   by the scroll port. That reads as a card that failed to render rather than
+   as the one just asked for.
+
+   A scroll margin is the one lever `nearest` honours that puts the air back,
+   and it works in both directions: a card reached from below stops short of
+   the top edge, one reached from above stops short of the bottom. */
+.dirsearch-grid > li {
+  scroll-margin-block: 1.25rem;
+}
+
 /* The off-map caveat used to sit under the map's own list of pinned results.
    That list is gone — the results column is the list now — so the note floats
    on the map instead. Top right: the zoom control owns the top left and the
