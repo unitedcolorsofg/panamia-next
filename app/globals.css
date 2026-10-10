@@ -5103,7 +5103,8 @@ body {
   margin-inline: auto;
 }
 
-/* Event rails on /e — used by the reason lanes and the subject rails both.
+/* Event rails on /e — the reason lanes, the subject rails and the calendar's
+   days all run on these.
    ==========================================================================
    Sideways buys the thing the page actually needed. Eight subjects as
    vertical grids would be a scroll the length of the catalogue, where eight
@@ -5116,6 +5117,14 @@ body {
    the only thing the column bought was height. Reading the lane sideways
    costs the blurb (see `compact` on EventCard) and nothing else — the reason
    line and "Not for me" both survive, which is what keeps a lane arguable.
+
+   The calendar tab was the last holdout, on the argument that a calendar is a
+   list you read to the end. True of the calendar as a whole and false of any
+   one day in it: one rail per day makes the day the unit, so the page is read
+   down by day and across by event, and a long day costs a sweep rather than a
+   screen of scrolling. A day rail is uncapped for that reason — the lanes and
+   the subject rails are selections and may stop early, but a calendar that
+   drops an event is wrong.
 
    Built here rather than reusing .stories-rail because that rail sizes itself
    around a 3.5rem avatar circle, and inheriting those numbers for a card with
