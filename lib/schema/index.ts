@@ -317,6 +317,44 @@ export const relayReportStatus = pgEnum('relay_report_status', [
   'removed',
 ]);
 
+// Moderator workflow state for in-app abuse reports (social_reports). Same
+// three states and the same load-bearing declaration order as
+// contact_submission_status: `orderBy: asc(status)` floats open reports to the
+// top of the queue.
+//
+// No 'removed' here, unlike relay_report_status. Removing relay content is
+// terminal because the event is hard-deleted off the relay and cannot be
+// reopened; acting on an in-app report is an ordinary moderation decision
+// against our own rows, so 'actioned' covers it and stays revocable.
+export const socialReportStatus = pgEnum('social_report_status', [
+  'open',
+  'actioned',
+  'dismissed',
+]);
+
+// What the reporter says is wrong with the content or account.
+//
+// An enum rather than the free text used by relay_reports.report_type: that
+// column is text because the NIP-56 type set drifts and is chosen by whichever
+// foreign client sent the event, whereas this list is ours, is rendered as the
+// picker in ReportDialog, and has to be filterable in the admin queue.
+//
+// 'csam' is deliberately separate from 'sexual_content'. It is the one reason
+// carrying a mandatory external reporting obligation (NCMEC/CyberTipline, see
+// app/legal/terms), so a moderator has to be able to find those rows without
+// reading every report in the queue.
+export const socialReportReason = pgEnum('social_report_reason', [
+  'spam',
+  'harassment',
+  'hate_speech',
+  'violence',
+  'self_harm',
+  'sexual_content',
+  'csam',
+  'impersonation',
+  'other',
+]);
+
 // Provenance of a profile's nostr_pubkey: 'issued' = generated client-side
 // via the /r flow; 'byo' = uploaded by the user after acknowledging the
 // cross-relay correlation disclosure. See docs/RESILIENCE-ROADMAP.md.
@@ -1862,6 +1900,108 @@ export const socialBlocks = pgTable(
 );
 
 /**
+ * Abuse reports raised from inside the app.
+ *
+ * Block and mute (social_blocks) let somebody remove a person from their own
+ * view. Neither tells anyone here that a problem exists. This table is how a
+ * member says "somebody should look at this", and it is the only report path
+ * for ordinary app content: relay_reports can only describe Nostr events
+ * signed by a Nostr key, and a social_statuses row has neither.
+ *
+ * Also the fourth of the four things App Store guideline 1.2 requires of a
+ * user-generated-content app. We already had filtering, blocking and published
+ * contact information; a flagging mechanism was the gap.
+ *
+ * Every foreign key is `set null` and the triage-critical fields are ALSO
+ * denormalised onto the row. Reports have to outlive the accounts and posts
+ * they concern -- that is the stated policy in app/legal/terms -- and cascade
+ * would make deleting the reported post the cheapest way to clear the queue
+ * against yourself. `reportedContent` is snapshotted for the same reason
+ * relay_reports snapshots it: the moderator must see what the reporter saw.
+ *
+ * A NULL `targetStatusId` means the report is about the account itself rather
+ * than one post. `targetActorId` is set either way, so "everything ever
+ * reported about this person" stays a single indexed lookup.
+ */
+export const socialReports = pgTable(
+  'social_reports',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    reporterActorId: text('reporter_actor_id').references(
+      () => socialActors.id,
+      { onDelete: 'set null' }
+    ),
+    // Denormalised so the queue still reads as a sentence after the reporter
+    // deletes their account and the FK above goes NULL.
+    reporterHandle: text('reporter_handle'),
+    targetActorId: text('target_actor_id').references(() => socialActors.id, {
+      onDelete: 'set null',
+    }),
+    targetHandle: text('target_handle'),
+    // The reported post, or NULL when the report is about the account itself.
+    //
+    // Deliberately NOT a foreign key. SET NULL would quietly rewrite a *post*
+    // report into something shaped exactly like an *account* report, losing
+    // the one fact a moderator most needs, and it can collide with the dedup
+    // index below and make the post undeletable. See the migration.
+    targetStatusId: text('target_status_id'),
+    reason: socialReportReason('reason').notNull(),
+    // The reporter's own words. Optional on purpose: requiring it would mostly
+    // yield "." and slows down the person least able to type calmly.
+    details: text('details').notNull().default(''),
+    reportedContent: text('reported_content'),
+    status: socialReportStatus('status').notNull().default('open'),
+    moderationReason: text('moderation_reason'),
+    lastModerationActionAt: timestamp('last_moderation_action_at', {
+      withTimezone: true,
+    }),
+  },
+  (table) => ({
+    /**
+     * Queue readability, not an abuse control -- same intent as
+     * relay_reports_dedup_idx.
+     *
+     * COALESCE because Postgres treats NULLs as distinct in a unique index, so
+     * a plain four-column unique would dedup reports about a post but not
+     * reports about an account (targetStatusId NULL) -- the exact case where a
+     * frustrated reporter is most likely to tap twice.
+     *
+     * Partial on the two actor FKs because both are ON DELETE SET NULL. Once
+     * an account is deleted its reports all collapse to the same NULL key, and
+     * without this clause the *second* such deletion would fail on a duplicate
+     * key -- making a reported account undeletable. Dedup only has to hold for
+     * live reporters anyway; a deleted one cannot tap anything twice.
+     */
+    dedupIdx: uniqueIndex('social_reports_dedup_idx')
+      .on(
+        table.reporterActorId,
+        table.targetActorId,
+        sql`coalesce(${table.targetStatusId}, '')`,
+        table.reason
+      )
+      .where(
+        sql`${table.reporterActorId} is not null and ${table.targetActorId} is not null`
+      ),
+    // The admin queue's default read: open reports, oldest first.
+    statusCreatedIdx: index('social_reports_status_created_idx').on(
+      table.status,
+      table.createdAt
+    ),
+    targetActorIdIdx: index('social_reports_target_actor_id_idx').on(
+      table.targetActorId
+    ),
+    targetStatusIdIdx: index('social_reports_target_status_id_idx').on(
+      table.targetStatusId
+    ),
+  })
+);
+
+/**
  * A request to open a direct-message thread, and the consent that answers it.
  *
  * Exists because the DM gate has to ask "has this recipient agreed to
@@ -3099,6 +3239,10 @@ export type ArticleAnnouncement = typeof articleAnnouncements.$inferSelect;
 export type SocialFollow = typeof socialFollows.$inferSelect;
 export type SocialBlock = typeof socialBlocks.$inferSelect;
 export type SocialBlockKind = (typeof socialBlockKind.enumValues)[number];
+export type SocialReport = typeof socialReports.$inferSelect;
+export type NewSocialReport = typeof socialReports.$inferInsert;
+export type SocialReportStatus = (typeof socialReportStatus.enumValues)[number];
+export type SocialReportReason = (typeof socialReportReason.enumValues)[number];
 export type SocialGroup = typeof socialGroups.$inferSelect;
 export type SocialGroupMember = typeof socialGroupMembers.$inferSelect;
 export type SocialLike = typeof socialLikes.$inferSelect;

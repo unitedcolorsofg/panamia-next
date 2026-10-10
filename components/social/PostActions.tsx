@@ -1,10 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useLikePost, useUnlikePost } from '@/lib/query/social';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useLikePost, useMyActor, useUnlikePost } from '@/lib/query/social';
+import {
+  Flag,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Share2,
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { ReportDialog } from './ReportDialog';
 
 interface PostActionsProps {
   statusId: string;
@@ -28,6 +42,14 @@ export function PostActions({
   const likePost = useLikePost();
   const unlikePost = useUnlikePost();
   const { t } = useTranslation('toast');
+  const [reportOpen, setReportOpen] = useState(false);
+
+  // Reporting needs a social actor of your own, and reporting yourself is
+  // rejected by the route, so the menu only appears when it can actually do
+  // something. `useMyActor` is already cached by the surrounding timeline, so
+  // this costs no extra request per post.
+  const { data: me } = useMyActor();
+  const canReport = !!me?.actor && me.actor.username !== actorUsername;
 
   const handleLike = async () => {
     try {
@@ -114,6 +136,36 @@ export function PostActions({
       >
         <Share2 className="h-4 w-4" />
       </Button>
+
+      {canReport && (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="More options for this post"
+                className="text-muted-foreground hover:text-foreground h-8 px-2 pointer-coarse:h-11 pointer-coarse:min-w-11"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setReportOpen(true)}>
+                <Flag className="mr-2 h-4 w-4" />
+                Report post
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <ReportDialog
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            username={actorUsername}
+            statusId={statusId}
+          />
+        </>
+      )}
     </div>
   );
 }

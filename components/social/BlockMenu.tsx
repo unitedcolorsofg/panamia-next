@@ -21,6 +21,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -39,7 +40,15 @@ import {
   type SocialBlockKind,
 } from '@/lib/query/social';
 import { toast } from '@/hooks/use-toast';
-import { MoreHorizontal, Ban, VolumeX, Volume2, Loader2 } from 'lucide-react';
+import {
+  MoreHorizontal,
+  Ban,
+  Flag,
+  VolumeX,
+  Volume2,
+  Loader2,
+} from 'lucide-react';
+import { ReportDialog } from './ReportDialog';
 
 interface BlockMenuProps {
   username: string;
@@ -55,6 +64,7 @@ export function BlockMenu({
   isMuted = false,
 }: BlockMenuProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const blockActor = useBlockActor();
   const unblockActor = useUnblockActor();
 
@@ -121,6 +131,18 @@ export function BlockMenu({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" className="w-56">
+          {/*
+            Report sits above mute and block because it is the only one of the
+            three that tells us something. Muting and blocking are private
+            housekeeping; reporting is how a problem actually reaches a human.
+          */}
+          <DropdownMenuItem onClick={() => setReportOpen(true)}>
+            <Flag className="mr-2 h-4 w-4" />
+            Report {who}
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
           {isMuted ? (
             <DropdownMenuItem onClick={() => run('unmute', 'mute')}>
               <Volume2 className="mr-2 h-4 w-4" />
@@ -149,6 +171,14 @@ export function BlockMenu({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        username={username}
+        displayName={displayName}
+        canBlock={!isBlocked}
+      />
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

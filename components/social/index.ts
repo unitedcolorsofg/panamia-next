@@ -13,4 +13,5 @@ export { StoryRing } from './StoryRing';
 export { StoryViewer } from './StoryViewer';
 export { StoryComposer } from './StoryComposer';
 export { BlockMenu } from './BlockMenu';
+export { ReportDialog } from './ReportDialog';
 export { BlockedAccountsSettings } from './BlockedAccountsSettings';

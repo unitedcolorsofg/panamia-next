@@ -162,6 +162,15 @@ export const inventory: Record<TableExport, Classification> = {
   // so it is personal data about the viewer, not just the author.
   socialStoryViews: ['social_graph'],
   socialTags: ['social_posts'],
+  // Reports members file about a post or an account from inside the app.
+  // Personal data about BOTH parties and, like socialBlocks, among the most
+  // sensitive we hold: a report is an accusation attached to a named person.
+  // Unlike the rest of the social tables it survives account deletion by
+  // design -- a pattern of behaviour across since-deleted posts is exactly
+  // what a moderator needs, and cascading would make deleting the reported
+  // post the cheapest way to clear the queue against yourself. The content
+  // snapshot is part of the record for the same reason.
+  socialReports: ['social_abuse_reports'],
   articleAnnouncements: ['activitypub_federated_content'],
 
   // --- Events ---

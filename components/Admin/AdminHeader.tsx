@@ -73,6 +73,12 @@ export default function AdminMenu() {
               Abuse Reports
             </AdminButton>
           </li>
+          <li>
+            <AdminButton href="/account/admin/social-reports">
+              <IconFlag height="16" />
+              In-App Reports
+            </AdminButton>
+          </li>
         </ul>
       </div>
     </header>

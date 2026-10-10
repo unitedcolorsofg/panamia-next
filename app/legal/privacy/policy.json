@@ -125,6 +125,31 @@
           }
         },
         {
+          "name": "social_abuse_reports",
+          "label": "Content Reports",
+          "module": "social",
+          "data": [
+            "reporter_handle",
+            "reported_handle",
+            "reported_post",
+            "reason",
+            "reporter_description",
+            "reported_content_snapshot"
+          ],
+          "source": "user_action",
+          "purpose": "safety_and_moderation",
+          "retention": "retained_after_account_deletion",
+          "display": {
+            "icon": "flag",
+            "source": "A member reports",
+            "purpose": "Safety and moderation",
+            "retention": "Outlives account deletion",
+            "sharedWith": "Moderators",
+            "prose": "In-app content reports — who reported whom, the reason chosen, anything the reporter wrote, and a snapshot of the reported post taken at the time it was reported. Retained even after the accounts involved are deleted.",
+            "blurb": "Reports members file about posts or accounts in the app. The snapshot is kept so moderators can still see what was reported if the post is later deleted, and reports outlive the accounts they concern."
+          }
+        },
+        {
           "name": "rsvps",
           "label": "RSVPs",
           "module": "events",

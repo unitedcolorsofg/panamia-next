@@ -15,6 +15,7 @@ import type {
   SocialGroupRole,
   SocialGroupVisibility,
 } from '@/lib/schema';
+import type { SocialReportReason } from '@/lib/social-report-reasons';
 
 export const socialQueryKey = ['social'];
 
@@ -1503,3 +1504,31 @@ export const useUnblockActor = () => {
     },
   });
 };
+
+interface ReportMutationVars {
+  /** The reported post. Omit to report the account itself. */
+  statusId?: string;
+  /** The reported account. Required when `statusId` is omitted. */
+  username?: string;
+  reason: SocialReportReason;
+  /** Free text from the reporter. Optional on purpose. */
+  details?: string;
+}
+
+/**
+ * File an abuse report against a post or an account.
+ *
+ * Deliberately has no `onSettled` invalidation, unlike the block hooks above.
+ * Blocking changes what the viewer can see, so the timeline has to be refetched;
+ * reporting changes nothing they can see. Refetching here would make the
+ * timeline flicker for no reason at the exact moment somebody is upset.
+ *
+ * Reporting the same thing twice is a success, not an error — see the route.
+ * Anyone who wants the content gone as well should block too, which is why the
+ * dialog offers that as a follow-up rather than doing it implicitly.
+ */
+export const useReportContent = () =>
+  useMutation({
+    mutationFn: (vars: ReportMutationVars) =>
+      axios.post('/api/social/reports', vars),
+  });
