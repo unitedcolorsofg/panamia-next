@@ -427,6 +427,21 @@ export const envConfig: Record<string, EnvVarConfig> = {
   },
 
   // =============================================================================
+  // GIFS IN DIRECT MESSAGES (GIPHY)
+  // =============================================================================
+  GIPHY_API_KEY: {
+    description:
+      'GIPHY API key for the message composer GIF picker. ' +
+      'Unset is a supported state: /api/social/gifs answers { enabled: false } ' +
+      'and the composer never draws the GIF button. ' +
+      'Beta keys are capped at 100 calls per hour for the whole app, which is ' +
+      'why that route caches results in two tiers.',
+    location: 'SECRET',
+    required: false,
+    docsUrl: 'https://developers.giphy.com/dashboard/',
+  },
+
+  // =============================================================================
   // GHL (GoHighLevel CRM)
   // =============================================================================
   GHL_API_KEY: {
